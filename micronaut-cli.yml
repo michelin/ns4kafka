@@ -1,0 +1,6 @@
+applicationType: default
+defaultPackage: com.michelin.ns4kafka
+testFramework: junit
+sourceLanguage: java
+buildTool: gradle
+features: [annotation-api, app-name, gradle, http-client, java, java-application, junit, kafka, logback, netty-server, openapi, readme, security, security-annotations, security-jwt, security-ldap, shade, yaml]

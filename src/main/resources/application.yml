@@ -1,0 +1,17 @@
+micronaut:
+  application:
+    name: kafkaNs
+  security:
+    enabled: false
+    authentication: bearer
+    token:
+      jwt:
+        signatures:
+          secret:
+            generator:
+              secret: '"${JWT_GENERATOR_SIGNATURE_SECRET:pleaseChangeThisSecretForANewOne}"'
+kafka.bootstrap.servers: localhost:9092
+endpoints:
+  routes:
+    enabled: true
+    sensitive: false
