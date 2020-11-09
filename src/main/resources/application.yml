@@ -2,8 +2,10 @@ micronaut:
   application:
     name: kafkaNs
   security:
-    enabled: false
-    authentication: bearer
+    enabled: true
+    authentication: token
+    gitlab:
+      enabled: true
     token:
       jwt:
         signatures:

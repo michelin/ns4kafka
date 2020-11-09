@@ -11,6 +11,7 @@ import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 
 import io.micronaut.security.annotation.Secured;
+import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecurityRule;
 
 import java.util.Collections;
@@ -25,9 +26,10 @@ public class NamespaceController {
         return Collections.singletonList("1");
     }
 
+    @Secured(SecurityRule.IS_AUTHENTICATED)
     @Get("{namespace}")
-    public Namespace display(String namespace){
-        return generateFakeNS(namespace);
+    public Namespace display(Authentication authentication,String namespace){
+        return generateFakeNS(authentication, namespace);
     }
 
     @Post("{namespace}")
@@ -36,9 +38,10 @@ public class NamespaceController {
                 .body("Use PUT\n");
     }
 
-    private Namespace generateFakeNS(String name){
+    private Namespace generateFakeNS(Authentication authentication, String name){
         Namespace n = new Namespace();
         n.setName(name);
+        n.setAuthentication(authentication);
         n.setAdminLdapGroup("GP-FAKE-ADMIN");
         n.setQuotas(Map.of("cluster1","5Go","cluster2","2Go"));
         n.setPolicies(List.of(new TopicSecurityPolicy("f4m.*", ResourceSecurityPolicy.ResourcePatternType.PREFIXED,ResourceSecurityPolicy.SecurityPolicy.OWNER)));
