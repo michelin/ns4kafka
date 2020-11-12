@@ -1,3 +1,7 @@
+jackson:
+  serialization-inclusion: NON_ABSENT
+  serialization:
+    indent-output: true # Pretty-print JSO
 micronaut:
   application:
     name: kafkaNs
@@ -6,14 +10,35 @@ micronaut:
     authentication: token
     gitlab:
       enabled: true
+      url: https://gitlab.com
     token:
       jwt:
         signatures:
           secret:
             generator:
               secret: '"${JWT_GENERATOR_SIGNATURE_SECRET:pleaseChangeThisSecretForANewOne}"'
-kafka.bootstrap.servers: localhost:9092
-endpoints:
-  routes:
-    enabled: true
-    sensitive: false
+    intercept-url-map:
+      - pattern: /swagger/*
+        http-method: GET
+        access:
+        - isAnonymous()
+      - pattern: /rapidoc/*
+        http-method: GET
+        access:
+        - isAnonymous()
+  router:
+    static-resources:
+      swagger:
+        paths: classpath:META-INF/swagger
+        mapping: /swagger/**
+      redoc:
+        paths: classpath:META-INF/swagger/views/redoc
+        mapping: /redoc/**
+      rapidoc:
+        paths: classpath:META-INF/swagger/views/rapidoc
+        mapping: /rapidoc/**
+      swagger-ui:
+        paths: classpath:META-INF/swagger/views/swagger-ui
+        mapping: /swagger-ui/**
+# kafka.bootstrap.servers: localhost:9092
+

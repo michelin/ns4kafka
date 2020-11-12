@@ -5,11 +5,13 @@
         <!-- encoders are assigned the type
              ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
         <encoder>
-            <pattern>%cyan(%d{HH:mm:ss.SSS}) %gray([%thread]) %highlight(%-5level) %magenta(%logger{36}) - %msg%n</pattern>
+            <!-- <pattern>%cyan(%d{HH:mm:ss.SSS}) %gray([%thread]) %highlight(%-5level) %magenta(%logger{36}) - %msg%n</pattern> -->
+            <pattern>%highlight(%-5level) %magenta(%logger{5}) - %msg%n</pattern>
         </encoder>
     </appender>
-
-    <root level="debug">
+    <logger name="io.micronaut.security" level="debug"/>
+    <logger name="com.michelin" level="debug" />
+    <root level="info">
         <appender-ref ref="STDOUT" />
     </root>
 </configuration>

@@ -10,9 +10,8 @@ import java.util.Map;
 @Data
 public class Namespace {
     private String name;
-    private String adminLdapGroup;
+    private String owner;
     private List<ResourceSecurityPolicy> policies;
-    private Map<String, String> quotas;
-    //test
-    private Authentication authentication;
+    private int diskQuota;
+
 }

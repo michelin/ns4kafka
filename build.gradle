@@ -22,23 +22,23 @@ micronaut {
 
 dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.16'
+
     annotationProcessor 'org.projectlombok:lombok:1.18.16'
-
-    testCompileOnly 'org.projectlombok:lombok:1.18.16'
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.16'
-
     annotationProcessor("io.micronaut.openapi:micronaut-openapi")
     annotationProcessor("io.micronaut.security:micronaut-security-annotations")
+
     implementation("io.micronaut:micronaut-validation")
     implementation("io.micronaut:micronaut-runtime")
     implementation("javax.annotation:javax.annotation-api")
     implementation("io.micronaut:micronaut-http-client")
     implementation("io.swagger.core.v3:swagger-annotations")
     implementation("io.micronaut.security:micronaut-security")
-    implementation("io.micronaut.security:micronaut-security-jwt")
-    implementation("io.micronaut.security:micronaut-security-ldap")
-    implementation("io.micronaut.kafka:micronaut-kafka")
+
     runtimeOnly("ch.qos.logback:logback-classic")
+
+    testCompileOnly 'org.projectlombok:lombok:1.18.16'
+
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.16'
 }
 
 mainClassName = "com.michelin.ns4kafka.Application"
@@ -46,7 +46,11 @@ java {
     sourceCompatibility = JavaVersion.toVersion('11')
     targetCompatibility = JavaVersion.toVersion('11')
 }
+tasks.withType(JavaCompile) {
+    options.fork = true
+    options.forkOptions.jvmArgs << '-Dmicronaut.openapi.views.spec=redoc.enabled=true,rapidoc.enabled=true,swagger-ui.enabled=true,swagger-ui.theme=flattop'
 
+}
 
 
 
