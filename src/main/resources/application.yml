@@ -3,6 +3,9 @@ jackson:
   serialization:
     indent-output: true # Pretty-print JSO
 micronaut:
+  http:
+    client:
+      exception-on-error-status: false
   application:
     name: kafkaNs
   security:

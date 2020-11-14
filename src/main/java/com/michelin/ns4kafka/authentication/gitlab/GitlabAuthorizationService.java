@@ -31,8 +31,7 @@ public class GitlabAuthorizationService {
 
     public Maybe<List<Map<String,Object>>> findGroups(String token){
         HttpRequest<?> req = GET("/api/v4/groups").header("PRIVATE-TOKEN",token);
-        Flowable flow = httpClient.retrieve(req,Argument.listOf(Map.class),Argument.of(HttpClientResponseException.class));
-        return flow.firstElement();
+        return httpClient.retrieve(req,Argument.listOf(Argument.mapOf(String.class,Object.class))).firstElement();
     }
 
 }
