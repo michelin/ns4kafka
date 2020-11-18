@@ -6,7 +6,7 @@
              ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
         <encoder>
             <!-- <pattern>%cyan(%d{HH:mm:ss.SSS}) %gray([%thread]) %highlight(%-5level) %magenta(%logger{36}) - %msg%n</pattern> -->
-            <pattern>%highlight(%-5level) %magenta(%logger{5}) - %msg%n</pattern>
+            <pattern>%highlight(%-5level) %magenta(%logger{5}) - %msg  %gray([%thread]) %n</pattern>
         </encoder>
     </appender>
     <logger name="io.micronaut.security" level="debug"/>

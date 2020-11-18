@@ -1,11 +1,4 @@
-jackson:
-  serialization-inclusion: NON_ABSENT
-  serialization:
-    indent-output: true # Pretty-print JSO
 micronaut:
-  http:
-    client:
-      exception-on-error-status: false
   application:
     name: kafkaNs
   security:
@@ -21,14 +14,22 @@ micronaut:
             generator:
               secret: '"${JWT_GENERATOR_SIGNATURE_SECRET:pleaseChangeThisSecretForANewOne}"'
     intercept-url-map:
-      - pattern: /swagger/*
+      - pattern: /swagger/**
         http-method: GET
         access:
-        - isAnonymous()
-      - pattern: /rapidoc/*
+          - isAnonymous()
+      - pattern: /rapidoc/**
         http-method: GET
         access:
-        - isAnonymous()
+          - isAnonymous()
+      - pattern: /redoc/**
+        http-method: GET
+        access:
+          - isAnonymous()
+      - pattern: /swagger-ui/**
+        http-method: GET
+        access:
+          - isAnonymous()
   router:
     static-resources:
       swagger:
@@ -43,5 +44,30 @@ micronaut:
       swagger-ui:
         paths: classpath:META-INF/swagger/views/swagger-ui
         mapping: /swagger-ui/**
-# kafka.bootstrap.servers: localhost:9092
+kafka:
+  health:
+    enabled: false
+  bootstrap.servers: "[::1]:9093"
+  delivery.timeout.ms: 10000
+  request.timeout.ms: 10000
 
+jackson:
+  serialization-inclusion: NON_ABSENT
+  serialization:
+    indent-output: true # Pretty-print JSO
+
+ns4kafka:
+  store:
+    kafka:
+      enabled: true
+      topics:
+        namespaces: ns4kafka.namespaces
+        clusters: ns4kafka.clusters
+        constraint-validators: ns4kafka.cvs
+
+  security:
+    groups:
+      admin: # Creates namespaces and administer them
+        - f4m/admins
+      audit: # Can see everything, readonly
+        - nobody

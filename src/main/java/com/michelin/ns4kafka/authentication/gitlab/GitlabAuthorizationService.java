@@ -1,6 +1,8 @@
 package com.michelin.ns4kafka.authentication.gitlab;
 
+import io.micronaut.context.annotation.Requires;
 import io.micronaut.core.type.Argument;
+import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.client.RxHttpClient;
@@ -30,8 +32,10 @@ public class GitlabAuthorizationService {
     }
 
     public Maybe<List<Map<String,Object>>> findGroups(String token){
-        HttpRequest<?> req = GET("/api/v4/groups").header("PRIVATE-TOKEN",token);
-        return httpClient.retrieve(req,Argument.listOf(Argument.mapOf(String.class,Object.class))).firstElement();
+        return httpClient.retrieve(
+                GET("/api/v4/groups").header("PRIVATE-TOKEN",token),
+                Argument.listOf(Argument.mapOf(String.class,Object.class))
+        ).firstElement();
     }
 
 }

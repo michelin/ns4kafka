@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.authentication.gitlab;
 
+import io.micronaut.context.annotation.Requires;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpStatus;
