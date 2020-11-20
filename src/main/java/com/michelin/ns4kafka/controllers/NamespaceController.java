@@ -1,9 +1,11 @@
 package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.role.RoleBinding;
 import com.michelin.ns4kafka.models.security.ResourceSecurityPolicy;
 import com.michelin.ns4kafka.models.security.TopicSecurityPolicy;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
+import com.michelin.ns4kafka.repositories.RoleBindingRepository;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MutableHttpResponse;
@@ -24,23 +26,37 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-@SecurityRequirement(name = "X-Gitlab-Token")
-@Secured(SecurityRule.IS_AUTHENTICATED)
 @Controller("/api/namespace")
 public class NamespaceController {
 
     @Inject
     NamespaceRepository namespaceRepository;
+    @Inject
+    RoleBindingRepository roleBindingRepository;
 
-    @Get("produce/{name}")
-    public Namespace create(String name){
+    @Get("{namespace}/topics/{resourceType}/produce")
+    public Namespace create(String namespace, String resourceType){
         Namespace n1 = new Namespace();
-        n1.setName(name);
+        n1.setName(namespace);
         n1.setOwner("f4m/admins");
         n1.setDiskQuota(5);
         n1.setPolicies(List.of(new TopicSecurityPolicy("f4m.*", ResourceSecurityPolicy.ResourcePatternType.PREFIXED,ResourceSecurityPolicy.SecurityPolicy.OWNER)));
 
         return namespaceRepository.createNamespace(n1);
+    }
+
+    @Get("init")
+    public RoleBinding getRole(){
+        Namespace n1 = new Namespace();
+        n1.setName("rf4maze0");
+        n1.setOwner("f4m/admins");
+        n1.setDiskQuota(5);
+        n1.setPolicies(List.of(new TopicSecurityPolicy("f4m.*", ResourceSecurityPolicy.ResourcePatternType.PREFIXED,ResourceSecurityPolicy.SecurityPolicy.OWNER)));
+
+        namespaceRepository.createNamespace(n1);
+        RoleBinding rb = new RoleBinding("rf4maze0", "f4m/admins" );
+
+        return roleBindingRepository.create(rb);
     }
 
     @Get

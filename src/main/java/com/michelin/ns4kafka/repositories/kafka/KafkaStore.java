@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.Application;
 import io.micronaut.configuration.kafka.ConsumerAware;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.runtime.Micronaut;
+import io.micronaut.scheduling.TaskScheduler;
 import io.micronaut.scheduling.annotation.Scheduled;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -21,12 +22,10 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class KafkaStore<T> {
@@ -48,6 +47,37 @@ public abstract class KafkaStore<T> {
         this.topic = topic;
         this.kafkaProducer = kafkaProducer;
         this.kafkaStore = new ConcurrentHashMap<String,T>();
+    }
+
+    T produce(String key, T message){
+        try {
+            long startTime = System.currentTimeMillis();
+
+            RecordMetadata metadata = kafkaProducer.send(new ProducerRecord<>(topic, key, message)).get(initTimeout, TimeUnit.MILLISECONDS);
+            lastWrittenOffset = metadata.offset();
+            LOG.debug("Produces message "+message.getClass().toString()+" at offset "+lastWrittenOffset+". Awaiting KaflaStore sync");
+            // TODO use Lock await and signal
+            // good enough for proof of concept
+            int i = 0;
+            while(i++ < 50) {
+                if (lastReadOffset >= lastWrittenOffset) {
+                    //great !
+                    long delta = System.currentTimeMillis() - startTime;
+                    LOG.debug("Synced object "+message.getClass().toString()+ " in ms:"+delta);
+                    return kafkaStore.get(key);
+                }else{
+                    Thread.sleep(200);
+                }
+            }
+            throw new TimeoutException("Timed out waiting for offset sync !");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        }
+        return kafkaStore.get(key);
     }
 
     void receive(ConsumerRecord<String, T> record) {
@@ -81,7 +111,7 @@ public abstract class KafkaStore<T> {
         }
     }
 
-    @Scheduled(initialDelay = "20s" )
+    @Scheduled(initialDelay = "10s" )
     void onceOneMinuteAfterStartup() {
         if(lastReadOffset>=lastWrittenOffset) {
             LOG.info("Target offset reached for topic "+topic);
@@ -91,7 +121,7 @@ public abstract class KafkaStore<T> {
         }
     }
 
-        // BEGIN http://www.confluent.io/confluent-community-license
+    // BEGIN http://www.confluent.io/confluent-community-license
     private void createOrVerifySchemaTopic(String topic) throws StoreInitializationException {
 
         try {
@@ -143,6 +173,7 @@ public abstract class KafkaStore<T> {
                 TopicConfig.CLEANUP_POLICY_CONFIG,
                 TopicConfig.CLEANUP_POLICY_COMPACT
         );
+        //TODO handle ns4kafka.storage.kafka.topics.config
         schemaTopicRequest.configs(topicConfigs);
         try {
             adminClient.createTopics(Collections.singleton(schemaTopicRequest)).all()

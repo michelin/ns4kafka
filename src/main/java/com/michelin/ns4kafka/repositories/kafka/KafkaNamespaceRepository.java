@@ -22,14 +22,14 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
 
     private SecurityService securityService;
 
-    public KafkaNamespaceRepository(@Value("${ns4kafka.store.kafka.topics.namespaces}") String topic,
+    public KafkaNamespaceRepository(@Value("${ns4kafka.store.kafka.topics.prefix}.namespaces") String topic,
                                     @KafkaClient("namespace-producer") Producer<String, Namespace> kafkaProducer,
                                     SecurityService securityService) {
         super(topic, kafkaProducer);
         this.securityService=securityService;
     }
 
-    @Topic(value = "${ns4kafka.store.kafka.topics.namespaces}")
+    @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.namespaces")
     void receive(ConsumerRecord<String, Namespace> record) {
         super.receive(record);
     }
@@ -42,7 +42,7 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
 
     @Override
     public Namespace createNamespace(Namespace namespace) {
-        return null;
+        return produce(namespace.getName(),namespace);
     }
 
     @Override

@@ -61,9 +61,11 @@ ns4kafka:
     kafka:
       enabled: true
       topics:
-        namespaces: ns4kafka.namespaces
-        clusters: ns4kafka.clusters
-        constraint-validators: ns4kafka.cvs
+        prefix: ns4kafka
+        configs:
+          min.compaction.lag.ms: 0
+          max.compaction.lag.ms: 60000
+          segment.ms: 60000
 
   security:
     groups:
