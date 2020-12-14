@@ -20,13 +20,9 @@ import java.util.Optional;
 )
 public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements NamespaceRepository {
 
-    private SecurityService securityService;
-
-    public KafkaNamespaceRepository(@Value("${ns4kafka.store.kafka.topics.prefix}.namespaces") String topic,
-                                    @KafkaClient("namespace-producer") Producer<String, Namespace> kafkaProducer,
-                                    SecurityService securityService) {
-        super(topic, kafkaProducer);
-        this.securityService=securityService;
+    public KafkaNamespaceRepository(@Value("${ns4kafka.store.kafka.topics.prefix}.namespaces") String kafkaTopic,
+                                    @KafkaClient("namespace-producer") Producer<String, Namespace> kafkaProducer) {
+        super(kafkaTopic, kafkaProducer);
     }
 
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.namespaces")
@@ -49,7 +45,7 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
     public Optional<Namespace> findByName(String namespace) {
         return findAll()
                 .stream()
-                .filter(ns -> securityService.hasRole(ns.getOwner()) && ns.getName().equals(namespace))
+                .filter(ns -> ns.getName().equals(namespace))
                 .findFirst();
     }
 

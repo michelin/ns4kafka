@@ -1,8 +1,7 @@
 package com.michelin.ns4kafka.repositories;
 
-import com.michelin.ns4kafka.models.role.RoleBinding;
+import com.michelin.ns4kafka.models.RoleBinding;
 
-import javax.management.relation.Role;
 import java.util.Collection;
 
 public interface RoleBindingRepository {

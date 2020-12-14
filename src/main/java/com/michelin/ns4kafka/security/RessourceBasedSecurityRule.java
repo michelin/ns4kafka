@@ -1,8 +1,7 @@
 package com.michelin.ns4kafka.security;
 
-import com.michelin.ns4kafka.models.role.RoleBinding;
+import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
-import com.michelin.ns4kafka.repositories.kafka.KafkaStore;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.security.rules.SecurityRuleResult;
@@ -29,10 +28,10 @@ public class RessourceBasedSecurityRule implements SecurityRule {
             List<String> roles = (List<String>)claims.get("roles");
             Map<String, Object> vals = routeMatch.getVariableValues();
             if(vals.containsKey("namespace") && vals.containsKey("resourceType")){
-                String resourcePath = "/api/namespace/"+vals.get("namespace");
+                String resourcePath = "/api/namespaces/"+vals.get("namespace");
                 Collection<RoleBinding> roleBindings = roleBindingRepository.findAllForGroups(roles);
                 boolean authorized = roleBindings.stream()
-                        .map(roleBinding -> "/api/namespace/"+roleBinding.getNamespace())
+                        .map(roleBinding -> "/api/namespaces/"+roleBinding.getNamespace())
                         .anyMatch(s -> s.equals(resourcePath));
                 if(authorized){
                     LOG.debug("Accepted requested resourcePath: "+resourcePath);

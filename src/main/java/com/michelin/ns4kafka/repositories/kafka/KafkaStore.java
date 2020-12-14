@@ -1,13 +1,8 @@
 package com.michelin.ns4kafka.repositories.kafka;
 
-import com.michelin.ns4kafka.Application;
-import io.micronaut.configuration.kafka.ConsumerAware;
 import io.micronaut.context.ApplicationContext;
-import io.micronaut.runtime.Micronaut;
-import io.micronaut.scheduling.TaskScheduler;
 import io.micronaut.scheduling.annotation.Scheduled;
 import org.apache.kafka.clients.admin.*;
-import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -20,13 +15,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
-import javax.validation.constraints.NotNull;
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class KafkaStore<T> {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaStore.class);
@@ -36,15 +26,15 @@ public abstract class KafkaStore<T> {
 
 
     Map<String,T> kafkaStore;
-    String topic;
+    String kafkaTopic;
     Producer<String,T> kafkaProducer;
     long lastReadOffset = -1;
     long lastWrittenOffset = Long.MAX_VALUE;
     int initTimeout = 10000;
     int desiredReplicationFactor = 1;
 
-    public KafkaStore(String topic, Producer<String,T> kafkaProducer){
-        this.topic = topic;
+    public KafkaStore(String kafkaTopic, Producer<String,T> kafkaProducer){
+        this.kafkaTopic = kafkaTopic;
         this.kafkaProducer = kafkaProducer;
         this.kafkaStore = new ConcurrentHashMap<String,T>();
     }
@@ -53,7 +43,7 @@ public abstract class KafkaStore<T> {
         try {
             long startTime = System.currentTimeMillis();
 
-            RecordMetadata metadata = kafkaProducer.send(new ProducerRecord<>(topic, key, message)).get(initTimeout, TimeUnit.MILLISECONDS);
+            RecordMetadata metadata = kafkaProducer.send(new ProducerRecord<>(kafkaTopic, key, message)).get(initTimeout, TimeUnit.MILLISECONDS);
             lastWrittenOffset = metadata.offset();
             LOG.debug("Produces message "+message.getClass().toString()+" at offset "+lastWrittenOffset+". Awaiting KaflaStore sync");
             // TODO use Lock await and signal
@@ -96,13 +86,13 @@ public abstract class KafkaStore<T> {
 
     @PostConstruct
     private void createOrVerifyTopic() throws StoreInitializationException {
-        createOrVerifySchemaTopic(topic);
+        createOrVerifySchemaTopic(kafkaTopic);
         produceNOOP();
     }
     void produceNOOP() throws StoreInitializationException {
         try {
             LOG.trace("Sending Noop record to KafkaStore to find last offset.");
-            Future<RecordMetadata> ack = kafkaProducer.send(new ProducerRecord<>(topic,"NOOP",null));
+            Future<RecordMetadata> ack = kafkaProducer.send(new ProducerRecord<>(kafkaTopic,"NOOP",null));
             RecordMetadata metadata = ack.get(initTimeout, TimeUnit.MILLISECONDS);
             this.lastWrittenOffset = metadata.offset();
             LOG.trace("Noop record's offset is " + this.lastWrittenOffset);
@@ -114,9 +104,9 @@ public abstract class KafkaStore<T> {
     @Scheduled(initialDelay = "10s" )
     void onceOneMinuteAfterStartup() {
         if(lastReadOffset>=lastWrittenOffset) {
-            LOG.info("Target offset reached for topic "+topic);
+            LOG.info("Target offset reached for kafkaTopic "+ kafkaTopic);
         }else{
-            LOG.error("Server stop requested because could not read fully topic "+topic);
+            LOG.error("Server stop requested because could not read fully kafkaTopic "+ kafkaTopic);
             applicationContext.stop();
         }
     }
@@ -133,12 +123,12 @@ public abstract class KafkaStore<T> {
             }
         } catch (TimeoutException e) {
             throw new StoreInitializationException(
-                    "Timed out trying to create or validate topic configuration",
+                    "Timed out trying to create or validate kafkaTopic configuration",
                     e
             );
         } catch (InterruptedException | ExecutionException e) {
             throw new StoreInitializationException(
-                    "Failed trying to create or validate topic configuration",
+                    "Failed trying to create or validate kafkaTopic configuration",
                     e
             );
         }
@@ -148,7 +138,7 @@ public abstract class KafkaStore<T> {
             InterruptedException,
             ExecutionException,
             TimeoutException {
-        LOG.info("Creating topic {}", topic);
+        LOG.info("Creating kafkaTopic {}", topic);
 
         int numLiveBrokers = adminClient.describeCluster().nodes()
                 .get(initTimeout, TimeUnit.MILLISECONDS).size();
@@ -158,13 +148,13 @@ public abstract class KafkaStore<T> {
 
         int schemaTopicReplicationFactor = Math.min(numLiveBrokers, desiredReplicationFactor);
         if (schemaTopicReplicationFactor < desiredReplicationFactor) {
-            LOG.warn("Creating the topic "
+            LOG.warn("Creating the kafkaTopic "
                     + topic
                     + " using a replication factor of "
                     + schemaTopicReplicationFactor
                     + ", which is less than the desired one of "
                     + desiredReplicationFactor + ". If this is a production environment, it's "
-                    + "crucial to add more brokers and increase the replication factor of the topic.");
+                    + "crucial to add more brokers and increase the replication factor of the kafkaTopic.");
         }
 
         NewTopic schemaTopicRequest = new NewTopic(topic, 1, (short) schemaTopicReplicationFactor);
@@ -180,7 +170,7 @@ public abstract class KafkaStore<T> {
                     .get(initTimeout, TimeUnit.MILLISECONDS);
         } catch (ExecutionException e) {
             if (e.getCause() instanceof TopicExistsException) {
-                // If topic already exists, ensure that it is configured correctly.
+                // If kafkaTopic already exists, ensure that it is configured correctly.
                 verifySchemaTopic(topic);
             } else {
                 throw e;
@@ -192,7 +182,7 @@ public abstract class KafkaStore<T> {
             InterruptedException,
             ExecutionException,
             TimeoutException {
-        LOG.info("Validating topic {}", topic);
+        LOG.info("Validating kafkaTopic {}", topic);
 
         Set<String> topics = Collections.singleton(topic);
         Map<String, TopicDescription> topicDescription = adminClient.describeTopics(topics)
@@ -201,17 +191,17 @@ public abstract class KafkaStore<T> {
         TopicDescription description = topicDescription.get(topic);
         final int numPartitions = description.partitions().size();
         if (numPartitions != 1) {
-            throw new StoreInitializationException("The topic " + topic + " should have only 1 "
+            throw new StoreInitializationException("The kafkaTopic " + topic + " should have only 1 "
                     + "partition but has " + numPartitions);
         }
 
         if (description.partitions().get(0).replicas().size() < desiredReplicationFactor) {
-            LOG.warn("The replication factor of the topic "
+            LOG.warn("The replication factor of the kafkaTopic "
                     + topic
                     + " is less than the desired one of "
                     + desiredReplicationFactor
                     + ". If this is a production environment, it's crucial to add more brokers and "
-                    + "increase the replication factor of the topic.");
+                    + "increase the replication factor of the kafkaTopic.");
         }
 
         ConfigResource topicResource = new ConfigResource(ConfigResource.Type.TOPIC, topic);
@@ -222,12 +212,12 @@ public abstract class KafkaStore<T> {
         Config topicConfigs = configs.get(topicResource);
         String retentionPolicy = topicConfigs.get(TopicConfig.CLEANUP_POLICY_CONFIG).value();
         if (retentionPolicy == null || !TopicConfig.CLEANUP_POLICY_COMPACT.equals(retentionPolicy)) {
-            LOG.error("The retention policy of the topic " + topic + " is incorrect. "
-                    + "You must configure the topic to 'compact' cleanup policy to avoid Kafka "
+            LOG.error("The retention policy of the kafkaTopic " + topic + " is incorrect. "
+                    + "You must configure the kafkaTopic to 'compact' cleanup policy to avoid Kafka "
                     + "deleting your data after a week. "
                     + "Refer to Kafka documentation for more details on cleanup policies");
 
-            throw new StoreInitializationException("The retention policy of the schema topic " + topic
+            throw new StoreInitializationException("The retention policy of the schema kafkaTopic " + topic
                     + " is incorrect. Expected cleanup.policy to be "
                     + "'compact' but it is " + retentionPolicy);
 
