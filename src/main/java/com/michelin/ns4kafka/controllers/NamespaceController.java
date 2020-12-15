@@ -39,7 +39,7 @@ public class NamespaceController {
     public HttpResponse create(Namespace namespace){
 
         return HttpResponse.status(HttpStatus.CONFLICT,"Resource already exists. Use PUT instead.")
-                .body("Use PUT\n");
+                .body("Use PUT");
     }
 
 }
