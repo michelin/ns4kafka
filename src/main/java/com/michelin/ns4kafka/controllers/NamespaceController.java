@@ -11,40 +11,19 @@ import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 
 import io.micronaut.security.authentication.Authentication;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.inject.Inject;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+@Tag(name = "Namespaces")
 @Controller("/api/namespaces")
 public class NamespaceController {
 
     @Inject
     NamespaceRepository namespaceRepository;
-    @Inject
-    RoleBindingRepository roleBindingRepository;
-    @Inject
-    TopicRepository topicRepository;
-
-
-    @Get("init")
-    public RoleBinding getRole(){
-        Namespace n1 = new Namespace();
-        n1.setName("rf4maze0");
-        n1.setDiskQuota(5);
-        n1.setPolicies(List.of(new TopicSecurityPolicy("f4m.", ResourceSecurityPolicy.ResourcePatternType.PREFIXED,ResourceSecurityPolicy.SecurityPolicy.OWNER)));
-
-        Topic t1 = new Topic();
-        t1.setName("f4m.topic1");
-        t1.setCluster("MFG_AZE");
-        topicRepository.create(t1);
-
-        namespaceRepository.createNamespace(n1);
-        RoleBinding rb = new RoleBinding("rf4maze0", "f4m/admins" );
-
-        return roleBindingRepository.create(rb);
-    }
 
     @Get
     public Collection<Namespace> list(){

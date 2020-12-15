@@ -9,10 +9,11 @@ import java.util.Map;
 @NoArgsConstructor
 @Getter
 @Setter
-public class Topic {
+public class Topic extends KafkaResource {
     private String cluster;
     private String name;
     private int replicationFactor;
     private int partitions;
-    private Map<String,Object> config;
+    private Map<String,String> config;
+
 }

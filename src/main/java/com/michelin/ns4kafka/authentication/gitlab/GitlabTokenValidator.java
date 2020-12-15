@@ -39,21 +39,23 @@ public class GitlabTokenValidator implements TokenValidator {
     @Override
     public Publisher<Authentication> validateToken(String token, @Nullable HttpRequest<?> request) throws AuthenticationException{
         if(StringUtils.isNotEmpty(token)) {
-            return gitlabAuthorizationService.findGroups(token)
+            return gitlabAuthorizationService.findUsername(token)
                     .onErrorResumeNext(throwable -> {
                         LOG.debug("Gitlab exception during Authentication step", throwable);
                         return Maybe.empty();
                     })
-                    .flatMapPublisher( response -> {
-                        if (response.size()>0) {
-                            List<String> groups = response.stream()
-                                    .map(item -> item.get("full_path").toString())
-                                    .collect(Collectors.toList());
-                            return Flowable.just(new DefaultAuthentication(token, Map.of("roles", groups)));
-                        } else {
-                            LOG.debug("Gitlab Authentication succeed but no groups found");
-                            return Flowable.empty();
-                        }
+                    .flatMapPublisher(username -> {
+                        return gitlabAuthorizationService.findGroups(token)
+                                .onErrorResumeNext(throwable -> {
+                                    LOG.debug("Gitlab exception during Authentication step", throwable);
+                                    return Maybe.empty();
+                                })
+                                .flatMapPublisher(response -> {
+                                    List<String> groups = response.stream()
+                                            .map(item -> item.get("full_path").toString())
+                                            .collect(Collectors.toList());
+                                    return Flowable.just(new DefaultAuthentication(username, Map.of("roles", groups)));
+                                });
                     });
 
         }else{

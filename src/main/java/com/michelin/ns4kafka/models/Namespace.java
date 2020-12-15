@@ -9,6 +9,7 @@ import java.util.List;
 @Setter
 public class Namespace {
     private String name;
+    private String cluster;
     private List<ResourceSecurityPolicy> policies;
     private int diskQuota;
 

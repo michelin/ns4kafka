@@ -33,9 +33,17 @@ public class GitlabAuthorizationService {
 
     public Maybe<List<Map<String,Object>>> findGroups(String token){
         return httpClient.retrieve(
-                GET("/api/v4/groups").header("PRIVATE-TOKEN",token),
+                //TODO this will (eventually) fail because of gitlab pagination. Returns only page 1 for now.
+                //https://docs.gitlab.com/ee/api/groups.html
+                GET("/api/v4/groups?min_access_level=10").header("PRIVATE-TOKEN",token),
                 Argument.listOf(Argument.mapOf(String.class,Object.class))
         ).firstElement();
+    }
+    public Maybe<String> findUsername(String token){
+        return httpClient.retrieve(
+                GET("/api/v4/user").header("PRIVATE-TOKEN",token),
+                Argument.mapOf(String.class,Object.class)
+        ).firstElement().map(stringObjectMap -> stringObjectMap.get("email").toString());
     }
 
 }

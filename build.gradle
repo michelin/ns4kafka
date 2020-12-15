@@ -49,7 +49,7 @@ java {
 }
 tasks.withType(JavaCompile) {
     options.fork = true
-    options.forkOptions.jvmArgs << '-Dmicronaut.openapi.views.spec=redoc.enabled=true,rapidoc.enabled=true,swagger-ui.enabled=true,swagger-ui.theme=flattop'
+    options.forkOptions.jvmArgs << '-Dmicronaut.openapi.views.spec=rapidoc.enabled=true'
 
 }
 

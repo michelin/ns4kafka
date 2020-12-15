@@ -16,8 +16,8 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
 @OpenAPIDefinition(
         security = @SecurityRequirement(name = "X-Gitlab-Token"),
         info = @Info(
-                title = "kafka-ns",
-                version = "0.0"
+                title = "ns4kafka",
+                version = "0.1"
         )
 )
 public class Application {

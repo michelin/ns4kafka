@@ -12,3 +12,4 @@ out/
 .settings
 .classpath
 .factorypath
+src/main/java/com/michelin/ns4kafka/controllers/InitController.java

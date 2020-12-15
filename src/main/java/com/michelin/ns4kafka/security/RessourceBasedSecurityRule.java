@@ -25,6 +25,7 @@ public class RessourceBasedSecurityRule implements SecurityRule {
     @Override
     public SecurityRuleResult check(HttpRequest<?> request, @Nullable RouteMatch<?> routeMatch, @Nullable Map<String, Object> claims) {
         if(routeMatch != null && claims != null && claims.containsKey("roles")){
+            LOG.info("API call from "+request.getUserPrincipal().get().getName()+ " on resource "+routeMatch.toString());
             List<String> roles = (List<String>)claims.get("roles");
             Map<String, Object> vals = routeMatch.getVariableValues();
             if(vals.containsKey("namespace") && vals.containsKey("resourceType")){

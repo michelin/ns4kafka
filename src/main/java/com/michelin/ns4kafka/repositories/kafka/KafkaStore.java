@@ -24,6 +24,7 @@ public abstract class KafkaStore<T> {
     @Inject ApplicationContext applicationContext;
     @Inject AdminClient adminClient;
 
+    @Inject KafkaStoreConfig kafkaStoreConfig;
 
     Map<String,T> kafkaStore;
     String kafkaTopic;
@@ -71,14 +72,19 @@ public abstract class KafkaStore<T> {
     }
 
     void receive(ConsumerRecord<String, T> record) {
+        String operation=null;
         if(record.key().equals("NOOP")){
-            LOG.debug("NOOP record, doing nothing");
+            //LOG.debug(kafkaTopic+" : NOOP");
         }else if (record.value()==null){
-            LOG.debug("DELETE REQUESTED");
+            operation="DELETE";
             kafkaStore.remove(record.key());
         }else {
-            LOG.debug("ADDED");
+            if(kafkaStore.containsKey(record.key()))
+                operation="UPDATE";
+            else
+                operation="NEW";
             kafkaStore.put(record.key(), record.value());
+            LOG.debug(String.format("%s %s %s",operation, kafkaTopic,record.key()));
         }
 
         lastReadOffset = record.offset();
@@ -158,13 +164,7 @@ public abstract class KafkaStore<T> {
         }
 
         NewTopic schemaTopicRequest = new NewTopic(topic, 1, (short) schemaTopicReplicationFactor);
-        Map topicConfigs = new HashMap();
-        topicConfigs.put(
-                TopicConfig.CLEANUP_POLICY_CONFIG,
-                TopicConfig.CLEANUP_POLICY_COMPACT
-        );
-        //TODO handle ns4kafka.storage.kafka.topics.config
-        schemaTopicRequest.configs(topicConfigs);
+        schemaTopicRequest.configs(kafkaStoreConfig.getProperties());
         try {
             adminClient.createTopics(Collections.singleton(schemaTopicRequest)).all()
                     .get(initTimeout, TimeUnit.MILLISECONDS);
