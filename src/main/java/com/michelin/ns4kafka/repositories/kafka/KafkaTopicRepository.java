@@ -20,6 +20,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -70,6 +71,14 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
         } else {
             return Collections.EMPTY_LIST;
         }
+    }
+
+    @Override
+    public List<Topic> findAllForCluster(String cluster) {
+        return kafkaStore.values()
+                .stream()
+                .filter(topic -> topic.getCluster().equals(cluster))
+                .collect(Collectors.toList());
     }
 
     @Override

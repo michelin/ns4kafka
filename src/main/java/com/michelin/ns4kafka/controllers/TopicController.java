@@ -1,19 +1,14 @@
 package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.models.*;
-import com.michelin.ns4kafka.repositories.ClusterRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.TopicRepository;
-import io.micronaut.configuration.kafka.admin.AdminClientFactory;
 import io.micronaut.http.annotation.*;
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.apache.kafka.clients.admin.AdminClient;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 @Tag(name = "Topics")
@@ -23,21 +18,6 @@ public class TopicController {
     NamespaceRepository namespaceRepository;
     @Inject
     TopicRepository topicRepository;
-    @Inject
-    ClusterRepository clusterRepository;
-
-    @Get("{topic}/produce")
-    public Namespace produce(String namespace, String topic){
-        Namespace n1 = new Namespace();
-        n1.setName(namespace);
-        n1.setDiskQuota(5);
-        n1.setPolicies(List.of(new TopicSecurityPolicy("f4m.",
-                ResourceSecurityPolicy.ResourcePatternType.PREFIXED,
-                ResourceSecurityPolicy.SecurityPolicy.OWNER))
-        );
-
-        return namespaceRepository.createNamespace(n1);
-    }
 
     /**
      * @param namespace The namespace to query
@@ -67,8 +47,11 @@ public class TopicController {
         // 2. Request Valid ?
         // 3. Store
         Namespace ns = namespaceRepository.findByName(namespace).orElseThrow(() -> new RuntimeException("Namespace not found"));
-        KafkaCluster cluster = clusterRepository.findByName(namespace).orElseThrow(() -> new RuntimeException());
         //AdminClient.create()
+
+        //pour les topics dont je suis owner, somme d'usage
+        // pour le topic à créer usageTopic
+        // si somme + usageTopic > quota KO
 
         return topicRepository.create(topic);
 

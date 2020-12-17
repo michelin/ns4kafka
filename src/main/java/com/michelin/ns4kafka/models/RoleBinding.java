@@ -26,9 +26,8 @@ public class RoleBinding {
     @Getter
     @Setter
     public static class Role {
-        private Collection<String> resourceTypes = List.of("*");
-        private Collection<String> resourceNames = List.of("*");
-        private Collection<String> verbs = List.of("*");
+        private Collection<String> resourceTypes = List.of("topics","connects","schemas","consumer-groups");
+        private Collection<String> verbs = List.of("GET","POST","PUT","DELETE");
     }
 
     @NoArgsConstructor

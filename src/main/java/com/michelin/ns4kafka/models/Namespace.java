@@ -12,5 +12,8 @@ public class Namespace {
     private String cluster;
     private List<ResourceSecurityPolicy> policies;
     private int diskQuota;
+    private String defaultUser="FDW_OLS_01";
+    //private List<User> users; MVP 35
+
 
 }

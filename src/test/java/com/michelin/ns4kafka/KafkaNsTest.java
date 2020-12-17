@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka;
 
+import io.micronaut.context.env.Environment;
 import io.micronaut.runtime.EmbeddedApplication;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,7 @@ public class KafkaNsTest {
 
     @Test
     void testItWorks() {
+        Environment environment = application.getEnvironment();
         Assertions.assertTrue(application.isRunning());
     }
 

@@ -13,3 +13,4 @@ out/
 .classpath
 .factorypath
 src/main/java/com/michelin/ns4kafka/controllers/InitController.java
+src/main/resources/application.dev.yml
