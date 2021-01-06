@@ -1,12 +1,14 @@
 package com.michelin.ns4kafka.repositories.kafka;
 
 import io.micronaut.context.ApplicationContext;
-import io.micronaut.scheduling.annotation.Scheduled;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.TaskScheduler;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.TopicExistsException;
@@ -15,8 +17,14 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
+import javax.inject.Named;
+import java.time.Duration;
+import java.time.temporal.TemporalUnit;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class KafkaStore<T> {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaStore.class);
@@ -26,11 +34,16 @@ public abstract class KafkaStore<T> {
 
     @Inject KafkaStoreConfig kafkaStoreConfig;
 
+    @Inject @Named(TaskExecutors.SCHEDULED) TaskScheduler taskScheduler;
+
     Map<String,T> kafkaStore;
     String kafkaTopic;
     Producer<String,T> kafkaProducer;
-    long lastReadOffset = -1;
-    long lastWrittenOffset = Long.MAX_VALUE;
+    long offsetInSchemasTopic = -1;
+    long lastWrittenOffset = -1;
+    private final AtomicBoolean initialized = new AtomicBoolean(false);
+    private final ReentrantLock offsetUpdateLock;
+    private final Condition offsetReachedThreshold;
     int initTimeout = 10000;
     int desiredReplicationFactor = 1;
 
@@ -38,87 +51,128 @@ public abstract class KafkaStore<T> {
         this.kafkaTopic = kafkaTopic;
         this.kafkaProducer = kafkaProducer;
         this.kafkaStore = new ConcurrentHashMap<String,T>();
+        offsetUpdateLock = new ReentrantLock();
+        offsetReachedThreshold = offsetUpdateLock.newCondition();
     }
 
-    T produce(String key, T message){
+    T produce(String key, T message) throws KafkaStoreException {
+        assertInitialized();
+        if (key == null) {
+            throw new KafkaStoreException("Key should not be null");
+        }
+        T oldValue = kafkaStore.get(key);
+
+
+        boolean knownSuccessfulWrite = false;
         try {
-            long startTime = System.currentTimeMillis();
+            ProducerRecord<String,T> producerRecord = new ProducerRecord<>(kafkaTopic, key, message);
+            LOG.trace("Sending record to KafkaStore topic: " + producerRecord);
+            Future<RecordMetadata> ack = kafkaProducer.send(producerRecord);
+            RecordMetadata recordMetadata = ack.get(initTimeout, TimeUnit.MILLISECONDS);
 
-            RecordMetadata metadata = kafkaProducer.send(new ProducerRecord<>(kafkaTopic, key, message)).get(initTimeout, TimeUnit.MILLISECONDS);
-            lastWrittenOffset = metadata.offset();
-            LOG.debug("Produces message "+message.getClass().toString()+" at offset "+lastWrittenOffset+". Awaiting KaflaStore sync");
-            // TODO use Lock await and signal
-            // good enough for proof of concept
-            int i = 0;
-            while(i++ < 50) {
-                if (lastReadOffset >= lastWrittenOffset) {
-                    //great !
-                    long delta = System.currentTimeMillis() - startTime;
-                    LOG.debug("Synced object "+message.getClass().toString()+ " in ms:"+delta);
-                    return kafkaStore.get(key);
-                }else{
-                    Thread.sleep(200);
-                }
-            }
-            throw new TimeoutException("Timed out waiting for offset sync !");
+            LOG.trace("Waiting for the local store to catch up to offset " + recordMetadata.offset());
+            this.lastWrittenOffset = recordMetadata.offset();
+            waitUntilKafkaReaderReachesLastOffset(initTimeout);
+            knownSuccessfulWrite = true;
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            throw new KafkaStoreException("Put operation interrupted while waiting for an ack from Kafka", e);
         } catch (ExecutionException e) {
-            e.printStackTrace();
+            throw new KafkaStoreException("Put operation failed while waiting for an ack from Kafka", e);
         } catch (TimeoutException e) {
-            e.printStackTrace();
+            throw new KafkaStoreException(
+                    "Put operation timed out while waiting for an ack from Kafka", e);
+        } catch (KafkaException ke) {
+            throw new KafkaStoreException("Put operation to Kafka failed", ke);
+        } finally {
+            if (!knownSuccessfulWrite) {
+                this.lastWrittenOffset = -1;
+            }
         }
-        return kafkaStore.get(key);
+        return oldValue;
     }
-
+    // mimics /core/src/main/java/io/confluent/kafka/schemaregistry/storage/KafkaStoreReaderThread.java#L326 doWork
     void receive(ConsumerRecord<String, T> record) {
-        String operation=null;
-        if(record.key().equals("NOOP")){
-            //LOG.debug(kafkaTopic+" : NOOP");
-        }else if (record.value()==null){
-            operation="DELETE";
-            kafkaStore.remove(record.key());
-        }else {
-            if(kafkaStore.containsKey(record.key()))
-                operation="UPDATE";
-            else
-                operation="NEW";
-            kafkaStore.put(record.key(), record.value());
-            LOG.debug(String.format("%s %s %s",operation, kafkaTopic,record.key()));
-        }
+        try
+        {
+            String messageKey = record.key();
+            if (messageKey.equals("NOOP")) {
+                // If it's a noop, update local offset counter and do nothing else
+                try {
+                    offsetUpdateLock.lock();
+                    offsetInSchemasTopic = record.offset();
+                    offsetReachedThreshold.signalAll();
+                } finally {
+                    offsetUpdateLock.unlock();
+                }
+            } else {
+                T message = record.value();
 
-        lastReadOffset = record.offset();
+                LOG.trace("Applying update ("
+                        + messageKey
+                        + ","
+                        + message
+                        + ") to the local store");
+                long offset = record.offset();
+
+                T oldMessage;
+                if (message == null) {
+                    oldMessage = kafkaStore.remove(messageKey);
+                } else {
+                    oldMessage = kafkaStore.put(messageKey, message);
+                }
+
+                try {
+                    offsetUpdateLock.lock();
+                    offsetInSchemasTopic = record.offset();
+                    offsetReachedThreshold.signalAll();
+                } finally {
+                    offsetUpdateLock.unlock();
+                }
+
+            }
+        } catch (RuntimeException e) {
+            LOG.error("KafkaStoreReader thread has died for an unknown reason.", e);
+            throw new RuntimeException(e);
+        }
     }
 
     @PostConstruct
-    private void createOrVerifyTopic() throws StoreInitializationException {
+    private void createOrVerifyTopic() throws KafkaStoreException {
         createOrVerifySchemaTopic(kafkaTopic);
-        produceNOOP();
+        taskScheduler.schedule(Duration.ZERO, this::waitUntilKafkaReaderReachesLastOffsetInit);
     }
-    void produceNOOP() throws StoreInitializationException {
+    public void waitUntilKafkaReaderReachesLastOffsetInit(){
+        waitUntilKafkaReaderReachesLastOffset(initTimeout);
+        boolean isInitialized = initialized.compareAndSet(false, true);
+        if (!isInitialized) {
+            throw new KafkaStoreException("Illegal state while initializing store. Store "
+                    + "was already initialized");
+        }
+    }
+
+    // BEGIN http://www.confluent.io/confluent-community-license
+    public void waitUntilKafkaReaderReachesLastOffset(int timeoutMs) throws KafkaStoreException {
+        long offsetOfLastMessage = getLatestOffset(timeoutMs);
+        waitUntilOffset(offsetOfLastMessage, timeoutMs, TimeUnit.MILLISECONDS);
+    }
+    private long getLatestOffset(int timeoutMs) throws KafkaStoreException {
+        if (this.lastWrittenOffset >= 0) {
+            return this.lastWrittenOffset;
+        }
+
         try {
             LOG.trace("Sending Noop record to KafkaStore to find last offset.");
             Future<RecordMetadata> ack = kafkaProducer.send(new ProducerRecord<>(kafkaTopic,"NOOP",null));
             RecordMetadata metadata = ack.get(initTimeout, TimeUnit.MILLISECONDS);
             this.lastWrittenOffset = metadata.offset();
             LOG.trace("Noop record's offset is " + this.lastWrittenOffset);
+            return this.lastWrittenOffset;
         } catch (Exception e) {
-            throw new StoreInitializationException("Failed to write Noop record to kafka store.", e);
+            throw new KafkaStoreException("Failed to write Noop record to kafka store.", e);
         }
     }
 
-    @Scheduled(initialDelay = "10s" )
-    void onceOneMinuteAfterStartup() {
-        if(lastReadOffset>=lastWrittenOffset) {
-            LOG.info("Target offset reached for kafkaTopic "+ kafkaTopic);
-        }else{
-            LOG.error("Server stop requested because could not read fully kafkaTopic "+ kafkaTopic);
-            applicationContext.stop();
-        }
-    }
-
-    // BEGIN http://www.confluent.io/confluent-community-license
-    private void createOrVerifySchemaTopic(String topic) throws StoreInitializationException {
+    private void createOrVerifySchemaTopic(String topic) throws KafkaStoreException {
 
         try {
             Set<String> allTopics = adminClient.listTopics().names().get(initTimeout, TimeUnit.MILLISECONDS);
@@ -128,19 +182,48 @@ public abstract class KafkaStore<T> {
                 createSchemaTopic(topic);
             }
         } catch (TimeoutException e) {
-            throw new StoreInitializationException(
+            throw new KafkaStoreException(
                     "Timed out trying to create or validate kafkaTopic configuration",
                     e
             );
         } catch (InterruptedException | ExecutionException e) {
-            throw new StoreInitializationException(
+            throw new KafkaStoreException(
                     "Failed trying to create or validate kafkaTopic configuration",
                     e
             );
         }
     }
+    public void waitUntilOffset(long offset, long timeout, TimeUnit timeUnit) throws KafkaStoreException {
+        if (offset < 0) {
+            throw new KafkaStoreException("KafkaStoreReaderThread can't wait for a negative offset.");
+        }
 
-    private void createSchemaTopic(String topic) throws StoreInitializationException,
+        LOG.trace("Waiting to read offset {}. Currently at offset {}", offset, offsetInSchemasTopic);
+
+        try {
+            offsetUpdateLock.lock();
+            long timeoutNs = TimeUnit.NANOSECONDS.convert(timeout, timeUnit);
+            while ((offsetInSchemasTopic < offset) && (timeoutNs > 0)) {
+                try {
+                    timeoutNs = offsetReachedThreshold.awaitNanos(timeoutNs);
+                } catch (InterruptedException e) {
+                    LOG.debug("Interrupted while waiting for the background store reader thread to reach"
+                            + " the specified offset: " + offset, e);
+                }
+            }
+        } finally {
+            offsetUpdateLock.unlock();
+        }
+
+        if (offsetInSchemasTopic < offset) {
+            throw new KafkaStoreException(
+                    "KafkaStoreReaderThread failed to reach target offset within the timeout interval. "
+                            + "targetOffset: " + offset + ", offsetReached: " + offsetInSchemasTopic
+                            + ", timeout(ms): " + TimeUnit.MILLISECONDS.convert(timeout, timeUnit));
+        }
+    }
+
+    private void createSchemaTopic(String topic) throws KafkaStoreException,
             InterruptedException,
             ExecutionException,
             TimeoutException {
@@ -149,7 +232,7 @@ public abstract class KafkaStore<T> {
         int numLiveBrokers = adminClient.describeCluster().nodes()
                 .get(initTimeout, TimeUnit.MILLISECONDS).size();
         if (numLiveBrokers <= 0) {
-            throw new StoreInitializationException("No live Kafka brokers");
+            throw new KafkaStoreException("No live Kafka brokers");
         }
 
         int schemaTopicReplicationFactor = Math.min(numLiveBrokers, desiredReplicationFactor);
@@ -178,7 +261,7 @@ public abstract class KafkaStore<T> {
         }
     }
 
-    private void verifySchemaTopic(String topic) throws StoreInitializationException,
+    private void verifySchemaTopic(String topic) throws KafkaStoreException,
             InterruptedException,
             ExecutionException,
             TimeoutException {
@@ -191,7 +274,7 @@ public abstract class KafkaStore<T> {
         TopicDescription description = topicDescription.get(topic);
         final int numPartitions = description.partitions().size();
         if (numPartitions != 1) {
-            throw new StoreInitializationException("The kafkaTopic " + topic + " should have only 1 "
+            throw new KafkaStoreException("The kafkaTopic " + topic + " should have only 1 "
                     + "partition but has " + numPartitions);
         }
 
@@ -217,10 +300,15 @@ public abstract class KafkaStore<T> {
                     + "deleting your data after a week. "
                     + "Refer to Kafka documentation for more details on cleanup policies");
 
-            throw new StoreInitializationException("The retention policy of the schema kafkaTopic " + topic
+            throw new KafkaStoreException("The retention policy of the schema kafkaTopic " + topic
                     + " is incorrect. Expected cleanup.policy to be "
                     + "'compact' but it is " + retentionPolicy);
 
+        }
+    }
+    private void assertInitialized() throws KafkaStoreException {
+        if (!initialized.get()) {
+            throw new KafkaStoreException("Illegal state. Store not initialized yet");
         }
     }
     // END http://www.confluent.io/confluent-community-license

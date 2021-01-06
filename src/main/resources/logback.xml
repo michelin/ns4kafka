@@ -10,7 +10,8 @@
         </encoder>
     </appender>
     <logger name="io.micronaut.security" level="debug"/>
-    <logger name="com.michelin" level="debug" />
+    <logger name="com.michelin" level="trace" />
+    <logger name="org.apache.kafka" level="warn" />
     <root level="info">
         <appender-ref ref="STDOUT" />
     </root>

@@ -12,7 +12,9 @@ public class Namespace {
     private String cluster;
     private List<ResourceSecurityPolicy> policies;
     private int diskQuota;
-    private String defaultUser="FDW_OLS_01";
+    // TODO default Kafka User is given maximum grants and is synchronized
+    private String defaulKafkatUser="FDW_OLS_01";
+    // TODO others users are namespace defined and must be "managed" (ACL must be defined and maintained)
     //private List<User> users; MVP 35
 
 

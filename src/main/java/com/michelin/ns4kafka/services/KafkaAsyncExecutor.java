@@ -41,7 +41,8 @@ public class KafkaAsyncExecutor {
 
 
     public void collect(){
-        // LOCK
+        //TODO ready ? sync OK ?
+        LOG.debug("Starting collection for cluster "+kafkaAsyncExecutorConfig.getName());
         try {
             // List topics from broker
             List<String> topicNames = getAdminClient().listTopics().listings()
@@ -107,7 +108,7 @@ public class KafkaAsyncExecutor {
             //TODO not tested
             Map<ConfigResource, Collection<AlterConfigOp>> toUpdate = toCheckConf.stream().map(topic -> {
                 Map<String,String> actualConf = brokerTopicList.get(topic.getName()).getConfig();
-                Map<String,String> expectedConf = topic.getConfig();
+                Map<String,String> expectedConf = topic.getConfig() == null ? Map.of() : topic.getConfig();
                 Collection<AlterConfigOp> topicConfigChanges = computeConfigChanges(expectedConf,actualConf);
                 if(topicConfigChanges.size()>0){
                     ConfigResource cr = new ConfigResource(ConfigResource.Type.TOPIC, topic.getName());
@@ -116,6 +117,15 @@ public class KafkaAsyncExecutor {
                 return null;
             }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
+            LOG.debug("After check, A Update : "+toUpdate.size());
+            for (Map.Entry<ConfigResource,Collection<AlterConfigOp>> e :
+                    toUpdate.entrySet()) {
+
+                for (AlterConfigOp op :
+                        e.getValue()) {
+                    LOG.debug(e.getKey().name()+" "+op.opType().toString()+" " +op.configEntry().name()+"("+op.configEntry().value()+")");
+                }
+            }
 
 
 
@@ -141,9 +151,16 @@ public class KafkaAsyncExecutor {
                 .filter(actualEntry -> !expected.containsKey(actualEntry.getKey()))
                 .map(expectedEntry -> new AlterConfigOp(new ConfigEntry(expectedEntry.getKey(),null), AlterConfigOp.OpType.DELETE))
                 .collect(Collectors.toList());
-        List<AlterConfigOp> toChange = actual.entrySet()
+        List<AlterConfigOp> toChange = expected.entrySet()
                 .stream()
-                .filter(actualEntry -> expected.containsKey(actualEntry.getKey()) && expected.get(actualEntry.getKey()).equals(actualEntry.getValue()))
+                .filter(expectedEntry -> {
+                    if (actual.containsKey(expectedEntry.getKey())) {
+                        String actualVal = actual.get(expectedEntry.getKey());
+                        String expectedVal = expectedEntry.getValue();
+                        return !expectedVal.equals(actualVal);
+                    }
+                    return false;
+                })
                 .map(expectedEntry -> new AlterConfigOp(new ConfigEntry(expectedEntry.getKey(),expectedEntry.getValue()), AlterConfigOp.OpType.SET))
                 .collect(Collectors.toList());
 

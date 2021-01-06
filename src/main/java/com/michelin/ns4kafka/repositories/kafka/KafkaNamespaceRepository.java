@@ -4,7 +4,6 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import io.micronaut.configuration.kafka.annotation.*;
 import io.micronaut.context.annotation.Value;
-import io.micronaut.security.utils.SecurityService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 

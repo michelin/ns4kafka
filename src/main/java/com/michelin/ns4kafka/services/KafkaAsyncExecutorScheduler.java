@@ -18,7 +18,7 @@ public class KafkaAsyncExecutorScheduler {
     @Inject
     ApplicationContext applicationContext;
 
-    @Scheduled(initialDelay = "10s", fixedDelay = "5m")
+    @Scheduled(initialDelay = "12s", fixedDelay = "20s")
     void schedule(){
         Collection<KafkaAsyncExecutor> firstConfig = applicationContext.getBeansOfType(KafkaAsyncExecutor.class);
         firstConfig.forEach(KafkaAsyncExecutor::collect);

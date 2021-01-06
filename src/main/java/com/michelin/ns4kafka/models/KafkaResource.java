@@ -17,7 +17,7 @@ import java.util.List;
 @Getter
 @Setter
 public abstract class KafkaResource {
-    protected List<Event> events = new ArrayList<Event>();
+    protected List<Event> events = new ArrayList<>();
 
     public void addResourceEvent(String message, EventType eventType){
         Event evt = new Event();
