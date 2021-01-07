@@ -4,6 +4,8 @@ import lombok.*;
 
 import java.util.List;
 
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
@@ -13,7 +15,7 @@ public class Namespace {
     private List<ResourceSecurityPolicy> policies;
     private int diskQuota;
     // TODO default Kafka User is given maximum grants and is synchronized
-    private String defaulKafkatUser="FDW_OLS_01";
+    private final String defaulKafkatUser="FDW_OLS_01";
     // TODO others users are namespace defined and must be "managed" (ACL must be defined and maintained)
     //private List<User> users; MVP 35
 

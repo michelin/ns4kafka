@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.services;
 
+import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import io.micronaut.context.annotation.EachBean;
@@ -26,8 +27,6 @@ public class KafkaAsyncExecutor {
     @Inject
     TopicRepository topicRepository;
 
-    private Map<String, Topic> brokerTopicList;
-
     public KafkaAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig){
         this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
     }
@@ -39,95 +38,59 @@ public class KafkaAsyncExecutor {
         return this.adminClient;
     }
 
-
-    public void collect(){
+    public void run(){
+        //execute topic changes
+        synchronizeTopics();
+        //execute user changes
+    }
+    public void synchronizeTopics(){
         //TODO ready ? sync OK ?
-        LOG.debug("Starting collection for cluster "+kafkaAsyncExecutorConfig.getName());
+        LOG.debug("Starting topic collection for cluster "+kafkaAsyncExecutorConfig.getName());
         try {
             // List topics from broker
-            List<String> topicNames = getAdminClient().listTopics().listings()
-                    .get(10, TimeUnit.SECONDS)
-                    .stream()
-                    .map(topicListing -> topicListing.name())
-                    .collect(Collectors.toList());
-            Map<String, TopicDescription> topicDescriptions = getAdminClient().describeTopics(topicNames).all().get();
-            // Create a Map<TopicName, Map<ConfigName, ConfigValue>> for all topics
-            // includes only Dynamic config properties
-            brokerTopicList = getAdminClient()
-                    .describeConfigs(topicNames.stream()
-                            .map(s -> new ConfigResource(ConfigResource.Type.TOPIC, s))
-                            .collect(Collectors.toList())
-                    )
-                    .all()
-                    .get()
-                    .entrySet()
-                    .stream()
-                    .collect(Collectors.toMap(
-                            configResourceConfigEntry -> configResourceConfigEntry.getKey().name()
-                            , configResourceConfigEntry ->
-                                    configResourceConfigEntry.getValue().entries()
-                                            .stream()
-                                            .filter( configEntry -> configEntry.source() == ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG)
-                                            //.peek(configEntry -> LOG.debug(String.format("%s %s %s", configResourceConfigEntry.getKey().name(),
-                                            //        configEntry.name(), configEntry.value())))
-                                            .collect(Collectors.toMap(ConfigEntry::name, ConfigEntry::value))
-                    ))
-                    .entrySet()
-                    .stream()
-                    .map(stringMapEntry -> {
-                        Topic t = new Topic();
-                        t.setCluster(kafkaAsyncExecutorConfig.getName());
-                        t.setName(stringMapEntry.getKey());
-                        t.setConfig(stringMapEntry.getValue());
-                        t.setPartitions(topicDescriptions.get(stringMapEntry.getKey()).partitions().size());
-                        t.setReplicationFactor(topicDescriptions.get(stringMapEntry.getKey()).partitions().get(0).replicas().size());
-                        return t;
-                    })
-                    .collect(Collectors.toMap(Topic::getName, Function.identity()));
-
+            Map<String, Topic> brokerTopicList = collectBrokerTopicList();
             // List topics from ns4kafka Repository
             List<Topic> ns4kafkaTopicList = topicRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName());
 
             // Compute toCreate, toDelete, and toUpdate lists
             List<Topic> toCreate = ns4kafkaTopicList.stream()
-                    .filter(topic -> !brokerTopicList.containsKey(topic.getName()))
+                    .filter(topic -> !brokerTopicList.containsKey(topic.getMetadata().getName()))
                     .collect(Collectors.toList());
 
             List<Topic> toDelete = brokerTopicList.values()
                     .stream()
-                    .filter(topic -> ns4kafkaTopicList.stream().noneMatch(topic1 -> topic1.getName().equals(topic.getName())))
+                    .filter(topic -> ns4kafkaTopicList.stream().noneMatch(topic1 -> topic1.getMetadata().getName().equals(topic.getMetadata().getName())))
                     .collect(Collectors.toList());
 
             List<Topic> toCheckConf = ns4kafkaTopicList.stream()
-                    .filter(topic -> brokerTopicList.containsKey(topic.getName()))
+                    .filter(topic -> brokerTopicList.containsKey(topic.getMetadata().getName()))
                     .collect(Collectors.toList());
-            LOG.debug("A Creer : "+toCreate.size());
-            LOG.debug("A Delete : "+toDelete.size());
-            LOG.debug("A Check : "+toCheckConf.size());
+            Map<ConfigResource, Collection<AlterConfigOp>> toUpdate = toCheckConf.stream()
+                    .map(topic -> {
+                        Map<String,String> actualConf = brokerTopicList.get(topic.getMetadata().getName()).getSpec().getConfigs();
+                        Map<String,String> expectedConf = topic.getSpec().getConfigs() == null ? Map.of() : topic.getSpec().getConfigs();
+                        Collection<AlterConfigOp> topicConfigChanges = computeConfigChanges(expectedConf,actualConf);
+                        if(topicConfigChanges.size()>0){
+                            ConfigResource cr = new ConfigResource(ConfigResource.Type.TOPIC, topic.getMetadata().getName());
+                            return Map.entry(cr,topicConfigChanges);
+                        }
+                        return null; //TODO how to return empty ?
+                    })
+                    .filter(mapEntry -> mapEntry != null) //TODO cleaner ?
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-            //TODO not tested
-            Map<ConfigResource, Collection<AlterConfigOp>> toUpdate = toCheckConf.stream().map(topic -> {
-                Map<String,String> actualConf = brokerTopicList.get(topic.getName()).getConfig();
-                Map<String,String> expectedConf = topic.getConfig() == null ? Map.of() : topic.getConfig();
-                Collection<AlterConfigOp> topicConfigChanges = computeConfigChanges(expectedConf,actualConf);
-                if(topicConfigChanges.size()>0){
-                    ConfigResource cr = new ConfigResource(ConfigResource.Type.TOPIC, topic.getName());
-                    return Map.entry(cr,topicConfigChanges);
-                }
-                return null;
-            }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-            LOG.debug("After check, A Update : "+toUpdate.size());
-            for (Map.Entry<ConfigResource,Collection<AlterConfigOp>> e :
-                    toUpdate.entrySet()) {
-
-                for (AlterConfigOp op :
-                        e.getValue()) {
-                    LOG.debug(e.getKey().name()+" "+op.opType().toString()+" " +op.configEntry().name()+"("+op.configEntry().value()+")");
+            if(LOG.isDebugEnabled()){
+                LOG.debug("Topics to create : "+String.join(", ", toCreate.stream().map(t -> t.getMetadata().getName()).collect(Collectors.toList())));
+                LOG.debug("Topics A Delete : "+String.join(", ", toDelete.stream().map(t -> t.getMetadata().getName()).collect(Collectors.toList())));
+                LOG.debug("Topic configs to update : "+toUpdate.size());
+                for (Map.Entry<ConfigResource,Collection<AlterConfigOp>> e : toUpdate.entrySet()) {
+                    for (AlterConfigOp op : e.getValue()) {
+                        LOG.debug(e.getKey().name()+" "+op.opType().toString()+" " +op.configEntry().name()+"("+op.configEntry().value()+")");
+                    }
                 }
             }
-
-
+            //creating topics
+            createTopics(toCreate);
 
         } catch (InterruptedException e) {
             LOG.error("Error", e);
@@ -140,6 +103,79 @@ public class KafkaAsyncExecutor {
         }
 
     }
+
+    private void createTopics(List<Topic> topics) {
+        List<NewTopic> newTopics = topics.stream()
+                .map(topic -> {
+                    LOG.debug(String.format("Creating topic %s on %s",topic.getMetadata().getName(),topic.getMetadata().getCluster()));
+                    NewTopic newTopic = new NewTopic(topic.getMetadata().getName(),topic.getSpec().getPartitions(), (short) topic.getSpec().getReplicationFactor());
+                    newTopic.configs(topic.getSpec().getConfigs());
+                    LOG.debug(newTopic.toString());
+                    return newTopic;
+                })
+                .collect(Collectors.toList());
+        CreateTopicsResult createTopicsResult = getAdminClient().createTopics(newTopics);
+        createTopicsResult.values().entrySet()
+                .stream()
+                .forEach(stringKafkaFutureEntry -> stringKafkaFutureEntry.getValue()
+                        .whenComplete((unused, throwable) ->{
+                            if(throwable!=null){
+                                LOG.error(String.format("Error while creating topic %s on %s",stringKafkaFutureEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()), throwable);
+                            }else{
+                                LOG.info(String.format("Success creating topic %s on %s",stringKafkaFutureEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()));
+                            }
+                        })
+                );
+    }
+
+    private Map<String, Topic> collectBrokerTopicList() throws InterruptedException, ExecutionException, TimeoutException {
+        List<String> topicNames = getAdminClient().listTopics().listings()
+                .get(10, TimeUnit.SECONDS)
+                .stream()
+                .map(topicListing -> topicListing.name())
+                .collect(Collectors.toList());
+        Map<String, TopicDescription> topicDescriptions = getAdminClient().describeTopics(topicNames).all().get();
+        // Create a Map<TopicName, Map<ConfigName, ConfigValue>> for all topics
+        // includes only Dynamic config properties
+        return getAdminClient()
+                .describeConfigs(topicNames.stream()
+                        .map(s -> new ConfigResource(ConfigResource.Type.TOPIC, s))
+                        .collect(Collectors.toList())
+                )
+                .all()
+                .get()
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(
+                        configResourceConfigEntry -> configResourceConfigEntry.getKey().name()
+                        , configResourceConfigEntry ->
+                                configResourceConfigEntry.getValue().entries()
+                                        .stream()
+                                        .filter( configEntry -> configEntry.source() == ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG)
+                                        .collect(Collectors.toMap(ConfigEntry::name, ConfigEntry::value))
+                ))
+                .entrySet()
+                .stream()
+                .map(stringMapEntry -> Topic.builder()
+                        .metadata(ObjectMeta.builder()
+                                .cluster(kafkaAsyncExecutorConfig.getName())
+                                .name(stringMapEntry.getKey())
+                                .build())
+                        .spec(Topic.TopicSpec.builder()
+                                .replicationFactor(topicDescriptions.get(stringMapEntry.getKey()).partitions().get(0).replicas().size())
+                                .partitions(topicDescriptions.get(stringMapEntry.getKey()).partitions().size())
+                                .configs(stringMapEntry.getValue())
+                                .build())
+                        .build()
+                )
+                .collect(Collectors.toMap( topic -> topic.getMetadata().getName(), Function.identity()));
+    }
+
+    private void synchronizeUsers(){
+        //
+    }
+
+
     private Collection<AlterConfigOp> computeConfigChanges(Map<String,String> expected, Map<String,String> actual){
         List<AlterConfigOp> toCreate = expected.entrySet()
                 .stream()

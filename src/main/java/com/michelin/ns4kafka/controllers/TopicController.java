@@ -26,12 +26,13 @@ public class TopicController {
      */
     @Get
     public List<String> list(String namespace, @Nullable @QueryValue TopicListLimit limit){
+        //TODO TopicList
         if(limit==null){
             limit=TopicListLimit.ALL;
         }
         return topicRepository.findAllForNamespace(namespace, limit)
                 .stream()
-                .map(topic -> topic.getName())
+                .map(topic -> topic.getMetadata().getName())
                 .collect(Collectors.toList());
     }
 

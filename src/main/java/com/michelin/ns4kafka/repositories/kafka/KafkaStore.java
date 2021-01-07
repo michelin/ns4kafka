@@ -36,7 +36,7 @@ public abstract class KafkaStore<T> {
 
     @Inject @Named(TaskExecutors.SCHEDULED) TaskScheduler taskScheduler;
 
-    Map<String,T> kafkaStore;
+    ConcurrentHashMap<String,T> kafkaStore;
     String kafkaTopic;
     Producer<String,T> kafkaProducer;
     long offsetInSchemasTopic = -1;
@@ -88,7 +88,7 @@ public abstract class KafkaStore<T> {
                 this.lastWrittenOffset = -1;
             }
         }
-        return oldValue;
+        return kafkaStore.get(key);
     }
     // mimics /core/src/main/java/io/confluent/kafka/schemaregistry/storage/KafkaStoreReaderThread.java#L326 doWork
     void receive(ConsumerRecord<String, T> record) {
