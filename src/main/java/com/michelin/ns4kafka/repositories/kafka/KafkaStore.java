@@ -306,7 +306,7 @@ public abstract class KafkaStore<T> {
 
         }
     }
-    private void assertInitialized() throws KafkaStoreException {
+    public void assertInitialized() throws KafkaStoreException {
         if (!initialized.get()) {
             throw new KafkaStoreException("Illegal state. Store not initialized yet");
         }

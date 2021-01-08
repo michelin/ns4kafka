@@ -21,5 +21,5 @@ public interface TopicRepository {
     Optional<Topic> findByName(String namespace, String topic);
     Topic create(Topic topic);
 
-
+    public void assertInitialized();
 }

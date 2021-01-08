@@ -26,10 +26,12 @@ public class TopicController {
      */
     @Get
     public List<String> list(String namespace, @Nullable @QueryValue TopicListLimit limit){
-        //TODO TopicList
+        //TODO ?labelSelector=environment%3Dproduction,tier%3Dfrontend
+
         if(limit==null){
             limit=TopicListLimit.ALL;
         }
+        //TODO TopicList
         return topicRepository.findAllForNamespace(namespace, limit)
                 .stream()
                 .map(topic -> topic.getMetadata().getName())
@@ -47,7 +49,10 @@ public class TopicController {
         // 1. Request Allowed ?
         // 2. Request Valid ?
         // 3. Store
+        // Validate naming convention
+        // Validate topic against TopicConstraintsValidator of the namespace
         Namespace ns = namespaceRepository.findByName(namespace).orElseThrow(() -> new RuntimeException("Namespace not found"));
+
         //AdminClient.create()
 
         //pour les topics dont je suis owner, somme d'usage

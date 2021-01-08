@@ -19,5 +19,10 @@ public class Namespace {
     // TODO others users are namespace defined and must be "managed" (ACL must be defined and maintained)
     //private List<User> users; MVP 35
 
+    private TopicConstraintsValidator topicConstraintsValidator;
 
+
+    public static class TopicConstraintsValidator {
+
+    }
 }
