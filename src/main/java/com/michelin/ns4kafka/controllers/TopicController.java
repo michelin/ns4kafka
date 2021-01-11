@@ -3,8 +3,11 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.TopicRepository;
+import com.michelin.ns4kafka.validation.ResourceValidator;
+import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.apache.kafka.common.config.ConfigDef;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -46,12 +49,17 @@ public class TopicController {
     public Topic create(String namespace, @Body Topic topic){
         //TODO
         // 0. (Done) User Allowed ?
+        //   -> User belongs to group and operation/resource is allowed on this namespace ?
         // 1. Request Allowed ?
+        //   -> Namespace is OWNER of Topic to be created ?
         // 2. Request Valid ?
+        //   -> Topics parameters are allowed for this namespace ConstraintsValidatorSet
         // 3. Store
         // Validate naming convention
         // Validate topic against TopicConstraintsValidator of the namespace
         Namespace ns = namespaceRepository.findByName(namespace).orElseThrow(() -> new RuntimeException("Namespace not found"));
+
+        ns.getTopicValidator().validate(topic);
 
         //AdminClient.create()
 
