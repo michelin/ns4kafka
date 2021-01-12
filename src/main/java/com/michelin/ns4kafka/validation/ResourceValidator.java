@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.*;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
@@ -18,22 +19,11 @@ import java.util.stream.Collectors;
 @Setter
 public abstract class ResourceValidator {
 
-    protected Map<String,ValidationConstraint> validationConstraints;
+    protected Map<String,Validator> validationConstraints;
 
     public void validateProps(Map<String, String> props) {
 
 
-    }
-
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Getter
-    @Setter
-    public static class ValidationConstraint
-    {
-        String config;
-        Validator validator;
     }
 
     @JsonTypeInfo(
@@ -94,9 +84,14 @@ public abstract class ResourceValidator {
         }
 
         public void ensureValid(String name, Object o) {
+            Number n = null;
             if (o == null)
                 throw new ValidationException(name, null, "Value must be non-null");
-            Number n = (Number) o;
+            try {
+                n = Double.valueOf(o.toString());
+            }catch (NumberFormatException e){
+                throw new ValidationException(name,o.toString(),"Value must be a Number");
+            }
             if (min != null && n.doubleValue() < min.doubleValue())
                 throw new ValidationException(name, o, "Value must be at least " + min);
             if (max != null && n.doubleValue() > max.doubleValue())

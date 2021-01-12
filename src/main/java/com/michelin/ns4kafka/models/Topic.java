@@ -60,6 +60,12 @@ public class Topic extends KafkaResource {
                     .lastUpdateTime(Date.from(Instant.now()))
                     .build();
         }
+        public static TopicStatus ofPending(){
+            return Topic.TopicStatus.builder()
+                    .phase(Topic.TopicPhase.Pending)
+                    .message("Awaiting processing by executor")
+                    .build();
+        }
     }
     public enum TopicPhase {
         Pending,

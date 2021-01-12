@@ -7,6 +7,7 @@ import com.michelin.ns4kafka.models.ResourceSecurityPolicy;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.TopicRepository;
+import com.michelin.ns4kafka.security.ResourceSecurityPolicyValidator;
 import io.micronaut.configuration.kafka.annotation.KafkaClient;
 import io.micronaut.configuration.kafka.annotation.KafkaListener;
 import io.micronaut.configuration.kafka.annotation.OffsetReset;
@@ -55,23 +56,27 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
         if(namespaceOptional.isPresent()) {
             return kafkaStore.values()
                     .stream()
-                    .filter(topic -> topic.getMetadata().getCluster().equals(namespaceOptional.get().getCluster()) &&
-                            namespaceOptional.get()
-                            .getPolicies()
-                            .stream()
-                            .filter(resourceSecurityPolicy -> {
-                                switch(limit){
-                                    case OWNED:
-                                        return resourceSecurityPolicy.getSecurityPolicy() == ResourceSecurityPolicy.SecurityPolicy.OWNER;
-                                    case ACCESS_GIVEN:
-                                        return resourceSecurityPolicy.getSecurityPolicy() != ResourceSecurityPolicy.SecurityPolicy.OWNER;
-                                    case ALL:
-                                    default:
-                                        return true;
-                                }
-                            })
-                            .anyMatch(resourceSecurityPolicy -> matchTopicAgainstPolicy(topic, resourceSecurityPolicy))
-                    )
+                    .filter(topic -> topic.getMetadata().getCluster().equals(namespaceOptional.get().getCluster()))
+                    .filter(topic -> {
+                        List<ResourceSecurityPolicy.SecurityPolicy> policies;
+                        switch (limit){
+                            case OWNED:
+                                policies = List.of(ResourceSecurityPolicy.SecurityPolicy.OWNER);
+                                break;
+                            case ACCESS_GIVEN:
+                                policies = List.of(ResourceSecurityPolicy.SecurityPolicy.READ_WRITE,
+                                        ResourceSecurityPolicy.SecurityPolicy.READ);
+                                break;
+                            case ALL:
+                            default:
+                                policies = List.of(ResourceSecurityPolicy.SecurityPolicy.OWNER,
+                                        ResourceSecurityPolicy.SecurityPolicy.READ_WRITE,
+                                        ResourceSecurityPolicy.SecurityPolicy.READ);
+                                break;
+                        }
+                        return ResourceSecurityPolicyValidator.isNamespaceAllowedOnResource(namespaceOptional.get(),
+                                topic.getMetadata().getName(), ResourceSecurityPolicy.ResourceType.TOPIC, policies);
+                    })
                     .collect(Collectors.toList());
         } else {
             return Collections.EMPTY_LIST;
