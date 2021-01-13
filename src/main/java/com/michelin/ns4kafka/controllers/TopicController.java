@@ -3,11 +3,9 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.TopicRepository;
-import com.michelin.ns4kafka.security.ResourceSecurityPolicyValidator;
-import com.michelin.ns4kafka.validation.ValidationException;
+import com.michelin.ns4kafka.exceptions.ResourceValidationException;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.annotation.Error;
 import io.micronaut.http.hateoas.JsonError;
@@ -50,31 +48,71 @@ public class TopicController {
     public Optional<Topic> getTopic(String namespace, String topic){
         return topicRepository.findByName(namespace, topic);
     }
-    @Post("/")
-    public Topic create(String namespace, @Body Topic topic){
+    @Put("/{topicName}")
+    public Topic update(String namespace, String topicName, @Body Topic topic){
+
         //TODO
-        // 0. (Done) User Allowed ?
+        // 1. (Done) User Allowed ?
         //   -> User belongs to group and operation/resource is allowed on this namespace ?
-        // 1. Request Allowed ?
-        //   -> Namespace is OWNER of Topic to be created ?
-        // 2. Request Valid ?
+        //   -> Managed in RessourceBasedSecurityRule class
+        // 2. Topic already exists ?
+        //   -> Reject Request ?
+        //   -> Treat Request as and Update ?
+        // 3. Request Valid ?
         //   -> Topics parameters are allowed for this namespace ConstraintsValidatorSet
-        // 3. Store
-        // Validate naming convention
-        // Validate topic against TopicConstraintsValidator of the namespace
+        // 4. Store in datastore
+        Optional<Topic> existingTopic = topicRepository.findByName(namespace,topic.getMetadata().getName());
+        if(existingTopic.isPresent()){
+            update(namespace, topic.getMetadata().getName(), topic);
+        }
         Namespace ns = namespaceRepository.findByName(namespace).orElseThrow(() -> new RuntimeException("Namespace not found"));
 
-        //1. Namespace is owner of topic to be created ?
-        boolean owner = ResourceSecurityPolicyValidator.isNamespaceOwnerOnTopic(ns,topic);
-
         //2. Request is valid ?
-        List<String> validationErrors = ns.getTopicValidator().validate(topic);
+        //TODO forbidden changes when updating (partitions, replicationFactor, other ?)
+        List<String> validationErrors = ns.getTopicValidator().validate(topic,ns);
         if(validationErrors.size()>0){
-            throw new ValidationException(validationErrors);
+            throw new ResourceValidationException(validationErrors);
         }
 
         //3. Fill server-side fields (server side metadata + status)
-        topic.getMetadata().setGeneration(0);
+        topic.setApiVersion("v1");
+        topic.setKind("Topic");
+        topic.getMetadata().setCluster(ns.getCluster());
+        topic.getMetadata().setNamespace(ns.getName());
+        topic.setStatus(Topic.TopicStatus.ofPending());
+        return topicRepository.create(topic);
+        //pour les topics dont je suis owner, somme d'usage
+        // pour le topic à créer usageTopic
+        // si somme + usageTopic > quota KO
+    }
+    @Post("/")
+    public Topic create(String namespace, @Body Topic topic){
+
+        //TODO
+        // 1. (Done) User Allowed ?
+        //   -> User belongs to group and operation/resource is allowed on this namespace ?
+        //   -> Managed in RessourceBasedSecurityRule class
+        // 2. Topic already exists ?
+        //   -> Reject Request ?
+        //   -> Treat Request as and Update ?
+        // 3. Request Valid ?
+        //   -> Topics parameters are allowed for this namespace ConstraintsValidatorSet
+        // 4. Store in datastore
+        Optional<Topic> existingTopic = topicRepository.findByName(namespace,topic.getMetadata().getName());
+        if(existingTopic.isPresent()){
+            update(namespace, topic.getMetadata().getName(), topic);
+        }
+        Namespace ns = namespaceRepository.findByName(namespace).orElseThrow(() -> new RuntimeException("Namespace not found"));
+
+        //2. Request is valid ?
+        List<String> validationErrors = ns.getTopicValidator().validate(topic,ns);
+        if(validationErrors.size()>0){
+            throw new ResourceValidationException(validationErrors);
+        }
+
+        //3. Fill server-side fields (server side metadata + status)
+        topic.setApiVersion("v1");
+        topic.setKind("Topic");
         topic.getMetadata().setCluster(ns.getCluster());
         topic.getMetadata().setNamespace(ns.getName());
         topic.setStatus(Topic.TopicStatus.ofPending());
@@ -83,16 +121,14 @@ public class TopicController {
         // pour le topic à créer usageTopic
         // si somme + usageTopic > quota KO
 
-
-
-
     }
     @Error
-    public HttpResponse<ResourceCreationError> validationExceptionHandler(HttpRequest request, ValidationException validationException){
+    public HttpResponse<ResourceCreationError> validationExceptionHandler(HttpRequest request, ResourceValidationException resourceValidationException){
         return HttpResponse
                 .badRequest()
-                .body(new ResourceCreationError("Message validation failed",validationException.getValidationErrors()));
+                .body(new ResourceCreationError("Message validation failed", resourceValidationException.getValidationErrors()));
     }
+
 
     public static class ResourceCreationError extends JsonError {
         @Getter
