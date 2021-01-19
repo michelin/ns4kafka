@@ -1,19 +1,26 @@
 package com.michelin.ns4kafka.models;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import io.micronaut.core.annotation.Introspected;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+@Introspected
 @NoArgsConstructor
 @Getter
 @Setter
 public class Topic extends KafkaResource {
 
+    @Valid
+    @NotNull
     private TopicSpec spec;
     private TopicStatus status;
 
@@ -29,8 +36,12 @@ public class Topic extends KafkaResource {
     @NoArgsConstructor
     @Getter
     @Setter
+    @Schema(description = "Contains the Topic specification")
     public static class TopicSpec {
+        @NotNull
+        @Schema(description = "Replication Factor",required = true, example = "3")
         private int replicationFactor;
+        @NotNull
         private int partitions;
         private Map<String,String> configs;
     }

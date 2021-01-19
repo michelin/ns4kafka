@@ -32,7 +32,7 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
 
     @Override
     public Collection<RoleBinding> findAllForGroups(Collection<String> groups) {
-        return kafkaStore.values().stream().filter(roleBinding ->
+        return getKafkaStore().values().stream().filter(roleBinding ->
                 groups.stream().anyMatch(group ->
                         roleBinding.getSubject().getSubjectType() == RoleBinding.SubjectType.GROUP
                                 && roleBinding.getSubject().getSubjectName().equals(group)

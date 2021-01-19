@@ -1,10 +1,16 @@
 package com.michelin.ns4kafka.models;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Data
 public class ResourceSecurityPolicy {
     protected ResourceType resourceType;
@@ -21,6 +27,7 @@ public class ResourceSecurityPolicy {
     public enum ResourcePatternType {
         LITERAL,
         PREFIXED,
+        //TODO handle REGEX properly. Kafka ACL doesn't have Regex, only LITERAL and PREFIXED
         REGEXP
     }
     public enum SecurityPolicy {

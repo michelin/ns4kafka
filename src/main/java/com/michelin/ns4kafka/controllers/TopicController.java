@@ -3,7 +3,8 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.TopicRepository;
-import com.michelin.ns4kafka.exceptions.ResourceValidationException;
+import com.michelin.ns4kafka.validation.FieldValidationException;
+import com.michelin.ns4kafka.validation.ResourceValidationException;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.*;
@@ -14,6 +15,7 @@ import lombok.Getter;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import javax.validation.Valid;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -49,27 +51,38 @@ public class TopicController {
         return topicRepository.findByName(namespace, topic);
     }
     @Put("/{topicName}")
-    public Topic update(String namespace, String topicName, @Body Topic topic){
-
+    public Topic update(String namespace, String topicName, @Valid @Body Topic topic){
         //TODO
         // 1. (Done) User Allowed ?
         //   -> User belongs to group and operation/resource is allowed on this namespace ?
         //   -> Managed in RessourceBasedSecurityRule class
-        // 2. Topic already exists ?
-        //   -> Reject Request ?
-        //   -> Treat Request as and Update ?
         // 3. Request Valid ?
         //   -> Topics parameters are allowed for this namespace ConstraintsValidatorSet
         // 4. Store in datastore
+
+        //resource path / object match ?
+        if(!topicName.equals(topic.getMetadata().getName())){
+            throw new ResourceValidationException(List.of("Resource name doesn't match between URL and data"));
+        }
+
+        //resource exists ?
         Optional<Topic> existingTopic = topicRepository.findByName(namespace,topic.getMetadata().getName());
-        if(existingTopic.isPresent()){
-            update(namespace, topic.getMetadata().getName(), topic);
+        if(existingTopic.isEmpty()){
+            throw new ResourceValidationException(List.of("Resource name "+topicName+" doesn't exist"));
         }
         Namespace ns = namespaceRepository.findByName(namespace).orElseThrow(() -> new RuntimeException("Namespace not found"));
 
-        //2. Request is valid ?
-        //TODO forbidden changes when updating (partitions, replicationFactor, other ?)
+        //2.1 Request is valid ?
         List<String> validationErrors = ns.getTopicValidator().validate(topic,ns);
+
+        //2.2 forbidden changes when updating (partitions, replicationFactor)
+        if(existingTopic.get().getSpec().getPartitions() != topic.getSpec().getPartitions()){
+            validationErrors.add("Invalid value " + topic.getSpec().getPartitions() + " for configuration partitions: Value is immutable ("+existingTopic.get().getSpec().getPartitions()+")");
+        }
+        if(existingTopic.get().getSpec().getReplicationFactor() != topic.getSpec().getReplicationFactor()){
+            validationErrors.add("Invalid value " + topic.getSpec().getReplicationFactor() + " for configuration replication.factor: Value is immutable ("+existingTopic.get().getSpec().getReplicationFactor()+")");
+        }
+
         if(validationErrors.size()>0){
             throw new ResourceValidationException(validationErrors);
         }
@@ -80,13 +93,16 @@ public class TopicController {
         topic.getMetadata().setCluster(ns.getCluster());
         topic.getMetadata().setNamespace(ns.getName());
         topic.setStatus(Topic.TopicStatus.ofPending());
-        return topicRepository.create(topic);
-        //pour les topics dont je suis owner, somme d'usage
+
+        //TODO quota management
+        // pour les topics dont je suis owner, somme d'usage
         // pour le topic à créer usageTopic
         // si somme + usageTopic > quota KO
+        return topicRepository.create(topic);
+
     }
     @Post("/")
-    public Topic create(String namespace, @Body Topic topic){
+    public Topic create(String namespace, @Valid @Body Topic topic){
 
         //TODO
         // 1. (Done) User Allowed ?
@@ -100,7 +116,7 @@ public class TopicController {
         // 4. Store in datastore
         Optional<Topic> existingTopic = topicRepository.findByName(namespace,topic.getMetadata().getName());
         if(existingTopic.isPresent()){
-            update(namespace, topic.getMetadata().getName(), topic);
+            return update(namespace, topic.getMetadata().getName(), topic);
         }
         Namespace ns = namespaceRepository.findByName(namespace).orElseThrow(() -> new RuntimeException("Namespace not found"));
 
@@ -124,8 +140,7 @@ public class TopicController {
     }
     @Error
     public HttpResponse<ResourceCreationError> validationExceptionHandler(HttpRequest request, ResourceValidationException resourceValidationException){
-        return HttpResponse
-                .badRequest()
+        return HttpResponse.badRequest()
                 .body(new ResourceCreationError("Message validation failed", resourceValidationException.getValidationErrors()));
     }
 

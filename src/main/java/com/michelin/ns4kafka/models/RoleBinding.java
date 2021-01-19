@@ -23,7 +23,6 @@ public class RoleBinding {
     //TODO RoleRef instead: roleAdmin, roleRead, roleXXX + RoleRepository
     @Builder
     @AllArgsConstructor
-    //@NoArgsConstructor
     @Getter
     @Setter
     public static class Role {
@@ -39,6 +38,7 @@ public class RoleBinding {
     public static class Subject {
         private final SubjectType subjectType = SubjectType.GROUP;
         private String subjectName;
+
     }
 
     public enum SubjectType {

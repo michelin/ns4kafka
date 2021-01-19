@@ -58,22 +58,19 @@ ns4kafka:
           segment.ms: "60000"
   managed-clusters:
     df4mgbl0:
-      manage:
-        users: false # requires Broker >= 2.7.0
-        acls: false
-        topics: true
+      manage-users: false # requires Broker >= 2.7.0
+      manage-acls: false
+      manage-topics: true
       config:
         bootstrap.servers: "10.136.4.221:9092"
     if4mmfg0:
-      manage:
-        users: false
-        acls: true
-        topics: true
+      manageUsers: false
+      manageACLs: true
+      manageTopics: true
       config:
         bootstrap.servers: "carsif4m01.car.michelin.com:9092,carsif4m02.car.michelin.com:9092,carsif4m03.car.michelin.com:9092"
         security.protocol: "SASL_PLAINTEXT"
         sasl.mechanism: "SCRAM-SHA-512"
-
 #    PROD:
 #      config:
 #        bootstrap.servers: "prod.com:9093"

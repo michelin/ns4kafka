@@ -1,14 +1,25 @@
 package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.ResourceSecurityPolicy;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
+import com.michelin.ns4kafka.security.ResourceSecurityPolicyValidator;
+import io.micronaut.aop.exceptions.UnimplementedAdviceException;
 import io.micronaut.context.annotation.EachBean;
 import io.micronaut.scheduling.annotation.Scheduled;
 import org.apache.kafka.clients.admin.*;
+import org.apache.kafka.common.acl.*;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.requests.DeleteTopicsRequest;
+import org.apache.kafka.common.resource.PatternType;
+import org.apache.kafka.common.resource.ResourcePattern;
+import org.apache.kafka.common.resource.ResourcePatternFilter;
+import org.apache.kafka.common.resource.ResourceType;
+import org.apache.kafka.common.security.scram.ScramCredential;
+import org.apache.kafka.common.security.scram.internals.ScramFormatter;
+import org.apache.kafka.common.security.scram.internals.ScramMechanism;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,8 +54,19 @@ public class KafkaAsyncExecutor {
 
     public void run(){
         //execute topic changes
-        synchronizeTopics();
-        //execute user changes
+        if(this.kafkaAsyncExecutorConfig.isManageTopics()) {
+            synchronizeTopics();
+        }
+        if(this.kafkaAsyncExecutorConfig.isManageUsers()) {
+            // TODO User + Password requires AdminClient and Brokers >= 2.7.0
+            //  https://cwiki.apache.org/confluence/display/KAFKA/KIP-554%3A+Add+Broker-side+SCRAM+Config+API
+            //  Until then create the user/password without ns4kafka
+            throw new UnsupportedOperationException("Not implemented, contributions welcome");
+        }
+        if(this.kafkaAsyncExecutorConfig.isManageAcls()) {
+            synchronizeACLs();
+        }
+
     }
     public void synchronizeTopics(){
         LOG.debug("Starting topic collection for cluster "+kafkaAsyncExecutorConfig.getName());
@@ -122,7 +144,7 @@ public class KafkaAsyncExecutor {
         // create a technical namespace with internal topics ? risky
         // delete synchronously from DELETE API calls ?
         // other ?
-        /* 
+        /*
         DeleteTopicsResult deleteTopicsResult = getAdminClient().deleteTopics(topics.stream().map(topic -> topic.getMetadata().getName()).collect(Collectors.toList()));
         deleteTopicsResult.values().entrySet()
                 .stream()
@@ -237,8 +259,97 @@ public class KafkaAsyncExecutor {
                 .collect(Collectors.toMap( topic -> topic.getMetadata().getName(), Function.identity()));
     }
 
-    private void synchronizeUsers(){
-        //
+    private Map<String, AclBinding> collectBrokerACLs() throws ExecutionException, InterruptedException, TimeoutException {
+        //TODO soon : manage IDEMPOTENT_WRITE on CLUSTER 'kafka-cluster'
+        //TODO eventually : manage DELEGATION_TOKEN and TRANSACTIONAL_ID
+        //TODO eventually : manage host ?
+        //TODO never ever : manage CREATE and DELETE Topics (managed by ns4kafka !)
+
+        List<PatternType> validPatternTypes = List.of(PatternType.LITERAL, PatternType.PREFIXED);
+        List<ResourceType> validResourceTypes = List.of(ResourceType.TOPIC, ResourceType.GROUP);
+        List<AclOperation> validOperations = List.of(AclOperation.WRITE, AclOperation.READ);
+
+        // keep only ALLOW on host *
+        // keep only LITERAL and PREFIX Pattern Types
+        // keep only TOPIC and GROUP Resource Types
+        // keep only READ and WRITE Operations
+        // TODO alert when records are filtered out ?
+        // collect ACL and simplify to form : <User(string), List<ACL(Type, Pattern, Resource)>
+        Map<String, List<ResourceSecurityPolicy>> userACLs = getAdminClient()
+                .describeAcls(AclBindingFilter.ANY)
+                .values().get(10, TimeUnit.SECONDS)
+                .stream()
+                .filter(aclBinding -> aclBinding.entry().host().equals("*") && aclBinding.entry().permissionType() == AclPermissionType.ALLOW)
+                .filter(aclBinding -> validPatternTypes.contains(aclBinding.pattern().patternType())
+                        && validResourceTypes.contains(aclBinding.pattern().resourceType())
+                        && validOperations.contains(aclBinding.entry().operation()))
+                .map(aclBinding -> Map.entry(aclBinding.entry().principal(),
+                        ResourceSecurityPolicy.builder()
+                                .resource(aclBinding.pattern().name())
+                                .resourceType(convertResourceType(aclBinding.pattern().resourceType()))
+                                .resourcePatternType(convertPatternType(aclBinding.pattern().patternType()))
+                                .securityPolicy(convertOperation(aclBinding.entry().operation()))
+                                .build()))
+                .collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
+        //Map.entry<K,V> to Map<K, List<V>>
+        userACLs.forEach((s, resourceSecurityPolicies) -> {
+            LOG.info("-----------------------------------");
+            LOG.info("-----"+s+"--------");
+            resourceSecurityPolicies.forEach(resourceSecurityPolicy -> LOG.info(resourceSecurityPolicy.toString()));
+        });
+
+
+        return null;
+    }
+    private ResourceSecurityPolicy.ResourcePatternType convertPatternType(org.apache.kafka.common.resource.PatternType patternType){
+        switch (patternType){
+            case PREFIXED:
+                return ResourceSecurityPolicy.ResourcePatternType.PREFIXED;
+            case LITERAL:
+                return ResourceSecurityPolicy.ResourcePatternType.LITERAL;
+            default:
+                //when would we reach this ?
+                throw new UnsupportedOperationException("Unexpected value for patternType :"+patternType.toString());
+        }
+    }
+    private ResourceSecurityPolicy.ResourceType convertResourceType(org.apache.kafka.common.resource.ResourceType resourceType){
+        switch (resourceType){
+            case TOPIC:
+                return ResourceSecurityPolicy.ResourceType.TOPIC;
+            case GROUP:
+                return ResourceSecurityPolicy.ResourceType.CONSUMER_GROUP;
+            default:
+                //when would we reach this ?
+                throw new UnsupportedOperationException("Unexpected value for resourceType :"+resourceType.toString());
+        }
+    }
+    private ResourceSecurityPolicy.SecurityPolicy convertOperation(org.apache.kafka.common.acl.AclOperation aclOperation){
+        switch (aclOperation){
+            case READ:
+                return ResourceSecurityPolicy.SecurityPolicy.READ;
+            case WRITE:
+                return ResourceSecurityPolicy.SecurityPolicy.READ_WRITE;
+            default:
+                //when would we reach this ?
+                throw new UnsupportedOperationException("Unexpected value for aclOperation :"+aclOperation.toString());
+        }
+    }
+
+
+    public void synchronizeACLs(){
+
+
+
+        try {
+            collectBrokerACLs();
+        }catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        }
+
     }
 
 

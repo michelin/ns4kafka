@@ -3,7 +3,6 @@ package com.michelin.ns4kafka.validation;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.michelin.ns4kafka.exceptions.ResourceValidationException;
 import lombok.*;
 
 import java.util.*;
@@ -38,7 +37,7 @@ public abstract class ResourceValidator {
          * Perform single configuration validation.
          * @param name The name of the configuration
          * @param value The value of the configuration
-         * @throws ResourceValidationException if the value is invalid.
+         * @throws FieldValidationException if the value is invalid.
          */
         void ensureValid(String name, Object value);
     }
@@ -82,16 +81,16 @@ public abstract class ResourceValidator {
         public void ensureValid(String name, Object o) {
             Number n = null;
             if (o == null)
-                throw new ResourceValidationException(name, null, "Value must be non-null");
+                throw new FieldValidationException(name, null, "Value must be non-null");
             try {
                 n = Double.valueOf(o.toString());
             }catch (NumberFormatException e){
-                throw new ResourceValidationException(name,o.toString(),"Value must be a Number");
+                throw new FieldValidationException(name,o.toString(),"Value must be a Number");
             }
             if (min != null && n.doubleValue() < min.doubleValue())
-                throw new ResourceValidationException(name, o, "Value must be at least " + min);
+                throw new FieldValidationException(name, o, "Value must be at least " + min);
             if (max != null && n.doubleValue() > max.doubleValue())
-                throw new ResourceValidationException(name, o, "Value must be no more than " + max);
+                throw new FieldValidationException(name, o, "Value must be no more than " + max);
         }
 
         public String toString() {
@@ -124,7 +123,7 @@ public abstract class ResourceValidator {
         @Override
         public void ensureValid(final String name, final Object o) {
             if (o == null)
-                throw new ResourceValidationException(name, null, "Value must be non-null");
+                throw new FieldValidationException(name, null, "Value must be non-null");
             String s = (String)o;
 
             List<String> values = List.of(s); //default if no "," (most of the time)
@@ -163,7 +162,7 @@ public abstract class ResourceValidator {
         public void ensureValid(String name, Object o) {
             String s = (String) o;
             if (!validStrings.contains(s)) {
-                throw new ResourceValidationException(name, o, "String must be one of: " + String.join(", ", validStrings));
+                throw new FieldValidationException(name, o, "String must be one of: " + String.join(", ", validStrings));
             }
 
         }
@@ -179,7 +178,7 @@ public abstract class ResourceValidator {
         public void ensureValid(String name, Object o) {
             String s = (String) o;
             if (s != null && s.isEmpty()) {
-                throw new ResourceValidationException(name, o, "String must be non-empty");
+                throw new FieldValidationException(name, o, "String must be non-empty");
             }
         }
 

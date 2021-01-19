@@ -32,7 +32,7 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
 
     @Override
     public Collection<Namespace> findAll() {
-        return kafkaStore.values();
+        return getKafkaStore().values();
     }
 
     @Override

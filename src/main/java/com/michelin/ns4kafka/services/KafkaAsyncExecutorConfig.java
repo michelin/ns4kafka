@@ -12,6 +12,9 @@ import java.util.Map;
 @EachProperty("ns4kafka.managed-clusters")
 public class KafkaAsyncExecutorConfig {
     private final String name;
+    boolean manageTopics;
+    boolean manageAcls;
+    boolean manageUsers;
     @MapFormat(transformation = MapFormat.MapTransformation.FLAT)
     Map<String, Object> config;
 

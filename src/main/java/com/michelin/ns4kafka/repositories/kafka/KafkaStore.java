@@ -36,7 +36,7 @@ public abstract class KafkaStore<T> {
 
     @Inject @Named(TaskExecutors.SCHEDULED) TaskScheduler taskScheduler;
 
-    ConcurrentHashMap<String,T> kafkaStore;
+    private Map<String,T> kafkaStore;
     String kafkaTopic;
     Producer<String,T> kafkaProducer;
     long offsetInSchemasTopic = -1;
@@ -53,6 +53,10 @@ public abstract class KafkaStore<T> {
         this.kafkaStore = new ConcurrentHashMap<String,T>();
         offsetUpdateLock = new ReentrantLock();
         offsetReachedThreshold = offsetUpdateLock.newCondition();
+    }
+    public Map<String,T> getKafkaStore(){
+        assertInitialized();
+        return kafkaStore;
     }
 
     T produce(String key, T message) throws KafkaStoreException {

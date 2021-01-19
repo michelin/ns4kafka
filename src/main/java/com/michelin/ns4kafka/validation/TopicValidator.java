@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.validation;
 
-import com.michelin.ns4kafka.exceptions.ResourceValidationException;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.security.ResourceSecurityPolicyValidator;
@@ -65,7 +64,7 @@ public class TopicValidator extends ResourceValidator {
                 } else {
                     entry.getValue().ensureValid(entry.getKey(), topic.getSpec().getConfigs().get(entry.getKey()));
                 }
-            }catch (ResourceValidationException e){
+            }catch (FieldValidationException e){
                 validationErrors.add(e.getMessage());
             }
         });

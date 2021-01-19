@@ -54,7 +54,7 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
     public List<Topic> findAllForNamespace(String namespace, TopicController.TopicListLimit limit) {
         Optional<Namespace> namespaceOptional = namespaceRepository.findByName(namespace);
         if(namespaceOptional.isPresent()) {
-            return kafkaStore.values()
+            return getKafkaStore().values()
                     .stream()
                     .filter(topic -> topic.getMetadata().getCluster().equals(namespaceOptional.get().getCluster()))
                     .filter(topic -> {
@@ -85,7 +85,7 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
 
     @Override
     public List<Topic> findAllForCluster(String cluster) {
-        return kafkaStore.values()
+        return getKafkaStore().values()
                 .stream()
                 .filter(topic -> topic.getMetadata().getCluster().equals(cluster))
                 .collect(Collectors.toList());
