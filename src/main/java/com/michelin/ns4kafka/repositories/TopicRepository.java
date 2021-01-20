@@ -4,7 +4,6 @@ import com.michelin.ns4kafka.controllers.TopicController;
 import com.michelin.ns4kafka.models.Topic;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public interface TopicRepository {
@@ -18,8 +17,10 @@ public interface TopicRepository {
      * value : Topic : Topic data<br>
      */
     List<Topic> findAllForCluster(String cluster);
+
     Optional<Topic> findByName(String namespace, String topic);
+
     Topic create(Topic topic);
 
-    public void assertInitialized();
+    void assertInitialized();
 }

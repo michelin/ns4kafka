@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.repositories.kafka;
 
+import com.michelin.ns4kafka.services.KafkaAsyncExecutorScheduler;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.TaskScheduler;
@@ -51,8 +52,9 @@ public abstract class KafkaStore<T> {
         this.kafkaTopic = kafkaTopic;
         this.kafkaProducer = kafkaProducer;
         this.kafkaStore = new ConcurrentHashMap<String,T>();
-        offsetUpdateLock = new ReentrantLock();
-        offsetReachedThreshold = offsetUpdateLock.newCondition();
+        this.offsetUpdateLock = new ReentrantLock();
+        this.offsetReachedThreshold = offsetUpdateLock.newCondition();
+
     }
     public Map<String,T> getKafkaStore(){
         assertInitialized();

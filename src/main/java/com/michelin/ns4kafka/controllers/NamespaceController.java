@@ -25,10 +25,6 @@ public class NamespaceController {
     @Inject
     NamespaceRepository namespaceRepository;
 
-    @Get
-    public Collection<Namespace> list(){
-        return namespaceRepository.findAll();
-    }
 
     @Get("{namespace}")
     public Optional<Namespace> display(Authentication authentication, String namespace){

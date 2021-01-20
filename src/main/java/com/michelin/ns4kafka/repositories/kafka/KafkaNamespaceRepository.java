@@ -9,7 +9,9 @@ import org.apache.kafka.clients.producer.Producer;
 
 import javax.inject.Singleton;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 @Singleton
@@ -31,8 +33,11 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
 
 
     @Override
-    public Collection<Namespace> findAll() {
-        return getKafkaStore().values();
+    public List<Namespace> findAllForCluster(String cluster) {
+        return getKafkaStore().values()
+                .stream()
+                .filter(namespace -> namespace.getCluster().equals(cluster))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -42,7 +47,7 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
 
     @Override
     public Optional<Namespace> findByName(String namespace) {
-        return findAll()
+        return getKafkaStore().values()
                 .stream()
                 .filter(ns -> ns.getName().equals(namespace))
                 .findFirst();
