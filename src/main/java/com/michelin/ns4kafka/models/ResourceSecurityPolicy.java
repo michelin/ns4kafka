@@ -20,20 +20,20 @@ public class ResourceSecurityPolicy {
 
     public enum ResourceType {
         TOPIC,
-        CONSUMER_GROUP,
+        GROUP,
         CONNECT,
         SCHEMA
     }
     public enum ResourcePatternType {
         LITERAL,
-        PREFIXED,
+        PREFIXED
         //TODO handle REGEX properly. Kafka ACL doesn't have Regex, only LITERAL and PREFIXED
-        REGEXP
+        //REGEXP
     }
     public enum SecurityPolicy {
         OWNER,
         READ,
-        READ_WRITE
+        WRITE
     }
     public static List<ResourceSecurityPolicy> buildDefaultNamespacePolicies(String prefix){
         List<ResourceSecurityPolicy> list = new ArrayList<>();
@@ -45,33 +45,33 @@ public class ResourceSecurityPolicy {
         rsp.setResourcePatternType(ResourcePatternType.PREFIXED);
         list.add(rsp);
 
-        rsp = new ResourceSecurityPolicy();
+        /*rsp = new ResourceSecurityPolicy();
         rsp.setResource(prefix);
         rsp.setSecurityPolicy(SecurityPolicy.OWNER);
         rsp.setResourceType(ResourceType.CONNECT);
         rsp.setResourcePatternType(ResourcePatternType.PREFIXED);
-        list.add(rsp);
+        list.add(rsp);*/
 
         rsp = new ResourceSecurityPolicy();
         rsp.setResource(prefix);
         rsp.setSecurityPolicy(SecurityPolicy.OWNER);
-        rsp.setResourceType(ResourceType.CONSUMER_GROUP);
+        rsp.setResourceType(ResourceType.GROUP);
         rsp.setResourcePatternType(ResourcePatternType.PREFIXED);
         list.add(rsp);
 
         rsp = new ResourceSecurityPolicy();
         rsp.setResource("connect-"+prefix);
         rsp.setSecurityPolicy(SecurityPolicy.OWNER);
-        rsp.setResourceType(ResourceType.CONSUMER_GROUP);
+        rsp.setResourceType(ResourceType.GROUP);
         rsp.setResourcePatternType(ResourcePatternType.PREFIXED);
         list.add(rsp);
 
-        rsp = new ResourceSecurityPolicy();
+        /*rsp = new ResourceSecurityPolicy();
         rsp.setResource(prefix);
         rsp.setSecurityPolicy(SecurityPolicy.OWNER);
         rsp.setResourceType(ResourceType.SCHEMA);
         rsp.setResourcePatternType(ResourcePatternType.PREFIXED);
-        list.add(rsp);
+        list.add(rsp);*/
 
         return list;
     }

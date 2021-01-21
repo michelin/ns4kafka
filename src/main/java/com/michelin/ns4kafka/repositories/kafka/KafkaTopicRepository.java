@@ -64,13 +64,13 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
                                 policies = List.of(ResourceSecurityPolicy.SecurityPolicy.OWNER);
                                 break;
                             case ACCESS_GIVEN:
-                                policies = List.of(ResourceSecurityPolicy.SecurityPolicy.READ_WRITE,
+                                policies = List.of(ResourceSecurityPolicy.SecurityPolicy.WRITE,
                                         ResourceSecurityPolicy.SecurityPolicy.READ);
                                 break;
                             case ALL:
                             default:
                                 policies = List.of(ResourceSecurityPolicy.SecurityPolicy.OWNER,
-                                        ResourceSecurityPolicy.SecurityPolicy.READ_WRITE,
+                                        ResourceSecurityPolicy.SecurityPolicy.WRITE,
                                         ResourceSecurityPolicy.SecurityPolicy.READ);
                                 break;
                         }
@@ -103,8 +103,8 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
     private boolean matchTopicAgainstPolicy(Topic topic, ResourceSecurityPolicy resourceSecurityPolicy){
         if(resourceSecurityPolicy.getResourceType() == ResourceSecurityPolicy.ResourceType.TOPIC){
             switch (resourceSecurityPolicy.getResourcePatternType()){
-                case REGEXP:
-                    return topic.getMetadata().getName().matches(resourceSecurityPolicy.getResource());
+                //case REGEXP:
+                //    return topic.getMetadata().getName().matches(resourceSecurityPolicy.getResource());
                 case PREFIXED:
                     return topic.getMetadata().getName().startsWith(resourceSecurityPolicy.getResource());
                 case LITERAL:

@@ -8,11 +8,10 @@ import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
 import io.micronaut.context.annotation.EachBean;
 import org.apache.kafka.clients.admin.*;
-import org.apache.kafka.common.acl.AclBindingFilter;
-import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.common.acl.AclPermissionType;
+import org.apache.kafka.common.acl.*;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.resource.PatternType;
+import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.resource.ResourceType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @EachBean(KafkaAsyncExecutorConfig.class)
 @Singleton
@@ -296,64 +296,24 @@ public class KafkaAsyncExecutor {
             // Ready ?
             namespaceRepository.assertInitialized();
             // List ACLs from broker
-            Map<String, List<ResourceSecurityPolicy>> brokerACLs = collectBrokerACLs();
+            List<AclBinding> brokerACLs = collectBrokerACLs();
+            List<AclBinding> ns4kafkaACLs = collectNs4KafkaACLs();
 
-            // List ACLs from ns4kafka Repository and apply the following rules
-            // Whenever the SecurityPolicy is OWNER or READ_WRITE, create 2 entries (one READ and one WRITE)
-            // This is necessary to translate ns4kafka grouped ResourceSecurityPolicy (OWNER, READ_WRITE, READ)
-            // into Kafka Atomic ACL (READ and WRITE)
-            // TODO this returns only the default user with ACL "inherited" from the namespace
-            //   at some point we want to manage multiple users within a namespace, each having their own ACLs.
-            Map<String, List<ResourceSecurityPolicy>> ns4kafkaACLs = namespaceRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName())
-                    .stream()
-                    .map(namespace -> Map.entry(namespace.getDefaulKafkatUser(),
-                            namespace.getPolicies()
-                                    .stream()
-                                    .filter(resourceSecurityPolicy -> resourceSecurityPolicy.getResourceType() == ResourceSecurityPolicy.ResourceType.TOPIC ||
-                                            resourceSecurityPolicy.getResourceType() == ResourceSecurityPolicy.ResourceType.CONSUMER_GROUP)
-                                    .collect(Collectors.toList())))
-                    .collect(Collectors.toMap(Map.Entry::getKey,Map.Entry::getValue));
-
-            // TODO simplify one pass on flat list user/resource/operation to remove/all ACL ?
-            // Until then 3 steps computation :
-            // 1. compute users in ns4kafka but not in broker, ACLs to toAdd list
-            // 2. compute users broker but not in ns4kafka, ACLs to toDelete list
-            // 3. compute acls of users in both list, toAdd or toDelete
-
-            // Map.Entry is used as KV Pair and not as a Map construct here ()
-            List<Map.Entry<String,ResourceSecurityPolicy>> toAdd = ns4kafkaACLs.entrySet()
-                    .stream()
-                    .filter(entry -> !brokerACLs.containsKey(entry.getKey()))
-                    .flatMap(entry -> entry.getValue()
-                            .stream()
-                            .map(resourceSecurityPolicy ->  Map.entry(entry.getKey(),resourceSecurityPolicy)))
+            brokerACLs.stream()
+                    .filter(aclBinding -> ns4kafkaACLs.contains(aclBinding))
+                    .forEach(aclBinding -> LOG.info("Found in both : "+aclBinding.toString()));
+            List<AclBinding> toCreate = ns4kafkaACLs.stream()
+                    .filter(aclBinding -> !brokerACLs.contains(aclBinding))
                     .collect(Collectors.toList());
-            List<Map.Entry<String,ResourceSecurityPolicy>> toDelete = brokerACLs.entrySet()
-                    .stream()
-                    .filter(entry -> !ns4kafkaACLs.containsKey(entry.getKey()))
-                    .flatMap(entry -> entry.getValue()
-                            .stream()
-                            .map(resourceSecurityPolicy ->  Map.entry(entry.getKey(),resourceSecurityPolicy)))
+            List<AclBinding> toDelete = brokerACLs.stream()
+                    .filter(aclBinding -> !ns4kafkaACLs.contains(aclBinding))
                     .collect(Collectors.toList());
-            ns4kafkaACLs.entrySet()
-                    .stream()
-                    .filter(entry -> brokerACLs.containsKey(entry.getKey()))
-                    .forEach(entry -> {
-                        List<ResourceSecurityPolicy> brokerUserACLs = brokerACLs.get(entry.getKey());
-                        List<ResourceSecurityPolicy> ns4kafkaUserACLs = entry.getValue();
-                        toAdd.addAll(ns4kafkaUserACLs.stream()
-                                .filter(resourceSecurityPolicy -> !brokerUserACLs.contains(resourceSecurityPolicy))
-                                .map(resourceSecurityPolicy -> Map.entry(entry.getKey(),resourceSecurityPolicy))
-                                .collect(Collectors.toList()));
-                        toDelete.addAll(brokerUserACLs.stream()
-                                .filter(resourceSecurityPolicy -> !ns4kafkaUserACLs.contains(resourceSecurityPolicy))
-                                .map(resourceSecurityPolicy -> Map.entry(entry.getKey(), resourceSecurityPolicy))
-                                .collect(Collectors.toList()));
-                    });
+
+            toCreate.forEach(aclBinding -> LOG.info("to create : "+aclBinding.toString()));
+            toDelete.forEach(aclBinding -> LOG.info("to delete : "+aclBinding.toString()));
             // Execute toAdd list BEFORE toDelete list to avoid breaking ACL on connected user
             // such as deleting <LITERAL "toto.titi"> only to add one second later <PREFIX "toto.">
             //TODO this
-            toAdd.forEach(stringResourceSecurityPolicyEntry -> LOG.info(stringResourceSecurityPolicyEntry.getValue().toString()));
 
 
         }catch (KafkaStoreException e){
@@ -367,7 +327,35 @@ public class KafkaAsyncExecutor {
         }
 
     }
-    private Map<String, List<ResourceSecurityPolicy>> collectBrokerACLs() throws ExecutionException, InterruptedException, TimeoutException {
+    private List<AclBinding> collectNs4KafkaACLs(){
+        // List ACLs from ns4kafka Repository and apply the following rules
+        // Whenever the SecurityPolicy is OWNER, create 2 entries (one READ and one WRITE)
+        // This is necessary to translate ns4kafka grouped ResourceSecurityPolicy (OWNER, WRITE, READ)
+        // into Kafka Atomic ACL (READ and WRITE)
+
+        // TODO this returns only the default user with ACL "inherited" from the namespace
+        //   at some point we want to manage multiple users within a namespace, each having their own ACLs.
+
+        List<AclBinding> ns4kafkaACLs = namespaceRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName())
+                .stream()
+                //1-N Namespace to Policy
+                .flatMap(namespace -> namespace.getPolicies()
+                        .stream()
+                        .filter(resourceSecurityPolicy -> resourceSecurityPolicy.getResourceType() == ResourceSecurityPolicy.ResourceType.TOPIC ||
+                                resourceSecurityPolicy.getResourceType() == ResourceSecurityPolicy.ResourceType.GROUP)
+                        //1-N Policy to List<AclBinding>
+                        .flatMap(resourceSecurityPolicy ->
+                                buildAclBindingsFromResourceSecurityPolicy(resourceSecurityPolicy, namespace.getDefaulKafkatUser())
+                                        .stream())
+                )
+                .collect(Collectors.toList());
+        if(LOG.isDebugEnabled()) {
+            LOG.debug("ACLs found on ns4kafka : "+ns4kafkaACLs.size());
+            ns4kafkaACLs.forEach(aclBinding -> LOG.debug(aclBinding.toString()));
+        }
+        return ns4kafkaACLs;
+    }
+    private List<AclBinding> collectBrokerACLs() throws ExecutionException, InterruptedException, TimeoutException {
         //TODO soon : manage IDEMPOTENT_WRITE on CLUSTER 'kafka-cluster'
         //TODO eventually : manage DELEGATION_TOKEN and TRANSACTIONAL_ID
         //TODO eventually : manage host ?
@@ -375,76 +363,64 @@ public class KafkaAsyncExecutor {
 
         List<PatternType> validPatternTypes = List.of(PatternType.LITERAL, PatternType.PREFIXED);
         List<ResourceType> validResourceTypes = List.of(ResourceType.TOPIC, ResourceType.GROUP);
-        List<AclOperation> validOperations = List.of(AclOperation.WRITE, AclOperation.READ);
 
         // keep only ALLOW on host *
         // keep only LITERAL and PREFIX Pattern Types
         // keep only TOPIC and GROUP Resource Types
-        // keep only READ and WRITE Operations
         // TODO alert when records are filtered out ?
-        // collect ACL and simplify to form : <User(string), List<ACL(Type, Pattern, Resource, Operation)>
-        Map<String, List<ResourceSecurityPolicy>> userACLs = getAdminClient()
+        List<AclBinding> userACLs = getAdminClient()
                 .describeAcls(AclBindingFilter.ANY)
                 .values().get(10, TimeUnit.SECONDS)
                 .stream()
                 .filter(aclBinding -> aclBinding.entry().host().equals("*") && aclBinding.entry().permissionType() == AclPermissionType.ALLOW)
                 .filter(aclBinding -> validPatternTypes.contains(aclBinding.pattern().patternType())
-                        && validResourceTypes.contains(aclBinding.pattern().resourceType())
-                        && validOperations.contains(aclBinding.entry().operation()))
-                .map(aclBinding -> Map.entry(aclBinding.entry().principal(),
-                        ResourceSecurityPolicy.builder()
-                                .resource(aclBinding.pattern().name())
-                                .resourceType(convertResourceType(aclBinding.pattern().resourceType()))
-                                .resourcePatternType(convertPatternType(aclBinding.pattern().patternType()))
-                                .securityPolicy(convertOperation(aclBinding.entry().operation()))
-                                .build()))
-                .collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
-        //Map.entry<K,V> to Map<K, List<V>>
+                        && validResourceTypes.contains(aclBinding.pattern().resourceType()))
+                .collect(Collectors.toList());
+
         if(LOG.isDebugEnabled()) {
-            userACLs.forEach((s, resourceSecurityPolicies) -> {
-                LOG.debug("-----" + s + "--------");
-                resourceSecurityPolicies.forEach(resourceSecurityPolicy -> LOG.debug(resourceSecurityPolicy.toString()));
+            LOG.debug("ACLs found on Broker : "+userACLs.size());
+            userACLs.forEach(aclBinding -> {
+                LOG.debug(aclBinding.toString());
             });
         }
 
 
         return userACLs;
     }
-    private ResourceSecurityPolicy.ResourcePatternType convertPatternType(org.apache.kafka.common.resource.PatternType patternType){
-        switch (patternType){
-            case PREFIXED:
-                return ResourceSecurityPolicy.ResourcePatternType.PREFIXED;
-            case LITERAL:
-                return ResourceSecurityPolicy.ResourcePatternType.LITERAL;
-            default:
-                //when would we reach this ?
-                throw new UnsupportedOperationException("Unexpected value for patternType :"+patternType.toString());
+
+    private List<AclBinding> buildAclBindingsFromResourceSecurityPolicy(ResourceSecurityPolicy resourceSecurityPolicy, String kafkaUser){
+
+        //convert pattern, convert resource type
+        PatternType patternType = PatternType.fromString(resourceSecurityPolicy.getResourcePatternType().toString());
+        ResourceType resourceType = ResourceType.fromString(resourceSecurityPolicy.getResourceType().toString());
+        ResourcePattern resourcePattern = new ResourcePattern(resourceType,
+                resourceSecurityPolicy.getResource(),
+                patternType);
+
+        //generate the required AclOperation based on ResourceType
+        List<AclOperation> targetAclOperations=null;
+        if(resourceSecurityPolicy.getSecurityPolicy() == ResourceSecurityPolicy.SecurityPolicy.OWNER){
+            targetAclOperations = computeAclOperationForOwner(resourceType);
+        }else {
+            //should be READ or WRITE
+            targetAclOperations = List.of(AclOperation.fromString(resourceSecurityPolicy.getSecurityPolicy().toString()));
         }
+        return targetAclOperations.stream().map(aclOperation ->
+                new AclBinding(resourcePattern, new AccessControlEntry("User:"+kafkaUser, "*", aclOperation, AclPermissionType.ALLOW)))
+                .collect(Collectors.toList());
     }
-    private ResourceSecurityPolicy.ResourceType convertResourceType(org.apache.kafka.common.resource.ResourceType resourceType){
+
+    private List<AclOperation> computeAclOperationForOwner(ResourceType resourceType) {
         switch (resourceType){
             case TOPIC:
-                return ResourceSecurityPolicy.ResourceType.TOPIC;
+                return List.of(AclOperation.WRITE,AclOperation.READ);
             case GROUP:
-                return ResourceSecurityPolicy.ResourceType.CONSUMER_GROUP;
+                return List.of(AclOperation.READ);
+            case CLUSTER:
+            case TRANSACTIONAL_ID:
+            case DELEGATION_TOKEN:
             default:
-                //when would we reach this ?
-                throw new UnsupportedOperationException("Unexpected value for resourceType :"+resourceType.toString());
+                throw new IllegalArgumentException("Not implemented yet :"+resourceType.toString());
         }
     }
-    private ResourceSecurityPolicy.SecurityPolicy convertOperation(org.apache.kafka.common.acl.AclOperation aclOperation){
-        switch (aclOperation){
-            case READ:
-                return ResourceSecurityPolicy.SecurityPolicy.READ;
-            case WRITE:
-                return ResourceSecurityPolicy.SecurityPolicy.READ_WRITE;
-            default:
-                //when would we reach this ?
-                throw new UnsupportedOperationException("Unexpected value for aclOperation :"+aclOperation.toString());
-        }
-    }
-
-
-
-
 }
