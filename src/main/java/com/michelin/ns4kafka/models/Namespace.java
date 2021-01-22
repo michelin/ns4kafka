@@ -13,12 +13,15 @@ import java.util.List;
 public class Namespace {
     private String name;
     private String cluster;
+    // This user is 100% synchonized with the namespace ACLs
+    private String defaulKafkatUser;
+    // TODO others users within namespace defined and must be "managed" (ACL must be defined and maintained) MVP35
+    //private List<User> users;
+    private int diskQuota;
     private List<ResourceSecurityPolicy> policies;
     private TopicValidator topicValidator;
-    private int diskQuota;
-    // TODO default Kafka User is given maximum grants and is synchronized
-    private String defaulKafkatUser;
-    // TODO others users are namespace defined and must be "managed" (ACL must be defined and maintained)
-    //private List<User> users; MVP 35
+
+
+
 
 }

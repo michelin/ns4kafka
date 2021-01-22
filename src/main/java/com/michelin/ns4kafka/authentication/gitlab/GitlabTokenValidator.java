@@ -41,13 +41,13 @@ public class GitlabTokenValidator implements TokenValidator {
         if(StringUtils.isNotEmpty(token)) {
             return gitlabAuthorizationService.findUsername(token)
                     .onErrorResumeNext(throwable -> {
-                        LOG.debug("Gitlab exception during Authentication step", throwable);
+                        LOG.error("Gitlab exception during Authentication step", throwable);
                         return Maybe.empty();
                     })
                     .flatMapPublisher(username -> {
                         return gitlabAuthorizationService.findGroups(token)
                                 .onErrorResumeNext(throwable -> {
-                                    LOG.debug("Gitlab exception during Authentication step", throwable);
+                                    LOG.error("Gitlab exception during Authentication step", throwable);
                                     return Maybe.empty();
                                 })
                                 .flatMapPublisher(response -> {

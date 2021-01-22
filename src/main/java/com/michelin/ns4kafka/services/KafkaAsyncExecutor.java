@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.services;
 
+import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.ResourceSecurityPolicy;
 import com.michelin.ns4kafka.models.Topic;
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.naming.Name;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CancellationException;
@@ -296,7 +298,7 @@ public class KafkaAsyncExecutor {
             // Ready ?
             namespaceRepository.assertInitialized();
             // List ACLs from broker
-            List<AclBinding> brokerACLs = collectBrokerACLs();
+            List<AclBinding> brokerACLs = collectBrokerACLs(true);
             List<AclBinding> ns4kafkaACLs = collectNs4KafkaACLs();
 
             brokerACLs.stream()
@@ -311,9 +313,12 @@ public class KafkaAsyncExecutor {
 
             toCreate.forEach(aclBinding -> LOG.info("to create : "+aclBinding.toString()));
             toDelete.forEach(aclBinding -> LOG.info("to delete : "+aclBinding.toString()));
+
             // Execute toAdd list BEFORE toDelete list to avoid breaking ACL on connected user
             // such as deleting <LITERAL "toto.titi"> only to add one second later <PREFIX "toto.">
             //TODO this
+            //createACLs(toCreate);
+            //deleteACLs(toDelete);
 
 
         }catch (KafkaStoreException e){
@@ -327,6 +332,41 @@ public class KafkaAsyncExecutor {
         }
 
     }
+
+    private void deleteACLs(List<AclBinding> toDelete) {
+        getAdminClient()
+                .deleteAcls(toDelete.stream()
+                        .map(aclBinding -> aclBinding.toFilter())
+                        .collect(Collectors.toList()))
+                .values().entrySet()
+                .stream()
+                .forEach(mapEntry -> mapEntry.getValue()
+                        .whenComplete((unused, throwable) -> {
+                            if(throwable!=null){
+                                LOG.error(String.format("Error while creating ACL %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()), throwable);
+                            }else{
+                                LOG.info(String.format("Success creating ACL %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()));
+                            }
+
+                        })
+                );
+    }
+
+    private void createACLs(List<AclBinding> toCreate) {
+        getAdminClient().createAcls(toCreate).values().entrySet()
+                .stream()
+                .forEach(mapEntry -> mapEntry.getValue()
+                        .whenComplete((unused, throwable) -> {
+                            if(throwable!=null){
+                                LOG.error(String.format("Error while creating ACL %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()), throwable);
+                            }else{
+                                LOG.info(String.format("Success creating ACL %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()));
+                            }
+
+                    })
+                );
+    }
+
     private List<AclBinding> collectNs4KafkaACLs(){
         // List ACLs from ns4kafka Repository and apply the following rules
         // Whenever the SecurityPolicy is OWNER, create 2 entries (one READ and one WRITE)
@@ -355,30 +395,44 @@ public class KafkaAsyncExecutor {
         }
         return ns4kafkaACLs;
     }
-    private List<AclBinding> collectBrokerACLs() throws ExecutionException, InterruptedException, TimeoutException {
+    private List<AclBinding> collectBrokerACLs(boolean managedUsersOnly) throws ExecutionException, InterruptedException, TimeoutException {
         //TODO soon : manage IDEMPOTENT_WRITE on CLUSTER 'kafka-cluster'
         //TODO eventually : manage DELEGATION_TOKEN and TRANSACTIONAL_ID
         //TODO eventually : manage host ?
         //TODO never ever : manage CREATE and DELETE Topics (managed by ns4kafka !)
 
-        List<PatternType> validPatternTypes = List.of(PatternType.LITERAL, PatternType.PREFIXED);
         List<ResourceType> validResourceTypes = List.of(ResourceType.TOPIC, ResourceType.GROUP);
 
-        // keep only ALLOW on host *
-        // keep only LITERAL and PREFIX Pattern Types
         // keep only TOPIC and GROUP Resource Types
         // TODO alert when records are filtered out ?
         List<AclBinding> userACLs = getAdminClient()
                 .describeAcls(AclBindingFilter.ANY)
                 .values().get(10, TimeUnit.SECONDS)
                 .stream()
-                .filter(aclBinding -> aclBinding.entry().host().equals("*") && aclBinding.entry().permissionType() == AclPermissionType.ALLOW)
-                .filter(aclBinding -> validPatternTypes.contains(aclBinding.pattern().patternType())
-                        && validResourceTypes.contains(aclBinding.pattern().resourceType()))
+                .filter(aclBinding -> validResourceTypes.contains(aclBinding.pattern().resourceType()))
                 .collect(Collectors.toList());
 
+        LOG.debug("ACLs found on Broker (total) : "+userACLs.size());
+        //TODO add parameter to cluster configuration to scope ALL users vs "namespace" managed users
+        // as of now, this will prevent deletion of ACLs for users not in ns4kafka scope
+        if(managedUsersOnly) {
+            // we first collect the list of Users managed in ns4kafka
+            List<String> managedUsers = namespaceRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName())
+                    .stream()
+                    //TODO managed user list should include not only "defaultKafkaUser" (MVP35)
+                    //1-N Namespace to KafkaUser
+                    .flatMap(namespace -> List.of("User:"+namespace.getDefaulKafkatUser()).stream())
+                    .collect(Collectors.toList());
+            // And then filter out the AclBinding to retain only those matching.
+            userACLs = userACLs.stream()
+                    .filter(aclBinding -> managedUsers.contains(aclBinding.entry().principal()))
+                    .collect(Collectors.toList());
+            LOG.debug("ACLs found on Broker (managed scope) : "+userACLs.size());
+        }
+
+
         if(LOG.isDebugEnabled()) {
-            LOG.debug("ACLs found on Broker : "+userACLs.size());
+
             userACLs.forEach(aclBinding -> {
                 LOG.debug(aclBinding.toString());
             });
@@ -422,5 +476,34 @@ public class KafkaAsyncExecutor {
             default:
                 throw new IllegalArgumentException("Not implemented yet :"+resourceType.toString());
         }
+    }
+
+    public List<Namespace> generateNamespaces() throws InterruptedException, ExecutionException, TimeoutException {
+        List<AclOperation> validAclOperations = List.of(AclOperation.WRITE, AclOperation.READ);
+        List<AclBinding> userACLs = collectBrokerACLs(false)
+                .stream()
+                .filter(aclBinding -> validAclOperations.contains(aclBinding.entry().operation()))
+                .collect(Collectors.toList());
+        List<String> users = userACLs.stream()
+                .map(aclBinding -> aclBinding.entry().principal())
+                .distinct()
+                .collect(Collectors.toList());
+        return users.stream().map(s ->
+            Namespace.builder()
+                    .cluster(this.kafkaAsyncExecutorConfig.getName())
+                    .defaulKafkatUser(s.replace("User:",""))
+                    .diskQuota(0)
+                    .policies(userACLs.stream()
+                            .filter(aclBinding -> aclBinding.entry().principal().equals(s))
+                            .map(aclBinding -> ResourceSecurityPolicy.builder()
+                                    .securityPolicy(ResourceSecurityPolicy.SecurityPolicy.valueOf(aclBinding.entry().operation().toString()))
+                                    .resourcePatternType(ResourceSecurityPolicy.ResourcePatternType.valueOf(aclBinding.pattern().patternType().toString()))
+                                    .resourceType(ResourceSecurityPolicy.ResourceType.valueOf(aclBinding.pattern().resourceType().toString()))
+                                    .resource(aclBinding.pattern().name())
+                                    .build())
+                            .collect(Collectors.toList()))
+                    .build()
+        ).collect(Collectors.toList());
+
     }
 }

@@ -75,6 +75,7 @@ public class TopicController {
         //2.1 Request is valid ?
         List<String> validationErrors = ns.getTopicValidator().validate(topic,ns);
 
+        //TODO move this into the validator ? validateUpdate(topic) ?
         //2.2 forbidden changes when updating (partitions, replicationFactor)
         if(existingTopic.get().getSpec().getPartitions() != topic.getSpec().getPartitions()){
             validationErrors.add("Invalid value " + topic.getSpec().getPartitions() + " for configuration partitions: Value is immutable ("+existingTopic.get().getSpec().getPartitions()+")");
