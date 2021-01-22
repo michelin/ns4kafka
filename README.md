@@ -25,7 +25,7 @@ Namespaces on top of Kafka Broker, Kafka Connect and Schema Registry
 
 
 Example namespace:  
-````json
+````
 {
   "name": "namespace-project1",
   "cluster": "kafka-dev",
