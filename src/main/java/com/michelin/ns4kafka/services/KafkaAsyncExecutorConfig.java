@@ -15,6 +15,7 @@ public class KafkaAsyncExecutorConfig {
     boolean manageTopics;
     boolean manageAcls;
     boolean manageUsers;
+    boolean readOnly = true;
     @MapFormat(transformation = MapFormat.MapTransformation.FLAT)
     Map<String, Object> config;
 

@@ -24,6 +24,11 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
         super(kafkaTopic, kafkaProducer);
     }
 
+    @Override
+    String getMessageKey(RoleBinding message) {
+        return "temp";
+    }
+
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.role-bindings")
     void receive(ConsumerRecord<String, RoleBinding> record) {
         super.receive(record);
@@ -43,7 +48,7 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
 
     @Override
     public RoleBinding create(RoleBinding roleBinding) {
-        return this.produce("temp",roleBinding);
+        return this.produce(getMessageKey(roleBinding),roleBinding);
     }
 
 }

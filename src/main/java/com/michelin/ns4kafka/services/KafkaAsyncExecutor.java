@@ -2,12 +2,14 @@ package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.ResourceSecurityPolicy;
+import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
 import io.micronaut.context.annotation.EachBean;
+import io.netty.handler.codec.spdy.SpdyHttpHeaders;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.acl.*;
 import org.apache.kafka.common.config.ConfigResource;
@@ -28,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @EachBean(KafkaAsyncExecutorConfig.class)
 @Singleton
@@ -41,6 +42,8 @@ public class KafkaAsyncExecutor {
     TopicRepository topicRepository;
     @Inject
     NamespaceRepository namespaceRepository;
+    @Inject
+    AccessControlEntryRepository accessControlEntryRepository;
 
     public KafkaAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig){
         this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
@@ -56,18 +59,25 @@ public class KafkaAsyncExecutor {
     //TODO abstract synchronization process to handle different Kafka "models"
     // ie : cloud API vs AdminClient
     public void run(){
-        //execute topic changes
+        if(this.kafkaAsyncExecutorConfig.isReadOnly()){
+            LOG.warn("This cluster is set to READ-ONLY : all calculated changes will be displayed but not applied");
+        }
+
+        // execute topic changes
         if(this.kafkaAsyncExecutorConfig.isManageTopics()) {
             synchronizeTopics();
         }
+
+        // execute ACL changes
+        if(this.kafkaAsyncExecutorConfig.isManageAcls()) {
+            synchronizeACLs();
+        }
+
         if(this.kafkaAsyncExecutorConfig.isManageUsers()) {
             // TODO User + Password requires AdminClient and Brokers >= 2.7.0
             //  https://cwiki.apache.org/confluence/display/KAFKA/KIP-554%3A+Add+Broker-side+SCRAM+Config+API
             //  Until then create the user/password without ns4kafka
             throw new UnsupportedOperationException("Not implemented, contributions welcome");
-        }
-        if(this.kafkaAsyncExecutorConfig.isManageAcls()) {
-            synchronizeACLs();
         }
 
     }
@@ -369,8 +379,8 @@ public class KafkaAsyncExecutor {
 
     private List<AclBinding> collectNs4KafkaACLs(){
         // List ACLs from ns4kafka Repository and apply the following rules
-        // Whenever the SecurityPolicy is OWNER, create 2 entries (one READ and one WRITE)
-        // This is necessary to translate ns4kafka grouped ResourceSecurityPolicy (OWNER, WRITE, READ)
+        // Whenever the Permission is OWNER, create 2 entries (one READ and one WRITE)
+        // This is necessary to translate ns4kafka grouped AccessControlEntry (OWNER, WRITE, READ)
         // into Kafka Atomic ACL (READ and WRITE)
 
         // TODO this returns only the default user with ACL "inherited" from the namespace
@@ -378,17 +388,15 @@ public class KafkaAsyncExecutor {
 
         List<AclBinding> ns4kafkaACLs = namespaceRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName())
                 .stream()
-                //1-N Namespace to Policy
-                .flatMap(namespace -> namespace.getPolicies()
+                .flatMap(namespace -> accessControlEntryRepository.findAllGrantedToNamespace(namespace.getName())
                         .stream()
-                        .filter(resourceSecurityPolicy -> resourceSecurityPolicy.getResourceType() == ResourceSecurityPolicy.ResourceType.TOPIC ||
-                                resourceSecurityPolicy.getResourceType() == ResourceSecurityPolicy.ResourceType.GROUP)
-                        //1-N Policy to List<AclBinding>
-                        .flatMap(resourceSecurityPolicy ->
-                                buildAclBindingsFromResourceSecurityPolicy(resourceSecurityPolicy, namespace.getDefaulKafkatUser())
-                                        .stream())
-                )
+                        .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC ||
+                                accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.GROUP)
+                        //1-N ACE to List<AclBinding>
+                        .flatMap(accessControlEntry ->
+                                buildAclBindingsFromAccessControlEntry(accessControlEntry, namespace.getDefaulKafkatUser()).stream()))
                 .collect(Collectors.toList());
+
         if(LOG.isDebugEnabled()) {
             LOG.debug("ACLs found on ns4kafka : "+ns4kafkaACLs.size());
             ns4kafkaACLs.forEach(aclBinding -> LOG.debug(aclBinding.toString()));
@@ -442,25 +450,24 @@ public class KafkaAsyncExecutor {
         return userACLs;
     }
 
-    private List<AclBinding> buildAclBindingsFromResourceSecurityPolicy(ResourceSecurityPolicy resourceSecurityPolicy, String kafkaUser){
-
-        //convert pattern, convert resource type
-        PatternType patternType = PatternType.fromString(resourceSecurityPolicy.getResourcePatternType().toString());
-        ResourceType resourceType = ResourceType.fromString(resourceSecurityPolicy.getResourceType().toString());
+    private List<AclBinding> buildAclBindingsFromAccessControlEntry(AccessControlEntry accessControlEntry, String kafkaUser){
+        //convert pattern, convert resource type from NS4Kafka to org.apache.kafka.common types
+        PatternType patternType = PatternType.fromString(accessControlEntry.getSpec().getResourcePatternType().toString());
+        ResourceType resourceType = ResourceType.fromString(accessControlEntry.getSpec().getResourceType().toString());
         ResourcePattern resourcePattern = new ResourcePattern(resourceType,
-                resourceSecurityPolicy.getResource(),
+                accessControlEntry.getSpec().getResource(),
                 patternType);
 
         //generate the required AclOperation based on ResourceType
         List<AclOperation> targetAclOperations=null;
-        if(resourceSecurityPolicy.getSecurityPolicy() == ResourceSecurityPolicy.SecurityPolicy.OWNER){
+        if(accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER){
             targetAclOperations = computeAclOperationForOwner(resourceType);
         }else {
             //should be READ or WRITE
-            targetAclOperations = List.of(AclOperation.fromString(resourceSecurityPolicy.getSecurityPolicy().toString()));
+            targetAclOperations = List.of(AclOperation.fromString(accessControlEntry.getSpec().getPermission().toString()));
         }
         return targetAclOperations.stream().map(aclOperation ->
-                new AclBinding(resourcePattern, new AccessControlEntry("User:"+kafkaUser, "*", aclOperation, AclPermissionType.ALLOW)))
+                new AclBinding(resourcePattern, new org.apache.kafka.common.acl.AccessControlEntry("User:"+kafkaUser, "*", aclOperation, AclPermissionType.ALLOW)))
                 .collect(Collectors.toList());
     }
 
@@ -478,32 +485,128 @@ public class KafkaAsyncExecutor {
         }
     }
 
-    public List<Namespace> generateNamespaces() throws InterruptedException, ExecutionException, TimeoutException {
+    public Map<Namespace,List<AccessControlEntry>> generateNamespaces() throws InterruptedException, ExecutionException, TimeoutException {
         List<AclOperation> validAclOperations = List.of(AclOperation.WRITE, AclOperation.READ);
         List<AclBinding> userACLs = collectBrokerACLs(false)
                 .stream()
                 .filter(aclBinding -> validAclOperations.contains(aclBinding.entry().operation()))
                 .collect(Collectors.toList());
+
         List<String> users = userACLs.stream()
                 .map(aclBinding -> aclBinding.entry().principal())
                 .distinct()
                 .collect(Collectors.toList());
-        return users.stream().map(s ->
+
+        List<Namespace> namespaces = users.stream().map(s ->
             Namespace.builder()
                     .cluster(this.kafkaAsyncExecutorConfig.getName())
                     .defaulKafkatUser(s.replace("User:",""))
                     .diskQuota(0)
-                    .policies(userACLs.stream()
-                            .filter(aclBinding -> aclBinding.entry().principal().equals(s))
-                            .map(aclBinding -> ResourceSecurityPolicy.builder()
-                                    .securityPolicy(ResourceSecurityPolicy.SecurityPolicy.valueOf(aclBinding.entry().operation().toString()))
-                                    .resourcePatternType(ResourceSecurityPolicy.ResourcePatternType.valueOf(aclBinding.pattern().patternType().toString()))
-                                    .resourceType(ResourceSecurityPolicy.ResourceType.valueOf(aclBinding.pattern().resourceType().toString()))
-                                    .resource(aclBinding.pattern().name())
-                                    .build())
-                            .collect(Collectors.toList()))
                     .build()
         ).collect(Collectors.toList());
+
+        Map<Namespace, List<AccessControlEntry>> ret = users
+                .stream()
+                .map(s -> Map.entry(Namespace.builder()
+                                .name("namespace_"+s.replace("User:",""))
+                                .cluster(this.kafkaAsyncExecutorConfig.getName())
+                                .defaulKafkatUser(s.replace("User:",""))
+                                .diskQuota(0)
+                                .build(),
+                        userACLs.stream()
+                                .filter(aclBinding -> aclBinding.entry().principal().equals(s))
+                        .map(aclBinding -> AccessControlEntry.builder()
+                                .metadata(ObjectMeta.builder()
+                                        .cluster(this.kafkaAsyncExecutorConfig.getName())
+                                        .namespace("namespace_"+s.replace("User:",""))
+                                        .labels(Map.of("grantor",AccessControlEntry.ADMIN))
+                                        .build())
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.valueOf(aclBinding.entry().operation().toString()))
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.valueOf(aclBinding.pattern().patternType().toString()))
+                                        .resourceType(AccessControlEntry.ResourceType.valueOf(aclBinding.pattern().resourceType().toString()))
+                                        .resource(aclBinding.pattern().name())
+                                        .build())
+                                .build())
+                        .collect(Collectors.toList())
+                ))
+                .collect(Collectors.toMap(Map.Entry::getKey,Map.Entry::getValue));
+
+                            /*
+                            .acls(userACLs.stream()
+                                    .filter(aclBinding -> aclBinding.entry().principal().equals(s))
+                                    .map(aclBinding -> AccessControlEntry.builder()
+                                            .metadata(ObjectMeta.builder()
+                                                    .
+                                            .build())
+                                    .permission(AccessControlEntry.Permission.valueOf(aclBinding.entry().operation().toString()))
+                                    .resourcePatternType(AccessControlEntry.ResourcePatternType.valueOf(aclBinding.pattern().patternType().toString()))
+                                    .resourceType(AccessControlEntry.ResourceType.valueOf(aclBinding.pattern().resourceType().toString()))
+                                    .resource(aclBinding.pattern().name())
+                                    .build())
+                                    .collect(Collectors.toList()))
+                                        .build()
+                    */
+        /*
+        namespaces.forEach(namespace -> {
+                        // recover TOPIC Pattern Policies
+                        List<String> prefixes = namespace.getAcls().stream()
+                                .filter(accessControlEntry ->
+                                        accessControlEntry.getResourceType() == AccessControlEntry.ResourceType.TOPIC &&
+                                                accessControlEntry.getResourcePatternType()== AccessControlEntry.ResourcePatternType.PREFIXED)
+                                .map(accessControlEntry -> accessControlEntry.getResource())
+                                .collect(Collectors.toList());
+                        // If READ+WRITE, guess OWNER
+                        prefixes.forEach(s -> {
+                            if(namespace.getAcls().stream().anyMatch(accessControlEntry -> accessControlEntry.getResource().equals(s)
+                                    && accessControlEntry.getResourceType()== AccessControlEntry.ResourceType.TOPIC
+                                    && accessControlEntry.getResourcePatternType() == AccessControlEntry.ResourcePatternType.PREFIXED
+                                    && accessControlEntry.getPermission() == AccessControlEntry.Permission.READ)
+                                    && namespace.getAcls().stream().anyMatch(accessControlEntry -> accessControlEntry.getResource().equals(s)
+                                    && accessControlEntry.getResourceType()== AccessControlEntry.ResourceType.TOPIC
+                                    && accessControlEntry.getResourcePatternType() == AccessControlEntry.ResourcePatternType.PREFIXED
+                                    && accessControlEntry.getPermission() == AccessControlEntry.Permission.WRITE)
+                            ){
+                                namespace.setAcls(namespace.getAcls().stream().filter(accessControlEntry -> !accessControlEntry.getResource().equals(s)).collect(Collectors.toList()));
+                                namespace.getAcls().add(AccessControlEntry.builder()
+                                        .resource(s)
+                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .build());
+                            }
+                        });
+                        prefixes = namespace.getAcls().stream()
+                                .filter(accessControlEntry ->
+                                        accessControlEntry.getResourceType() == AccessControlEntry.ResourceType.TOPIC &&
+                                                accessControlEntry.getResourcePatternType()== AccessControlEntry.ResourcePatternType.LITERAL)
+                                .map(accessControlEntry -> accessControlEntry.getResource())
+                                .collect(Collectors.toList());
+                        // If READ+WRITE, guess OWNER
+                        prefixes.forEach(s -> {
+                            if(namespace.getAcls().stream().anyMatch(accessControlEntry -> accessControlEntry.getResource().equals(s)
+                                    && accessControlEntry.getResourceType()== AccessControlEntry.ResourceType.TOPIC
+                                    && accessControlEntry.getResourcePatternType() == AccessControlEntry.ResourcePatternType.LITERAL
+                                    && accessControlEntry.getPermission() == AccessControlEntry.Permission.READ)
+                                    && namespace.getAcls().stream().anyMatch(accessControlEntry -> accessControlEntry.getResource().equals(s)
+                                    && accessControlEntry.getResourceType()== AccessControlEntry.ResourceType.TOPIC
+                                    && accessControlEntry.getResourcePatternType() == AccessControlEntry.ResourcePatternType.LITERAL
+                                    && accessControlEntry.getPermission() == AccessControlEntry.Permission.WRITE)
+                            ){
+                                namespace.setAcls(namespace.getAcls().stream().filter(accessControlEntry -> !accessControlEntry.getResource().equals(s)).collect(Collectors.toList()));
+                                namespace.getAcls().add(AccessControlEntry.builder()
+                                        .resource(s)
+                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                        .build());
+                            }
+                        });
+                    });
+                }
+
+         */
+        return ret;
 
     }
 }

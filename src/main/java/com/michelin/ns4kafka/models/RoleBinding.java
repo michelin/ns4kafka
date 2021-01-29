@@ -26,7 +26,7 @@ public class RoleBinding {
     @Getter
     @Setter
     public static class Role {
-        private final Collection<String> resourceTypes = List.of("topics","connects","schemas","consumer-groups");
+        private final Collection<String> resourceTypes = List.of("topics","connects","schemas","consumer-groups", "acls");
         private final Collection<String> verbs = List.of("GET","POST","PUT","DELETE");
     }
 

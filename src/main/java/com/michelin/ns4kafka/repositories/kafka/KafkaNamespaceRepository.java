@@ -26,6 +26,16 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
         super(kafkaTopic, kafkaProducer);
     }
 
+    @Override
+    String getMessageKey(Namespace message) {
+        return message.getName();
+    }
+
+    @Override
+    public Namespace createNamespace(Namespace namespace) {
+        return produce(getMessageKey(namespace),namespace);
+    }
+
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.namespaces")
     void receive(ConsumerRecord<String, Namespace> record) {
         super.receive(record);
@@ -38,11 +48,6 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
                 .stream()
                 .filter(namespace -> namespace.getCluster().equals(cluster))
                 .collect(Collectors.toList());
-    }
-
-    @Override
-    public Namespace createNamespace(Namespace namespace) {
-        return produce(namespace.getName(),namespace);
     }
 
     @Override

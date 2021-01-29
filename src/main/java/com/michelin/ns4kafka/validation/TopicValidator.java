@@ -2,7 +2,6 @@ package com.michelin.ns4kafka.validation;
 
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
-import com.michelin.ns4kafka.security.ResourceSecurityPolicyValidator;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,28 +29,25 @@ public class TopicValidator extends ResourceValidator {
         //Topic name validation
         //https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/internals/Topic.java#L36
         if(topic.getMetadata().getName().isEmpty())
-            validationErrors.add("Invalid value " + topic.getMetadata().getName() + ": Topic Name can't be empty");
+            validationErrors.add("Invalid value " + topic.getMetadata().getName() + " for name: Value must not be empty");
         if (topic.getMetadata().getName().equals(".") || topic.getMetadata().getName().equals(".."))
-            validationErrors.add("Invalid value " + topic.getMetadata().getName() + ": Topic name can't be \".\" or \"..\"");
+            validationErrors.add("Invalid value " + topic.getMetadata().getName() + " for name: Value must not be \".\" or \"..\"");
         if (topic.getMetadata().getName().length() > 249)
-            validationErrors.add("Invalid value " + topic.getMetadata().getName() + ": Topic name can't be longer than 249");
+            validationErrors.add("Invalid value " + topic.getMetadata().getName() + " for name: Value must not be longer than 249");
         if (!topic.getMetadata().getName().matches("[a-zA-Z0-9._-]+"))
-            validationErrors.add("Invalid value " + topic.getMetadata().getName() + ": Topic name contains a character other than " +
-                        "ASCII alphanumerics, '.', '_' and '-'");
-
-        //Topic namespace ownership validation
-        if(!ResourceSecurityPolicyValidator.isNamespaceOwnerOnTopic(namespace,topic))
-            validationErrors.add("Invalid value " + topic.getMetadata().getName() + ": Topic Name not allowed for this namespace");
+            validationErrors.add("Invalid value " + topic.getMetadata().getName() + " for name: Value must only contain " +
+                        "ASCII alphanumerics, '.', '_' or '-'");
 
         //prevent unknown configurations
-        Set<String> configsWithoutConstraints = topic.getSpec().getConfigs().keySet()
-                .stream()
-                .filter(s -> !validationConstraints.containsKey(s))
-                .collect(Collectors.toSet());
-        if(configsWithoutConstraints.size()>0){
-            validationErrors.add("Configurations ["+String.join(",",configsWithoutConstraints)+"] are not allowed");
+        if(topic.getSpec().getConfigs() != null) {
+            Set<String> configsWithoutConstraints = topic.getSpec().getConfigs().keySet()
+                    .stream()
+                    .filter(s -> !validationConstraints.containsKey(s))
+                    .collect(Collectors.toSet());
+            if (configsWithoutConstraints.size() > 0) {
+                validationErrors.add("Configurations [" + String.join(",", configsWithoutConstraints) + "] are not allowed");
+            }
         }
-
         //validate configurations
         validationConstraints.entrySet().stream().forEach(entry -> {
             try {
@@ -62,7 +58,14 @@ public class TopicValidator extends ResourceValidator {
                 } else if (entry.getKey().equals("replication.factor")) {
                     entry.getValue().ensureValid(entry.getKey(), topic.getSpec().getReplicationFactor());
                 } else {
-                    entry.getValue().ensureValid(entry.getKey(), topic.getSpec().getConfigs().get(entry.getKey()));
+                    //TODO null check on topic.getSpec().getConfigs() before reaching this code ?
+                    // are there use-cases without any validation on configs ?
+                    // if so, configs should be allowed to be null/empty
+                    if(topic.getSpec().getConfigs() != null) {
+                        entry.getValue().ensureValid(entry.getKey(), topic.getSpec().getConfigs().get(entry.getKey()));
+                    }else{
+                        validationErrors.add("Invalid value null for configuration "+entry.getKey()+": Value must be non-null");
+                    }
                 }
             }catch (FieldValidationException e){
                 validationErrors.add(e.getMessage());

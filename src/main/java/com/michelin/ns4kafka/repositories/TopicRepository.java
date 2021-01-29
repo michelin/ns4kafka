@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TopicRepository {
-    List<Topic> findAllForNamespace(String namespace, TopicController.TopicListLimit limit);
+    List<Topic> findAllForNamespace(String namespace);
 
     /***
      *

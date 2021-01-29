@@ -1,9 +1,9 @@
 package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.models.*;
+import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.TopicRepository;
-import com.michelin.ns4kafka.validation.FieldValidationException;
 import com.michelin.ns4kafka.validation.ResourceValidationException;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
@@ -26,21 +26,19 @@ public class TopicController {
     NamespaceRepository namespaceRepository;
     @Inject
     TopicRepository topicRepository;
+    @Inject
+    AccessControlEntryRepository accessControlEntryRepository;
 
     /**
      * @param namespace The namespace to query
-     * @param limit Optional restricts the scope of the return list
      * @return The list of all Topics names available for that namespace (owned and accessible)
      */
     @Get
-    public List<String> list(String namespace, @Nullable @QueryValue TopicListLimit limit){
+    public List<String> list(String namespace){
         //TODO ?labelSelector=environment%3Dproduction,tier%3Dfrontend
 
-        if(limit==null){
-            limit=TopicListLimit.ALL;
-        }
         //TODO TopicList
-        return topicRepository.findAllForNamespace(namespace, limit)
+        return topicRepository.findAllForNamespace(namespace)
                 .stream()
                 .map(topic -> topic.getMetadata().getName())
                 .collect(Collectors.toList());
@@ -89,8 +87,6 @@ public class TopicController {
         }
 
         //3. Fill server-side fields (server side metadata + status)
-        topic.setApiVersion("v1");
-        topic.setKind("Topic");
         topic.getMetadata().setCluster(ns.getCluster());
         topic.getMetadata().setNamespace(ns.getName());
         topic.setStatus(Topic.TopicStatus.ofPending());
@@ -123,13 +119,17 @@ public class TopicController {
 
         //2. Request is valid ?
         List<String> validationErrors = ns.getTopicValidator().validate(topic,ns);
+
+        //Topic namespace ownership validation
+        if(!isNamespaceOwnerOfTopic(namespace,topic.getMetadata().getName()))
+            validationErrors.add("Invalid value " + topic.getMetadata().getName() + " for name: Namespace not OWNER of this topic");
+
         if(validationErrors.size()>0){
             throw new ResourceValidationException(validationErrors);
         }
 
+
         //3. Fill server-side fields (server side metadata + status)
-        topic.setApiVersion("v1");
-        topic.setKind("Topic");
         topic.getMetadata().setCluster(ns.getCluster());
         topic.getMetadata().setNamespace(ns.getName());
         topic.setStatus(Topic.TopicStatus.ofPending());
@@ -139,7 +139,25 @@ public class TopicController {
         // si somme + usageTopic > quota KO
 
     }
-    @Error
+
+    private boolean isNamespaceOwnerOfTopic(String namespace, String topic) {
+        return accessControlEntryRepository.findAllGrantedToNamespace(namespace)
+                .stream()
+                .filter(accessControlEntry -> accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
+                .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC)
+                .anyMatch(accessControlEntry -> {
+                    switch (accessControlEntry.getSpec().getResourcePatternType()){
+                        case PREFIXED:
+                            return topic.startsWith(accessControlEntry.getSpec().getResource());
+                        case LITERAL:
+                            return topic.equals(accessControlEntry.getSpec().getResource());
+                    }
+                    return false;
+                });
+    }
+
+    //TODO move elsewhere
+    @Error(global = true)
     public HttpResponse<ResourceCreationError> validationExceptionHandler(HttpRequest request, ResourceValidationException resourceValidationException){
         return HttpResponse.badRequest()
                 .body(new ResourceCreationError("Message validation failed", resourceValidationException.getValidationErrors()));

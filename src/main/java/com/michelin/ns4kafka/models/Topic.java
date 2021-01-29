@@ -6,7 +6,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Positive;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Date;
@@ -14,22 +17,23 @@ import java.util.List;
 import java.util.Map;
 
 @Introspected
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 @Getter
 @Setter
-public class Topic extends KafkaResource {
-
+public class Topic {
+    private final String apiVersion = "v1";
+    private final String kind = "Topic";
     @Valid
     @NotNull
-    private TopicSpec spec;
-    private TopicStatus status;
+    private ObjectMeta metadata;
 
-    @Builder
-    public Topic(TopicSpec spec, TopicStatus status, String apiVersion, String kind, ObjectMeta metadata){
-        super(apiVersion,kind,metadata);
-        this.spec=spec;
-        this.status=status;
-    }
+    @NotNull
+    private TopicSpec spec;
+
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+    private TopicStatus status;
 
     @Builder
     @AllArgsConstructor
@@ -38,11 +42,11 @@ public class Topic extends KafkaResource {
     @Setter
     @Schema(description = "Contains the Topic specification")
     public static class TopicSpec {
-        @NotNull
         @Schema(description = "Replication Factor",required = true, example = "3")
         private int replicationFactor;
-        @NotNull
+        @Schema(description = "Number of partitions",required = true, example = "3")
         private int partitions;
+        @Schema(description = "Topic configs",required = true, example = "cleanup.policy=delete")
         private Map<String,String> configs;
     }
 
@@ -51,6 +55,7 @@ public class Topic extends KafkaResource {
     @NoArgsConstructor
     @Getter
     @Setter
+    @Schema(description = "Server-side",accessMode = Schema.AccessMode.READ_ONLY)
     public static class TopicStatus {
         private TopicPhase phase;
         private String message;

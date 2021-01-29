@@ -61,6 +61,8 @@ public abstract class KafkaStore<T> {
         return kafkaStore;
     }
 
+    abstract String getMessageKey(T message);
+
     T produce(String key, T message) throws KafkaStoreException {
         assertInitialized();
         if (key == null) {
