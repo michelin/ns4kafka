@@ -11,6 +11,7 @@ public interface AccessControlEntryRepository {
     List<AccessControlEntry> findAllGrantedToNamespace(String namespace);
 
     AccessControlEntry create(AccessControlEntry accessControlEntry);
+    List<AccessControlEntry> deleteByName(String acl);
 
     void assertInitialized() throws KafkaStoreException;
 }
