@@ -46,6 +46,7 @@ public class AccessControlEntry {
         protected ResourcePatternType resourcePatternType;
         @NotNull
         protected Permission permission;
+        @NotBlank
         @NotNull
         protected String grantedTo;
     }

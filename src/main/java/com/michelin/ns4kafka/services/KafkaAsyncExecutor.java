@@ -519,7 +519,7 @@ public class KafkaAsyncExecutor {
                                 .metadata(ObjectMeta.builder()
                                         .cluster(this.kafkaAsyncExecutorConfig.getName())
                                         .namespace("namespace_"+s.replace("User:",""))
-                                        .labels(Map.of("grantor",AccessControlEntry.ADMIN))
+                                        .labels(Map.of("grantedBy",AccessControlEntry.ADMIN))
                                         .build())
                                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                         .grantedTo("namespace_"+s.replace("User:",""))
@@ -580,7 +580,7 @@ public class KafkaAsyncExecutor {
                                         .metadata(ObjectMeta.builder()
                                                 .cluster(this.kafkaAsyncExecutorConfig.getName())
                                                 .namespace(entry.getKey().getName())
-                                                .labels(Map.of("grantor",AccessControlEntry.ADMIN))
+                                                .labels(Map.of("grantedBy",AccessControlEntry.ADMIN))
                                                 .build())
                                         .build()
                                 );
@@ -617,7 +617,7 @@ public class KafkaAsyncExecutor {
                             .metadata(ObjectMeta.builder()
                                     .cluster(this.kafkaAsyncExecutorConfig.getName())
                                     .namespace(entry.getKey().getName())
-                                    .labels(Map.of("grantor",AccessControlEntry.ADMIN))
+                                    .labels(Map.of("grantedBy",AccessControlEntry.ADMIN))
                                     .build())
                             .build()
                     );
