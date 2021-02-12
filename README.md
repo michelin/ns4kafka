@@ -6,8 +6,8 @@ Namespaces on top of Kafka Broker, Kafka Connect and Schema Registry
   - Mimics K8S principles
   - Easy to use
     - View : GET /api/namespaces/\<ns-name\>/topics/\<topic-name\>
-    - List : GET /api/namespaces/\<ns-name\>/topics/
-    - Create : POST /api/namespaces/\<ns-name\>/topics/\<topic-name\>
+    - List : GET /api/namespaces/\<ns-name\>/topics
+    - Create : POST /api/namespaces/\<ns-name\>/topics
 - Self-service
   - [Topics](#topic-creation-request)
   - Schemas, Connects, KafkaUsers
@@ -33,18 +33,6 @@ Example namespace:
   "defaulKafkatUser": "u_project1",
   "topicValidator": {
     "validationConstraints": {
-      "min.insync.replicas": {
-        "validation-type": "Range",
-        "min": 1,
-        "max": 1
-      },
-      "cleanup.policy": {
-        "validation-type": "ValidList",
-        "validStrings": [
-          "delete",
-          "compact"
-        ]
-      },
       "replication.factor": {
         "validation-type": "Range",
         "min": 1,
@@ -54,6 +42,13 @@ Example namespace:
         "validation-type": "Range",
         "min": 3,
         "max": 10
+      },
+      "cleanup.policy": {
+        "validation-type": "ValidList",
+        "validStrings": [
+          "delete",
+          "compact"
+        ]
       },
       "retention.ms": {
         "validation-type": "Range",
@@ -114,7 +109,7 @@ Content-Length: 250
 
 ### Grant Read access to another namespace
 ````
-POST /api/namespaces/namespace-project1/acls/ HTTP/1.1
+POST /api/namespaces/namespace-project1/acls HTTP/1.1
 Host: localhost:8080
 X-Gitlab-Token: xxxxxxxxxx
 Content-Type: application/json
