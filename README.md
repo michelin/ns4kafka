@@ -26,13 +26,11 @@ Namespaces on top of Kafka Broker, Kafka Connect and Schema Registry
 
 
 Example namespace:  
-````
+````json
 {
   "name": "namespace-project1",
   "cluster": "kafka-dev",
-  // Kafka User to "link" namespace ACLs (Topic and CGoup)
   "defaulKafkatUser": "u_project1",
-  // Topic Validation constraints to check for this namespace
   "topicValidator": {
     "validationConstraints": {
       "min.insync.replicas": {
@@ -60,16 +58,15 @@ Example namespace:
       "retention.ms": {
         "validation-type": "Range",
         "min": 1000,
-        "max": 1000000
+        "max": 3600000
       }
     }
-  },
-  "diskQuota": 5, // Quota available for this namesapce (5Gb)
+  }
 }
 ````
 
 ### Namespace Access Control List
-````
+````json
 {
   "apiVersion": "v1",
   "kind": "AccessControlEntry",
