@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -61,12 +62,19 @@ public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlE
 
     }
 
+    @Override
+    public Optional<AccessControlEntry> findByName(String namespace, String name) {
+        return getKafkaStore().values()
+                .stream()
+                .filter(ace -> ace.getMetadata().getNamespace().equals(namespace))
+                .filter(ace -> ace.getMetadata().getName().equals(name))
+                .findFirst();
+    }
+
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.access-control-entries")
     void receive(ConsumerRecord<String, AccessControlEntry> record) {
         super.receive(record);
     }
-
-
 
     @Override
     public List<AccessControlEntry> findAllForCluster(String cluster) {

@@ -66,13 +66,11 @@ public class AccessControlListController {
 
     @Post()
     public AccessControlEntry grantACL(String namespace, @Valid @Body AccessControlEntry accessControlEntry){
-        //TODO
         // 1. (Done) User Allowed ?
         //   -> User belongs to group and operation/resource is allowed on this namespace ?
         //   -> Managed in RessourceBasedSecurityRule class
         // 3. Request Valid ?
         //   -> AccessControlEntry parameters are valid
-        //   - >
         //   -> Target namespace exists ? should it be checked ?
         // 4. Store in datastore
 
@@ -171,6 +169,8 @@ public class AccessControlListController {
             throw new ResourceValidationException(validationErrors);
         }
 
+        //TODO handle already exists ?
+
         accessControlEntry.setMetadata(ObjectMeta.builder()
                 .cluster(optionalNamespace.get().getCluster())
                 .namespace(namespace)
@@ -179,14 +179,24 @@ public class AccessControlListController {
 
         return accessControlEntryRepository.create(accessControlEntry);
     }
+
     @Delete("/{name}/")
-    public HttpResponse revokeACL(String namespace, String name){
-        //TODO
+    public List<AccessControlEntry> revokeACL(String namespace, String name){
+
         // 1. Check Ownership of ACL using metadata.namespace
         // 2. Check ACL doesn't apply to me ? why would you drop your own rights ?!
-        // Fix 1. + 2. with metadata.namespace: "admin" when initializing a namespace
+        // TODO Fix 1. + 2. with metadata.namespace: "admin" when initializing a namespace
         // 3. Drop ACL
-        return HttpResponse.accepted();
+        List<String> validationErrors = new ArrayList<>();
+
+        Optional<AccessControlEntry> optionalAccessControlEntry = accessControlEntryRepository.findByName(namespace, name);
+        if(optionalAccessControlEntry.isEmpty()){
+
+        }
+
+
+
+        return accessControlEntryRepository.deleteByName(name);
     }
 
     public enum AclLimit {

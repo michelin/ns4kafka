@@ -9,18 +9,19 @@ Namespaces on top of Kafka Broker, Kafka Connect and Schema Registry
     - List : GET /api/namespaces/\<ns-name\>/topics/
     - Create : POST /api/namespaces/\<ns-name\>/topics/\<topic-name\>
 - Self-service
-  - Topics, Schemas, Connects, KafkaUsers
+  - [Topics](#topic-creation-request)
+  - Schemas, Connects, KafkaUsers
 - Configuration validation that can differ for each namespace
   - Enforce any configuration for any resource
     - min.insync.replica = 2
     - partitions between 3 and 10
   - Multiple validators
 - Isolation between Kafka Users within a cluster
-- Security model
+- [Security model](#namespace-access-control-list)
 - Disk Quota management
   - Enforce limits per namespace
   - Provide usage metrics
-- Cross Namespace ACLs
+- [Cross Namespace ACLs](#grant-read-access-to-another-namespace)
 - Multi cluster
 
 
@@ -31,32 +32,6 @@ Example namespace:
   "cluster": "kafka-dev",
   // Kafka User to "link" namespace ACLs (Topic and CGoup)
   "defaulKafkatUser": "u_project1",
-  "policies": [
-    {
-      "resourceType": "TOPIC",
-      "resource": "project1.",
-      "resourcePatternType": "PREFIXED",
-      "securityPolicy": "OWNER"
-    },
-    {
-      "resourceType": "CONNECT",
-      "resource": "project1-", // Allow creation of Kafka Connects starting with "project1-"
-      "resourcePatternType": "PREFIXED",
-      "securityPolicy": "OWNER"
-    },
-    {
-      "resourceType": "GROUP",
-      "resource": "project1-",
-      "resourcePatternType": "PREFIXED",
-      "securityPolicy": "READ"
-    },
-    {
-      "resourceType": "GROUP",
-      "resource": "connect-project1-", // Consumer group required for Kafka Connect
-      "resourcePatternType": "PREFIXED",
-      "securityPolicy": "READ"
-    }
-  ],
   // Topic Validation constraints to check for this namespace
   "topicValidator": {
     "validationConstraints": {
@@ -93,8 +68,30 @@ Example namespace:
 }
 ````
 
-Topic creation request :  
+### Namespace Access Control List
+````
+{
+  "apiVersion": "v1",
+  "kind": "AccessControlEntry",
+  "metadata": {
+    "name": "namespace-project1-6b062011",
+    "namespace": "namespace-project1",
+    "cluster": "kafka-dev",
+    "labels": {
+      "grantor": "admin"
+    }
+  },
+  "spec": {
+    "resourceType": "TOPIC",
+    "resource": "project1.",
+    "resourcePatternType": "PREFIXED",
+    "permission": "OWNER",
+    "grantedTo": "namespace-project1"
+  }
+}
+````
 
+### Topic creation request
 ````
 POST /api/namespaces/namespace-project1/topics HTTP/1.1
 Host: localhost:8080
@@ -118,4 +115,22 @@ Content-Length: 250
 }
 ````
 
+### Grant Read access to another namespace
+````
+POST /api/namespaces/namespace-project1/acls/ HTTP/1.1
+Host: localhost:8080
+X-Gitlab-Token: xxxxxxxxxx
+Content-Type: application/json
+Content-Length: 195
+
+{
+  "spec": {
+    "resourceType": "TOPIC",
+    "resource": "project1.topic1",
+    "resourcePatternType": "LITERAL",
+    "permission": "READ",
+    "grantedTo": "namespace-anotherproject"
+  }
+}
+````
 

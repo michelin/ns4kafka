@@ -45,17 +45,8 @@ public class GitlabTokenValidator implements TokenValidator {
                         return Maybe.empty();
                     })
                     .flatMapPublisher(username -> {
-                        return gitlabAuthorizationService.findGroups(token)
-                                .onErrorResumeNext(throwable -> {
-                                    LOG.error("Gitlab exception during Authentication step", throwable);
-                                    return Maybe.empty();
-                                })
-                                .flatMapPublisher(response -> {
-                                    List<String> groups = response.stream()
-                                            .map(item -> item.get("full_path").toString())
-                                            .collect(Collectors.toList());
-                                    return Flowable.just(new DefaultAuthentication(username, Map.of("roles", groups)));
-                                });
+                        List<String> groups = gitlabAuthorizationService.findAllGroups(token);
+                        return Flowable.just(new DefaultAuthentication(username, Map.of("roles", groups)));
                     });
 
         }else{

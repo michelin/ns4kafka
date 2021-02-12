@@ -34,22 +34,72 @@ public class TopicController {
      * @return The list of all Topics names available for that namespace (owned and accessible)
      */
     @Get
-    public List<String> list(String namespace){
+    public List<Topic> list(String namespace){
         //TODO ?labelSelector=environment%3Dproduction,tier%3Dfrontend
 
         //TODO TopicList
-        return topicRepository.findAllForNamespace(namespace)
-                .stream()
-                .map(topic -> topic.getMetadata().getName())
-                .collect(Collectors.toList());
+        return topicRepository.findAllForNamespace(namespace);
     }
 
     @Get("/{topic}")
     public Optional<Topic> getTopic(String namespace, String topic){
         return topicRepository.findByName(namespace, topic);
     }
-    @Put("/{topicName}")
-    public Topic update(String namespace, String topicName, @Valid @Body Topic topic){
+
+    @Post("/")
+    public Topic apply(String namespace, @Valid @Body Topic topic){
+
+        //TODO
+        // 1. (Done) User Allowed ?
+        //   -> User belongs to group and operation/resource is allowed on this namespace ?
+        //   -> Managed in RessourceBasedSecurityRule class
+        // 2. Topic already exists ?
+        //   -> Reject Request ?
+        //   -> Treat Request as and Update ?
+        // 3. Request Valid ?
+        //   -> Topics parameters are allowed for this namespace ConstraintsValidatorSet
+        // 4. Store in datastore
+        Optional<Topic> existingTopic = topicRepository.findByName(namespace,topic.getMetadata().getName());
+        Namespace ns = namespaceRepository.findByName(namespace).orElseThrow(() -> new RuntimeException("Namespace not found"));
+
+        //2. Request is valid ?
+        List<String> validationErrors = ns.getTopicValidator().validate(topic,ns);
+
+        if(existingTopic.isEmpty()) {
+            //Creation
+            //Topic namespace ownership validation
+            if (!isNamespaceOwnerOfTopic(namespace, topic.getMetadata().getName()))
+                validationErrors.add("Invalid value " + topic.getMetadata().getName() + " for name: Namespace not OWNER of this topic");
+
+        }else{
+            //2.2 forbidden changes when updating (partitions, replicationFactor)
+            if(existingTopic.get().getSpec().getPartitions() != topic.getSpec().getPartitions()){
+                validationErrors.add("Invalid value " + topic.getSpec().getPartitions() + " for configuration partitions: Value is immutable ("+existingTopic.get().getSpec().getPartitions()+")");
+            }
+            if(existingTopic.get().getSpec().getReplicationFactor() != topic.getSpec().getReplicationFactor()){
+                validationErrors.add("Invalid value " + topic.getSpec().getReplicationFactor() + " for configuration replication.factor: Value is immutable ("+existingTopic.get().getSpec().getReplicationFactor()+")");
+            }
+        }
+        if(validationErrors.size()>0){
+            throw new ResourceValidationException(validationErrors);
+        }
+
+        //TODO hasChanged ?
+        // if so, just return 200 with current topic, do nothing
+
+
+        //3. Fill server-side fields (server side metadata + status)
+        topic.getMetadata().setCluster(ns.getCluster());
+        topic.getMetadata().setNamespace(ns.getName());
+        topic.setStatus(Topic.TopicStatus.ofPending());
+        return topicRepository.create(topic);
+        //pour les topics dont je suis owner, somme d'usage
+        // pour le topic à créer usageTopic
+        // si somme + usageTopic > quota KO
+
+    }
+
+    private Topic update(String namespace, String topicName, @Valid @Body Topic topic){
         //TODO
         // 1. (Done) User Allowed ?
         //   -> User belongs to group and operation/resource is allowed on this namespace ?
@@ -73,14 +123,7 @@ public class TopicController {
         //2.1 Request is valid ?
         List<String> validationErrors = ns.getTopicValidator().validate(topic,ns);
 
-        //TODO move this into the validator ? validateUpdate(topic) ?
-        //2.2 forbidden changes when updating (partitions, replicationFactor)
-        if(existingTopic.get().getSpec().getPartitions() != topic.getSpec().getPartitions()){
-            validationErrors.add("Invalid value " + topic.getSpec().getPartitions() + " for configuration partitions: Value is immutable ("+existingTopic.get().getSpec().getPartitions()+")");
-        }
-        if(existingTopic.get().getSpec().getReplicationFactor() != topic.getSpec().getReplicationFactor()){
-            validationErrors.add("Invalid value " + topic.getSpec().getReplicationFactor() + " for configuration replication.factor: Value is immutable ("+existingTopic.get().getSpec().getReplicationFactor()+")");
-        }
+
 
         if(validationErrors.size()>0){
             throw new ResourceValidationException(validationErrors);
@@ -96,47 +139,6 @@ public class TopicController {
         // pour le topic à créer usageTopic
         // si somme + usageTopic > quota KO
         return topicRepository.create(topic);
-
-    }
-    @Post("/")
-    public Topic create(String namespace, @Valid @Body Topic topic){
-
-        //TODO
-        // 1. (Done) User Allowed ?
-        //   -> User belongs to group and operation/resource is allowed on this namespace ?
-        //   -> Managed in RessourceBasedSecurityRule class
-        // 2. Topic already exists ?
-        //   -> Reject Request ?
-        //   -> Treat Request as and Update ?
-        // 3. Request Valid ?
-        //   -> Topics parameters are allowed for this namespace ConstraintsValidatorSet
-        // 4. Store in datastore
-        Optional<Topic> existingTopic = topicRepository.findByName(namespace,topic.getMetadata().getName());
-        if(existingTopic.isPresent()){
-            return update(namespace, topic.getMetadata().getName(), topic);
-        }
-        Namespace ns = namespaceRepository.findByName(namespace).orElseThrow(() -> new RuntimeException("Namespace not found"));
-
-        //2. Request is valid ?
-        List<String> validationErrors = ns.getTopicValidator().validate(topic,ns);
-
-        //Topic namespace ownership validation
-        if(!isNamespaceOwnerOfTopic(namespace,topic.getMetadata().getName()))
-            validationErrors.add("Invalid value " + topic.getMetadata().getName() + " for name: Namespace not OWNER of this topic");
-
-        if(validationErrors.size()>0){
-            throw new ResourceValidationException(validationErrors);
-        }
-
-
-        //3. Fill server-side fields (server side metadata + status)
-        topic.getMetadata().setCluster(ns.getCluster());
-        topic.getMetadata().setNamespace(ns.getName());
-        topic.setStatus(Topic.TopicStatus.ofPending());
-        return topicRepository.create(topic);
-        //pour les topics dont je suis owner, somme d'usage
-        // pour le topic à créer usageTopic
-        // si somme + usageTopic > quota KO
 
     }
 
