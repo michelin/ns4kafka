@@ -12,7 +12,4 @@ public interface NamespaceRepository {
 
     Namespace createNamespace(Namespace namespace);
     Optional<Namespace> findByName(String namespace);
-
-
-    void assertInitialized() throws KafkaStoreException;
 }

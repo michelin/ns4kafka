@@ -26,7 +26,7 @@ public class AccessControlListController {
     AccessControlEntryRepository accessControlEntryRepository;
 
     @Operation(summary = "Returns the Access Control Entry List")
-    @Get("/{?limit}")
+    @Get("{?limit}")
     public List<AccessControlEntry> list(String namespace, Optional<AclLimit> limit){
         if(limit.isEmpty())
             limit = Optional.of(AclLimit.ALL);
@@ -180,7 +180,7 @@ public class AccessControlListController {
         return accessControlEntryRepository.create(accessControlEntry);
     }
 
-    @Delete("/{name}/")
+    @Delete("/{name}")
     public List<AccessControlEntry> revokeACL(String namespace, String name){
 
         // 1. Check Ownership of ACL using metadata.namespace
@@ -191,10 +191,16 @@ public class AccessControlListController {
 
         Optional<AccessControlEntry> optionalAccessControlEntry = accessControlEntryRepository.findByName(namespace, name);
         if(optionalAccessControlEntry.isEmpty()){
-
+            validationErrors.add("Invalid value "+name+" for name : AccessControlEntry doesn't exist");
+        }else{
+            if(optionalAccessControlEntry.get().getSpec().getGrantedTo().equals(namespace)){
+                validationErrors.add("Invalid value "+name + " for name: Why would you revoke to yourself ?!");
+            }
         }
 
-
+        if(validationErrors.size()>0){
+            throw new ResourceValidationException(validationErrors);
+        }
 
         return accessControlEntryRepository.deleteByName(name);
     }

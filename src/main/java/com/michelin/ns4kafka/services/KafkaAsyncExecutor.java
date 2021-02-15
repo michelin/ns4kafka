@@ -85,8 +85,6 @@ public class KafkaAsyncExecutor {
     public void synchronizeTopics(){
         LOG.debug("Starting topic collection for cluster "+kafkaAsyncExecutorConfig.getName());
         try {
-            // Ready ?
-            topicRepository.assertInitialized();
             // List topics from broker
             Map<String, Topic> brokerTopicList = collectBrokerTopicList();
             // List topics from ns4kafka Repository
@@ -305,15 +303,11 @@ public class KafkaAsyncExecutor {
 
         LOG.debug("Starting ACL collection for cluster "+kafkaAsyncExecutorConfig.getName());
         try {
-            // Ready ?
-            namespaceRepository.assertInitialized();
             // List ACLs from broker
             List<AclBinding> brokerACLs = collectBrokerACLs(true);
             List<AclBinding> ns4kafkaACLs = collectNs4KafkaACLs();
 
-            brokerACLs.stream()
-                    .filter(aclBinding -> ns4kafkaACLs.contains(aclBinding))
-                    .forEach(aclBinding -> LOG.info("Found in both : "+aclBinding.toString()));
+
             List<AclBinding> toCreate = ns4kafkaACLs.stream()
                     .filter(aclBinding -> !brokerACLs.contains(aclBinding))
                     .collect(Collectors.toList());
@@ -321,8 +315,14 @@ public class KafkaAsyncExecutor {
                     .filter(aclBinding -> !ns4kafkaACLs.contains(aclBinding))
                     .collect(Collectors.toList());
 
-            toCreate.forEach(aclBinding -> LOG.info("to create : "+aclBinding.toString()));
-            toDelete.forEach(aclBinding -> LOG.info("to delete : "+aclBinding.toString()));
+            if(LOG.isDebugEnabled()){
+                brokerACLs.stream()
+                        .filter(aclBinding -> ns4kafkaACLs.contains(aclBinding))
+                        .forEach(aclBinding -> LOG.debug("Found in both : "+aclBinding.toString()));
+                toCreate.forEach(aclBinding -> LOG.debug("to create : "+aclBinding.toString()));
+                toDelete.forEach(aclBinding -> LOG.debug("to delete : "+aclBinding.toString()));
+            }
+
 
             // Execute toAdd list BEFORE toDelete list to avoid breaking ACL on connected user
             // such as deleting <LITERAL "toto.titi"> only to add one second later <PREFIX "toto.">

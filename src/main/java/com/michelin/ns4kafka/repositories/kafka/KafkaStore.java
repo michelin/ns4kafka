@@ -46,7 +46,6 @@ public abstract class KafkaStore<T> {
     private final ReentrantLock offsetUpdateLock;
     private final Condition offsetReachedThreshold;
     int initTimeout = 10000;
-    int desiredReplicationFactor = 1;
 
     public KafkaStore(String kafkaTopic, Producer<String,T> kafkaProducer){
         this.kafkaTopic = kafkaTopic;
@@ -243,14 +242,14 @@ public abstract class KafkaStore<T> {
             throw new KafkaStoreException("No live Kafka brokers");
         }
 
-        int schemaTopicReplicationFactor = Math.min(numLiveBrokers, desiredReplicationFactor);
-        if (schemaTopicReplicationFactor < desiredReplicationFactor) {
+        int schemaTopicReplicationFactor = Math.min(numLiveBrokers, kafkaStoreConfig.getReplicationFactor());
+        if (schemaTopicReplicationFactor < kafkaStoreConfig.getReplicationFactor()) {
             LOG.warn("Creating the kafkaTopic "
                     + topic
                     + " using a replication factor of "
                     + schemaTopicReplicationFactor
                     + ", which is less than the desired one of "
-                    + desiredReplicationFactor + ". If this is a production environment, it's "
+                    + kafkaStoreConfig.getReplicationFactor() + ". If this is a production environment, it's "
                     + "crucial to add more brokers and increase the replication factor of the kafkaTopic.");
         }
 
@@ -286,11 +285,11 @@ public abstract class KafkaStore<T> {
                     + "partition but has " + numPartitions);
         }
 
-        if (description.partitions().get(0).replicas().size() < desiredReplicationFactor) {
+        if (description.partitions().get(0).replicas().size() < kafkaStoreConfig.getReplicationFactor()) {
             LOG.warn("The replication factor of the kafkaTopic "
                     + topic
                     + " is less than the desired one of "
-                    + desiredReplicationFactor
+                    + kafkaStoreConfig.getReplicationFactor()
                     + ". If this is a production environment, it's crucial to add more brokers and "
                     + "increase the replication factor of the kafkaTopic.");
         }

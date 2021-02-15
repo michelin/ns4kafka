@@ -10,6 +10,7 @@ import java.util.Map;
 public class KafkaStoreConfig {
 
     String prefix;
+    private int replicationFactor;
 
     @MapFormat(transformation = MapFormat.MapTransformation.FLAT)
     Map<String, String> props;
@@ -28,5 +29,13 @@ public class KafkaStoreConfig {
 
     public void setProperties(Map<String, String> properties) {
         this.props = properties;
+    }
+
+    public int getReplicationFactor() {
+        return replicationFactor;
+    }
+
+    public void setReplicationFactor(int replicationFactor) {
+        this.replicationFactor = replicationFactor;
     }
 }

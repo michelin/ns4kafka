@@ -28,8 +28,8 @@ import java.util.stream.Collectors;
 @Singleton
 @KafkaListener(
         offsetReset = OffsetReset.EARLIEST,
-        offsetStrategy = OffsetStrategy.DISABLED,
-        properties = @Property(name = ConsumerConfig.ALLOW_AUTO_CREATE_TOPICS_CONFIG, value = "false")
+        groupId = "${ns4kafka.store.kafka.topics.group-id}",
+        offsetStrategy = OffsetStrategy.DISABLED
 )
 public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepository {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaTopicRepository.class);

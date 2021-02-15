@@ -14,5 +14,4 @@ public interface AccessControlEntryRepository {
     List<AccessControlEntry> deleteByName(String acl);
     Optional<AccessControlEntry> findByName(String namespace, String name);
 
-    void assertInitialized() throws KafkaStoreException;
 }

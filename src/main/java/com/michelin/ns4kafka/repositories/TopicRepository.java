@@ -22,5 +22,4 @@ public interface TopicRepository {
 
     Topic create(Topic topic);
 
-    void assertInitialized();
 }
