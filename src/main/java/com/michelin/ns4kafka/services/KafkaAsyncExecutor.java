@@ -9,6 +9,7 @@ import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
 import io.micronaut.context.annotation.EachBean;
+import io.micronaut.core.type.Argument;
 import io.netty.handler.codec.spdy.SpdyHttpHeaders;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.acl.*;
@@ -22,6 +23,8 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.naming.Name;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CancellationException;
@@ -59,6 +62,10 @@ public class KafkaAsyncExecutor {
     //TODO abstract synchronization process to handle different Kafka "models"
     // ie : cloud API vs AdminClient
     public void run(){
+
+        if(this.kafkaAsyncExecutorConfig.isManageConnectors()){
+            LOG.info("This cluster have connectors");
+        }
         if(this.kafkaAsyncExecutorConfig.isReadOnly()){
             LOG.warn("This cluster is set to READ-ONLY : all calculated changes will be displayed but not applied");
         }

@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 @Singleton
 @KafkaListener(
         offsetReset = OffsetReset.EARLIEST,
-        groupId = "${ns4kafka.store.kafka.topics.group-id}",
+        groupId = "${ns4kafka.store.kafka.group-id}",
         offsetStrategy = OffsetStrategy.DISABLED
 )
 public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements NamespaceRepository {
