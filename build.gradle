@@ -10,7 +10,9 @@ repositories {
     mavenCentral()
     jcenter()
 }
-
+dockerBuild {
+    images = ["twobeeb/ns4kafka:dev"]
+}
 micronaut {
     runtime "netty"
     testRuntime "junit5"
