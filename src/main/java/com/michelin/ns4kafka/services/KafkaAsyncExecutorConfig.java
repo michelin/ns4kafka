@@ -8,6 +8,7 @@ import io.micronaut.core.convert.format.MapFormat;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import lombok.Getter;
+import lombok.Setter;
 
 import javax.inject.Inject;
 import java.util.Map;
@@ -21,17 +22,17 @@ public class KafkaAsyncExecutorConfig {
     boolean manageUsers;
     boolean manageConnectors;
     boolean readOnly = true;
-    String connectUrl;
     @MapFormat(transformation = MapFormat.MapTransformation.FLAT)
     Map<String, Object> config;
-    ConnectConfig connectConfig;
-    RegistryConfig registryConfig;
+    ConnectConfig connect = new ConnectConfig();
+    RegistryConfig schemaRegistry;
 
     public KafkaAsyncExecutorConfig(@Parameter String name) {
         this.name = name;
     }
 
     @Getter
+    @Setter
     @ConfigurationProperties("connect")
     public static class ConnectConfig {
         String url;

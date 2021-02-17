@@ -9,6 +9,7 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 @Introspected
@@ -28,26 +29,42 @@ public class Connector {
     private Map<String,String> spec;
 
     @Schema(accessMode = Schema.AccessMode.READ_ONLY)
-    private ConnectStatus status;
-
-
+    private ConnectorStatus status;
 
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
     @Getter
     @Setter
-    @Schema(description = "Server-side",accessMode = Schema.AccessMode.READ_ONLY)
-    public static class ConnectStatus {
-        private ConnectPhase phase;
-        private String message;
+    public static class ConnectorStatus {
+        private TaskState state;
+        private String worker_id;
+
+        private List<TaskStatus> tasks;
         @JsonFormat(shape = JsonFormat.Shape.STRING)
         private Date lastUpdateTime;
 
     }
-    public enum ConnectPhase {
-        Pending,
-        Success,
-        Failed
+
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
+    @Setter
+    public static class TaskStatus{
+        String id;
+        TaskState state;
+        String trace;
+        String worker_id;
     }
+
+    public enum TaskState {
+        // From https://github.com/apache/kafka/blob/trunk/connect/runtime/src/main/java/org/apache/kafka/connect/runtime/AbstractStatus.java
+        UNASSIGNED,
+        RUNNING,
+        PAUSED,
+        FAILED,
+        DESTROYED,
+    }
+
 }

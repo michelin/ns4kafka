@@ -1,8 +1,10 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.repositories.ConnectRepository;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
+import io.reactivex.Flowable;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,8 +21,8 @@ public class ConnectController {
 
 
     @Get()
-    public Maybe<Map<String, ConnectRepository.ConnectItem>> list(){
-        return connectRepository.list("test");
+    public Flowable<Connector> list(String namespace){
+        return connectRepository.list(namespace);
     }
 
 
