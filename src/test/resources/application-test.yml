@@ -37,24 +37,21 @@ jackson:
     indent-output: true # Pretty-print JSON
 
 kafka:
-  health:
-    enabled: false
+  embedded:
+    enabled: true
   bootstrap.servers: "localhost:9092"
-  session.timeout.ms: 10000
-  delivery.timeout.ms: 10000
-  request.timeout.ms: 10000
-  allow.auto.create.topics: "false"
 
 ns4kafka:
-  store:
-    kafka:
-      enabled: true
-      group-id: ns4kafka-group
-      topics:
-        prefix: ns4kafka
-        replication-factor: 1
-        props:
-          cleanup.policy: "compact"
-          min.compaction.lag.ms: "0"
-          max.compaction.lag.ms: "60000"
-          segment.ms: "60000"
+  managed-clusters:
+    df4mgbl0:
+      manage-users: false # requires Broker >= 2.7.0
+      manage-acls: false
+      manage-topics: true
+      config:
+        bootstrap.servers: "localhost:9092"
+#    PROD:
+#      config:
+#        bootstrap.servers: "prod.com:9093"
+#        security.protocol: SASL_SSL
+#        sasl.mechanism: SCRAM-SHA-512
+#        sasl.jaas.config: org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="***";

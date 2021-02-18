@@ -42,6 +42,9 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok:1.18.16'
 
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.16'
+    testImplementation 'org.apache.kafka:kafka-clients:2.6.0:test'
+    testImplementation 'org.apache.kafka:kafka_2.12:2.6.0'
+    testImplementation 'org.apache.kafka:kafka_2.12:2.6.0:test'
 }
 
 mainClassName = "com.michelin.ns4kafka.Application"
@@ -53,6 +56,9 @@ tasks.withType(JavaCompile) {
     options.fork = true
     options.forkOptions.jvmArgs << '-Dmicronaut.openapi.views.spec=rapidoc.enabled=true'
 
+}
+tasks.run {
+    environment( "MICRONAUT_ENVIRONMENTS","dev")
 }
 
 
