@@ -40,20 +40,29 @@ kafka:
   health:
     enabled: false
   bootstrap.servers: "localhost:9092"
-  session.timeout.ms: 10000
-  delivery.timeout.ms: 10000
-  request.timeout.ms: 10000
-  allow.auto.create.topics: "false"
+  #security.protocol: "SASL_PLAINTEXT"
+  #sasl.mechanism: "SCRAM-SHA-512"
+  #sasl.jaas.config: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"user\" password=\"password\";"
+  producers:
+    default:
+      retries: 1
+      acks: all
+      request.timeout.ms: 10000
+      delivery.timeout.ms: 10000
+  consumers:
+    default:
+      session.timeout.ms: 30000
 
 ns4kafka:
   store:
     kafka:
       enabled: true
-      group-id: ns4kafka-group
+      group-id: ns4kafka.group
       topics:
         prefix: ns4kafka
         replication-factor: 1
         props:
+          min.insync.replicas: 1
           cleanup.policy: "compact"
           min.compaction.lag.ms: "0"
           max.compaction.lag.ms: "60000"

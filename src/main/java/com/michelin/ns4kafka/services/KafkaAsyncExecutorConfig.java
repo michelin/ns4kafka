@@ -24,7 +24,7 @@ public class KafkaAsyncExecutorConfig {
     boolean readOnly = true;
     @MapFormat(transformation = MapFormat.MapTransformation.FLAT)
     Map<String, Object> config;
-    ConnectConfig connect = new ConnectConfig();
+    ConnectConfig connect;
     RegistryConfig schemaRegistry;
 
     public KafkaAsyncExecutorConfig(@Parameter String name) {

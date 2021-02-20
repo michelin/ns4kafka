@@ -5,8 +5,10 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.services.ConnectRestService;
 import com.michelin.ns4kafka.services.KafkaAsyncExecutor;
 import com.michelin.ns4kafka.services.KafkaAsyncExecutorConfig;
+import io.micronaut.context.ApplicationContext;
 import io.micronaut.context.annotation.EachBean;
 import io.micronaut.context.annotation.EachProperty;
 import io.micronaut.core.async.publisher.Publishers;
@@ -15,6 +17,7 @@ import io.micronaut.http.HttpRequest;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.RxHttpClientFactory;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.inject.qualifiers.Qualifiers;
 import io.micronaut.retry.annotation.Retryable;
 import io.reactivex.Flowable;
 import io.reactivex.Maybe;
@@ -33,33 +36,33 @@ import java.util.stream.Collectors;
 public class ConnectRepository {
 
     @Inject
-    @Client("/")
-    RxHttpClient httpClient;
-
-    @Inject
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigs;
 
     @Inject
     NamespaceRepository namespaceRepository;
     @Inject
     AccessControlEntryRepository accessControlEntryRepository;
+    @Inject
+    ApplicationContext applicationContext;
 
 
-    public Flowable<Connector> list(String namespace){
-        Optional<Namespace> namespaceOptional = namespaceRepository.findByName(namespace);
-        String url = kafkaAsyncExecutorConfigs.stream()
-                .filter(c -> c.getName().equals(namespaceOptional.get().getCluster()))
-                .findFirst().get()
-                .getConnect().getUrl();
+    public Flowable<Connector> findByNamespace(String namespace){
+        String cluster = namespaceRepository.findByName(namespace).get().getCluster();
+        // retrive the ConnectRestService Bean byName(cluster)
+        ConnectRestService connectRestService = applicationContext.getBean(
+                ConnectRestService.class,
+                Qualifiers.byName(cluster));
+
         List<AccessControlEntry> acls = accessControlEntryRepository.findAllGrantedToNamespace(namespace);
-        return httpClient.retrieve(HttpRequest.GET(url+"/connectors?expand=info&expand=status"),
-                Argument.mapOf(String.class,ConnectItem.class))
-                .flatMapIterable(stringConnectItemMap -> stringConnectItemMap.entrySet())
+
+        return connectRestService.list()
+                .toFlowable()
+                .flatMapIterable(Map::entrySet)
                 .filter(entry -> acls.stream()
                         .anyMatch(accessControlEntry -> {
                             //no need to check accessControlEntry.Permission, we want READ, WRITE or OWNER
-                            if(accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT){
-                                switch (accessControlEntry.getSpec().getResourcePatternType()){
+                            if (accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT) {
+                                switch (accessControlEntry.getSpec().getResourcePatternType()) {
                                     case PREFIXED:
                                         return entry.getKey().startsWith(accessControlEntry.getSpec().getResource());
                                     case LITERAL:
@@ -71,9 +74,9 @@ public class ConnectRepository {
                 .map(entry -> Connector.builder()
                         .metadata(ObjectMeta.builder()
                                 .name(entry.getKey())
-                                .cluster(namespaceOptional.get().getCluster())
+                                .cluster(cluster)
                                 .namespace(namespace)
-                                .labels(Map.of("type",entry.getValue().getInfo().getType()))
+                                .labels(Map.of("type", entry.getValue().getInfo().getType()))
                                 .build())
                         .spec(entry.getValue().getInfo().getConfig())
                         .status(Connector.ConnectorStatus.builder()
@@ -94,33 +97,6 @@ public class ConnectRepository {
                         )
                         .build()
                 );
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    public static class ConnectItem {
-        ConnectInfo info;
-        ConnectStatus status;
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    public static class ConnectInfo {
-        String name;
-        String type;
-        Map<String,String> config;
-        List<Map<String,String>> tasks;
-    }
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    public static class ConnectStatus{
-        String name;
-        String type;
-        Map<String,String> connector;
-        List<Map<String,String>> tasks;
     }
 
 }

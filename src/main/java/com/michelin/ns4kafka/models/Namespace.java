@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.models;
 
+import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import lombok.*;
 import org.apache.kafka.common.acl.AclBinding;
@@ -20,6 +21,7 @@ public class Namespace {
     //private List<User> users;
     private int diskQuota;
     private TopicValidator topicValidator;
+    private ConnectValidator connectValidator;
 
 
 

@@ -9,7 +9,9 @@ import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
 import io.micronaut.context.annotation.EachBean;
+import io.micronaut.context.annotation.Parameter;
 import io.micronaut.core.type.Argument;
+import io.micronaut.http.client.RxHttpClient;
 import io.netty.handler.codec.spdy.SpdyHttpHeaders;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.acl.*;
@@ -23,6 +25,8 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.naming.Name;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.time.Instant;
@@ -48,7 +52,8 @@ public class KafkaAsyncExecutor {
     @Inject
     AccessControlEntryRepository accessControlEntryRepository;
 
-    public KafkaAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig){
+
+    public KafkaAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) throws MalformedURLException {
         this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
     }
 
@@ -428,6 +433,12 @@ public class KafkaAsyncExecutor {
                 .collect(Collectors.toList());
 
         LOG.debug("ACLs found on Broker (total) : "+userACLs.size());
+        if(LOG.isDebugEnabled()) {
+
+            userACLs.forEach(aclBinding -> {
+                LOG.debug(aclBinding.toString());
+            });
+        }
         //TODO add parameter to cluster configuration to scope ALL users vs "namespace" managed users
         // as of now, this will prevent deletion of ACLs for users not in ns4kafka scope
         if(managedUsersOnly) {

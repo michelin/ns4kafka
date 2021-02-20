@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.Collection;
+import java.util.List;
 
 
 @Singleton
@@ -17,10 +18,14 @@ public class KafkaAsyncExecutorScheduler {
 
     @Inject
     ApplicationContext applicationContext;
+    @Inject
+    List<ConnectRestService> connectRestServices;
+    @Inject
+    List<KafkaAsyncExecutor> kafkaAsyncExecutors;
 
     @Scheduled(initialDelay = "12s", fixedDelay = "20s")
     void schedule(){
-        Collection<KafkaAsyncExecutor> firstConfig = applicationContext.getBeansOfType(KafkaAsyncExecutor.class);
-        firstConfig.parallelStream().forEach(KafkaAsyncExecutor::run);
+
+        kafkaAsyncExecutors.forEach(KafkaAsyncExecutor::run);
     }
 }

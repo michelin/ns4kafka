@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.repositories.ConnectRepository;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
+import io.micronaut.http.annotation.Post;
 import io.reactivex.Flowable;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
@@ -20,10 +21,10 @@ public class ConnectController {
     ConnectRepository connectRepository;
 
 
-    @Get()
+    @Get("/")
     public Flowable<Connector> list(String namespace){
-        return connectRepository.list(namespace);
-    }
 
+        return connectRepository.findByNamespace(namespace);
+    }
 
 }
