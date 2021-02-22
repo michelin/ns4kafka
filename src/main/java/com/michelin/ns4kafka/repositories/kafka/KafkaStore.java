@@ -56,14 +56,12 @@ public abstract class KafkaStore<T> {
 
     }
     public Map<String,T> getKafkaStore(){
-        assertInitialized();
         return kafkaStore;
     }
 
     abstract String getMessageKey(T message);
 
     T produce(String key, T message) throws KafkaStoreException {
-        assertInitialized();
         if (key == null) {
             throw new KafkaStoreException("Key should not be null");
         }
@@ -313,10 +311,9 @@ public abstract class KafkaStore<T> {
 
         }
     }
-    public void assertInitialized() throws KafkaStoreException {
-        if (!initialized.get()) {
-            throw new KafkaStoreException("Illegal state. Store not initialized yet");
-        }
+
+    public boolean isInitialized(){
+        return initialized.get();
     }
     // END http://www.confluent.io/confluent-community-license
 

@@ -9,6 +9,7 @@ import java.util.List;
 @NoArgsConstructor
 @Getter
 @Setter
+@ToString
 public class RoleBinding {
     private String namespace;
     private Role role; //TODO Collection<Role>
@@ -25,6 +26,7 @@ public class RoleBinding {
     @AllArgsConstructor
     @Getter
     @Setter
+    @ToString
     public static class Role {
         private final Collection<String> resourceTypes = List.of("topics","connects","schemas","consumer-groups", "acls");
         private final Collection<String> verbs = List.of("GET","POST","PUT","DELETE");
@@ -35,6 +37,7 @@ public class RoleBinding {
     @NoArgsConstructor
     @Getter
     @Setter
+    @ToString
     public static class Subject {
         private final SubjectType subjectType = SubjectType.GROUP;
         private String subjectName;
