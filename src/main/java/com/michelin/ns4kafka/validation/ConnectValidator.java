@@ -22,7 +22,7 @@ public class ConnectValidator extends ResourceValidator{
     //constraints applies to all connectors
     // key.converter
     // value.converter
-    Map<String, Validator> globalValidationConstraints;
+    //Map<String, Validator> globalValidationConstraints;
     Map<String, Validator> sourceValidationConstraints;
     // For Sinks, error handling is probably a good mandatory choice :
     // - errors.tolerance non null
@@ -37,8 +37,37 @@ public class ConnectValidator extends ResourceValidator{
     Map<String,Map<String, Validator>> classValidationConstraints;
 
     @Builder
-    public ConnectValidator(Map<String, Validator> validationConstraints){
+    public ConnectValidator(Map<String, Validator> validationConstraints,
+                            Map<String, Validator> sourceValidationConstraints,
+                            Map<String, Validator> sinkValidationConstraints,
+                            Map<String,Map<String, Validator>> classValidationConstraints
+    ){
         super(validationConstraints);
+        this.sourceValidationConstraints = sourceValidationConstraints;
+        this.sinkValidationConstraints = sinkValidationConstraints;
+        this.classValidationConstraints = classValidationConstraints;
+    }
+
+
+    public static ConnectValidator makeDefault(){
+        return ConnectValidator.builder()
+                .validationConstraints(Map.of(
+                        "key.converter", new ResourceValidator.NonEmptyString(),
+                        "value.converter", new ResourceValidator.NonEmptyString()
+                ))
+                .sourceValidationConstraints(Map.of(
+                        "producer.override.sasl.jaas.config", new ResourceValidator.NonEmptyString()
+                ))
+                .sinkValidationConstraints(Map.of(
+                        "consumer.override.sasl.jaas.config", new ResourceValidator.NonEmptyString()
+                ))
+                .classValidationConstraints(Map.of(
+                        "io.confluent.connect.jdbc.JdbcSinkConnector",
+                        Map.of(
+                                "db.timezone", new ResourceValidator.NonEmptyString()
+                        )
+                ))
+                .build();
     }
 
     public List<String> validate(Connector connector, Namespace namespace){

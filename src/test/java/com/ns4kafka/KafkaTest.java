@@ -7,6 +7,7 @@ import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
 import io.micronaut.configuration.kafka.config.AbstractKafkaConfiguration;
 import io.micronaut.context.ApplicationContext;
+import io.micronaut.runtime.server.EmbeddedServer;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -23,20 +24,8 @@ public class KafkaTest {
     @Inject
     NamespaceRepository namespaceRepository;
 
-    @BeforeEach
-    public  void waitReadiness() throws InterruptedException {
-        int i =0;
-        while(i<30){
-            Thread.sleep(500);
-            try{
-                //TODO Global Ready State
-                namespaceRepository.findAllForCluster("");
-                i=31;
-            }catch (KafkaStoreException e){
-                // Expected for the first few seconds
-            }
-        }
-    }
+    @Inject
+    EmbeddedServer server;
 
     @Test
     public void Test(){

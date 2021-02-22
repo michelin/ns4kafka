@@ -30,20 +30,24 @@ public class RessourceBasedSecurityRule implements SecurityRule {
     @Inject
     NamespaceRepository namespaceRepository;
 
-    @Value("${ns4kafka.admin.group}")
+    @Value("${ns4kafka.admin.group:_}")
     private String adminGroup;
 
     Pattern namespacedResourcePattern = Pattern.compile("^\\/api\\/namespaces\\/(?<namespace>[a-zA-Z0-9_-]+)\\/(?<resourceType>[a-z]+)(\\/([a-zA-Z0-9_-]+)(\\/(?<resourceSubtype>[a-z]+))?)?");
 
     @Override
     public SecurityRuleResult check(HttpRequest<?> request, @Nullable RouteMatch<?> routeMatch, @Nullable Map<String, Object> claims) {
+        //If the request corresponds to a Controller entry
         if(routeMatch != null && claims != null && claims.containsKey("roles") && claims.containsKey("email")){
-            LOG.info("API call from "+request.getUserPrincipal().get().getName()+ " on resource "+routeMatch.toString());
+            LOG.info("API call from "+claims.get("email")+ " on resource "+routeMatch.toString());
             List<String> roles = (List<String>)claims.get("roles");
 
+            if (roles.contains(adminGroup)) {
+                LOG.debug("Authorized user "+claims.get("email")+" : Member of Admin Group ["+adminGroup+"]");
+                return SecurityRuleResult.ALLOWED;
+            }
             // Not using routeMatch to get the resourceType and resourceSubtype values
             Matcher matcher = namespacedResourcePattern.matcher(request.getPath());
-
             while (matcher.find()){
                 //namespaced resource handling
                 Collection<RoleBinding> roleBindings = roleBindingRepository.findAllForGroups(roles);
@@ -69,22 +73,19 @@ public class RessourceBasedSecurityRule implements SecurityRule {
                     if(LOG.isDebugEnabled()){
                         authorizedRoleBindings.forEach(roleBinding -> LOG.debug("Found matching RoleBinding : "+roleBinding.toString()));
                     }
+                    //TODO is this the good place for this (ns exists check) ?
                     if(namespaceRepository.findByName(namespace).isPresent()) {
+                        LOG.debug("Authorized user "+claims.get("email")+" : Matching RoleBinding");
                         return SecurityRuleResult.ALLOWED;
                     }else{
-                        //TODO is this the good place for this ?
                         LOG.info("Denied user " + claims.get("email") + " : Namespace doesn't exist");
                     }
                 }else{
                     LOG.info("Denied user "+ claims.get("email") + " : No matching RoleBinding");
                 }
-
-
             }
-            if (roles.contains(adminGroup)) {
-
-                return SecurityRuleResult.ALLOWED;
-            }
+            //TODO Non-namespaced resource handling
+            // /admin ?
         }
         return SecurityRuleResult.UNKNOWN;
     }

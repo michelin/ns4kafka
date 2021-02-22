@@ -38,23 +38,19 @@ public class GitlabTokenValidator implements TokenValidator {
 
     @Override
     public Publisher<Authentication> validateToken(String token, @Nullable HttpRequest<?> request) throws AuthenticationException{
-        if(StringUtils.isNotEmpty(token)) {
-            return gitlabAuthorizationService.findUsername(token)
-                    .onErrorResumeNext(throwable -> {
-                        //HttpClientResponseException exception = (HttpClientResponseException) throwable;
-
-                        LOG.error("Gitlab exception during Authentication step : "+ throwable.getMessage());
-                        return Maybe.empty();
-                    })
-                    .flatMapPublisher(username -> {
-                        List<String> groups = gitlabAuthorizationService.findAllGroups(token);
-                        return Flowable.just(new DefaultAuthentication(username, Map.of("roles", groups, "email", username)));
-                    });
-
-        }else{
-            return Flowable.empty();
-        }
-
+        return StringUtils.isNotEmpty(token) ?
+                gitlabAuthorizationService.findUsername(token)
+                        .onErrorResumeNext(throwable -> {
+                            LOG.error("Gitlab exception during Authentication step : "+ throwable.getMessage());
+                            return Maybe.empty();
+                        })
+                        .flatMapPublisher(username -> gitlabAuthorizationService
+                                .findAllGroups(token)
+                                .toList()
+                                .map(groups -> new DefaultAuthentication(username, Map.of("roles", groups, "email", username)))
+                                .toFlowable()
+                        )
+                : Flowable.empty();
     }
 
     @Override
