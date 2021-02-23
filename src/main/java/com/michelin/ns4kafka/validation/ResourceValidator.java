@@ -160,6 +160,8 @@ public abstract class ResourceValidator {
 
         @Override
         public void ensureValid(String name, Object o) {
+            if (o == null)
+                throw new FieldValidationException(name, null, "Value must be non-null");
             String s = (String) o;
             if (!validStrings.contains(s)) {
                 throw new FieldValidationException(name, o, "String must be one of: " + String.join(", ", validStrings));
@@ -176,6 +178,8 @@ public abstract class ResourceValidator {
 
         @Override
         public void ensureValid(String name, Object o) {
+            if (o == null)
+                throw new FieldValidationException(name, null, "Value must be non-null");
             String s = (String) o;
             if (s != null && s.isEmpty()) {
                 throw new FieldValidationException(name, o, "String must be non-empty");

@@ -433,10 +433,10 @@ public class KafkaAsyncExecutor {
                 .collect(Collectors.toList());
 
         LOG.debug("ACLs found on Broker (total) : "+userACLs.size());
-        if(LOG.isDebugEnabled()) {
+        if(LOG.isTraceEnabled()) {
 
             userACLs.forEach(aclBinding -> {
-                LOG.debug(aclBinding.toString());
+                LOG.trace(aclBinding.toString());
             });
         }
         //TODO add parameter to cluster configuration to scope ALL users vs "namespace" managed users

@@ -33,7 +33,7 @@ public class ConnectValidator extends ResourceValidator{
 
     // validation step for class specific Connectors
     // ie. for io.confluent.connect.jdbc.JdbcSinkConnector :
-    // - db.timezone non Blank before they complain that time is not right in their DB
+    // - db.timezone non Blank before they complain that time is not right in their DBcap
     Map<String,Map<String, Validator>> classValidationConstraints;
 
     @Builder
@@ -53,7 +53,12 @@ public class ConnectValidator extends ResourceValidator{
         return ConnectValidator.builder()
                 .validationConstraints(Map.of(
                         "key.converter", new ResourceValidator.NonEmptyString(),
-                        "value.converter", new ResourceValidator.NonEmptyString()
+                        "value.converter", new ResourceValidator.NonEmptyString(),
+                        "connector.class", new ResourceValidator.ValidString(
+                                List.of("io.confluent.connect.jdbc.JdbcSourceConnector",
+                                        "io.confluent.connect.jdbc.JdbcSinkConnector",
+                                        "com.splunk.kafka.connect.SplunkSinkConnector")
+                        )
                 ))
                 .sourceValidationConstraints(Map.of(
                         "producer.override.sasl.jaas.config", new ResourceValidator.NonEmptyString()
@@ -70,7 +75,7 @@ public class ConnectValidator extends ResourceValidator{
                 .build();
     }
 
-    public List<String> validate(Connector connector, Namespace namespace){
+    public List<String> validate(Connector connector){
         List<String> validationErrors = new ArrayList<>();
 
         if(connector.getMetadata().getName().isEmpty())
@@ -81,8 +86,12 @@ public class ConnectValidator extends ResourceValidator{
             validationErrors.add("Invalid value " + connector.getMetadata().getName() + " for name: Value must only contain " +
                     "ASCII alphanumerics, '.', '_' or '-'");
 
+        //TODO mandatory configuration
+        // 1. connector.class
+        // 2. tasks.max
+        // 3. one of: [topics, topics.regex]
 
-        //validate configurations
+        //validate constraints
         validationConstraints.entrySet().stream().forEach(entry -> {
             try {
                 entry.getValue().ensureValid(entry.getKey(), connector.getSpec().get(entry.getKey()));

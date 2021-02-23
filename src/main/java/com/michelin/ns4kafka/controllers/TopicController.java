@@ -93,52 +93,10 @@ public class TopicController {
         topic.getMetadata().setNamespace(ns.getName());
         topic.setStatus(Topic.TopicStatus.ofPending());
         return topicRepository.create(topic);
-        //pour les topics dont je suis owner, somme d'usage
-        // pour le topic à créer usageTopic
-        // si somme + usageTopic > quota KO
-
-    }
-
-    private Topic update(String namespace, String topicName, @Valid @Body Topic topic){
-        //TODO
-        // 1. (Done) User Allowed ?
-        //   -> User belongs to group and operation/resource is allowed on this namespace ?
-        //   -> Managed in RessourceBasedSecurityRule class
-        // 3. Request Valid ?
-        //   -> Topics parameters are allowed for this namespace ConstraintsValidatorSet
-        // 4. Store in datastore
-
-        //resource path / object match ?
-        if(!topicName.equals(topic.getMetadata().getName())){
-            throw new ResourceValidationException(List.of("Resource name doesn't match between URL and data"));
-        }
-
-        //resource exists ?
-        Optional<Topic> existingTopic = topicRepository.findByName(namespace,topic.getMetadata().getName());
-        if(existingTopic.isEmpty()){
-            throw new ResourceValidationException(List.of("Resource name "+topicName+" doesn't exist"));
-        }
-        Namespace ns = namespaceRepository.findByName(namespace).orElseThrow(() -> new RuntimeException("Namespace not found"));
-
-        //2.1 Request is valid ?
-        List<String> validationErrors = ns.getTopicValidator().validate(topic,ns);
-
-
-
-        if(validationErrors.size()>0){
-            throw new ResourceValidationException(validationErrors);
-        }
-
-        //3. Fill server-side fields (server side metadata + status)
-        topic.getMetadata().setCluster(ns.getCluster());
-        topic.getMetadata().setNamespace(ns.getName());
-        topic.setStatus(Topic.TopicStatus.ofPending());
-
         //TODO quota management
         // pour les topics dont je suis owner, somme d'usage
         // pour le topic à créer usageTopic
         // si somme + usageTopic > quota KO
-        return topicRepository.create(topic);
 
     }
 
