@@ -48,34 +48,7 @@ public class ConnectValidator extends ResourceValidator{
         this.classValidationConstraints = classValidationConstraints;
     }
 
-
-    public static ConnectValidator makeDefault(){
-        return ConnectValidator.builder()
-                .validationConstraints(Map.of(
-                        "key.converter", new ResourceValidator.NonEmptyString(),
-                        "value.converter", new ResourceValidator.NonEmptyString(),
-                        "connector.class", new ResourceValidator.ValidString(
-                                List.of("io.confluent.connect.jdbc.JdbcSourceConnector",
-                                        "io.confluent.connect.jdbc.JdbcSinkConnector",
-                                        "com.splunk.kafka.connect.SplunkSinkConnector")
-                        )
-                ))
-                .sourceValidationConstraints(Map.of(
-                        "producer.override.sasl.jaas.config", new ResourceValidator.NonEmptyString()
-                ))
-                .sinkValidationConstraints(Map.of(
-                        "consumer.override.sasl.jaas.config", new ResourceValidator.NonEmptyString()
-                ))
-                .classValidationConstraints(Map.of(
-                        "io.confluent.connect.jdbc.JdbcSinkConnector",
-                        Map.of(
-                                "db.timezone", new ResourceValidator.NonEmptyString()
-                        )
-                ))
-                .build();
-    }
-
-    public List<String> validate(Connector connector){
+    public List<String> validate(Connector connector, String connectorType){
         List<String> validationErrors = new ArrayList<>();
 
         if(connector.getMetadata().getName().isEmpty())
@@ -99,7 +72,59 @@ public class ConnectValidator extends ResourceValidator{
                 validationErrors.add(e.getMessage());
             }
         });
+        if(connectorType.equals("sink")){
+            sinkValidationConstraints.entrySet().stream().forEach(entry -> {
+                try {
+                    entry.getValue().ensureValid(entry.getKey(), connector.getSpec().get(entry.getKey()));
+                } catch (FieldValidationException e){
+                    validationErrors.add(e.getMessage());
+                }
+            });
+        }
+        if(connectorType.equals("source"))
+            sourceValidationConstraints.entrySet().stream().forEach(entry -> {
+                try {
+                    entry.getValue().ensureValid(entry.getKey(), connector.getSpec().get(entry.getKey()));
+                } catch (FieldValidationException e){
+                    validationErrors.add(e.getMessage());
+                }
+            });
+        if(classValidationConstraints.containsKey(connector.getSpec().get("connector.class"))){
+            classValidationConstraints.get(connector.getSpec().get("connector.class")).entrySet().stream().forEach(entry -> {
+                try {
+                    entry.getValue().ensureValid(entry.getKey(), connector.getSpec().get(entry.getKey()));
+                } catch (FieldValidationException e){
+                    validationErrors.add(e.getMessage());
+                }
+            });
+        }
         return validationErrors;
+    }
 
+    public static ConnectValidator makeDefault(){
+        return ConnectValidator.builder()
+                .validationConstraints(Map.of(
+                        "key.converter", new ResourceValidator.NonEmptyString(),
+                        "value.converter", new ResourceValidator.NonEmptyString(),
+                        "connector.class", new ResourceValidator.ValidString(
+                                List.of("io.confluent.connect.jdbc.JdbcSourceConnector",
+                                        "io.confluent.connect.jdbc.JdbcSinkConnector",
+                                        "com.splunk.kafka.connect.SplunkSinkConnector",
+                                        "org.apache.kafka.connect.file.FileStreamSinkConnector")
+                        )
+                ))
+                .sourceValidationConstraints(Map.of(
+                        "producer.override.sasl.jaas.config", new ResourceValidator.NonEmptyString()
+                ))
+                .sinkValidationConstraints(Map.of(
+                        "consumer.override.sasl.jaas.config", new ResourceValidator.NonEmptyString()
+                ))
+                .classValidationConstraints(Map.of(
+                        "io.confluent.connect.jdbc.JdbcSinkConnector",
+                        Map.of(
+                                "db.timezone", new ResourceValidator.NonEmptyString()
+                        )
+                ))
+                .build();
     }
 }

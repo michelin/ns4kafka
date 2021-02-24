@@ -238,7 +238,7 @@ public class KafkaAsyncExecutor {
     }
     private Map<String, Topic> collectBrokerTopicList() throws InterruptedException, ExecutionException, TimeoutException {
         List<String> topicNames = getAdminClient().listTopics().listings()
-                .get(10, TimeUnit.SECONDS)
+                .get(30, TimeUnit.SECONDS)
                 .stream()
                 .map(topicListing -> topicListing.name())
                 .collect(Collectors.toList());

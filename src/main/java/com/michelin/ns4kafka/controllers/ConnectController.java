@@ -7,19 +7,30 @@ import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.ConnectRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.kafka.DelayStartupListener;
+import com.michelin.ns4kafka.services.ConnectRestService;
 import com.michelin.ns4kafka.validation.ResourceValidationException;
+import io.micronaut.http.HttpRequest;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
+import io.micronaut.http.annotation.Error;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
+import io.micronaut.http.hateoas.JsonError;
 import io.reactivex.*;
+import io.reactivex.annotations.NonNull;
+import io.reactivex.functions.Function;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.concurrent.Flow;
 
 @Tag(name = "Connects")
 @Controller(value = "/api/namespaces/{namespace}/connects")
@@ -48,44 +59,77 @@ public class ConnectController {
     }
 
     @Post
-    public Single<Connector> apply(String namespace, @Valid @Body Connector connector){
+    public Single<ConnectRestService.ConnectInfo> apply(String namespace, @Valid @Body Connector connector){
 
         LOG.debug("Beginning apply");
 
         Namespace ns = namespaceRepository.findByName(namespace).get();
 
-        //2. Request is valid ?
-        List<String> localValidationErrors = ns.getConnectValidator().validate(connector);
 
-        LOG.debug("finished local validation");
-        if(isNamespaceOwnerOfConnect(namespace,connector.getMetadata().getName())) {
-            localValidationErrors.add("Invalid value " + connector.getMetadata().getName() + " for name: Namespace not OWNER of this connector");
+        //1. Request is valid enough to perform local validation ?
+        // we need :
+        // - connector.class
+        // - source/sink type (derived from connector.class on remote /connectors-plugins)
+        //2. Validate locally
+
+        Flowable<String> rxLocalValidationErrors = connectRepository
+                //retrives connectorType from class name
+                .getConnectorType(namespace,connector.getSpec().get("connector.class"))
+                //pass it to local validator
+                .map(connectorType -> ns.getConnectValidator().validate(connector, connectorType))
+                .flattenAsFlowable(strings -> strings)
+                .onErrorReturn(throwable -> "Failed to find any class that implements Connector and which name matches "+connector.getSpec().get("connector.class"));
+
+        if(!isNamespaceOwnerOfConnect(namespace,connector.getMetadata().getName())) {
+            rxLocalValidationErrors = rxLocalValidationErrors.concatWith(
+                    Single.just("Invalid value " + connector.getMetadata().getName() +
+                            " for name: Namespace not OWNER of this connector"));
         }
 
-        Maybe<List<String>> remoteValidationErrors = connectRepository.validate(namespace, connector);
-
-
-        return mergeValidationErrors(remoteValidationErrors,localValidationErrors)
+        return rxLocalValidationErrors
+                .toList()
+                .flatMapPublisher(localValidationErrors -> {
+                    if(localValidationErrors.isEmpty()){
+                        // we have no local validation errors, move on to /validate endpoint on connect
+                        return connectRepository.validate(namespace, connector);
+                    }else{
+                        // we have local validation errors, return just them
+                        return Flowable.fromIterable(localValidationErrors);
+                    }
+                })
+                .onErrorResumeNext((Function<? super Throwable, ? extends Publisher<? extends String>>) throwable ->
+                        Flowable.just(throwable.getMessage())
+                )
+                .toList()
                 .flatMap(validationErrors -> {
                     if(validationErrors.size()>0){
                         return Single.error(new ResourceValidationException(validationErrors));
                     }else{
-                        return createOrUpdateConnector(connector);
+                        return connectRepository.createOrUpdate(namespace,connector)
+                                .onErrorResumeNext((Function<? super Throwable, ? extends SingleSource<? extends ConnectRestService.ConnectInfo>>) throwable ->
+                                        Single.error(new ConnectCreationException(throwable))
+                                        );
                     }
                 });
     }
-    private Single<Connector> createOrUpdateConnector(Connector connector){
-        connector.setStatus(Connector.ConnectorStatus.builder().state(Connector.TaskState.RUNNING).build());
-        return Single.just(connector);
+
+    //TODO move elsewhere
+    public static class ConnectCreationException extends Exception {
+        public ConnectCreationException(Throwable e){
+            super(e);
+        }
     }
-    private Single<List<String>> mergeValidationErrors(Maybe<List<String>> remoteValidationErrors, List<String> localValidationErrors){
-        return remoteValidationErrors
-                .mergeWith(Observable.just(localValidationErrors).firstElement())
-                .flatMapIterable(strings -> strings)
-                .toList();
+
+    //TODO move elsewhere
+    @Error(global = true)
+    public HttpResponse<JsonError> validationExceptionHandler(HttpRequest request, ConnectCreationException e){
+        return HttpResponse.badRequest()
+                .body(new JsonError(e.getMessage()));
     }
+
+
     private boolean isNamespaceOwnerOfConnect(String namespace, String connect) {
-        return accessControlEntryRepository.findAllGrantedToNamespace(namespace)
+        boolean ownershipResult = accessControlEntryRepository.findAllGrantedToNamespace(namespace)
                 .stream()
                 .filter(accessControlEntry -> accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
                 .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT)
@@ -98,6 +142,8 @@ public class ConnectController {
                     }
                     return false;
                 });
+        LOG.debug("Computed ownership for "+namespace+" on "+connect+ ": "+String.valueOf(ownershipResult));
+        return ownershipResult;
     }
 
 }

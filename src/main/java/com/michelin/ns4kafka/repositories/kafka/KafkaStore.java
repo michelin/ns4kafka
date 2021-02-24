@@ -45,7 +45,7 @@ public abstract class KafkaStore<T> {
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final ReentrantLock offsetUpdateLock;
     private final Condition offsetReachedThreshold;
-    int initTimeout = 20000;
+    int initTimeout = 40000;
 
     public KafkaStore(String kafkaTopic, Producer<String,T> kafkaProducer){
         this.kafkaTopic = kafkaTopic;

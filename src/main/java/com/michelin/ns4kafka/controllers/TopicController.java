@@ -123,7 +123,7 @@ public class TopicController {
                 .body(new ResourceCreationError("Message validation failed", resourceValidationException.getValidationErrors()));
     }
 
-
+    //TODO move elsewhere
     public static class ResourceCreationError extends JsonError {
         @Getter
         List<String> validationErrors;

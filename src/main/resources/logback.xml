@@ -11,6 +11,7 @@
     </appender>
     <logger name="io.micronaut.security" level="debug"/>
     <logger name="io.micronaut" level="info"/>
+    <logger name="io.micronaut.http" level="debug"/>
     <logger name="com.michelin" level="debug" />
     <logger name="org.apache" level="error" />
 

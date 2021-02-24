@@ -49,16 +49,20 @@ public class ConnectRepository {
     @Inject
     ApplicationContext applicationContext;
 
-    public Flowable<Connector> findByNamespace(String namespace){
+    public ConnectRestService getConnectRestService(String namespace){
         String cluster = namespaceRepository.findByName(namespace).get().getCluster();
         // retrive the ConnectRestService Bean byName(cluster)
-        ConnectRestService connectRestService = applicationContext.getBean(
+        return applicationContext.getBean(
                 ConnectRestService.class,
                 Qualifiers.byName(cluster));
+    }
+
+    public Flowable<Connector> findByNamespace(String namespace){
+
 
         List<AccessControlEntry> acls = accessControlEntryRepository.findAllGrantedToNamespace(namespace);
 
-        return connectRestService.list()
+        return getConnectRestService(namespace).list()
                 .toFlowable()
                 .flatMapIterable(Map::entrySet)
                 .filter(entry -> acls.stream()
@@ -77,7 +81,7 @@ public class ConnectRepository {
                 .map(entry -> Connector.builder()
                         .metadata(ObjectMeta.builder()
                                 .name(entry.getKey())
-                                .cluster(cluster)
+                                //TODO .cluster(cluster)
                                 .namespace(namespace)
                                 .labels(Map.of("type", entry.getValue().getInfo().getType()))
                                 .build())
@@ -103,29 +107,31 @@ public class ConnectRepository {
     }
 
     public Maybe<Connector> findByName(String namespace, String connector){
-        LOG.debug("findbyName("+namespace+","+connector+")");
         return findByNamespace(namespace)
                 .filter(connect -> connect.getMetadata().getName().equals(connector))
-                .doOnNext(connector1 -> LOG.debug("findByName found "+connector1.getMetadata().getName()))
                 .firstElement();
     }
 
-    public Maybe<List<String>> validate(String namespace, Connector connector){
-        LOG.debug("Starting validate");
-        String cluster = namespaceRepository.findByName(namespace).get().getCluster();
-        // Retrieves the ConnectRestService Bean byName(cluster)
-        ConnectRestService connectRestService = applicationContext.getBean(
-                ConnectRestService.class,
-                Qualifiers.byName(cluster));
+    public Flowable<String> validate(String namespace, Connector connector){
         // Calls the validate endpoints and returns the validation error messages if any
-        return connectRestService.validate(connector.getSpec())
-                .doOnEvent((connectValidationResult, throwable) -> LOG.debug("Result there during validate"))
-                .map(connectValidationResult -> connectValidationResult
+        return getConnectRestService(namespace).validate(connector.getSpec())
+                .flatMapIterable(connectValidationResult -> connectValidationResult
                         .getConfigs()
                         .stream()
                         .filter(connectValidationItem -> connectValidationItem.getValue().getErrors().size()>0)
                         .flatMap(connectValidationItem -> connectValidationItem.getValue().getErrors().stream())
-                        .collect(Collectors.toList())
+                        .collect(Collectors.toList()
+                        )
                 );
+    }
+    //TODO remap POJO
+    public Single<ConnectRestService.ConnectInfo> createOrUpdate(String namespace, Connector connector){
+        return getConnectRestService(namespace).createOrUpdate(connector);
+    }
+    public Single<String> getConnectorType(String namespace, String connectorClass){
+        return getConnectRestService(namespace).connectPlugins()
+                .filter(connectPluginItem -> connectPluginItem.get_class().equals(connectorClass))
+                .map(connectPluginItem -> connectPluginItem.getType())
+                .singleOrError();
     }
 }
