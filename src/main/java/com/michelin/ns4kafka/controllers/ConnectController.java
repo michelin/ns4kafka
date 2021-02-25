@@ -59,7 +59,7 @@ public class ConnectController {
     }
 
     @Post
-    public Single<ConnectRestService.ConnectInfo> apply(String namespace, @Valid @Body Connector connector){
+    public Single<Connector> apply(String namespace, @Valid @Body Connector connector){
 
         LOG.debug("Beginning apply");
 
@@ -106,7 +106,7 @@ public class ConnectController {
                         return Single.error(new ResourceValidationException(validationErrors));
                     }else{
                         return connectRepository.createOrUpdate(namespace,connector)
-                                .onErrorResumeNext((Function<? super Throwable, ? extends SingleSource<? extends ConnectRestService.ConnectInfo>>) throwable ->
+                                .onErrorResumeNext((Function<? super Throwable, ? extends SingleSource<? extends Connector>>) throwable ->
                                         Single.error(new ConnectCreationException(throwable))
                                         );
                     }

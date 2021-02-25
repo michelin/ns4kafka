@@ -125,8 +125,21 @@ public class ConnectRepository {
                 );
     }
     //TODO remap POJO
-    public Single<ConnectRestService.ConnectInfo> createOrUpdate(String namespace, Connector connector){
-        return getConnectRestService(namespace).createOrUpdate(connector);
+    public Single<Connector> createOrUpdate(String namespace, Connector connector){
+        return getConnectRestService(namespace).createOrUpdate(connector)
+                .map(connectInfo -> Connector.builder()
+                        .metadata(ObjectMeta.builder()
+                                .name(connectInfo.getName())
+                                .namespace(namespace)
+                                //.cluster(cluster)
+                                .build())
+                        .spec(connectInfo.getConfig())
+                        .status(Connector.ConnectorStatus.builder()
+                                .state(Connector.TaskState.UNASSIGNED) //or else ?
+                                //.tasks(List.of(Tas))
+                                .build())
+                        .build()
+                );
     }
     public Single<String> getConnectorType(String namespace, String connectorClass){
         return getConnectRestService(namespace).connectPlugins()
