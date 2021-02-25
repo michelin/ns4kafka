@@ -4,4 +4,5 @@ import io.micronaut.http.annotation.Controller;
 
 @Controller("/api/admin")
 public class AdminController {
+
 }

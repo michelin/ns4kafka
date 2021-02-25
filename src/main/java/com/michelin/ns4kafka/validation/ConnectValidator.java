@@ -1,8 +1,6 @@
 package com.michelin.ns4kafka.validation;
 
 import com.michelin.ns4kafka.models.Connector;
-import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.Topic;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,8 +9,6 @@ import lombok.Setter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @NoArgsConstructor
 @Getter
@@ -58,11 +54,6 @@ public class ConnectValidator extends ResourceValidator{
         if (!connector.getMetadata().getName().matches("[a-zA-Z0-9._-]+"))
             validationErrors.add("Invalid value " + connector.getMetadata().getName() + " for name: Value must only contain " +
                     "ASCII alphanumerics, '.', '_' or '-'");
-
-        //TODO mandatory configuration
-        // 1. connector.class
-        // 2. tasks.max
-        // 3. one of: [topics, topics.regex]
 
         //validate constraints
         validationConstraints.entrySet().stream().forEach(entry -> {

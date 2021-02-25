@@ -6,31 +6,25 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.ConnectRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
-import com.michelin.ns4kafka.repositories.kafka.DelayStartupListener;
-import com.michelin.ns4kafka.services.ConnectRestService;
 import com.michelin.ns4kafka.validation.ResourceValidationException;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.annotation.Body;
-import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Error;
-import io.micronaut.http.annotation.Get;
-import io.micronaut.http.annotation.Post;
+import io.micronaut.http.annotation.*;
 import io.micronaut.http.hateoas.JsonError;
-import io.reactivex.*;
-import io.reactivex.annotations.NonNull;
+import io.reactivex.Flowable;
+import io.reactivex.Maybe;
+import io.reactivex.Single;
+import io.reactivex.SingleSource;
 import io.reactivex.functions.Function;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.concurrent.Flow;
 
 @Tag(name = "Connects")
 @Controller(value = "/api/namespaces/{namespace}/connects")
@@ -56,6 +50,20 @@ public class ConnectController {
         return connectRepository.findByNamespace(namespace)
                 .filter(connect -> connect.getMetadata().getName().equals(connect))
                 .firstElement();
+    }
+
+    @Delete("/{connector}")
+    public Flowable<HttpResponse<String>> deleteConnector(String namespace, String connector){
+        if(isNamespaceOwnerOfConnect(namespace,connector)) {
+            return connectRepository.delete(namespace,connector)
+                    .onErrorResumeNext((Function<? super Throwable, ? extends Publisher<? extends HttpResponse<String>>>) throwable ->{
+                        //TODO better error handling plz
+                        return Flowable.error(new ConnectCreationException(throwable));
+                    } );
+        }else {
+            return Flowable.error(new ResourceValidationException(List.of("Invalid value " + connector +
+                    " for name: Namespace not OWNER of this connector")));
+        }
     }
 
     @Post
@@ -129,7 +137,7 @@ public class ConnectController {
 
 
     private boolean isNamespaceOwnerOfConnect(String namespace, String connect) {
-        boolean ownershipResult = accessControlEntryRepository.findAllGrantedToNamespace(namespace)
+        return accessControlEntryRepository.findAllGrantedToNamespace(namespace)
                 .stream()
                 .filter(accessControlEntry -> accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
                 .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT)
@@ -142,8 +150,6 @@ public class ConnectController {
                     }
                     return false;
                 });
-        LOG.debug("Computed ownership for "+namespace+" on "+connect+ ": "+String.valueOf(ownershipResult));
-        return ownershipResult;
     }
 
 }

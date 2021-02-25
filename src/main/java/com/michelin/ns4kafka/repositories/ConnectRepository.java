@@ -3,38 +3,21 @@ package com.michelin.ns4kafka.repositories;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Connector;
-import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.repositories.kafka.KafkaStore;
 import com.michelin.ns4kafka.services.ConnectRestService;
-import com.michelin.ns4kafka.services.KafkaAsyncExecutor;
-import com.michelin.ns4kafka.services.KafkaAsyncExecutorConfig;
 import io.micronaut.context.ApplicationContext;
-import io.micronaut.context.annotation.EachBean;
-import io.micronaut.context.annotation.EachProperty;
-import io.micronaut.core.async.publisher.Publishers;
-import io.micronaut.core.type.Argument;
-import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.client.RxHttpClient;
-import io.micronaut.http.client.RxHttpClientFactory;
-import io.micronaut.http.client.annotation.Client;
 import io.micronaut.inject.qualifiers.Qualifiers;
-import io.micronaut.retry.annotation.Retryable;
 import io.reactivex.Flowable;
 import io.reactivex.Maybe;
-import io.reactivex.Observable;
 import io.reactivex.Single;
-import io.reactivex.schedulers.Schedulers;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 
@@ -49,7 +32,7 @@ public class ConnectRepository {
     @Inject
     ApplicationContext applicationContext;
 
-    public ConnectRestService getConnectRestService(String namespace){
+    private ConnectRestService getConnectRestService(String namespace){
         String cluster = namespaceRepository.findByName(namespace).get().getCluster();
         // retrive the ConnectRestService Bean byName(cluster)
         return applicationContext.getBean(
@@ -124,7 +107,7 @@ public class ConnectRepository {
                         )
                 );
     }
-    //TODO remap POJO
+
     public Single<Connector> createOrUpdate(String namespace, Connector connector){
         return getConnectRestService(namespace).createOrUpdate(connector)
                 .map(connectInfo -> Connector.builder()
@@ -146,5 +129,9 @@ public class ConnectRepository {
                 .filter(connectPluginItem -> connectPluginItem.get_class().equals(connectorClass))
                 .map(connectPluginItem -> connectPluginItem.getType())
                 .singleOrError();
+    }
+
+    public Flowable<HttpResponse<String>> delete(String namespace, String connector) {
+        return getConnectRestService(namespace).delete(connector);
     }
 }
