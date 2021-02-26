@@ -92,6 +92,7 @@ public class ConnectValidator extends ResourceValidator{
         return validationErrors;
     }
 
+    //TODO makeDefault from conf or template namespace ?
     public static ConnectValidator makeDefault(){
         return ConnectValidator.builder()
                 .validationConstraints(Map.of(

@@ -9,6 +9,7 @@ import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.validation.ResourceValidationException;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Error;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.hateoas.JsonError;
@@ -52,12 +53,13 @@ public class ConnectController {
                 .firstElement();
     }
 
+    @Status(HttpStatus.NO_CONTENT)
     @Delete("/{connector}")
     public Flowable<HttpResponse<String>> deleteConnector(String namespace, String connector){
         if(isNamespaceOwnerOfConnect(namespace,connector)) {
             return connectRepository.delete(namespace,connector)
                     .onErrorResumeNext((Function<? super Throwable, ? extends Publisher<? extends HttpResponse<String>>>) throwable ->{
-                        //TODO better error handling plz
+                        //TODO better error handling plz, handle 404
                         return Flowable.error(new ConnectCreationException(throwable));
                     } );
         }else {

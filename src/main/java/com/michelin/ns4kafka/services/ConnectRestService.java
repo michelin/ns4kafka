@@ -4,8 +4,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.michelin.ns4kafka.models.Connector;
 import io.micronaut.context.annotation.EachBean;
 import io.micronaut.core.type.Argument;
+import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.retry.annotation.DefaultRetryPredicate;
@@ -30,11 +32,13 @@ import java.util.Map;
 public class ConnectRestService {
 
     RxHttpClient httpClient;
+    KafkaAsyncExecutorConfig.ConnectConfig connectConfig;
 
     public ConnectRestService(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
         try {
             if(kafkaAsyncExecutorConfig.getConnect()!=null) {
-                httpClient = RxHttpClient.create(new URL(kafkaAsyncExecutorConfig.getConnect().getUrl()));
+                this.connectConfig = kafkaAsyncExecutorConfig.getConnect();
+                this.httpClient = RxHttpClient.create(new URL(kafkaAsyncExecutorConfig.getConnect().getUrl()));
             }
         }catch (MalformedURLException e){
 
@@ -45,34 +49,50 @@ public class ConnectRestService {
         httpClient.close();
     }
 
+    public <I, O> Flowable<O> retrieve(MutableHttpRequest<I> request, Argument<O> bodyType) {
+        if(StringUtils.isNotEmpty(connectConfig.getBasicAuthUsername())){
+            request = request.basicAuth(connectConfig.getBasicAuthUsername(),connectConfig.getBasicAuthPassword());
+        }
+        return httpClient.retrieve(request, bodyType)
+                .subscribeOn(Schedulers.io());
+    }
+    public <I, O> Flowable<HttpResponse<O>> exchange(MutableHttpRequest<I> request, Argument<O> bodyType) {
+        if(StringUtils.isNotEmpty(connectConfig.getBasicAuthUsername())){
+            request = request.basicAuth(connectConfig.getBasicAuthUsername(),connectConfig.getBasicAuthPassword());
+        }
+        return httpClient.exchange(request, bodyType)
+                .subscribeOn(Schedulers.io());
+    }
+
     //TODO
     // Caching (10-20seconds or something)
     // https://guides.micronaut.io/micronaut-cache/guide/index.html
     public Maybe<Map<String,ConnectItem>> list() {
-        return httpClient.retrieve(HttpRequest.GET("connectors?expand=info&expand=status"),
+        return retrieve(HttpRequest.GET("connectors?expand=info&expand=status"),
                 Argument.mapOf(String.class, ConnectItem.class))
-                .firstElement()
-                .subscribeOn(Schedulers.io());
+                .firstElement();
     }
 
     public Flowable<ConnectValidationResult> validate(Map<String,String> spec){
-        return httpClient.retrieve(
+        return retrieve(
                 HttpRequest.PUT("connector-plugins/"+spec.get("connector.class")+"/config/validate", spec),
-                ConnectValidationResult.class)
-                .subscribeOn(Schedulers.io());
+                Argument.of(ConnectValidationResult.class)
+        );
     }
 
     @Retryable(predicate = RebalanceRetryPredicate.class)
     public Single<ConnectInfo> createOrUpdate(Connector connector){
-        return httpClient.retrieve(
+        return retrieve(
                 HttpRequest.PUT("connectors/"+connector.getMetadata().getName()+"/config",connector.getSpec()),
-                ConnectInfo.class)
-                .subscribeOn(Schedulers.io())
+                Argument.of(ConnectInfo.class))
                 .singleOrError();
     }
 
     public Flowable<HttpResponse<String>> delete(String connector){
-        return httpClient.exchange(HttpRequest.DELETE("connectors/"+connector), String.class);
+        return exchange(
+                HttpRequest.DELETE("connectors/"+connector),
+                Argument.STRING);
+
     }
 
     public static class RebalanceRetryPredicate extends DefaultRetryPredicate{

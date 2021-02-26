@@ -1,17 +1,14 @@
 package com.michelin.ns4kafka.authentication.gitlab;
 
-import io.micronaut.context.annotation.Requires;
+import io.micronaut.context.annotation.Value;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
-import io.micronaut.http.HttpStatus;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.DefaultAuthentication;
 import io.micronaut.security.token.validator.TokenValidator;
 import io.reactivex.Flowable;
 import io.reactivex.Maybe;
-import io.reactivex.Single;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,14 +18,17 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Singleton
 public class GitlabTokenValidator implements TokenValidator {
     private static final Logger LOG = LoggerFactory.getLogger(GitlabTokenValidator.class);
 
+    public static final String IS_ADMIN = "isAdmin()";
     @Inject
     GitlabAuthorizationService gitlabAuthorizationService;
+
+    @Value("${ns4kafka.admin.group:_}")
+    private String adminGroup;
 
     @Deprecated
     @Override
@@ -47,10 +47,21 @@ public class GitlabTokenValidator implements TokenValidator {
                         .flatMapPublisher(username -> gitlabAuthorizationService
                                 .findAllGroups(token)
                                 .toList()
-                                .map(groups -> new DefaultAuthentication(username, Map.of("roles", groups, "email", username)))
+                                .map(groups -> new DefaultAuthentication(username, Map.of(
+                                        "groups", groups,
+                                        "email", username,
+                                        "roles", computeRolesFromProperties(groups)
+                                )))
                                 .toFlowable()
                         )
                 : Flowable.empty();
+    }
+
+    private List<String> computeRolesFromProperties(List<String> groups) {
+        if(groups.contains(adminGroup))
+            return List.of(IS_ADMIN);
+        //TODO other specific API groups ? auditor ?
+        return List.of();
     }
 
     @Override

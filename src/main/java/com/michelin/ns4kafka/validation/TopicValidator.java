@@ -74,4 +74,18 @@ public class TopicValidator extends ResourceValidator {
         return validationErrors;
     }
 
+    //TODO makeDefault from config or template ?
+    public static TopicValidator makeDefault(){
+        return TopicValidator.builder()
+                .validationConstraints(
+                        Map.of( "replication.factor", ResourceValidator.Range.between(3,3),
+                                "partitions", ResourceValidator.Range.between(3,6),
+                                "cleanup.policy", ResourceValidator.ValidList.in("delete","compact"),
+                                "min.insync.replicas", ResourceValidator.Range.between(2,2),
+                                "retention.ms", ResourceValidator.Range.between(60000,604800000)
+                        )
+                )
+                .build();
+    }
+
 }
