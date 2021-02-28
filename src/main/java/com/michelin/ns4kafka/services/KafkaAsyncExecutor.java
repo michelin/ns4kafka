@@ -13,6 +13,7 @@ import io.micronaut.context.annotation.Parameter;
 import io.micronaut.core.type.Argument;
 import io.micronaut.http.client.RxHttpClient;
 import io.netty.handler.codec.spdy.SpdyHttpHeaders;
+import io.reactivex.Observable;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.acl.*;
 import org.apache.kafka.common.config.ConfigResource;
@@ -183,11 +184,17 @@ public class KafkaAsyncExecutor {
                 );
          */
     }
+    private void deleteTopic(Topic topic) throws InterruptedException, ExecutionException, TimeoutException {
+        getAdminClient().deleteTopics(List.of(topic.getMetadata().getName())).all().get(30, TimeUnit.SECONDS);
+    }
     private void alterTopics(Map<ConfigResource, Collection<AlterConfigOp>> toUpdate, List<Topic> topics) {
         AlterConfigsResult alterConfigsResult = getAdminClient().incrementalAlterConfigs(toUpdate);
         alterConfigsResult.values().entrySet()
                 .stream()
                 .forEach(mapEntry -> mapEntry.getValue()
+                        //TODO blocking
+                        // we're already on a dedicated calling thread, by threading again we risk calling this while another call is in progress
+                        // @Scheduled from micronaut guarantees with fixedDelay a delay between the end of previous call and beginning of next call
                         .whenComplete((unused, throwable) ->{
                             Topic updatedTopic = topics.stream().filter(t -> t.getMetadata().getName().equals(mapEntry.getKey().name())).findFirst().get();
                             if(throwable!=null){
@@ -221,6 +228,7 @@ public class KafkaAsyncExecutor {
         createTopicsResult.values().entrySet()
                 .stream()
                 .forEach(mapEntry -> mapEntry.getValue()
+                        //TODO blocking
                         .whenComplete((unused, throwable) ->{
                             Topic createdTopic = topics.stream().filter(t -> t.getMetadata().getName().equals(mapEntry.getKey())).findFirst().get();
                             if(throwable!=null){
@@ -250,8 +258,9 @@ public class KafkaAsyncExecutor {
                         .map(s -> new ConfigResource(ConfigResource.Type.TOPIC, s))
                         .collect(Collectors.toList())
                 )
+                //.describeConfigs(List.of(new ConfigResource(ConfigResource.Type.TOPIC,"*")))
                 .all()
-                .get()
+                .get(30, TimeUnit.SECONDS)
                 .entrySet()
                 .stream()
                 .collect(Collectors.toMap(
@@ -338,7 +347,6 @@ public class KafkaAsyncExecutor {
 
             // Execute toAdd list BEFORE toDelete list to avoid breaking ACL on connected user
             // such as deleting <LITERAL "toto.titi"> only to add one second later <PREFIX "toto.">
-            //TODO this
             createACLs(toCreate);
             deleteACLs(toDelete);
 
@@ -363,6 +371,7 @@ public class KafkaAsyncExecutor {
                 .values().entrySet()
                 .stream()
                 .forEach(mapEntry -> mapEntry.getValue()
+                        //TODO blocking
                         .whenComplete((unused, throwable) -> {
                             if(throwable!=null){
                                 LOG.error(String.format("Error while deleting ACL %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()), throwable);
@@ -378,6 +387,7 @@ public class KafkaAsyncExecutor {
         getAdminClient().createAcls(toCreate).values().entrySet()
                 .stream()
                 .forEach(mapEntry -> mapEntry.getValue()
+                        //TODO blocking
                         .whenComplete((unused, throwable) -> {
                             if(throwable!=null){
                                 LOG.error(String.format("Error while creating ACL %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()), throwable);

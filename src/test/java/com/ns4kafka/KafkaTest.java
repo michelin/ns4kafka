@@ -7,6 +7,7 @@ import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
 import io.micronaut.configuration.kafka.config.AbstractKafkaConfiguration;
 import io.micronaut.context.ApplicationContext;
+import io.micronaut.context.annotation.Property;
 import io.micronaut.runtime.server.EmbeddedServer;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import org.junit.jupiter.api.Assertions;
@@ -19,16 +20,16 @@ import java.util.Collections;
 import java.util.Map;
 
 @MicronautTest()
+@Property(name = "kafka.embedded.enabled", value = "true")
 public class KafkaTest {
 
     @Inject
     NamespaceRepository namespaceRepository;
 
-    @Inject
-    EmbeddedServer server;
-
     @Test
     public void Test(){
+
+
         namespaceRepository.createNamespace(
                 Namespace.builder()
                         .cluster("cloud")

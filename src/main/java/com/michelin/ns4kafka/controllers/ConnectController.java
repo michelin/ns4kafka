@@ -13,10 +13,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Error;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.hateoas.JsonError;
-import io.reactivex.Flowable;
-import io.reactivex.Maybe;
-import io.reactivex.Single;
-import io.reactivex.SingleSource;
+import io.reactivex.*;
 import io.reactivex.functions.Function;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.reactivestreams.Publisher;
@@ -55,15 +52,15 @@ public class ConnectController {
 
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{connector}")
-    public Flowable<HttpResponse<String>> deleteConnector(String namespace, String connector){
+    public Completable deleteConnector(String namespace, String connector){
         if(isNamespaceOwnerOfConnect(namespace,connector)) {
             return connectRepository.delete(namespace,connector)
-                    .onErrorResumeNext((Function<? super Throwable, ? extends Publisher<? extends HttpResponse<String>>>) throwable ->{
+                    .onErrorResumeNext(throwable ->{
                         //TODO better error handling plz, handle 404
-                        return Flowable.error(new ConnectCreationException(throwable));
+                        return Completable.error(new ConnectCreationException(throwable));
                     } );
         }else {
-            return Flowable.error(new ResourceValidationException(List.of("Invalid value " + connector +
+            return Completable.error(new ResourceValidationException(List.of("Invalid value " + connector +
                     " for name: Namespace not OWNER of this connector")));
         }
     }

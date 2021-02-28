@@ -8,6 +8,7 @@ import com.michelin.ns4kafka.services.ConnectRestService;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.inject.qualifiers.Qualifiers;
+import io.reactivex.Completable;
 import io.reactivex.Flowable;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
@@ -131,7 +132,7 @@ public class ConnectRepository {
                 .singleOrError();
     }
 
-    public Flowable<HttpResponse<String>> delete(String namespace, String connector) {
+    public Completable delete(String namespace, String connector) {
         return getConnectRestService(namespace).delete(connector);
     }
 }

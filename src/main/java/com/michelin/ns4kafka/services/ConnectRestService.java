@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.services;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.michelin.ns4kafka.models.Connector;
+import io.micronaut.context.ApplicationContext;
 import io.micronaut.context.annotation.EachBean;
 import io.micronaut.core.type.Argument;
 import io.micronaut.core.util.StringUtils;
@@ -12,6 +13,7 @@ import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.retry.annotation.DefaultRetryPredicate;
 import io.micronaut.retry.annotation.Retryable;
+import io.reactivex.Completable;
 import io.reactivex.Flowable;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
@@ -21,6 +23,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.annotation.PreDestroy;
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -31,6 +34,9 @@ import java.util.Map;
 @Singleton
 public class ConnectRestService {
 
+    @Inject
+    ApplicationContext applicationContext;
+
     RxHttpClient httpClient;
     KafkaAsyncExecutorConfig.ConnectConfig connectConfig;
 
@@ -38,7 +44,8 @@ public class ConnectRestService {
         try {
             if(kafkaAsyncExecutorConfig.getConnect()!=null) {
                 this.connectConfig = kafkaAsyncExecutorConfig.getConnect();
-                this.httpClient = RxHttpClient.create(new URL(kafkaAsyncExecutorConfig.getConnect().getUrl()));
+                this.httpClient = applicationContext.createBean(RxHttpClient.class, new URL(kafkaAsyncExecutorConfig.getConnect().getUrl()));
+                //this.httpClient = RxHttpClient.create(new URL(kafkaAsyncExecutorConfig.getConnect().getUrl()));
             }
         }catch (MalformedURLException e){
 
@@ -88,10 +95,10 @@ public class ConnectRestService {
                 .singleOrError();
     }
 
-    public Flowable<HttpResponse<String>> delete(String connector){
+    public Completable delete(String connector){
         return exchange(
                 HttpRequest.DELETE("connectors/"+connector),
-                Argument.STRING);
+                Argument.VOID).ignoreElements();
 
     }
 
