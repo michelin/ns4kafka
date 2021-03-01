@@ -44,8 +44,8 @@ public class ConnectRestService {
         try {
             if(kafkaAsyncExecutorConfig.getConnect()!=null) {
                 this.connectConfig = kafkaAsyncExecutorConfig.getConnect();
-                this.httpClient = applicationContext.createBean(RxHttpClient.class, new URL(kafkaAsyncExecutorConfig.getConnect().getUrl()));
-                //this.httpClient = RxHttpClient.create(new URL(kafkaAsyncExecutorConfig.getConnect().getUrl()));
+                //this.httpClient = applicationContext.createBean(RxHttpClient.class, new URL(kafkaAsyncExecutorConfig.getConnect().getUrl()));
+                this.httpClient = RxHttpClient.create(new URL(kafkaAsyncExecutorConfig.getConnect().getUrl()));
             }
         }catch (MalformedURLException e){
 

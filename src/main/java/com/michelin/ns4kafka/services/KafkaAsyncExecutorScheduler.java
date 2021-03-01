@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.services;
 
+import io.micronaut.runtime.event.ApplicationStartupEvent;
+import io.micronaut.runtime.event.annotation.EventListener;
 import io.micronaut.scheduling.annotation.Scheduled;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 @Singleton
@@ -16,11 +19,23 @@ public class KafkaAsyncExecutorScheduler {
     @Inject
     List<KafkaAsyncExecutor> kafkaAsyncExecutors;
 
+    private final AtomicBoolean ready = new AtomicBoolean(false);
+
+    @EventListener
+    public void onStartupEvent(ApplicationStartupEvent event) {
+        // startup logic here
+        ready.compareAndSet(false,true);
+    }
+
     //TODO urgent : start the schedulder only when Application is started (ServerStartupEvent)
     @Scheduled(initialDelay = "12s", fixedDelay = "20s")
     void schedule(){
 
-        //TODO sequential forEach with exception handling (to let next clusters sync)
-        kafkaAsyncExecutors.forEach(KafkaAsyncExecutor::run);
+        if(ready.get()) {
+            //TODO sequential forEach with exception handling (to let next clusters sync)
+            kafkaAsyncExecutors.forEach(KafkaAsyncExecutor::run);
+        }else {
+            LOG.warn("Scheduled job did not start because micronaut is not ready yet");
+        }
     }
 }

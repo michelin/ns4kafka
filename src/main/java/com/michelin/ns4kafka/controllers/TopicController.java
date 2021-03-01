@@ -1,24 +1,28 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.models.*;
+import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.TopicRepository;
+import com.michelin.ns4kafka.services.KafkaAsyncExecutor;
 import com.michelin.ns4kafka.validation.ResourceValidationException;
+import io.micronaut.context.ApplicationContext;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.annotation.*;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Error;
+import io.micronaut.http.annotation.*;
 import io.micronaut.http.hateoas.JsonError;
+import io.micronaut.inject.qualifiers.Qualifiers;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Getter;
 
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 @Tag(name = "Topics")
 @Controller(value = "/api/namespaces/{namespace}/topics")
 public class TopicController {
@@ -28,6 +32,8 @@ public class TopicController {
     TopicRepository topicRepository;
     @Inject
     AccessControlEntryRepository accessControlEntryRepository;
+    @Inject
+    ApplicationContext applicationContext;
 
     /**
      * @param namespace The namespace to query
@@ -43,6 +49,7 @@ public class TopicController {
 
     @Get("/{topic}")
     public Optional<Topic> getTopic(String namespace, String topic){
+        //TODO should return 404
         return topicRepository.findByName(namespace, topic);
     }
 
@@ -100,6 +107,37 @@ public class TopicController {
 
     }
 
+    @Status(HttpStatus.NO_CONTENT)
+    @Delete("/{topic}")
+    public HttpResponse<Void> deleteTopic(String namespace, String topic){
+
+        String cluster = namespaceRepository.findByName(namespace).get().getCluster();
+        // allowed ?
+        if(!isNamespaceOwnerOfTopic(namespace,topic))
+            return HttpResponse.unauthorized();
+
+        // exists ?
+        Optional<Topic> optionalTopic = topicRepository.findByName(namespace,topic);
+
+        if(optionalTopic.isEmpty())
+            return HttpResponse.notFound();
+
+        //1. delete from ns4kafka
+        //2. delete from cluster
+        topicRepository.delete(optionalTopic.get());
+        KafkaAsyncExecutor kafkaAsyncExecutor = applicationContext.getBean(
+                KafkaAsyncExecutor.class,
+                Qualifiers.byName(cluster));
+        try {
+            kafkaAsyncExecutor.deleteTopic(optionalTopic.get());
+        }catch (Exception e){
+            //TODO refactor global error handling model
+            throw new ConnectController.ConnectCreationException(e);
+        }
+
+        return HttpResponse.noContent();
+    }
+
     private boolean isNamespaceOwnerOfTopic(String namespace, String topic) {
         return accessControlEntryRepository.findAllGrantedToNamespace(namespace)
                 .stream()
@@ -118,6 +156,7 @@ public class TopicController {
 
     //TODO move elsewhere
     @Error(global = true)
+    @Status(HttpStatus.UNPROCESSABLE_ENTITY)
     public HttpResponse<ResourceCreationError> validationExceptionHandler(HttpRequest request, ResourceValidationException resourceValidationException){
         return HttpResponse.badRequest()
                 .body(new ResourceCreationError("Message validation failed", resourceValidationException.getValidationErrors()));

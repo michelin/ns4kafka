@@ -2,8 +2,6 @@ package com.michelin.ns4kafka.repositories.kafka;
 
 import io.micronaut.context.event.ApplicationEventListener;
 import io.micronaut.context.event.StartupEvent;
-import io.micronaut.runtime.event.ApplicationStartupEvent;
-import io.micronaut.runtime.server.event.ServerStartupEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +16,6 @@ public class DelayStartupListener implements ApplicationEventListener<StartupEve
 
     @Override
     public void onApplicationEvent(StartupEvent event) {
-
         // Micronaut will not start the HTTP listener until all ServerStartupEvent are completed
         // We must not serve requests if KafkaStores are not ready.
         while(!kafkaStores.stream().allMatch(kafkaStore -> kafkaStore.isInitialized()))

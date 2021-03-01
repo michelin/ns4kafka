@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.repositories;
 
-import com.michelin.ns4kafka.controllers.TopicController;
 import com.michelin.ns4kafka.models.Topic;
 
 import java.util.List;
@@ -21,5 +20,7 @@ public interface TopicRepository {
     Optional<Topic> findByName(String namespace, String topic);
 
     Topic create(Topic topic);
+
+    void delete(Topic topic);
 
 }

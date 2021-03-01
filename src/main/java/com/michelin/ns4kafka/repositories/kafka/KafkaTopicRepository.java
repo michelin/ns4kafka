@@ -1,7 +1,7 @@
 package com.michelin.ns4kafka.repositories.kafka;
 
-import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
@@ -10,9 +10,7 @@ import io.micronaut.configuration.kafka.annotation.KafkaClient;
 import io.micronaut.configuration.kafka.annotation.KafkaListener;
 import io.micronaut.configuration.kafka.annotation.OffsetReset;
 import io.micronaut.configuration.kafka.annotation.OffsetStrategy;
-import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Value;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 import org.slf4j.Logger;
@@ -51,6 +49,11 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
     @Override
     public Topic create(Topic topic) {
         return this.produce(getMessageKey(topic), topic);
+    }
+
+    @Override
+    public void delete(Topic topic) {
+        this.produce(getMessageKey(topic),null);
     }
 
     @io.micronaut.configuration.kafka.annotation.Topic(value = "${ns4kafka.store.kafka.topics.prefix}.topics")

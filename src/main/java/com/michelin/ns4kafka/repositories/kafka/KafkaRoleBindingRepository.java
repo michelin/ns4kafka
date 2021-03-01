@@ -4,13 +4,12 @@ import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
 import io.micronaut.configuration.kafka.annotation.*;
 import io.micronaut.context.annotation.Value;
-import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
 import javax.inject.Singleton;
-import javax.validation.constraints.NotNull;
 import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -26,8 +25,8 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
     }
 
     @Override
-    String getMessageKey(RoleBinding message) {
-        return "temp";
+    String getMessageKey(RoleBinding roleBinding) {
+        return roleBinding.getNamespace()+"-"+sha256_last8(roleBinding.toString());
     }
 
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.role-bindings")
@@ -35,9 +34,18 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
         super.receive(record);
     }
 
+    @Override
+    public RoleBinding create(RoleBinding roleBinding) {
+        return this.produce(getMessageKey(roleBinding),roleBinding);
+    }
 
     @Override
-    public Collection<RoleBinding> findAllForGroups(Collection<String> groups) {
+    public void delete(RoleBinding roleBinding) {
+        this.produce(getMessageKey(roleBinding),null);
+    }
+
+    @Override
+    public List<RoleBinding> findAllForGroups(Collection<String> groups) {
         return getKafkaStore().values().stream().filter(roleBinding ->
                 groups.stream().anyMatch(group ->
                         roleBinding.getSubject().getSubjectType() == RoleBinding.SubjectType.GROUP
@@ -48,8 +56,10 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
     }
 
     @Override
-    public RoleBinding create(RoleBinding roleBinding) {
-        return this.produce(getMessageKey(roleBinding),roleBinding);
+    public List<RoleBinding> findAllForNamespace(String namespace) {
+        return getKafkaStore().values().stream()
+                .filter(roleBinding -> roleBinding.getNamespace().equals(namespace))
+                .collect(Collectors.toList());
     }
 
 }
