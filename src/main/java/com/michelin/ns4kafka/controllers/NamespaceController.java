@@ -27,7 +27,7 @@ public class NamespaceController {
 
 
     @Get("{namespace}")
-    public Optional<Namespace> display(Authentication authentication, String namespace){
+    public Optional<Namespace> display(String namespace){
         return namespaceRepository.findByName(namespace);
     }
 

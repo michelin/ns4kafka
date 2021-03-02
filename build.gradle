@@ -45,6 +45,7 @@ dependencies {
     testImplementation 'org.apache.kafka:kafka-clients:2.6.0:test'
     testImplementation 'org.apache.kafka:kafka_2.12:2.6.0'
     testImplementation 'org.apache.kafka:kafka_2.12:2.6.0:test'
+    testImplementation("org.mockito:mockito-core")
 }
 
 mainClassName = "com.michelin.ns4kafka.Application"
