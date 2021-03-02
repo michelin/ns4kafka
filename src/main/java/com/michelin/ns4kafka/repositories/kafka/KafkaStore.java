@@ -1,10 +1,12 @@
 package com.michelin.ns4kafka.repositories.kafka;
 
-import com.michelin.ns4kafka.services.KafkaAsyncExecutorScheduler;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.TaskScheduler;
-import org.apache.kafka.clients.admin.*;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Config;
+import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -19,9 +21,13 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.inject.Named;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.time.temporal.TemporalUnit;
-import java.util.*;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
@@ -45,7 +51,7 @@ public abstract class KafkaStore<T> {
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final ReentrantLock offsetUpdateLock;
     private final Condition offsetReachedThreshold;
-    int initTimeout = 40000;
+    int initTimeout = 10000;
 
     public KafkaStore(String kafkaTopic, Producer<String,T> kafkaProducer){
         this.kafkaTopic = kafkaTopic;
@@ -316,5 +322,29 @@ public abstract class KafkaStore<T> {
         return initialized.get();
     }
     // END http://www.confluent.io/confluent-community-license
+
+    protected String sha256_last8(String originalString) {
+        MessageDigest digest = null;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = digest.digest(
+                    originalString.getBytes(StandardCharsets.UTF_8));
+
+            StringBuilder hexString = new StringBuilder(2 * encodedhash.length);
+            for (int i = 0; i < encodedhash.length; i++) {
+                String hex = Integer.toHexString(0xff & encodedhash[i]);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            return hexString.toString().substring(56);
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        //should anything happen, we still need a unique K (might not be urlencode compliant but goodenough)
+        return originalString;
+    }
 
 }

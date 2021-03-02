@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 @Singleton
 public class RessourceBasedSecurityRule implements SecurityRule {
     private static final Logger LOG = LoggerFactory.getLogger(RessourceBasedSecurityRule.class);
+    public static final String IS_ADMIN = "isAdmin()";
     @Inject
     RoleBindingRepository roleBindingRepository;
     @Inject

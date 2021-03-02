@@ -11,6 +11,10 @@ import java.util.List;
 @Setter
 @ToString
 public class RoleBinding {
+    private final String apiVersion = "v1";
+    private final String kind = "AccessControlEntry";
+    // No validation here since name and labels are set server-side
+    //TODO RoleBindingSpec + ObjectMeta
     private String namespace;
     private Role role; //TODO Collection<Role>
     private Subject subject; //TODO Collection<Subject>
@@ -20,6 +24,7 @@ public class RoleBinding {
         this.role = new Role();
         this.subject = new Subject(group);
     }
+
 
     //TODO RoleRef instead: roleAdmin, roleRead, roleXXX + RoleRepository
     @Builder

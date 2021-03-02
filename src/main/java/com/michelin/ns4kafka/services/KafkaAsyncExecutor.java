@@ -1,21 +1,19 @@
 package com.michelin.ns4kafka.services;
 
+import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
 import io.micronaut.context.annotation.EachBean;
-import io.micronaut.context.annotation.Parameter;
-import io.micronaut.core.type.Argument;
-import io.micronaut.http.client.RxHttpClient;
-import io.netty.handler.codec.spdy.SpdyHttpHeaders;
-import io.reactivex.Observable;
 import org.apache.kafka.clients.admin.*;
-import org.apache.kafka.common.acl.*;
+import org.apache.kafka.common.acl.AclBinding;
+import org.apache.kafka.common.acl.AclBindingFilter;
+import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.acl.AclPermissionType;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourcePattern;
@@ -25,11 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.naming.Name;
 import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CancellationException;
@@ -184,7 +178,7 @@ public class KafkaAsyncExecutor {
                 );
          */
     }
-    private void deleteTopic(Topic topic) throws InterruptedException, ExecutionException, TimeoutException {
+    public void deleteTopic(Topic topic) throws InterruptedException, ExecutionException, TimeoutException {
         getAdminClient().deleteTopics(List.of(topic.getMetadata().getName())).all().get(30, TimeUnit.SECONDS);
     }
     private void alterTopics(Map<ConfigResource, Collection<AlterConfigOp>> toUpdate, List<Topic> topics) {

@@ -121,7 +121,7 @@ public class ConnectController {
     }
 
     //TODO move elsewhere
-    public static class ConnectCreationException extends Exception {
+    public static class ConnectCreationException extends RuntimeException {
         public ConnectCreationException(Throwable e){
             super(e);
         }

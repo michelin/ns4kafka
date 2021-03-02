@@ -1,7 +1,6 @@
 package com.michelin.ns4kafka.models;
 
 import io.micronaut.core.annotation.Introspected;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import javax.validation.Valid;
@@ -35,7 +34,7 @@ public class AccessControlEntry {
     @NoArgsConstructor
     @Getter
     @Setter
-    @Schema(description = "Contains the Topic specification")
+    @ToString
     public static class AccessControlEntrySpec {
         @NotNull
         protected ResourceType resourceType;
@@ -83,6 +82,16 @@ public class AccessControlEntry {
                         .builder()
                         .spec(AccessControlEntrySpec.builder()
                                 .resourceType(ResourceType.TOPIC)
+                                .resource(prefix)
+                                .resourcePatternType(ResourcePatternType.PREFIXED)
+                                .permission(Permission.OWNER)
+                                .grantedTo(namespace)
+                                .build())
+                        .metadata(metadata)
+                        .build(),
+                AccessControlEntry.builder()
+                        .spec(AccessControlEntrySpec.builder()
+                                .resourceType(ResourceType.CONNECT)
                                 .resource(prefix)
                                 .resourcePatternType(ResourcePatternType.PREFIXED)
                                 .permission(Permission.OWNER)

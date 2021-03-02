@@ -8,7 +8,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
 import javax.inject.Singleton;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -35,6 +34,11 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
     @Override
     public Namespace createNamespace(Namespace namespace) {
         return produce(getMessageKey(namespace),namespace);
+    }
+
+    @Override
+    public void delete(Namespace namespace) {
+        produce(getMessageKey(namespace),null);
     }
 
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.namespaces")

@@ -6,7 +6,6 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.validation.ResourceValidationException;
-import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -37,10 +36,12 @@ public class AccessControlListController {
 
         switch (limit.get()){
             case GRANTEE:
-                return accessControlEntryRepository.findAllGrantedToNamespace(myNamespace.getName())
+                return accessControlEntryRepository.findAllGrantedToNamespace(namespace)
                         .stream()
                         // granted to me
                         .filter(accessControlEntry -> accessControlEntry.getSpec().getGrantedTo().equals(namespace))
+                        // excepted by admin
+                        .filter(accessControlEntry -> !accessControlEntry.getMetadata().getNamespace().equals(namespace))
                         .sorted(Comparator.comparing(o -> o.getMetadata().getNamespace()))
                         .collect(Collectors.toList());
             case GRANTOR:
@@ -57,7 +58,9 @@ public class AccessControlListController {
                 return accessControlEntryRepository.findAllForCluster(myNamespace.getCluster())
                         .stream()
                         .filter(accessControlEntry ->
-                                accessControlEntry.getMetadata().getNamespace().equals(myNamespace.getName()))
+                                accessControlEntry.getMetadata().getNamespace().equals(namespace)
+                                ||  accessControlEntry.getSpec().getGrantedTo().equals(namespace)
+                        )
                         .sorted(Comparator.comparing(o -> o.getMetadata().getNamespace()))
                         .collect(Collectors.toList());
         }
