@@ -46,7 +46,7 @@ ns4kafka:
     df4mgbl0:
       manage-users: false # requires Broker >= 2.7.0
       manage-acls: false
-      manage-topics: true
+      manage-topics: false
       config:
         bootstrap.servers: "localhost:9092"
 #    PROD:
