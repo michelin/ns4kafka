@@ -6,6 +6,7 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.validation.ResourceValidationException;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -184,7 +185,8 @@ public class AccessControlListController {
     }
 
     @Delete("/{name}")
-    public List<AccessControlEntry> revokeACL(String namespace, String name){
+    @Status(HttpStatus.NO_CONTENT)
+    public void revokeACL(String namespace, String name){
 
         // 1. Check Ownership of ACL using metadata.namespace
         // 2. Check ACL doesn't apply to me ? why would you drop your own rights ?!
@@ -205,7 +207,7 @@ public class AccessControlListController {
             throw new ResourceValidationException(validationErrors);
         }
 
-        return accessControlEntryRepository.deleteByName(name);
+        accessControlEntryRepository.deleteByName(name);
     }
 
     public enum AclLimit {

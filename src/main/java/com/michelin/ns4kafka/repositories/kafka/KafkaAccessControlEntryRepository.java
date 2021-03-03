@@ -38,11 +38,10 @@ public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlE
     }
 
     @Override
-    public List<AccessControlEntry> deleteByName(String acl) {
+    public void deleteByName(String acl) {
         if(getKafkaStore().containsKey(acl)) {
             AccessControlEntry toDelete = getKafkaStore().get(acl);
             produce(acl,null);
-            return findAllGrantedToNamespace(toDelete.getMetadata().getNamespace());
         }else{
             throw new KafkaStoreException("Acl "+ acl+" does not exists");
         }

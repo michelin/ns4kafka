@@ -13,6 +13,7 @@ import javax.inject.Inject;
 import java.util.List;
 import java.util.Map;
 
+//TODO if token is set (and no JWT), authenticate with it and generate JWT,
 //@Singleton not ready
 public class GitlabAuthenticationProvider implements AuthenticationProvider {
     private static final Logger LOG = LoggerFactory.getLogger(GitlabAuthenticationProvider.class);

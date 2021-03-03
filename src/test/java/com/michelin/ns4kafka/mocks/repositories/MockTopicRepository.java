@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.mocks.repositories;
 
+import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.TopicRepository;
@@ -10,13 +11,16 @@ import org.apache.zookeeper.Op;
 
 import javax.inject.Singleton;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Singleton
 public class MockTopicRepository implements TopicRepository {
+    private final Map<String, Topic> store = new ConcurrentHashMap<>();
     @Override
     public List<Topic> findAllForNamespace(String namespace) {
-        return null;
+        return List.copyOf(store.values());
     }
 
     @Override
@@ -26,19 +30,17 @@ public class MockTopicRepository implements TopicRepository {
 
     @Override
     public Optional<Topic> findByName(String namespace, String topic) {
-        if("test".equals(namespace) && "toto".equals(topic)){
-            return Optional.of(Topic.builder().metadata(ObjectMeta.builder().name("toto").build()).build());
-        }
-        return Optional.empty();
+        return Optional.ofNullable(store.get(topic));
     }
 
     @Override
     public Topic create(Topic topic) {
-        return null;
+        store.put(topic.getMetadata().getName(),topic);
+        return topic;
     }
 
     @Override
     public void delete(Topic topic) {
-
+        store.remove(topic.getMetadata().getName());
     }
 }

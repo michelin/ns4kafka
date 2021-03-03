@@ -11,7 +11,7 @@ public interface AccessControlEntryRepository {
     List<AccessControlEntry> findAllGrantedToNamespace(String namespace);
 
     AccessControlEntry create(AccessControlEntry accessControlEntry);
-    List<AccessControlEntry> deleteByName(String acl);
+    void deleteByName(String acl);
     Optional<AccessControlEntry> findByName(String namespace, String name);
 
 }
