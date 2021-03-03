@@ -63,13 +63,6 @@ public class KafkaAsyncExecutor {
     // ie : cloud API vs AdminClient
     public void run(){
 
-        if(this.kafkaAsyncExecutorConfig.isManageConnectors()){
-            LOG.info("This cluster have connectors");
-        }
-        if(this.kafkaAsyncExecutorConfig.isReadOnly()){
-            LOG.warn("This cluster is set to READ-ONLY : all calculated changes will be displayed but not applied");
-        }
-
         // execute topic changes
         if(this.kafkaAsyncExecutorConfig.isManageTopics()) {
             synchronizeTopics();
