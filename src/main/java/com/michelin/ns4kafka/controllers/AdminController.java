@@ -12,10 +12,8 @@ import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.ResourceValidationException;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.core.annotation.Introspected;
-import io.micronaut.http.annotation.Body;
-import io.micronaut.http.annotation.Controller;
-import io.micronaut.http.annotation.Delete;
-import io.micronaut.http.annotation.Post;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.annotation.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -44,6 +42,11 @@ public class AdminController {
     @Inject
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigList;
 
+    @Delete("/acl/{acl}")
+    @Status(HttpStatus.NO_CONTENT)
+    public void deleteACL(String acl){
+        accessControlEntryRepository.deleteByName(acl);
+    }
     @Delete("/namespace/{namespace}")
     public List<Object> deleteNamespace(String namespace){
         Optional<Namespace> namespaceOptional = namespaceRepository.findByName(namespace);
