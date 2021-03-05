@@ -1,7 +1,19 @@
-# kafka-namespace-service
+ns4kafka
+=======================
 Namespaces on top of Kafka Broker, Kafka Connect and Schema Registry
 
-## Key features
+Table of Contents
+=================
+  * [Table of Contents](#table-of-contents)
+  * [Key features](#key-features)
+  * Install
+  * Configure
+    * Security
+    * Storage
+    * Clusters
+  * API Specification
+
+# Key features
 - Desired state API
   - Mimics K8S principles
   - Easy to use
