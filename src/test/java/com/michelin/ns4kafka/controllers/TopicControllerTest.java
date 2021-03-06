@@ -6,137 +6,145 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
-import com.michelin.ns4kafka.validation.ConnectValidator;
+import com.michelin.ns4kafka.repositories.TopicRepository;
+import com.michelin.ns4kafka.services.KafkaAsyncExecutor;
 import com.michelin.ns4kafka.validation.ResourceValidationException;
-import com.michelin.ns4kafka.validation.ResourceValidator;
-import com.michelin.ns4kafka.validation.TopicValidator;
-import io.micronaut.context.annotation.Property;
-import io.micronaut.core.type.Argument;
-import io.micronaut.http.HttpRequest;
-import io.micronaut.http.client.RxHttpClient;
-import io.micronaut.http.client.annotation.Client;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
-import org.junit.jupiter.api.*;
-import org.opentest4j.AssertionFailedError;
-import scala.reflect.api.Names;
+import io.micronaut.context.ApplicationContext;
+import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.inject.qualifiers.Qualifiers;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import javax.inject.Inject;
+import static org.mockito.Mockito.*;
+
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@MicronautTest()
-//@Property(name = "kafka.embedded.enabled", value = "false")
-//@Property(name = "ns4kafka.store.kafka.enabled", value="false")
-//@Property(name = "ns4kafka.store.mock.enabled", value="true")
-@Property(name = "micronaut.security.enabled", value = "false")
+@ExtendWith(MockitoExtension.class)
 public class TopicControllerTest {
 
+    @Mock
+    NamespaceRepository namespaceRepository;
+    @Mock
+    TopicRepository topicRepository;
+    @Mock
+    AccessControlEntryRepository accessControlEntryRepository;
+    @Mock
+    ApplicationContext applicationContext;
 
-    /**
-     * Except for 101 which invokes on topicController
-     * All these tests are API tests (using client) rather than Con
-     */
-
-    @Inject
-    @Client("/")
-    RxHttpClient client;
-
-    @Inject
+    @InjectMocks
     TopicController topicController;
 
-    @Inject
-    NamespaceRepository namespaceRepository;
-    @Inject
-    AccessControlEntryRepository accessControlEntryRepository;
+    @Test
+    public void ListEmptyTopics(){
+        when(topicRepository.findAllForNamespace("test"))
+                .thenReturn(List.of());
 
-    @BeforeAll
-    public void setupNamespacesAndACL(){
-        Namespace ns = Namespace.builder()
-                .topicValidator(TopicValidator.builder()
-                        .validationConstraints(Map.of("replication.factor", ResourceValidator.Range.between(3,3)))
-                        .build())
-                .name("test")
-                .cluster("fake")
-                .build();
-        namespaceRepository.createNamespace(ns);
-        AccessControlEntry ace = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder().name("test-ace1").build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resource("test.")
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("test")
-                        .build())
-                .build();
-        accessControlEntryRepository.create(ace);
+        List<Topic> actual = topicController.list("test");
+        Assertions.assertEquals(0, actual.size());
     }
 
     @Test
-    @Order(0)
-    public void ListNoTopics(){
-        List<Topic> actual = client.toBlocking().retrieve(HttpRequest.GET("/api/namespaces/test/topics"), Argument.listOf(Topic.class));
-        Assertions.assertEquals(0,actual.size());
+    public void ListMultipleTopics(){
+        when(topicRepository.findAllForNamespace("test"))
+                .thenReturn(List.of(
+                        Topic.builder().metadata(ObjectMeta.builder().name("topic1").build()).build(),
+                        Topic.builder().metadata(ObjectMeta.builder().name("topic2").build()).build()
+                ));
+
+        List<Topic> actual = topicController.list("test");
+
+        Assertions.assertEquals(2, actual.size());
+        Assertions.assertEquals("topic1", actual.get(0).getMetadata().getName());
+        Assertions.assertEquals("topic2", actual.get(1).getMetadata().getName());
     }
 
     @Test
-    @Order(10)
-    public void CreateTopic(){
-        Topic topic = Topic.builder()
-                .metadata(ObjectMeta.builder().name("test.topic1").build())
-                .spec(Topic.TopicSpec.builder()
-                        .replicationFactor(3)
-                        .partitions(3)
-                        .build())
-                .build();
-        Topic actual = client.toBlocking().retrieve(HttpRequest.POST("/api/namespaces/test/topics",topic), Topic.class);
-        Assertions.assertEquals(Topic.TopicPhase.Pending, actual.getStatus().getPhase());
+    public void GetEmptyTopic(){
+        when(topicRepository.findByName("test","topic.notfound"))
+                .thenReturn(Optional.empty());
+
+        Optional<Topic> actual = topicController.getTopic("test","topic.notfound");
+
+        Assertions.assertTrue(actual.isEmpty());
     }
 
     @Test
-    @Order(20)
     public void GetTopic(){
-        Optional<Topic> actual = client.toBlocking().retrieve(
-                HttpRequest.GET("/api/namespaces/test/topics/test.topic1"),
-                Argument.of(Optional.class,Argument.of(Topic.class)));
+        when(topicRepository.findByName("test","topic.found"))
+                .thenReturn(Optional.of(
+                        Topic.builder().metadata(ObjectMeta.builder().name("topic.found").build()).build()
+                ));
 
+        Optional<Topic> actual = topicController.getTopic("test","topic.found");
 
         Assertions.assertTrue(actual.isPresent());
-        Assertions.assertEquals("test.topic1", actual.get().getMetadata().getName());
-        Assertions.assertEquals(3,actual.get().getSpec().getReplicationFactor());
-    }
-
-
-
-    @Test
-    @Order(30)
-    public void UpdateTopicWithPartitionChange(){
-
+        Assertions.assertEquals("topic.found", actual.get().getMetadata().getName());
     }
 
     @Test
-    @Order(100)
-    public void CreateNewTopicFailsValidation(){
-        Topic topic = Topic.builder()
-                .metadata(ObjectMeta.builder().name("test.topic1").build())
-                .spec(Topic.TopicSpec.builder()
-                        .replicationFactor(1)
-                        .partitions(3)
-                        .build())
-                .build();
-        HttpClientResponseException actual = Assertions.assertThrows(HttpClientResponseException.class,
-                () -> client.toBlocking().retrieve(HttpRequest.POST("/api/namespaces/test/topics",topic), Topic.class));
-        Assertions.assertEquals("Message validation failed", actual.getMessage());
+    public void DeleteTopic() throws InterruptedException, ExecutionException, TimeoutException {
+        //Given
+        when(namespaceRepository.findByName("test"))
+                .thenReturn(Optional.of(Namespace.builder().cluster("cluster1").build()));
+        Optional<Topic> toDelete = Optional.of(Topic.builder().metadata(ObjectMeta.builder().name("topic.delete").build()).build());
+        when(topicRepository.findByName("test","topic.delete"))
+                .thenReturn(toDelete);
+        when(accessControlEntryRepository.findAllGrantedToNamespace("test"))
+                .thenReturn(List.of(AccessControlEntry.builder()
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .permission(AccessControlEntry.Permission.OWNER)
+                                .resource("topic.delete")
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                .grantedTo("test")
+                                .build())
+                        .build()));
+        doNothing().when(topicRepository).delete(toDelete.get());
+        KafkaAsyncExecutor kafkaAsyncExecutor = mock(KafkaAsyncExecutor.class);
+        when(applicationContext.getBean(
+                KafkaAsyncExecutor.class,
+                Qualifiers.byName("cluster1")))
+                .thenReturn(kafkaAsyncExecutor);
+        doNothing().when(kafkaAsyncExecutor).deleteTopic(toDelete.get());
+
+        //When
+        HttpResponse<Void> actual = topicController.deleteTopic("test","topic.delete");
+
+        //Then
+        Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
     }
 
     @Test
-    @Order(101)
+    public void DeleteTopicUnauthorized() throws InterruptedException, ExecutionException, TimeoutException {
+        //Given
+        when(namespaceRepository.findByName("test"))
+                .thenReturn(Optional.of(Namespace.builder().cluster("cluster1").build()));
+        when(accessControlEntryRepository.findAllGrantedToNamespace("test"))
+                .thenReturn(List.of()); //no ACL
+
+        //When
+        HttpResponse<Void> actual = topicController.deleteTopic("test","topic.delete");
+
+        //Then
+        Assertions.assertEquals(HttpStatus.UNAUTHORIZED, actual.getStatus());
+
+    }
+
+
+    @Test
     public void CreateNewTopicFailValidationNoAPI(){
-        Topic topic = Topic.builder()
+        /*Topic topic = Topic.builder()
                 .metadata(ObjectMeta.builder().name("test.topic2").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(1)
@@ -147,7 +155,6 @@ public class TopicControllerTest {
                 () -> topicController.apply("test",topic));
         Assertions.assertEquals(1, actual.getValidationErrors().size());
         Assertions.assertLinesMatch(List.of(".*replication\\.factor.*"), actual.getValidationErrors());
+         */
     }
-
-
 }

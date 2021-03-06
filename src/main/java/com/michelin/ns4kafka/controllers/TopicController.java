@@ -125,6 +125,8 @@ public class TopicController {
         //1. delete from ns4kafka
         //2. delete from cluster
         topicRepository.delete(optionalTopic.get());
+
+        //TODO cleaner delete implementation, to be discussed
         KafkaAsyncExecutor kafkaAsyncExecutor = applicationContext.getBean(
                 KafkaAsyncExecutor.class,
                 Qualifiers.byName(cluster));
