@@ -25,6 +25,7 @@ Examples of behavior that contributes to creating a positive environment include
 
 Contributions are made to this repo via Issues and Pull Requests (PRs). A few general guidelines that cover both:
 
+- Since this project is still in its very early phase, we will just use **master** branch and **features** branches (no **develop**, and no **release** branches until we get a stabilized v1.0 release)
 - Search for existing Issues and PRs before creating your own.
 - We work hard to makes sure issues are handled in a timely manner but, depending on the impact, it could take a while to investigate the root cause. A friendly ping in the comment thread to the submitter or a contributor can help draw attention if your issue is blocking.
 
@@ -49,8 +50,8 @@ In general, we follow the ["fork-and-pull" Git workflow](https://github.com/susa
 
 1. Fork the repository to your own Github account
 2. Clone the project to your machine
-3. Create a branch locally with a succinct but descriptive name
+3. Create a branch locally from **master** with a succinct but descriptive name
 4. Commit changes to the branch
 5. Following any formatting and testing guidelines specific to this repo
 6. Push changes to your fork
-7. Open a PR in our repository and follow the PR template so that we can efficiently review the changes.
+7. Open a PR in our repository targeting **master** and follow the PR template so that we can efficiently review the changes.
