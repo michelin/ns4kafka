@@ -1,6 +1,7 @@
 plugins {
     id "com.github.johnrengelman.shadow" version "6.0.0"
     id "io.micronaut.application" version '1.0.5'
+    id 'jacoco'
 }
 
 version "0.1"
@@ -10,9 +11,7 @@ repositories {
     mavenCentral()
     jcenter()
 }
-dockerBuild {
-    images = ["twobeeb/ns4kafka:dev"]
-}
+
 micronaut {
     runtime "netty"
     testRuntime "junit5"
@@ -60,9 +59,25 @@ tasks.withType(JavaCompile) {
     options.forkOptions.jvmArgs << '-Dmicronaut.openapi.views.spec=rapidoc.enabled=true'
 
 }
-tasks.run {
+
+run {
     environment( "MICRONAUT_ENVIRONMENTS","dev")
 }
 
+test {
+    reports {
+        html.enabled false
+    }
+}
 
+dockerBuild {
+    images = ["twobeeb/ns4kafka:dev"]
+}
 
+jacocoTestReport {
+    dependsOn test // tests are required to run before generating the report
+    reports {
+        html.enabled false
+        xml.enabled true
+    }
+}

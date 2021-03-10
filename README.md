@@ -2,6 +2,20 @@ ns4kafka
 =======================
 Namespaces on top of Kafka Broker, Kafka Connect and Schema Registry
 
+ns4kafka aims to answer some difficulties encountered while running multi-tenant Kafka :  
+* How to maintain high availability of the cluster and prevent misconfigurations of Kafka resources
+* How to provide isolation between projects on any Kafka related resource (Topics, Connects, Schemas, ...) ?
+* How to allow collaboration between projects teams ?
+* **... all of this while giving full autonomy to the project teams ?**
+
+**High availability** cannot be guaranteed unless resource creation gets properly validated.   
+Your Ops team might want to restrict the values of certain parameters.
+For topics, restrictions on ``partitions``, ``min.insync.replicas`` or ``retention.bytes``
+is probably not a bad idea.
+
+**Isolation** is the easiest part to implement using Kafka ACL. Except it doesn't apply on Kafka Connect, nor Schema Registry
+
+
 Table of Contents
 =================
   * [Table of Contents](#table-of-contents)
