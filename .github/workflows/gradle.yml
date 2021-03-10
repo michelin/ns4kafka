@@ -4,9 +4,9 @@
 name: Java CI with Gradle
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
 
 jobs:
   build:
@@ -27,9 +27,9 @@ jobs:
       run: chmod +x gradlew
     - name: Build & Test
       run: ./gradlew test
-    - name: Push
-      run: ./gradlew dockerBuild dockerPush  
-    - uses: actions/upload-artifact@v2
-      with:
-        name: Package
-        path: build/layers
+    #- name: Push
+    #  run: ./gradlew dockerBuild dockerPush  
+    #- uses: actions/upload-artifact@v2
+    #  with:
+    #    name: Package
+    #    path: build/layers
