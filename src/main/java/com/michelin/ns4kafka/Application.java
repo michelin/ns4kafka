@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka;
 
+import io.micronaut.openapi.annotation.OpenAPIInclude;
 import io.micronaut.runtime.Micronaut;
 import io.swagger.v3.oas.annotations.*;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
@@ -8,17 +9,23 @@ import io.swagger.v3.oas.annotations.info.*;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
-@SecurityScheme(name = "X-Gitlab-Token",
-        type = SecuritySchemeType.APIKEY,
+@SecurityScheme(name = "JWT",
+        type = SecuritySchemeType.HTTP,
+        scheme = "bearer",
         in = SecuritySchemeIn.HEADER,
-        paramName = "X-Gitlab-Token")
+        bearerFormat = "JWT")
 @OpenAPIDefinition(
-        security = @SecurityRequirement(name = "X-Gitlab-Token"),
+        security = @SecurityRequirement(name = "JWT"),
         info = @Info(
                 title = "ns4kafka",
                 version = "0.1"
         )
+)
+@OpenAPIInclude(
+        classes = { io.micronaut.security.endpoints.LoginController.class },
+        tags = @Tag(name = "_Security")
 )
 public class Application {
 
