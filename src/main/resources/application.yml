@@ -3,10 +3,22 @@ micronaut:
     name: ns4kafka
   security:
     enabled: true
-    authentication: token
+    authentication: bearer
     gitlab:
       enabled: true
-      url: https://gitlab.michelin.com
+      url: https://gitlab.com
+    ldap:
+      enabled: false
+#      default:
+#        context:
+#          server: 'ldap://ldap.forumsys.com:389'
+#          managerDn: 'cn=read-only-admin,dc=example,dc=com'
+#          managerPassword: 'password'
+#        search:
+#          base: "dc=example,dc=com"
+#        groups:
+#          enabled: true
+#          base: "dc=example,dc=com"
     token:
       jwt:
         signatures:
