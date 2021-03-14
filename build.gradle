@@ -35,6 +35,7 @@ dependencies {
     implementation("io.swagger.core.v3:swagger-annotations")
     implementation("io.micronaut.security:micronaut-security")
     implementation("io.micronaut.security:micronaut-security-jwt")
+    implementation("io.micronaut.security:micronaut-security-ldap")
     implementation("io.micronaut.kafka:micronaut-kafka")
 
     runtimeOnly("ch.qos.logback:logback-classic")
