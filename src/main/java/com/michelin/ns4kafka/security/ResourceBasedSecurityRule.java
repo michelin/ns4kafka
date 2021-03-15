@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
 import io.micronaut.context.annotation.Value;
+import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.security.rules.SecurityRuleResult;
@@ -29,68 +30,74 @@ public class ResourceBasedSecurityRule implements SecurityRule {
 
     public static final String IS_ADMIN = "isAdmin()";
 
-    @Getter
-    @Value("${ns4kafka.admin.group:_}")
+    private final Pattern namespacedResourcePattern = Pattern.compile("^\\/api\\/namespaces\\/(?<namespace>[a-zA-Z0-9_-]+)\\/(?<resourceType>[a-z]+)(\\/([a-zA-Z0-9_-]+)(\\/(?<resourceSubtype>[a-z]+))?)?");
+
     private String adminGroup;
 
-    @Inject
     RoleBindingRepository roleBindingRepository;
-
-    @Inject
     NamespaceRepository namespaceRepository;
 
-    Pattern namespacedResourcePattern = Pattern.compile("^\\/api\\/namespaces\\/(?<namespace>[a-zA-Z0-9_-]+)\\/(?<resourceType>[a-z]+)(\\/([a-zA-Z0-9_-]+)(\\/(?<resourceSubtype>[a-z]+))?)?");
+
+    public ResourceBasedSecurityRule(@Value("${ns4kafka.admin.group:_}") String adminGroup, RoleBindingRepository roleBindingRepository, NamespaceRepository namespaceRepository){
+        this.adminGroup=adminGroup;
+        this.roleBindingRepository=roleBindingRepository;
+        this.namespaceRepository=namespaceRepository;
+    }
 
     @Override
     public SecurityRuleResult check(HttpRequest<?> request, @Nullable RouteMatch<?> routeMatch, @Nullable Map<String, Object> claims) {
-        //If the request corresponds to a Controller entry
-        if(routeMatch != null && claims != null && claims.containsKey("groups") && claims.containsKey("sub")){
-            String sub = claims.get("sub").toString();
-            List<String> groups = (List<String>)claims.get("groups");
-
-            LOG.info("API call from "+sub+ " on resource "+routeMatch.toString());
-            // Not using routeMatch to get the resourceType and resourceSubtype values
-            Matcher matcher = namespacedResourcePattern.matcher(request.getPath());
-            while (matcher.find()){
-                //namespaced resource handling
-                Collection<RoleBinding> roleBindings = roleBindingRepository.findAllForGroups(groups);
-                //TODO users + groups
-                // roleBindings.addAll(roleBindingRepository.findAllForUser(request.getUserPrincipal().get().getName()))
-
-                // 1. Namespace must exist ?
-                // 2. Namespace resourceType must be allowed by RoleBinding
-                // 3. Request VERB must be allowed by RoleBinding
-
-                LOG.debug("Checking user " + sub + " against request "+request.getPath());
-
-                String namespace = matcher.group("namespace");
-                String resourceType = matcher.group("resourceType");
-                String resourceSubtype = matcher.group("resourceSubtype");
-                String finalResource = resourceType + (resourceSubtype!=null? "/" + resourceSubtype : "");
-                List<RoleBinding> authorizedRoleBindings = roleBindings.stream()
-                        .filter(roleBinding -> roleBinding.getNamespace().equals(namespace))
-                        .filter(roleBinding -> roleBinding.getRole().getResourceTypes().contains(finalResource))
-                        .filter(roleBinding -> roleBinding.getRole().getVerbs().contains(request.getMethodName()))
-                        .collect(Collectors.toList());
-                if(authorizedRoleBindings.size()>0) {
-                    if(LOG.isDebugEnabled()){
-                        authorizedRoleBindings.forEach(roleBinding -> LOG.debug("Found matching RoleBinding : "+roleBinding.toString()));
-                    }
-                    //TODO is this the good place for this (ns exists check) ?
-                    if(namespaceRepository.findByName(namespace).isPresent()) {
-                        LOG.debug("Authorized user "+sub+" : Matching RoleBinding");
-                        return SecurityRuleResult.ALLOWED;
-                    }else{
-                        LOG.info("Denied user " + sub + " : Namespace doesn't exist");
-                    }
-                }else{
-                    LOG.info("Denied user "+ sub + " : No matching RoleBinding");
-                }
-            }
-            //TODO Non-namespaced resource handling
-            // /admin ?
+        //Unauthenticated request
+        if(claims == null || !claims.containsKey("groups") || !claims.containsKey("sub")){
+            LOG.debug("No Authentication available for path ["+request.getPath()+"]. Returning unknown.");
+            return SecurityRuleResult.UNKNOWN;
         }
-        return SecurityRuleResult.UNKNOWN;
+
+        String sub = claims.get("sub").toString();
+        List<String> groups = (List<String>)claims.get("groups");
+
+        //Request to a URL that is not in the scope of this SecurityRule
+        Matcher matcher = namespacedResourcePattern.matcher(request.getPath());
+        if (!matcher.find()) {
+            LOG.debug("Invalid Namespaced Resource for path ["+request.getPath()+"]. Returning unknown.");
+            return SecurityRuleResult.UNKNOWN;
+        }
+
+        String namespace = matcher.group("namespace");
+        String resourceSubtype = matcher.group("resourceSubtype");
+        String resourceType;
+        //Subresource handling ie. connects/restart or groups/reset
+        if(StringUtils.isNotEmpty(resourceSubtype)){
+            resourceType = matcher.group("resourceType") + "/" + resourceSubtype;
+        }else {
+            resourceType = matcher.group("resourceType");
+        }
+
+        //Collect all roleBindings for this user
+        Collection<RoleBinding> roleBindings = roleBindingRepository.findAllForGroups(groups);
+        List<RoleBinding> authorizedRoleBindings = roleBindings.stream()
+                .filter(roleBinding -> roleBinding.getNamespace().equals(namespace))
+                .filter(roleBinding -> roleBinding.getRole().getResourceTypes().contains(resourceType))
+                .filter(roleBinding -> roleBinding.getRole().getVerbs().contains(request.getMethodName()))
+                .collect(Collectors.toList());
+
+        //User not authorized to access requested resource
+        if(authorizedRoleBindings.isEmpty()){
+            LOG.debug("No matching RoleBinding for user ["+sub+"] on path ["+request.getPath()+"]. Returning unknown.");
+            return SecurityRuleResult.UNKNOWN;
+        }
+
+        //Namespace doesn't exist
+        if(namespaceRepository.findByName(namespace).isEmpty()) {
+            LOG.debug("Namespace not found for user [" + sub + "] on path ["+request.getPath()+"]. Returning unknown.");
+            return SecurityRuleResult.UNKNOWN;
+        }
+        if(LOG.isDebugEnabled()){
+            authorizedRoleBindings.forEach(roleBinding -> LOG.debug("Found matching RoleBinding : "+roleBinding.toString()));
+            LOG.debug("Authorized user ["+sub+"] on path ["+request.getPath()+"]");
+        }
+
+
+        return SecurityRuleResult.ALLOWED;
     }
 
     @Override
