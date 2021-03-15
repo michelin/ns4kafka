@@ -2,8 +2,16 @@ plugins {
     id "com.github.johnrengelman.shadow" version "6.0.0"
     id "io.micronaut.application" version '1.0.5'
     id 'jacoco'
+    id "org.sonarqube" version "3.1.1"
 }
 
+sonarqube {
+  properties {
+    property "sonar.projectKey", "michelin-ns4kafka"
+    property "sonar.organization", "michelin-test"
+    property "sonar.host.url", "https://sonarcloud.io"
+  }
+}
 version "0.1"
 group "com.michelin.ns4kafka"
 
