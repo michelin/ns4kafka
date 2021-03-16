@@ -5,7 +5,6 @@ import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
 import io.micronaut.http.HttpRequest;
-import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.security.rules.SecurityRuleResult;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -78,6 +77,32 @@ public class ResourceBasedSecurityRuleTest {
 
         SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/connects"),null, claims);
         Assertions.assertEquals(SecurityRuleResult.ALLOWED, actual);
+    }
+    @Test
+    void CheckReturnsUnknown_SubResource(){
+        List<String> groups = List.of("group1");
+        Map<String,Object> claims = Map.of("sub","user", "groups", groups);
+        Mockito.when(roleBindingRepository.findAllForGroups(groups))
+                .thenReturn(List.of(new RoleBinding("test","group1")));
+
+        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/connects/name/restart"),null, claims);
+        Assertions.assertEquals(SecurityRuleResult.UNKNOWN, actual);
+    }
+
+    @Test
+    void ComputeRoles_NoAdmin(){
+        resourceBasedSecurityRule.setAdminGroup("admin-group");
+        List<String> actual = resourceBasedSecurityRule.computeRolesFromGroups(List.of("not-admin"));
+
+        Assertions.assertIterableEquals(List.of(), actual);
+    }
+
+    @Test
+    void ComputeRoles_Admin(){
+        resourceBasedSecurityRule.setAdminGroup("admin-group");
+        List<String> actual = resourceBasedSecurityRule.computeRolesFromGroups(List.of("admin-group"));
+
+        Assertions.assertIterableEquals(List.of(ResourceBasedSecurityRule.IS_ADMIN), actual);
     }
 
 }
