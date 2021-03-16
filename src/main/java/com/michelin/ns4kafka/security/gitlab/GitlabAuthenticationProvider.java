@@ -2,14 +2,10 @@ package com.michelin.ns4kafka.security.gitlab;
 
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import edu.umd.cs.findbugs.annotations.Nullable;
-import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.*;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
-import io.reactivex.Maybe;
-import io.reactivex.MaybeSource;
-import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -26,7 +22,7 @@ public class GitlabAuthenticationProvider implements AuthenticationProvider {
     private static final Logger LOG = LoggerFactory.getLogger(GitlabAuthenticationProvider.class);
 
     @Inject
-    GitlabAuthorizationService gitlabAuthorizationService;
+    GitlabAuthenticationService gitlabAuthenticationService;
 
     @Inject
     ResourceBasedSecurityRule resourceBasedSecurityRule;
@@ -37,8 +33,8 @@ public class GitlabAuthenticationProvider implements AuthenticationProvider {
             String token = authenticationRequest.getSecret().toString();
             LOG.debug("Checking authentication with token : "+token);
             try {
-                String username = gitlabAuthorizationService.findUsername(token).blockingGet();
-                List<String> groups = gitlabAuthorizationService.findAllGroups(token).toList().blockingGet();
+                String username = gitlabAuthenticationService.findUsername(token).blockingGet();
+                List<String> groups = gitlabAuthenticationService.findAllGroups(token).toList().blockingGet();
 
                 UserDetails user = new UserDetails(username, resourceBasedSecurityRule.computeRolesFromGroups(groups), Map.of("groups", groups));
 
