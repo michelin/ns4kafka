@@ -46,7 +46,7 @@ public class ConnectController {
     @Get("/{connector}")
     public Maybe<Connector> getConnector(String namespace, String connector){
         return connectRepository.findByNamespace(namespace)
-                .filter(connect -> connect.getMetadata().getName().equals(connect))
+                .filter(connect -> connect.getMetadata().getName().equals(connector))
                 .firstElement();
     }
 

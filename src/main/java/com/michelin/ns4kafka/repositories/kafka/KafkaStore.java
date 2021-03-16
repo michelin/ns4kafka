@@ -341,7 +341,7 @@ public abstract class KafkaStore<T> {
             return hexString.toString().substring(56);
 
         } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
+            LOG.error("NoSuchAlgorithmException",e);
         }
         //should anything happen, we still need a unique K (might not be urlencode compliant but goodenough)
         return originalString;

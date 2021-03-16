@@ -136,16 +136,11 @@ public class KafkaAsyncExecutor {
             //alter
             alterTopics(toUpdate, toCheckConf);
 
+        } catch (ExecutionException | TimeoutException | CancellationException | KafkaStoreException e) {
+            LOG.error("Error", e);
         } catch (InterruptedException e) {
             LOG.error("Error", e);
-        } catch (ExecutionException e) {
-            LOG.error("Error", e);
-        } catch (TimeoutException e) {
-            LOG.error("Error", e);
-        } catch (CancellationException e){
-            LOG.error("Error", e);
-        } catch (KafkaStoreException e){
-            LOG.error("Error", e);
+            Thread.currentThread().interrupt();
         }
 
     }
@@ -338,14 +333,11 @@ public class KafkaAsyncExecutor {
             deleteACLs(toDelete);
 
 
-        }catch (KafkaStoreException e){
+        }catch (KafkaStoreException | ExecutionException | TimeoutException e){
             LOG.error("Error", e);
         } catch (InterruptedException e) {
             LOG.error("Error", e);
-        } catch (ExecutionException e) {
-            LOG.error("Error", e);
-        } catch (TimeoutException e) {
-            LOG.error("Error", e);
+            Thread.currentThread().interrupt();
         }
 
     }

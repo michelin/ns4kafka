@@ -25,6 +25,7 @@ public class DelayStartupListener implements ApplicationEventListener<StartupEve
                 LOG.info("Waiting for Kafka Stores to catch up");
             } catch (InterruptedException e) {
                 LOG.error("Exception ",e);
+                Thread.currentThread().interrupt();
             }
         }
 
