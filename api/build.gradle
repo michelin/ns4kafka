@@ -1,0 +1,95 @@
+plugins {
+    id "com.github.johnrengelman.shadow" version "6.0.0"
+    id "io.micronaut.application" version '1.0.5'
+    id 'jacoco'
+    id "org.sonarqube" version "3.1.1"
+}
+
+sonarqube {
+  properties {
+    property "sonar.projectKey", "michelin_ns4kafka"
+    property "sonar.organization", "michelin"
+    property "sonar.host.url", "https://sonarcloud.io"
+  }
+}
+version "0.1"
+mainClassName = "com.michelin.ns4kafka.Application"
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+micronaut {
+    runtime "netty"
+    testRuntime "junit5"
+    processing {
+        incremental true
+        annotations "com.michelin.ns4kafka.*"
+    }
+}
+
+dependencies {
+    compileOnly 'org.projectlombok:lombok:1.18.16'
+
+    annotationProcessor 'org.projectlombok:lombok:1.18.16'
+    annotationProcessor("io.micronaut.openapi:micronaut-openapi")
+    annotationProcessor("io.micronaut.security:micronaut-security-annotations")
+
+    implementation("io.micronaut:micronaut-validation")
+    implementation("io.micronaut:micronaut-runtime")
+    implementation("javax.annotation:javax.annotation-api")
+    implementation("io.micronaut:micronaut-http-client")
+    implementation("io.swagger.core.v3:swagger-annotations")
+    implementation("io.micronaut.security:micronaut-security")
+    implementation("io.micronaut.security:micronaut-security-jwt")
+    implementation("io.micronaut.kafka:micronaut-kafka")
+
+    // Use embedded kafka
+    implementation 'org.apache.kafka:kafka-clients:2.6.0:test'
+    implementation 'org.apache.kafka:kafka_2.12:2.6.0'
+    implementation 'org.apache.kafka:kafka_2.12:2.6.0:test'
+
+    runtimeOnly("ch.qos.logback:logback-classic")
+
+    testCompileOnly 'org.projectlombok:lombok:1.18.16'
+
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.16'
+    testImplementation 'org.apache.kafka:kafka-clients:2.6.0:test'
+    testImplementation 'org.apache.kafka:kafka_2.12:2.6.0'
+    testImplementation 'org.apache.kafka:kafka_2.12:2.6.0:test'
+    testImplementation 'org.mockito:mockito-inline:3.7.7'
+    testImplementation 'org.mockito:mockito-junit-jupiter:3.7.7'
+}
+
+java {
+    sourceCompatibility = JavaVersion.toVersion('11')
+    targetCompatibility = JavaVersion.toVersion('11')
+}
+tasks.withType(JavaCompile) {
+    options.fork = true
+    options.forkOptions.jvmArgs << '-Dmicronaut.openapi.views.spec=rapidoc.enabled=true,swagger-ui.enabled=true'
+
+}
+
+run {
+    environment( "MICRONAUT_ENVIRONMENTS","dev")
+}
+
+test {
+    reports {
+        html.enabled false
+    }
+}
+
+dockerBuild {
+    images = ["twobeeb/ns4kafka:dev"]
+}
+
+jacocoTestReport {
+    dependsOn test // tests are required to run before generating the report
+    reports {
+        html.enabled true
+        xml.enabled true
+    }
+}

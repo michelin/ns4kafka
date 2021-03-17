@@ -1,0 +1,26 @@
+<configuration>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <withJansi>false</withJansi>
+        <!-- encoders are assigned the type
+             ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+        <encoder>
+            <pattern>%cyan(%d{HH:mm:ss.SSS}) %gray([%thread]) %highlight(%-5level) %magenta(%logger{36}) - %msg%n</pattern>
+            <!-- <pattern>%highlight(%-5level) %magenta(%logger{5}) - %msg  %gray([%thread]) %n</pattern> -->
+        </encoder>
+    </appender>
+    <logger name="io.micronaut.security" level="debug"/>
+    <logger name="io.micronaut.configuration.security.ldap" level="debug"/>
+    <logger name="io.micronaut" level="info"/>
+    <logger name="io.micronaut.http" level="info"/>
+    <logger name="com.michelin" level="debug" />
+    <logger name="org.apache" level="error" />
+
+    <!-- removes embedded kafka logs -->
+    <logger name="kafka" level="error" />
+    <logger name="state.change.logger" level="error" />
+
+    <root level="info">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>
