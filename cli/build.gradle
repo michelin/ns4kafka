@@ -35,3 +35,17 @@ java {
     sourceCompatibility = JavaVersion.toVersion("11")
     targetCompatibility = JavaVersion.toVersion("11")
 }
+sonarqube {
+    properties {
+        property "sonar.projectKey", "michelin_ns4kafka"
+        property "sonar.organization", "michelin"
+        property "sonar.host.url", "https://sonarcloud.io"
+    }
+}
+jacocoTestReport {
+    dependsOn test // tests are required to run before generating the report
+    reports {
+        html.enabled true
+        xml.enabled true
+    }
+}
