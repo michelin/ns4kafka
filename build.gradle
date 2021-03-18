@@ -34,15 +34,18 @@ dependencies {
 
     annotationProcessor 'org.projectlombok:lombok:1.18.16'
     annotationProcessor("io.micronaut.openapi:micronaut-openapi")
+    annotationProcessor("io.micronaut:micronaut-management")
     annotationProcessor("io.micronaut.security:micronaut-security-annotations")
+    annotationProcessor("io.swagger.core.v3:swagger-annotations")
 
     implementation("io.micronaut:micronaut-validation")
     implementation("io.micronaut:micronaut-runtime")
     implementation("javax.annotation:javax.annotation-api")
     implementation("io.micronaut:micronaut-http-client")
-    implementation("io.swagger.core.v3:swagger-annotations")
+    implementation("io.micronaut.openapi:micronaut-openapi")
     implementation("io.micronaut.security:micronaut-security")
     implementation("io.micronaut.security:micronaut-security-jwt")
+    implementation("io.micronaut.security:micronaut-security-ldap")
     implementation("io.micronaut.kafka:micronaut-kafka")
 
     runtimeOnly("ch.qos.logback:logback-classic")

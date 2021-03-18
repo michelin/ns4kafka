@@ -6,7 +6,7 @@ import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
-import com.michelin.ns4kafka.security.RessourceBasedSecurityRule;
+import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.ResourceValidationException;
@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@RolesAllowed(RessourceBasedSecurityRule.IS_ADMIN)
+@RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 @Controller("/api/admin")
 public class AdminController {
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(AdminController.class);
