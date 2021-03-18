@@ -40,4 +40,4 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: ./gradlew build jacocoTestReport sonarqube --info
       - name: Push
-        run: ./gradlew dockerBuild dockerPush
+        run: ./gradlew :api:dockerBuild :api:dockerPush
