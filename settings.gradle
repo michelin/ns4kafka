@@ -1,1 +1,3 @@
 rootProject.name="ns4kafka"
+include 'cli'
+include 'api'
