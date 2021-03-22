@@ -8,10 +8,10 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
+import com.michelin.ns4kafka.services.connect.client.entities.ConfigInfos;
+import com.michelin.ns4kafka.services.connect.client.entities.ConnectorInfo;
+import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
-import io.reactivex.Flowable;
-import io.reactivex.Maybe;
-import io.reactivex.Single;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,6 +19,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 
@@ -33,15 +34,15 @@ public class KafkaConnectService {
     @Inject
     KafkaConnectClient kafkaConnectClient;
 
-    public Flowable<Connector> findByNamespace(String namespace){
+    public List<Connector> findByNamespace(String namespace) {
 
         String cluster = namespaceRepository.findByName(namespace).get().getCluster();
 
         List<AccessControlEntry> acls = accessControlEntryRepository.findAllGrantedToNamespace(namespace);
 
         return kafkaConnectClient.listAll(cluster)
-                .toFlowable()
-                .flatMapIterable(Map::entrySet)
+                .entrySet()
+                .stream()
                 .filter(entry -> acls.stream()
                         .anyMatch(accessControlEntry -> {
                             //no need to check accessControlEntry.Permission, we want READ, WRITE or OWNER
@@ -81,31 +82,30 @@ public class KafkaConnectService {
 
                         )*/
                         .build()
-                );
+                ).collect(Collectors.toList());
     }
 
-    public Maybe<Connector> findByName(String namespace, String connector){
+    public Optional<Connector> findByName(String namespace, String connector) {
         return findByNamespace(namespace)
+                .stream()
                 .filter(connect -> connect.getMetadata().getName().equals(connector))
-                .firstElement();
+                .findFirst();
     }
 
-    public Flowable<String> validateLocally(String namespace, Connector connector){
+    public List<String> validateLocally(String namespace, Connector connector) {
         Namespace ns = namespaceRepository.findByName(namespace).get();
-        //retrives connectorType from class name
-        Flowable<String> rxLocalValidationErrors = getConnectorType(namespace,connector.getSpec().get("connector.class"))
-        //pass it to local validator
-        .map(connectorType -> ns.getConnectValidator().validate(connector, connectorType))
-        .flattenAsFlowable(strings -> strings)
-        .onErrorReturn(throwable -> "Failed to find any class that implements Connector and which name matches "+connector.getSpec().get("connector.class"));
 
-        //TODO refactor ?
-        if(!isNamespaceOwnerOfConnect(namespace,connector.getMetadata().getName())) {
-            rxLocalValidationErrors = rxLocalValidationErrors.concatWith(
-                    Single.just("Invalid value " + connector.getMetadata().getName() +
-                            " for name: Namespace not OWNER of this connector"));
-        }
-        return rxLocalValidationErrors;
+        String connectorType = getConnectorType(namespace, connector.getSpec().get("connector.class"));
+
+        //If class doesn't exist, no need to go further
+        if (StringUtils.isEmpty(connectorType))
+            return List.of("Failed to find any class that implements Connector and which name matches " +
+                    connector.getSpec().get("connector.class"));
+
+        //perform local validation
+        List<String> validationErrors = ns.getConnectValidator().validate(connector, connectorType);
+
+        return validationErrors;
     }
 
     public boolean isNamespaceOwnerOfConnect(String namespace, String connect) {
@@ -114,7 +114,7 @@ public class KafkaConnectService {
                 .filter(accessControlEntry -> accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
                 .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT)
                 .anyMatch(accessControlEntry -> {
-                    switch (accessControlEntry.getSpec().getResourcePatternType()){
+                    switch (accessControlEntry.getSpec().getResourcePatternType()) {
                         case PREFIXED:
                             return connect.startsWith(accessControlEntry.getSpec().getResource());
                         case LITERAL:
@@ -123,49 +123,51 @@ public class KafkaConnectService {
                     return false;
                 });
     }
-    public Flowable<String> validateRemotely(String namespace, Connector connector){
+
+    public List<String> validateRemotely(String namespace, Connector connector) {
         String cluster = namespaceRepository.findByName(namespace).get().getCluster();
         // Calls the validate endpoints and returns the validation error messages if any
-        return kafkaConnectClient.validate(cluster,connector.getSpec().get("connector.class").toString(),connector.getSpec())
-                .toFlowable()
-                .flatMapIterable(configInfos -> configInfos
-                        .values()
-                        .stream()
-                        .filter(configInfo -> ! configInfo.configValue().errors().isEmpty())
-                        .flatMap(configInfo -> configInfo.configValue().errors().stream())
-                        .collect(Collectors.toList())
-                );
+        ConfigInfos configInfos = kafkaConnectClient.validate(cluster, connector.getSpec().get("connector.class").toString(), connector.getSpec());
+
+        return configInfos.values()
+                .stream()
+                .filter(configInfo -> !configInfo.configValue().errors().isEmpty())
+                .flatMap(configInfo -> configInfo.configValue().errors().stream())
+                .collect(Collectors.toList());
     }
 
-    public Single<Connector> createOrUpdate(String namespace, Connector connector){
+    public Connector createOrUpdate(String namespace, Connector connector) {
         String cluster = namespaceRepository.findByName(namespace).get().getCluster();
-        return kafkaConnectClient.createOrUpdate(cluster, connector.getMetadata().getName(), connector.getSpec())
-                .map(connectInfo -> Connector.builder()
-                        .metadata(ObjectMeta.builder()
-                                .name(connectInfo.name())
-                                .namespace(namespace)
-                                .cluster(cluster)
-                                .build())
-                        .spec(connectInfo.config())
-                        .status(Connector.ConnectorStatus.builder()
-                                .state(Connector.TaskState.UNASSIGNED) //or else ?
-                                //.tasks(List.of(Tas))
-                                .build())
-                        .build()
-                );
+
+        ConnectorInfo connectorInfo = kafkaConnectClient.createOrUpdate(cluster, connector.getMetadata().getName(), connector.getSpec());
+
+        return Connector.builder()
+                .metadata(ObjectMeta.builder()
+                        .name(connectorInfo.name())
+                        .namespace(namespace)
+                        .cluster(cluster)
+                        .build())
+                .spec(connectorInfo.config())
+                .status(Connector.ConnectorStatus.builder()
+                        .state(Connector.TaskState.UNASSIGNED) //or else ?
+                        //.tasks(List.of(Tas))
+                        .build())
+                .build();
     }
-    public Single<String> getConnectorType(String namespace, String connectorClass){
+
+    public String getConnectorType(String namespace, String connectorClass) {
         String cluster = namespaceRepository.findByName(namespace).get().getCluster();
         return kafkaConnectClient.connectPlugins(cluster)
-                .toFlowable()
-                .flatMapIterable(connectorPluginInfos -> connectorPluginInfos)
+                .stream()
+
                 .filter(connectPluginItem -> connectPluginItem.className().equals(connectorClass))
                 .map(connectPluginItem -> connectPluginItem.type().toString())
-                .singleOrError();
+                .findFirst()
+                .orElse(null);
     }
 
-    public Single<HttpResponse> delete(String namespace, String connector) {
+    public HttpResponse delete(String namespace, String connector) {
         String cluster = namespaceRepository.findByName(namespace).get().getCluster();
-        return kafkaConnectClient.delete(cluster,connector);
+        return kafkaConnectClient.delete(cluster, connector);
     }
 }
