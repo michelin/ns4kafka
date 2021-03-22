@@ -73,6 +73,7 @@ public class ConnectController {
             throw new ResourceValidationException(validationErrors);
         }
 
+        // Validate against connect rest API /validate
         validationErrors = kafkaConnectService.validateRemotely(namespace, connector);
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors);
