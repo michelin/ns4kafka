@@ -1,5 +1,6 @@
-package com.michelin.ns4kafka.services;
+package com.michelin.ns4kafka.services.connect;
 
+import com.michelin.ns4kafka.services.KafkaAsyncExecutorConfig;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
@@ -30,7 +31,7 @@ public class KafkaConnectClientProxy extends OncePerRequestHttpServerFilter {
         KafkaAsyncExecutorConfig config = kafkaAsyncExecutorConfigs.stream()
                 .filter(kafkaAsyncExecutorConfig -> kafkaAsyncExecutorConfig.getName().equals(cluster))
                 .findFirst().get();
-        URI newURI = URI.create(config.connect.url);
+        URI newURI = URI.create(config.getConnect().getUrl());
 
         // call kafka connect with proper URL and Auth
         return Publishers.map(client.proxy(
@@ -44,7 +45,7 @@ public class KafkaConnectClientProxy extends OncePerRequestHttpServerFilter {
                                         request.getPath().substring(KafkaConnectClientProxy.CONNECT_PROXY_PREFIX.length())
                                 ))
                         )
-                        .basicAuth(config.connect.basicAuthUsername, config.connect.basicAuthPassword)
+                        .basicAuth(config.getConnect().getBasicAuthUsername(), config.getConnect().getBasicAuthPassword())
         ), response -> response.header("X-My-Response-Header", "YYY"));
     }
 }
