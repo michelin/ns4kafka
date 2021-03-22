@@ -6,7 +6,7 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.ConnectRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
-import com.michelin.ns4kafka.validation.ResourceValidationException;
+import com.michelin.ns4kafka.exception.ResourceValidationException;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;

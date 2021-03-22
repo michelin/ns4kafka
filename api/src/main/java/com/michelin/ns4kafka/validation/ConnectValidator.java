@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.validation;
 
 import com.michelin.ns4kafka.models.Connector;
+import com.michelin.ns4kafka.exception.FieldValidationException;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
