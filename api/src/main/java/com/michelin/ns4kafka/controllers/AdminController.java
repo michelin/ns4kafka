@@ -18,7 +18,6 @@ import com.michelin.ns4kafka.repositories.RoleBindingRepository;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NewNamespaceValidator;
 import com.michelin.ns4kafka.validation.ConnectValidator;
-import com.michelin.ns4kafka.validation.ResourceValidationException;
 import com.michelin.ns4kafka.validation.TopicValidator;
 
 import org.slf4j.LoggerFactory;
