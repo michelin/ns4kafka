@@ -9,7 +9,6 @@ import com.michelin.ns4kafka.repositories.RoleBindingRepository;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.validation.ConnectValidator;
-import com.michelin.ns4kafka.exception.ResourceValidationException;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.core.annotation.Introspected;
 import io.micronaut.http.HttpStatus;

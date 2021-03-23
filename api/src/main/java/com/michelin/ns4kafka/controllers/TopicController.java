@@ -13,7 +13,6 @@ import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.services.KafkaAsyncExecutor;
-import com.michelin.ns4kafka.exception.ResourceValidationException;
 
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.http.HttpResponse;

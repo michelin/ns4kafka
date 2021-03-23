@@ -3,7 +3,6 @@ package com.michelin.ns4kafka.validation;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.michelin.ns4kafka.exception.FieldValidationException;
 import lombok.*;
 
 import java.util.*;

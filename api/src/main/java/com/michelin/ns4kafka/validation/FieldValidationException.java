@@ -1,4 +1,4 @@
-package com.michelin.ns4kafka.exception;
+package com.michelin.ns4kafka.validation;
 
 public class FieldValidationException extends RuntimeException {
     private static final long serialVersionUID = 6223587833587267232L;
