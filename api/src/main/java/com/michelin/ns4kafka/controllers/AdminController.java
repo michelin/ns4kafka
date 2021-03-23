@@ -18,6 +18,7 @@ import com.michelin.ns4kafka.repositories.RoleBindingRepository;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NewNamespaceValidator;
 import com.michelin.ns4kafka.validation.ConnectValidator;
+import com.michelin.ns4kafka.validation.ResourceValidationException;
 import com.michelin.ns4kafka.validation.TopicValidator;
 
 import org.slf4j.LoggerFactory;
@@ -79,7 +80,9 @@ public class AdminController {
     @Post("/namespace")
     public Namespace createNamespace(@Valid @Body NamespaceCreationRequest namespaceCreationRequest) {
 
-        if (!newNamespaceValidator.validate(namespaceCreationRequest)) {
+        List<String> validationError = newNamespaceValidator.validate(namespaceCreationRequest);
+        if (!validationError.isEmpty()) {
+            throw new ResourceValidationException(validationError);
         }
         // Prepare Namespace
         Namespace toCreate = Namespace.builder().name(namespaceCreationRequest.getName())

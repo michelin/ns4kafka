@@ -11,7 +11,6 @@ import com.michelin.ns4kafka.controllers.AdminController.NamespaceCreationReques
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
-import com.michelin.ns4kafka.validation.ResourceValidationException;
 
 @Singleton
 public class NewNamespaceValidator {
@@ -23,7 +22,7 @@ public class NewNamespaceValidator {
     @Inject
     AccessControlEntryRepository accessControlEntryRepository;
 
-    public boolean validate(NamespaceCreationRequest namespaceCreationRequest) {
+    public List<String> validate(NamespaceCreationRequest namespaceCreationRequest) {
 
         // Validation steps:
         // - namespace must not already exist
@@ -60,9 +59,6 @@ public class NewNamespaceValidator {
                     prefixInUse.get(0).getSpec().getGrantedTo(), prefixInUse.get(0).getSpec().getResource()));
         }
 
-        if (validationErrors.size() > 0) {
-            throw new ResourceValidationException(validationErrors);
-        }
-        return true;
+        return validationErrors;
     }
 }
