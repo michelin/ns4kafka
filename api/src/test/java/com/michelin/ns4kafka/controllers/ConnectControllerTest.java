@@ -3,7 +3,6 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.services.connect.KafkaConnectService;
-import com.michelin.ns4kafka.validation.ResourceValidationException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
