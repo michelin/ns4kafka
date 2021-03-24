@@ -1,12 +1,14 @@
 package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
+import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.http.*;
 import io.micronaut.http.client.ProxyHttpClient;
 import io.reactivex.subscribers.TestSubscriber;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -27,13 +29,13 @@ public class KafkaConnectClientProxyTest {
     KafkaConnectClientProxy proxy;
 
     @Test
-    void missingHeader(){
+    void doFilterMissingHeader() {
         HttpRequest request = HttpRequest
                 .GET("http://localhost/connect-proxy/connectors")
-                .header("X-Unused","123");
+                .header("X-Unused", "123");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request,null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
@@ -42,15 +44,16 @@ public class KafkaConnectClientProxyTest {
         subscriber.assertError(throwable -> throwable.getClass().equals(Exception.class));
         subscriber.assertErrorMessage("Missing required Header X-Connect-Cluster");
     }
+
     @Test
-    void missingConnectConfig(){
+    void doFilterMissingConnectConfig() {
         HttpRequest request = HttpRequest
                 .GET("http://localhost/connect-proxy/connectors")
-                .header("X-Connect-Cluster","local");
+                .header("X-Connect-Cluster", "local");
         Mockito.when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.empty());
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request,null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
@@ -61,7 +64,34 @@ public class KafkaConnectClientProxyTest {
     }
 
     @Test
-    void testMutateKafkaConnectRequest(){
+    void doFilterSuccess() {
+        MutableHttpRequest<?> request = HttpRequestFactory.INSTANCE.get("http://localhost/connect-proxy/connectors")
+                .header("X-Connect-Cluster", "local");
+        KafkaAsyncExecutorConfig config1 = new KafkaAsyncExecutorConfig("local");
+        config1.connect = new KafkaAsyncExecutorConfig.ConnectConfig();
+        config1.connect.url = "http://target/";
+        config1.connect.basicAuthUsername = "toto";
+        config1.connect.basicAuthPassword = "titi";
+        // Should not interfere
+        KafkaAsyncExecutorConfig config2 = new KafkaAsyncExecutorConfig("not-match");
+
+        Mockito.when(kafkaAsyncExecutorConfigs.stream())
+                .thenReturn(Stream.of(config1, config2));
+        Mockito.when(client.proxy(ArgumentMatchers.any(MutableHttpRequest.class)))
+                .thenReturn(Publishers.just(HttpResponse.ok()));
+
+        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+
+        mutableHttpResponsePublisher.subscribe(subscriber);
+        subscriber.awaitTerminalEvent();
+
+        subscriber.assertValueCount(1);
+        subscriber.assertValue(mutableHttpResponse -> mutableHttpResponse.status() == HttpStatus.OK);
+    }
+
+    @Test
+    void testMutateKafkaConnectRequest() {
         MutableHttpRequest<?> request = HttpRequestFactory.INSTANCE.get("http://localhost/connect-proxy/connectors");
         KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig();
         config.url = "http://target/";
@@ -72,7 +102,7 @@ public class KafkaConnectClientProxyTest {
     }
 
     @Test
-    void testMutateKafkaConnectRequestRewrite(){
+    void testMutateKafkaConnectRequestRewrite() {
         MutableHttpRequest<?> request = HttpRequestFactory.INSTANCE.get("http://localhost/connect-proxy/connectors");
         KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig();
         config.url = "http://target/rewrite";
@@ -83,7 +113,7 @@ public class KafkaConnectClientProxyTest {
     }
 
     @Test
-    void testMutateKafkaConnectRequestAuthent(){
+    void testMutateKafkaConnectRequestAuthent() {
         MutableHttpRequest<?> request = HttpRequestFactory.INSTANCE.get("http://localhost/connect-proxy/connectors");
         KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig();
         config.url = "http://target/";
