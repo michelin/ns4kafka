@@ -12,7 +12,9 @@ import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.TopicRepository;
+import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.KafkaAsyncExecutor;
+import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.TopicService;
 
 import io.micronaut.context.ApplicationContext;
@@ -31,13 +33,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Controller(value = "/api/namespaces/{namespace}/topics")
 public class TopicController {
     @Inject
+    NamespaceService namespaceService;
+    @Inject
     NamespaceRepository namespaceRepository;
     @Inject
     TopicService topicService;
     @Inject
     TopicRepository topicRepository;
     @Inject
-    AccessControlEntryRepository accessControlEntryRepository;
+    AccessControlEntryService accessControlEntryService;
     @Inject
     ApplicationContext applicationContext;
 
@@ -76,8 +80,8 @@ public class TopicController {
         // 3. Request Valid ?
         //   -> Topics parameters are allowed for this namespace ConstraintsValidatorSet
         // 4. Store in datastore
-        Optional<Topic> existingTopic = topicRepository.findByName(namespace, topic.getMetadata().getName());
-        Namespace ns = namespaceRepository.findByName(namespace)
+        Optional<Topic> existingTopic = topicService.findByName(namespace, topic.getMetadata().getName());
+        Namespace ns = namespaceService.findByName(namespace)
                 .orElseThrow(() -> new RuntimeException("Namespace not found"));
 
         //2. Request is valid ?
@@ -86,7 +90,7 @@ public class TopicController {
         if (existingTopic.isEmpty()) {
             //Creation
             //Topic namespace ownership validation
-            if (!isNamespaceOwnerOfTopic(namespace, topic.getMetadata().getName()))
+            if (!accessControlEntryService.isNamespaceOwnerOfTopic(namespace, topic.getMetadata().getName()))
                 validationErrors.add("Invalid value " + topic.getMetadata().getName()
                         + " for name: Namespace not OWNER of this topic");
 
@@ -103,7 +107,7 @@ public class TopicController {
                         + existingTopic.get().getSpec().getReplicationFactor() + ")");
             }
         }
-        if (validationErrors.size() > 0) {
+        if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors);
         }
 
@@ -128,7 +132,7 @@ public class TopicController {
 
         String cluster = namespaceRepository.findByName(namespace).get().getCluster();
         // allowed ?
-        if (!isNamespaceOwnerOfTopic(namespace, topic))
+        if (!accessControlEntryService.isNamespaceOwnerOfTopic(namespace, topic))
             return HttpResponse.unauthorized();
 
         // exists ?
@@ -154,22 +158,6 @@ public class TopicController {
         return HttpResponse.noContent();
     }
 
-    private boolean isNamespaceOwnerOfTopic(String namespace, String topic) {
-        return accessControlEntryRepository.findAllGrantedToNamespace(namespace).stream()
-                .filter(accessControlEntry -> accessControlEntry.getSpec()
-                        .getPermission() == AccessControlEntry.Permission.OWNER)
-                .filter(accessControlEntry -> accessControlEntry.getSpec()
-                        .getResourceType() == AccessControlEntry.ResourceType.TOPIC)
-                .anyMatch(accessControlEntry -> {
-                    switch (accessControlEntry.getSpec().getResourcePatternType()) {
-                    case PREFIXED:
-                        return topic.startsWith(accessControlEntry.getSpec().getResource());
-                    case LITERAL:
-                        return topic.equals(accessControlEntry.getSpec().getResource());
-                    }
-                    return false;
-                });
-    }
 
     public enum TopicListLimit {
         ALL, OWNED, ACCESS_GIVEN

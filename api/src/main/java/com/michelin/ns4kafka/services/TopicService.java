@@ -14,7 +14,7 @@ public class TopicService {
     @Inject
     TopicRepository topicRepository;
 
-    public Optional<Topic> findByName(String namespace, String topic){
+    public Optional<Topic> findByName(String namespace, String topic) {
         return topicRepository.findByName(namespace, topic);
     }
 

@@ -38,6 +38,23 @@ public class AccessControlEntryService {
         return validationErrors;
     }
 
+    public boolean isNamespaceOwnerOfTopic(String namespace, String topic) {
+        return accessControlEntryRepository.findAllGrantedToNamespace(namespace).stream()
+                .filter(accessControlEntry -> accessControlEntry.getSpec()
+                        .getPermission() == AccessControlEntry.Permission.OWNER)
+                .filter(accessControlEntry -> accessControlEntry.getSpec()
+                        .getResourceType() == AccessControlEntry.ResourceType.TOPIC)
+                .anyMatch(accessControlEntry -> {
+                    switch (accessControlEntry.getSpec().getResourcePatternType()) {
+                    case PREFIXED:
+                        return topic.startsWith(accessControlEntry.getSpec().getResource());
+                    case LITERAL:
+                        return topic.equals(accessControlEntry.getSpec().getResource());
+                    }
+                    return false;
+                });
+    }
+
     public List<AccessControlEntry> create(List<AccessControlEntry> accessControlEntryList) {
         accessControlEntryList.forEach(accessControlEntry -> {
             LOG.info(accessControlEntry.getSpec().toString());

@@ -2,11 +2,13 @@ package com.michelin.ns4kafka.services;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.michelin.ns4kafka.controllers.AdminController.NamespaceCreationRequest;
+import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 
@@ -36,5 +38,9 @@ public class NamespaceService {
             validationErrors.add("KafkaUser already exist");
         }
         return validationErrors;
+    }
+
+    public Optional<Namespace> findByName(String namespace) {
+        return namespaceRepository.findByName(namespace);
     }
 }
