@@ -30,7 +30,7 @@ public class AccessControlEntryService {
                 .filter(ace -> ace.getSpec().getResource().startsWith(namespaceCreationRequest.getPrefix())
                         || namespaceCreationRequest.getPrefix().startsWith(ace.getSpec().getResource()))
                 .collect(Collectors.toList());
-        if (prefixInUse.size() > 0) {
+        if (!prefixInUse.isEmpty()) {
             validationErrors.add(String.format("Prefix overlaps with namespace %s: [%s]",
                     prefixInUse.get(0).getSpec().getGrantedTo(),
                     prefixInUse.get(0).getSpec().getResource()));

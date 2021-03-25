@@ -2,13 +2,11 @@ package com.michelin.ns4kafka.services;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.michelin.ns4kafka.controllers.AdminController.NamespaceCreationRequest;
-import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 
