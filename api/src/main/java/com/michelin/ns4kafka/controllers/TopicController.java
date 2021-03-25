@@ -13,6 +13,7 @@ import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.services.KafkaAsyncExecutor;
+import com.michelin.ns4kafka.services.TopicService;
 
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.http.HttpResponse;
@@ -32,6 +33,8 @@ public class TopicController {
     @Inject
     NamespaceRepository namespaceRepository;
     @Inject
+    TopicService topicService;
+    @Inject
     TopicRepository topicRepository;
     @Inject
     AccessControlEntryRepository accessControlEntryRepository;
@@ -47,13 +50,17 @@ public class TopicController {
         //TODO ?labelSelector=environment%3Dproduction,tier%3Dfrontend
 
         //TODO TopicList
-        return topicRepository.findAllForNamespace(namespace);
+        return topicService.findAllForNamespace(namespace);
     }
 
     @Get("/{topic}")
     public Optional<Topic> getTopic(String namespace, String topic) {
-        //TODO should return 404
-        return topicRepository.findByName(namespace, topic);
+
+        Optional<Topic> optionalTopic = topicService.findByName(namespace, topic);
+        if (optionalTopic.isEmpty()) {
+            throw new ResourceNotFoundException();
+        }
+        return optionalTopic;
     }
 
     @Post("/")
