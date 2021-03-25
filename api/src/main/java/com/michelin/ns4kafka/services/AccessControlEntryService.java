@@ -48,13 +48,17 @@ public class AccessControlEntryService {
     }
 
     public List<AccessControlEntry> deleteACLAttachedToNamespace(String namespace) {
-            List<AccessControlEntry> accessControlEntryList = accessControlEntryRepository
-                    .findAllGrantedToNamespace(namespace);
+        List<AccessControlEntry> accessControlEntryList = accessControlEntryRepository
+                .findAllGrantedToNamespace(namespace);
 
-            accessControlEntryList.forEach(accessControlEntry -> accessControlEntryRepository
-                    .deleteByName(accessControlEntry.getMetadata().getName()));
+        accessControlEntryList.forEach(accessControlEntry -> accessControlEntryRepository
+                .deleteByName(accessControlEntry.getMetadata().getName()));
 
-            return accessControlEntryList;
+        return accessControlEntryList;
+    }
+
+    public void deleteByName(String acl){
+        accessControlEntryRepository.deleteByName(acl);
     }
 
 }

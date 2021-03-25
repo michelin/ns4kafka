@@ -46,14 +46,12 @@ public class AdminController {
     @Inject
     NamespaceRepository namespaceRepository;
     @Inject
-    AccessControlEntryRepository accessControlEntryRepository;
-    @Inject
     RoleBindingRepository roleBindingRepository;
 
     @Delete("/acl/{acl}")
     @Status(HttpStatus.NO_CONTENT)
     public void deleteACL(String acl) {
-        accessControlEntryRepository.deleteByName(acl);
+        accessControlEntryService.deleteByName(acl);
     }
 
     @Delete("/namespace/{namespace}")
@@ -68,7 +66,7 @@ public class AdminController {
 
             List<Object> returnList = new ArrayList<>();
             returnList.add(namespaceOptional.get());
-            returnList.addAll(accessControlEntryList);
+            returnList.addAll(accessControlEntryService.deleteACLAttachedToNamespace(namespace));
             returnList.addAll(roleBindingList);
             return returnList;
         }
