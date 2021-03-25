@@ -95,7 +95,7 @@ public class KafkaConnectService {
     public List<String> validateLocally(String namespace, Connector connector) {
         Namespace ns = namespaceRepository.findByName(namespace).get();
 
-        String connectorType = getConnectorType(namespace, connector.getSpec().get("connector.class"));
+        String connectorType = getConnectorType(ns, connector.getSpec().get("connector.class"));
 
         //If class doesn't exist, no need to go further
         if (StringUtils.isEmpty(connectorType))
@@ -155,11 +155,11 @@ public class KafkaConnectService {
                 .build();
     }
 
-    public String getConnectorType(String namespace, String connectorClass) {
-        String cluster = namespaceRepository.findByName(namespace).get().getCluster();
-        return kafkaConnectClient.connectPlugins(cluster)
+    public String getConnectorType(Namespace namespace, String connectorClass) {
+        if(StringUtils.isEmpty(connectorClass))
+            return null;
+        return kafkaConnectClient.connectPlugins(namespace.getCluster())
                 .stream()
-
                 .filter(connectPluginItem -> connectPluginItem.className().equals(connectorClass))
                 .map(connectPluginItem -> connectPluginItem.type().toString())
                 .findFirst()
