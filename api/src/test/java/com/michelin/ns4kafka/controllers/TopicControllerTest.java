@@ -19,12 +19,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.mockito.Mockito.*;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
+
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class TopicControllerTest {
@@ -42,7 +42,7 @@ public class TopicControllerTest {
     TopicController topicController;
 
     @Test
-    public void ListEmptyTopics(){
+    public void ListEmptyTopics() {
         when(topicRepository.findAllForNamespace("test"))
                 .thenReturn(List.of());
 
@@ -51,7 +51,7 @@ public class TopicControllerTest {
     }
 
     @Test
-    public void ListMultipleTopics(){
+    public void ListMultipleTopics() {
         when(topicRepository.findAllForNamespace("test"))
                 .thenReturn(List.of(
                         Topic.builder().metadata(ObjectMeta.builder().name("topic1").build()).build(),
@@ -66,23 +66,23 @@ public class TopicControllerTest {
     }
 
     @Test
-    public void GetEmptyTopic(){
-        when(topicRepository.findByName("test","topic.notfound"))
+    public void GetEmptyTopic() {
+        when(topicRepository.findByName("test", "topic.notfound"))
                 .thenReturn(Optional.empty());
 
-        Optional<Topic> actual = topicController.getTopic("test","topic.notfound");
+        Optional<Topic> actual = topicController.getTopic("test", "topic.notfound");
 
         Assertions.assertTrue(actual.isEmpty());
     }
 
     @Test
-    public void GetTopic(){
-        when(topicRepository.findByName("test","topic.found"))
+    public void GetTopic() {
+        when(topicRepository.findByName("test", "topic.found"))
                 .thenReturn(Optional.of(
                         Topic.builder().metadata(ObjectMeta.builder().name("topic.found").build()).build()
                 ));
 
-        Optional<Topic> actual = topicController.getTopic("test","topic.found");
+        Optional<Topic> actual = topicController.getTopic("test", "topic.found");
 
         Assertions.assertTrue(actual.isPresent());
         Assertions.assertEquals("topic.found", actual.get().getMetadata().getName());
@@ -94,7 +94,7 @@ public class TopicControllerTest {
         when(namespaceRepository.findByName("test"))
                 .thenReturn(Optional.of(Namespace.builder().cluster("cluster1").build()));
         Optional<Topic> toDelete = Optional.of(Topic.builder().metadata(ObjectMeta.builder().name("topic.delete").build()).build());
-        when(topicRepository.findByName("test","topic.delete"))
+        when(topicRepository.findByName("test", "topic.delete"))
                 .thenReturn(toDelete);
         when(accessControlEntryRepository.findAllGrantedToNamespace("test"))
                 .thenReturn(List.of(AccessControlEntry.builder()
@@ -115,7 +115,7 @@ public class TopicControllerTest {
         doNothing().when(kafkaAsyncExecutor).deleteTopic(toDelete.get());
 
         //When
-        HttpResponse<Void> actual = topicController.deleteTopic("test","topic.delete");
+        HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete");
 
         //Then
         Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
@@ -130,7 +130,7 @@ public class TopicControllerTest {
                 .thenReturn(List.of()); //no ACL
 
         //When
-        HttpResponse<Void> actual = topicController.deleteTopic("test","topic.delete");
+        HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete");
 
         //Then
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, actual.getStatus());
@@ -139,7 +139,7 @@ public class TopicControllerTest {
 
 
     @Test
-    public void CreateNewTopicFailValidationNoAPI(){
+    public void CreateNewTopicFailValidationNoAPI() {
         /*Topic topic = Topic.builder()
                 .metadata(ObjectMeta.builder().name("test.topic2").build())
                 .spec(Topic.TopicSpec.builder()

@@ -1,0 +1,1 @@
+package com.michelin.ns4kafka.services.connect.client.entities;
