@@ -6,7 +6,6 @@ import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
-import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
 import com.michelin.ns4kafka.services.connect.client.entities.ConfigInfos;
 import com.michelin.ns4kafka.services.connect.client.entities.ConnectorInfo;
@@ -28,19 +27,14 @@ public class KafkaConnectService {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaConnectService.class);
 
     @Inject
-    NamespaceRepository namespaceRepository;
-    @Inject
     AccessControlEntryRepository accessControlEntryRepository;
     @Inject
     KafkaConnectClient kafkaConnectClient;
 
-    public List<Connector> findByNamespace(String namespace) {
+    public List<Connector> list(Namespace namespace) {
+        List<AccessControlEntry> acls = accessControlEntryRepository.findAllGrantedToNamespace(namespace.getMetadata().getNamespace());
 
-        String cluster = namespaceRepository.findByName(namespace).get().getCluster();
-
-        List<AccessControlEntry> acls = accessControlEntryRepository.findAllGrantedToNamespace(namespace);
-
-        return kafkaConnectClient.listAll(cluster)
+        return kafkaConnectClient.listAll(namespace.getMetadata().getCluster())
                 .entrySet()
                 .stream()
                 .filter(entry -> acls.stream()
@@ -59,8 +53,8 @@ public class KafkaConnectService {
                 .map(entry -> Connector.builder()
                         .metadata(ObjectMeta.builder()
                                 .name(entry.getKey())
-                                .cluster(cluster)
-                                .namespace(namespace)
+                                .cluster(namespace.getMetadata().getCluster())
+                                .namespace(namespace.getMetadata().getNamespace())
                                 .labels(Map.of("type", entry.getValue().getInfo().type().toString()))
                                 .build())
                         .spec(entry.getValue().getInfo().config())
@@ -85,17 +79,16 @@ public class KafkaConnectService {
                 ).collect(Collectors.toList());
     }
 
-    public Optional<Connector> findByName(String namespace, String connector) {
-        return findByNamespace(namespace)
+    public Optional<Connector> findByName(Namespace namespace, String connector) {
+        return list(namespace)
                 .stream()
                 .filter(connect -> connect.getMetadata().getName().equals(connector))
                 .findFirst();
     }
 
-    public List<String> validateLocally(String namespace, Connector connector) {
-        Namespace ns = namespaceRepository.findByName(namespace).get();
+    public List<String> validateLocally(Namespace namespace, Connector connector) {
 
-        String connectorType = getConnectorType(ns, connector.getSpec().get("connector.class"));
+        String connectorType = getConnectorType(namespace, connector.getSpec().get("connector.class"));
 
         //If class doesn't exist, no need to go further
         if (StringUtils.isEmpty(connectorType))
@@ -103,13 +96,13 @@ public class KafkaConnectService {
                     connector.getSpec().get("connector.class"));
 
         //perform local validation
-        List<String> validationErrors = ns.getConnectValidator().validate(connector, connectorType);
+        List<String> validationErrors = namespace.getSpec().getConnectValidator().validate(connector, connectorType);
 
         return validationErrors;
     }
 
-    public boolean isNamespaceOwnerOfConnect(String namespace, String connect) {
-        return accessControlEntryRepository.findAllGrantedToNamespace(namespace)
+    public boolean isNamespaceOwnerOfConnect(Namespace namespace, String connect) {
+        return accessControlEntryRepository.findAllGrantedToNamespace(namespace.getMetadata().getName())
                 .stream()
                 .filter(accessControlEntry -> accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
                 .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT)
@@ -124,10 +117,9 @@ public class KafkaConnectService {
                 });
     }
 
-    public List<String> validateRemotely(String namespace, Connector connector) {
-        String cluster = namespaceRepository.findByName(namespace).get().getCluster();
+    public List<String> validateRemotely(Namespace namespace, Connector connector) {
         // Calls the validate endpoints and returns the validation error messages if any
-        ConfigInfos configInfos = kafkaConnectClient.validate(cluster, connector.getSpec().get("connector.class").toString(), connector.getSpec());
+        ConfigInfos configInfos = kafkaConnectClient.validate(namespace.getMetadata().getCluster(), connector.getSpec().get("connector.class").toString(), connector.getSpec());
 
         return configInfos.values()
                 .stream()
@@ -136,16 +128,15 @@ public class KafkaConnectService {
                 .collect(Collectors.toList());
     }
 
-    public Connector createOrUpdate(String namespace, Connector connector) {
-        String cluster = namespaceRepository.findByName(namespace).get().getCluster();
+    public Connector createOrUpdate(Namespace namespace, Connector connector) {
 
-        ConnectorInfo connectorInfo = kafkaConnectClient.createOrUpdate(cluster, connector.getMetadata().getName(), connector.getSpec());
+        ConnectorInfo connectorInfo = kafkaConnectClient.createOrUpdate(namespace.getMetadata().getCluster(), connector.getMetadata().getName(), connector.getSpec());
 
         return Connector.builder()
                 .metadata(ObjectMeta.builder()
                         .name(connectorInfo.name())
-                        .namespace(namespace)
-                        .cluster(cluster)
+                        .namespace(namespace.getMetadata().getNamespace())
+                        .cluster(namespace.getMetadata().getCluster())
                         .build())
                 .spec(connectorInfo.config())
                 .status(Connector.ConnectorStatus.builder()
@@ -156,9 +147,9 @@ public class KafkaConnectService {
     }
 
     public String getConnectorType(Namespace namespace, String connectorClass) {
-        if(StringUtils.isEmpty(connectorClass))
+        if (StringUtils.isEmpty(connectorClass))
             return null;
-        return kafkaConnectClient.connectPlugins(namespace.getCluster())
+        return kafkaConnectClient.connectPlugins(namespace.getMetadata().getCluster())
                 .stream()
                 .filter(connectPluginItem -> connectPluginItem.className().equals(connectorClass))
                 .map(connectPluginItem -> connectPluginItem.type().toString())
@@ -166,8 +157,7 @@ public class KafkaConnectService {
                 .orElse(null);
     }
 
-    public HttpResponse delete(String namespace, String connector) {
-        String cluster = namespaceRepository.findByName(namespace).get().getCluster();
-        return kafkaConnectClient.delete(cluster, connector);
+    public HttpResponse delete(Namespace namespace, String connector) {
+        return kafkaConnectClient.delete(namespace.getMetadata().getCluster(), connector);
     }
 }

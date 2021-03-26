@@ -12,7 +12,7 @@ import javax.inject.Inject;
 
 @Tag(name = "Namespaces")
 @Controller("/api/namespaces")
-public class NamespaceController {
+public class NamespaceController extends NonNamespacedResourceController {
 
     @Inject
     NamespaceService namespaceService;

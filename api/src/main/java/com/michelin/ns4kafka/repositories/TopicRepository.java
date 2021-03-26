@@ -1,10 +1,8 @@
 package com.michelin.ns4kafka.repositories;
 
-import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface TopicRepository {
     //List<Topic> findAllForNamespace(Namespace namespace);
@@ -17,8 +15,6 @@ public interface TopicRepository {
      * value : Topic : Topic data<br>
      */
     List<Topic> findAllForCluster(String cluster);
-
-    //Optional<Topic> findByName(Namespace namespace, String topic);
 
     Topic create(Topic topic);
 
