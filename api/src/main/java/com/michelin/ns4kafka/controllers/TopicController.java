@@ -51,7 +51,9 @@ public class TopicController {
     @Get("/{topic}")
     public Optional<Topic> getTopic(String namespace, String topic) {
 
-        Optional<Topic> optionalTopic = topicService.findByName(namespace, topic);
+        Namespace ns = namespaceService.findByName(namespace)
+                .orElseThrow(() -> new RuntimeException("Namespace not found"));
+        Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
         if (optionalTopic.isEmpty()) {
             throw new ResourceNotFoundException();
         }
@@ -71,9 +73,10 @@ public class TopicController {
         // 3. Request Valid ?
         //   -> Topics parameters are allowed for this namespace ConstraintsValidatorSet
         // 4. Store in datastore
-        Optional<Topic> existingTopic = topicService.findByName(namespace, topic.getMetadata().getName());
         Namespace ns = namespaceService.findByName(namespace)
                 .orElseThrow(() -> new RuntimeException("Namespace not found"));
+
+        Optional<Topic> existingTopic = topicService.findByName(ns, topic.getMetadata().getName());
 
         //2. Request is valid ?
         List<String> validationErrors = ns.getTopicValidator().validate(topic, ns);
@@ -122,13 +125,16 @@ public class TopicController {
     @Delete("/{topic}")
     public HttpResponse<Void> deleteTopic(String namespace, String topic) {
 
-        String cluster = namespaceService.findByName(namespace).get().getCluster();
+        Namespace ns = namespaceService.findByName(namespace)
+                .orElseThrow(() -> new RuntimeException("Namespace not found"));
+
+        String cluster = ns.getCluster();
         // allowed ?
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic))
             return HttpResponse.unauthorized();
 
         // exists ?
-        Optional<Topic> optionalTopic = topicService.findByName(namespace, topic);
+        Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
 
         if (optionalTopic.isEmpty())
             return HttpResponse.notFound();
