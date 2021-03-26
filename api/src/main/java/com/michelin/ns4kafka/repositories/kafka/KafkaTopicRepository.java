@@ -66,11 +66,4 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
                 .collect(Collectors.toList());
     }
 
-    //@Override
-    //public Optional<Topic> findByName(String namespace, String topic) {
-    //    return findAllForNamespace(namespace)
-    //            .stream()
-    //            .filter( t -> t.getMetadata().getName().equals(topic))
-    //            .findFirst();
-    //}
 }

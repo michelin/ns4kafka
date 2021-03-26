@@ -1,41 +1,30 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.models.*;
-import com.michelin.ns4kafka.repositories.NamespaceRepository;
-import com.michelin.ns4kafka.repositories.RoleBindingRepository;
-import com.michelin.ns4kafka.repositories.TopicRepository;
+import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.services.NamespaceService;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Controller;
-import io.micronaut.http.annotation.Get;
+import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Post;
-
-import io.micronaut.security.authentication.Authentication;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.inject.Inject;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
 
 @Tag(name = "Namespaces")
 @Controller("/api/namespaces")
-public class NamespaceController {
+public class NamespaceController extends NonNamespacedResourceController {
 
     @Inject
-    NamespaceRepository namespaceRepository;
+    NamespaceService namespaceService;
 
-
-    @Get("{namespace}")
-    public Optional<Namespace> display(String namespace){
-        return namespaceRepository.findByName(namespace);
+    @Post
+    public Namespace apply(Namespace namespace) {
+        return null;
     }
 
-    @Post("{namespace}")
-    public HttpResponse create(Namespace namespace){
-
-        return HttpResponse.status(HttpStatus.CONFLICT,"Resource already exists. Use PUT instead.")
-                .body("Use PUT");
+    @Delete("/{namespace}")
+    public HttpResponse delete(String namespace){
+        return null;
     }
 
 }
