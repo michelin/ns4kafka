@@ -42,8 +42,10 @@ public class TopicController {
     public List<Topic> list(String namespace) {
         //TODO ?labelSelector=environment%3Dproduction,tier%3Dfrontend
 
+        Namespace ns = namespaceService.findByName(namespace)
+                .orElseThrow(() -> new RuntimeException("Namespace not found"));
         //TODO TopicList
-        return topicService.findAllForNamespace(namespace);
+        return topicService.findAllForNamespace(ns);
     }
 
     @Get("/{topic}")

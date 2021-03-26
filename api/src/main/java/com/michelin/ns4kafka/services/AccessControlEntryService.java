@@ -9,6 +9,7 @@ import javax.inject.Singleton;
 
 import com.michelin.ns4kafka.controllers.AdminController.NamespaceCreationRequest;
 import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 
 import org.slf4j.LoggerFactory;
@@ -77,5 +78,10 @@ public class AccessControlEntryService {
     public void deleteByName(String acl){
         accessControlEntryRepository.deleteByName(acl);
     }
+
+    public List<AccessControlEntry> findAllGrantedToNamespace(Namespace namespace){
+        return accessControlEntryRepository.findAllGrantedToNamespace(namespace.getName());
+    }
+
 
 }
