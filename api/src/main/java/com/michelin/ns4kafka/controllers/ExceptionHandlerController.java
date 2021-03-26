@@ -18,6 +18,11 @@ public class ExceptionHandlerController {
         return HttpResponse.badRequest()
                 .body(new ResourceCreationError("Message validation failed", exception.getValidationErrors()));
     }
+
+    @Error(global = true)
+    public HttpResponse<JsonError> error(HttpRequest<?> request, ResourceNotFoundException exception) {
+        return HttpResponse.notFound().body(new JsonError("Ressource not Found"));
+    }
 }
 
 class ResourceCreationError extends JsonError {
