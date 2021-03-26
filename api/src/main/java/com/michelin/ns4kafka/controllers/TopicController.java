@@ -6,13 +6,8 @@ import java.util.Optional;
 import javax.inject.Inject;
 import javax.validation.Valid;
 
-import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
-import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
-import com.michelin.ns4kafka.repositories.NamespaceRepository;
-import com.michelin.ns4kafka.repositories.TopicRepository;
-import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.KafkaAsyncExecutor;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.TopicService;
@@ -35,13 +30,7 @@ public class TopicController {
     @Inject
     NamespaceService namespaceService;
     @Inject
-    NamespaceRepository namespaceRepository;
-    @Inject
     TopicService topicService;
-    @Inject
-    TopicRepository topicRepository;
-    @Inject
-    AccessControlEntryService accessControlEntryService;
     @Inject
     ApplicationContext applicationContext;
 
@@ -90,9 +79,10 @@ public class TopicController {
         if (existingTopic.isEmpty()) {
             //Creation
             //Topic namespace ownership validation
-            if (!accessControlEntryService.isNamespaceOwnerOfTopic(namespace, topic.getMetadata().getName()))
+            if (!topicService.isNamespaceOwnerOfTopic(namespace, topic.getMetadata().getName())) {
                 validationErrors.add("Invalid value " + topic.getMetadata().getName()
                         + " for name: Namespace not OWNER of this topic");
+            }
 
         } else {
             //2.2 forbidden changes when updating (partitions, replicationFactor)
@@ -118,7 +108,7 @@ public class TopicController {
         topic.getMetadata().setCluster(ns.getCluster());
         topic.getMetadata().setNamespace(ns.getName());
         topic.setStatus(Topic.TopicStatus.ofPending());
-        return topicRepository.create(topic);
+        return topicService.create(topic);
         //TODO quota management
         // pour les topics dont je suis owner, somme d'usage
         // pour le topic à créer usageTopic
@@ -130,20 +120,20 @@ public class TopicController {
     @Delete("/{topic}")
     public HttpResponse<Void> deleteTopic(String namespace, String topic) {
 
-        String cluster = namespaceRepository.findByName(namespace).get().getCluster();
+        String cluster = namespaceService.findByName(namespace).get().getCluster();
         // allowed ?
-        if (!accessControlEntryService.isNamespaceOwnerOfTopic(namespace, topic))
+        if (!topicService.isNamespaceOwnerOfTopic(namespace, topic))
             return HttpResponse.unauthorized();
 
         // exists ?
-        Optional<Topic> optionalTopic = topicRepository.findByName(namespace, topic);
+        Optional<Topic> optionalTopic = topicService.findByName(namespace, topic);
 
         if (optionalTopic.isEmpty())
             return HttpResponse.notFound();
 
         //1. delete from ns4kafka
         //2. delete from cluster
-        topicRepository.delete(optionalTopic.get());
+        topicService.delete(optionalTopic.get());
 
         //TODO cleaner delete implementation, to be discussed
         KafkaAsyncExecutor kafkaAsyncExecutor = applicationContext.getBean(KafkaAsyncExecutor.class,
