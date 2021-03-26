@@ -6,13 +6,11 @@ import java.util.Optional;
 import javax.inject.Inject;
 import javax.validation.Valid;
 
-import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
-import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
-import com.michelin.ns4kafka.repositories.NamespaceRepository;
-import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.services.KafkaAsyncExecutor;
+import com.michelin.ns4kafka.services.NamespaceService;
+import com.michelin.ns4kafka.services.TopicService;
 
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.http.HttpResponse;
@@ -30,11 +28,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Controller(value = "/api/namespaces/{namespace}/topics")
 public class TopicController {
     @Inject
-    NamespaceRepository namespaceRepository;
+    NamespaceService namespaceService;
     @Inject
-    TopicRepository topicRepository;
-    @Inject
-    AccessControlEntryRepository accessControlEntryRepository;
+    TopicService topicService;
     @Inject
     ApplicationContext applicationContext;
 
@@ -46,14 +42,22 @@ public class TopicController {
     public List<Topic> list(String namespace) {
         //TODO ?labelSelector=environment%3Dproduction,tier%3Dfrontend
 
+        Namespace ns = namespaceService.findByName(namespace)
+                .orElseThrow(() -> new RuntimeException("Namespace not found"));
         //TODO TopicList
-        return topicRepository.findAllForNamespace(namespace);
+        return topicService.findAllForNamespace(ns);
     }
 
     @Get("/{topic}")
     public Optional<Topic> getTopic(String namespace, String topic) {
-        //TODO should return 404
-        return topicRepository.findByName(namespace, topic);
+
+        Namespace ns = namespaceService.findByName(namespace)
+                .orElseThrow(() -> new RuntimeException("Namespace not found"));
+        Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
+        if (optionalTopic.isEmpty()) {
+            throw new ResourceNotFoundException();
+        }
+        return optionalTopic;
     }
 
     @Post("/")
@@ -69,9 +73,10 @@ public class TopicController {
         // 3. Request Valid ?
         //   -> Topics parameters are allowed for this namespace ConstraintsValidatorSet
         // 4. Store in datastore
-        Optional<Topic> existingTopic = topicRepository.findByName(namespace, topic.getMetadata().getName());
-        Namespace ns = namespaceRepository.findByName(namespace)
+        Namespace ns = namespaceService.findByName(namespace)
                 .orElseThrow(() -> new RuntimeException("Namespace not found"));
+
+        Optional<Topic> existingTopic = topicService.findByName(ns, topic.getMetadata().getName());
 
         //2. Request is valid ?
         List<String> validationErrors = ns.getTopicValidator().validate(topic, ns);
@@ -79,9 +84,10 @@ public class TopicController {
         if (existingTopic.isEmpty()) {
             //Creation
             //Topic namespace ownership validation
-            if (!isNamespaceOwnerOfTopic(namespace, topic.getMetadata().getName()))
+            if (!topicService.isNamespaceOwnerOfTopic(namespace, topic.getMetadata().getName())) {
                 validationErrors.add("Invalid value " + topic.getMetadata().getName()
                         + " for name: Namespace not OWNER of this topic");
+            }
 
         } else {
             //2.2 forbidden changes when updating (partitions, replicationFactor)
@@ -96,7 +102,7 @@ public class TopicController {
                         + existingTopic.get().getSpec().getReplicationFactor() + ")");
             }
         }
-        if (validationErrors.size() > 0) {
+        if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors);
         }
 
@@ -107,7 +113,7 @@ public class TopicController {
         topic.getMetadata().setCluster(ns.getCluster());
         topic.getMetadata().setNamespace(ns.getName());
         topic.setStatus(Topic.TopicStatus.ofPending());
-        return topicRepository.create(topic);
+        return topicService.create(topic);
         //TODO quota management
         // pour les topics dont je suis owner, somme d'usage
         // pour le topic à créer usageTopic
@@ -119,20 +125,23 @@ public class TopicController {
     @Delete("/{topic}")
     public HttpResponse<Void> deleteTopic(String namespace, String topic) {
 
-        String cluster = namespaceRepository.findByName(namespace).get().getCluster();
+        Namespace ns = namespaceService.findByName(namespace)
+                .orElseThrow(() -> new RuntimeException("Namespace not found"));
+
+        String cluster = ns.getCluster();
         // allowed ?
-        if (!isNamespaceOwnerOfTopic(namespace, topic))
+        if (!topicService.isNamespaceOwnerOfTopic(namespace, topic))
             return HttpResponse.unauthorized();
 
         // exists ?
-        Optional<Topic> optionalTopic = topicRepository.findByName(namespace, topic);
+        Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
 
         if (optionalTopic.isEmpty())
             return HttpResponse.notFound();
 
         //1. delete from ns4kafka
         //2. delete from cluster
-        topicRepository.delete(optionalTopic.get());
+        topicService.delete(optionalTopic.get());
 
         //TODO cleaner delete implementation, to be discussed
         KafkaAsyncExecutor kafkaAsyncExecutor = applicationContext.getBean(KafkaAsyncExecutor.class,
@@ -147,22 +156,6 @@ public class TopicController {
         return HttpResponse.noContent();
     }
 
-    private boolean isNamespaceOwnerOfTopic(String namespace, String topic) {
-        return accessControlEntryRepository.findAllGrantedToNamespace(namespace).stream()
-                .filter(accessControlEntry -> accessControlEntry.getSpec()
-                        .getPermission() == AccessControlEntry.Permission.OWNER)
-                .filter(accessControlEntry -> accessControlEntry.getSpec()
-                        .getResourceType() == AccessControlEntry.ResourceType.TOPIC)
-                .anyMatch(accessControlEntry -> {
-                    switch (accessControlEntry.getSpec().getResourcePatternType()) {
-                    case PREFIXED:
-                        return topic.startsWith(accessControlEntry.getSpec().getResource());
-                    case LITERAL:
-                        return topic.equals(accessControlEntry.getSpec().getResource());
-                    }
-                    return false;
-                });
-    }
 
     public enum TopicListLimit {
         ALL, OWNED, ACCESS_GIVEN
