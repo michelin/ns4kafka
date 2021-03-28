@@ -5,7 +5,6 @@ import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
-import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.services.connect.KafkaConnectService;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
 import com.michelin.ns4kafka.services.connect.client.entities.ConnectorInfo;
@@ -13,6 +12,7 @@ import com.michelin.ns4kafka.services.connect.client.entities.ConnectorPluginInf
 import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStatus;
 import com.michelin.ns4kafka.services.connect.client.entities.ConnectorType;
 import com.michelin.ns4kafka.validation.ConnectValidator;
+import com.michelin.ns4kafka.validation.ResourceValidator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,8 +27,7 @@ import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
 public class KafkaConnectServiceTest {
-    @Mock
-    NamespaceRepository namespaceRepository;
+
     @Mock
     AccessControlEntryRepository accessControlEntryRepository;
     @Mock
@@ -39,30 +38,37 @@ public class KafkaConnectServiceTest {
 
     @Test
     void findByNamespaceNone() {
-        Mockito.when(namespaceRepository.findByName("namespace"))
-                .thenReturn(Optional.of(Namespace.builder().cluster("local").build()));
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
 
         Mockito.when(accessControlEntryRepository.findAllGrantedToNamespace("namespace"))
                 .thenReturn(List.of());
         Mockito.when(kafkaConnectClient.listAll("local"))
                 .thenReturn(Map.of());
 
-        List<Connector> actual = kafkaConnectService.findByNamespace("namespace");
+        List<Connector> actual = kafkaConnectService.list(ns);
 
         Assertions.assertTrue(actual.isEmpty());
     }
 
     @Test
     void findByNamespaceMultiple() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
         ConnectorStatus c1 = new ConnectorStatus();
         ConnectorStatus c2 = new ConnectorStatus();
         ConnectorStatus c3 = new ConnectorStatus();
         c1.setInfo(new ConnectorInfo("ns-connect1", Map.of(), List.of(), ConnectorType.SINK));
         c2.setInfo(new ConnectorInfo("ns-connect2", Map.of(), List.of(), ConnectorType.SINK));
         c3.setInfo(new ConnectorInfo("other-connect1", Map.of(), List.of(), ConnectorType.SINK));
-
-        Mockito.when(namespaceRepository.findByName("namespace"))
-                .thenReturn(Optional.of(Namespace.builder().cluster("local").build()));
 
         Mockito.when(accessControlEntryRepository.findAllGrantedToNamespace("namespace"))
                 .thenReturn(List.of(AccessControlEntry.builder()
@@ -80,7 +86,7 @@ public class KafkaConnectServiceTest {
                         c3.getInfo().name(), c3)
                 );
 
-        List<Connector> actual = kafkaConnectService.findByNamespace("namespace");
+        List<Connector> actual = kafkaConnectService.list(ns);
 
         Assertions.assertEquals(2, actual.size());
         Assertions.assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")));
@@ -90,30 +96,37 @@ public class KafkaConnectServiceTest {
 
     @Test
     void findByNameNotFound() {
-        Mockito.when(namespaceRepository.findByName("namespace"))
-                .thenReturn(Optional.of(Namespace.builder().cluster("local").build()));
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
 
         Mockito.when(accessControlEntryRepository.findAllGrantedToNamespace("namespace"))
                 .thenReturn(List.of());
         Mockito.when(kafkaConnectClient.listAll("local"))
                 .thenReturn(Map.of());
 
-        Optional<Connector> actual = kafkaConnectService.findByName("namespace", "ns-connect1");
+        Optional<Connector> actual = kafkaConnectService.findByName(ns, "ns-connect1");
 
         Assertions.assertTrue(actual.isEmpty());
     }
 
     @Test
     void findByNameFound() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
         ConnectorStatus c1 = new ConnectorStatus();
         ConnectorStatus c2 = new ConnectorStatus();
         ConnectorStatus c3 = new ConnectorStatus();
         c1.setInfo(new ConnectorInfo("ns-connect1", Map.of(), List.of(), ConnectorType.SINK));
         c2.setInfo(new ConnectorInfo("ns-connect2", Map.of(), List.of(), ConnectorType.SINK));
         c3.setInfo(new ConnectorInfo("other-connect1", Map.of(), List.of(), ConnectorType.SINK));
-
-        Mockito.when(namespaceRepository.findByName("namespace"))
-                .thenReturn(Optional.of(Namespace.builder().cluster("local").build()));
 
         Mockito.when(accessControlEntryRepository.findAllGrantedToNamespace("namespace"))
                 .thenReturn(List.of(AccessControlEntry.builder()
@@ -131,7 +144,7 @@ public class KafkaConnectServiceTest {
                         c3.getInfo().name(), c3)
                 );
 
-        Optional<Connector> actual = kafkaConnectService.findByName("namespace", "ns-connect1");
+        Optional<Connector> actual = kafkaConnectService.findByName(ns, "ns-connect1");
 
         Assertions.assertTrue(actual.isPresent());
         Assertions.assertEquals("ns-connect1", actual.get().getMetadata().getName());
@@ -143,14 +156,14 @@ public class KafkaConnectServiceTest {
                 .metadata(ObjectMeta.builder().name("connect1").build())
                 .spec(Map.of())
                 .build();
-        Namespace namespace = Namespace.builder()
-                .cluster("local")
-                .name("namespace")
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
-        Mockito.when(namespaceRepository.findByName("namespace"))
-                .thenReturn(Optional.of(namespace));
 
-        List<String> actual = kafkaConnectService.validateLocally("namespace", connector);
+        List<String> actual = kafkaConnectService.validateLocally(ns, connector);
         Assertions.assertEquals(1, actual.size());
     }
     @Test
@@ -159,16 +172,16 @@ public class KafkaConnectServiceTest {
                 .metadata(ObjectMeta.builder().name("connect1").build())
                 .spec(Map.of("connector.class","com.michelin.NoClass"))
                 .build();
-        Namespace namespace = Namespace.builder()
-                .cluster("local")
-                .name("namespace")
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
-        Mockito.when(namespaceRepository.findByName("namespace"))
-                .thenReturn(Optional.of(namespace));
         Mockito.when(kafkaConnectClient.connectPlugins("local"))
                 .thenReturn(List.of());
 
-        List<String> actual = kafkaConnectService.validateLocally("namespace", connector);
+        List<String> actual = kafkaConnectService.validateLocally(ns, connector);
         Assertions.assertEquals(1, actual.size());
         Assertions.assertIterableEquals(List.of("Failed to find any class that implements Connector and which name matches com.michelin.NoClass"),actual);
     }
@@ -178,18 +191,27 @@ public class KafkaConnectServiceTest {
                 .metadata(ObjectMeta.builder().name("connect1").build())
                 .spec(Map.of("connector.class","org.apache.kafka.connect.file.FileStreamSinkConnector"))
                 .build();
-        Namespace namespace = Namespace.builder()
-                .cluster("local")
-                .name("namespace")
-                .connectValidator(ConnectValidator.makeDefault())
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectValidator(ConnectValidator.builder()
+                                .validationConstraints(Map.of("missing.field", new ResourceValidator.NonEmptyString()))
+                                .sinkValidationConstraints(Map.of())
+                                .sourceValidationConstraints(Map.of())
+                                .classValidationConstraints(Map.of())
+                                .build())
+                        .build())
                 .build();
-        Mockito.when(namespaceRepository.findByName("namespace"))
-                .thenReturn(Optional.of(namespace));
+
         Mockito.when(kafkaConnectClient.connectPlugins("local"))
                 .thenReturn(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1")));
 
-        List<String> actual = kafkaConnectService.validateLocally("namespace", connector);
+        List<String> actual = kafkaConnectService.validateLocally(ns, connector);
         Assertions.assertFalse(actual.stream().anyMatch(s -> s.startsWith("Failed to find any class that implements Connector and which name matches")));
+        Assertions.assertTrue(actual.stream().anyMatch(s -> s.startsWith("Invalid value null for configuration missing.field")));
         Assertions.assertTrue(actual.size() > 0);
     }
 
@@ -199,22 +221,24 @@ public class KafkaConnectServiceTest {
                 .metadata(ObjectMeta.builder().name("connect1").build())
                 .spec(Map.of("connector.class","org.apache.kafka.connect.file.FileStreamSinkConnector"))
                 .build();
-        Namespace namespace = Namespace.builder()
-                .cluster("local")
-                .name("namespace")
-                .connectValidator(ConnectValidator.builder()
-                        .classValidationConstraints(Map.of())
-                        .sinkValidationConstraints(Map.of())
-                        .sourceValidationConstraints(Map.of())
-                        .validationConstraints(Map.of())
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectValidator(ConnectValidator.builder()
+                                .classValidationConstraints(Map.of())
+                                .sinkValidationConstraints(Map.of())
+                                .sourceValidationConstraints(Map.of())
+                                .validationConstraints(Map.of())
+                                .build())
                         .build())
                 .build();
-        Mockito.when(namespaceRepository.findByName("namespace"))
-                .thenReturn(Optional.of(namespace));
         Mockito.when(kafkaConnectClient.connectPlugins("local"))
                 .thenReturn(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1")));
 
-        List<String> actual = kafkaConnectService.validateLocally("namespace", connector);
+        List<String> actual = kafkaConnectService.validateLocally(ns, connector);
         Assertions.assertTrue(actual.isEmpty());
     }
 }

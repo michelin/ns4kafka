@@ -1,22 +1,18 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
-import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
-import com.michelin.ns4kafka.repositories.NamespaceRepository;
-import com.michelin.ns4kafka.repositories.TopicRepository;
-import com.michelin.ns4kafka.services.KafkaAsyncExecutor;
-import io.micronaut.context.ApplicationContext;
+import com.michelin.ns4kafka.services.NamespaceService;
+import com.michelin.ns4kafka.services.TopicService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.inject.qualifiers.Qualifiers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -24,26 +20,31 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class TopicControllerTest {
 
     @Mock
-    NamespaceRepository namespaceRepository;
+    NamespaceService namespaceService;
     @Mock
-    TopicRepository topicRepository;
-    @Mock
-    AccessControlEntryRepository accessControlEntryRepository;
-    @Mock
-    ApplicationContext applicationContext;
+    TopicService topicService;
 
     @InjectMocks
     TopicController topicController;
 
     @Test
     public void ListEmptyTopics() {
-        when(topicRepository.findAllForNamespace("test"))
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of());
 
         List<Topic> actual = topicController.list("test");
@@ -52,7 +53,15 @@ public class TopicControllerTest {
 
     @Test
     public void ListMultipleTopics() {
-        when(topicRepository.findAllForNamespace("test"))
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Topic.builder().metadata(ObjectMeta.builder().name("topic1").build()).build(),
                         Topic.builder().metadata(ObjectMeta.builder().name("topic2").build()).build()
@@ -67,7 +76,15 @@ public class TopicControllerTest {
 
     @Test
     public void GetEmptyTopic() {
-        when(topicRepository.findByName("test", "topic.notfound"))
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.findByName(ns, "topic.notfound"))
                 .thenReturn(Optional.empty());
 
         Optional<Topic> actual = topicController.getTopic("test", "topic.notfound");
@@ -77,7 +94,15 @@ public class TopicControllerTest {
 
     @Test
     public void GetTopic() {
-        when(topicRepository.findByName("test", "topic.found"))
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.findByName(ns, "topic.found"))
                 .thenReturn(Optional.of(
                         Topic.builder().metadata(ObjectMeta.builder().name("topic.found").build()).build()
                 ));
@@ -91,28 +116,22 @@ public class TopicControllerTest {
     @Test
     public void DeleteTopic() throws InterruptedException, ExecutionException, TimeoutException {
         //Given
-        when(namespaceRepository.findByName("test"))
-                .thenReturn(Optional.of(Namespace.builder().cluster("cluster1").build()));
-        Optional<Topic> toDelete = Optional.of(Topic.builder().metadata(ObjectMeta.builder().name("topic.delete").build()).build());
-        when(topicRepository.findByName("test", "topic.delete"))
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Optional<Topic> toDelete = Optional.of(
+                Topic.builder().metadata(ObjectMeta.builder().name("topic.delete").build()).build());
+        when(topicService.findByName(ns, "topic.delete"))
                 .thenReturn(toDelete);
-        when(accessControlEntryRepository.findAllGrantedToNamespace("test"))
-                .thenReturn(List.of(AccessControlEntry.builder()
-                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                .permission(AccessControlEntry.Permission.OWNER)
-                                .resource("topic.delete")
-                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                                .grantedTo("test")
-                                .build())
-                        .build()));
-        doNothing().when(topicRepository).delete(toDelete.get());
-        KafkaAsyncExecutor kafkaAsyncExecutor = mock(KafkaAsyncExecutor.class);
-        when(applicationContext.getBean(
-                KafkaAsyncExecutor.class,
-                Qualifiers.byName("cluster1")))
-                .thenReturn(kafkaAsyncExecutor);
-        doNothing().when(kafkaAsyncExecutor).deleteTopic(toDelete.get());
+        when(topicService.isNamespaceOwnerOfTopic("test","topic.delete"))
+                .thenReturn(true);
+        doNothing().when(topicService).delete(toDelete.get());
+
 
         //When
         HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete");
@@ -124,10 +143,16 @@ public class TopicControllerTest {
     @Test
     public void DeleteTopicUnauthorized() throws InterruptedException, ExecutionException, TimeoutException {
         //Given
-        when(namespaceRepository.findByName("test"))
-                .thenReturn(Optional.of(Namespace.builder().cluster("cluster1").build()));
-        when(accessControlEntryRepository.findAllGrantedToNamespace("test"))
-                .thenReturn(List.of()); //no ACL
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.isNamespaceOwnerOfTopic("test", "topic.delete"))
+                .thenReturn(false);
 
         //When
         HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete");

@@ -2,13 +2,10 @@ package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
-import com.michelin.ns4kafka.services.KafkaAsyncExecutor;
 import com.michelin.ns4kafka.services.TopicService;
-import io.micronaut.context.ApplicationContext;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
-import io.micronaut.inject.qualifiers.Qualifiers;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.inject.Inject;
@@ -21,8 +18,6 @@ import java.util.Optional;
 public class TopicController extends NamespacedResourceController {
     @Inject
     TopicService topicService;
-    @Inject
-    ApplicationContext applicationContext;
 
     /**
      * @param namespace The namespace to query
@@ -42,9 +37,7 @@ public class TopicController extends NamespacedResourceController {
 
         Namespace ns = getNamespace(namespace);
         Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
-        if (optionalTopic.isEmpty()) {
-            throw new ResourceNotFoundException();
-        }
+
         return optionalTopic;
     }
 
@@ -128,16 +121,6 @@ public class TopicController extends NamespacedResourceController {
         //1. delete from ns4kafka
         //2. delete from cluster
         topicService.delete(optionalTopic.get());
-
-        //TODO cleaner delete implementation, to be discussed
-        KafkaAsyncExecutor kafkaAsyncExecutor = applicationContext.getBean(KafkaAsyncExecutor.class,
-                Qualifiers.byName(cluster));
-        try {
-            kafkaAsyncExecutor.deleteTopic(optionalTopic.get());
-        } catch (Exception e) {
-            //TODO refactor global error handling model
-            throw new ResourceValidationException(List.of(e.getMessage()));
-        }
 
         return HttpResponse.noContent();
     }
