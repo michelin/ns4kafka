@@ -32,7 +32,7 @@ public class KafkaConnectService {
     KafkaConnectClient kafkaConnectClient;
 
     public List<Connector> list(Namespace namespace) {
-        List<AccessControlEntry> acls = accessControlEntryRepository.findAllGrantedToNamespace(namespace.getMetadata().getNamespace());
+        List<AccessControlEntry> acls = accessControlEntryRepository.findAllGrantedToNamespace(namespace.getMetadata().getName());
 
         return kafkaConnectClient.listAll(namespace.getMetadata().getCluster())
                 .entrySet()

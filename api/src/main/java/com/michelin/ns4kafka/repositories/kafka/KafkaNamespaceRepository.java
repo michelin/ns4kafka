@@ -27,8 +27,8 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
     }
 
     @Override
-    String getMessageKey(Namespace message) {
-        return message.getName();
+    String getMessageKey(Namespace namespace) {
+        return namespace.getMetadata().getName();
     }
 
     @Override
@@ -51,7 +51,7 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
     public List<Namespace> findAllForCluster(String cluster) {
         return getKafkaStore().values()
                 .stream()
-                .filter(namespace -> namespace.getCluster().equals(cluster))
+                .filter(namespace -> namespace.getMetadata().getCluster().equals(cluster))
                 .collect(Collectors.toList());
     }
 
@@ -59,7 +59,7 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
     public Optional<Namespace> findByName(String namespace) {
         return getKafkaStore().values()
                 .stream()
-                .filter(ns -> ns.getName().equals(namespace))
+                .filter(ns -> ns.getMetadata().getName().equals(namespace))
                 .findFirst();
     }
 

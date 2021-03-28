@@ -1,18 +1,15 @@
 package com.michelin.ns4kafka.services;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
-import com.michelin.ns4kafka.controllers.AdminController.NamespaceCreationRequest;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
-
 import org.slf4j.LoggerFactory;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Singleton
 public class AccessControlEntryService {
@@ -21,15 +18,15 @@ public class AccessControlEntryService {
     @Inject
     AccessControlEntryRepository accessControlEntryRepository;
 
-    public List<String> prefixInUse(NamespaceCreationRequest namespaceCreationRequest) {
+    public List<String> prefixInUse(String prefix, String cluster) {
         List<String> validationErrors = new ArrayList<>();
         List<AccessControlEntry> prefixInUse = accessControlEntryRepository
-                .findAllForCluster(namespaceCreationRequest.getCluster()).stream()
+                .findAllForCluster(cluster).stream()
                 .filter(ace -> ace.getSpec()
                         .getResourcePatternType() == AccessControlEntry.ResourcePatternType.PREFIXED)
                 .filter(ace -> ace.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC)
-                .filter(ace -> ace.getSpec().getResource().startsWith(namespaceCreationRequest.getPrefix())
-                        || namespaceCreationRequest.getPrefix().startsWith(ace.getSpec().getResource()))
+                .filter(ace -> ace.getSpec().getResource().startsWith(prefix)
+                        || prefix.startsWith(ace.getSpec().getResource()))
                 .collect(Collectors.toList());
         if (!prefixInUse.isEmpty()) {
             validationErrors.add(String.format("Prefix overlaps with namespace %s: [%s]",
@@ -80,7 +77,7 @@ public class AccessControlEntryService {
     }
 
     public List<AccessControlEntry> findAllGrantedToNamespace(Namespace namespace){
-        return accessControlEntryRepository.findAllGrantedToNamespace(namespace.getName());
+        return accessControlEntryRepository.findAllGrantedToNamespace(namespace.getMetadata().getName());
     }
 
 
