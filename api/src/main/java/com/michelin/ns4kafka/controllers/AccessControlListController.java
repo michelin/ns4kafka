@@ -4,7 +4,7 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
-import com.michelin.ns4kafka.repositories.NamespaceRepository;
+import com.michelin.ns4kafka.services.NamespaceService;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,9 +18,9 @@ import java.util.stream.Collectors;
 @Tag(name = "Cross Namespace Topic Grants",
         description = "APIs to handle cross namespace ACL")
 @Controller("/api/namespaces/{namespace}/acls")
-public class AccessControlListController {
+public class AccessControlListController extends NamespacedResourceController {
     @Inject
-    NamespaceRepository namespaceRepository;
+    NamespaceService namespaceService;
     @Inject
     AccessControlEntryRepository accessControlEntryRepository;
 
@@ -30,8 +30,7 @@ public class AccessControlListController {
         if(limit.isEmpty())
             limit = Optional.of(AclLimit.ALL);
 
-        Namespace myNamespace = namespaceRepository.findByName(namespace)
-                .orElseThrow(() -> new RuntimeException("Namespace not found :"+namespace));
+        Namespace myNamespace = getNamespace(namespace);
 
 
         switch (limit.get()){
@@ -45,7 +44,7 @@ public class AccessControlListController {
                         .sorted(Comparator.comparing(o -> o.getMetadata().getNamespace()))
                         .collect(Collectors.toList());
             case GRANTOR:
-                return accessControlEntryRepository.findAllForCluster(myNamespace.getCluster())
+                return accessControlEntryRepository.findAllForCluster(myNamespace.getMetadata().getCluster())
                         .stream()
                         // granted by me (including my own)
                         .filter(accessControlEntry -> accessControlEntry.getMetadata().getNamespace().equals(namespace))
@@ -55,7 +54,7 @@ public class AccessControlListController {
                         .collect(Collectors.toList());
             case ALL:
             default:
-                return accessControlEntryRepository.findAllForCluster(myNamespace.getCluster())
+                return accessControlEntryRepository.findAllForCluster(myNamespace.getMetadata().getCluster())
                         .stream()
                         .filter(accessControlEntry ->
                                 accessControlEntry.getMetadata().getNamespace().equals(namespace)
@@ -118,7 +117,7 @@ public class AccessControlListController {
 
 
         // GrantedTo Namespace exists ?
-        Optional<Namespace> optionalNamespace = namespaceRepository.findByName(accessControlEntry.getSpec().getGrantedTo());
+        Optional<Namespace> optionalNamespace = namespaceService.findByName(accessControlEntry.getSpec().getGrantedTo());
         if(optionalNamespace.isEmpty()){
             validationErrors.add("Invalid value "+accessControlEntry.getSpec().getGrantedTo()+" for grantedTo: Namespace doesn't exist");
         }
@@ -175,7 +174,7 @@ public class AccessControlListController {
         //TODO handle already exists ?
 
         accessControlEntry.setMetadata(ObjectMeta.builder()
-                .cluster(optionalNamespace.get().getCluster())
+                .cluster(optionalNamespace.get().getMetadata().getCluster())
                 .namespace(namespace)
                 .labels(Map.of("grantedBy",namespace))
                 .build());

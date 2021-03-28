@@ -1,16 +1,15 @@
 package com.michelin.ns4kafka.services;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.TopicRepository;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Singleton
 public class TopicService {
@@ -28,7 +27,7 @@ public class TopicService {
 
     public List<Topic> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace);
-        return topicRepository.findAllForCluster(namespace.getCluster())
+        return topicRepository.findAllForCluster(namespace.getMetadata().getCluster())
             .stream()
             .filter(topic -> acls.stream().anyMatch(accessControlEntry -> {
                 //no need to check accessControlEntry.Permission, we want READ, WRITE or OWNER

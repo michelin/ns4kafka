@@ -1,7 +1,6 @@
 package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
-import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
@@ -389,13 +388,13 @@ public class KafkaAsyncExecutor {
 
         List<AclBinding> ns4kafkaACLs = namespaceRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName())
                 .stream()
-                .flatMap(namespace -> accessControlEntryRepository.findAllGrantedToNamespace(namespace.getName())
+                .flatMap(namespace -> accessControlEntryRepository.findAllGrantedToNamespace(namespace.getMetadata().getName())
                         .stream()
                         .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC ||
                                 accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.GROUP)
                         //1-N ACE to List<AclBinding>
                         .flatMap(accessControlEntry ->
-                                buildAclBindingsFromAccessControlEntry(accessControlEntry, namespace.getDefaulKafkatUser()).stream()))
+                                buildAclBindingsFromAccessControlEntry(accessControlEntry, namespace.getSpec().getKafkaUser()).stream()))
                 .collect(Collectors.toList());
 
         if(LOG.isDebugEnabled()) {
@@ -436,7 +435,7 @@ public class KafkaAsyncExecutor {
                     .stream()
                     //TODO managed user list should include not only "defaultKafkaUser" (MVP35)
                     //1-N Namespace to KafkaUser
-                    .flatMap(namespace -> List.of("User:"+namespace.getDefaulKafkatUser()).stream())
+                    .flatMap(namespace -> List.of("User:"+namespace.getSpec().getKafkaUser()).stream())
                     .collect(Collectors.toList());
             // And then filter out the AclBinding to retain only those matching.
             userACLs = userACLs.stream()
@@ -490,151 +489,5 @@ public class KafkaAsyncExecutor {
             default:
                 throw new IllegalArgumentException("Not implemented yet :"+resourceType.toString());
         }
-    }
-
-    public Map<Namespace,List<AccessControlEntry>> generateNamespaces() throws InterruptedException, ExecutionException, TimeoutException {
-        List<AclOperation> validAclOperations = List.of(AclOperation.WRITE, AclOperation.READ);
-        List<AclBinding> userACLs = collectBrokerACLs(false)
-                .stream()
-                .filter(aclBinding -> validAclOperations.contains(aclBinding.entry().operation()))
-                .collect(Collectors.toList());
-
-        List<String> users = userACLs.stream()
-                .map(aclBinding -> aclBinding.entry().principal())
-                .distinct()
-                .collect(Collectors.toList());
-
-        List<Namespace> namespaces = users.stream().map(s ->
-            Namespace.builder()
-                    .cluster(this.kafkaAsyncExecutorConfig.getName())
-                    .defaulKafkatUser(s.replace("User:",""))
-                    .diskQuota(0)
-                    .build()
-        ).collect(Collectors.toList());
-
-        Map<Namespace, List<AccessControlEntry>> ret = users
-                .stream()
-                .map(s -> Map.entry(Namespace.builder()
-                                .name("namespace_"+s.replace("User:",""))
-                                .cluster(this.kafkaAsyncExecutorConfig.getName())
-                                .defaulKafkatUser(s.replace("User:",""))
-                                .diskQuota(0)
-                                .build(),
-                        userACLs.stream()
-                                .filter(aclBinding -> aclBinding.entry().principal().equals(s))
-                        .map(aclBinding -> AccessControlEntry.builder()
-                                .metadata(ObjectMeta.builder()
-                                        .cluster(this.kafkaAsyncExecutorConfig.getName())
-                                        .namespace("namespace_"+s.replace("User:",""))
-                                        .labels(Map.of("grantedBy",AccessControlEntry.ADMIN))
-                                        .build())
-                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                        .grantedTo("namespace_"+s.replace("User:",""))
-                                        .permission(AccessControlEntry.Permission.valueOf(aclBinding.entry().operation().toString()))
-                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.valueOf(aclBinding.pattern().patternType().toString()))
-                                        .resourceType(AccessControlEntry.ResourceType.valueOf(aclBinding.pattern().resourceType().toString()))
-                                        .resource(aclBinding.pattern().name())
-                                        .build())
-                                .build())
-                        .collect(Collectors.toList())
-                ))
-                .collect(Collectors.toMap(Map.Entry::getKey,Map.Entry::getValue));
-
-                            /*
-                            .acls(userACLs.stream()
-                                    .filter(aclBinding -> aclBinding.entry().principal().equals(s))
-                                    .map(aclBinding -> AccessControlEntry.builder()
-                                            .metadata(ObjectMeta.builder()
-                                                    .
-                                            .build())
-                                    .permission(AccessControlEntry.Permission.valueOf(aclBinding.entry().operation().toString()))
-                                    .resourcePatternType(AccessControlEntry.ResourcePatternType.valueOf(aclBinding.pattern().patternType().toString()))
-                                    .resourceType(AccessControlEntry.ResourceType.valueOf(aclBinding.pattern().resourceType().toString()))
-                                    .resource(aclBinding.pattern().name())
-                                    .build())
-                                    .collect(Collectors.toList()))
-                                        .build()
-                    */
-
-        ret.entrySet().forEach(entry -> {
-                        // recover TOPIC Pattern Policies
-                        List<String> prefixes = entry.getValue().stream()
-                                .filter(accessControlEntry ->
-                                        accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC &&
-                                                accessControlEntry.getSpec().getResourcePatternType()== AccessControlEntry.ResourcePatternType.PREFIXED)
-                                .map(accessControlEntry -> accessControlEntry.getSpec().getResource())
-                                .collect(Collectors.toList());
-                        // If READ+WRITE, guess OWNER
-                        prefixes.forEach(s -> {
-                            if(entry.getValue().stream().anyMatch(accessControlEntry -> accessControlEntry.getSpec().getResource().equals(s)
-                                    && accessControlEntry.getSpec().getResourceType()== AccessControlEntry.ResourceType.TOPIC
-                                    && accessControlEntry.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.PREFIXED
-                                    && accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.READ)
-                                    && entry.getValue().stream().anyMatch(accessControlEntry -> accessControlEntry.getSpec().getResource().equals(s)
-                                    && accessControlEntry.getSpec().getResourceType()== AccessControlEntry.ResourceType.TOPIC
-                                    && accessControlEntry.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.PREFIXED
-                                    && accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.WRITE)
-                            ){
-                                entry.setValue(entry.getValue().stream().filter(accessControlEntry -> !accessControlEntry.getSpec().getResource().equals(s)).collect(Collectors.toList()));
-                                entry.getValue().add(AccessControlEntry.builder()
-                                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                                .grantedTo(entry.getKey().getName())
-                                                .resource(s)
-                                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                                .permission(AccessControlEntry.Permission.OWNER)
-                                                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                                .build())
-                                        .metadata(ObjectMeta.builder()
-                                                .cluster(this.kafkaAsyncExecutorConfig.getName())
-                                                .namespace(entry.getKey().getName())
-                                                .labels(Map.of("grantedBy",AccessControlEntry.ADMIN))
-                                                .build())
-                                        .build()
-                                );
-
-                            }
-                        });
-            // recover TOPIC LITERAL Policies
-            prefixes = entry.getValue().stream()
-                    .filter(accessControlEntry ->
-                            accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC &&
-                                    accessControlEntry.getSpec().getResourcePatternType()== AccessControlEntry.ResourcePatternType.LITERAL)
-                    .map(accessControlEntry -> accessControlEntry.getSpec().getResource())
-                    .collect(Collectors.toList());
-            // If READ+WRITE, guess OWNER
-            prefixes.forEach(s -> {
-                if(entry.getValue().stream().anyMatch(accessControlEntry -> accessControlEntry.getSpec().getResource().equals(s)
-                        && accessControlEntry.getSpec().getResourceType()== AccessControlEntry.ResourceType.TOPIC
-                        && accessControlEntry.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.LITERAL
-                        && accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.READ)
-                        && entry.getValue().stream().anyMatch(accessControlEntry -> accessControlEntry.getSpec().getResource().equals(s)
-                        && accessControlEntry.getSpec().getResourceType()== AccessControlEntry.ResourceType.TOPIC
-                        && accessControlEntry.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.LITERAL
-                        && accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.WRITE)
-                ){
-                    entry.setValue(entry.getValue().stream().filter(accessControlEntry -> !accessControlEntry.getSpec().getResource().equals(s)).collect(Collectors.toList()));
-                    entry.getValue().add(AccessControlEntry.builder()
-                            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                    .grantedTo(entry.getKey().getName())
-                                    .resource(s)
-                                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                    .permission(AccessControlEntry.Permission.OWNER)
-                                    .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                                    .build())
-                            .metadata(ObjectMeta.builder()
-                                    .cluster(this.kafkaAsyncExecutorConfig.getName())
-                                    .namespace(entry.getKey().getName())
-                                    .labels(Map.of("grantedBy",AccessControlEntry.ADMIN))
-                                    .build())
-                            .build()
-                    );
-
-                }
-            });
-                });
-
-
-        return ret;
-
     }
 }
