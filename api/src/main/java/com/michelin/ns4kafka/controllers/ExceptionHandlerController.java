@@ -1,16 +1,15 @@
 package com.michelin.ns4kafka.controllers;
 
-import java.util.List;
-
-import javax.inject.Singleton;
-
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Error;
 import io.micronaut.http.hateoas.JsonError;
 import lombok.Getter;
 
-@Singleton
+import java.util.List;
+
+@Controller("/errors")
 public class ExceptionHandlerController {
 
     @Error(global = true)
