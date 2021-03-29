@@ -40,10 +40,6 @@ dependencies {
     implementation("io.micronaut.security:micronaut-security-ldap")
     implementation("io.micronaut.kafka:micronaut-kafka")
 
-    // Use embedded kafka
-    implementation 'org.apache.kafka:kafka-clients:2.6.0:test'
-    implementation 'org.apache.kafka:kafka_2.12:2.6.0'
-    implementation 'org.apache.kafka:kafka_2.12:2.6.0:test'
 
     runtimeOnly("ch.qos.logback:logback-classic")
 
