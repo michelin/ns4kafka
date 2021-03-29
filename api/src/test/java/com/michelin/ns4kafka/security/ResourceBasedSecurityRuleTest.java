@@ -38,14 +38,16 @@ public class ResourceBasedSecurityRuleTest {
     void CheckReturnsUnknown_InvalidResource(){
         List<String> groups = List.of("group1");
         SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/non-namespaced/resource"),null,
-                Map.of("sub","user", "groups", groups));
+                Map.of("sub","user", "groups", groups, "roles", List.of()));
         Assertions.assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
     @Test
     void CheckReturnsUnknown_NoRoleBinding(){
         List<String> groups = List.of("group1");
-        Map<String,Object> claims = Map.of("sub","user", "groups", groups);
+        Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
+        Mockito.when(namespaceRepository.findByName("test"))
+                .thenReturn(Optional.of(Namespace.builder().build()));
         Mockito.when(roleBindingRepository.findAllForGroups(groups))
                 .thenReturn(List.of());
 
@@ -56,9 +58,7 @@ public class ResourceBasedSecurityRuleTest {
     @Test
     void CheckReturnsUnknown_InvalidNamespace(){
         List<String> groups = List.of("group1");
-        Map<String,Object> claims = Map.of("sub","user", "groups", groups);
-        Mockito.when(roleBindingRepository.findAllForGroups(groups))
-                .thenReturn(List.of(new RoleBinding("test","group1")));
+        Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
         Mockito.when(namespaceRepository.findByName("test"))
                 .thenReturn(Optional.empty());
 
@@ -69,7 +69,7 @@ public class ResourceBasedSecurityRuleTest {
     @Test
     void CheckReturnsAllowed(){
         List<String> groups = List.of("group1");
-        Map<String,Object> claims = Map.of("sub","user", "groups", groups);
+        Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
         Mockito.when(roleBindingRepository.findAllForGroups(groups))
                 .thenReturn(List.of(new RoleBinding("test","group1")));
         Mockito.when(namespaceRepository.findByName("test"))
@@ -81,7 +81,9 @@ public class ResourceBasedSecurityRuleTest {
     @Test
     void CheckReturnsUnknown_SubResource(){
         List<String> groups = List.of("group1");
-        Map<String,Object> claims = Map.of("sub","user", "groups", groups);
+        Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
+        Mockito.when(namespaceRepository.findByName("test"))
+                .thenReturn(Optional.of(Namespace.builder().build()));
         Mockito.when(roleBindingRepository.findAllForGroups(groups))
                 .thenReturn(List.of(new RoleBinding("test","group1")));
 

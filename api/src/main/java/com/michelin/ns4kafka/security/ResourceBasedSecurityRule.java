@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.security;
 
+import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
@@ -38,27 +39,27 @@ public class ResourceBasedSecurityRule implements SecurityRule {
     NamespaceRepository namespaceRepository;
 
 
-    public ResourceBasedSecurityRule(@Value("${ns4kafka.admin.group:_}") String adminGroup, RoleBindingRepository roleBindingRepository, NamespaceRepository namespaceRepository){
-        this.adminGroup=adminGroup;
-        this.roleBindingRepository=roleBindingRepository;
-        this.namespaceRepository=namespaceRepository;
+    public ResourceBasedSecurityRule(@Value("${ns4kafka.admin.group:_}") String adminGroup, RoleBindingRepository roleBindingRepository, NamespaceRepository namespaceRepository) {
+        this.adminGroup = adminGroup;
+        this.roleBindingRepository = roleBindingRepository;
+        this.namespaceRepository = namespaceRepository;
     }
 
     @Override
     public SecurityRuleResult check(HttpRequest<?> request, @Nullable RouteMatch<?> routeMatch, @Nullable Map<String, Object> claims) {
         //Unauthenticated request
-        if(claims == null || !claims.containsKey("groups") || !claims.containsKey("sub")){
-            LOG.debug("No Authentication available for path ["+request.getPath()+"]. Returning unknown.");
+        if (claims == null || !claims.keySet().containsAll( List.of("groups", "sub", "roles"))) {
+            LOG.debug("No Authentication available for path [" + request.getPath() + "]. Returning unknown.");
             return SecurityRuleResult.UNKNOWN;
         }
 
         String sub = claims.get("sub").toString();
-        List<String> groups = (List<String>)claims.get("groups");
+        List<String> groups = (List<String>) claims.get("groups");
 
         //Request to a URL that is not in the scope of this SecurityRule
         Matcher matcher = namespacedResourcePattern.matcher(request.getPath());
         if (!matcher.find()) {
-            LOG.debug("Invalid Namespaced Resource for path ["+request.getPath()+"]. Returning unknown.");
+            LOG.debug("Invalid Namespaced Resource for path [" + request.getPath() + "]. Returning unknown.");
             return SecurityRuleResult.UNKNOWN;
         }
 
@@ -66,12 +67,22 @@ public class ResourceBasedSecurityRule implements SecurityRule {
         String resourceSubtype = matcher.group("resourceSubtype");
         String resourceType;
         //Subresource handling ie. connects/restart or groups/reset
-        if(StringUtils.isNotEmpty(resourceSubtype)){
+        if (StringUtils.isNotEmpty(resourceSubtype)) {
             resourceType = matcher.group("resourceType") + "/" + resourceSubtype;
-        }else {
+        } else {
             resourceType = matcher.group("resourceType");
         }
 
+        //Namespace doesn't exist
+        if (namespaceRepository.findByName(namespace).isEmpty() || namespace.equals(Namespace.ADMIN_NAMESPACE)) {
+            LOG.debug("Namespace not found for user [" + sub + "] on path [" + request.getPath() + "]. Returning unknown.");
+            return SecurityRuleResult.UNKNOWN;
+        }
+        //Admin are allowed everything
+        List<String> roles = (List<String>) claims.get("roles");
+        if(roles.contains(IS_ADMIN)){
+            return SecurityRuleResult.ALLOWED;
+        }
         //Collect all roleBindings for this user
         Collection<RoleBinding> roleBindings = roleBindingRepository.findAllForGroups(groups);
         List<RoleBinding> authorizedRoleBindings = roleBindings.stream()
@@ -81,19 +92,14 @@ public class ResourceBasedSecurityRule implements SecurityRule {
                 .collect(Collectors.toList());
 
         //User not authorized to access requested resource
-        if(authorizedRoleBindings.isEmpty()){
-            LOG.debug("No matching RoleBinding for user ["+sub+"] on path ["+request.getPath()+"]. Returning unknown.");
+        if (authorizedRoleBindings.isEmpty()) {
+            LOG.debug("No matching RoleBinding for user [" + sub + "] on path [" + request.getPath() + "]. Returning unknown.");
             return SecurityRuleResult.UNKNOWN;
         }
 
-        //Namespace doesn't exist
-        if(namespaceRepository.findByName(namespace).isEmpty()) {
-            LOG.debug("Namespace not found for user [" + sub + "] on path ["+request.getPath()+"]. Returning unknown.");
-            return SecurityRuleResult.UNKNOWN;
-        }
-        if(LOG.isDebugEnabled()){
-            authorizedRoleBindings.forEach(roleBinding -> LOG.debug("Found matching RoleBinding : "+roleBinding.toString()));
-            LOG.debug("Authorized user ["+sub+"] on path ["+request.getPath()+"]");
+        if (LOG.isDebugEnabled()) {
+            authorizedRoleBindings.forEach(roleBinding -> LOG.debug("Found matching RoleBinding : " + roleBinding.toString()));
+            LOG.debug("Authorized user [" + sub + "] on path [" + request.getPath() + "]");
         }
 
 
@@ -107,7 +113,7 @@ public class ResourceBasedSecurityRule implements SecurityRule {
 
     public List<String> computeRolesFromGroups(List<String> groups) {
         List<String> roles = new ArrayList<>();
-        if(groups.contains(adminGroup))
+        if (groups.contains(adminGroup))
             roles.add(ResourceBasedSecurityRule.IS_ADMIN);
         //TODO other specific API groups ? auditor ?
         return roles;

@@ -8,9 +8,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
 import javax.inject.Singleton;
-import java.util.List;
+import java.util.Collection;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Singleton
 @KafkaListener(
@@ -26,26 +25,17 @@ public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlE
 
     @Override
     String getMessageKey(AccessControlEntry accessControlEntry) {
-        return  accessControlEntry.getMetadata().getNamespace() + "-" + sha256_last8(accessControlEntry.getSpec().toString());
+        return  accessControlEntry.getMetadata().getNamespace() + "/" + accessControlEntry.getMetadata().getName();
     }
 
     @Override
     public AccessControlEntry create(AccessControlEntry accessControlEntry) {
-        //TODO name must be set before this layer ?
-        String messageKey = getMessageKey(accessControlEntry);
-        accessControlEntry.getMetadata().setName(messageKey);
-        return this.produce(messageKey, accessControlEntry);
+        return this.produce(getMessageKey(accessControlEntry), accessControlEntry);
     }
 
     @Override
-    public void deleteByName(String acl) {
-        if(getKafkaStore().containsKey(acl)) {
-            AccessControlEntry toDelete = getKafkaStore().get(acl);
-            produce(acl,null);
-        }else{
-            throw new KafkaStoreException("Acl "+ acl+" does not exists");
-        }
-
+    public void delete(AccessControlEntry accessControlEntry) {
+        produce(getMessageKey(accessControlEntry),null);
     }
 
     @Override
@@ -63,19 +53,8 @@ public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlE
     }
 
     @Override
-    public List<AccessControlEntry> findAllForCluster(String cluster) {
-        return getKafkaStore().values()
-                .stream()
-                .filter(accessControlEntry -> accessControlEntry.getMetadata().getCluster().equals(cluster))
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<AccessControlEntry> findAllGrantedToNamespace(String namespace) {
-        return getKafkaStore().values()
-                .stream()
-                .filter(accessControlEntry -> accessControlEntry.getSpec().getGrantedTo().equals(namespace))
-                .collect(Collectors.toList());
+    public Collection<AccessControlEntry> findAll() {
+        return getKafkaStore().values();
     }
 
 }

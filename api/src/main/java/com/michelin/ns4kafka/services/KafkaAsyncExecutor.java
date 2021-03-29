@@ -3,7 +3,6 @@ package com.michelin.ns4kafka.services;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
-import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
@@ -44,7 +43,7 @@ public class KafkaAsyncExecutor {
     @Inject
     NamespaceRepository namespaceRepository;
     @Inject
-    AccessControlEntryRepository accessControlEntryRepository;
+    AccessControlEntryService accessControlEntryService;
 
 
     public KafkaAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) throws MalformedURLException {
@@ -388,7 +387,7 @@ public class KafkaAsyncExecutor {
 
         List<AclBinding> ns4kafkaACLs = namespaceRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName())
                 .stream()
-                .flatMap(namespace -> accessControlEntryRepository.findAllGrantedToNamespace(namespace.getMetadata().getName())
+                .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace)
                         .stream()
                         .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC ||
                                 accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.GROUP)
