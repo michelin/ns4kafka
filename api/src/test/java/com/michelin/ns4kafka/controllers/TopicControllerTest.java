@@ -8,11 +8,11 @@ import com.michelin.ns4kafka.services.TopicService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -34,16 +34,24 @@ public class TopicControllerTest {
     @InjectMocks
     TopicController topicController;
 
+    //Current Namespace
+    Namespace ns = Namespace.builder()
+            .metadata(ObjectMeta.builder()
+                    .name("test")
+                    .cluster("local")
+                    .build())
+            .build();
+
+    @BeforeEach
+    void init() {
+        //Given
+        //find the namespace attached to the resource
+        when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+    }
+
     @Test
     public void ListEmptyTopics() {
-        Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-        Mockito.when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
         when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of());
 
@@ -53,14 +61,6 @@ public class TopicControllerTest {
 
     @Test
     public void ListMultipleTopics() {
-        Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-        Mockito.when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
         when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Topic.builder().metadata(ObjectMeta.builder().name("topic1").build()).build(),
@@ -76,14 +76,6 @@ public class TopicControllerTest {
 
     @Test
     public void GetEmptyTopic() {
-        Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-        Mockito.when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "topic.notfound"))
                 .thenReturn(Optional.empty());
 
@@ -94,14 +86,6 @@ public class TopicControllerTest {
 
     @Test
     public void GetTopic() {
-        Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-        Mockito.when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "topic.found"))
                 .thenReturn(Optional.of(
                         Topic.builder().metadata(ObjectMeta.builder().name("topic.found").build()).build()
@@ -116,14 +100,6 @@ public class TopicControllerTest {
     @Test
     public void DeleteTopic() throws InterruptedException, ExecutionException, TimeoutException {
         //Given
-        Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-        Mockito.when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
         Optional<Topic> toDelete = Optional.of(
                 Topic.builder().metadata(ObjectMeta.builder().name("topic.delete").build()).build());
         when(topicService.findByName(ns, "topic.delete"))
@@ -143,14 +119,6 @@ public class TopicControllerTest {
     @Test
     public void DeleteTopicUnauthorized() throws InterruptedException, ExecutionException, TimeoutException {
         //Given
-        Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-        Mockito.when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "topic.delete"))
                 .thenReturn(false);
 
