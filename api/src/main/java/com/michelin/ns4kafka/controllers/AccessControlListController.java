@@ -8,6 +8,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.apache.commons.lang3.NotImplementedException;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -101,20 +102,21 @@ public class AccessControlListController extends NamespacedResourceController {
     @Delete("/{name}")
     @Status(HttpStatus.NO_CONTENT)
     public void delete(String namespace, String name) {
-        Namespace ns = getNamespace(namespace);
-        // 1. Check ACL exists
-        // 2. Check Ownership of ACL using metadata.namespace
-        // 3. Drop ACL
+        boolean isAdmin = namespace.equals(Namespace.ADMIN_NAMESPACE);
+        if (!isAdmin) {
+            Namespace ns = getNamespace(namespace);
+            // 1. Check ACL exists
+            // 2. Check Ownership of ACL using metadata.namespace
+            // 3. Drop ACL
+            Optional<AccessControlEntry> existingAccessControlEntry = accessControlEntryService.findByName(ns, name);
+            if (existingAccessControlEntry.isEmpty()) {
+                throw new ResourceValidationException(List.of("Invalid value " + name + " for name : AccessControlEntry doesn't exist in this namespace"));
+            }
 
-        Optional<AccessControlEntry> existingAccessControlEntry = accessControlEntryService.findByName(ns, name);
-        if (existingAccessControlEntry.isEmpty()) {
-            throw new ResourceValidationException(List.of("Invalid value " + name + " for name : AccessControlEntry doesn't exist"));
+            accessControlEntryService.delete(existingAccessControlEntry.get());
+        } else {
+            throw new NotImplementedException("TODO");
         }
-        if (!existingAccessControlEntry.get().getMetadata().getNamespace().equals(namespace)) {
-            throw new ResourceValidationException(List.of("Invalid value " + name + " for name : Namespace not OWNER of this acl"));
-        }
-
-        accessControlEntryService.delete(existingAccessControlEntry.get());
     }
 
     public enum AclLimit {
