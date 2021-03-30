@@ -33,12 +33,19 @@ public class ResourceBasedSecurityRuleTest {
         SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/anything"),null,null);
         Assertions.assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
+    @Test
+    void CheckReturnsUnknown_MissingClaims(){
+        List<String> groups = List.of("group1");
+        Map<String,Object> claims = Map.of("sub","user", "groups", groups);
+        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/anything"),null,claims);
+        Assertions.assertEquals(SecurityRuleResult.UNKNOWN, actual);
+    }
 
     @Test
     void CheckReturnsUnknown_InvalidResource(){
         List<String> groups = List.of("group1");
-        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/non-namespaced/resource"),null,
-                Map.of("sub","user", "groups", groups, "roles", List.of()));
+        Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
+        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/non-namespaced/resource"),null, claims);
         Assertions.assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
@@ -64,6 +71,33 @@ public class ResourceBasedSecurityRuleTest {
 
         SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/connects"),null, claims);
         Assertions.assertEquals(SecurityRuleResult.UNKNOWN, actual);
+    }
+    @Test
+    void CheckReturnsUnknown_AdminNamespaceAsNotAdmin(){
+        List<String> groups = List.of("group1");
+        Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
+
+        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/admin/connects"),null, claims);
+        Assertions.assertEquals(SecurityRuleResult.UNKNOWN, actual);
+    }
+
+    @Test
+    void CheckReturnsAllowed_AdminNamespaceAsAdmin(){
+        List<String> groups = List.of("group1");
+        Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of("isAdmin()"));
+
+        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/admin/connects"),null, claims);
+        Assertions.assertEquals(SecurityRuleResult.ALLOWED, actual);
+    }
+    @Test
+    void CheckReturnsAllowed_NamespaceAsAdmin(){
+        List<String> groups = List.of("group1");
+        Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of("isAdmin()"));
+        Mockito.when(namespaceRepository.findByName("test"))
+                .thenReturn(Optional.of(Namespace.builder().build()));
+
+        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/connects"),null, claims);
+        Assertions.assertEquals(SecurityRuleResult.ALLOWED, actual);
     }
 
     @Test

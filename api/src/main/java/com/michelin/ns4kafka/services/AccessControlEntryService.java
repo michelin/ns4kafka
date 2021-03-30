@@ -63,7 +63,7 @@ public class AccessControlEntryService {
         }
 
         // Are you dumb ?
-        if (namespace.equals(accessControlEntry.getSpec().getGrantedTo())) {
+        if (namespace.getMetadata().getName().equals(accessControlEntry.getSpec().getGrantedTo())) {
             validationErrors.add("Invalid value " + accessControlEntry.getSpec().getGrantedTo() + " for grantedTo: Why would you grant to yourself ?!");
         }
 

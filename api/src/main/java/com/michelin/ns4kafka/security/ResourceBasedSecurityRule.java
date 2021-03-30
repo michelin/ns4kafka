@@ -55,6 +55,7 @@ public class ResourceBasedSecurityRule implements SecurityRule {
 
         String sub = claims.get("sub").toString();
         List<String> groups = (List<String>) claims.get("groups");
+        List<String> roles = (List<String>) claims.get("roles");
 
         //Request to a URL that is not in the scope of this SecurityRule
         Matcher matcher = namespacedResourcePattern.matcher(request.getPath());
@@ -72,17 +73,22 @@ public class ResourceBasedSecurityRule implements SecurityRule {
         } else {
             resourceType = matcher.group("resourceType");
         }
-
+        //Admin specific namespace
+        if(namespace.equals(Namespace.ADMIN_NAMESPACE) && roles.contains(IS_ADMIN)){
+            LOG.debug("Authorized admin user [" + sub + "] on path [" + request.getPath() + "]. Returning ALLOWED.");
+            return SecurityRuleResult.ALLOWED;
+        }
         //Namespace doesn't exist
-        if (namespaceRepository.findByName(namespace).isEmpty() || namespace.equals(Namespace.ADMIN_NAMESPACE)) {
+        if (namespaceRepository.findByName(namespace).isEmpty()) {
             LOG.debug("Namespace not found for user [" + sub + "] on path [" + request.getPath() + "]. Returning unknown.");
             return SecurityRuleResult.UNKNOWN;
         }
-        //Admin are allowed everything
-        List<String> roles = (List<String>) claims.get("roles");
+        //Admin are allowed everything (provided that the namespace exists)
         if(roles.contains(IS_ADMIN)){
+            LOG.debug("Authorized admin user [" + sub + "] on path [" + request.getPath() + "]. Returning ALLOWED.");
             return SecurityRuleResult.ALLOWED;
         }
+
         //Collect all roleBindings for this user
         Collection<RoleBinding> roleBindings = roleBindingRepository.findAllForGroups(groups);
         List<RoleBinding> authorizedRoleBindings = roleBindings.stream()
