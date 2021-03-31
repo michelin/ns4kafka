@@ -3,8 +3,12 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
+import com.michelin.ns4kafka.models.Topic.TopicSpec;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.TopicService;
+import com.michelin.ns4kafka.validation.TopicValidator;
+
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import org.junit.jupiter.api.Assertions;
@@ -20,6 +24,8 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
@@ -36,11 +42,14 @@ public class TopicControllerTest {
 
     //Current Namespace
     Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
-                    .name("test")
-                    .cluster("local")
-                    .build())
-            .build();
+        .spec(NamespaceSpec.builder()
+            .topicValidator(TopicValidator.makeDefault())
+            .build())
+        .metadata(ObjectMeta.builder()
+            .name("test")
+            .cluster("local")
+            .build())
+        .build();
 
     @BeforeEach
     void init() {
@@ -132,7 +141,24 @@ public class TopicControllerTest {
 
 
     @Test
-    public void CreateNewTopicFailValidationNoAPI() {
+    public void CreateNewTopicFailValidation() {
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                    .name("topic")
+                    .build())
+                .spec(TopicSpec.builder()
+                        .partitions(0)
+                        .build())
+                .build();
+        when(topicService.findByName(any(), anyString()))
+            .thenReturn(Optional.empty());
+        when(topicService.isNamespaceOwnerOfTopic(anyString(), anyString()))
+                .thenReturn(true);
+
+        Assertions.assertThrows(ResourceValidationException.class,() -> {
+                topicController.apply("test", topic);
+            });
+
         /*Topic topic = Topic.builder()
                 .metadata(ObjectMeta.builder().name("test.topic2").build())
                 .spec(Topic.TopicSpec.builder()
