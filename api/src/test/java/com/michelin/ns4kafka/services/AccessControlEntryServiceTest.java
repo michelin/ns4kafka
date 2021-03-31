@@ -250,6 +250,90 @@ public class AccessControlEntryServiceTest {
     }
 
     @Test
+    void validateAsAdmin_MissingNamespaceAndCluster() {
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("acl-name")
+                        .namespace("admin")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("main.sub")
+                        .grantedTo("target-ns")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("target-ns"))
+                .thenReturn(Optional.empty());
+        List<String> actual = accessControlEntryService.validateAsAdmin(accessControlEntry);
+
+        Assertions.assertEquals(2, actual.size());
+        Assertions.assertIterableEquals(List.of(
+                "Invalid value null for cluster: Value must be non-null",
+                "Invalid value target-ns for grantedTo: Namespace doesn't exist"),
+                actual);
+    }
+    @Test
+    void validateAsAdmin_InvalidCluster() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("target-ns")
+                        .cluster("local")
+                        .build())
+                .build();
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("acl-name")
+                        .cluster("local-wrong")
+                        .namespace("admin")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("main.sub")
+                        .grantedTo("target-ns")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("target-ns"))
+                .thenReturn(Optional.of(ns));
+        List<String> actual = accessControlEntryService.validateAsAdmin(accessControlEntry);
+
+        Assertions.assertEquals(1, actual.size());
+        Assertions.assertIterableEquals(List.of(
+                "Invalid value local-wrong for cluster: Value must be the same as the Namespace [local]"),
+                actual);
+    }
+    @Test
+    void validateAsAdmin_Success() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("target-ns")
+                        .cluster("local")
+                        .build())
+                .build();
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("acl-name")
+                        .cluster("local")
+                        .namespace("admin")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("main.sub")
+                        .grantedTo("target-ns")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("target-ns"))
+                .thenReturn(Optional.of(ns));
+        List<String> actual = accessControlEntryService.validateAsAdmin(accessControlEntry);
+
+        Assertions.assertTrue(actual.isEmpty());
+    }
+    @Test
     void findAllGrantedToNamespace() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder().name("namespace1").build()).build();

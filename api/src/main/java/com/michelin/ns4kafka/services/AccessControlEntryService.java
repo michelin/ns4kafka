@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.services;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
+import io.micronaut.core.util.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
@@ -71,6 +72,25 @@ public class AccessControlEntryService {
             validationErrors.add("Invalid grant " + accessControlEntry.getSpec().getResourcePatternType() + ":" +
                     accessControlEntry.getSpec().getResource() +
                     " : Namespace is neither OWNER of LITERAL:resource nor top-level PREFIXED:resource");
+        }
+        return validationErrors;
+    }
+
+    public List<String> validateAsAdmin(AccessControlEntry accessControlEntry) {
+        List<String> validationErrors = new ArrayList<>();
+        if (StringUtils.isEmpty(accessControlEntry.getMetadata().getCluster())) {
+            validationErrors.add("Invalid value null for cluster: Value must be non-null");
+        }
+        // GrantedTo Namespace exists ?
+        Optional<Namespace> grantedToNamespace = namespaceService.findByName(accessControlEntry.getSpec().getGrantedTo());
+        if (grantedToNamespace.isEmpty()) {
+            validationErrors.add("Invalid value " + accessControlEntry.getSpec().getGrantedTo() + " for grantedTo: Namespace doesn't exist");
+        }
+        // ACE cluster is namespace cluster ?
+        // this validation requires both validations above to be successful
+        if (validationErrors.isEmpty() &&
+                !accessControlEntry.getMetadata().getCluster().equals(grantedToNamespace.get().getMetadata().getCluster())) {
+            validationErrors.add("Invalid value " + accessControlEntry.getMetadata().getCluster() + " for cluster: Value must be the same as the Namespace ["+grantedToNamespace.get().getMetadata().getCluster()+"]");
         }
         return validationErrors;
     }
@@ -166,7 +186,7 @@ public class AccessControlEntryService {
                 });
     }
 
-    public Optional<AccessControlEntry> findByName(Namespace namespace, String name) {
-        return accessControlEntryRepository.findByName(namespace.getMetadata().getName(), name);
+    public Optional<AccessControlEntry> findByName(String namespace, String name) {
+        return accessControlEntryRepository.findByName(namespace, name);
     }
 }

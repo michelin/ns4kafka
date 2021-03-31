@@ -118,7 +118,7 @@ public class AccessControlListControllerTest {
     }
 
     @Test
-    void applyAsAdmin() {
+    void applyAsAdmin_Failure() {
         AccessControlEntry ace1 = AccessControlEntry.builder()
                 .metadata(ObjectMeta.builder().namespace("admin").cluster("local").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -130,6 +130,28 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
+        Mockito.when(accessControlEntryService.validateAsAdmin(ace1))
+                .thenReturn(List.of("ValidationError"));
+
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+                () -> accessControlListController.apply("admin", ace1));
+        Assertions.assertEquals(1, actual.getValidationErrors().size());
+    }
+    @Test
+    void applyAsAdmin_Success() {
+        AccessControlEntry ace1 = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder().namespace("admin").cluster("local").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build()
+                )
+                .build();
+        Mockito.when(accessControlEntryService.validateAsAdmin(ace1))
+                .thenReturn(List.of());
         Mockito.when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
@@ -193,9 +215,6 @@ public class AccessControlListControllerTest {
 
     @Test
     void deleteFailNotFound() {
-        Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder().name("test").cluster("local").build())
-                .build();
         AccessControlEntry ace1 = AccessControlEntry.builder()
                 .metadata(ObjectMeta.builder().name("ace1").namespace("test").cluster("local").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -207,9 +226,7 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Mockito.when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.findByName(ns, "ace1"))
+        Mockito.when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.empty());
         ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
                 () -> accessControlListController.delete("test", "ace1"));
@@ -219,9 +236,6 @@ public class AccessControlListControllerTest {
 
     @Test
     void deleteSuccess() {
-        Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder().name("test").cluster("local").build())
-                .build();
         AccessControlEntry ace1 = AccessControlEntry.builder()
                 .metadata(ObjectMeta.builder().name("ace1").namespace("test").cluster("local").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -233,9 +247,7 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Mockito.when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.findByName(ns, "ace1"))
+        Mockito.when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.of(ace1));
         //Mockito.doNothing().when(accessControlEntryService.delete(ace1));
         accessControlListController.delete("test", "ace1");
