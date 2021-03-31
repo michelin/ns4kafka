@@ -4,7 +4,6 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.services.connect.KafkaConnectService;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
 import com.michelin.ns4kafka.services.connect.client.entities.ConnectorInfo;
@@ -29,7 +28,7 @@ import java.util.Optional;
 public class KafkaConnectServiceTest {
 
     @Mock
-    AccessControlEntryRepository accessControlEntryRepository;
+    AccessControlEntryService accessControlEntryService;
     @Mock
     KafkaConnectClient kafkaConnectClient;
 
@@ -45,7 +44,7 @@ public class KafkaConnectServiceTest {
                         .build())
                 .build();
 
-        Mockito.when(accessControlEntryRepository.findAllGrantedToNamespace("namespace"))
+        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of());
         Mockito.when(kafkaConnectClient.listAll("local"))
                 .thenReturn(Map.of());
@@ -70,7 +69,7 @@ public class KafkaConnectServiceTest {
         c2.setInfo(new ConnectorInfo("ns-connect2", Map.of(), List.of(), ConnectorType.SINK));
         c3.setInfo(new ConnectorInfo("other-connect1", Map.of(), List.of(), ConnectorType.SINK));
 
-        Mockito.when(accessControlEntryRepository.findAllGrantedToNamespace("namespace"))
+        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(AccessControlEntry.builder()
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .permission(AccessControlEntry.Permission.OWNER)
@@ -103,7 +102,7 @@ public class KafkaConnectServiceTest {
                         .build())
                 .build();
 
-        Mockito.when(accessControlEntryRepository.findAllGrantedToNamespace("namespace"))
+        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of());
         Mockito.when(kafkaConnectClient.listAll("local"))
                 .thenReturn(Map.of());
@@ -128,7 +127,7 @@ public class KafkaConnectServiceTest {
         c2.setInfo(new ConnectorInfo("ns-connect2", Map.of(), List.of(), ConnectorType.SINK));
         c3.setInfo(new ConnectorInfo("other-connect1", Map.of(), List.of(), ConnectorType.SINK));
 
-        Mockito.when(accessControlEntryRepository.findAllGrantedToNamespace("namespace"))
+        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(AccessControlEntry.builder()
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .permission(AccessControlEntry.Permission.OWNER)

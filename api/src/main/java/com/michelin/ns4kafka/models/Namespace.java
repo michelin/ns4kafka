@@ -13,6 +13,11 @@ import javax.validation.constraints.NotNull;
 @Getter
 @Setter
 public class Namespace {
+    /**
+     * Special fake Namespace for admins
+     */
+    public static final String ADMIN_NAMESPACE = "admin";
+
     private final String apiVersion = "v1";
     private final String kind = "Namespace";
     @Valid

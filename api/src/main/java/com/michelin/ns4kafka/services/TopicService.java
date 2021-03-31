@@ -50,7 +50,7 @@ public class TopicService {
     }
 
     public boolean isNamespaceOwnerOfTopic(String namespace, String topic) {
-        return accessControlEntryService.isNamespaceOwnerOfTopic(namespace, topic);
+        return accessControlEntryService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.TOPIC, topic);
     }
 
     public Topic create(Topic topic) {

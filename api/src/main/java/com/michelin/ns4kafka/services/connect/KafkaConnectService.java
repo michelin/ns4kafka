@@ -5,7 +5,7 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
+import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
 import com.michelin.ns4kafka.services.connect.client.entities.ConfigInfos;
 import com.michelin.ns4kafka.services.connect.client.entities.ConnectorInfo;
@@ -27,12 +27,12 @@ public class KafkaConnectService {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaConnectService.class);
 
     @Inject
-    AccessControlEntryRepository accessControlEntryRepository;
+    AccessControlEntryService accessControlEntryService;
     @Inject
     KafkaConnectClient kafkaConnectClient;
 
     public List<Connector> list(Namespace namespace) {
-        List<AccessControlEntry> acls = accessControlEntryRepository.findAllGrantedToNamespace(namespace.getMetadata().getName());
+        List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace);
 
         return kafkaConnectClient.listAll(namespace.getMetadata().getCluster())
                 .entrySet()
@@ -102,19 +102,7 @@ public class KafkaConnectService {
     }
 
     public boolean isNamespaceOwnerOfConnect(Namespace namespace, String connect) {
-        return accessControlEntryRepository.findAllGrantedToNamespace(namespace.getMetadata().getName())
-                .stream()
-                .filter(accessControlEntry -> accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
-                .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT)
-                .anyMatch(accessControlEntry -> {
-                    switch (accessControlEntry.getSpec().getResourcePatternType()) {
-                        case PREFIXED:
-                            return connect.startsWith(accessControlEntry.getSpec().getResource());
-                        case LITERAL:
-                            return connect.equals(accessControlEntry.getSpec().getResource());
-                    }
-                    return false;
-                });
+        return accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(), AccessControlEntry.ResourceType.CONNECT, connect);
     }
 
     public List<String> validateRemotely(Namespace namespace, Connector connector) {

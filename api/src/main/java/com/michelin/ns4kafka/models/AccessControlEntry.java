@@ -6,10 +6,6 @@ import lombok.*;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import java.time.Instant;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
 
 @Introspected
 @Builder
@@ -17,13 +13,12 @@ import java.util.Map;
 @AllArgsConstructor
 @Data
 public class AccessControlEntry {
-    public static final String ADMIN = "admin";
 
     private final String apiVersion = "v1";
     private final String kind = "AccessControlEntry";
-    // No validation here since name and labels are set server-side
+    @Valid
+    @NotNull
     private ObjectMeta metadata;
-
     @Valid
     @NotNull
     AccessControlEntrySpec spec;
@@ -68,57 +63,5 @@ public class AccessControlEntry {
         OWNER,
         READ,
         WRITE
-    }
-    public static List<AccessControlEntry> buildGeneric(String namespace, String cluster, String prefix){
-        ObjectMeta metadata = ObjectMeta.builder()
-                .namespace(namespace)
-                .cluster(cluster)
-                .labels(Map.of("grantedBy", AccessControlEntry.ADMIN))
-                .creationTimestamp(Date.from(Instant.now()))
-                .build();
-
-        return List.of(
-                AccessControlEntry
-                        .builder()
-                        .spec(AccessControlEntrySpec.builder()
-                                .resourceType(ResourceType.TOPIC)
-                                .resource(prefix)
-                                .resourcePatternType(ResourcePatternType.PREFIXED)
-                                .permission(Permission.OWNER)
-                                .grantedTo(namespace)
-                                .build())
-                        .metadata(metadata)
-                        .build(),
-                AccessControlEntry.builder()
-                        .spec(AccessControlEntrySpec.builder()
-                                .resourceType(ResourceType.CONNECT)
-                                .resource(prefix)
-                                .resourcePatternType(ResourcePatternType.PREFIXED)
-                                .permission(Permission.OWNER)
-                                .grantedTo(namespace)
-                                .build())
-                        .metadata(metadata)
-                        .build(),
-                AccessControlEntry.builder()
-                        .spec(AccessControlEntrySpec.builder()
-                                .resourceType(ResourceType.GROUP)
-                                .resource(prefix)
-                                .resourcePatternType(ResourcePatternType.PREFIXED)
-                                .permission(Permission.OWNER)
-                                .grantedTo(namespace)
-                                .build())
-                        .metadata(metadata)
-                        .build(),
-                AccessControlEntry.builder()
-                        .spec(AccessControlEntrySpec.builder()
-                                .resourceType(ResourceType.GROUP)
-                                .resource("connect-"+prefix)
-                                .resourcePatternType(ResourcePatternType.PREFIXED)
-                                .permission(Permission.OWNER)
-                                .grantedTo(namespace)
-                                .build())
-                        .metadata(metadata)
-                        .build()
-        );
     }
 }
