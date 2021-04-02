@@ -32,6 +32,13 @@ public class KafkactlCommand implements Runnable {
     @Option(names = {"-f", "--file"}, description = "File in Yaml describing the system Kafka")
     File file;
 
+    String jwt;
+    @Option(names = {"-t", "--token"}, description = "Access token of Gitlab")
+    public void getJWT(String token) {
+        //TODO Post on Login and get jwt
+        this.jwt = token;
+    }
+
     public static void main(String[] args) throws Exception {
         PicocliRunner.run(KafkactlCommand.class, args);
     }
