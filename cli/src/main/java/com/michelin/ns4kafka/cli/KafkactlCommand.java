@@ -4,8 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.http.HttpRequest;
-import java.net.http.HttpRequest.BodyPublishers;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,6 +15,7 @@ import org.yaml.snakeyaml.constructor.Constructor;
 
 import io.micronaut.configuration.picocli.PicocliRunner;
 import io.micronaut.context.ApplicationContext;
+import io.micronaut.http.HttpRequest;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -25,6 +24,7 @@ import picocli.CommandLine.Parameters;
 @Command(name = "kafkactl", description = "...",
         mixinStandardHelpOptions = true)
 public class KafkactlCommand implements Runnable {
+
 
     @Option(names = {"-v", "--verbose"}, description = "...")
     boolean verbose;
@@ -46,33 +46,33 @@ public class KafkactlCommand implements Runnable {
             Yaml yaml = new Yaml(new Constructor(Resource.class));
             ObjectMapper jsonWriter = new ObjectMapper();
             String json;
+            //TODO better management of Exception
             try {
                 InputStream inputStream = new FileInputStream(file);
-                //managed multi document YAML
-                for (Object resourceYaml : yaml.loadAll(inputStream)) {
-                    // TODO convert object to Resource to remove this line
-                    Resource resource = new Resource();
-                    //Throws exception if the kind doesn't exist
-                    ResourceKind kind = ResourceKind.valueOf(resource.getKind());
-                    json = jsonWriter.writeValueAsString(resourceYaml);
-                    switch(kind) {
-                    case NAMESPACE:
-                        HttpRequest request = HttpRequest.newBuilder()
-                            .uri(URI.create("/api/namespaces"))
-                            .setHeader("Content-Type", "application/json")
-                            .POST(BodyPublishers.ofString(json))
-                            .build();
-                        break;
-                    case ACCESSCONTROLENTRY:
-                        break;
-                    case CONNECTOR:
-                        break;
-                    case TOPIC:
-                        break;
-                    default:
-                        break;
-                    }
+                //TODO manage multi document YAML
+                Resource resourceYaml = yaml.load(inputStream);
+                //Throws exception if the kind doesn't exist
+                ResourceKind kind = ResourceKind.valueOf(resourceYaml.getKind());
+                String namespace = resourceYaml.getMetadata().getNamespace();
+                //convert to JSON
+                json = jsonWriter.writeValueAsString(resourceYaml);
+                switch(kind) {
+                case NAMESPACE:
+                    HttpRequest.POST(URI.create("http://localhost:8080/api/namespaces"),json);
+                    break;
+                case ACCESSCONTROLENTRY:
+                    HttpRequest.POST(URI.create("http://localhost:8080/api/namespaces/"+ namespace + "/acls"),json);
+                    break;
+                case CONNECTOR:
+                    HttpRequest.POST(URI.create("http://localhost:8080/api/namespaces/"+ namespace +"/connects"),json);
+                    break;
+                case TOPIC:
+                    HttpRequest.POST(URI.create("http://localhost:8080/api/namespaces/"+ namespace +"/topic"),json);
+                    break;
+                default:
+                    break;
                 }
+
 
             }
             catch (Exception e) {
@@ -81,4 +81,5 @@ public class KafkactlCommand implements Runnable {
 
         }
     }
+
 }
