@@ -1,9 +1,16 @@
 package com.michelin.ns4kafka.models;
 
+import io.micronaut.core.annotation.Introspected;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import java.util.Collection;
 import java.util.List;
+
+@Introspected
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -11,30 +18,34 @@ import java.util.List;
 @Setter
 @ToString
 public class RoleBinding {
+
     private final String apiVersion = "v1";
-    private final String kind = "AccessControlEntry";
-    // No validation here since name and labels are set server-side
-    //TODO RoleBindingSpec + ObjectMeta
-    private String namespace;
-    private Role role; //TODO Collection<Role>
-    private Subject subject; //TODO Collection<Subject>
+    private final String kind = "RoleBinding";
 
-    public RoleBinding(String namespace, String group){
-        this.namespace=namespace;
-        this.role = new Role();
-        this.subject = new Subject(group);
-    }
+    @Valid
+    @NotNull
+    private ObjectMeta metadata;
+
+    @Valid
+    @NotNull
+    private RoleBindingSpec spec;
 
 
-    //TODO RoleRef instead: roleAdmin, roleRead, roleXXX + RoleRepository
     @Builder
     @AllArgsConstructor
+    @NoArgsConstructor
     @Getter
     @Setter
-    @ToString
-    public static class Role {
-        private final Collection<String> resourceTypes = List.of("topics","connects","schemas","consumer-groups", "acls");
-        private final Collection<String> verbs = List.of("GET","POST","PUT","DELETE");
+    @Schema(description = "Contains the Role Binding specification")
+    public static class RoleBindingSpec {
+
+        @NotNull
+        @NotBlank
+        private Role role;
+
+        @NotNull
+        @NotBlank
+        private Subject subject;
     }
 
     @Builder
@@ -42,11 +53,43 @@ public class RoleBinding {
     @NoArgsConstructor
     @Getter
     @Setter
-    @ToString
+    public static class Role {
+
+        @NotNull
+        private Collection<ResourceType> resourceTypes;
+
+        @NotNull
+        private Collection<Verb> verbs;
+    }
+
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
+    @Setter
     public static class Subject {
-        private final SubjectType subjectType = SubjectType.GROUP;
+
+        @NotNull
+        private SubjectType subjectType;
+
+        @NotNull
         private String subjectName;
 
+    }
+
+    public enum ResourceType {
+        topics,
+        connects,
+        schemas,
+        consumer_groups,
+        acls
+    }
+
+    public enum Verb {
+        GET,
+        POST,
+        PUT,
+        DELETE
     }
 
     public enum SubjectType {
