@@ -29,8 +29,27 @@ public class KafkactlCommand implements Runnable {
     @Option(names = {"-v", "--verbose"}, description = "...")
     boolean verbose;
 
+    String json = "";
+    ResourceKind kind;
+    String namespace;
     @Option(names = {"-f", "--file"}, description = "File in Yaml describing the system Kafka")
-    File file;
+    public void convertYamlToJson(File file) throws Exception {
+        //TODO better management of Exception
+        Yaml yaml = new Yaml(new Constructor(Resource.class));
+        ObjectMapper jsonWriter = new ObjectMapper();
+        InputStream inputStream = new FileInputStream(file);
+
+        //TODO manage multi document YAML
+        Resource resourceYaml = yaml.load(inputStream);
+
+        //Throws exception if the kind doesn't exist
+        kind = ResourceKind.resourceKindFromValue(resourceYaml.getKind());
+        namespace = resourceYaml.getMetadata().getNamespace();
+
+        //convert to JSON
+        json = jsonWriter.writeValueAsString(resourceYaml);
+
+    }
 
     String jwt;
     @Option(names = {"-t", "--token"}, description = "Access token of Gitlab")
@@ -49,43 +68,23 @@ public class KafkactlCommand implements Runnable {
         if (verbose) {
             System.out.println("Hi!");
         }
-        if (file.exists()) {
-            Yaml yaml = new Yaml(new Constructor(Resource.class));
-            ObjectMapper jsonWriter = new ObjectMapper();
-            String json;
-            //TODO better management of Exception
-            try {
-                InputStream inputStream = new FileInputStream(file);
-                //TODO manage multi document YAML
-                Resource resourceYaml = yaml.load(inputStream);
-                //Throws exception if the kind doesn't exist
-                ResourceKind kind = ResourceKind.resourceKindFromValue(resourceYaml.getKind());
-                String namespace = resourceYaml.getMetadata().getNamespace();
-                //convert to JSON
-                json = jsonWriter.writeValueAsString(resourceYaml);
-                switch(kind) {
-                case NAMESPACE:
-                    HttpRequest.POST(URI.create("http://localhost:8080/api/namespaces"),json);
-                    break;
-                case ACCESSCONTROLENTRY:
-                    HttpRequest.POST(URI.create("http://localhost:8080/api/namespaces/"+ namespace + "/acls"),json);
-                    break;
-                case CONNECTOR:
-                    HttpRequest.POST(URI.create("http://localhost:8080/api/namespaces/"+ namespace +"/connects"),json);
-                    break;
-                case TOPIC:
-                    HttpRequest.POST(URI.create("http://localhost:8080/api/namespaces/"+ namespace +"/topic"),json);
-                    break;
-                default:
-                    break;
-                }
-
+        if (!json.isBlank()) {
+            switch(kind) {
+            case NAMESPACE:
+                HttpRequest.POST(URI.create("http://localhost:8080/api/namespaces"), json);
+                break;
+            case ACCESSCONTROLENTRY:
+                HttpRequest.POST(URI.create("http://localhost:8080/api/namespaces/" + namespace + "/acls"), json);
+                break;
+            case CONNECTOR:
+                HttpRequest.POST(URI.create("http://localhost:8080/api/namespaces/" + namespace + "/connects"), json);
+                break;
+            case TOPIC:
+                HttpRequest.POST(URI.create("http://localhost:8080/api/namespaces/" + namespace + "/topic"), json);
+                break;
+            default:
+                break;
             }
-
-            catch (Exception e) {
-                System.out.print(e);
-            }
-
         }
 
     }
