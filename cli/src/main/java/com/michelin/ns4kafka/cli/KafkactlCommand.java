@@ -59,7 +59,7 @@ public class KafkactlCommand implements Runnable {
                 //TODO manage multi document YAML
                 Resource resourceYaml = yaml.load(inputStream);
                 //Throws exception if the kind doesn't exist
-                ResourceKind kind = ResourceKind.valueOf(resourceYaml.getKind());
+                ResourceKind kind = ResourceKind.resourceKindFromValue(resourceYaml.getKind());
                 String namespace = resourceYaml.getMetadata().getNamespace();
                 //convert to JSON
                 json = jsonWriter.writeValueAsString(resourceYaml);
@@ -80,13 +80,14 @@ public class KafkactlCommand implements Runnable {
                     break;
                 }
 
-
             }
+
             catch (Exception e) {
                 System.out.print(e);
             }
 
         }
+
     }
 
 }
