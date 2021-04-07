@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.controllers;
 
 
+import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.services.RoleBindingService;
 import io.micronaut.http.HttpStatus;
@@ -34,20 +35,18 @@ public class RoleBindingController extends NamespacedResourceController {
     public Optional<RoleBinding> get(String namespace, String name) {
 
 
-        // ToDo custom error
+        // ToDo Custom error for non existing namespace
         return roleBindingService.findByName(namespace, name);
     }
 
     @Post("/")
     public RoleBinding apply(String namespace, @Valid @Body RoleBinding rolebinding) {
 
-        // valid namespace
-        // valid spec
-        // not null
-        // non empty list
+        // fill with cluster name
+        Namespace ns = getNamespace(namespace);
+        rolebinding.getMetadata().setCluster(ns.getMetadata().getCluster());
 
         roleBindingService.create(rolebinding);
-
         return rolebinding;
     }
 

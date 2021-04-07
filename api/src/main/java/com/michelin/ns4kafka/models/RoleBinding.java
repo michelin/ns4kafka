@@ -6,11 +6,12 @@ import lombok.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import java.util.Collection;
-import java.util.List;
 
-@Introspected
+
+@Introspected(classes = {RoleBinding.class, RoleBinding.RoleBindingSpec.class, RoleBinding.Role.class, RoleBinding.Subject.class})
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -22,14 +23,12 @@ public class RoleBinding {
     private final String apiVersion = "v1";
     private final String kind = "RoleBinding";
 
-    @Valid
     @NotNull
     private ObjectMeta metadata;
 
     @Valid
     @NotNull
     private RoleBindingSpec spec;
-
 
     @Builder
     @AllArgsConstructor
@@ -39,12 +38,12 @@ public class RoleBinding {
     @Schema(description = "Contains the Role Binding specification")
     public static class RoleBindingSpec {
 
+        @Valid
         @NotNull
-        @NotBlank
         private Role role;
 
+        @Valid
         @NotNull
-        @NotBlank
         private Subject subject;
     }
 
@@ -56,9 +55,11 @@ public class RoleBinding {
     public static class Role {
 
         @NotNull
+        @NotEmpty
         private Collection<ResourceType> resourceTypes;
 
         @NotNull
+        @NotEmpty
         private Collection<Verb> verbs;
     }
 
@@ -73,6 +74,7 @@ public class RoleBinding {
         private SubjectType subjectType;
 
         @NotNull
+        @NotBlank
         private String subjectName;
 
     }
