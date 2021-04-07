@@ -56,7 +56,7 @@ public class RoleBinding {
 
         @NotNull
         @NotEmpty
-        private Collection<ResourceType> resourceTypes;
+        private Collection<String> resourceTypes;
 
         @NotNull
         @NotEmpty
@@ -77,14 +77,6 @@ public class RoleBinding {
         @NotBlank
         private String subjectName;
 
-    }
-
-    public enum ResourceType {
-        topics,
-        connects,
-        schemas,
-        consumer_groups,
-        acls
     }
 
     public enum Verb {

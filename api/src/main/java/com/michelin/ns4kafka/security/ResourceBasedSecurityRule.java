@@ -93,7 +93,7 @@ public class ResourceBasedSecurityRule implements SecurityRule {
         Collection<RoleBinding> roleBindings = roleBindingRepository.findAllForGroups(groups);
         List<RoleBinding> authorizedRoleBindings = roleBindings.stream()
                 .filter(roleBinding -> roleBinding.getMetadata().getNamespace().equals(namespace))
-                .filter(roleBinding -> roleBinding.getSpec().getRole().getResourceTypes().stream().map(v -> v.name()).collect(Collectors.toList()).contains(resourceType))
+                .filter(roleBinding -> roleBinding.getSpec().getRole().getResourceTypes().contains(resourceType))
                 .filter(roleBinding -> roleBinding.getSpec().getRole().getVerbs().stream().map(v -> v.name()).collect(Collectors.toList()).contains(request.getMethodName()))
                 .collect(Collectors.toList());
 

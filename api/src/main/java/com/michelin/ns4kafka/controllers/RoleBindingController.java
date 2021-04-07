@@ -15,8 +15,8 @@ import javax.validation.Valid;
 import java.util.List;
 import java.util.Optional;
 
-@Tag(name = "Roles Bindings")
-@Controller(value = "/api/namespaces/{namespace}/roles")
+@Tag(name = "Role Bindings")
+@Controller(value = "/api/namespaces/{namespace}/role-bindings")
 @ExecuteOn(TaskExecutors.IO)
 public class RoleBindingController extends NamespacedResourceController {
 
@@ -45,6 +45,7 @@ public class RoleBindingController extends NamespacedResourceController {
         // fill with cluster name
         Namespace ns = getNamespace(namespace);
         rolebinding.getMetadata().setCluster(ns.getMetadata().getCluster());
+        rolebinding.getMetadata().setNamespace(namespace);
 
         roleBindingService.create(rolebinding);
         return rolebinding;
