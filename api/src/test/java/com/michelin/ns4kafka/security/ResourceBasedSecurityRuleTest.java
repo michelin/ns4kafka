@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.security;
 
 import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
@@ -105,7 +106,18 @@ public class ResourceBasedSecurityRuleTest {
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
         Mockito.when(roleBindingRepository.findAllForGroups(groups))
-                .thenReturn(List.of(new RoleBinding("test","group1")));
+                .thenReturn(List.of(RoleBinding.builder()
+                        .metadata(ObjectMeta.builder().namespace("test")
+                                .build())
+                        .spec(RoleBinding.RoleBindingSpec.builder()
+                                .role(RoleBinding.Role.builder()
+                                        .resourceTypes(List.of("connects"))
+                                        .verbs(List.of(RoleBinding.Verb.GET))
+                                        .build())
+                                .subject(RoleBinding.Subject.builder().subjectName("group1")
+                                        .build())
+                                .build())
+                        .build()));
         Mockito.when(namespaceRepository.findByName("test"))
                 .thenReturn(Optional.of(Namespace.builder().build()));
 
@@ -113,13 +125,48 @@ public class ResourceBasedSecurityRuleTest {
         Assertions.assertEquals(SecurityRuleResult.ALLOWED, actual);
     }
     @Test
+    void CheckReturnsAllowed_Subresource(){
+        List<String> groups = List.of("group1");
+        Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
+        Mockito.when(roleBindingRepository.findAllForGroups(groups))
+                .thenReturn(List.of(RoleBinding.builder()
+                        .metadata(ObjectMeta.builder().namespace("test")
+                                .build())
+                        .spec(RoleBinding.RoleBindingSpec.builder()
+                                .role(RoleBinding.Role.builder()
+                                        .resourceTypes(List.of("connects/restart"))
+                                        .verbs(List.of(RoleBinding.Verb.GET))
+                                        .build())
+                                .subject(RoleBinding.Subject.builder().subjectName("group1")
+                                        .build())
+                                .build())
+                        .build()));
+        Mockito.when(namespaceRepository.findByName("test"))
+                .thenReturn(Optional.of(Namespace.builder().build()));
+
+        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/connects/name/restart"),null, claims);
+        Assertions.assertEquals(SecurityRuleResult.ALLOWED, actual);
+    }
+
+  @Test
     void CheckReturnsUnknown_SubResource(){
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
         Mockito.when(namespaceRepository.findByName("test"))
                 .thenReturn(Optional.of(Namespace.builder().build()));
-        Mockito.when(roleBindingRepository.findAllForGroups(groups))
-                .thenReturn(List.of(new RoleBinding("test","group1")));
+      Mockito.when(roleBindingRepository.findAllForGroups(groups))
+              .thenReturn(List.of(RoleBinding.builder()
+                      .metadata(ObjectMeta.builder().namespace("test")
+                              .build())
+                      .spec(RoleBinding.RoleBindingSpec.builder()
+                              .role(RoleBinding.Role.builder()
+                                      .resourceTypes(List.of("connects"))
+                                      .verbs(List.of(RoleBinding.Verb.GET))
+                                      .build())
+                              .subject(RoleBinding.Subject.builder().subjectName("group1")
+                                      .build())
+                              .build())
+                      .build()));
 
         SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/connects/name/restart"),null, claims);
         Assertions.assertEquals(SecurityRuleResult.UNKNOWN, actual);

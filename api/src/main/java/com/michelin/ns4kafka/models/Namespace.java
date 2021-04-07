@@ -2,11 +2,13 @@ package com.michelin.ns4kafka.models;
 
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
+import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
+@Introspected
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor

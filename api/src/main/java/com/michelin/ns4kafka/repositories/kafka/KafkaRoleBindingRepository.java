@@ -26,7 +26,7 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
 
     @Override
     String getMessageKey(RoleBinding roleBinding) {
-        return roleBinding.getNamespace()+"-"+sha256_last8(roleBinding.toString());
+        return roleBinding.getMetadata().getNamespace() + "-" + roleBinding.getMetadata().getName();
     }
 
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.role-bindings")
@@ -48,8 +48,8 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
     public List<RoleBinding> findAllForGroups(Collection<String> groups) {
         return getKafkaStore().values().stream().filter(roleBinding ->
                 groups.stream().anyMatch(group ->
-                        roleBinding.getSubject().getSubjectType() == RoleBinding.SubjectType.GROUP
-                                && roleBinding.getSubject().getSubjectName().equals(group)
+                        roleBinding.getSpec().getSubject().getSubjectType() == RoleBinding.SubjectType.GROUP
+                                && roleBinding.getSpec().getSubject().getSubjectName().equals(group)
                 )
         ).collect(Collectors.toList());
 
@@ -58,7 +58,7 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
     @Override
     public List<RoleBinding> findAllForNamespace(String namespace) {
         return getKafkaStore().values().stream()
-                .filter(roleBinding -> roleBinding.getNamespace().equals(namespace))
+                .filter(roleBinding -> roleBinding.getMetadata().getNamespace().equals(namespace))
                 .collect(Collectors.toList());
     }
 
