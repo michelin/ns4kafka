@@ -1,13 +1,20 @@
 package com.michelin.ns4kafka.cli;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import javax.inject.Inject;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.michelin.ns4kafka.cli.client.NonNamespacedResourceClient;
+import com.michelin.ns4kafka.cli.client.ResourceClient;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.ResourceKind;
 
@@ -15,6 +22,7 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
 import io.micronaut.configuration.picocli.PicocliRunner;
+import io.micronaut.core.io.IOUtils;
 import io.micronaut.http.HttpRequest;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -23,8 +31,13 @@ import picocli.CommandLine.Parameters;
 //TODO Make subcommand understand parameters
 @Command(name = "kafkactl", subcommands = {Login.class} , description = "...",
         mixinStandardHelpOptions = true)
-public class KafkactlCommand implements Runnable {
+public class KafkactlCommand implements Callable<Integer> {
 
+    @Inject
+    ResourceClient httpClient;
+
+    @Inject
+    NonNamespacedResourceClient nonNamespacedClient;
 
     @Option(names = {"-v", "--verbose"}, description = "...")
     boolean verbose;
@@ -51,41 +64,41 @@ public class KafkactlCommand implements Runnable {
 
     }
 
-    String jwt;
-    @Option(names = {"-t", "--token"}, description = "Access token of Gitlab")
-    public void getJWT(String token) {
-        //TODO Post on Login and get jwt
-        this.jwt = token;
-    }
-
     public static void main(String[] args) throws Exception {
-        PicocliRunner.execute(KafkactlCommand.class, args);
+        int exitCode = PicocliRunner.execute(KafkactlCommand.class, args);
+        System.exit(exitCode);
     }
 
-    public void run() {
+    public Integer call() throws Exception {
         // business logic here
         System.out.println("Hi!");
         if (verbose) {
             System.out.println("Hi!");
         }
         if (!json.isBlank()) {
+            BufferedReader in
+            = new BufferedReader(new FileReader("jwt"));
+            String token = IOUtils.readText(in);
+            System.out.println(token.toCharArray());
+            token = "Bearer " + token.replaceAll("(\\r\\n|\\n|\\r)", "");
             switch(kind) {
             case NAMESPACE:
-                HttpRequest.POST(URI.create("http://localhost:8080/api/namespaces"), json);
+                nonNamespacedClient.apply(token, json);
                 break;
             case ACCESSCONTROLENTRY:
-                HttpRequest.POST(URI.create("http://localhost:8080/api/namespaces/" + namespace + "/acls"), json);
+                httpClient.apply(namespace, "acls", token, json);
                 break;
             case CONNECTOR:
-                HttpRequest.POST(URI.create("http://localhost:8080/api/namespaces/" + namespace + "/connects"), json);
+                httpClient.apply(namespace, "connects", token, json);
                 break;
             case TOPIC:
-                HttpRequest.POST(URI.create("http://localhost:8080/api/namespaces/" + namespace + "/topic"), json);
+                httpClient.apply(namespace, "topic", token, json);
                 break;
             default:
-                break;
+                throw new Exception();
             }
         }
+        return 0;
 
     }
 
