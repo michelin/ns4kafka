@@ -79,8 +79,7 @@ public class KafkactlCommand implements Callable<Integer> {
             BufferedReader in
             = new BufferedReader(new FileReader("jwt"));
             String token = IOUtils.readText(in);
-            System.out.println(token.toCharArray());
-            token = "Bearer " + token.replaceAll("(\\r\\n|\\n|\\r)", "");
+            token = "Bearer " + token;
             switch(kind) {
             case NAMESPACE:
                 nonNamespacedClient.apply(token, json);

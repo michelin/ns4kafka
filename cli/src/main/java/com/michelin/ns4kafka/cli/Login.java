@@ -29,8 +29,8 @@ class Login implements Callable<Integer> {
     @Option(names = {"-u", "--username"}, description = "Username")
     String username = "Gitlab";
 
-    @Option(names = {"-p, --password"}, description = "Password")
     //TODO change to char[]
+    @Option(names = {"-p", "--password"}, description = "Password")
     String password;
 
     @Override
@@ -48,7 +48,7 @@ class Login implements Callable<Integer> {
         File file = new File("jwt");
         file.createNewFile();
         FileWriter myWriter = new FileWriter("jwt");
-        myWriter.write(resultObject.get("access_token").toString());
+        myWriter.write(resultObject.get("access_token").textValue());
         myWriter.close();
         return 0;
     }
