@@ -1,20 +1,53 @@
 ns4kafka
 =======================
-Namespaces on top of Kafka Broker, Kafka Connect and Schema Registry
 
-ns4kafka aims to answer some difficulties encountered while running multi-tenant Kafka :  
-* How to maintain high availability of the cluster and prevent misconfigurations of Kafka resources
-* How to provide isolation between projects on any Kafka related resource (Topics, Connects, Schemas, ...) ?
-* How to allow collaboration between projects teams ?
-* **... all of this while giving full autonomy to the project teams ?**
+**ns4kafka** brings to Kafka a new deployment model following the best practices from Kubernetes :  
 
-**High availability** cannot be guaranteed unless resource creation gets properly validated.   
-Your Ops team might want to restrict the values of certain parameters.
-For topics, restrictions on ``partitions``, ``min.insync.replicas`` or ``retention.bytes``
-is probably not a bad idea.
+- **Namespace isolation.** You can manage your own Kafka resources (Topics, Connects, ACLs) within your namespace and you don't see Kafka resources managed by other namespaces
+- **Desired state.** You define how the deployed resources should look like when deployed using **Resource descriptors** defined with Yaml files.
+- **Apply / Idempotence.** You can execute the same deployment multiple times using the command line tool ``kafkactl apply`` and unmodified resources are simply ignored.
+- **Server side validation.** Validation models allows Kafka OPS to define custom validators to enforce validation rules such as forcing Topic config ``min.insync.replica`` to a specific value or Connect config ``connect.class`` to a predifined list of allowed Connector classes.
 
-**Isolation** is the easiest part to implement using Kafka ACL. Except it doesn't apply on Kafka Connect, nor Schema Registry
+On top of that, this models unlocks interesting features allowing you to have a more robust CI/CD process :  
 
+- **Dry-run mode.** Executes the deployment without actually persisting or triggering resource creations or modifications.
+- **Diff mode.** Displays the changes that would occur on resources compared to the current state.
+
+ns4kafka is built on top of 2 components : an API and a CLI.
+
+The API exposes all the required controllers to list, create and delete Kafka resources. It must be deployed and managed by Kafka administrators.  
+The CLI is, much like kubectl, a wrapper on the API to let any user or CI/CD pipeline deploy Kafka resources using yaml descriptors. It is made available to any project who needs to manage Kafka resources.
+
+## Quick start
+
+````yaml
+# descriptor.yml
+---
+apiVersion: v1
+kind: Topic
+metadata:
+  name: project1.topic1
+spec:
+  replicationFactor: 3
+  partitions: 3
+  configs:
+    min.insync.replicas: '2'
+    cleanup.policy: delete
+    retention.ms: '60000'
+---
+apiVersion: v1
+kind: Connector
+metadata:
+  name: project1.connect1
+spec:
+  name: priv_f4m_julien_test
+  connector.class: org.apache.kafka.connect.file.FileStreamSinkConnector
+  tasks.max: '1'
+  topics: connect-test
+  consumer.override.sasl.jaas.config: org.apache.kafka.common.security.scram.ScramLoginModule required username="<user>" password="<passord>"
+
+````
+Simply run ``kafkactl apply --namespace project1 --file descriptor.yml`` and the Topic and Connect configuration will be deployed.
 
 Table of Contents
 =================
