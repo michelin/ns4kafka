@@ -40,10 +40,10 @@ kind: Connector
 metadata:
   name: project1.connect1
 spec:
-  name: priv_f4m_julien_test
   connector.class: org.apache.kafka.connect.file.FileStreamSinkConnector
   tasks.max: '1'
   topics: connect-test
+  file: /tmp/project1.topic1.out
   consumer.override.sasl.jaas.config: org.apache.kafka.common.security.scram.ScramLoginModule required username="<user>" password="<passord>"
 
 ````
