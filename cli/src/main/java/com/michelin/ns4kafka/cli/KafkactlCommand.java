@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.michelin.ns4kafka.cli.models.Resource;
@@ -14,14 +15,13 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
 import io.micronaut.configuration.picocli.PicocliRunner;
-import io.micronaut.context.ApplicationContext;
 import io.micronaut.http.HttpRequest;
-import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-@Command(name = "kafkactl", description = "...",
+//TODO Make subcommand understand parameters
+@Command(name = "kafkactl", subcommands = {Login.class} , description = "...",
         mixinStandardHelpOptions = true)
 public class KafkactlCommand implements Runnable {
 
@@ -59,7 +59,7 @@ public class KafkactlCommand implements Runnable {
     }
 
     public static void main(String[] args) throws Exception {
-        PicocliRunner.run(KafkactlCommand.class, args);
+        PicocliRunner.execute(KafkactlCommand.class, args);
     }
 
     public void run() {
