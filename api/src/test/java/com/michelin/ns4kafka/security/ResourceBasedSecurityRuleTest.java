@@ -25,6 +25,8 @@ public class ResourceBasedSecurityRuleTest {
     NamespaceRepository namespaceRepository;
     @Mock
     RoleBindingRepository roleBindingRepository;
+    @Mock
+    SecurityConfig securityConfig;
 
     @InjectMocks
     ResourceBasedSecurityRule resourceBasedSecurityRule;
@@ -174,7 +176,8 @@ public class ResourceBasedSecurityRuleTest {
 
     @Test
     void ComputeRoles_NoAdmin(){
-        resourceBasedSecurityRule.setAdminGroup("admin-group");
+        Mockito.when(securityConfig.getAdminGroup())
+                .thenReturn("admin-group");
         List<String> actual = resourceBasedSecurityRule.computeRolesFromGroups(List.of("not-admin"));
 
         Assertions.assertIterableEquals(List.of(), actual);
@@ -182,7 +185,8 @@ public class ResourceBasedSecurityRuleTest {
 
     @Test
     void ComputeRoles_Admin(){
-        resourceBasedSecurityRule.setAdminGroup("admin-group");
+        Mockito.when(securityConfig.getAdminGroup())
+                .thenReturn("admin-group");
         List<String> actual = resourceBasedSecurityRule.computeRolesFromGroups(List.of("admin-group"));
 
         Assertions.assertIterableEquals(List.of(ResourceBasedSecurityRule.IS_ADMIN), actual);
