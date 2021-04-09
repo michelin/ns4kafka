@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
@@ -9,12 +10,14 @@ import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Post;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 @Tag(name = "Namespaces")
 @Controller("/api/namespaces")
 public class NamespaceController extends NonNamespacedResourceController {
