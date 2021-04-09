@@ -5,10 +5,8 @@ import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Header;
 import io.micronaut.http.annotation.Post;
-import io.micronaut.http.client.annotation.Client;
 
-@Client("http://localhost:8080/api/namespaces/")
-public interface NonNamespacedResourceClient {
+public interface NonNamespacedResourceClient extends ResourceClient {
 
     @Delete("/")
     void delete(

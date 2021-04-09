@@ -10,6 +10,7 @@ import java.util.concurrent.Callable;
 import javax.inject.Inject;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.client.NonNamespacedResourceClient;
 import com.michelin.ns4kafka.cli.client.ResourceClient;
 import com.michelin.ns4kafka.cli.models.Resource;
@@ -26,7 +27,7 @@ import picocli.CommandLine.Option;
 public class Apply implements Callable<Integer>{
 
     @Inject
-    ResourceClient httpClient;
+    NamespacedResourceClient namespacedClient;
 
     @Inject
     NonNamespacedResourceClient nonNamespacedClient;
@@ -64,13 +65,13 @@ public class Apply implements Callable<Integer>{
                 nonNamespacedClient.apply(token, json);
                 break;
             case ACCESSCONTROLENTRY:
-                httpClient.apply(namespace, "acls", token, json);
+                namespacedClient.apply(namespace, "acls", token, json);
                 break;
             case CONNECTOR:
-                httpClient.apply(namespace, "connects", token, json);
+                namespacedClient.apply(namespace, "connects", token, json);
                 break;
             case TOPIC:
-                httpClient.apply(namespace, "topic", token, json);
+                namespacedClient.apply(namespace, "topic", token, json);
                 break;
             default:
                 throw new Exception();
