@@ -1,23 +1,23 @@
 package com.michelin.ns4kafka.cli;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.util.concurrent.Callable;
-
-import javax.inject.Inject;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import io.micronaut.http.HttpMethod;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.micronaut.core.annotation.Introspected;
+import io.micronaut.http.HttpRequest;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
-import io.micronaut.http.simple.SimpleHttpRequest;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+
+import javax.inject.Inject;
+import java.io.File;
+import java.io.FileWriter;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.concurrent.Callable;
 
 @Command(name = "login", description = "Store JSON Web Token return by credentials")
 class Login implements Callable<Integer> {
@@ -26,30 +26,62 @@ class Login implements Callable<Integer> {
     @Client("http://localhost:8080")
     RxHttpClient client;
 
-    @Option(names = {"-u", "--username"}, description = "Username")
+    @Option(names = {"-u", "--username"}, required = true, description = "Username")
     String username = "Gitlab";
 
     //TODO change to char[]
-    @Option(names = {"-p", "--password"}, description = "Password")
+    @Option(names = {"-p", "--password"}, required = true, description = "Password")
     String password;
 
     @Override
     public Integer call() throws Exception {
-        ObjectMapper mapper  = new ObjectMapper();
-        ObjectNode object = mapper.createObjectNode();
-        object.put("username", username);
-        object.put("password", password);
-        String json = mapper.writeValueAsString(object);
-        SimpleHttpRequest<String> request = new SimpleHttpRequest<>(HttpMethod.POST, "/login", json);
-        //TODO change to async
-        String resultJson = client.toBlocking().retrieve(request);
-        JsonNode resultObject = mapper.readTree(resultJson);
-        System.out.println(resultObject.get("access_token"));
-        File file = new File("jwt");
-        file.createNewFile();
-        FileWriter myWriter = new FileWriter("jwt");
-        myWriter.write(resultObject.get("access_token").textValue());
-        myWriter.close();
+        UsernameAndPasswordRequest request = UsernameAndPasswordRequest.builder()
+                .username(username)
+                .password(password)
+                .build();
+        try{
+            BearerAccessRefreshToken response = client.toBlocking().retrieve(HttpRequest.POST("/login", request), BearerAccessRefreshToken.class);
+
+            Calendar calendar = Calendar.getInstance(); // gets a calendar using the default time zone and locale.
+            calendar.add(Calendar.SECOND, response.getExpiresIn());
+
+            System.out.println("Authentication successful, welcome "+response.getUsername()+ "!");
+            System.out.println("Your session is valid until "+calendar.getTime());
+
+            File file = new File("jwt");
+            file.createNewFile();
+            FileWriter myWriter = new FileWriter("jwt");
+            myWriter.write(response.getAccessToken());
+            myWriter.close();
+        } catch(HttpClientResponseException e) {
+            System.out.println("Authentication failed with message : "+e.getMessage());
+        }
         return 0;
+    }
+
+    @Introspected
+    @Getter
+    @Setter
+    @Builder
+    public static class UsernameAndPasswordRequest {
+        private String username;
+        private String password;
+    }
+
+    @Introspected
+    @Getter
+    @Setter
+    public static class BearerAccessRefreshToken {
+        private String username;
+        private Collection<String> roles;
+
+        @JsonProperty("access_token")
+        private String accessToken;
+
+        @JsonProperty("token_type")
+        private String tokenType;
+
+        @JsonProperty("expires_in")
+        private Integer expiresIn;
     }
 }
