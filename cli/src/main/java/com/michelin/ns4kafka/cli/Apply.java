@@ -1,9 +1,7 @@
 package com.michelin.ns4kafka.cli;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.InputStream;
 import java.util.concurrent.Callable;
 
@@ -12,14 +10,12 @@ import javax.inject.Inject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.client.NonNamespacedResourceClient;
-import com.michelin.ns4kafka.cli.client.ResourceClient;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.ResourceKind;
 
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
-import io.micronaut.core.io.IOUtils;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
