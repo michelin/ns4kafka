@@ -171,28 +171,27 @@ public class KafkaAsyncExecutor {
         AlterConfigsResult alterConfigsResult = getAdminClient().incrementalAlterConfigs(toUpdate);
         alterConfigsResult.values().entrySet()
                 .stream()
-                .forEach(mapEntry -> mapEntry.getValue()
-                        //TODO blocking
-                        // we're already on a dedicated calling thread, by threading again we risk calling this while another call is in progress
-                        // @Scheduled from micronaut guarantees with fixedDelay a delay between the end of previous call and beginning of next call
-                        .whenComplete((unused, throwable) ->{
-                            Topic updatedTopic = topics.stream().filter(t -> t.getMetadata().getName().equals(mapEntry.getKey().name())).findFirst().get();
-                            if(throwable!=null){
-                                updatedTopic.setStatus(Topic.TopicStatus.ofFailed("Error while updating topic configs: "+throwable.getMessage()));
-                                LOG.error(String.format("Error while updating topic configs %s on %s", mapEntry.getKey().name(),this.kafkaAsyncExecutorConfig.getName()), throwable);
-                            }else{
-                                Collection<AlterConfigOp> ops = toUpdate.get(mapEntry.getKey());
-                                updatedTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                                updatedTopic.getMetadata().setGeneration(updatedTopic.getMetadata().getGeneration()+1);
-                                updatedTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic configs updated"));
-                                LOG.info(String.format("Success updating topic configs %s on %s : [%s]",
-                                        mapEntry.getKey().name(),
-                                        this.kafkaAsyncExecutorConfig.getName(),
-                                        ops.stream().map(alterConfigOp -> alterConfigOp.toString()).collect(Collectors.joining(","))));
-                            }
-                            topicRepository.create(updatedTopic);
-                        })
-                );
+                .forEach(mapEntry -> {
+                    Topic updatedTopic = topics.stream().filter(t -> t.getMetadata().getName().equals(mapEntry.getKey().name())).findFirst().get();
+                    try {
+                        mapEntry.getValue().get(10, TimeUnit.SECONDS);
+                        Collection<AlterConfigOp> ops = toUpdate.get(mapEntry.getKey());
+                        updatedTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                        updatedTopic.getMetadata().setGeneration(updatedTopic.getMetadata().getGeneration()+1);
+                        updatedTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic configs updated"));
+                        LOG.info(String.format("Success updating topic configs %s on %s : [%s]",
+                                mapEntry.getKey().name(),
+                                this.kafkaAsyncExecutorConfig.getName(),
+                                ops.stream().map(alterConfigOp -> alterConfigOp.toString()).collect(Collectors.joining(","))));
+                    } catch (InterruptedException e) {
+                        LOG.error("Error", e);
+                        Thread.currentThread().interrupt();
+                    } catch (Exception e){
+                        updatedTopic.setStatus(Topic.TopicStatus.ofFailed("Error while updating topic configs: "+e.getMessage()));
+                        LOG.error(String.format("Error while updating topic configs %s on %s", mapEntry.getKey().name(),this.kafkaAsyncExecutorConfig.getName()), e);
+                    }
+                    topicRepository.create(updatedTopic);
+                });
     }
     private void createTopics(List<Topic> topics) {
         List<NewTopic> newTopics = topics.stream()
@@ -207,22 +206,23 @@ public class KafkaAsyncExecutor {
         CreateTopicsResult createTopicsResult = getAdminClient().createTopics(newTopics);
         createTopicsResult.values().entrySet()
                 .stream()
-                .forEach(mapEntry -> mapEntry.getValue()
-                        //TODO blocking
-                        .whenComplete((unused, throwable) ->{
-                            Topic createdTopic = topics.stream().filter(t -> t.getMetadata().getName().equals(mapEntry.getKey())).findFirst().get();
-                            if(throwable!=null){
-                                createdTopic.setStatus(Topic.TopicStatus.ofFailed("Error while creating topic: "+throwable.getMessage()));
-                                LOG.error(String.format("Error while creating topic %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()), throwable);
-                            }else{
-                                createdTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                                createdTopic.getMetadata().setGeneration(1);
-                                createdTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic created"));
-                                LOG.info(String.format("Success creating topic %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()));
-                            }
-                            topicRepository.create(createdTopic);
-                        })
-                );
+                .forEach(mapEntry -> {
+                    Topic createdTopic = topics.stream().filter(t -> t.getMetadata().getName().equals(mapEntry.getKey())).findFirst().get();
+                    try {
+                        mapEntry.getValue().get(10, TimeUnit.SECONDS);
+                        createdTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                        createdTopic.getMetadata().setGeneration(1);
+                        createdTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic created"));
+                        LOG.info(String.format("Success creating topic %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()));
+                    } catch (InterruptedException e) {
+                        LOG.error("Error", e);
+                        Thread.currentThread().interrupt();
+                    } catch (Exception e) {
+                        createdTopic.setStatus(Topic.TopicStatus.ofFailed("Error while creating topic: "+e.getMessage()));
+                        LOG.error(String.format("Error while creating topic %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()), e);
+                    }
+                    topicRepository.create(createdTopic);
+                });
     }
     private Map<String, Topic> collectBrokerTopicList() throws InterruptedException, ExecutionException, TimeoutException {
         List<String> topicNames = getAdminClient().listTopics().listings()
@@ -347,33 +347,35 @@ public class KafkaAsyncExecutor {
                         .collect(Collectors.toList()))
                 .values().entrySet()
                 .stream()
-                .forEach(mapEntry -> mapEntry.getValue()
-                        //TODO blocking
-                        .whenComplete((unused, throwable) -> {
-                            if(throwable!=null){
-                                LOG.error(String.format("Error while deleting ACL %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()), throwable);
-                            }else{
-                                LOG.info(String.format("Success deleting ACL %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()));
-                            }
-
-                        })
-                );
+                .forEach(mapEntry -> {
+                    try {
+                        mapEntry.getValue().get(10, TimeUnit.SECONDS);
+                        LOG.info(String.format("Success deleting ACL %s on %s", mapEntry.getKey(), this.kafkaAsyncExecutorConfig.getName()));
+                    } catch (InterruptedException e) {
+                        LOG.error("Error", e);
+                        Thread.currentThread().interrupt();
+                    } catch (Exception e) {
+                        LOG.error(String.format("Error while deleting ACL %s on %s", mapEntry.getKey(), this.kafkaAsyncExecutorConfig.getName()), e);
+                    }
+                });
     }
 
     private void createACLs(List<AclBinding> toCreate) {
-        getAdminClient().createAcls(toCreate).values().entrySet()
+        getAdminClient().createAcls(toCreate)
+                .values()
+                .entrySet()
                 .stream()
-                .forEach(mapEntry -> mapEntry.getValue()
-                        //TODO blocking
-                        .whenComplete((unused, throwable) -> {
-                            if(throwable!=null){
-                                LOG.error(String.format("Error while creating ACL %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()), throwable);
-                            }else{
-                                LOG.info(String.format("Success creating ACL %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()));
-                            }
-
-                    })
-                );
+                .forEach(mapEntry -> {
+                    try {
+                        mapEntry.getValue().get(10, TimeUnit.SECONDS);
+                        LOG.info(String.format("Success creating ACL %s on %s", mapEntry.getKey(), this.kafkaAsyncExecutorConfig.getName()));
+                    } catch (InterruptedException e) {
+                        LOG.error("Error", e);
+                        Thread.currentThread().interrupt();
+                    }  catch (Exception e) {
+                        LOG.error(String.format("Error while creating ACL %s on %s", mapEntry.getKey(), this.kafkaAsyncExecutorConfig.getName()), e);
+                    }
+                });
     }
 
     private List<AclBinding> collectNs4KafkaACLs(){

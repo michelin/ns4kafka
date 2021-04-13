@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.security.local;
 
+import io.micronaut.core.annotation.Introspected;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,9 +10,9 @@ import org.slf4j.LoggerFactory;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.List;
 
+@Introspected
 @Builder
 @Getter
 @Setter
@@ -19,7 +20,7 @@ public class LocalUser {
     private static final Logger LOG = LoggerFactory.getLogger(LocalUser.class);
     String username;
     String password;
-    List<String> groups = new ArrayList<>();
+    List<String> groups;
 
     public boolean isValidPassword(String input_password) {
         LOG.debug("Verifying password for user " + username);
@@ -42,7 +43,7 @@ public class LocalUser {
             return hexString.toString().equals(password);
 
         } catch (NoSuchAlgorithmException e) {
-            LOG.error("NoSuchAlgorithmException",e);
+            LOG.error("NoSuchAlgorithmException", e);
             return false;
         }
     }
