@@ -8,25 +8,30 @@ import io.micronaut.http.annotation.Post;
 
 public interface NamespacedResourceClient extends ResourceClient {
 
-    @Delete("{namespace}/{resourcename}")
+    @Delete("{namespace}/{kind}/{resourcename}")
     void delete(
             String namespace,
+            String kind,
             String resourcename,
             @Header(name = "Authorization", value = "Authorization") String token);
 
-    @Post("{namespace}/{resourcename}")
+    @Post("{namespace}/{kind}")
     String apply(
             String namespace,
-            String resourcename,
+            String kind,
             @Header(name = "Authorization", value = "Authorization") String token,
             @Body String json);
 
-    @Get("{namespace}")
+    @Get("{namespace}/{kind}")
     String list(
-            String namespace);
-
-    @Get("{namespace}/{resourcename}")
-    String apply(
             String namespace,
-            String resourcename);
+            String kind,
+            @Header(name = "Authorization", value = "Authorization") String token);
+
+    @Get("{namespace}/{kind}/{resourcename}")
+    String get(
+            String namespace,
+            String kind,
+            String resourcename,
+            @Header(name = "Authorization", value = "Authorization") String token);
 }

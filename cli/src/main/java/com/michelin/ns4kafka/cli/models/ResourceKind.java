@@ -4,10 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 public enum ResourceKind {
-    NAMESPACE("Namespace"),
-    ACCESSCONTROLENTRY("AccessControlEntry"),
-    TOPIC("Topic"),
-    CONNECTOR("Connector");
+    NAMESPACE("namespace"),
+    ROLEBINDING("rolebinding"),
+    ACCESSCONTROLENTRY("accesscontrolentry"),
+    TOPIC("topic"),
+    CONNECTOR("connector");
 
     public final String value;
 
@@ -21,6 +22,8 @@ public enum ResourceKind {
         this.value = value;
     }
     public static ResourceKind resourceKindFromValue(String value) {
-        return BY_VALUE.get(value);
+        // Value of the yaml is in CamelCase
+        // Comand are in lower case
+        return BY_VALUE.get(value.toLowerCase());
     }
 }
