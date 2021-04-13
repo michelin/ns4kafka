@@ -24,7 +24,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 @Command(name = "apply" , description = "Create or update a resource")
-public class Apply implements Callable<Integer>{
+public class Apply extends AbstractJWTCommand implements Callable<Integer>{
 
     @Inject
     NamespacedResourceClient namespacedClient;
@@ -56,13 +56,14 @@ public class Apply implements Callable<Integer>{
 
     public Integer call() throws Exception {
         if (!json.isBlank()) {
-            BufferedReader in
-            = new BufferedReader(new FileReader("jwt"));
-            String token = IOUtils.readText(in);
+            String token = getJWT();
             token = "Bearer " + token;
             switch(kind) {
             case NAMESPACE:
                 nonNamespacedClient.apply(token, json);
+                break;
+            case ROLEBINDING:
+                namespacedClient.apply(namespace, "role-bindings", token, json);
                 break;
             case ACCESSCONTROLENTRY:
                 namespacedClient.apply(namespace, "acls", token, json);
