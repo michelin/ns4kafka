@@ -1,10 +1,9 @@
 package com.michelin.ns4kafka.cli;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.michelin.ns4kafka.cli.client.LoginClient;
+
 import io.micronaut.core.annotation.Introspected;
-import io.micronaut.http.HttpRequest;
-import io.micronaut.http.client.RxHttpClient;
-import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,11 +19,10 @@ import java.util.Collection;
 import java.util.concurrent.Callable;
 
 @Command(name = "login", description = "Store JSON Web Token return by credentials")
-class LoginSubcommand implements Callable<Integer> {
+public class LoginSubcommand implements Callable<Integer> {
 
     @Inject
-    @Client("http://localhost:8080")
-    RxHttpClient client;
+    LoginClient client;
 
     @Option(names = {"-u", "--username"}, required = true, description = "Username")
     String username = "Gitlab";
@@ -40,7 +38,7 @@ class LoginSubcommand implements Callable<Integer> {
                 .password(password)
                 .build();
         try{
-            BearerAccessRefreshToken response = client.toBlocking().retrieve(HttpRequest.POST("/login", request), BearerAccessRefreshToken.class);
+            BearerAccessRefreshToken response = client.login(request);
 
             Calendar calendar = Calendar.getInstance(); // gets a calendar using the default time zone and locale.
             calendar.add(Calendar.SECOND, response.getExpiresIn());
