@@ -1,9 +1,17 @@
 package com.michelin.ns4kafka.models;
 
+import io.micronaut.core.annotation.Introspected;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 import java.util.Collection;
-import java.util.List;
+
+
+@Introspected(classes = {RoleBinding.class, RoleBinding.RoleBindingSpec.class, RoleBinding.Role.class, RoleBinding.Subject.class})
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -11,30 +19,32 @@ import java.util.List;
 @Setter
 @ToString
 public class RoleBinding {
+
     private final String apiVersion = "v1";
-    private final String kind = "AccessControlEntry";
-    // No validation here since name and labels are set server-side
-    //TODO RoleBindingSpec + ObjectMeta
-    private String namespace;
-    private Role role; //TODO Collection<Role>
-    private Subject subject; //TODO Collection<Subject>
+    private final String kind = "RoleBinding";
 
-    public RoleBinding(String namespace, String group){
-        this.namespace=namespace;
-        this.role = new Role();
-        this.subject = new Subject(group);
-    }
+    @NotNull
+    private ObjectMeta metadata;
 
+    @Valid
+    @NotNull
+    private RoleBindingSpec spec;
 
-    //TODO RoleRef instead: roleAdmin, roleRead, roleXXX + RoleRepository
     @Builder
     @AllArgsConstructor
+    @NoArgsConstructor
     @Getter
     @Setter
-    @ToString
-    public static class Role {
-        private final Collection<String> resourceTypes = List.of("topics","connects","schemas","consumer-groups", "acls");
-        private final Collection<String> verbs = List.of("GET","POST","PUT","DELETE");
+    @Schema(description = "Contains the Role Binding specification")
+    public static class RoleBindingSpec {
+
+        @Valid
+        @NotNull
+        private Role role;
+
+        @Valid
+        @NotNull
+        private Subject subject;
     }
 
     @Builder
@@ -42,11 +52,38 @@ public class RoleBinding {
     @NoArgsConstructor
     @Getter
     @Setter
-    @ToString
+    public static class Role {
+
+        @NotNull
+        @NotEmpty
+        private Collection<String> resourceTypes;
+
+        @NotNull
+        @NotEmpty
+        private Collection<Verb> verbs;
+    }
+
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
+    @Setter
     public static class Subject {
-        private final SubjectType subjectType = SubjectType.GROUP;
+
+        @NotNull
+        private SubjectType subjectType;
+
+        @NotNull
+        @NotBlank
         private String subjectName;
 
+    }
+
+    public enum Verb {
+        GET,
+        POST,
+        PUT,
+        DELETE
     }
 
     public enum SubjectType {

@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 @Tag(name = "Namespaces")
 @Controller("/api/namespaces")
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)

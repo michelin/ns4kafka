@@ -4,13 +4,11 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
-import io.micronaut.context.annotation.Value;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.security.rules.SecurityRuleResult;
 import io.micronaut.web.router.RouteMatch;
-import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,15 +30,14 @@ public class ResourceBasedSecurityRule implements SecurityRule {
 
     private final Pattern namespacedResourcePattern = Pattern.compile("^\\/api\\/namespaces\\/(?<namespace>[a-zA-Z0-9_-]+)\\/(?<resourceType>[a-z]+)(\\/([a-zA-Z0-9_-]+)(\\/(?<resourceSubtype>[a-z]+))?)?");
 
-    @Setter
-    private String adminGroup;
 
+    SecurityConfig securityConfig;
     RoleBindingRepository roleBindingRepository;
     NamespaceRepository namespaceRepository;
 
 
-    public ResourceBasedSecurityRule(@Value("${ns4kafka.admin.group:_}") String adminGroup, RoleBindingRepository roleBindingRepository, NamespaceRepository namespaceRepository) {
-        this.adminGroup = adminGroup;
+    public ResourceBasedSecurityRule(SecurityConfig securityConfig, RoleBindingRepository roleBindingRepository, NamespaceRepository namespaceRepository) {
+        this.securityConfig = securityConfig;
         this.roleBindingRepository = roleBindingRepository;
         this.namespaceRepository = namespaceRepository;
     }
@@ -92,9 +89,9 @@ public class ResourceBasedSecurityRule implements SecurityRule {
         //Collect all roleBindings for this user
         Collection<RoleBinding> roleBindings = roleBindingRepository.findAllForGroups(groups);
         List<RoleBinding> authorizedRoleBindings = roleBindings.stream()
-                .filter(roleBinding -> roleBinding.getNamespace().equals(namespace))
-                .filter(roleBinding -> roleBinding.getRole().getResourceTypes().contains(resourceType))
-                .filter(roleBinding -> roleBinding.getRole().getVerbs().contains(request.getMethodName()))
+                .filter(roleBinding -> roleBinding.getMetadata().getNamespace().equals(namespace))
+                .filter(roleBinding -> roleBinding.getSpec().getRole().getResourceTypes().contains(resourceType))
+                .filter(roleBinding -> roleBinding.getSpec().getRole().getVerbs().stream().map(v -> v.name()).collect(Collectors.toList()).contains(request.getMethodName()))
                 .collect(Collectors.toList());
 
         //User not authorized to access requested resource
@@ -119,7 +116,7 @@ public class ResourceBasedSecurityRule implements SecurityRule {
 
     public List<String> computeRolesFromGroups(List<String> groups) {
         List<String> roles = new ArrayList<>();
-        if (groups.contains(adminGroup))
+        if (groups.contains(securityConfig.getAdminGroup()))
             roles.add(ResourceBasedSecurityRule.IS_ADMIN);
         //TODO other specific API groups ? auditor ?
         return roles;

@@ -1,47 +1,16 @@
-micronaut:
-  application:
-    name: ns4kafka
-  security:
-    enabled: true
-    authentication: token
-    gitlab:
-      enabled: true
-      url: https://gitlab.michelin.com
-    token:
-      jwt:
-        signatures:
-          secret:
-            generator:
-              secret: '"${JWT_GENERATOR_SIGNATURE_SECRET:pleaseChangeThisSecretForANewOne}"'
-    intercept-url-map:
-      - pattern: /swagger/**
-        http-method: GET
-        access:
-          - isAnonymous()
-      - pattern: /rapidoc/**
-        http-method: GET
-        access:
-          - isAnonymous()
-  router:
-    static-resources:
-      swagger:
-        paths: classpath:META-INF/swagger
-        mapping: /swagger/**
-      rapidoc:
-        paths: classpath:META-INF/swagger/views/rapidoc
-        mapping: /rapidoc/**
-
-jackson:
-  serialization-inclusion: NON_ABSENT
-  serialization:
-    indent-output: true # Pretty-print JSON
-
 kafka:
   embedded:
     enabled: true
   bootstrap.servers: "localhost:9092"
 
 ns4kafka:
+  security:
+    admin-group: adminGroup
+    local-users:
+      - username: admin
+        password: 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+        groups:
+          - "adminGroup"
   managed-clusters:
     df4mgbl0:
       manage-users: false # requires Broker >= 2.7.0
@@ -49,9 +18,3 @@ ns4kafka:
       manage-topics: false
       config:
         bootstrap.servers: "localhost:9092"
-#    PROD:
-#      config:
-#        bootstrap.servers: "prod.com:9093"
-#        security.protocol: SASL_SSL
-#        sasl.mechanism: SCRAM-SHA-512
-#        sasl.jaas.config: org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="***";
