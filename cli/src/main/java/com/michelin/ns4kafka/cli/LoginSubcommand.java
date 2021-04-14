@@ -20,7 +20,7 @@ import java.util.Collection;
 import java.util.concurrent.Callable;
 
 @Command(name = "login", description = "Store JSON Web Token return by credentials")
-class Login implements Callable<Integer> {
+class LoginSubcommand implements Callable<Integer> {
 
     @Inject
     @Client("http://localhost:8080")

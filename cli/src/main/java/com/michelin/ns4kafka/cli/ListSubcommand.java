@@ -12,7 +12,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 @Command(name = "list" , description = "List all resources of a Namespace")
-public class CommandList extends AbstractJWTCommand implements Callable<Integer>{
+public class ListSubcommand extends AbstractJWTCommand implements Callable<Integer>{
 
     @Inject
     NamespacedResourceClient namespacedClient;

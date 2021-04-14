@@ -20,7 +20,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 @Command(name = "apply" , description = "Create or update a resource")
-public class Apply extends AbstractJWTCommand implements Callable<Integer>{
+public class ApplySubcommand extends AbstractJWTCommand implements Callable<Integer>{
 
     @Inject
     NamespacedResourceClient namespacedClient;
