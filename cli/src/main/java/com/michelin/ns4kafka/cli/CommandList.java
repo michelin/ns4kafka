@@ -21,7 +21,7 @@ public class CommandList extends AbstractJWTCommand implements Callable<Integer>
     NonNamespacedResourceClient nonNamespacedClient;
 
     @Option(names = {"-n", "--namespace"})
-    String namespace;
+    String namespace = null;
 
     @Option(names = {"-k", "--kind"}, description = "The kind which you want the list", required = true)
     String kind;
@@ -31,6 +31,10 @@ public class CommandList extends AbstractJWTCommand implements Callable<Integer>
         String token = getJWT();
         token = "Bearer " + token;
         String namespaceValue = namespace;
+        if (namespaceValue.isEmpty()){
+            return 2;
+        }
+        //TODO change implementation
         ResourceKind resourceKind = ResourceKind.resourceKindFromValue(kind);
         switch(resourceKind) {
         case NAMESPACE:
@@ -49,7 +53,7 @@ public class CommandList extends AbstractJWTCommand implements Callable<Integer>
             namespacedClient.list(namespaceValue, "topic", token);
             break;
         default:
-            throw new Exception();
+            return 2;
         }
         return 0;
     }
