@@ -1,0 +1,44 @@
+---
+metadata:
+  name: project1-acl-topics
+  namespace: admin
+  cluster: local
+spec:
+  resourceType: TOPIC
+  resource: project1_
+  resourcePatternType: PREFIXED
+  permission: OWNER
+  grantedTo: project1
+---
+metadata:
+  name: project1-acl-connects
+  namespace: admin
+  cluster: local
+spec:
+  resourceType: CONNECT
+  resource: project1_
+  resourcePatternType: PREFIXED
+  permission: OWNER
+  grantedTo: project1
+---
+metadata:
+  name: project1-acl-groups
+  namespace: admin
+  cluster: local
+spec:
+  resourceType: GROUPS
+  resource: project1_
+  resourcePatternType: PREFIXED
+  permission: OWNER
+  grantedTo: project1
+---
+metadata:
+  name: project1-acl-groups2
+  namespace: admin
+  cluster: local
+spec:
+  resourceType: CONNECT
+  resource: connect-project1_
+  resourcePatternType: PREFIXED
+  permission: OWNER
+  grantedTo: project1
