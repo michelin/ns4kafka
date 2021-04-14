@@ -20,7 +20,6 @@ import java.util.Optional;
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 @Tag(name = "Namespaces")
 @Controller("/api/namespaces")
-@RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 public class NamespaceController extends NonNamespacedResourceController {
 
     @Inject
