@@ -14,7 +14,6 @@ public interface NonNamespacedResourceClient extends ResourceClient {
 
     @Delete("/")
     void delete(
-
             @Header(name = "Authorization", value = "Authorization") String token);
 
     @Post("/")
@@ -23,5 +22,6 @@ public interface NonNamespacedResourceClient extends ResourceClient {
             @Body String json);
 
     @Get("/")
-    List<Resource> list();
+    List<Resource> list(
+            @Header(name = "Authorization", value = "Authorization") String token);
 }

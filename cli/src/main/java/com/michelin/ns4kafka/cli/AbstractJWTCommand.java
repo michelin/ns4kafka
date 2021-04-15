@@ -39,9 +39,9 @@ public abstract class AbstractJWTCommand {
     public static class ManageResource {
 
         @Inject
-        ResourceDefinitionClient resourceClient;
+        private ResourceDefinitionClient resourceClient;
 
-        private  List<ResourceDefinition> getListResourceDefinition() {
+        public List<ResourceDefinition> getListResourceDefinition() {
             //TODO Add Cache to reduce the number of http requests
             return resourceClient.getResource();
         }
