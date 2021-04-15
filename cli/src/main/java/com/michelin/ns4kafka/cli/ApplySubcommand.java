@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.cli;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 import javax.inject.Inject;
@@ -11,7 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.client.NonNamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.Resource;
-import com.michelin.ns4kafka.cli.models.ResourceKind;
+import com.michelin.ns4kafka.cli.models.ResourceDefinition;
 
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
@@ -29,9 +30,9 @@ public class ApplySubcommand extends AbstractJWTCommand implements Callable<Inte
     NonNamespacedResourceClient nonNamespacedClient;
 
     String json = "";
-    ResourceKind kind;
+    String kind;
     String namespace;
-    @Option(names = {"-f", "--file"}, description = "File in Yaml describing the system Kafka")
+    @Option(names = {"-f", "--file"}, required = true, description = "File in Yaml describing the system Kafka")
     public void convertYamlToJson(File file) throws Exception {
         //TODO better management of Exception
         Yaml yaml = new Yaml(new Constructor(Resource.class));
@@ -42,7 +43,7 @@ public class ApplySubcommand extends AbstractJWTCommand implements Callable<Inte
         Resource resourceYaml = yaml.load(inputStream);
 
         //Throws exception if the kind doesn't exist
-        kind = ResourceKind.resourceKindFromValue(resourceYaml.getKind());
+        kind = resourceYaml.getKind();
         namespace = resourceYaml.getMetadata().getNamespace();
 
         //convert to JSON
@@ -50,29 +51,22 @@ public class ApplySubcommand extends AbstractJWTCommand implements Callable<Inte
 
     }
 
-    public Integer call() throws Exception {
-        if (!json.isBlank()) {
-            String token = getJWT();
-            token = "Bearer " + token;
-            switch(kind) {
-            case NAMESPACE:
-                nonNamespacedClient.apply(token, json);
-                break;
-            case ROLEBINDING:
-                namespacedClient.apply(namespace, "role-bindings", token, json);
-                break;
-            case ACCESSCONTROLENTRY:
-                namespacedClient.apply(namespace, "acls", token, json);
-                break;
-            case CONNECTOR:
-                namespacedClient.apply(namespace, "connects", token, json);
-                break;
-            case TOPIC:
-                namespacedClient.apply(namespace, "topic", token, json);
-                break;
-            default:
-                throw new Exception();
-            }
+    public Integer call() {
+        String token = getJWT();
+        token = "Bearer " + token;
+        Optional<ResourceDefinition> optionalResourceDefinition = manageResource.getResourceDefinitionFromKind(kind);
+        ResourceDefinition resourceDefinition;
+        try {
+           resourceDefinition = optionalResourceDefinition.get();
+        } catch(Exception e) {
+            System.err.println("Can't find the kind: " + kind);
+            return 2;
+        }
+        if(resourceDefinition.isNamespaced()) {
+            namespacedClient.apply(namespace, resourceDefinition.getPath(), token, json);
+        }
+        else {
+            nonNamespacedClient.apply(token, json);
         }
         return 0;
     }
