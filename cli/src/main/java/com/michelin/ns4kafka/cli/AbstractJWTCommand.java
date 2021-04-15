@@ -57,8 +57,7 @@ public abstract class AbstractJWTCommand {
             return resourceDefinitions.stream()
                 .filter(resource -> resource.getNames().contains(name))
                 .findFirst();
-
-
+        }
 
     }
 
