@@ -10,6 +10,6 @@ import io.micronaut.http.client.annotation.Client;
 @Client("http://localhost:8080")
 public interface ResourceDefinitionClient {
 
-    @Get("api-resources")
+    @Get("/api-resources")
     List<ResourceDefinition> getResource();
 }
