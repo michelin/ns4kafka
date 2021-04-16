@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.cli;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -17,6 +18,11 @@ import com.michelin.ns4kafka.cli.models.ResourceDefinition;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
+import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import io.micronaut.http.hateoas.JsonError;
+import lombok.Getter;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -42,7 +48,6 @@ public class ApplySubcommand extends AbstractJWTCommand implements Callable<Inte
         //TODO manage multi document YAML
         Resource resourceYaml = yaml.load(inputStream);
 
-        //Throws exception if the kind doesn't exist
         kind = resourceYaml.getKind();
         namespace = resourceYaml.getMetadata().getNamespace();
 
@@ -59,15 +64,28 @@ public class ApplySubcommand extends AbstractJWTCommand implements Callable<Inte
         try {
            resourceDefinition = optionalResourceDefinition.get();
         } catch(Exception e) {
-            System.err.println("Can't find the kind: " + kind);
+            System.err.println("Can't find the resource's kind: " + kind);
             return 2;
         }
-        if(resourceDefinition.isNamespaced()) {
-            namespacedClient.apply(namespace, resourceDefinition.getPath(), token, json);
+        try {
+            if(resourceDefinition.isNamespaced()) {
+                namespacedClient.apply(namespace, resourceDefinition.getPath(), token, json);
+            }
+            else {
+                nonNamespacedClient.apply(token, json);
+            }
+        } catch(HttpClientResponseException e) {
+            HttpStatus status = e.getStatus();
+            switch(status){
+                case BAD_REQUEST:
+                    System.err.println(e.getMessage());
+                    return 2;
+                default:
+                System.err.println("Resource failed with message : "+e.getMessage());
+            }
+            return 1;
         }
-        else {
-            nonNamespacedClient.apply(token, json);
-        }
+        System.out.println(resourceDefinition.getKind() + ": SUCCESS");
         return 0;
     }
 }

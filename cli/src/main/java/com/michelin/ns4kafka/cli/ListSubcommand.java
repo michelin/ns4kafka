@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.cli;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -7,8 +8,11 @@ import javax.inject.Inject;
 
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.client.NonNamespacedResourceClient;
+import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.ResourceDefinition;
 
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -45,12 +49,24 @@ public class ListSubcommand extends AbstractJWTCommand implements Callable<Integ
             System.err.println("Can't find resource named: " + name);
             return 2;
         }
-        if(resourceDefinition.isNamespaced()) {
-            namespacedClient.list(namespace, resourceDefinition.getPath(), token);
+
+        List<Resource> resources;
+        try {
+            if(resourceDefinition.isNamespaced()) {
+                resources = namespacedClient.list(namespace, resourceDefinition.getPath(), token);
+            }
+            else {
+                resources = nonNamespacedClient.list(token);
+            }
+        } catch(HttpClientResponseException e) {
+            HttpStatus status = e.getStatus();
+            switch(status){
+                default:
+                System.err.println("List command failed with message : "+e.getMessage());
+            }
+            return 1;
         }
-        else {
-            nonNamespacedClient.list(token);
-        }
+        System.out.println(resources);
         return 0;
     }
 }
