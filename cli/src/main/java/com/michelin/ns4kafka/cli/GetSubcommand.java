@@ -37,6 +37,7 @@ public class GetSubcommand extends AbstractJWTCommand implements Callable<Intege
     @Override
     public Integer call() throws Exception {
         String token = getJWT();
+        token = "Bearer " + token;
         Optional<ResourceDefinition> optionalResourceDefinition = manageResource.getResourceDefinitionFromCommandName(kind);
         ResourceDefinition resourceDefinition;
         try {
