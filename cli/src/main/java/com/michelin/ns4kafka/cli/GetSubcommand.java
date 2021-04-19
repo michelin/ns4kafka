@@ -5,6 +5,7 @@ import java.util.concurrent.Callable;
 
 import javax.inject.Inject;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.client.NonNamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.Resource;
@@ -63,7 +64,8 @@ public class GetSubcommand extends AbstractJWTCommand implements Callable<Intege
             }
             return 1;
         }
-        System.out.println(resource.getMetadata().getName());
+        ObjectMapper mapper = new ObjectMapper();
+        System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(resource));
         return 0;
     }
 
