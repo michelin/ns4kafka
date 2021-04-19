@@ -66,7 +66,9 @@ public class ListSubcommand extends AbstractJWTCommand implements Callable<Integ
             }
             return 1;
         }
-        System.out.println(resources);
+        for (Resource resource : resources) {
+            System.out.println(resource.getMetadata().getName());
+        }
         return 0;
     }
 }

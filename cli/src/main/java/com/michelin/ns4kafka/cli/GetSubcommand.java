@@ -63,7 +63,7 @@ public class GetSubcommand extends AbstractJWTCommand implements Callable<Intege
             }
             return 1;
         }
-        System.out.println(resource);
+        System.out.println(resource.getMetadata().getName());
         return 0;
     }
 
