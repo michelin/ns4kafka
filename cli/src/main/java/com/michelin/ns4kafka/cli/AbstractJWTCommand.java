@@ -52,7 +52,7 @@ public abstract class AbstractJWTCommand {
                 .filter(resource -> resource.getKind().equals(kind))
                 .findFirst();
         }
-        public Optional<ResourceDefinition> getResourceDefinitionFromName(String name) {
+        public Optional<ResourceDefinition> getResourceDefinitionFromCommandName(String name) {
             List<ResourceDefinition> resourceDefinitions = getListResourceDefinition();
             return resourceDefinitions.stream()
                 .filter(resource -> resource.getNames().contains(name))
