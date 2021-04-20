@@ -1,3 +1,8 @@
 #!/usr/bin/env bash
 
-/usr/bin/java -jar ./cli/build/libs/cli-0.1-all.jar $@
+if [ $# = 0 ]
+then
+    ./gradlew :cli:run
+else
+    ./gradlew :cli:run --args="$*"
+fi

@@ -7,7 +7,7 @@ import com.michelin.ns4kafka.cli.models.ResourceDefinition;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.client.annotation.Client;
 
-@Client("http://localhost:8080")
+@Client("${ns4kafka.api.url}")
 public interface ResourceDefinitionClient {
 
     @Get("/api-resources")

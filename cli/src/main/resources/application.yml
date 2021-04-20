@@ -1,3 +1,10 @@
 micronaut:
   application:
     name: kafkactl
+
+ns4kafka:
+  api:
+    url: http://localhost:8080
+
+kafkactl:
+  config: ./.kafkactl

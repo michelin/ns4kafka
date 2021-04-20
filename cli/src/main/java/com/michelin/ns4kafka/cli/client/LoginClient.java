@@ -7,7 +7,7 @@ import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.client.annotation.Client;
 
-@Client("http://localhost:8080")
+@Client("${ns4kafka.api.url}")
 public interface LoginClient {
 
     @Post("/login")
