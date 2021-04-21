@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+export MICRONAUT_CONFIG_FILES=$HOME/.kafkactl/config
+
 if [ $# = 0 ]
 then
     ./gradlew :cli:run

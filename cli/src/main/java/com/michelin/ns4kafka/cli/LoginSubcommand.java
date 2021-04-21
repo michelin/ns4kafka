@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.cli;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.michelin.ns4kafka.cli.client.LoginClient;
 
+import io.micronaut.context.annotation.Value;
 import io.micronaut.core.annotation.Introspected;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import lombok.Builder;
@@ -31,6 +32,10 @@ public class LoginSubcommand implements Callable<Integer> {
     @Option(names = {"-p", "--password"}, required = true, description = "Password")
     String password;
 
+    @Value("${HOME}/.kafkactl/jwt")
+    private String path;
+
+
     @Override
     public Integer call() throws Exception {
         UsernameAndPasswordRequest request = UsernameAndPasswordRequest.builder()
@@ -38,6 +43,7 @@ public class LoginSubcommand implements Callable<Integer> {
                 .password(password)
                 .build();
         try{
+            System.out.println(path);
             BearerAccessRefreshToken response = client.login(request);
 
             Calendar calendar = Calendar.getInstance(); // gets a calendar using the default time zone and locale.
@@ -46,9 +52,9 @@ public class LoginSubcommand implements Callable<Integer> {
             System.out.println("Authentication successful, welcome "+response.getUsername()+ "!");
             System.out.println("Your session is valid until "+calendar.getTime());
 
-            File file = new File("jwt");
+            File file = new File(path);
             file.createNewFile();
-            FileWriter myWriter = new FileWriter("jwt");
+            FileWriter myWriter = new FileWriter(path);
             myWriter.write(response.getAccessToken());
             myWriter.close();
         } catch(HttpClientResponseException e) {

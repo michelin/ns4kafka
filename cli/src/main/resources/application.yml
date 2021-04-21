@@ -2,9 +2,14 @@ micronaut:
   application:
     name: kafkactl
 
-ns4kafka:
-  api:
-    url: http://localhost:8080
+user:
+  name: Gitlab
+  token: token
 
-kafkactl:
-  config: ./.kafkactl
+cluster:
+  name: local
+  server: http://localhost:8080
+
+namespace:
+  name: namespace_name
+  path: namespace_path

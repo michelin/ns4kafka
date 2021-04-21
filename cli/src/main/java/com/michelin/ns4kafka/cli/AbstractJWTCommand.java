@@ -13,6 +13,8 @@ import javax.inject.Inject;
 import com.michelin.ns4kafka.cli.client.ResourceDefinitionClient;
 import com.michelin.ns4kafka.cli.models.ResourceDefinition;
 
+import io.micronaut.context.annotation.Value;
+import io.micronaut.core.annotation.ReflectiveAccess;
 import io.micronaut.core.io.IOUtils;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -22,11 +24,14 @@ public abstract class AbstractJWTCommand {
     @Inject
     ManageResource manageResource;
 
+    @Value("${HOME}/.kafkactl/jwt")
+    String path;
+
     public String getJWT() {
         BufferedReader in;
         String jwt = null;
         try {
-            in = new BufferedReader(new FileReader("jwt"));
+            in = new BufferedReader(new FileReader(path));
             jwt = IOUtils.readText(in);
         } catch (FileNotFoundException e) {
             System.out.println("Please login first.");
@@ -38,6 +43,7 @@ public abstract class AbstractJWTCommand {
 
     public static class ManageResource {
 
+        @ReflectiveAccess
         @Inject
         private ResourceDefinitionClient resourceClient;
 

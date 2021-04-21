@@ -3,7 +3,6 @@ package com.michelin.ns4kafka.cli;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -18,11 +17,8 @@ import com.michelin.ns4kafka.cli.models.ResourceDefinition;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
-import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import io.micronaut.http.hateoas.JsonError;
-import lombok.Getter;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
