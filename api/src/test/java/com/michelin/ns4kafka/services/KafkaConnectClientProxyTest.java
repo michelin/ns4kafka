@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.http.*;
 import io.micronaut.http.client.ProxyHttpClient;
+import io.micronaut.http.simple.SimpleHttpRequest;
 import io.reactivex.subscribers.TestSubscriber;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -65,7 +66,8 @@ public class KafkaConnectClientProxyTest {
 
     @Test
     void doFilterSuccess() {
-        MutableHttpRequest<?> request = HttpRequestFactory.INSTANCE.get("http://localhost/connect-proxy/connectors")
+
+        MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors")
                 .header("X-Connect-Cluster", "local");
         KafkaAsyncExecutorConfig config1 = new KafkaAsyncExecutorConfig("local");
         config1.connect = new KafkaAsyncExecutorConfig.ConnectConfig();
@@ -92,7 +94,7 @@ public class KafkaConnectClientProxyTest {
 
     @Test
     void testMutateKafkaConnectRequest() {
-        MutableHttpRequest<?> request = HttpRequestFactory.INSTANCE.get("http://localhost/connect-proxy/connectors");
+        MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors");
         KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig();
         config.url = "http://target/";
 
@@ -103,7 +105,7 @@ public class KafkaConnectClientProxyTest {
 
     @Test
     void testMutateKafkaConnectRequestRewrite() {
-        MutableHttpRequest<?> request = HttpRequestFactory.INSTANCE.get("http://localhost/connect-proxy/connectors");
+        MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors");
         KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig();
         config.url = "http://target/rewrite";
 
@@ -114,7 +116,7 @@ public class KafkaConnectClientProxyTest {
 
     @Test
     void testMutateKafkaConnectRequestAuthent() {
-        MutableHttpRequest<?> request = HttpRequestFactory.INSTANCE.get("http://localhost/connect-proxy/connectors");
+        MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors");
         KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig();
         config.url = "http://target/";
         config.basicAuthUsername = "toto";
@@ -124,5 +126,17 @@ public class KafkaConnectClientProxyTest {
 
         Assertions.assertEquals("http://target/connectors", actual.getUri().toString());
         Assertions.assertEquals("Basic dG90bzp0aXRp", actual.getHeaders().get(HttpHeaders.AUTHORIZATION));
+    }
+
+    public class MutableSimpleHttpRequest<B> extends SimpleHttpRequest<B>{
+
+        @Override
+        public MutableHttpRequest<B> mutate() {
+            return this;
+        }
+
+        public MutableSimpleHttpRequest(String uri){
+            super(HttpMethod.GET,uri,null);
+        }
     }
 }
