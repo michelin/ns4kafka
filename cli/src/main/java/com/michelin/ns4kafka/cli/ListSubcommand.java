@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 
 import javax.inject.Inject;
+import javax.swing.text.Style;
 
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.client.NonNamespacedResourceClient;
@@ -17,6 +18,7 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
+import picocli.CommandLine.Help.Ansi;
 
 @Command(name = "list" , description = "List all resources of a Namespace")
 public class ListSubcommand extends AbstractJWTCommand implements Callable<Integer>{
@@ -52,7 +54,7 @@ public class ListSubcommand extends AbstractJWTCommand implements Callable<Integ
         try {
            resourceDefinition = optionalResourceDefinition.get();
         } catch(Exception e) {
-            System.err.println("Can't find resource named: " + name);
+            System.out.println(Ansi.AUTO.string("@|bold,red Can't find resource named: |@") + name);
             return 2;
         }
 
@@ -68,7 +70,7 @@ public class ListSubcommand extends AbstractJWTCommand implements Callable<Integ
             HttpStatus status = e.getStatus();
             switch(status){
                 default:
-                System.err.println("List command failed with message : "+e.getMessage());
+                System.out.println(Ansi.AUTO.string("@|bold,red List command failed with message : |@")+e.getMessage());
             }
             return 1;
         }

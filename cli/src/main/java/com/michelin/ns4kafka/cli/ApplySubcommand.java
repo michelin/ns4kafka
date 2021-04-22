@@ -21,6 +21,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Help.Ansi;
 
 @Command(name = "apply" , description = "Create or update a resource")
 public class ApplySubcommand extends AbstractJWTCommand implements Callable<Integer>{
@@ -60,7 +61,7 @@ public class ApplySubcommand extends AbstractJWTCommand implements Callable<Inte
         try {
            resourceDefinition = optionalResourceDefinition.get();
         } catch(Exception e) {
-            System.err.println("Can't find the resource's kind: " + kind);
+            System.out.println(Ansi.AUTO.string("@|bold,red Can't find the resource's kind: |@") + kind);
             return 2;
         }
         try {
@@ -77,11 +78,11 @@ public class ApplySubcommand extends AbstractJWTCommand implements Callable<Inte
                     System.err.println(e.getMessage());
                     return 2;
                 default:
-                System.err.println("Resource failed with message : "+e.getMessage());
+                System.err.println(Ansi.AUTO.string("@|bold,red Resource failed with message : |@")+e.getMessage());
             }
             return 1;
         }
-        System.out.println(resourceDefinition.getKind() + ": SUCCESS");
+        System.out.println(resourceDefinition.getKind() + ": " + Ansi.AUTO.string("@|bold,green SUCCESS|@"));
         return 0;
     }
 }

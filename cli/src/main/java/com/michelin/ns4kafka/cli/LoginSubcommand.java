@@ -5,12 +5,14 @@ import com.michelin.ns4kafka.cli.client.LoginClient;
 
 import io.micronaut.context.annotation.Value;
 import io.micronaut.core.annotation.Introspected;
+import io.micronaut.http.client.exceptions.HttpClientException;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Help.Ansi;
 
 import javax.inject.Inject;
 import java.io.File;
@@ -72,7 +74,11 @@ public class LoginSubcommand implements Callable<Integer> {
             myWriter.write(response.getAccessToken());
             myWriter.close();
         } catch(HttpClientResponseException e) {
-            System.out.println("Authentication failed with message : "+e.getMessage());
+            System.out.println(Ansi.AUTO.string("@|bold,red Authentication failed with message : |@") + e.getMessage());
+        } catch(HttpClientException e) {
+            System.out.println(Ansi.AUTO.string("@|bold,red Client exception with message: |@") + e.getMessage());
+            System.out.println("Are the api.server field of the Configuration correct ?");
+            return 1;
         }
         return 0;
     }

@@ -17,6 +17,7 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
+import picocli.CommandLine.Help.Ansi;
 
 @Command(name = "get" , description = "Get resources of a Namespace")
 public class GetSubcommand extends AbstractJWTCommand implements Callable<Integer>{
@@ -53,7 +54,7 @@ public class GetSubcommand extends AbstractJWTCommand implements Callable<Intege
         try {
            resourceDefinition = optionalResourceDefinition.get();
         } catch(Exception e) {
-            System.err.println("Can't find kind of resource named: " + name);
+            System.out.println(Ansi.AUTO.string("@|bold,red Can't find kind of resource named: |@") + name);
             return 2;
         }
         Resource resource;
@@ -62,14 +63,14 @@ public class GetSubcommand extends AbstractJWTCommand implements Callable<Intege
                 resource = namespacedClient.get(namespaceValue, resourceDefinition.getPath(), name, token);
             }
             else {
-                System.err.println("Unimplemented for non namespaced resource");
+                System.err.println(Ansi.AUTO.string("@|bold,red Unimplemented for non namespaced resource |@"));
                 return 1;
             }
         } catch(HttpClientResponseException e) {
             HttpStatus status = e.getStatus();
             switch(status){
                 default:
-                System.err.println("Get command failed with message : " + e.getMessage());
+                System.err.println(Ansi.AUTO.string("@|bold,red Get command failed with message : |@") + e.getMessage());
             }
             return 1;
         }
