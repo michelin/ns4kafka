@@ -6,7 +6,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Predicate;
 
 import javax.inject.Inject;
 
@@ -14,10 +13,7 @@ import com.michelin.ns4kafka.cli.client.ResourceDefinitionClient;
 import com.michelin.ns4kafka.cli.models.ResourceDefinition;
 
 import io.micronaut.context.annotation.Value;
-import io.micronaut.core.annotation.ReflectiveAccess;
 import io.micronaut.core.io.IOUtils;
-import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
 
 public abstract class AbstractJWTCommand {
 
@@ -43,7 +39,6 @@ public abstract class AbstractJWTCommand {
 
     public static class ManageResource {
 
-        @ReflectiveAccess
         @Inject
         private ResourceDefinitionClient resourceClient;
 

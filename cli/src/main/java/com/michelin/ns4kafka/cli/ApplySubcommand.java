@@ -2,12 +2,15 @@ package com.michelin.ns4kafka.cli;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
 import javax.inject.Inject;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.client.NonNamespacedResourceClient;
@@ -32,57 +35,72 @@ public class ApplySubcommand extends AbstractJWTCommand implements Callable<Inte
     @Inject
     NonNamespacedResourceClient nonNamespacedClient;
 
-    String json = "";
-    String kind;
-    String namespace;
-    @Option(names = {"-f", "--file"}, required = true, description = "File in Yaml describing the system Kafka")
-    public void convertYamlToJson(File file) throws Exception {
-        //TODO better management of Exception
-        Yaml yaml = new Yaml(new Constructor(Resource.class));
-        ObjectMapper jsonWriter = new ObjectMapper();
-        InputStream inputStream = new FileInputStream(file);
+    @Option(names = {"-f", "--file"}, required = true, description = "Files in Yaml describing the system Kafka")
+    File[] files;
 
-        //TODO manage multi document YAML
-        Resource resourceYaml = yaml.load(inputStream);
-
-        kind = resourceYaml.getKind();
-        namespace = resourceYaml.getMetadata().getNamespace();
-
-        //convert to JSON
-        json = jsonWriter.writeValueAsString(resourceYaml);
-
-    }
-
-    public Integer call() {
+    private void sendJsonToAPI(JsonNode jsonNode) {
         String token = getJWT();
         token = "Bearer " + token;
+
+        String kind = jsonNode.get("kind").textValue();
+        String name = jsonNode.get("metadata").get("name").textValue();
+        String namespace = jsonNode.get("metadata").get("namespace").textValue();
+        String json = jsonNode.toString();
+
         Optional<ResourceDefinition> optionalResourceDefinition = manageResource.getResourceDefinitionFromKind(kind);
-        ResourceDefinition resourceDefinition;
+        ResourceDefinition resourceDefinition = null;
         try {
-           resourceDefinition = optionalResourceDefinition.get();
-        } catch(Exception e) {
-            System.out.println(Ansi.AUTO.string("@|bold,red Can't find the resource's kind: |@") + kind);
-            return 2;
-        }
-        try {
+            resourceDefinition = optionalResourceDefinition.get();
             if(resourceDefinition.isNamespaced()) {
                 namespacedClient.apply(namespace, resourceDefinition.getPath(), token, json);
-            }
-            else {
+            } else {
                 nonNamespacedClient.apply(token, json);
             }
+            System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS: |@") + resourceDefinition.getKind() + "/" + name);
+
+        } catch(NoSuchElementException e) {
+            System.out.println(Ansi.AUTO.string("@|bold,red Can't find the resource's kind: |@") + kind);
+
         } catch(HttpClientResponseException e) {
             HttpStatus status = e.getStatus();
             switch(status){
-                case BAD_REQUEST:
-                    System.err.println(e.getMessage());
-                    return 2;
+                case UNAUTHORIZED:
+                    System.out.println(Ansi.AUTO.string("@|bold,red Resource |@") + resourceDefinition.getKind() + "/" + name + Ansi.AUTO.string("@|bold,red  failed with message : |@") + e.getMessage());
+                    System.out.println("Please login first");
+                    break;
                 default:
-                System.err.println(Ansi.AUTO.string("@|bold,red Resource failed with message : |@")+e.getMessage());
+                    System.out.println(Ansi.AUTO.string("@|bold,red Resource |@") + resourceDefinition.getKind() + "/" + name + Ansi.AUTO.string("@|bold,red  failed with message : |@") + e.getMessage());
             }
-            return 1;
         }
-        System.out.println(resourceDefinition.getKind() + ": " + Ansi.AUTO.string("@|bold,green SUCCESS|@"));
+    }
+
+    private void convertYamlToJson(File file) {
+        Yaml yaml = new Yaml(new Constructor(Resource.class));
+        ObjectMapper mapper = new ObjectMapper();
+        InputStream inputStream = null;
+        try {
+            inputStream = new FileInputStream(file);
+            Iterable<Object> yamlResources = yaml.loadAll(inputStream);
+            //convert to JSON
+            for (Object yamlResource : yamlResources) {
+                //sendJson
+                sendJsonToAPI(mapper.valueToTree(yamlResource));
+            }
+        } catch (FileNotFoundException e) {
+            System.out.println(Ansi.AUTO.string("@|bold,red Can't find file: |@") + file.getPath());
+        }
+    }
+
+    @Override
+    public Integer call() throws Exception {
+        for (File file : files) {
+            if (file.getName().endsWith(".yml") || file.getName().endsWith(".yaml")) {
+                convertYamlToJson(file);
+            } else if (file.getName().endsWith(".json")) {
+                //TODO Implements json file
+
+            }
+        }
         return 0;
     }
 }
