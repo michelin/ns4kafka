@@ -11,6 +11,7 @@ import com.michelin.ns4kafka.cli.client.NonNamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.ResourceDefinition;
 
+import io.micronaut.context.annotation.Value;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import picocli.CommandLine.Command;
@@ -27,7 +28,7 @@ public class GetSubcommand extends AbstractJWTCommand implements Callable<Intege
     NonNamespacedResourceClient nonNamespacedClient;
 
     @Option(names = {"-n", "--namespace"})
-    String namespace;
+    String namespace = "";
 
     @Parameters(index = "0", description = "The name of the kind")
     String kind;
@@ -35,10 +36,18 @@ public class GetSubcommand extends AbstractJWTCommand implements Callable<Intege
     @Parameters(index = "1", description = "The name of the resource")
     String name;
 
+    @Value("${namespace.path}")
+    private String namespaceConfig;
+
     @Override
     public Integer call() throws Exception {
         String token = getJWT();
         token = "Bearer " + token;
+        String namespaceValue = namespaceConfig;
+        if (!namespace.isEmpty()) {
+            namespaceValue = namespace;
+        }
+
         Optional<ResourceDefinition> optionalResourceDefinition = manageResource.getResourceDefinitionFromCommandName(kind);
         ResourceDefinition resourceDefinition;
         try {
@@ -50,7 +59,7 @@ public class GetSubcommand extends AbstractJWTCommand implements Callable<Intege
         Resource resource;
         try {
             if(resourceDefinition.isNamespaced()) {
-                resource = namespacedClient.get(namespace, resourceDefinition.getPath(), name, token);
+                resource = namespacedClient.get(namespaceValue, resourceDefinition.getPath(), name, token);
             }
             else {
                 System.err.println("Unimplemented for non namespaced resource");

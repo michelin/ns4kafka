@@ -7,7 +7,7 @@ import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.client.annotation.Client;
 
-@Client("${cluster.server}")
+@Client("${api.server}")
 public interface LoginClient {
 
     @Post("/login")

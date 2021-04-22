@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
 
-export MICRONAUT_CONFIG_FILES=$HOME/.kafkactl/config
+export MICRONAUT_CONFIG_FILES=$HOME/.kafkactl/config.yml
 
-if [ $# = 0 ]
-then
-    ./gradlew :cli:run
-else
-    ./gradlew :cli:run --args="$*"
-fi
+/usr/bin/java -jar ./cli/build/libs/cli-0.1-all.jar "$@"

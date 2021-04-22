@@ -6,7 +6,7 @@ user:
   name: Gitlab
   token: token
 
-cluster:
+api:
   name: local
   server: http://localhost:8080
 

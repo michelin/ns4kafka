@@ -25,25 +25,39 @@ public class LoginSubcommand implements Callable<Integer> {
     @Inject
     LoginClient client;
 
-    @Option(names = {"-u", "--username"}, required = true, description = "Username")
-    String username = "Gitlab";
+    @Option(names = {"-u", "--username"}, description = "Username")
+    String username = "";
 
     //TODO change to char[]
-    @Option(names = {"-p", "--password"}, required = true, description = "Password")
-    String password;
+    @Option(names = {"-p", "--password"}, interactive = true, description = "Password")
+    String password = "";
 
     @Value("${HOME}/.kafkactl/jwt")
     private String path;
 
+    @Value("${user.name}")
+    private String usernameConfig;
+
+    @Value("${user.token}")
+    private String passwordConfig;
 
     @Override
     public Integer call() throws Exception {
+
+        String usernameValue = usernameConfig;
+        String passwordValue = passwordConfig;
+        if (!username.isEmpty()) {
+            usernameValue = username;
+        }
+        if (!password.isEmpty()) {
+            passwordValue = password;
+        }
+
         UsernameAndPasswordRequest request = UsernameAndPasswordRequest.builder()
-                .username(username)
-                .password(password)
+                .username(usernameValue)
+                .password(passwordValue)
                 .build();
-        try{
-            System.out.println(path);
+        try {
             BearerAccessRefreshToken response = client.login(request);
 
             Calendar calendar = Calendar.getInstance(); // gets a calendar using the default time zone and locale.

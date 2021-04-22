@@ -11,6 +11,7 @@ import com.michelin.ns4kafka.cli.client.NonNamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.ResourceDefinition;
 
+import io.micronaut.context.annotation.Value;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import picocli.CommandLine.Command;
@@ -27,17 +28,22 @@ public class ListSubcommand extends AbstractJWTCommand implements Callable<Integ
     NonNamespacedResourceClient nonNamespacedClient;
 
     @Option(names = {"-n", "--namespace"})
-    String namespace = null;
+    String namespace = "";
 
     @Parameters(index = "0", description = "The name of the kind which you want the list")
     String name;
+
+    @Value("${namespace.path}")
+    private String namespaceConfig;
 
     @Override
     public Integer call() throws Exception {
         String token = getJWT();
         token = "Bearer " + token;
-        //TODO add Config namespace
-        String namespaceValue = namespace;
+        String namespaceValue = namespaceConfig;
+        if (!namespace.isEmpty()) {
+            namespaceValue = namespace;
+        }
         if (namespaceValue.isEmpty()){
             return 2;
         }
@@ -53,7 +59,7 @@ public class ListSubcommand extends AbstractJWTCommand implements Callable<Integ
         List<Resource> resources;
         try {
             if(resourceDefinition.isNamespaced()) {
-                resources = namespacedClient.list(namespace, resourceDefinition.getPath(), token);
+                resources = namespacedClient.list(namespaceValue, resourceDefinition.getPath(), token);
             }
             else {
                 resources = nonNamespacedClient.list(token);

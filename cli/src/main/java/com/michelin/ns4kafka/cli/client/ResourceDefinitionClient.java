@@ -7,7 +7,7 @@ import com.michelin.ns4kafka.cli.models.ResourceDefinition;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.client.annotation.Client;
 
-@Client("${cluster.server}")
+@Client("${api.server}")
 public interface ResourceDefinitionClient {
 
     @Get("/api-resources")
