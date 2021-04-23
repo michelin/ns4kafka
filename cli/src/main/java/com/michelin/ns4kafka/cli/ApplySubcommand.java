@@ -8,12 +8,8 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-import javax.inject.Inject;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
-import com.michelin.ns4kafka.cli.client.NonNamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.ResourceDefinition;
 
@@ -27,13 +23,8 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Help.Ansi;
 
 @Command(name = "apply" , description = "Create or update a resource")
-public class ApplySubcommand extends AbstractJWTCommand implements Callable<Integer>{
+public class ApplySubcommand extends AbstractResourceCommand implements Callable<Integer>{
 
-    @Inject
-    NamespacedResourceClient namespacedClient;
-
-    @Inject
-    NonNamespacedResourceClient nonNamespacedClient;
 
     @Option(names = {"-f", "--file"}, required = true, description = "Files in Yaml describing the system Kafka")
     File[] files;
