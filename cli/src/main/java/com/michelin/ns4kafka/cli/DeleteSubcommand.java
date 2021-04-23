@@ -61,6 +61,7 @@ public class DeleteSubcommand extends AbstractResourceCommand implements Callabl
             return 1;
         }
 
+        System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS |@"));
         return 0;
     }
 
