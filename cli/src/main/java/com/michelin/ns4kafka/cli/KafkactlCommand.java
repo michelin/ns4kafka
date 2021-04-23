@@ -6,7 +6,7 @@ import io.micronaut.configuration.picocli.PicocliRunner;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
-@Command(name = "kafkactl", subcommands = {LoginSubcommand.class, ApplySubcommand.class, ListSubcommand.class, GetSubcommand.class} , description = "...",
+@Command(name = "kafkactl", subcommands = {LoginSubcommand.class, ApplySubcommand.class, ListSubcommand.class, GetSubcommand.class, DeleteSubcommand.class} , description = "...",
         mixinStandardHelpOptions = true)
 public class KafkactlCommand implements Callable<Integer> {
 
