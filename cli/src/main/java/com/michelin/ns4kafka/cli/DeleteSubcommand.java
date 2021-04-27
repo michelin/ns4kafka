@@ -3,7 +3,10 @@ package com.michelin.ns4kafka.cli;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-import com.michelin.ns4kafka.cli.models.Resource;
+import javax.inject.Inject;
+
+import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
+import com.michelin.ns4kafka.cli.client.NonNamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.ResourceDefinition;
 
 import io.micronaut.context.annotation.Value;
@@ -15,7 +18,13 @@ import picocli.CommandLine.Parameters;
 import picocli.CommandLine.Help.Ansi;
 
 @Command(name = "delete", description = "Delete a resource")
-public class DeleteSubcommand extends AbstractResourceCommand implements Callable<Integer> {
+public class DeleteSubcommand extends AbstractJWTCommand implements Callable<Integer> {
+
+    @Inject
+    NamespacedResourceClient namespacedClient;
+
+    @Inject
+    NonNamespacedResourceClient nonNamespacedClient;
 
     @Option(names = {"-n", "--namespace"})
     String namespace = "";

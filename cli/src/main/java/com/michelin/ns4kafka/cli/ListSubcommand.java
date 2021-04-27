@@ -4,6 +4,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
+import javax.inject.Inject;
+import javax.swing.text.Style;
+
+import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
+import com.michelin.ns4kafka.cli.client.NonNamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.ResourceDefinition;
 
@@ -11,12 +16,18 @@ import io.micronaut.context.annotation.Value;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Help.Ansi;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
+import picocli.CommandLine.Help.Ansi;
 
 @Command(name = "list" , description = "List all resources of a Namespace")
-public class ListSubcommand extends AbstractResourceCommand implements Callable<Integer>{
+public class ListSubcommand extends AbstractJWTCommand implements Callable<Integer>{
+
+    @Inject
+    NamespacedResourceClient namespacedClient;
+
+    @Inject
+    NonNamespacedResourceClient nonNamespacedClient;
 
     @Option(names = {"-n", "--namespace"})
     String namespace = "";
