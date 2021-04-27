@@ -1,21 +1,19 @@
 package com.michelin.ns4kafka.cli;
 
-import java.util.Optional;
-import java.util.concurrent.Callable;
-
-import javax.inject.Inject;
-
+import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
-import com.michelin.ns4kafka.cli.client.NonNamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.ResourceDefinition;
-
 import io.micronaut.context.annotation.Value;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Help.Ansi;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
-import picocli.CommandLine.Help.Ansi;
+
+import javax.inject.Inject;
+import java.util.Optional;
+import java.util.concurrent.Callable;
 
 @Command(name = "delete", description = "Delete a resource")
 public class DeleteSubcommand extends AbstractJWTCommand implements Callable<Integer> {
@@ -24,7 +22,7 @@ public class DeleteSubcommand extends AbstractJWTCommand implements Callable<Int
     NamespacedResourceClient namespacedClient;
 
     @Inject
-    NonNamespacedResourceClient nonNamespacedClient;
+    ClusterResourceClient nonNamespacedClient;
 
     @Option(names = {"-n", "--namespace"})
     String namespace = "";
@@ -59,7 +57,7 @@ public class DeleteSubcommand extends AbstractJWTCommand implements Callable<Int
                 namespacedClient.delete(namespaceValue, resourceDefinition.getPath(), name, token);
             }
             else {
-                nonNamespacedClient.delete(token);
+                //nonNamespacedClient.delete(token);
             }
         } catch(HttpClientResponseException e) {
             HttpStatus status = e.getStatus();

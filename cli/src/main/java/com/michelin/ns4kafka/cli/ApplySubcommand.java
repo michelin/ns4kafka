@@ -1,5 +1,20 @@
 package com.michelin.ns4kafka.cli;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
+import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
+import com.michelin.ns4kafka.cli.models.Resource;
+import com.michelin.ns4kafka.cli.models.ResourceDefinition;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Help.Ansi;
+import picocli.CommandLine.Option;
+
+import javax.inject.Inject;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -8,24 +23,6 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-import javax.inject.Inject;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
-import com.michelin.ns4kafka.cli.client.NonNamespacedResourceClient;
-import com.michelin.ns4kafka.cli.models.Resource;
-import com.michelin.ns4kafka.cli.models.ResourceDefinition;
-
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
-
-import io.micronaut.http.HttpStatus;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
-import picocli.CommandLine.Help.Ansi;
-
 @Command(name = "apply" , description = "Create or update a resource")
 public class ApplySubcommand extends AbstractJWTCommand implements Callable<Integer>{
 
@@ -33,7 +30,7 @@ public class ApplySubcommand extends AbstractJWTCommand implements Callable<Inte
     NamespacedResourceClient namespacedClient;
 
     @Inject
-    NonNamespacedResourceClient nonNamespacedClient;
+    ClusterResourceClient nonNamespacedClient;
 
     @Option(names = {"-f", "--file"}, required = true, description = "Files in Yaml describing the system Kafka")
     File[] files;
@@ -54,7 +51,7 @@ public class ApplySubcommand extends AbstractJWTCommand implements Callable<Inte
             if(resourceDefinition.isNamespaced()) {
                 namespacedClient.apply(namespace, resourceDefinition.getPath(), token, json);
             } else {
-                nonNamespacedClient.apply(token, json);
+                nonNamespacedClient.apply(token, resourceDefinition.getPath(), json);
             }
             System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS: |@") + resourceDefinition.getKind() + "/" + name);
 

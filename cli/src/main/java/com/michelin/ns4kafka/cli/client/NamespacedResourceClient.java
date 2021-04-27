@@ -1,16 +1,13 @@
 package com.michelin.ns4kafka.cli.client;
 
+import com.michelin.ns4kafka.cli.models.Resource;
+import io.micronaut.http.annotation.*;
+import io.micronaut.http.client.annotation.Client;
+
 import java.util.List;
 
-import com.michelin.ns4kafka.cli.models.Resource;
-
-import io.micronaut.http.annotation.Body;
-import io.micronaut.http.annotation.Delete;
-import io.micronaut.http.annotation.Get;
-import io.micronaut.http.annotation.Header;
-import io.micronaut.http.annotation.Post;
-
-public interface NamespacedResourceClient extends ResourceClient {
+@Client("${api.server}/api/namespaces/")
+public interface NamespacedResourceClient {
 
     @Delete("{namespace}/{kind}/{resourcename}")
     void delete(

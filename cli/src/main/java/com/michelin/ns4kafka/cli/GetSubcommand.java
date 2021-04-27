@@ -1,23 +1,21 @@
 package com.michelin.ns4kafka.cli;
 
-import java.util.Optional;
-import java.util.concurrent.Callable;
-
-import javax.inject.Inject;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
-import com.michelin.ns4kafka.cli.client.NonNamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.ResourceDefinition;
-
 import io.micronaut.context.annotation.Value;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Help.Ansi;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
-import picocli.CommandLine.Help.Ansi;
+
+import javax.inject.Inject;
+import java.util.Optional;
+import java.util.concurrent.Callable;
 
 @Command(name = "get" , description = "Get resources of a Namespace")
 public class GetSubcommand extends AbstractJWTCommand implements Callable<Integer>{
@@ -26,7 +24,7 @@ public class GetSubcommand extends AbstractJWTCommand implements Callable<Intege
     NamespacedResourceClient namespacedClient;
 
     @Inject
-    NonNamespacedResourceClient nonNamespacedClient;
+    ClusterResourceClient nonNamespacedClient;
 
     @Option(names = {"-n", "--namespace"})
     String namespace = "";

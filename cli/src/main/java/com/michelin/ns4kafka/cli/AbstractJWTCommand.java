@@ -1,5 +1,10 @@
 package com.michelin.ns4kafka.cli;
 
+import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
+import com.michelin.ns4kafka.cli.models.ResourceDefinition;
+import io.micronaut.core.io.IOUtils;
+
+import javax.inject.Inject;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -7,21 +12,12 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
-import javax.inject.Inject;
-
-import com.michelin.ns4kafka.cli.client.ResourceDefinitionClient;
-import com.michelin.ns4kafka.cli.models.ResourceDefinition;
-
-import io.micronaut.context.annotation.Value;
-import io.micronaut.core.io.IOUtils;
-
 public abstract class AbstractJWTCommand {
 
     @Inject
     ManageResource manageResource;
 
-    @Value("${HOME}/.kafkactl/jwt")
-    String path;
+    private final String path = System.getProperty("user.home")+"/.kafkactl/jwt";
 
     public String getJWT() {
         BufferedReader in;
@@ -40,11 +36,11 @@ public abstract class AbstractJWTCommand {
     public static class ManageResource {
 
         @Inject
-        private ResourceDefinitionClient resourceClient;
+        private ClusterResourceClient resourceClient;
 
         public List<ResourceDefinition> getListResourceDefinition() {
             //TODO Add Cache to reduce the number of http requests
-            return resourceClient.getResource();
+            return resourceClient.listResourceDefinitions();
         }
 
         public Optional<ResourceDefinition> getResourceDefinitionFromKind(String kind) {

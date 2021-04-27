@@ -1,18 +1,22 @@
 package com.michelin.ns4kafka.cli;
 
-import java.util.concurrent.Callable;
-
 import io.micronaut.configuration.picocli.PicocliRunner;
+import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
+import javax.inject.Inject;
+import java.util.concurrent.Callable;
+
 @Command(name = "kafkactl", subcommands = {LoginSubcommand.class, ApplySubcommand.class, ListSubcommand.class, GetSubcommand.class, DeleteSubcommand.class} , description = "...",
-        mixinStandardHelpOptions = true)
+        mixinStandardHelpOptions = false)
 public class KafkactlCommand implements Callable<Integer> {
 
 
     @Option(names = {"-v", "--verbose"}, description = "...")
     boolean verbose;
+
+    @Inject
 
 
     public static void main(String[] args) throws Exception {
@@ -21,11 +25,15 @@ public class KafkactlCommand implements Callable<Integer> {
     }
 
     public Integer call() throws Exception {
-        // business logic here
-        System.out.println("Hi!");
-        if (verbose) {
-            System.out.println("Hi!");
-        }
+        // Check API status
+
+        // Check login status
+
+        // Check namespace is set
+
+        // Display help
+        CommandLine.usage(new KafkactlCommand(), System.out);
+
         return 0;
 
     }
