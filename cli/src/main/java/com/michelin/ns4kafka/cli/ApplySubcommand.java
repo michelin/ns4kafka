@@ -35,6 +35,9 @@ public class ApplySubcommand extends AbstractJWTCommand implements Callable<Inte
     @Option(names = {"-f", "--file"}, required = true, description = "Files in Yaml describing the system Kafka")
     File[] files;
 
+    @Option(names = {"-r", "--recursive"}, description = "Enable recursive search of file")
+    boolean recursive;
+
     private void sendJsonToAPI(JsonNode jsonNode) {
         String token = getJWT();
         token = "Bearer " + token;
@@ -88,14 +91,46 @@ public class ApplySubcommand extends AbstractJWTCommand implements Callable<Inte
         }
     }
 
+    private void identifyFileFormat(File file) {
+        if (file.getName().endsWith(".yml") || file.getName().endsWith(".yaml")) {
+            convertYamlToJson(file);
+        } else if (file.getName().endsWith(".json")) {
+            //TODO Implements json file
+
+        }
+
+    }
+
+    private void recursiveDirectory (File fileDirectory) {
+        File[] filesFromdirectory = fileDirectory.listFiles();
+        for (File file : filesFromdirectory) {
+            if (file.isDirectory()) {
+                recursiveDirectory(file);
+            } else {
+                identifyFileFormat(file);
+            }
+
+        }
+    }
+
     @Override
     public Integer call() throws Exception {
+        // look for each file described by the option f
         for (File file : files) {
-            if (file.getName().endsWith(".yml") || file.getName().endsWith(".yaml")) {
-                convertYamlToJson(file);
-            } else if (file.getName().endsWith(".json")) {
-                //TODO Implements json file
+            // if the file is a directory, look for the files inside it
+            if (file.isDirectory()) {
+                File[] filesFromdirectory = file.listFiles();
+                for (File file2 : filesFromdirectory) {
+                    // if option recursive is enable, look for file inside the directory
+                    if (recursive && file2.isDirectory()) {
+                        recursiveDirectory(file2);
+                    } else {
+                        identifyFileFormat(file2);
+                    }
+                }
 
+            } else {
+                identifyFileFormat(file);
             }
         }
         return 0;
