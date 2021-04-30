@@ -134,7 +134,7 @@ public class AccessControlListControllerTest {
                 .thenReturn(List.of("ValidationError"));
 
         ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
-                () -> accessControlListController.apply("admin", ace1));
+                () -> accessControlListController.apply("admin", ace1, false));
         Assertions.assertEquals(1, actual.getValidationErrors().size());
     }
     @Test
@@ -155,7 +155,7 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
-        AccessControlEntry actual = accessControlListController.apply("admin", ace1);
+        AccessControlEntry actual = accessControlListController.apply("admin", ace1, false);
         Assertions.assertEquals("admin", actual.getMetadata().getNamespace());
     }
 
@@ -181,7 +181,7 @@ public class AccessControlListControllerTest {
                 .thenReturn(List.of("ValidationError"));
 
         ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
-                () -> accessControlListController.apply("test", ace1));
+                () -> accessControlListController.apply("test", ace1, false));
         Assertions.assertEquals(1, actual.getValidationErrors().size());
     }
 
@@ -208,7 +208,7 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
-        AccessControlEntry actual = accessControlListController.apply("test", ace1);
+        AccessControlEntry actual = accessControlListController.apply("test", ace1, false);
         Assertions.assertEquals("test", actual.getMetadata().getNamespace());
         Assertions.assertEquals("local", actual.getMetadata().getCluster());
     }

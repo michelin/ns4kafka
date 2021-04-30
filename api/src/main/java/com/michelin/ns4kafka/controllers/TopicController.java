@@ -41,8 +41,8 @@ public class TopicController extends NamespacedResourceController {
         return optionalTopic;
     }
 
-    @Post("/")
-    public Topic apply(String namespace, @Valid @Body Topic topic) {
+    @Post("{?dryrun}")
+    public Topic apply(String namespace, @Valid @Body Topic topic, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         //TODO
         // 1. (Done) User Allowed ?
@@ -93,6 +93,9 @@ public class TopicController extends NamespacedResourceController {
         topic.getMetadata().setCluster(ns.getMetadata().getCluster());
         topic.getMetadata().setNamespace(ns.getMetadata().getName());
         topic.setStatus(Topic.TopicStatus.ofPending());
+        if (dryrun) {
+            return topic;
+        }
         return topicService.create(topic);
         //TODO quota management
         // pour les topics dont je suis owner, somme d'usage

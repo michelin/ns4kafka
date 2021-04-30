@@ -39,14 +39,17 @@ public class RoleBindingController extends NamespacedResourceController {
         return roleBindingService.findByName(namespace, name);
     }
 
-    @Post("/")
-    public RoleBinding apply(String namespace, @Valid @Body RoleBinding rolebinding) {
+    @Post("{?dryrun}")
+    public RoleBinding apply(String namespace, @Valid @Body RoleBinding rolebinding, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         // fill with cluster name
         Namespace ns = getNamespace(namespace);
         rolebinding.getMetadata().setCluster(ns.getMetadata().getCluster());
         rolebinding.getMetadata().setNamespace(namespace);
 
+        if (dryrun) {
+            return rolebinding;
+        }
         roleBindingService.create(rolebinding);
         return rolebinding;
     }

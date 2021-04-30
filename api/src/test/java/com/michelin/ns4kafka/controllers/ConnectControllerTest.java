@@ -149,7 +149,7 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(false);
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> connectController.apply("test", connector));
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> connectController.apply("test", connector, false));
         Assertions.assertLinesMatch(List.of("Invalid value connect1 for name: Namespace not OWNER of this connector"), actual.getValidationErrors());
     }
 
@@ -170,7 +170,7 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.validateLocally(ns, connector))
                 .thenReturn(List.of("Local Validation Error 1"));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> connectController.apply("test", connector));
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> connectController.apply("test", connector, false));
         Assertions.assertLinesMatch(List.of("Local Validation Error 1"), actual.getValidationErrors());
     }
 
@@ -193,7 +193,7 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.validateRemotely(ns, connector))
                 .thenReturn(List.of("Remote Validation Error 1"));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> connectController.apply("test", connector));
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> connectController.apply("test", connector, false));
         Assertions.assertLinesMatch(List.of("Remote Validation Error 1"), actual.getValidationErrors());
     }
 
@@ -222,7 +222,7 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.createOrUpdate(ns, connector))
                 .thenReturn(expected);
 
-        Connector actual = connectController.apply("test", connector);
+        Connector actual = connectController.apply("test", connector, false);
 
         Assertions.assertEquals(expected.getStatus().getState(), actual.getStatus().getState());
 
