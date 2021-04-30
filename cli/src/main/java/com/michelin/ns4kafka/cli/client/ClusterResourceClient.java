@@ -26,7 +26,7 @@ public interface ClusterResourceClient {
     void delete(@Header("Authorization") String token, String kind, String resource);
 
     @Post("/api/{kind}")
-    Resource apply(@Header("Authorization") String token, String kind, @Body String json);
+    Resource apply(@Header("Authorization") String token, String kind, @Body Resource json);
 
     @Get("/api/{kind}")
     List<Resource> list(@Header("Authorization") String token, String kind);

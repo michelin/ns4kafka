@@ -21,7 +21,7 @@ public interface NamespacedResourceClient {
             String namespace,
             String kind,
             @Header(name = "Authorization", value = "Authorization") String token,
-            @Body String json);
+            @Body Resource json);
 
     @Get("{namespace}/{kind}")
     List<Resource> list(
