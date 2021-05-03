@@ -13,6 +13,9 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -149,7 +152,7 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(false);
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> connectController.apply("test", connector));
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> connectController.apply("test", connector, false));
         Assertions.assertLinesMatch(List.of("Invalid value connect1 for name: Namespace not OWNER of this connector"), actual.getValidationErrors());
     }
 
@@ -170,7 +173,7 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.validateLocally(ns, connector))
                 .thenReturn(List.of("Local Validation Error 1"));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> connectController.apply("test", connector));
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> connectController.apply("test", connector, false));
         Assertions.assertLinesMatch(List.of("Local Validation Error 1"), actual.getValidationErrors());
     }
 
@@ -193,7 +196,7 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.validateRemotely(ns, connector))
                 .thenReturn(List.of("Remote Validation Error 1"));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> connectController.apply("test", connector));
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> connectController.apply("test", connector, false));
         Assertions.assertLinesMatch(List.of("Remote Validation Error 1"), actual.getValidationErrors());
     }
 
@@ -222,9 +225,37 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.createOrUpdate(ns, connector))
                 .thenReturn(expected);
 
-        Connector actual = connectController.apply("test", connector);
+        Connector actual = connectController.apply("test", connector, false);
 
         Assertions.assertEquals(expected.getStatus().getState(), actual.getStatus().getState());
+
+    }
+
+    @Test
+    void createConnectorDryRun() {
+        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Connector expected = Connector.builder()
+                .metadata(ObjectMeta.builder().name("connect1").build())
+                .status(Connector.ConnectorStatus.builder().state(Connector.TaskState.UNASSIGNED).build())
+                .build();
+
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
+                .thenReturn(true);
+        Mockito.when(kafkaConnectService.validateLocally(ns, connector))
+                .thenReturn(List.of());
+        Mockito.when(kafkaConnectService.validateRemotely(ns, connector))
+                .thenReturn(List.of());
+
+        Connector actual = connectController.apply("test", connector, true);
+        verify(kafkaConnectService, never()).createOrUpdate(ns, connector);
 
     }
 }

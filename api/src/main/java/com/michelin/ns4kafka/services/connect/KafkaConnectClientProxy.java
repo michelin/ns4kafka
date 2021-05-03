@@ -54,9 +54,7 @@ public class KafkaConnectClientProxy extends OncePerRequestHttpServerFilter {
     public MutableHttpRequest<?> mutateKafkaConnectRequest(HttpRequest<?> request, KafkaAsyncExecutorConfig.ConnectConfig connectConfig) {
 
         URI newURI = URI.create(connectConfig.getUrl());
-        //required for Tests, don't know why
-        MutableHttpRequest<?> mutableHttpRequest = (MutableHttpRequest<?>)request;
-        return mutableHttpRequest
+        return request.mutate()
                 .uri(b -> b
                         .scheme(newURI.getScheme())
                         .host(newURI.getHost())

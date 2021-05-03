@@ -3,8 +3,11 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.TopicService;
+import com.michelin.ns4kafka.validation.TopicValidator;
+
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import org.junit.jupiter.api.Assertions;
@@ -16,11 +19,16 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -162,20 +170,100 @@ public class TopicControllerTest {
 
     }
 
+    @Test
+    public void CreateNewTopic() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","delete",
+                                        "min.insync.replicas", "2",
+                                        "retention.ms", "60000"))
+                        .build())
+                .build();
+        when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
+        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
+        when(topicService.create(topic)).thenReturn(topic);
+
+        Topic actual = topicController.apply("test", topic, false);
+        assertEquals(actual.getMetadata().getName(), "test.topic");
+    }
+
+    @Test
+    public void CreateNewTopicDryRun() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","delete",
+                                        "min.insync.replicas", "2",
+                                        "retention.ms", "60000"))
+                        .build())
+                .build();
+        when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
+        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
+
+        Topic actual = topicController.apply("test", topic, true);
+        verify(topicService, never()).create(topic);
+    }
 
     @Test
     public void CreateNewTopicFailValidationNoAPI() {
-        /*Topic topic = Topic.builder()
-                .metadata(ObjectMeta.builder().name("test.topic2").build())
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(1)
                         .partitions(3)
+                        .configs(Map.of("cleanup.policy","delete",
+                                        "min.insync.replicas", "2",
+                                        "retention.ms", "60000"))
                         .build())
                 .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
+        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
+
         ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
-                () -> topicController.apply("test",topic));
+                () -> topicController.apply("test", topic, false));
         Assertions.assertEquals(1, actual.getValidationErrors().size());
         Assertions.assertLinesMatch(List.of(".*replication\\.factor.*"), actual.getValidationErrors());
-         */
     }
 }

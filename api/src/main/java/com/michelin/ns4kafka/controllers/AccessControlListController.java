@@ -64,19 +64,20 @@ public class AccessControlListController extends NamespacedResourceController {
 
     }
 
-    @Post()
-    public AccessControlEntry apply(String namespace, @Valid @Body AccessControlEntry accessControlEntry) {
+    @Post("{?dryrun}")
+    public AccessControlEntry apply(String namespace, @Valid @Body AccessControlEntry accessControlEntry, @QueryValue(defaultValue = "false") boolean dryrun) {
+
         boolean isAdmin = namespace.equals(Namespace.ADMIN_NAMESPACE);
         if (!isAdmin) {
             Namespace ns = getNamespace(namespace);
-            return applyAsUser(ns, accessControlEntry);
+            return applyAsUser(ns, accessControlEntry, dryrun);
 
         } else {
-            return applyAsAdmin(accessControlEntry);
+            return applyAsAdmin(accessControlEntry, dryrun);
         }
     }
 
-    public AccessControlEntry applyAsUser(Namespace namespace, AccessControlEntry accessControlEntry) {
+    public AccessControlEntry applyAsUser(Namespace namespace, AccessControlEntry accessControlEntry, boolean dryRun) {
         //validation
         List<String> validationErrors = accessControlEntryService.validate(accessControlEntry, namespace);
         if (!validationErrors.isEmpty()) {
@@ -85,11 +86,15 @@ public class AccessControlListController extends NamespacedResourceController {
         //augment
         accessControlEntry.getMetadata().setCluster(namespace.getMetadata().getCluster());
         accessControlEntry.getMetadata().setNamespace(namespace.getMetadata().getName());
+        //dryrun checks
+        if (dryRun) {
+            return accessControlEntry;
+        }
         //store
         return accessControlEntryService.create(accessControlEntry);
     }
 
-    public AccessControlEntry applyAsAdmin(AccessControlEntry accessControlEntry) {
+    public AccessControlEntry applyAsAdmin(AccessControlEntry accessControlEntry, boolean dryRun) {
         //validation
         List<String> validationErrors = accessControlEntryService.validateAsAdmin(accessControlEntry);
         if (!validationErrors.isEmpty()) {
@@ -97,6 +102,10 @@ public class AccessControlListController extends NamespacedResourceController {
         }
         //augment
         accessControlEntry.getMetadata().setNamespace(Namespace.ADMIN_NAMESPACE);
+        //dryrun checks
+        if (dryRun) {
+            return accessControlEntry;
+        }
         //store
         return accessControlEntryService.create(accessControlEntry);
     }
