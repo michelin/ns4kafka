@@ -5,12 +5,13 @@ import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.ResourceDefinition;
-import io.micronaut.context.annotation.Value;
+import com.michelin.ns4kafka.cli.services.ApiResourcesService;
+import com.michelin.ns4kafka.cli.services.LoginService;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Help.Ansi;
-import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import javax.inject.Inject;
@@ -18,36 +19,38 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 
 @Command(name = "get" , description = "Get resources of a Namespace")
-public class GetSubcommand extends AbstractJWTCommand implements Callable<Integer>{
+public class GetSubcommand implements Callable<Integer>{
 
     @Inject
     NamespacedResourceClient namespacedClient;
-
     @Inject
     ClusterResourceClient nonNamespacedClient;
 
-    @Option(names = {"-n", "--namespace"})
-    String namespace = "";
+    @Inject
+    LoginService loginService;
+    @Inject
+    ApiResourcesService apiResourcesService;
+    @Inject
+    KafkactlConfig kafkactlConfig;
 
+    @CommandLine.ParentCommand
+    KafkactlCommand kafkactlCommand;
     @Parameters(index = "0", description = "The name of the kind")
     String kind;
-
     @Parameters(index = "1", description = "The name of the resource")
     String name;
 
-    @Value("${namespace.path}")
-    private String namespaceConfig;
-
     @Override
     public Integer call() throws Exception {
-        String token = getJWT();
-        token = "Bearer " + token;
-        String namespaceValue = namespaceConfig;
-        if (!namespace.isEmpty()) {
-            namespaceValue = namespace;
+
+        boolean authenticated = loginService.doAuthenticate(kafkactlCommand.verbose);
+        if (!authenticated) {
+            return 1;
         }
 
-        Optional<ResourceDefinition> optionalResourceDefinition = manageResource.getResourceDefinitionFromCommandName(kind);
+        String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
+
+        Optional<ResourceDefinition> optionalResourceDefinition = apiResourcesService.getResourceDefinitionFromCommandName(kind);
         ResourceDefinition resourceDefinition;
         try {
            resourceDefinition = optionalResourceDefinition.get();
@@ -58,7 +61,7 @@ public class GetSubcommand extends AbstractJWTCommand implements Callable<Intege
         Resource resource;
         try {
             if(resourceDefinition.isNamespaced()) {
-                resource = namespacedClient.get(namespaceValue, resourceDefinition.getPath(), name, token);
+                resource = namespacedClient.get(namespace, resourceDefinition.getPath(), name, loginService.getAuthorization());
             }
             else {
                 System.err.println(Ansi.AUTO.string("@|bold,red Unimplemented for non namespaced resource |@"));

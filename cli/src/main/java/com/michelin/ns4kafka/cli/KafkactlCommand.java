@@ -5,15 +5,26 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
-@Command(name = "kafkactl", subcommands = {LoginSubcommand.class, ApplySubcommand.class, ListSubcommand.class, GetSubcommand.class, DeleteSubcommand.class} , description = "...",
+@Command(name = "kafkactl",
+        subcommands =
+                {
+                        ApplySubcommand.class,
+                        ListSubcommand.class,
+                        GetSubcommand.class,
+                        DeleteSubcommand.class,
+                        ApiResourcesSubcommand.class
+                },
+        description = "...",
         mixinStandardHelpOptions = false)
 public class KafkactlCommand implements Callable<Integer> {
 
-    @Option(names = {"-v", "--verbose"}, description = "...")
+    @Option(names = {"-v", "--verbose"}, description = "...", scope = CommandLine.ScopeType.INHERIT)
     boolean verbose;
-
+    @Option(names = {"-n", "--namespace"}, description = "Override namespace defined in config or yaml resource", scope = CommandLine.ScopeType.INHERIT)
+    Optional<String> optionalNamespace;
 
 
     public static void main(String[] args) throws Exception {

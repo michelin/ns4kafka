@@ -6,7 +6,7 @@ import io.micronaut.http.client.annotation.Client;
 
 import java.util.List;
 
-@Client("${api.server}/api/namespaces/")
+@Client("${kafkactl.api}/api/namespaces/")
 public interface NamespacedResourceClient {
 
     @Delete("{namespace}/{kind}/{resourcename}")

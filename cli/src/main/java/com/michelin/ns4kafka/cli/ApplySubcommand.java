@@ -4,6 +4,8 @@ import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.ResourceDefinition;
+import com.michelin.ns4kafka.cli.services.ApiResourcesService;
+import com.michelin.ns4kafka.cli.services.LoginService;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import org.yaml.snakeyaml.Yaml;
@@ -24,49 +26,52 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 @Command(name = "apply", description = "Create or update a resource")
-public class ApplySubcommand extends AbstractJWTCommand implements Callable<Integer> {
-
-    @CommandLine.ParentCommand // picocli injects the parent instance
-    private KafkactlCommand parentCommand;
+public class ApplySubcommand implements Callable<Integer> {
 
     @Inject
     NamespacedResourceClient namespacedClient;
-
     @Inject
     ClusterResourceClient nonNamespacedClient;
 
-    @Option(names = {"-f", "--file"}, description = "YAML File or Directory containing YAML resources")
-    File file;
+    @Inject
+    LoginService loginService;
+    @Inject
+    ApiResourcesService apiResourcesService;
+    @Inject
+    KafkactlConfig kafkactlConfig;
 
+    @CommandLine.ParentCommand
+    KafkactlCommand kafkactlCommand;
+    @Option(names = {"-f", "--file"}, description = "YAML File or Directory containing YAML resources")
+    Optional<File> file;
     @Option(names = {"-r", "--recursive"}, description = "Enable recursive search of file")
     boolean recursive;
+    @Option(names = {"--dry-run"}, description = "Does not persist resources. Validate only")
+    boolean dryRun;
 
     @Override
     public Integer call() throws Exception {
 
-        //TODO Login handling
+        boolean authenticated = loginService.doAuthenticate(kafkactlCommand.verbose);
+        if (!authenticated) {
+            // Autentication failed, stopping
+            return 1;
+        }
 
-        // 0. Check STDIN
+        // 0. Check STDIN and -f
         boolean hasStdin = System.in.available() > 0;
-        boolean hasFile = file != null;
-
         // If we have none or both stdin and File set, we stop
-        if (hasStdin == hasFile) {
+        if (hasStdin == file.isPresent()) {
             System.out.println("Required one of -f or stdin");
             return 1;
         }
 
         List<String> contents;
-        if (hasFile) {
+        if (file.isPresent()) {
             // 1. list all files to process
-            List<File> yamlFiles = listAllFiles(new File[]{file}, recursive).collect(Collectors.toList());
-            if (parentCommand.verbose) {
-                System.out.println("Listed files :");
-                yamlFiles.forEach(file1 -> System.out.println(file1.getParent() + "/" + file1.getName()));
-                System.out.println("---");
-            }
+            List<File> yamlFiles = listAllFiles(new File[]{file.get()}, recursive).collect(Collectors.toList());
             if (yamlFiles.isEmpty()) {
-                System.out.println("Could not find files in " + file.getName());
+                System.out.println("Could not find files in " + file.get().getName());
                 return 1;
             }
             // 2.a load each file in a String
@@ -77,37 +82,38 @@ public class ApplySubcommand extends AbstractJWTCommand implements Callable<Inte
             scanner.useDelimiter("\\Z");
             String stdin = scanner.next();
             contents = List.of(stdin);
-            if (parentCommand.verbose) {
+            if (kafkactlCommand.verbose) {
                 System.out.println("Loaded " + stdin.length() + " characters from STDIN");
             }
         }
         // 3. load all files into Resource Descriptors objects
         List<Resource> resources = loadAllResources(contents);
-        if (parentCommand.verbose) {
+        if (kafkactlCommand.verbose) {
             System.out.println("Loaded Resources :");
-            resources.forEach(resource -> System.out.println(resource.getKind()+"/"+resource.getMetadata().getName()));
+            resources.forEach(resource -> System.out.println(resource.getKind() + "/" + resource.getMetadata().getName()));
             System.out.println("---");
         }
 
-        // 4. process each document individually
-        resources.forEach(resource -> applyResource(resource));
-
-        return 0;
+        // 4. process each document individually, return 0 when all succeed
+        int errors = resources.stream().parallel().mapToInt(this::applyResource).sum();
+        return errors > 0 ? 1 : 0;
     }
 
     private int applyResource(Resource resource) {
-        //TODO refactor
-        // login handling
-        // ResourceDefinition call once
-        // return status
-        String token = getJWT();
-        token = "Bearer " + token;
+        String token = loginService.getAuthorization();
 
-        Optional<ResourceDefinition> optionalResourceDefinition = manageResource.getResourceDefinitionFromKind(resource.getKind());
+        Optional<ResourceDefinition> optionalResourceDefinition = apiResourcesService.getResourceDefinitionFromKind(resource.getKind());
         ResourceDefinition resourceDefinition = null;
         try {
             resourceDefinition = optionalResourceDefinition.get();
             if (resourceDefinition.isNamespaced()) {
+
+                String yamlNamespace = resource.getMetadata().getNamespace();
+                String defaultNamespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
+                if(yamlNamespace != null && defaultNamespace != null && !yamlNamespace.equals(defaultNamespace)){
+                    System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + resourceDefinition.getKind() + "/" + resource.getMetadata().getName()+": Namespace inconsistency");
+                    return 1;
+                }
                 namespacedClient.apply(resource.getMetadata().getNamespace(), resourceDefinition.getPath(), token, resource);
             } else {
                 nonNamespacedClient.apply(token, resourceDefinition.getPath(), resource);
@@ -147,7 +153,7 @@ public class ApplySubcommand extends AbstractJWTCommand implements Callable<Inte
                     try {
                         return Files.readString(path);
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        System.out.println("Error reading file: " + e.getMessage());
                         return null;
                     }
                 })

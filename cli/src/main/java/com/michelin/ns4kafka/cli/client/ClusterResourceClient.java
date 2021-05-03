@@ -13,11 +13,14 @@ import lombok.Setter;
 import java.util.Collection;
 import java.util.List;
 
-@Client("${api.server}")
+@Client("${kafkactl.api}")
 public interface ClusterResourceClient {
 
     @Post("/login")
     BearerAccessRefreshToken login(@Body UsernameAndPasswordRequest request);
+
+    @Get("/token_info")
+    UserInfoResponse tokenInfo(@Header("Authorization") String token);
 
     @Get("/api-resources")
     List<ResourceDefinition> listResourceDefinitions();
@@ -55,5 +58,14 @@ public interface ClusterResourceClient {
 
         @JsonProperty("expires_in")
         private Integer expiresIn;
+    }
+
+    @Introspected
+    @Getter
+    @Setter
+    public static class UserInfoResponse {
+        private boolean active;
+        private String username;
+        private long exp;
     }
 }
