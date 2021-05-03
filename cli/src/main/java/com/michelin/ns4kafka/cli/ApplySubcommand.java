@@ -44,7 +44,7 @@ public class ApplySubcommand implements Callable<Integer> {
     KafkactlCommand kafkactlCommand;
     @Option(names = {"-f", "--file"}, description = "YAML File or Directory containing YAML resources")
     Optional<File> file;
-    @Option(names = {"-r", "--recursive"}, description = "Enable recursive search of file")
+    @Option(names = {"-R", "--recursive"}, description = "Enable recursive search of file")
     boolean recursive;
     @Option(names = {"--dry-run"}, description = "Does not persist resources. Validate only")
     boolean dryRun;
