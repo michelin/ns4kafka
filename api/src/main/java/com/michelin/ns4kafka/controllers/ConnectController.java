@@ -50,8 +50,8 @@ public class ConnectController extends NamespacedResourceController {
 
     }
 
-    @Post
-    public Connector apply(String namespace, @Valid @Body Connector connector) {
+    @Post("{?dryrun}")
+    public Connector apply(String namespace, @Valid @Body Connector connector, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         Namespace ns = getNamespace(namespace);
 
@@ -71,6 +71,10 @@ public class ConnectController extends NamespacedResourceController {
         validationErrors = kafkaConnectService.validateRemotely(ns, connector);
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors);
+        }
+        //dryrun checks
+        if (dryrun) {
+            return connector;
         }
         //Create resource
         return kafkaConnectService.createOrUpdate(ns, connector);

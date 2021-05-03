@@ -8,6 +8,7 @@ import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Post;
+import io.micronaut.http.annotation.QueryValue;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.annotation.security.RolesAllowed;
@@ -25,8 +26,8 @@ public class NamespaceController extends NonNamespacedResourceController {
     @Inject
     NamespaceService namespaceService;
 
-    @Post
-    public Namespace apply(@Valid @Body Namespace namespace) {
+    @Post("{?dryrun}")
+    public Namespace apply(@Valid @Body Namespace namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         Optional<Namespace> existingNamespace = namespaceService.findByName(namespace.getMetadata().getName());
 
@@ -53,6 +54,10 @@ public class NamespaceController extends NonNamespacedResourceController {
             throw new ResourceValidationException(validationErrors);
         }
 
+        //dryrun checks
+        if (dryrun) {
+            return namespace;
+        }
         return namespaceService.createOrUpdate(namespace);
 
     }

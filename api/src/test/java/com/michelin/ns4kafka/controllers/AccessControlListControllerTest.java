@@ -13,6 +13,9 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -134,7 +137,7 @@ public class AccessControlListControllerTest {
                 .thenReturn(List.of("ValidationError"));
 
         ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
-                () -> accessControlListController.apply("admin", ace1));
+                () -> accessControlListController.apply("admin", ace1, false));
         Assertions.assertEquals(1, actual.getValidationErrors().size());
     }
     @Test
@@ -155,7 +158,7 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
-        AccessControlEntry actual = accessControlListController.apply("admin", ace1);
+        AccessControlEntry actual = accessControlListController.apply("admin", ace1, false);
         Assertions.assertEquals("admin", actual.getMetadata().getNamespace());
     }
 
@@ -181,7 +184,7 @@ public class AccessControlListControllerTest {
                 .thenReturn(List.of("ValidationError"));
 
         ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
-                () -> accessControlListController.apply("test", ace1));
+                () -> accessControlListController.apply("test", ace1, false));
         Assertions.assertEquals(1, actual.getValidationErrors().size());
     }
 
@@ -208,9 +211,54 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
-        AccessControlEntry actual = accessControlListController.apply("test", ace1);
+        AccessControlEntry actual = accessControlListController.apply("test", ace1, false);
         Assertions.assertEquals("test", actual.getMetadata().getNamespace());
         Assertions.assertEquals("local", actual.getMetadata().getCluster());
+    }
+
+    @Test
+    void applyDryRunAdmin() {
+        AccessControlEntry ace1 = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder().namespace("admin").cluster("local").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build()
+                )
+                .build();
+        Mockito.when(accessControlEntryService.validateAsAdmin(ace1))
+                .thenReturn(List.of());
+
+        AccessControlEntry actual = accessControlListController.apply("admin", ace1, true);
+        verify(accessControlEntryService, never()).create(ace1);
+    }
+
+    @Test
+    void applyDryRun() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder().name("test").cluster("local").build())
+                .build();
+        AccessControlEntry ace1 = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder().build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build()
+                )
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(accessControlEntryService.validate(ace1, ns))
+                .thenReturn(List.of());
+
+        AccessControlEntry actual = accessControlListController.apply("test", ace1, true);
+        verify(accessControlEntryService, never()).create(ace1);
     }
 
     @Test
