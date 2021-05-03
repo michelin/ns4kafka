@@ -2,7 +2,7 @@ package com.michelin.ns4kafka.cli.client;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.michelin.ns4kafka.cli.models.Resource;
-import com.michelin.ns4kafka.cli.models.ResourceDefinition;
+import com.michelin.ns4kafka.cli.models.ApiResource;
 import io.micronaut.core.annotation.Introspected;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.client.annotation.Client;
@@ -23,7 +23,7 @@ public interface ClusterResourceClient {
     UserInfoResponse tokenInfo(@Header("Authorization") String token);
 
     @Get("/api-resources")
-    List<ResourceDefinition> listResourceDefinitions();
+    List<ApiResource> listResourceDefinitions();
 
     @Delete("/api/{kind}/{resource}")
     void delete(@Header("Authorization") String token, String kind, String resource);

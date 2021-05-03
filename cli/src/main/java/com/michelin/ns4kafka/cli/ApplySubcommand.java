@@ -3,7 +3,7 @@ package com.michelin.ns4kafka.cli;
 import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.Resource;
-import com.michelin.ns4kafka.cli.models.ResourceDefinition;
+import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import io.micronaut.http.HttpStatus;
@@ -102,23 +102,23 @@ public class ApplySubcommand implements Callable<Integer> {
     private int applyResource(Resource resource) {
         String token = loginService.getAuthorization();
 
-        Optional<ResourceDefinition> optionalResourceDefinition = apiResourcesService.getResourceDefinitionFromKind(resource.getKind());
-        ResourceDefinition resourceDefinition = null;
+        Optional<ApiResource> optionalResourceDefinition = apiResourcesService.getResourceDefinitionFromKind(resource.getKind());
+        ApiResource apiResource = null;
         try {
-            resourceDefinition = optionalResourceDefinition.get();
-            if (resourceDefinition.isNamespaced()) {
+            apiResource = optionalResourceDefinition.get();
+            if (apiResource.isNamespaced()) {
 
                 String yamlNamespace = resource.getMetadata().getNamespace();
                 String defaultNamespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
                 if(yamlNamespace != null && defaultNamespace != null && !yamlNamespace.equals(defaultNamespace)){
-                    System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + resourceDefinition.getKind() + "/" + resource.getMetadata().getName()+": Namespace inconsistency");
+                    System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + apiResource.getKind() + "/" + resource.getMetadata().getName()+": Namespace inconsistency");
                     return 1;
                 }
-                namespacedClient.apply(resource.getMetadata().getNamespace(), resourceDefinition.getPath(), token, resource);
+                namespacedClient.apply(resource.getMetadata().getNamespace(), apiResource.getPath(), token, resource);
             } else {
-                nonNamespacedClient.apply(token, resourceDefinition.getPath(), resource);
+                nonNamespacedClient.apply(token, apiResource.getPath(), resource);
             }
-            System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS: |@") + resourceDefinition.getKind() + "/" + resource.getMetadata().getName());
+            System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS: |@") + apiResource.getKind() + "/" + resource.getMetadata().getName());
 
         } catch (NoSuchElementException e) {
             System.out.println(Ansi.AUTO.string("@|bold,red Can't find the resource's kind: |@") + resource.getKind());
@@ -127,11 +127,11 @@ public class ApplySubcommand implements Callable<Integer> {
             HttpStatus status = e.getStatus();
             switch (status) {
                 case UNAUTHORIZED:
-                    System.out.println(Ansi.AUTO.string("@|bold,red Resource |@") + resourceDefinition.getKind() + "/" + resource.getMetadata().getName() + Ansi.AUTO.string("@|bold,red  failed with message : |@") + e.getMessage());
+                    System.out.println(Ansi.AUTO.string("@|bold,red Resource |@") + apiResource.getKind() + "/" + resource.getMetadata().getName() + Ansi.AUTO.string("@|bold,red  failed with message : |@") + e.getMessage());
                     System.out.println("Please login first");
                     break;
                 default:
-                    System.out.println(Ansi.AUTO.string("@|bold,red Resource |@") + resourceDefinition.getKind() + "/" + resource.getMetadata().getName() + Ansi.AUTO.string("@|bold,red  failed with message : |@") + e.getMessage());
+                    System.out.println(Ansi.AUTO.string("@|bold,red Resource |@") + apiResource.getKind() + "/" + resource.getMetadata().getName() + Ansi.AUTO.string("@|bold,red  failed with message : |@") + e.getMessage());
             }
         }
         return 0;

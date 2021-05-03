@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.Map;
+
 @Introspected
 @Getter
 @Setter
@@ -14,5 +16,5 @@ public class Resource {
     private String apiVersion;
     private String kind;
     private ObjectMeta metadata;
-    private Object spec;
+    private Map<String,Object> spec;
 }

@@ -3,7 +3,7 @@ package com.michelin.ns4kafka.cli;
 import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.Resource;
-import com.michelin.ns4kafka.cli.models.ResourceDefinition;
+import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import io.micronaut.http.HttpStatus;
@@ -49,10 +49,10 @@ public class ListSubcommand implements Callable<Integer>{
 
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
 
-        Optional<ResourceDefinition> optionalResourceDefinition = apiResourcesService.getResourceDefinitionFromCommandName(name);
-        ResourceDefinition resourceDefinition;
+        Optional<ApiResource> optionalResourceDefinition = apiResourcesService.getResourceDefinitionFromCommandName(name);
+        ApiResource apiResource;
         try {
-           resourceDefinition = optionalResourceDefinition.get();
+           apiResource = optionalResourceDefinition.get();
         } catch(Exception e) {
             System.out.println(Ansi.AUTO.string("@|bold,red Can't find resource named: |@") + name);
             return 2;
@@ -60,11 +60,11 @@ public class ListSubcommand implements Callable<Integer>{
 
         List<Resource> resources;
         try {
-            if(resourceDefinition.isNamespaced()) {
-                resources = namespacedClient.list(namespace, resourceDefinition.getPath(), loginService.getAuthorization());
+            if(apiResource.isNamespaced()) {
+                resources = namespacedClient.list(namespace, apiResource.getPath(), loginService.getAuthorization());
             }
             else {
-                resources = nonNamespacedClient.list(loginService.getAuthorization(), resourceDefinition.getPath());
+                resources = nonNamespacedClient.list(loginService.getAuthorization(), apiResource.getPath());
             }
         } catch(HttpClientResponseException e) {
             HttpStatus status = e.getStatus();

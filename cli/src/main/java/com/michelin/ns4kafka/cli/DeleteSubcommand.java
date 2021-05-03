@@ -2,7 +2,7 @@ package com.michelin.ns4kafka.cli;
 
 import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
-import com.michelin.ns4kafka.cli.models.ResourceDefinition;
+import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import io.micronaut.http.HttpStatus;
@@ -49,17 +49,17 @@ public class DeleteSubcommand implements Callable<Integer> {
 
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
 
-        Optional<ResourceDefinition> optionalResourceDefinition = apiResourcesService.getResourceDefinitionFromCommandName(kind);
-        ResourceDefinition resourceDefinition;
+        Optional<ApiResource> optionalResourceDefinition = apiResourcesService.getResourceDefinitionFromCommandName(kind);
+        ApiResource apiResource;
         try {
-           resourceDefinition = optionalResourceDefinition.get();
+           apiResource = optionalResourceDefinition.get();
         } catch(Exception e) {
             System.out.println(Ansi.AUTO.string("@|bold,red Can't find kind of resource named: |@") + name);
             return 2;
         }
         try {
-            if(resourceDefinition.isNamespaced()) {
-                namespacedClient.delete(namespace, resourceDefinition.getPath(), name, loginService.getAuthorization());
+            if(apiResource.isNamespaced()) {
+                namespacedClient.delete(namespace, apiResource.getPath(), name, loginService.getAuthorization());
             }
             else {
                 //nonNamespacedClient.delete(token);
