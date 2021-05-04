@@ -4,6 +4,8 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.NamespaceService;
+
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -110,9 +112,9 @@ public class AccessControlListController extends NamespacedResourceController {
         return accessControlEntryService.create(accessControlEntry);
     }
 
-    @Delete("/{name}")
+    @Delete("/{name}{?dryrun}")
     @Status(HttpStatus.NO_CONTENT)
-    public void delete(String namespace, String name) {
+    public HttpResponse<Void> delete(String namespace, String name, @QueryValue(defaultValue = "false") boolean dryrun) {
         // 1. Check ACL exists
         // 2. Check Ownership of ACL using metadata.namespace
         // 3. Drop ACL
@@ -122,7 +124,13 @@ public class AccessControlListController extends NamespacedResourceController {
             throw new ResourceValidationException(List.of("Invalid value " + name + " for name : AccessControlEntry doesn't exist in this namespace"));
         }
 
+        if (dryrun) {
+            return HttpResponse.noContent();
+        }
+
         accessControlEntryService.delete(existingAccessControlEntry.get());
+
+        return HttpResponse.noContent();
     }
 
     public enum AclLimit {

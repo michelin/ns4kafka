@@ -37,16 +37,23 @@ public class ConnectController extends NamespacedResourceController {
     }
 
     @Status(HttpStatus.NO_CONTENT)
-    @Delete("/{connector}")
-    public HttpResponse deleteConnector(String namespace, String connector) {
+    @Delete("/{connector}{?dryrun}")
+    public HttpResponse<Void> deleteConnector(String namespace, String connector, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
         //check ownership
         if (!kafkaConnectService.isNamespaceOwnerOfConnect(ns, connector)) {
             throw new ResourceValidationException(List.of("Invalid value " + connector +
                     " for name: Namespace not OWNER of this connector"));
         }
+
+        if (dryrun) {
+            return HttpResponse.noContent();
+        }
+
         //delete resource
-        return kafkaConnectService.delete(ns, connector);
+        kafkaConnectService.delete(ns, connector);
+        return HttpResponse.noContent();
+
 
     }
 

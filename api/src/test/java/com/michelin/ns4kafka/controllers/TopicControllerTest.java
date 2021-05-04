@@ -142,10 +142,35 @@ public class TopicControllerTest {
 
 
         //When
-        HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete");
+        HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete", false);
 
         //Then
         Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
+    }
+
+    @Test
+    public void DeleteTopicDryRun() throws InterruptedException, ExecutionException, TimeoutException {
+        //Given
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Optional<Topic> toDelete = Optional.of(
+                Topic.builder().metadata(ObjectMeta.builder().name("topic.delete").build()).build());
+        when(topicService.findByName(ns, "topic.delete"))
+                .thenReturn(toDelete);
+        when(topicService.isNamespaceOwnerOfTopic("test","topic.delete"))
+                .thenReturn(true);
+
+        //When
+        HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete", true);
+
+        //Then
+        verify(topicService, never()).delete(any());
     }
 
     @Test
@@ -163,7 +188,7 @@ public class TopicControllerTest {
                 .thenReturn(false);
 
         //When
-        HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete");
+        HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete", false);
 
         //Then
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, actual.getStatus());

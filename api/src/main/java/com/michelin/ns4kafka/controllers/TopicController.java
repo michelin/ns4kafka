@@ -105,8 +105,8 @@ public class TopicController extends NamespacedResourceController {
     }
 
     @Status(HttpStatus.NO_CONTENT)
-    @Delete("/{topic}")
-    public HttpResponse deleteTopic(String namespace, String topic) {
+    @Delete("/{topic}{?dryrun}")
+    public HttpResponse deleteTopic(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         Namespace ns = getNamespace(namespace);
 
@@ -120,6 +120,10 @@ public class TopicController extends NamespacedResourceController {
 
         if (optionalTopic.isEmpty())
             return HttpResponse.notFound();
+
+        if (dryrun) {
+            return HttpResponse.noContent();
+        }
 
         //1. delete from ns4kafka
         //2. delete from cluster

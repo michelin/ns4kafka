@@ -167,4 +167,35 @@ public class NamespaceControllerTest {
         verify(namespaceService, never()).createOrUpdate(toUpdate);
     }
 
+    @Test
+    void deleteSucess() {
+        //TODO change when implemented
+        Namespace existing = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user")
+                        .build())
+                .build();
+        namespaceController.delete("namespace", false);
+    }
+
+    @Test
+    void deleteSucessDryRun() {
+        //TODO change when implemented
+        Namespace existing = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user")
+                        .build())
+                .build();
+        namespaceController.delete("namespace", true);
+        // verify(namespaceService, never()).delete(any());
+    }
+
 }

@@ -4,6 +4,8 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.services.RoleBindingService;
+
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
@@ -54,9 +56,9 @@ public class RoleBindingController extends NamespacedResourceController {
         return rolebinding;
     }
 
-    @Delete("/{name}")
+    @Delete("/{name}{?dryrun}")
     @Status(HttpStatus.NO_CONTENT)
-    public void delete(String namespace, String name) {
+    public HttpResponse<Void> delete(String namespace, String name, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         // ToDo duplicated with Access Control
         Optional<RoleBinding> roleBinding = roleBindingService.findByName(namespace, name);
@@ -64,6 +66,12 @@ public class RoleBindingController extends NamespacedResourceController {
         if (roleBinding.isEmpty()) {
             throw new ResourceValidationException(List.of("Invalid value " + name + " for name : Role Binding doesn't exist in this namespace"));
         }
+
+        if (dryrun) {
+            return HttpResponse.noContent();
+        }
+
         roleBindingService.delete(roleBinding.get());
+        return HttpResponse.noContent();
     }
 }
