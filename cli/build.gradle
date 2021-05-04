@@ -4,8 +4,20 @@ plugins {
     id 'jacoco'
 }
 
+applicationName = 'kafkactl'
 version = "0.1"
 mainClassName = "com.michelin.ns4kafka.cli.KafkactlCommand"
+
+shadowJar {
+    archiveBaseName.set(applicationName)
+    archiveClassifier.set('')
+}
+
+nativeImage {
+    imageName('kafkactl')
+    // environment([MICRONAUT_CONFIG_FILES: System.getenv("user.home") + "/.kafkactl/config.yml" ])
+}
+
 
 repositories {
     mavenCentral()
