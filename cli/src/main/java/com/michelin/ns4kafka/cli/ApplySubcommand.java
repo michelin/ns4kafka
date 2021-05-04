@@ -2,11 +2,10 @@ package com.michelin.ns4kafka.cli;
 
 import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
-import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.ApiResource;
+import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.LoginService;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
@@ -19,7 +18,10 @@ import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.Scanner;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -102,12 +104,16 @@ public class ApplySubcommand implements Callable<Integer> {
     private int applyResource(Resource resource) {
         String token = loginService.getAuthorization();
 
-        Optional<ApiResource> optionalResourceDefinition = apiResourcesService.getResourceDefinitionFromKind(resource.getKind());
-        ApiResource apiResource = null;
-        try {
-            apiResource = optionalResourceDefinition.get();
-            if (apiResource.isNamespaced()) {
+        Optional<ApiResource> optionalApiResource = apiResourcesService.getResourceDefinitionFromKind(resource.getKind());
+        if(optionalApiResource.isEmpty())
+        {
+            System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + resource.getKind() + "/" + resource.getMetadata().getName()+": The server doesn't have resource type");
+            return 1;
+        }
 
+        ApiResource apiResource = optionalApiResource.get();
+        try {
+            if (apiResource.isNamespaced()) {
                 String yamlNamespace = resource.getMetadata().getNamespace();
                 String defaultNamespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
                 if(yamlNamespace != null && defaultNamespace != null && !yamlNamespace.equals(defaultNamespace)){
@@ -120,19 +126,9 @@ public class ApplySubcommand implements Callable<Integer> {
             }
             System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS: |@") + apiResource.getKind() + "/" + resource.getMetadata().getName());
 
-        } catch (NoSuchElementException e) {
-            System.out.println(Ansi.AUTO.string("@|bold,red Can't find the resource's kind: |@") + resource.getKind());
-
         } catch (HttpClientResponseException e) {
-            HttpStatus status = e.getStatus();
-            switch (status) {
-                case UNAUTHORIZED:
-                    System.out.println(Ansi.AUTO.string("@|bold,red Resource |@") + apiResource.getKind() + "/" + resource.getMetadata().getName() + Ansi.AUTO.string("@|bold,red  failed with message : |@") + e.getMessage());
-                    System.out.println("Please login first");
-                    break;
-                default:
-                    System.out.println(Ansi.AUTO.string("@|bold,red Resource |@") + apiResource.getKind() + "/" + resource.getMetadata().getName() + Ansi.AUTO.string("@|bold,red  failed with message : |@") + e.getMessage());
-            }
+            System.out.println(Ansi.AUTO.string("@|bold,red FAILED |@") + apiResource.getKind() + "/" + resource.getMetadata().getName() + Ansi.AUTO.string("@|bold,red  failed with message : |@") + e.getMessage());
+            return 1;
         }
         return 0;
     }
