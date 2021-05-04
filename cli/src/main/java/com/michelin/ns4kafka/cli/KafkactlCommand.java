@@ -12,7 +12,6 @@ import java.util.concurrent.Callable;
         subcommands =
                 {
                         ApplySubcommand.class,
-                        ListSubcommand.class,
                         GetSubcommand.class,
                         DeleteSubcommand.class,
                         ApiResourcesSubcommand.class
