@@ -111,10 +111,10 @@ public class ApplySubcommand implements Callable<Integer> {
                 String yamlNamespace = resource.getMetadata().getNamespace();
                 String defaultNamespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
                 if(yamlNamespace != null && defaultNamespace != null && !yamlNamespace.equals(defaultNamespace)){
-                    System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + apiResource.getKind() + "/" + resource.getMetadata().getName()+": Namespace inconsistency");
+                    System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + apiResource.getKind() + "/" + resource.getMetadata().getName()+": Namespace mismatch between kafkactl and yaml document");
                     return 1;
                 }
-                namespacedClient.apply(resource.getMetadata().getNamespace(), apiResource.getPath(), token, resource);
+                namespacedClient.apply(defaultNamespace, apiResource.getPath(), token, resource);
             } else {
                 nonNamespacedClient.apply(token, apiResource.getPath(), resource);
             }
