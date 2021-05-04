@@ -52,6 +52,10 @@ public class ApplySubcommand implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
 
+        if (dryRun) {
+            System.out.println("Dry run execution");
+        }
+
         boolean authenticated = loginService.doAuthenticate(kafkactlCommand.verbose);
         if (!authenticated) {
             // Autentication failed, stopping
@@ -114,9 +118,9 @@ public class ApplySubcommand implements Callable<Integer> {
                     System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + apiResource.getKind() + "/" + resource.getMetadata().getName()+": Namespace mismatch between kafkactl and yaml document");
                     return 1;
                 }
-                namespacedClient.apply(defaultNamespace, apiResource.getPath(), token, resource);
+                namespacedClient.apply(defaultNamespace, apiResource.getPath(), token, resource, dryRun);
             } else {
-                nonNamespacedClient.apply(token, apiResource.getPath(), resource);
+                nonNamespacedClient.apply(token, apiResource.getPath(), resource, dryRun);
             }
             System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS: |@") + apiResource.getKind() + "/" + resource.getMetadata().getName());
 

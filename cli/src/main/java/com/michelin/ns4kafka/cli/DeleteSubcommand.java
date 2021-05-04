@@ -9,6 +9,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
 import picocli.CommandLine.Help.Ansi;
 import picocli.CommandLine.Parameters;
 
@@ -38,9 +39,15 @@ public class DeleteSubcommand implements Callable<Integer> {
     String kind;
     @Parameters(index = "1", description = "The name of the resource")
     String name;
+    @Option(names = {"--dry-run"}, description = "Does not persist resources. Validate only")
+    boolean dryRun;
 
     @Override
     public Integer call() {
+
+        if (dryRun) {
+            System.out.println("Dry run execution");
+        }
 
         boolean authenticated = loginService.doAuthenticate(kafkactlCommand.verbose);
         if (!authenticated) {
@@ -59,7 +66,7 @@ public class DeleteSubcommand implements Callable<Integer> {
         }
         try {
             if(apiResource.isNamespaced()) {
-                namespacedClient.delete(namespace, apiResource.getPath(), name, loginService.getAuthorization());
+                namespacedClient.delete(namespace, apiResource.getPath(), name, loginService.getAuthorization(), dryRun);
             }
             else {
                 //nonNamespacedClient.delete(token);
