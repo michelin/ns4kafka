@@ -9,19 +9,22 @@ import java.util.List;
 @Client("${kafkactl.api}/api/namespaces/")
 public interface NamespacedResourceClient {
 
-    @Delete("{namespace}/{kind}/{resourcename}")
+    @Delete("{namespace}/{kind}/{resourcename}{?dryrun}")
     void delete(
             String namespace,
             String kind,
             String resourcename,
-            @Header("Authorization") String token);
+            @Header("Authorization") String token,
+            @QueryValue boolean dryrun);
 
-    @Post("{namespace}/{kind}")
+    @Post("{namespace}/{kind}{?dryrun}")
     Resource apply(
             String namespace,
             String kind,
             @Header("Authorization") String token,
-            @Body Resource json);
+            @Body Resource json,
+            @QueryValue boolean dryrun);
+;
 
     @Get("{namespace}/{kind}")
     List<Resource> list(

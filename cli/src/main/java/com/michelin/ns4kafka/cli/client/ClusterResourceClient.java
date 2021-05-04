@@ -25,11 +25,11 @@ public interface ClusterResourceClient {
     @Get("/api-resources")
     List<ApiResource> listResourceDefinitions();
 
-    @Delete("/api/{kind}/{resource}")
-    void delete(@Header("Authorization") String token, String kind, String resource);
+    @Delete("/api/{kind}/{resource}{?dryrun}")
+    void delete(@Header("Authorization") String token, String kind, String resource, @QueryValue boolean dryrun);
 
-    @Post("/api/{kind}")
-    Resource apply(@Header("Authorization") String token, String kind, @Body Resource json);
+    @Post("/api/{kind}{?dryrun}")
+    Resource apply(@Header("Authorization") String token, String kind, @Body Resource json, @QueryValue boolean dryrun);
 
     @Get("/api/{kind}")
     List<Resource> list(@Header("Authorization") String token, String kind);
