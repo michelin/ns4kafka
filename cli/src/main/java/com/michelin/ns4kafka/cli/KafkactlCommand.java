@@ -20,8 +20,13 @@ import java.util.concurrent.Callable;
         mixinStandardHelpOptions = false)
 public class KafkactlCommand implements Callable<Integer> {
 
+    public static boolean VERBOSE = false;
+
     @Option(names = {"-v", "--verbose"}, description = "...", scope = CommandLine.ScopeType.INHERIT)
-    boolean verbose;
+    protected void setVerbose(final boolean verbose) {
+        VERBOSE = verbose;
+    }
+
     @Option(names = {"-n", "--namespace"}, description = "Override namespace defined in config or yaml resource", scope = CommandLine.ScopeType.INHERIT)
     Optional<String> optionalNamespace;
 

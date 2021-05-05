@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.cli.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.michelin.ns4kafka.cli.KafkactlCommand;
 import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
 import com.michelin.ns4kafka.cli.KafkactlConfig;
 import io.micronaut.http.HttpStatus;
@@ -29,10 +30,7 @@ public class LoginService {
         return "Bearer " + accessToken;
     }
 
-    private boolean verbose = false;
-
-    public boolean doAuthenticate(boolean verbose) {
-        this.verbose = verbose;
+    public boolean doAuthenticate() {
         return isAuthenticated() || login("gitlab", kafkactlConfiguration.getUserToken());
     }
 
@@ -47,7 +45,7 @@ public class LoginService {
             ClusterResourceClient.UserInfoResponse userInfo = clusterResourceClient.tokenInfo("Bearer " + token.getAccessToken());
             // 3. Display token result
 
-            if(verbose) {
+            if (KafkactlCommand.VERBOSE) {
                 Date expiry = new Date(userInfo.getExp() * 1000);
                 System.out.println("Authentication reused, welcome " + userInfo.getUsername() + "!");
                 System.out.println("Your session is valid until " + expiry);
@@ -80,7 +78,7 @@ public class LoginService {
             // 2. Store token in memory;
             accessToken = tokenResponse.getAccessToken();
             // 3. Display token result
-            if(verbose) {
+            if (KafkactlCommand.VERBOSE) {
                 Calendar calendar = Calendar.getInstance(); // gets a calendar using the default time zone and locale.
                 calendar.add(Calendar.SECOND, tokenResponse.getExpiresIn());
                 System.out.println("Authentication successful, welcome " + tokenResponse.getUsername() + "!");

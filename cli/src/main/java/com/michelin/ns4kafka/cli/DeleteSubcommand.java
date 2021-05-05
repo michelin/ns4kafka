@@ -49,7 +49,7 @@ public class DeleteSubcommand implements Callable<Integer> {
             System.out.println("Dry run execution");
         }
 
-        boolean authenticated = loginService.doAuthenticate(kafkactlCommand.verbose);
+        boolean authenticated = loginService.doAuthenticate();
         if (!authenticated) {
             return 1;
         }

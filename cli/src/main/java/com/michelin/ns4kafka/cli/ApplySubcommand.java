@@ -5,10 +5,9 @@ import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
+import com.michelin.ns4kafka.cli.services.FileService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Help.Ansi;
@@ -16,16 +15,10 @@ import picocli.CommandLine.Option;
 
 import javax.inject.Inject;
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 @Command(name = "apply", description = "Create or update a resource")
 public class ApplySubcommand implements Callable<Integer> {
@@ -39,6 +32,8 @@ public class ApplySubcommand implements Callable<Integer> {
     LoginService loginService;
     @Inject
     ApiResourcesService apiResourcesService;
+    @Inject
+    FileService fileService;
     @Inject
     KafkactlConfig kafkactlConfig;
 
@@ -58,7 +53,7 @@ public class ApplySubcommand implements Callable<Integer> {
             System.out.println("Dry run execution");
         }
 
-        boolean authenticated = loginService.doAuthenticate(kafkactlCommand.verbose);
+        boolean authenticated = loginService.doAuthenticate();
         if (!authenticated) {
             // Autentication failed, stopping
             return 1;
@@ -72,36 +67,26 @@ public class ApplySubcommand implements Callable<Integer> {
             return 1;
         }
 
-        List<String> contents;
+        List<Resource> resources;
+
         if (file.isPresent()) {
             // 1. list all files to process
-            List<File> yamlFiles = listAllFiles(new File[]{file.get()}, recursive).collect(Collectors.toList());
+            List<File> yamlFiles = fileService.computeYamlFileList(file.get(),recursive);
             if (yamlFiles.isEmpty()) {
-                System.out.println("Could not find files in " + file.get().getName());
+                System.out.println("Could not find yaml/yml files in " + file.get().getName());
                 return 1;
             }
-            // 2.a load each file in a String
-            contents = readAllFiles(yamlFiles);
+            // 2 load each files
+            resources = fileService.parseResourceListFromFiles(yamlFiles);
         } else {
-            // 2.b load stin
             Scanner scanner = new Scanner(System.in);
             scanner.useDelimiter("\\Z");
-            String stdin = scanner.next();
-            contents = List.of(stdin);
-            if (kafkactlCommand.verbose) {
-                System.out.println("Loaded " + stdin.length() + " characters from STDIN");
-            }
-        }
-        // 3. load all files into Resource Descriptors objects
-        List<Resource> resources = loadAllResources(contents);
-        if (kafkactlCommand.verbose) {
-            System.out.println("Loaded Resources :");
-            resources.forEach(resource -> System.out.println(resource.getKind() + "/" + resource.getMetadata().getName()));
-            System.out.println("---");
+            // 2 load STDIN
+            resources = fileService.parseResourceListFromString(scanner.next());
         }
 
-        // 4. process each document individually, return 0 when all succeed
-        int errors = resources.stream().parallel().mapToInt(this::applyResource).sum();
+        // 3. process each document individually, return 0 when all succeed
+        int errors = resources.stream().mapToInt(this::applyResource).sum();
         return errors > 0 ? 1 : 0;
     }
 
@@ -135,43 +120,5 @@ public class ApplySubcommand implements Callable<Integer> {
             return 1;
         }
         return 0;
-    }
-
-    private List<Resource> loadAllResources(List<String> fileContents) {
-        return fileContents.stream()
-                .flatMap(content -> StreamSupport.stream(
-                        new Yaml(new Constructor(Resource.class)).loadAll(content).spliterator(), false)
-                )
-                .map(o -> (Resource) o)
-                .collect(Collectors.toList());
-    }
-
-    private List<String> readAllFiles(List<File> files) {
-        return files.stream()
-                .map(File::toPath)
-                .map(path -> {
-                    try {
-                        return Files.readString(path);
-                    } catch (IOException e) {
-                        System.out.println("Error reading file: " + e.getMessage());
-                        return null;
-                    }
-                })
-                .collect(Collectors.toList());
-    }
-
-    private Stream<File> listAllFiles(File[] rootDir, boolean recursive) {
-
-        return Arrays.stream(rootDir).flatMap(currentElement -> {
-            if (currentElement.isDirectory()) {
-                return Stream.concat(
-                        Stream.of(currentElement.listFiles(file -> file.isFile() && (file.getName().endsWith(".yaml") || file.getName().endsWith(".yml")))),
-                        recursive ? listAllFiles(currentElement.listFiles(File::isDirectory), true) : Stream.empty()
-                );
-            } else {
-                return Stream.of(currentElement);
-            }
-        });
-
     }
 }

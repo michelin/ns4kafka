@@ -55,7 +55,7 @@ public class GetSubcommand implements Callable<Integer> {
     public Integer call() throws Exception {
 
         // 1. Authent
-        boolean authenticated = loginService.doAuthenticate(kafkactlCommand.verbose);
+        boolean authenticated = loginService.doAuthenticate();
         if (!authenticated) {
             return 1;
         }
