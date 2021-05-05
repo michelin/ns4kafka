@@ -62,9 +62,14 @@ public class NamespaceController extends NonNamespacedResourceController {
 
     }
 
-    @Delete("/{namespace}")
-    public HttpResponse delete(String namespace) {
-        return null;
+    @Delete("/{namespace}{?dryrun}")
+    public HttpResponse<Void> delete(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
+
+        if (dryrun) {
+            return HttpResponse.noContent();
+        }
+
+        return HttpResponse.noContent();
     }
 
 }

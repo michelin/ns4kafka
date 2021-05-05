@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -118,7 +119,7 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(false);
 
-        Assertions.assertThrows(ResourceValidationException.class, () -> connectController.deleteConnector("test", "connect1"));
+        Assertions.assertThrows(ResourceValidationException.class, () -> connectController.deleteConnector("test", "connect1", false));
     }
 
     @Test
@@ -134,7 +135,24 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
 
-        Assertions.assertDoesNotThrow(() -> connectController.deleteConnector("test", "connect1"));
+        Assertions.assertDoesNotThrow(() -> connectController.deleteConnector("test", "connect1", false));
+    }
+
+    @Test
+    void deleteConnectorOwnedDryRun() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
+                .thenReturn(true);
+
+        connectController.deleteConnector("test", "connect1", true);
+        verify(kafkaConnectService, never()).delete(any(), any());
     }
 
     @Test
