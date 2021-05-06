@@ -33,6 +33,9 @@ public class KafkactlCommand implements Callable<Integer> {
 
 
     public static void main(String[] args) throws Exception {
+        String configPath = System.getProperty("user.home") + "/.kafkactl/config.yml";
+        System.setProperty("micronaut.config.files", configPath);
+
         int exitCode = PicocliRunner.execute(KafkactlCommand.class, args);
         System.exit(exitCode);
     }
