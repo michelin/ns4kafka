@@ -5,12 +5,11 @@ import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.LoginService;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
 import picocli.CommandLine.Help.Ansi;
+import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import javax.inject.Inject;
@@ -35,11 +34,11 @@ public class DeleteSubcommand implements Callable<Integer> {
 
     @CommandLine.ParentCommand
     KafkactlCommand kafkactlCommand;
-    @Parameters(index = "0", description = "The name of the kind")
-    String kind;
-    @Parameters(index = "1", description = "The name of the resource")
+    @Parameters(index = "0", description = "Resource type", arity = "1")
+    String resourceType;
+    @Parameters(index = "1", description = "Resource name", arity = "1")
     String name;
-    @Option(names = {"--dry-run"}, description = "Does not persist resources. Validate only")
+    @Option(names = {"--dry-run"}, description = "Does not persist operation. Validate only")
     boolean dryRun;
 
     @Override
@@ -56,31 +55,25 @@ public class DeleteSubcommand implements Callable<Integer> {
 
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
 
-        Optional<ApiResource> optionalResourceDefinition = apiResourcesService.getResourceDefinitionFromCommandName(kind);
-        ApiResource apiResource;
-        try {
-           apiResource = optionalResourceDefinition.get();
-        } catch(Exception e) {
-            System.out.println(Ansi.AUTO.string("@|bold,red Can't find kind of resource named: |@") + name);
-            return 2;
-        }
-        try {
-            if(apiResource.isNamespaced()) {
-                namespacedClient.delete(namespace, apiResource.getPath(), name, loginService.getAuthorization(), dryRun);
-            }
-            else {
-                //nonNamespacedClient.delete(token);
-            }
-        } catch(HttpClientResponseException e) {
-            HttpStatus status = e.getStatus();
-            switch(status){
-                default:
-                System.err.println(Ansi.AUTO.string("@|bold,red Delete command failed with message : |@") + e.getMessage());
-            }
+        Optional<ApiResource> optionalApiResource = apiResourcesService.getResourceDefinitionFromCommandName(resourceType);
+        if (optionalApiResource.isEmpty()) {
+            System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + resourceType + "/" + name + ": The server doesn't have resource type");
             return 1;
         }
 
-        System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS |@"));
+        ApiResource apiResource = optionalApiResource.get();
+        try {
+            if (apiResource.isNamespaced()) {
+                namespacedClient.delete(namespace, apiResource.getPath(), name, loginService.getAuthorization(), dryRun);
+            } else {
+                System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + apiResource.getKind() + "/" + name + ": The server doesn't have implemented this");
+                return 1;
+            }
+            System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS |@"));
+        } catch (HttpClientResponseException e) {
+            System.err.println(Ansi.AUTO.string("@|bold,red Delete command failed with message : |@") + e.getMessage());
+            return 1;
+        }
         return 0;
     }
 
