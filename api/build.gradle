@@ -9,7 +9,6 @@ mainClassName = "com.michelin.ns4kafka.Application"
 
 repositories {
     mavenCentral()
-    jcenter()
 }
 
 micronaut {
