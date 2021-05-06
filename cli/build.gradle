@@ -18,7 +18,6 @@ nativeImage {
     // environment([MICRONAUT_CONFIG_FILES: System.getenv("user.home") + "/.kafkactl/config.yml" ])
 }
 
-
 repositories {
     mavenCentral()
 }
