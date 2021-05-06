@@ -1,6 +1,6 @@
 plugins {
-    id "com.github.johnrengelman.shadow" version "6.0.0"
-    id "io.micronaut.application" version '1.0.5'
+    id("com.github.johnrengelman.shadow") version "7.0.0"
+    id("io.micronaut.application") version "1.5.0"
     id 'jacoco'
     id "org.sonarqube" version "3.1.1"
 }
@@ -48,19 +48,17 @@ dependencies {
     implementation("io.micronaut.security:micronaut-security-ldap")
     implementation("io.micronaut.kafka:micronaut-kafka")
 
-    // Use embedded kafka
-    implementation 'org.apache.kafka:kafka-clients:2.6.0:test'
-    implementation 'org.apache.kafka:kafka_2.12:2.6.0'
-    implementation 'org.apache.kafka:kafka_2.12:2.6.0:test'
 
     runtimeOnly("ch.qos.logback:logback-classic")
 
     testCompileOnly 'org.projectlombok:lombok:1.18.16'
 
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.16'
-    testImplementation 'org.apache.kafka:kafka-clients:2.6.0:test'
-    testImplementation 'org.apache.kafka:kafka_2.12:2.6.0'
-    testImplementation 'org.apache.kafka:kafka_2.12:2.6.0:test'
+
+    testImplementation 'org.apache.kafka:kafka-clients:2.8.0:test'
+    testImplementation 'org.apache.kafka:kafka_2.12:2.8.0'
+    testImplementation 'org.apache.kafka:kafka_2.12:2.8.0:test'
+
     testImplementation 'org.mockito:mockito-inline:3.7.7'
     testImplementation 'org.mockito:mockito-junit-jupiter:3.7.7'
 }
