@@ -9,7 +9,10 @@ micronaut:
       url: https://gitlab.com
     ldap:
       enabled: false
-#      default:
+    endpoints:
+      introspection:
+        enabled: true
+    #      default:
 #        context:
 #          server: 'ldap://ldap.forumsys.com:389'
 #          managerDn: 'cn=read-only-admin,dc=example,dc=com'

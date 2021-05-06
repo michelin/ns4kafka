@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+export MICRONAUT_CONFIG_FILES=$HOME/.kafkactl/config.yml
+
+/usr/bin/java -jar ./cli/build/libs/kafkactl-0.1.jar "$@"
