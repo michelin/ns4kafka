@@ -192,7 +192,6 @@ public class DiffSubcommand implements Callable<Integer> {
     }
 
     private String generateFileName(String prefix, String name) {
-        //TODO test and adapt to Windows OS
-        return "/tmp/" + prefix + "_" + name + ".yml";
+        return System.getProperty("user.home") + "/.kafkactl/tmp" + prefix + "_" + name + ".yml";
     }
 }
