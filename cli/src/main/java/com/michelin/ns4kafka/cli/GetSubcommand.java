@@ -9,6 +9,10 @@ import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.nodes.Tag;
+import org.yaml.snakeyaml.representer.Representer;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
@@ -94,16 +98,20 @@ public class GetSubcommand implements Callable<Integer> {
     }
 
     private void displaySingleResourceWithName(ApiResource apiResource, String resourceName) {
+        DumperOptions options = new DumperOptions();
+        options.setExplicitStart(true);
+        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        Representer representer = new Representer();
+        representer.addClassTag(Resource.class, Tag.MAP);
         Resource resource;
         if(apiResource.isNamespaced()){
             String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
             resource = namespacedClient.get(namespace, apiResource.getPath(), resourceName, loginService.getAuthorization());
 
             try{
-                ObjectMapper mapper = new ObjectMapper();
-                System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(resource));
-            } catch (JsonProcessingException e) {
-                System.out.println("Error parsing JSON");
+                System.out.println(new Yaml(representer,options).dump(resource));
+            } catch (Exception e) {
+                System.out.println("Error parsing YAML");
                 System.out.println(resource.getKind()+"/"+resource.getMetadata().getName());
             }
 
