@@ -3,7 +3,6 @@ package com.michelin.ns4kafka.services;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
-import io.micronaut.core.util.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
@@ -76,23 +75,49 @@ public class AccessControlEntryService {
         return validationErrors;
     }
 
-    public List<String> validateAsAdmin(AccessControlEntry accessControlEntry) {
-        List<String> validationErrors = new ArrayList<>();
-        if (StringUtils.isEmpty(accessControlEntry.getMetadata().getCluster())) {
-            validationErrors.add("Invalid value null for cluster: Value must be non-null");
-        }
-        // GrantedTo Namespace exists ?
-        Optional<Namespace> grantedToNamespace = namespaceService.findByName(accessControlEntry.getSpec().getGrantedTo());
-        if (grantedToNamespace.isEmpty()) {
-            validationErrors.add("Invalid value " + accessControlEntry.getSpec().getGrantedTo() + " for grantedTo: Namespace doesn't exist");
-        }
-        // ACE cluster is namespace cluster ?
-        // this validation requires both validations above to be successful
-        if (validationErrors.isEmpty() &&
-                !accessControlEntry.getMetadata().getCluster().equals(grantedToNamespace.get().getMetadata().getCluster())) {
-            validationErrors.add("Invalid value " + accessControlEntry.getMetadata().getCluster() + " for cluster: Value must be the same as the Namespace ["+grantedToNamespace.get().getMetadata().getCluster()+"]");
-        }
-        return validationErrors;
+    public List<String> validateAsAdmin(AccessControlEntry accessControlEntry, Namespace namespace) {
+        // another namespace is already OWNER of PREFIXED or LITERAL resource
+        // exemple :
+        // if already exists:
+        //   namespace1 OWNER:PREFIXED:project1
+        //   namespace1 OWNER:LITERAL:project2_t1
+        // and we try to create:
+        //   namespace2 OWNER:PREFIXED:project1             KO 1 same
+        //   namespace2 OWNER:LITERAL:project1              KO 2 same
+        //   namespace2 OWNER:PREFIXED:project1_sub         KO 3 child overlap
+        //   namespace2 OWNER:LITERAL:project1_t1           KO 4 child overlap
+        //   namespace2 OWNER:PREFIXED:proj                 KO 5 parent overlap
+        //   namespace2 OWNER:PREFIXED:project2             KO 6 parent overlap
+        //
+        //   namespace2 OWNER:PREFIXED:project3_topic1_sub  OK 7
+        //   namespace2 OWNER:PREFIXED:project2             OK 8
+        //   namespace2 OWNER:LITERAL:proj                  OK 9
+        return findAllForCluster(namespace.getMetadata().getCluster())
+                .stream()
+                // don't include the ACL if it's itself (namespace+name)
+                .filter(ace -> !ace.getMetadata().getNamespace().equals(namespace.getMetadata().getName()) ||
+                        !ace.getMetadata().getName().equals(accessControlEntry.getMetadata().getName()))
+                .filter(ace -> ace.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
+                .filter(ace -> ace.getSpec().getResourceType() == accessControlEntry.getSpec().getResourceType())
+                .filter(ace -> {
+                    // new PREFIXED ACL would cover existing ACLs
+                    boolean parentOverlap = false;
+                    if (accessControlEntry.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.PREFIXED) {
+                        parentOverlap = ace.getSpec().getResource().startsWith(accessControlEntry.getSpec().getResource());
+                    }
+                    // new ACL would be covered by a PREFIXED existing ACLs
+                    boolean childOverlap = false;
+                    if (ace.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.PREFIXED) {
+                        childOverlap = accessControlEntry.getSpec().getResource().startsWith(ace.getSpec().getResource());
+                    }
+
+                    boolean same = accessControlEntry.getSpec().getResource().equals(ace.getSpec().getResource());
+
+                    return same || parentOverlap || childOverlap;
+
+                })
+                .map(ace -> String.format("AccessControlEntry overlaps with existing one: %s", ace))
+                .collect(Collectors.toList());
     }
 
     public boolean isOwnerOfTopLevelAcl(AccessControlEntry accessControlEntry, Namespace namespace) {
@@ -130,23 +155,6 @@ public class AccessControlEntryService {
                     }
                     return false;
                 });
-    }
-
-    public List<String> prefixInUse(String prefix, String cluster) {
-        List<String> validationErrors = new ArrayList<>();
-        List<AccessControlEntry> prefixInUse = findAllForCluster(cluster).stream()
-                .filter(ace -> ace.getSpec()
-                        .getResourcePatternType() == AccessControlEntry.ResourcePatternType.PREFIXED)
-                .filter(ace -> ace.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC)
-                .filter(ace -> ace.getSpec().getResource().startsWith(prefix)
-                        || prefix.startsWith(ace.getSpec().getResource()))
-                .collect(Collectors.toList());
-        if (!prefixInUse.isEmpty()) {
-            validationErrors.add(String.format("Prefix overlaps with namespace %s: [%s]",
-                    prefixInUse.get(0).getSpec().getGrantedTo(),
-                    prefixInUse.get(0).getSpec().getResource()));
-        }
-        return validationErrors;
     }
 
     public AccessControlEntry create(AccessControlEntry accessControlEntry) {

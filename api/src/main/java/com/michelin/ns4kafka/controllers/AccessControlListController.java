@@ -2,12 +2,13 @@ package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.NamespaceService;
-
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
+import io.micronaut.security.authentication.Authentication;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -67,45 +68,30 @@ public class AccessControlListController extends NamespacedResourceController {
     }
 
     @Post("{?dryrun}")
-    public AccessControlEntry apply(String namespace, @Valid @Body AccessControlEntry accessControlEntry, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public AccessControlEntry apply(Authentication authentication, String namespace, @Valid @Body AccessControlEntry accessControlEntry, @QueryValue(defaultValue = "false") boolean dryrun) {
+        Namespace ns = getNamespace(namespace);
 
-        boolean isAdmin = namespace.equals(Namespace.ADMIN_NAMESPACE);
-        if (!isAdmin) {
-            Namespace ns = getNamespace(namespace);
-            return applyAsUser(ns, accessControlEntry, dryrun);
+        List<String> roles = (List<String>) authentication.getAttributes().get("roles");
+        boolean isAdmin = roles.contains(ResourceBasedSecurityRule.IS_ADMIN);
+        // self assigned ACL (spec.grantedTo == metadata.namespace) with permission OWNER
+        boolean isSelfAssignedOwnerACL = namespace.equals(accessControlEntry.getSpec().getGrantedTo())
+                && accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER;
 
+        List<String> validationErrors;
+        if (isAdmin && isSelfAssignedOwnerACL) {
+            // validate overlapping OWNER
+            validationErrors = accessControlEntryService.validateAsAdmin(accessControlEntry, ns);
         } else {
-            return applyAsAdmin(accessControlEntry, dryrun);
+            validationErrors = accessControlEntryService.validate(accessControlEntry, ns);
         }
-    }
-
-    public AccessControlEntry applyAsUser(Namespace namespace, AccessControlEntry accessControlEntry, boolean dryRun) {
-        //validation
-        List<String> validationErrors = accessControlEntryService.validate(accessControlEntry, namespace);
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors);
         }
         //augment
-        accessControlEntry.getMetadata().setCluster(namespace.getMetadata().getCluster());
-        accessControlEntry.getMetadata().setNamespace(namespace.getMetadata().getName());
+        accessControlEntry.getMetadata().setCluster(ns.getMetadata().getCluster());
+        accessControlEntry.getMetadata().setNamespace(ns.getMetadata().getName());
         //dryrun checks
-        if (dryRun) {
-            return accessControlEntry;
-        }
-        //store
-        return accessControlEntryService.create(accessControlEntry);
-    }
-
-    public AccessControlEntry applyAsAdmin(AccessControlEntry accessControlEntry, boolean dryRun) {
-        //validation
-        List<String> validationErrors = accessControlEntryService.validateAsAdmin(accessControlEntry);
-        if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors);
-        }
-        //augment
-        accessControlEntry.getMetadata().setNamespace(Namespace.ADMIN_NAMESPACE);
-        //dryrun checks
-        if (dryRun) {
+        if (dryrun) {
             return accessControlEntry;
         }
         //store
@@ -114,22 +100,28 @@ public class AccessControlListController extends NamespacedResourceController {
 
     @Delete("/{name}{?dryrun}")
     @Status(HttpStatus.NO_CONTENT)
-    public HttpResponse<Void> delete(String namespace, String name, @QueryValue(defaultValue = "false") boolean dryrun) {
-        // 1. Check ACL exists
-        // 2. Check Ownership of ACL using metadata.namespace
-        // 3. Drop ACL
-        Optional<AccessControlEntry> existingAccessControlEntry = accessControlEntryService.findByName(namespace, name);
+    public HttpResponse<Void> delete(Authentication authentication, String namespace, String name, @QueryValue(defaultValue = "false") boolean dryrun) {
 
-        if (existingAccessControlEntry.isEmpty()) {
-            throw new ResourceValidationException(List.of("Invalid value " + name + " for name : AccessControlEntry doesn't exist in this namespace"));
+        AccessControlEntry accessControlEntry = accessControlEntryService
+                .findByName(namespace, name)
+                .orElseThrow(() -> new ResourceValidationException(
+                        List.of("Invalid value " + name + " for name : AccessControlEntry doesn't exist in this namespace"))
+                );
+
+        List<String> roles = (List<String>) authentication.getAttributes().get("roles");
+        boolean isAdmin = roles.contains(ResourceBasedSecurityRule.IS_ADMIN);
+        // self assigned ACL (spec.grantedTo == metadata.namespace) with permission OWNER
+        boolean isSelfAssignedACL = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
+        if (isSelfAssignedACL && !isAdmin) {
+            // prevent delete
+            throw new ResourceValidationException(List.of("Only admins can delete this AccessControlEntry"));
         }
 
         if (dryrun) {
             return HttpResponse.noContent();
         }
 
-        accessControlEntryService.delete(existingAccessControlEntry.get());
-
+        accessControlEntryService.delete(accessControlEntry);
         return HttpResponse.noContent();
     }
 
