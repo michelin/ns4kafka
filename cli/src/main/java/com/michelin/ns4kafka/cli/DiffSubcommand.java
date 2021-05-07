@@ -1,4 +1,3 @@
-
 package com.michelin.ns4kafka.cli;
 
 import java.io.BufferedReader;
