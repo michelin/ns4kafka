@@ -1,13 +1,16 @@
 
 package com.michelin.ns4kafka.cli;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
@@ -149,32 +152,52 @@ public class DiffSubcommand implements Callable<Integer> {
         Representer representer = new Representer();
         representer.addClassTag(Resource.class, Tag.MAP);
         PrintWriter writer;
+
+        String oldResourceFileName = generateFileName("old", resource.getMetadata().getName());
         try {
-             writer = new PrintWriter(new File("/tmp/old"+resource.getMetadata().getName()+".yml"));
+             writer = new PrintWriter(new File(oldResourceFileName));
         } catch (FileNotFoundException e) {
             System.out.println(Ansi.AUTO.string("@|bold,red FAILED |@") + e.getMessage());
             return 1;
         }
-
         new Yaml(representer,options).dump(oldResource, writer);
 
+        String newResourceFileName = generateFileName("new", resource.getMetadata().getName());
         try {
-             writer = new PrintWriter(new File("/tmp/new"+resource.getMetadata().getName()+".yml"));
+             writer = new PrintWriter(new File(newResourceFileName));
         } catch (FileNotFoundException e) {
             System.out.println(Ansi.AUTO.string("@|bold,red FAILED |@") + e.getMessage());
             return 1;
         }
-
         new Yaml(representer,options).dump(newResource, writer);
 
-        // 4. call diff on the new file
+        // 4. call diff on the files created
         Runtime rt = Runtime.getRuntime();
         try {
-            Process p = rt.exec("diff -u -N /tmp/old"+resource.getMetadata().getName()+".yml /tmp/new"+resource.getMetadata().getName()+".yml");
-        }catch(Exception e) {
-            e.printStackTrace();
+            //TODO manage other diff function
+            Process p = rt.exec("diff -u -N " + oldResourceFileName + " " + newResourceFileName);
+            BufferedReader output = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String toPrint = output.lines()
+                .collect(Collectors.joining(System.lineSeparator()));
+
+            int exitValue = p.waitFor();
+            if (exitValue != 0) {
+                System.out.println(toPrint);
+            }
+        } catch(Exception e) {
+            System.out.println(Ansi.AUTO.string("@|bold,red FAILED |@") + e.getMessage());
             return 1;
         }
+
+        // 5. clean files
+        new File(oldResourceFileName).delete();
+        new File(newResourceFileName).delete();
+
         return 0;
+    }
+
+    private String generateFileName(String prefix, String name) {
+        //TODO test and adapt to Windows OS
+        return "/tmp/" + prefix + "_" + name + ".yml";
     }
 }
