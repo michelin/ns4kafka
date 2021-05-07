@@ -2,12 +2,9 @@ package com.michelin.ns4kafka.models;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.micronaut.core.annotation.Introspected;
-import io.swagger.v3.oas.annotations.Hidden;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 import java.util.Date;
 import java.util.Map;
 
@@ -26,4 +23,13 @@ public class ObjectMeta {
     private int generation;
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Date creationTimestamp;
+
+    @Override
+    public String toString() {
+        return "ObjectMeta{" +
+                "name='" + name + '\'' +
+                ", namespace='" + namespace + '\'' +
+                ", cluster='" + cluster + '\'' +
+                '}';
+    }
 }

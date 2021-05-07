@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.security;
 
-import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
@@ -70,11 +69,7 @@ public class ResourceBasedSecurityRule implements SecurityRule {
         } else {
             resourceType = matcher.group("resourceType");
         }
-        //Admin specific namespace
-        if(namespace.equals(Namespace.ADMIN_NAMESPACE) && roles.contains(IS_ADMIN)){
-            LOG.debug("Authorized admin user [" + sub + "] on path [" + request.getPath() + "]. Returning ALLOWED.");
-            return SecurityRuleResult.ALLOWED;
-        }
+
         //Namespace doesn't exist
         if (namespaceRepository.findByName(namespace).isEmpty()) {
             LOG.debug("Namespace not found for user [" + sub + "] on path [" + request.getPath() + "]. Returning unknown.");

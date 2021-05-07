@@ -5,20 +5,26 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.NamespaceService;
+import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.security.authentication.Authentication;
+import io.micronaut.security.authentication.DefaultAuthentication;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-
-import java.util.List;
-import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
 public class AccessControlListControllerTest {
@@ -123,8 +129,11 @@ public class AccessControlListControllerTest {
 
     @Test
     void applyAsAdmin_Failure() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder().name("test").cluster("local").build())
+                .build();
         AccessControlEntry ace1 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder().namespace("admin").cluster("local").build())
+                .metadata(ObjectMeta.builder().namespace("test").cluster("local").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -134,17 +143,24 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Mockito.when(accessControlEntryService.validateAsAdmin(ace1))
+        Authentication auth = new DefaultAuthentication("admin", Map.of("roles",List.of("isAdmin()")));
+
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(accessControlEntryService.validateAsAdmin(ace1, ns))
                 .thenReturn(List.of("ValidationError"));
 
         ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
-                () -> accessControlListController.apply("admin", ace1, false));
+                () -> accessControlListController.apply(auth,"test", ace1, false));
         Assertions.assertEquals(1, actual.getValidationErrors().size());
     }
     @Test
     void applyAsAdmin_Success() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder().name("test").cluster("local").build())
+                .build();
         AccessControlEntry ace1 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder().namespace("admin").cluster("local").build())
+                .metadata(ObjectMeta.builder().name("acl-test").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -154,13 +170,18 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Mockito.when(accessControlEntryService.validateAsAdmin(ace1))
+        Authentication auth = new DefaultAuthentication("admin", Map.of("roles",List.of("isAdmin()")));
+
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(accessControlEntryService.validateAsAdmin(ace1, ns))
                 .thenReturn(List.of());
         Mockito.when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
-        AccessControlEntry actual = accessControlListController.apply("admin", ace1, false);
-        Assertions.assertEquals("admin", actual.getMetadata().getNamespace());
+        AccessControlEntry actual = accessControlListController.apply(auth,"test", ace1, false);
+        Assertions.assertEquals("test", actual.getMetadata().getNamespace());
+        Assertions.assertEquals("local", actual.getMetadata().getCluster());
     }
 
     @Test
@@ -179,13 +200,15 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         Mockito.when(accessControlEntryService.validate(ace1, ns))
                 .thenReturn(List.of("ValidationError"));
 
         ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
-                () -> accessControlListController.apply("test", ace1, false));
+                () -> accessControlListController.apply(auth,"test", ace1, false));
         Assertions.assertEquals(1, actual.getValidationErrors().size());
     }
 
@@ -205,6 +228,8 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         Mockito.when(accessControlEntryService.validate(ace1, ns))
@@ -212,13 +237,16 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
-        AccessControlEntry actual = accessControlListController.apply("test", ace1, false);
+        AccessControlEntry actual = accessControlListController.apply(auth, "test", ace1, false);
         Assertions.assertEquals("test", actual.getMetadata().getNamespace());
         Assertions.assertEquals("local", actual.getMetadata().getCluster());
     }
 
     @Test
     void applyDryRunAdmin() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder().name("test").cluster("local").build())
+                .build();
         AccessControlEntry ace1 = AccessControlEntry.builder()
                 .metadata(ObjectMeta.builder().namespace("admin").cluster("local").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -230,11 +258,15 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Mockito.when(accessControlEntryService.validateAsAdmin(ace1))
+        Authentication auth = new DefaultAuthentication("admin", Map.of("roles",List.of("isAdmin()")));
+
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(accessControlEntryService.validateAsAdmin(ace1, ns))
                 .thenReturn(List.of());
 
-        AccessControlEntry actual = accessControlListController.apply("admin", ace1, true);
-        verify(accessControlEntryService, never()).create(ace1);
+        AccessControlEntry actual = accessControlListController.apply(auth, "test", ace1, true);
+        verify(accessControlEntryService, never()).create(ArgumentMatchers.any());
     }
 
     @Test
@@ -253,12 +285,14 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         Mockito.when(accessControlEntryService.validate(ace1, ns))
                 .thenReturn(List.of());
 
-        AccessControlEntry actual = accessControlListController.apply("test", ace1, true);
+        AccessControlEntry actual = accessControlListController.apply(auth, "test", ace1, true);
         verify(accessControlEntryService, never()).create(ace1);
     }
 
@@ -275,12 +309,60 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
+
         Mockito.when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.empty());
         ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
-                () -> accessControlListController.delete("test", "ace1", false));
+                () -> accessControlListController.delete(auth,"test", "ace1", false));
 
         Assertions.assertLinesMatch(List.of("Invalid value ace1 for name : AccessControlEntry doesn't exist in this namespace"), actual.getValidationErrors());
+    }
+    @Test
+    void deleteFailSelfAssigned() {
+        AccessControlEntry ace1 = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder().name("ace1").namespace("test").cluster("local").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build()
+                )
+                .build();
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
+
+        Mockito.when(accessControlEntryService.findByName("test", "ace1"))
+                .thenReturn(Optional.of(ace1));
+        //Mockito.doNothing().when(accessControlEntryService.delete(ace1));
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+                () -> accessControlListController.delete(auth,"test", "ace1", false));
+        Assertions.assertLinesMatch(
+                List.of("Only admins.*"),
+                actual.getValidationErrors());
+    }
+    @Test
+    void deleteSuccessSelfAssigned_AsAdmin() {
+        AccessControlEntry ace1 = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder().name("ace1").namespace("test").cluster("local").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build()
+                )
+                .build();
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of("isAdmin()")));
+
+        Mockito.when(accessControlEntryService.findByName("test", "ace1"))
+                .thenReturn(Optional.of(ace1));
+        //Mockito.doNothing().when(accessControlEntryService.delete(ace1));
+        HttpResponse actual = accessControlListController.delete(auth,"test", "ace1", false);
+
+        Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.status());
     }
 
     @Test
@@ -296,10 +378,14 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
+
         Mockito.when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.of(ace1));
         //Mockito.doNothing().when(accessControlEntryService.delete(ace1));
-        accessControlListController.delete("test", "ace1", false);
+        HttpResponse actual = accessControlListController.delete(auth,"test", "ace1", false);
+
+        Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.status());
     }
 
     @Test
@@ -315,9 +401,13 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
+
         Mockito.when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.of(ace1));
-        accessControlListController.delete("test", "ace1", true);
+        HttpResponse actual = accessControlListController.delete(auth,"test", "ace1", true);
+
         verify(accessControlEntryService, never()).delete(any());
+        Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.status());
     }
 }
