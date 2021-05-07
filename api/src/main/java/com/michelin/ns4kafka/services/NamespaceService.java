@@ -27,11 +27,6 @@ public class NamespaceService {
 
         List<String> validationErrors = new ArrayList<>();
 
-        if(namespace.getMetadata().getName().equals(Namespace.ADMIN_NAMESPACE)){
-            validationErrors.add("Invalid value " + Namespace.ADMIN_NAMESPACE
-                    + " for namespace: Reserved name");
-        }
-
         if (kafkaAsyncExecutorConfigList.stream()
                 .noneMatch(config -> config.getName().equals(namespace.getMetadata().getCluster()))) {
             validationErrors.add("Invalid value " + namespace.getMetadata().getCluster()
