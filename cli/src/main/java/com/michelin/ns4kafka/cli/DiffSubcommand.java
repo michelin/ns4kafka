@@ -154,22 +154,17 @@ public class DiffSubcommand implements Callable<Integer> {
         PrintWriter writer;
 
         String oldResourceFileName = generateFileName("old", resource.getMetadata().getName());
-        try {
-             writer = new PrintWriter(new File(oldResourceFileName));
-        } catch (FileNotFoundException e) {
-            System.out.println(Ansi.AUTO.string("@|bold,red FAILED |@") + e.getMessage());
-            return 1;
-        }
-        new Yaml(representer,options).dump(oldResource, writer);
-
         String newResourceFileName = generateFileName("new", resource.getMetadata().getName());
         try {
-             writer = new PrintWriter(new File(newResourceFileName));
+            writer = new PrintWriter(new File(oldResourceFileName));
+            new Yaml(representer,options).dump(oldResource, writer);
+
+            writer = new PrintWriter(new File(newResourceFileName));
+            new Yaml(representer,options).dump(newResource, writer);
         } catch (FileNotFoundException e) {
             System.out.println(Ansi.AUTO.string("@|bold,red FAILED |@") + e.getMessage());
             return 1;
         }
-        new Yaml(representer,options).dump(newResource, writer);
 
         // 4. call diff on the files created
         Runtime rt = Runtime.getRuntime();
