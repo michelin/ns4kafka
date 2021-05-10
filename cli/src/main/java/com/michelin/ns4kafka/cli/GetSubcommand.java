@@ -1,14 +1,13 @@
 package com.michelin.ns4kafka.cli;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.LoginService;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import com.michelin.ns4kafka.cli.services.ResourceService;
+import org.ocpsoft.prettytime.PrettyTime;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.nodes.Tag;
@@ -43,6 +42,8 @@ public class GetSubcommand implements Callable<Integer> {
     @Inject
     ApiResourcesService apiResourcesService;
     @Inject
+    ResourceService resourceService;
+    @Inject
     KafkactlConfig kafkactlConfig;
 
     @CommandLine.ParentCommand
@@ -64,20 +65,33 @@ public class GetSubcommand implements Callable<Integer> {
             return 1;
         }
 
-        // 2. validate resourceType
+        // 2. validate resourceType + custom type ALL
         List<ApiResource> apiResources = validateResourceType();
 
-        displayAllResoucesForTypesAndName(apiResources);
+        String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
+        // 3. list resources based on parameters
+        if (resourceName.isEmpty() || apiResources.size() > 1) {
+            // 4.a list all resources for given types (k get all, k get topics)
+            List<Resource> resources = resourceService.listAll(apiResources, namespace);
+
+            // 5.a display all resources by type
+            apiResources.forEach(apiResource ->
+                    displayAsTable(apiResource,
+                            resources.stream()
+                                    .filter(resource -> resource.getKind().equals(apiResource.getKind()))
+                                    .collect(Collectors.toList())
+                    )
+            );
+        } else {
+            // 4.b get individual resources for given types (k get topic topic1)
+            Resource singleResource = resourceService.getSingleResourceWithType(apiResources.get(0), namespace, resourceName.get());
+
+            // 5.b display individual resource
+            //displayAsTable(apiResources.get(0),resources);
+            displayIndividual(singleResource);
+        }
 
         return 0;
-    }
-
-    private void displayAllResoucesForTypesAndName(List<ApiResource> apiResources) {
-        if(resourceName.isEmpty()){
-            apiResources.forEach(this::displayAllResourcesForType);
-        }else{
-            apiResources.forEach(apiResource -> displaySingleResourceWithName(apiResource, resourceName.get()));
-        }
     }
 
     private List<ApiResource> validateResourceType() {
@@ -88,7 +102,7 @@ public class GetSubcommand implements Callable<Integer> {
                     .filter(apiResource -> apiResource.isNamespaced())
                     .collect(Collectors.toList());
         }
-        // normal usage, check resource exists
+        // otherwise check resource exists
         Optional<ApiResource> optionalApiResource = apiResourcesService.getResourceDefinitionFromCommandName(resourceType);
         if (optionalApiResource.isPresent()) {
             return List.of(optionalApiResource.get());
@@ -97,43 +111,29 @@ public class GetSubcommand implements Callable<Integer> {
 
     }
 
-    private void displaySingleResourceWithName(ApiResource apiResource, String resourceName) {
+    private void displayAsTable(ApiResource apiResource, List<Resource> resources) {
+        CommandLine.Help.TextTable tt = CommandLine.Help.TextTable.forColumns(
+                CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.AUTO),
+                new CommandLine.Help.Column[]
+                        {
+                                new CommandLine.Help.Column(30, 2, CommandLine.Help.Column.Overflow.SPAN),
+                                new CommandLine.Help.Column(30, 2, CommandLine.Help.Column.Overflow.SPAN),
+                                new CommandLine.Help.Column(30, 2, CommandLine.Help.Column.Overflow.SPAN)
+                        });
+        tt.addRowValues(apiResource.getKind(), "AGE");
+        resources.forEach(resource -> tt.addRowValues(resource.getMetadata().getName(), new PrettyTime().format(resource.getMetadata().getCreationTimestamp())));
+        System.out.println(tt);
+    }
+
+    private void displayIndividual(Resource resource) {
+        System.out.println("Date:"+resource.getMetadata().getCreationTimestamp());
         DumperOptions options = new DumperOptions();
         options.setExplicitStart(true);
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         Representer representer = new Representer();
         representer.addClassTag(Resource.class, Tag.MAP);
-        Resource resource;
-        if(apiResource.isNamespaced()){
-            String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
-            resource = namespacedClient.get(namespace, apiResource.getPath(), resourceName, loginService.getAuthorization());
-
-            try{
-                System.out.println(new Yaml(representer,options).dump(resource));
-            } catch (Exception e) {
-                System.out.println("Error parsing YAML");
-                System.out.println(resource.getKind()+"/"+resource.getMetadata().getName());
-            }
-
-        }
-        //TODO
-        // else
+        System.out.println(new Yaml(representer, options).dump(resource));
     }
 
-    private void displayAllResourcesForType(ApiResource apiResource) {
-        List<Resource> resources;
-        if(apiResource.isNamespaced()) {
-            String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
-            try {
-                resources = namespacedClient.list(namespace, apiResource.getPath(), loginService.getAuthorization());
-            }catch (HttpClientResponseException e){
-                System.out.println("Error during list for resource type "+apiResource.getKind()+": "+e.getMessage());
-                resources=List.of();
-            }
-        }else{
-            resources = nonNamespacedClient.list(loginService.getAuthorization(), apiResource.getPath());
-        }
-        resources.stream().forEach(resource -> System.out.println(resource.getKind()+"/"+resource.getMetadata().getName()));
-    }
 
 }

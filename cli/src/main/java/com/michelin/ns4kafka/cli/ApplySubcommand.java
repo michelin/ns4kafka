@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 @Command(name = "apply", description = "Create or update a resource")
 public class ApplySubcommand implements Callable<Integer> {
@@ -36,6 +37,9 @@ public class ApplySubcommand implements Callable<Integer> {
     FileService fileService;
     @Inject
     KafkactlConfig kafkactlConfig;
+
+    @CommandLine.Spec
+    CommandLine.Model.CommandSpec commandSpec;
 
     @CommandLine.ParentCommand
     KafkactlCommand kafkactlCommand;
@@ -71,7 +75,7 @@ public class ApplySubcommand implements Callable<Integer> {
 
         if (file.isPresent()) {
             // 1. list all files to process
-            List<File> yamlFiles = fileService.computeYamlFileList(file.get(),recursive);
+            List<File> yamlFiles = fileService.computeYamlFileList(file.get(), recursive);
             if (yamlFiles.isEmpty()) {
                 System.out.println("Could not find yaml/yml files in " + file.get().getName());
                 return 1;
@@ -85,18 +89,35 @@ public class ApplySubcommand implements Callable<Integer> {
             resources = fileService.parseResourceListFromString(scanner.next());
         }
 
+        // 3. validate resource types from resources
+        validateResourceTypes(resources);
+
+
         // 3. process each document individually, return 0 when all succeed
         int errors = resources.stream().mapToInt(this::applyResource).sum();
         return errors > 0 ? 1 : 0;
+    }
+
+    private void validateResourceTypes(List<Resource> resources) {
+        List<ApiResource> apiResources = apiResourcesService.getListResourceDefinition();
+        List<String> allowedKinds = apiResources.stream()
+                .map(ApiResource::getKind)
+                .collect(Collectors.toList());
+        List<Resource> invalidResources = resources.stream()
+                .filter(resource -> !allowedKinds.contains(resource.getKind()))
+                .collect(Collectors.toList());
+        if (!invalidResources.isEmpty()) {
+            String invalid = String.join(", ", invalidResources.stream().map(Resource::getKind).distinct().collect(Collectors.toList()));
+            throw new CommandLine.ParameterException(commandSpec.commandLine(), "The server doesn't have resource type ["+invalid+"]");
+        }
     }
 
     private int applyResource(Resource resource) {
         String token = loginService.getAuthorization();
 
         Optional<ApiResource> optionalApiResource = apiResourcesService.getResourceDefinitionFromKind(resource.getKind());
-        if(optionalApiResource.isEmpty())
-        {
-            System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + resource.getKind() + "/" + resource.getMetadata().getName()+": The server doesn't have resource type");
+        if (optionalApiResource.isEmpty()) {
+            System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + resource.getKind() + "/" + resource.getMetadata().getName() + ": The server doesn't have resource type");
             return 1;
         }
 
@@ -105,8 +126,8 @@ public class ApplySubcommand implements Callable<Integer> {
             if (apiResource.isNamespaced()) {
                 String yamlNamespace = resource.getMetadata().getNamespace();
                 String defaultNamespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
-                if(yamlNamespace != null && defaultNamespace != null && !yamlNamespace.equals(defaultNamespace)){
-                    System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + apiResource.getKind() + "/" + resource.getMetadata().getName()+": Namespace mismatch between kafkactl and yaml document");
+                if (yamlNamespace != null && defaultNamespace != null && !yamlNamespace.equals(defaultNamespace)) {
+                    System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + apiResource.getKind() + "/" + resource.getMetadata().getName() + ": Namespace mismatch between kafkactl and yaml document");
                     return 1;
                 }
                 namespacedClient.apply(defaultNamespace, apiResource.getPath(), token, resource, dryRun);
