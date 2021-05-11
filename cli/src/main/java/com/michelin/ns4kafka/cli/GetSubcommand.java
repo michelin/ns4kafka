@@ -116,8 +116,7 @@ public class GetSubcommand implements Callable<Integer> {
                 CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.AUTO),
                 new CommandLine.Help.Column[]
                         {
-                                new CommandLine.Help.Column(30, 2, CommandLine.Help.Column.Overflow.SPAN),
-                                new CommandLine.Help.Column(30, 2, CommandLine.Help.Column.Overflow.SPAN),
+                                new CommandLine.Help.Column(50, 2, CommandLine.Help.Column.Overflow.SPAN),
                                 new CommandLine.Help.Column(30, 2, CommandLine.Help.Column.Overflow.SPAN)
                         });
         tt.addRowValues(apiResource.getKind(), "AGE");
