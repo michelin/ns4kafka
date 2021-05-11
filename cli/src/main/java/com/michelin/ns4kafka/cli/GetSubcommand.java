@@ -125,7 +125,6 @@ public class GetSubcommand implements Callable<Integer> {
     }
 
     private void displayIndividual(Resource resource) {
-        System.out.println("Date:"+resource.getMetadata().getCreationTimestamp());
         DumperOptions options = new DumperOptions();
         options.setExplicitStart(true);
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
