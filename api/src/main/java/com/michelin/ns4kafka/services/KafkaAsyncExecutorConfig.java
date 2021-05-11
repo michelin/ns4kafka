@@ -11,6 +11,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import javax.inject.Inject;
+
+import java.util.List;
 import java.util.Map;
 
 @Getter
@@ -24,7 +26,7 @@ public class KafkaAsyncExecutorConfig {
     boolean readOnly = true;
     @MapFormat(transformation = MapFormat.MapTransformation.FLAT)
     Map<String, Object> config;
-    ConnectConfig connect;
+    List<ConnectConfig> connects;
     RegistryConfig schemaRegistry;
 
     public KafkaAsyncExecutorConfig(@Parameter String name) {
@@ -33,11 +35,16 @@ public class KafkaAsyncExecutorConfig {
 
     @Getter
     @Setter
-    @ConfigurationProperties("connect")
+    @EachProperty("connects")
     public static class ConnectConfig {
+        private final String name;
         String url;
         String basicAuthUsername;
         String basicAuthPassword;
+
+        public ConnectConfig(@Parameter String name) {
+            this.name = name;
+        }
     }
     @Getter
     @ConfigurationProperties("schema-registry")

@@ -34,7 +34,7 @@ public class KafkaConnectService {
     public List<Connector> list(Namespace namespace) {
         List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace);
 
-        return kafkaConnectClient.listAll(namespace.getMetadata().getCluster())
+        return kafkaConnectClient.listAll(namespace.getMetadata().getCluster(), namespace.getSpec().getConnectName())
                 .entrySet()
                 .stream()
                 .filter(entry -> acls.stream()
@@ -102,12 +102,12 @@ public class KafkaConnectService {
     }
 
     public boolean isNamespaceOwnerOfConnect(Namespace namespace, String connect) {
-        return accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(), AccessControlEntry.ResourceType.CONNECT, connect);
+        return accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName() , AccessControlEntry.ResourceType.CONNECT, connect);
     }
 
     public List<String> validateRemotely(Namespace namespace, Connector connector) {
         // Calls the validate endpoints and returns the validation error messages if any
-        ConfigInfos configInfos = kafkaConnectClient.validate(namespace.getMetadata().getCluster(), connector.getSpec().get("connector.class").toString(), connector.getSpec());
+        ConfigInfos configInfos = kafkaConnectClient.validate(namespace.getMetadata().getCluster(), namespace.getSpec().getConnectName(), connector.getSpec().get("connector.class").toString(), connector.getSpec());
 
         return configInfos.values()
                 .stream()
@@ -118,7 +118,7 @@ public class KafkaConnectService {
 
     public Connector createOrUpdate(Namespace namespace, Connector connector) {
 
-        ConnectorInfo connectorInfo = kafkaConnectClient.createOrUpdate(namespace.getMetadata().getCluster(), connector.getMetadata().getName(), connector.getSpec());
+        ConnectorInfo connectorInfo = kafkaConnectClient.createOrUpdate(namespace.getMetadata().getCluster(), namespace.getSpec().getConnectName(), connector.getMetadata().getName(), connector.getSpec());
 
         return Connector.builder()
                 .metadata(ObjectMeta.builder()
@@ -137,7 +137,7 @@ public class KafkaConnectService {
     public String getConnectorType(Namespace namespace, String connectorClass) {
         if (StringUtils.isEmpty(connectorClass))
             return null;
-        return kafkaConnectClient.connectPlugins(namespace.getMetadata().getCluster())
+        return kafkaConnectClient.connectPlugins(namespace.getMetadata().getCluster(), namespace.getSpec().getConnectName())
                 .stream()
                 .filter(connectPluginItem -> connectPluginItem.className().equals(connectorClass))
                 .map(connectPluginItem -> connectPluginItem.type().toString())
@@ -146,6 +146,6 @@ public class KafkaConnectService {
     }
 
     public HttpResponse delete(Namespace namespace, String connector) {
-        return kafkaConnectClient.delete(namespace.getMetadata().getCluster(), connector);
+        return kafkaConnectClient.delete(namespace.getMetadata().getCluster(), namespace.getSpec().getConnectName(), connector);
     }
 }

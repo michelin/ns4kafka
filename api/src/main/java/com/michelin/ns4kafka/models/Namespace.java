@@ -33,6 +33,7 @@ public class Namespace {
     @Setter
     public static class NamespaceSpec {
         private String kafkaUser;
+        private String connectName;
         private TopicValidator topicValidator;
         private ConnectValidator connectValidator;
         //private ResourceQuota quota;

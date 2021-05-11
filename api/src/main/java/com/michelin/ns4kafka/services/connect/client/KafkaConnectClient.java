@@ -15,11 +15,14 @@ import java.util.Map;
 @Client(KafkaConnectClientProxy.CONNECT_PROXY_PREFIX)
 public interface KafkaConnectClient {
     @Get("/connectors?expand=info&expand=status")
-    Map<String, ConnectorStatus> listAll(@Header(value = "X-Connect-Cluster") String cluster);
+    Map<String, ConnectorStatus> listAll(
+            @Header(value = "X-Connect-Cluster") String cluster,
+            @Header(value = "X-Connect-Name") String connectName);
 
     @Put("/connector-plugins/{connectorClass}/config/validate")
     ConfigInfos validate(
             @Header(value = "X-Connect-Cluster") String cluster,
+            @Header(value = "X-Connect-Name") String connectName,
             String connectorClass,
             @Body Map<String,String> connectorSpec);
 
@@ -27,16 +30,19 @@ public interface KafkaConnectClient {
     @Put("/connectors/{connector}/config")
     ConnectorInfo createOrUpdate(
             @Header(value = "X-Connect-Cluster") String cluster,
+            @Header(value = "X-Connect-Name") String connectName,
             String connector,
             @Body Map<String,String> ConnectorSpec);
 
     @Delete("/connectors/{connector}")
     HttpResponse delete(
             @Header(value = "X-Connect-Cluster") String cluster,
+            @Header(value = "X-Connect-Name") String connectName,
             String connector);
 
 
     @Get("/connector-plugins")
     List<ConnectorPluginInfo> connectPlugins(
-            @Header(value = "X-Connect-Cluster") String cluster);
+            @Header(value = "X-Connect-Cluster") String cluster,
+            @Header(value = "X-Connect-Name") String connectName)
 }
