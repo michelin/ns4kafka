@@ -14,10 +14,15 @@ import java.util.concurrent.Callable;
                         ApplySubcommand.class,
                         GetSubcommand.class,
                         DeleteSubcommand.class,
-                        ApiResourcesSubcommand.class
+                        ApiResourcesSubcommand.class,
+                        DiffSubcommand.class
                 },
         description = "...",
-        mixinStandardHelpOptions = false)
+        mixinStandardHelpOptions = true,
+        version = {
+                "kafkactl CLI v0.1 build 20210511",
+                "Picocli " + picocli.CommandLine.VERSION
+        })
 public class KafkactlCommand implements Callable<Integer> {
 
     public static boolean VERBOSE = false;
@@ -32,19 +37,17 @@ public class KafkactlCommand implements Callable<Integer> {
 
 
     public static void main(String[] args) throws Exception {
+        String configPath = System.getProperty("user.home") + "/.kafkactl/config.yml";
+        System.setProperty("micronaut.config.files", configPath);
+
         int exitCode = PicocliRunner.execute(KafkactlCommand.class, args);
         System.exit(exitCode);
     }
 
     public Integer call() throws Exception {
-        // Check API status
-
-        // Check login status
-
-        // Check namespace is set
-
+        CommandLine cmd = new CommandLine(new KafkactlCommand());
         // Display help
-        CommandLine.usage(new KafkactlCommand(), System.out);
+        cmd.usage(System.out);
 
         return 0;
 

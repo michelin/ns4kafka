@@ -41,6 +41,11 @@ dependencies {
     implementation("io.micronaut:micronaut-runtime")
     implementation("javax.annotation:javax.annotation-api")
     implementation("io.micronaut:micronaut-http-client")
+
+    //External libs
+    implementation("org.ocpsoft.prettytime:prettytime:5.0.1.Final")
+    implementation("io.github.java-diff-utils:java-diff-utils:4.9")
+
     runtimeOnly("ch.qos.logback:logback-classic")
     testImplementation("io.micronaut:micronaut-http-client")
 }

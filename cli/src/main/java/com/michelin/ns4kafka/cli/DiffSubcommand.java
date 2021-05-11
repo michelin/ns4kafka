@@ -1,13 +1,18 @@
 package com.michelin.ns4kafka.cli;
 
-import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
-import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
+import com.github.difflib.DiffUtils;
+import com.github.difflib.UnifiedDiffUtils;
+import com.github.difflib.patch.Patch;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.FileService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.nodes.Tag;
+import org.yaml.snakeyaml.representer.Representer;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -20,13 +25,8 @@ import java.util.Scanner;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
-@Command(name = "apply", description = "Create or update a resource")
-public class ApplySubcommand implements Callable<Integer> {
-
-    @Inject
-    NamespacedResourceClient namespacedClient;
-    @Inject
-    ClusterResourceClient nonNamespacedClient;
+@Command(name = "diff", description = "Get differences between the new resources and the old resource")
+public class DiffSubcommand implements Callable<Integer> {
 
     @Inject
     LoginService loginService;
@@ -42,22 +42,15 @@ public class ApplySubcommand implements Callable<Integer> {
 
     @CommandLine.Spec
     CommandLine.Model.CommandSpec commandSpec;
-
     @CommandLine.ParentCommand
     KafkactlCommand kafkactlCommand;
     @Option(names = {"-f", "--file"}, description = "YAML File or Directory containing YAML resources")
     Optional<File> file;
     @Option(names = {"-R", "--recursive"}, description = "Enable recursive search of file")
     boolean recursive;
-    @Option(names = {"--dry-run"}, description = "Does not persist resources. Validate only")
-    boolean dryRun;
 
     @Override
     public Integer call() throws Exception {
-
-        if (dryRun) {
-            System.out.println("Dry run execution");
-        }
 
         boolean authenticated = loginService.doAuthenticate();
         if (!authenticated) {
@@ -106,8 +99,6 @@ public class ApplySubcommand implements Callable<Integer> {
             String invalid = String.join(", ", nsMismatch.stream().map(resource -> resource.getKind() + "/" + resource.getMetadata().getName()).distinct().collect(Collectors.toList()));
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Namespace mismatch between kafkactl and yaml document [" + invalid + "]");
         }
-
-
         List<ApiResource> apiResources = apiResourcesService.getListResourceDefinition();
 
         // 5. process each document individually, return 0 when all succeed
@@ -117,14 +108,33 @@ public class ApplySubcommand implements Callable<Integer> {
                             .filter(apiRes -> apiRes.getKind().equals(resource.getKind()))
                             .findFirst()
                             .orElseThrow(); // already validated
-                    Resource merged = resourceService.apply(apiResource, namespace, resource, dryRun);
-                    System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,green SUCCESS: |@") + merged.getKind() + "/" + merged.getMetadata().getName());
-                    return merged;
+                    Resource live = resourceService.getSingleResourceWithType(apiResource, namespace, resource.getMetadata().getName());
+                    Resource merged = resourceService.apply(apiResource, namespace, resource, true);
+                    List<String> uDiff = unifiedDiff(live, merged);
+                    uDiff.forEach(System.out::println);
+                    return 0;
                 })
                 .mapToInt(value -> value != null ? 0 : 1)
                 .sum();
-
         return errors > 0 ? 1 : 0;
     }
 
+    private List<String> unifiedDiff(Resource live, Resource merged) {
+
+        DumperOptions options = new DumperOptions();
+        options.setExplicitStart(true);
+        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        Representer representer = new Representer();
+        representer.addClassTag(Resource.class, Tag.MAP);
+        Yaml yaml = new Yaml(representer, options);
+
+        List<String> oldResourceStr = live != null ? yaml.dump(live).lines().collect(Collectors.toList()) : List.of();
+        List<String> newResourceStr = yaml.dump(merged).lines().collect(Collectors.toList());
+        Patch<String> diff = DiffUtils.diff(oldResourceStr, newResourceStr);
+        return UnifiedDiffUtils.generateUnifiedDiff(
+                String.format("%s/%s-LIVE", merged.getKind(), merged.getMetadata().getName()),
+                String.format("%s/%s-MERGED", merged.getKind(), merged.getMetadata().getName()),
+                oldResourceStr, diff, 3);
+
+    }
 }
