@@ -5,6 +5,7 @@ import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import picocli.CommandLine;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -43,7 +44,8 @@ public class ResourceService {
         }
         return resources;
     }
-    public Resource getSingleResourceWithType(ApiResource apiResource, String namespace, String resourceName){
+
+    public Resource getSingleResourceWithType(ApiResource apiResource, String namespace, String resourceName) {
         try {
             if (apiResource.isNamespaced()) {
                 return namespacedClient.get(namespace, apiResource.getPath(), resourceName, loginService.getAuthorization());
@@ -54,6 +56,20 @@ public class ResourceService {
             System.out.println("Error during get for resource type " + apiResource.getKind() + "/" + resourceName + ": " + e.getMessage());
         }
 
+        return null;
+    }
+
+    public Resource apply(ApiResource apiResource, String namespace, Resource resource, boolean dryRun) {
+        try {
+            Resource merged;
+            if (apiResource.isNamespaced()) {
+                return namespacedClient.apply(namespace, apiResource.getPath(), loginService.getAuthorization(), resource, dryRun);
+            } else {
+                return nonNamespacedClient.apply(loginService.getAuthorization(), apiResource.getPath(), resource, dryRun);
+            }
+        } catch (HttpClientResponseException e) {
+            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red FAILED |@") + apiResource.getKind() + "/" + resource.getMetadata().getName() + CommandLine.Help.Ansi.AUTO.string("@|bold,red failed with message : |@") + e.getMessage());
+        }
         return null;
     }
 }

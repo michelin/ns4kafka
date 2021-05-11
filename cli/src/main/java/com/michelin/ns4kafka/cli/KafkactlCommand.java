@@ -18,7 +18,11 @@ import java.util.concurrent.Callable;
                         DiffSubcommand.class
                 },
         description = "...",
-        mixinStandardHelpOptions = false)
+        mixinStandardHelpOptions = true,
+        version = {
+                "kafkactl CLI v0.1 build 20210511",
+                "Picocli " + picocli.CommandLine.VERSION
+        })
 public class KafkactlCommand implements Callable<Integer> {
 
     public static boolean VERBOSE = false;
@@ -41,14 +45,9 @@ public class KafkactlCommand implements Callable<Integer> {
     }
 
     public Integer call() throws Exception {
-        // Check API status
-
-        // Check login status
-
-        // Check namespace is set
-
+        CommandLine cmd = new CommandLine(new KafkactlCommand());
         // Display help
-        CommandLine.usage(new KafkactlCommand(), System.out);
+        cmd.usage(System.out);
 
         return 0;
 

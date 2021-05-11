@@ -7,10 +7,9 @@ import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.FileService;
 import com.michelin.ns4kafka.cli.services.LoginService;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import com.michelin.ns4kafka.cli.services.ResourceService;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Help.Ansi;
 import picocli.CommandLine.Option;
 
 import javax.inject.Inject;
@@ -35,6 +34,9 @@ public class ApplySubcommand implements Callable<Integer> {
     ApiResourcesService apiResourcesService;
     @Inject
     FileService fileService;
+    @Inject
+    ResourceService resourceService;
+
     @Inject
     KafkactlConfig kafkactlConfig;
 
@@ -90,56 +92,39 @@ public class ApplySubcommand implements Callable<Integer> {
         }
 
         // 3. validate resource types from resources
-        validateResourceTypes(resources);
+        List<Resource> invalidResources = apiResourcesService.validateResourceTypes(resources);
+        if (!invalidResources.isEmpty()) {
+            String invalid = String.join(", ", invalidResources.stream().map(Resource::getKind).distinct().collect(Collectors.toList()));
+            throw new CommandLine.ParameterException(commandSpec.commandLine(), "The server doesn't have resource type [" + invalid + "]");
+        }
+        // 4. validate namespace mismatch
+        String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
+        List<Resource> nsMismatch = resources.stream()
+                .filter(resource -> resource.getMetadata().getNamespace() != null && !resource.getMetadata().getNamespace().equals(namespace))
+                .collect(Collectors.toList());
+        if (!nsMismatch.isEmpty()) {
+            String invalid = String.join(", ", nsMismatch.stream().map(resource -> resource.getKind() + "/" + resource.getMetadata().getName()).distinct().collect(Collectors.toList()));
+            throw new CommandLine.ParameterException(commandSpec.commandLine(), "Namespace mismatch between kafkactl and yaml document [" + invalid + "]");
+        }
 
 
-        // 3. process each document individually, return 0 when all succeed
-        int errors = resources.stream().mapToInt(this::applyResource).sum();
+        List<ApiResource> apiResources = apiResourcesService.getListResourceDefinition();
+
+        // 5. process each document individually, return 0 when all succeed
+        int errors = resources.stream()
+                .map(resource -> {
+                    ApiResource apiResource = apiResources.stream()
+                            .filter(apiRes -> apiRes.getKind().equals(resource.getKind()))
+                            .findFirst()
+                            .orElseThrow(); // already validated
+                    Resource merged = resourceService.apply(apiResource, namespace, resource, dryRun);
+                    System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,green SUCCESS: |@") + merged.getKind() + "/" + merged.getMetadata().getName());
+                    return merged;
+                })
+                .mapToInt(value -> value != null ? 0 : 1)
+                .sum();
+
         return errors > 0 ? 1 : 0;
     }
 
-    private void validateResourceTypes(List<Resource> resources) {
-        List<ApiResource> apiResources = apiResourcesService.getListResourceDefinition();
-        List<String> allowedKinds = apiResources.stream()
-                .map(ApiResource::getKind)
-                .collect(Collectors.toList());
-        List<Resource> invalidResources = resources.stream()
-                .filter(resource -> !allowedKinds.contains(resource.getKind()))
-                .collect(Collectors.toList());
-        if (!invalidResources.isEmpty()) {
-            String invalid = String.join(", ", invalidResources.stream().map(Resource::getKind).distinct().collect(Collectors.toList()));
-            throw new CommandLine.ParameterException(commandSpec.commandLine(), "The server doesn't have resource type ["+invalid+"]");
-        }
-    }
-
-    private int applyResource(Resource resource) {
-        String token = loginService.getAuthorization();
-
-        Optional<ApiResource> optionalApiResource = apiResourcesService.getResourceDefinitionFromKind(resource.getKind());
-        if (optionalApiResource.isEmpty()) {
-            System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + resource.getKind() + "/" + resource.getMetadata().getName() + ": The server doesn't have resource type");
-            return 1;
-        }
-
-        ApiResource apiResource = optionalApiResource.get();
-        try {
-            if (apiResource.isNamespaced()) {
-                String yamlNamespace = resource.getMetadata().getNamespace();
-                String defaultNamespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
-                if (yamlNamespace != null && defaultNamespace != null && !yamlNamespace.equals(defaultNamespace)) {
-                    System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + apiResource.getKind() + "/" + resource.getMetadata().getName() + ": Namespace mismatch between kafkactl and yaml document");
-                    return 1;
-                }
-                namespacedClient.apply(defaultNamespace, apiResource.getPath(), token, resource, dryRun);
-            } else {
-                nonNamespacedClient.apply(token, apiResource.getPath(), resource, dryRun);
-            }
-            System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS: |@") + apiResource.getKind() + "/" + resource.getMetadata().getName());
-
-        } catch (HttpClientResponseException e) {
-            System.out.println(Ansi.AUTO.string("@|bold,red FAILED |@") + apiResource.getKind() + "/" + resource.getMetadata().getName() + Ansi.AUTO.string("@|bold,red  failed with message : |@") + e.getMessage());
-            return 1;
-        }
-        return 0;
-    }
 }
