@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Publisher;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 @ExtendWith(MockitoExtension.class)
@@ -77,7 +78,7 @@ public class KafkaConnectClientProxyTest {
         connectConfig.url = "http://target/";
         connectConfig.basicAuthUsername = "toto";
         connectConfig.basicAuthPassword = "titi";
-        config1.connects = List.of(connectConfig);
+        config1.connects = Map.of("local-name",connectConfig);
         // Should not interfere
         KafkaAsyncExecutorConfig config2 = new KafkaAsyncExecutorConfig("not-match");
 

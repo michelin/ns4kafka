@@ -4,6 +4,7 @@ package com.michelin.ns4kafka.services;
 import io.micronaut.context.annotation.ConfigurationProperties;
 import io.micronaut.context.annotation.EachProperty;
 import io.micronaut.context.annotation.Parameter;
+import io.micronaut.core.annotation.Introspected;
 import io.micronaut.core.convert.format.MapFormat;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
@@ -26,7 +27,7 @@ public class KafkaAsyncExecutorConfig {
     boolean readOnly = true;
     @MapFormat(transformation = MapFormat.MapTransformation.FLAT)
     Map<String, Object> config;
-    List<ConnectConfig> connects;
+    Map<String, ConnectConfig> connects;
     RegistryConfig schemaRegistry;
 
     public KafkaAsyncExecutorConfig(@Parameter String name) {
@@ -35,7 +36,7 @@ public class KafkaAsyncExecutorConfig {
 
     @Getter
     @Setter
-    @EachProperty("connects")
+    @Introspected
     public static class ConnectConfig {
         private final String name;
         String url;
@@ -46,6 +47,7 @@ public class KafkaAsyncExecutorConfig {
             this.name = name;
         }
     }
+
     @Getter
     @ConfigurationProperties("schema-registry")
     public static class RegistryConfig {

@@ -52,15 +52,13 @@ public class KafkaConnectClientProxy extends OncePerRequestHttpServerFilter {
         }
 
         // get the good connect config
-        Optional<ConnectConfig> connectConfig = config.get().getConnects().stream()
-                .filter(connect -> connect.getName().equals(connectName))
-                .findFirst();
-        if (connectConfig.isEmpty()) {
+        ConnectConfig connectConfig = config.get().getConnects().get(connectName);
+        if (connectConfig == null) {
             return Publishers.just(new Exception("No ConnectConfig found for connect's name [" + connectName + "]"));
         }
 
         // mutate the request with proper URL and Authent
-        HttpRequest<?> mutatedRequest = mutateKafkaConnectRequest(request, connectConfig.get());
+        HttpRequest<?> mutatedRequest = mutateKafkaConnectRequest(request, connectConfig);
         // call it
         return client.proxy(mutatedRequest);
         // If required to modify the response, use this
