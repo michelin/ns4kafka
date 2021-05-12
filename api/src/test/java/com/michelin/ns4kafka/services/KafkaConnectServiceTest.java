@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.services.connect.KafkaConnectService;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
 import com.michelin.ns4kafka.services.connect.client.entities.ConnectorInfo;
@@ -42,11 +43,14 @@ public class KafkaConnectServiceTest {
                         .name("namespace")
                         .cluster("local")
                         .build())
+                .spec(NamespaceSpec.builder()
+                        .connectName("local-name")
+                        .build())
                 .build();
 
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of());
-        Mockito.when(kafkaConnectClient.listAll("local"))
+        Mockito.when(kafkaConnectClient.listAll("local", "local-name"))
                 .thenReturn(Map.of());
 
         List<Connector> actual = kafkaConnectService.list(ns);
@@ -60,6 +64,9 @@ public class KafkaConnectServiceTest {
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
                         .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .connectName("local-name")
                         .build())
                 .build();
         ConnectorStatus c1 = new ConnectorStatus();
@@ -79,7 +86,7 @@ public class KafkaConnectServiceTest {
                                 .resource("ns-")
                                 .build())
                         .build()));
-        Mockito.when(kafkaConnectClient.listAll("local"))
+        Mockito.when(kafkaConnectClient.listAll("local", "local-name"))
                 .thenReturn(Map.of(c1.getInfo().name(), c1,
                         c2.getInfo().name(), c2,
                         c3.getInfo().name(), c3)
@@ -100,11 +107,14 @@ public class KafkaConnectServiceTest {
                         .name("namespace")
                         .cluster("local")
                         .build())
+                .spec(NamespaceSpec.builder()
+                        .connectName("local-name")
+                        .build())
                 .build();
 
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of());
-        Mockito.when(kafkaConnectClient.listAll("local"))
+        Mockito.when(kafkaConnectClient.listAll("local", "local-name"))
                 .thenReturn(Map.of());
 
         Optional<Connector> actual = kafkaConnectService.findByName(ns, "ns-connect1");
@@ -118,6 +128,9 @@ public class KafkaConnectServiceTest {
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
                         .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .connectName("local-name")
                         .build())
                 .build();
         ConnectorStatus c1 = new ConnectorStatus();
@@ -137,7 +150,7 @@ public class KafkaConnectServiceTest {
                                 .resource("ns-")
                                 .build())
                         .build()));
-        Mockito.when(kafkaConnectClient.listAll("local"))
+        Mockito.when(kafkaConnectClient.listAll("local", "local-name"))
                 .thenReturn(Map.of(c1.getInfo().name(), c1,
                         c2.getInfo().name(), c2,
                         c3.getInfo().name(), c3)
@@ -176,8 +189,11 @@ public class KafkaConnectServiceTest {
                         .name("namespace")
                         .cluster("local")
                         .build())
+                .spec(NamespaceSpec.builder()
+                        .connectName("local-name")
+                        .build())
                 .build();
-        Mockito.when(kafkaConnectClient.connectPlugins("local"))
+        Mockito.when(kafkaConnectClient.connectPlugins("local", "local-name"))
                 .thenReturn(List.of());
 
         List<String> actual = kafkaConnectService.validateLocally(ns, connector);
@@ -202,10 +218,11 @@ public class KafkaConnectServiceTest {
                                 .sourceValidationConstraints(Map.of())
                                 .classValidationConstraints(Map.of())
                                 .build())
+                        .connectName("local-name")
                         .build())
                 .build();
 
-        Mockito.when(kafkaConnectClient.connectPlugins("local"))
+        Mockito.when(kafkaConnectClient.connectPlugins("local", "local-name"))
                 .thenReturn(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1")));
 
         List<String> actual = kafkaConnectService.validateLocally(ns, connector);
@@ -232,9 +249,10 @@ public class KafkaConnectServiceTest {
                                 .sourceValidationConstraints(Map.of())
                                 .validationConstraints(Map.of())
                                 .build())
+                        .connectName("local-name")
                         .build())
                 .build();
-        Mockito.when(kafkaConnectClient.connectPlugins("local"))
+        Mockito.when(kafkaConnectClient.connectPlugins("local", "local-name"))
                 .thenReturn(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1")));
 
         List<String> actual = kafkaConnectService.validateLocally(ns, connector);

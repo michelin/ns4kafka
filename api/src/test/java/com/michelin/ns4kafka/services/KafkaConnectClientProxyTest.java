@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.services;
 
+import com.michelin.ns4kafka.services.KafkaAsyncExecutorConfig.ConnectConfig;
 import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.http.*;
@@ -50,7 +51,8 @@ public class KafkaConnectClientProxyTest {
     void doFilterMissingConnectConfig() {
         HttpRequest request = HttpRequest
                 .GET("http://localhost/connect-proxy/connectors")
-                .header("X-Connect-Cluster", "local");
+                .header("X-Connect-Cluster", "local")
+                .header("X-Connect-Name", "local-name");
         Mockito.when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.empty());
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
@@ -68,12 +70,14 @@ public class KafkaConnectClientProxyTest {
     void doFilterSuccess() {
 
         MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors")
-                .header("X-Connect-Cluster", "local");
+                .header("X-Connect-Cluster", "local")
+                .header("X-Connect-Name", "local-name");
         KafkaAsyncExecutorConfig config1 = new KafkaAsyncExecutorConfig("local");
-        config1.connect = new KafkaAsyncExecutorConfig.ConnectConfig();
-        config1.connect.url = "http://target/";
-        config1.connect.basicAuthUsername = "toto";
-        config1.connect.basicAuthPassword = "titi";
+        ConnectConfig connectConfig = new KafkaAsyncExecutorConfig.ConnectConfig("local-name");
+        connectConfig.url = "http://target/";
+        connectConfig.basicAuthUsername = "toto";
+        connectConfig.basicAuthPassword = "titi";
+        config1.connects = List.of(connectConfig);
         // Should not interfere
         KafkaAsyncExecutorConfig config2 = new KafkaAsyncExecutorConfig("not-match");
 
@@ -95,7 +99,7 @@ public class KafkaConnectClientProxyTest {
     @Test
     void testMutateKafkaConnectRequest() {
         MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors");
-        KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig();
+        KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig("local-name");
         config.url = "http://target/";
 
         MutableHttpRequest<?> actual = proxy.mutateKafkaConnectRequest(request, config);
@@ -106,7 +110,7 @@ public class KafkaConnectClientProxyTest {
     @Test
     void testMutateKafkaConnectRequestRewrite() {
         MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors");
-        KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig();
+        KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig("local-name");
         config.url = "http://target/rewrite";
 
         MutableHttpRequest<?> actual = proxy.mutateKafkaConnectRequest(request, config);
@@ -117,7 +121,7 @@ public class KafkaConnectClientProxyTest {
     @Test
     void testMutateKafkaConnectRequestAuthent() {
         MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors");
-        KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig();
+        KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig("local-name");
         config.url = "http://target/";
         config.basicAuthUsername = "toto";
         config.basicAuthPassword = "titi";

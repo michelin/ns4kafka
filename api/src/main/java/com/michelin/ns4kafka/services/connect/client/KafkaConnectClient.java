@@ -44,5 +44,5 @@ public interface KafkaConnectClient {
     @Get("/connector-plugins")
     List<ConnectorPluginInfo> connectPlugins(
             @Header(value = "X-Connect-Cluster") String cluster,
-            @Header(value = "X-Connect-Name") String connectName)
+            @Header(value = "X-Connect-Name") String connectName);
 }
