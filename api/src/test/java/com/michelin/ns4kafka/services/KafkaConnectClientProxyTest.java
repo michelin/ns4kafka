@@ -32,10 +32,26 @@ public class KafkaConnectClientProxyTest {
     KafkaConnectClientProxy proxy;
 
     @Test
-    void doFilterMissingHeader() {
-        HttpRequest request = HttpRequest
+    void doFilterMissingHeader_KafkaCluster() {
+        MutableHttpRequest<?> request = HttpRequest
                 .GET("http://localhost/connect-proxy/connectors")
                 .header("X-Unused", "123");
+
+        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+
+        mutableHttpResponsePublisher.subscribe(subscriber);
+        subscriber.awaitTerminalEvent();
+
+        subscriber.assertError(Exception.class);
+        subscriber.assertError(throwable -> throwable.getClass().equals(Exception.class));
+        subscriber.assertErrorMessage("Missing required Header X-Kafka-Cluster");
+    }
+    @Test
+    void doFilterMissingHeader_ConnectCluster() {
+        MutableHttpRequest<?> request = HttpRequest
+                .GET("http://localhost/connect-proxy/connectors")
+                .header(KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
         Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
@@ -49,11 +65,11 @@ public class KafkaConnectClientProxyTest {
     }
 
     @Test
-    void doFilterMissingConnectConfig() {
-        HttpRequest request = HttpRequest
+    void doFilterWrongKafkaCluster() {
+        MutableHttpRequest<?> request = HttpRequest
                 .GET("http://localhost/connect-proxy/connectors")
-                .header("X-Connect-Cluster", "local")
-                .header("X-Connect-Name", "local-name");
+                .header(KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local")
+                .header(KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER, "local-name");
         Mockito.when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.empty());
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
@@ -64,20 +80,41 @@ public class KafkaConnectClientProxyTest {
 
         subscriber.assertError(Exception.class);
         subscriber.assertError(throwable -> throwable.getClass().equals(Exception.class));
-        subscriber.assertErrorMessage("No ConnectConfig found for cluster [local]");
+        subscriber.assertErrorMessage("Kafka Cluster [local] not found");
+    }
+    @Test
+    void doFilterWrongConnectCluster() {
+        MutableHttpRequest<?> request = HttpRequest
+                .GET("http://localhost/connect-proxy/connectors")
+                .header(KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local")
+                .header(KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER, "local-name");
+        KafkaAsyncExecutorConfig config = new KafkaAsyncExecutorConfig("local");
+        ConnectConfig connectConfig = new KafkaAsyncExecutorConfig.ConnectConfig("invalid-name");
+        config.connects = Map.of("invalid-name",connectConfig);
+
+        Mockito.when(kafkaAsyncExecutorConfigs.stream())
+                .thenReturn(Stream.of(config));
+
+        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+
+        mutableHttpResponsePublisher.subscribe(subscriber);
+        subscriber.awaitTerminalEvent();
+
+        subscriber.assertError(Exception.class);
+        subscriber.assertError(throwable -> throwable.getClass().equals(Exception.class));
+        subscriber.assertErrorMessage("Connect Cluster [local-name] not found");
     }
 
     @Test
     void doFilterSuccess() {
 
         MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors")
-                .header("X-Connect-Cluster", "local")
-                .header("X-Connect-Name", "local-name");
+                .header(KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local")
+                .header(KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER, "local-name");
         KafkaAsyncExecutorConfig config1 = new KafkaAsyncExecutorConfig("local");
         ConnectConfig connectConfig = new KafkaAsyncExecutorConfig.ConnectConfig("local-name");
         connectConfig.url = "http://target/";
-        connectConfig.basicAuthUsername = "toto";
-        connectConfig.basicAuthPassword = "titi";
         config1.connects = Map.of("local-name",connectConfig);
         // Should not interfere
         KafkaAsyncExecutorConfig config2 = new KafkaAsyncExecutorConfig("not-match");

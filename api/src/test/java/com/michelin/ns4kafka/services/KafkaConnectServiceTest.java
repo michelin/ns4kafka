@@ -44,7 +44,7 @@ public class KafkaConnectServiceTest {
                         .cluster("local")
                         .build())
                 .spec(NamespaceSpec.builder()
-                        .connectName("local-name")
+                        .connectCluster("local-name")
                         .build())
                 .build();
 
@@ -66,38 +66,64 @@ public class KafkaConnectServiceTest {
                         .cluster("local")
                         .build())
                 .spec(NamespaceSpec.builder()
-                        .connectName("local-name")
+                        .connectCluster("local-name")
                         .build())
                 .build();
         ConnectorStatus c1 = new ConnectorStatus();
         ConnectorStatus c2 = new ConnectorStatus();
         ConnectorStatus c3 = new ConnectorStatus();
+        ConnectorStatus c4 = new ConnectorStatus();
         c1.setInfo(new ConnectorInfo("ns-connect1", Map.of(), List.of(), ConnectorType.SINK));
         c2.setInfo(new ConnectorInfo("ns-connect2", Map.of(), List.of(), ConnectorType.SINK));
         c3.setInfo(new ConnectorInfo("other-connect1", Map.of(), List.of(), ConnectorType.SINK));
+        c4.setInfo(new ConnectorInfo("other-connect2", Map.of(), List.of(), ConnectorType.SINK));
 
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
-                .thenReturn(List.of(AccessControlEntry.builder()
-                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                .permission(AccessControlEntry.Permission.OWNER)
-                                .grantedTo("namespace")
-                                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                                .resource("ns-")
-                                .build())
-                        .build()));
+                .thenReturn(List.of(
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                                        .resource("ns-")
+                                        .build())
+                        .build(),
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                                        .resource("other-connect1")
+                                        .build())
+                                .build(),
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                        .resource("ns-")
+                                        .build())
+                                .build()
+                ));
         Mockito.when(kafkaConnectClient.listAll("local", "local-name"))
                 .thenReturn(Map.of(c1.getInfo().name(), c1,
                         c2.getInfo().name(), c2,
-                        c3.getInfo().name(), c3)
+                        c3.getInfo().name(), c3,
+                        c4.getInfo().name(), c4)
                 );
 
         List<Connector> actual = kafkaConnectService.list(ns);
 
-        Assertions.assertEquals(2, actual.size());
+        Assertions.assertEquals(3, actual.size());
+        // contains
         Assertions.assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")));
         Assertions.assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect2")));
-        Assertions.assertFalse(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("other-connect1")));
+        Assertions.assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("other-connect1")));
+        // doesn't contain
+        Assertions.assertFalse(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("other-connect2")));
     }
 
     @Test
@@ -108,7 +134,7 @@ public class KafkaConnectServiceTest {
                         .cluster("local")
                         .build())
                 .spec(NamespaceSpec.builder()
-                        .connectName("local-name")
+                        .connectCluster("local-name")
                         .build())
                 .build();
 
@@ -130,7 +156,7 @@ public class KafkaConnectServiceTest {
                         .cluster("local")
                         .build())
                 .spec(NamespaceSpec.builder()
-                        .connectName("local-name")
+                        .connectCluster("local-name")
                         .build())
                 .build();
         ConnectorStatus c1 = new ConnectorStatus();
@@ -190,7 +216,7 @@ public class KafkaConnectServiceTest {
                         .cluster("local")
                         .build())
                 .spec(NamespaceSpec.builder()
-                        .connectName("local-name")
+                        .connectCluster("local-name")
                         .build())
                 .build();
         Mockito.when(kafkaConnectClient.connectPlugins("local", "local-name"))
@@ -218,7 +244,7 @@ public class KafkaConnectServiceTest {
                                 .sourceValidationConstraints(Map.of())
                                 .classValidationConstraints(Map.of())
                                 .build())
-                        .connectName("local-name")
+                        .connectCluster("local-name")
                         .build())
                 .build();
 
@@ -249,7 +275,7 @@ public class KafkaConnectServiceTest {
                                 .sourceValidationConstraints(Map.of())
                                 .validationConstraints(Map.of())
                                 .build())
-                        .connectName("local-name")
+                        .connectCluster("local-name")
                         .build())
                 .build();
         Mockito.when(kafkaConnectClient.connectPlugins("local", "local-name"))
