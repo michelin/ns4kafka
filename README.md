@@ -19,6 +19,42 @@ The API exposes all the required controllers to list, create and delete Kafka re
 The CLI is, much like kubectl, a wrapper on the API to let any user or CI/CD pipeline deploy Kafka resources using yaml descriptors. It is made available to any project who needs to manage Kafka resources.
 
 ## Quick start
+### Prerequisite
+**ns4kafka** use gitlab's groups to authenticate user, so a group has to been created.
+A Gitlab's access token has to generated with the following rights:
+- read_user
+- read_api
+
+### Download and setup CLI
+````shell
+curl -L -o /tmp/kafkactl.zip https://github.com/michelin/ns4kafka/releases/download/0.1-beta/kafkactl-0.1-20210511.zip 
+unzip /tmp/kafkactl -d $HOME
+chmod u+x $HOME/kafkactl-0.1-20210511/kafkactl
+mv $HOME/kafkactl-0.1-20210511/.ns4kafka $HOME/.kafkactl 
+mkdir $HOME/.kafkactl/tmp
+````
+You can create an temporary alias by doing:
+````shell
+alias kafkactl=$HOME/kafkactl-0.1-20210511/kafkactl
+````
+Or you can create a permanent alias by adding this line to ``~/.bashrc``:
+````shell
+alias kafkactl=$HOME/kafkactl-0.1-20210511/kafkactl
+````
+The configuration file look like this:
+````yaml
+kafkactl:
+  api: the-url-of-the-api
+  user-token: your-gitlab-token
+  current-namespace: your-namespace
+````
+
+Change the configuration of kafkactl:
+````shell
+nano $HOME/.kafkactl/config.yml
+````
+
+### Example of descriptors
 
 ````yaml
 # descriptor.yml
