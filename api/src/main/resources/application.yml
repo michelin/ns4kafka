@@ -90,3 +90,15 @@ ns4kafka:
           min.compaction.lag.ms: "0"
           max.compaction.lag.ms: "60000"
           segment.ms: "60000"
+  managed-clusters:
+    local:
+      manage-users: false
+      manage-acls: false
+      manage-topics: true
+      manage-connect: false
+      manage-role-bindings: false
+      connects:
+        connector1:
+          url: http://localhost/kafka/connect/
+          basicAuthUsername: user
+          basicAuthPassword: password
