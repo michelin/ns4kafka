@@ -22,8 +22,8 @@ import java.util.stream.Collectors;
 @RolesAllowed(SecurityRule.IS_ANONYMOUS)
 @Controller("/akhq-claim")
 public class AkhqClaimProviderController {
-    public static String AKHQ_SUPPORT_LABEL_KEY = "support-group";
-    public static List<String> AKHQ_EMPTY_REGEX_LIST = List.of("^none$");
+    public static final String AKHQ_SUPPORT_LABEL_KEY = "support-group";
+    public static final List<String> AKHQ_EMPTY_REGEX_LIST = List.of("^none$");
 
     @Inject
     AccessControlEntryService accessControlEntryService;
