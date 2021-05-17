@@ -9,7 +9,7 @@ metadata:
     contacts: project1@mail.com
 spec:
   kafkaUser: toto
-  connector: connector1
+  connectCluster: connector1
   topicValidator:
     validationConstraints:
       min.insync.replicas:
