@@ -8,6 +8,7 @@ import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Singleton
 public class NamespaceService {
@@ -44,7 +45,14 @@ public class NamespaceService {
         return namespaceRepository.findByName(namespace);
     }
 
-    public Namespace createOrUpdate(Namespace namespace){
+    public Namespace createOrUpdate(Namespace namespace) {
         return namespaceRepository.createNamespace(namespace);
+    }
+
+    public List<Namespace> listAll() {
+        return kafkaAsyncExecutorConfigList.stream()
+                .map(KafkaAsyncExecutorConfig::getName)
+                .flatMap(s -> namespaceRepository.findAllForCluster(s).stream())
+                .collect(Collectors.toList());
     }
 }
