@@ -2,7 +2,6 @@ package com.michelin.ns4kafka.services.connect;
 
 import com.michelin.ns4kafka.services.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.KafkaAsyncExecutorConfig.ConnectConfig;
-import io.micronaut.context.annotation.Value;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
@@ -24,9 +23,6 @@ public class KafkaConnectClientProxy extends OncePerRequestHttpServerFilter {
     public static final String PROXY_PREFIX = "/connect-proxy";
     public static final String PROXY_HEADER_KAFKA_CLUSTER = "X-Kafka-Cluster";
     public static final String PROXY_HEADER_CONNECT_CLUSTER = "X-Connect-Cluster";
-
-    @Value("${random.uuid}")
-    public String randomKey;
 
     @Inject
     ProxyHttpClient client;
