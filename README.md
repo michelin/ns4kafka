@@ -20,8 +20,8 @@ The CLI is, much like kubectl, a wrapper on the API to let any user or CI/CD pip
 
 ## Quick start
 ### Prerequisite
-**ns4kafka** use gitlab's groups to authenticate user, so a group has to been created.
-A Gitlab's access token has to generated with the following rights:
+**ns4kafka** use gitlab's groups to authenticate user, so a group has to be created.
+A Gitlab's access token has to be generated with the following rights:
 - read_user
 - read_api
 
