@@ -7,6 +7,7 @@ import lombok.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
+import java.util.List;
 
 @Introspected
 @Builder
@@ -33,7 +34,7 @@ public class Namespace {
     @Setter
     public static class NamespaceSpec {
         private String kafkaUser;
-        private String connectCluster;
+        private List<String> connectClusters;
         private TopicValidator topicValidator;
         private ConnectValidator connectValidator;
         //private ResourceQuota quota;

@@ -28,7 +28,7 @@ public class ConnectController extends NamespacedResourceController {
 
     @Get
     public List<Connector> list(String namespace) {
-        return kafkaConnectService.list(getNamespace(namespace));
+        return kafkaConnectService.findAllForNamespace(getNamespace(namespace));
     }
 
     @Get("/{connector}")
@@ -46,12 +46,17 @@ public class ConnectController extends NamespacedResourceController {
                     " for name: Namespace not OWNER of this connector"));
         }
 
+        // exists ?
+        Optional<Connector> optionalConnector = kafkaConnectService.findByName(ns, connector);
+        if(optionalConnector.isEmpty())
+            return HttpResponse.notFound();
+
         if (dryrun) {
             return HttpResponse.noContent();
         }
 
         //delete resource
-        kafkaConnectService.delete(ns, connector);
+        kafkaConnectService.delete(ns, optionalConnector.get());
         return HttpResponse.noContent();
 
 
@@ -79,6 +84,15 @@ public class ConnectController extends NamespacedResourceController {
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors);
         }
+
+        // Augment with server side fields
+        connector.getMetadata().setCluster(ns.getMetadata().getCluster());
+        connector.getMetadata().setNamespace(ns.getMetadata().getName());
+        connector.setStatus(Connector.ConnectorStatus.builder()
+                .state(Connector.TaskState.UNASSIGNED) //or else ?
+                //.tasks(List.of(Tas))
+                .build());
+
         //dryrun checks
         if (dryrun) {
             return connector;

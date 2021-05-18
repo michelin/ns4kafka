@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.util.Date;
 import java.util.List;
@@ -24,11 +25,24 @@ public class Connector {
     @NotNull
     private ObjectMeta metadata;
 
+    @Valid
     @NotNull
-    private Map<String,String> spec;
+    private ConnectorSpec spec;
 
     @Schema(accessMode = Schema.AccessMode.READ_ONLY)
     private ConnectorStatus status;
+
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
+    @Setter
+    public static class ConnectorSpec {
+        @NotBlank
+        private String connectCluster;
+        @NotNull
+        private Map<String, String> config;
+    }
 
     @Builder
     @AllArgsConstructor
@@ -50,7 +64,7 @@ public class Connector {
     @NoArgsConstructor
     @Getter
     @Setter
-    public static class TaskStatus{
+    public static class TaskStatus {
         String id;
         TaskState state;
         String trace;
