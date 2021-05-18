@@ -18,9 +18,10 @@ ns4kafka is built on top of 2 components : an API and a CLI.
 The API exposes all the required controllers to list, create and delete Kafka resources. It must be deployed and managed by Kafka administrators.  
 The CLI is, much like kubectl, a wrapper on the API to let any user or CI/CD pipeline deploy Kafka resources using yaml descriptors. It is made available to any project who needs to manage Kafka resources.
 
-## Quick start
+## Quick start CLI
 ### Prerequisite
 **ns4kafka** use gitlab's groups to authenticate user, so a group has to be created.
+
 A Gitlab's access token has to be generated with the following rights:
 - read_user
 - read_api
@@ -54,7 +55,7 @@ Change the configuration of kafkactl:
 nano $HOME/.kafkactl/config.yml
 ````
 
-### Example of descriptors
+## Example of descriptors
 
 ````yaml
 # descriptor.yml
@@ -81,30 +82,29 @@ spec:
   topics: connect-test
   file: /tmp/project1.topic1.out
   consumer.override.sasl.jaas.config: org.apache.kafka.common.security.scram.ScramLoginModule required username="<user>" password="<passord>"
-
 ````
+
 Simply run ``kafkactl apply --namespace project1 --file descriptor.yml`` and the Topic and Connect configuration will be deployed.
 
 Table of Contents
 =================
   * [Table of Contents](#table-of-contents)
   * [Key features](#key-features)
-  * Install
-  * Configure
-    * Security
-    * Storage
-    * Clusters
-  * API Specification
+  * [Prerequisite](#prerequisite)
+  * [Installation](#installation)
+  * [Configuration](#configuration)
+  * [CLI specification](#cli-specification)
+  * [Examples](#examples)
 
 # Key features
 - Desired state API
   - Mimics K8S principles
   - Easy to use
-    - View : GET /api/namespaces/\<ns-name\>/topics/\<topic-name\>
-    - List : GET /api/namespaces/\<ns-name\>/topics
-    - Create : POST /api/namespaces/\<ns-name\>/topics
+    - View : kafkactl get topic topic-name
+    - List : kafkactl get topic
+    - Create : kafkactl apply -f descriptor-of-topic
 - Self-service
-  - [Topics](#topic-creation-request)
+  - Topics
   - Schemas, Connects, KafkaUsers
 - Configuration validation that can differ for each namespace
   - Enforce any configuration for any resource
@@ -112,112 +112,83 @@ Table of Contents
     - partitions between 3 and 10
   - Multiple validators
 - Isolation between Kafka Users within a cluster
-- [Security model](#namespace-access-control-list)
+- Security model
 - Disk Quota management
   - Enforce limits per namespace
   - Provide usage metrics
-- [Cross Namespace ACLs](#grant-read-access-to-another-namespace)
+- Cross Namespace ACLs
 - Multi cluster
 
+# Prerequisite
+**ns4kafka** use gitlab's groups to authenticate user, so a group has to be created.
 
-Example namespace:  
-````json
-{
-  "name": "namespace-project1",
-  "cluster": "kafka-dev",
-  "defaulKafkatUser": "u_project1",
-  "topicValidator": {
-    "validationConstraints": {
-      "replication.factor": {
-        "validation-type": "Range",
-        "min": 1,
-        "max": 1
-      },
-      "partitions": {
-        "validation-type": "Range",
-        "min": 3,
-        "max": 10
-      },
-      "cleanup.policy": {
-        "validation-type": "ValidList",
-        "validStrings": [
-          "delete",
-          "compact"
-        ]
-      },
-      "retention.ms": {
-        "validation-type": "Range",
-        "min": 1000,
-        "max": 3600000
-      }
-    }
-  }
-}
+A Gitlab's access token has to be generated with the following rights:
+- read_user
+- read_api
+
+The API use a kafka instance to store its data. 
+
+# Install
+
+## CLI installation
+
+The CLI can be downloaded here:[https://github.com/michelin/ns4kafka/releases](https://github.com/michelin/ns4kafka/releases)
+
+- Unzip and create a folder ``.kafkactl``
+    - Windows : **C:\\Users\\xxxxxx\\.kafkactl**
+    - Linux : **~/.kafkactl**
+- Create another folder: ``.kafkactl/tmp``
+- copy paste the following yaml in ``.kafkactl/config.yml``:
+
+````yaml
+# config.yml
+kafkactl:
+  api: the-url-of-the-api
+  user-token: your-gitlab-token
+  current-namespace: your-namespace
 ````
 
-### Namespace Access Control List
-````json
-{
-  "apiVersion": "v1",
-  "kind": "AccessControlEntry",
-  "metadata": {
-    "name": "namespace-project1-6b062011",
-    "namespace": "namespace-project1",
-    "cluster": "kafka-dev",
-    "labels": {
-      "grantor": "admin"
-    }
-  },
-  "spec": {
-    "resourceType": "TOPIC",
-    "resource": "project1.",
-    "resourcePatternType": "PREFIXED",
-    "permission": "OWNER",
-    "grantedTo": "namespace-project1"
-  }
-}
+## API installation
+
+The API can be cloned and build with gradle:
+``.gradlew :api:build``
+
+It generated a fat jar in ``api/build/libs``.
+
+# Configuration
+
+## CLI configration
+To configure the CLI, the file in ``.kafkactl/config.yml`` has to be modified;
+````yaml
+# config.yml
+kafkactl:
+  api: the-url-of-the-api
+  user-token: your-gitlab-token
+  current-namespace: your-namespace
+````
+## API configuration
+
+The project use micronaut configuration file, there is an example of configuration file in ``api/src/ressource/application.yml`` 
+
+We can inject the configuration file in the fat jar with the following commands: 
+````shell
+java -Dmicronaut.config.file=application.yml -jar api-0.1-all.jar
+````
+Or
+````shell
+MICRONAUT_CONFIG_FILE=application.yml java -jar api-0.1-all.jar
 ````
 
-### Topic creation request
-````
-POST /api/namespaces/namespace-project1/topics HTTP/1.1
-Host: localhost:8080
-X-Gitlab-Token: xxxxxxxxxx
-Content-Type: application/json
-Content-Length: 250
+# CLI specification
 
-{
-  "metadata": {
-    "name": "project1.topic1"
-  },
-  "spec": {
-    "replicationFactor": 1,
-    "partitions": 3,
-    "configs": {
-      "cleanup.policy": "delete",
-      "min.insync.replicas": "1",
-      "retention.ms": "10000"
-    }
-  }
-}
-````
+The list of function can be accessed with ``kafkactl`` without argument.
 
-### Grant Read access to another namespace
-````
-POST /api/namespaces/namespace-project1/acls HTTP/1.1
-Host: localhost:8080
-X-Gitlab-Token: xxxxxxxxxx
-Content-Type: application/json
-Content-Length: 195
+Here is a list of the most useful:
+- ``apply`` to create a resource
+- ``get`` to know the configuration of a deployed resource
+- ``api-resources`` to know the supported resource by the api
 
-{
-  "spec": {
-    "resourceType": "TOPIC",
-    "resource": "project1.topic1",
-    "resourcePatternType": "LITERAL",
-    "permission": "READ",
-    "grantedTo": "namespace-anotherproject"
-  }
-}
-````
+# Examples
 
+A list of resources exist in the ``example`` folder:
+You can create them with the command: ``kafkactl apply -f path-to-descriptor.yml``
