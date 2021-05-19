@@ -1,11 +1,10 @@
-package com.michelin.ns4kafka.services.connect;
+package com.michelin.ns4kafka.services;
 
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
-import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
 import com.michelin.ns4kafka.services.connect.client.entities.ConfigInfos;
 import io.micronaut.core.util.StringUtils;
@@ -16,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -59,20 +59,29 @@ public class KafkaConnectService {
 
     public List<String> validateLocally(Namespace namespace, Connector connector) {
 
-        String connectorType = connector.getSpec().getConfig().get("connector.class");
-
-        //If class doesn't exist, no need to go further
-        if (StringUtils.isEmpty(connectorType))
-            return List.of("Invalid value for spec.config.'connector.class': Value must be non-null");
-
-        //perform local validation
-        List<String> validationErrors = namespace.getSpec().getConnectValidator().validate(connector, connectorType);
-
         //check whether target Connect Cluster is allowed for this namespace
         if(!namespace.getSpec().getConnectClusters().contains(connector.getSpec().getConnectCluster())){
             String allowedConnectClusters = String.join(", ",namespace.getSpec().getConnectClusters());
-            validationErrors.add("Invalid value " + connector.getSpec().getConnectCluster() + " for spec.connectCluster: Value must be one of ["+allowedConnectClusters+"]");
+            return List.of("Invalid value " + connector.getSpec().getConnectCluster() + " for spec.connectCluster: Value must be one of ["+allowedConnectClusters+"]");
         }
+
+        //If class doesn't exist, no need to go further
+        if (StringUtils.isEmpty(connector.getSpec().getConfig().get("connector.class")))
+            return List.of("Invalid value for spec.config.'connector.class': Value must be non-null");
+
+        // Connector type exists on this target connect cluster ?
+        Optional<String> connectorType = kafkaConnectClient.connectPlugins(namespace.getMetadata().getCluster(), connector.getSpec().getConnectCluster())
+                .stream()
+                .filter(connectPluginItem -> connectPluginItem.className().equals(connector.getSpec().getConfig().get("connector.class")))
+                .map(connectorPluginInfo -> connectorPluginInfo.type().toString().toLowerCase(Locale.ROOT))
+                .findFirst();
+        if(connectorType.isEmpty()){
+            return List.of("Failed to find any class that implements Connector and which name matches " +
+                    connector.getSpec().getConfig().get("connector.class"));
+        }
+
+        //perform local validation
+        List<String> validationErrors = namespace.getSpec().getConnectValidator().validate(connector, connectorType.get());
 
         return validationErrors;
     }
@@ -82,14 +91,6 @@ public class KafkaConnectService {
     }
 
     public List<String> validateRemotely(Namespace namespace, Connector connector) {
-        // Connector type exists on this target connect cluster ?
-        boolean connectorClassExists = kafkaConnectClient.connectPlugins(namespace.getMetadata().getCluster(), connector.getSpec().getConnectCluster())
-                .stream()
-                .anyMatch(connectPluginItem -> connectPluginItem.className().equals(connector.getSpec().getConfig().get("connector.class")));
-        if(!connectorClassExists){
-            return List.of("Failed to find any class that implements Connector and which name matches " +
-                    connector.getSpec().getConfig().get("connector.class"));
-        }
         // Calls the validate endpoints and returns the validation error messages if any
         ConfigInfos configInfos = kafkaConnectClient.validate(
                 namespace.getMetadata().getCluster(),

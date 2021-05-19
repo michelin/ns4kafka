@@ -4,7 +4,7 @@ import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.services.NamespaceService;
-import com.michelin.ns4kafka.services.connect.KafkaConnectService;
+import com.michelin.ns4kafka.services.KafkaConnectService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

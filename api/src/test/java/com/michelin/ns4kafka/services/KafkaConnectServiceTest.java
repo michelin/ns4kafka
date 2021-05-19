@@ -6,13 +6,14 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
-import com.michelin.ns4kafka.services.connect.KafkaConnectService;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
+import com.michelin.ns4kafka.services.connect.client.entities.*;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.ResourceValidator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -213,10 +214,41 @@ public class KafkaConnectServiceTest {
     }
 
     @Test
+    void validateLocallyInvalidConnectCluster() {
+        Connector connector = Connector.builder()
+                .metadata(ObjectMeta.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("wrong")
+                        .config(Map.of("connector.class", "Test"))
+                        .build())
+                .build();
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .connectValidator(ConnectValidator.builder()
+                                .validationConstraints(Map.of())
+                                .sourceValidationConstraints(Map.of())
+                                .sinkValidationConstraints(Map.of())
+                                .classValidationConstraints(Map.of())
+                                .build())
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        List<String> actual = kafkaConnectService.validateLocally(ns, connector);
+        Assertions.assertEquals(1, actual.size());
+        Assertions.assertEquals("Invalid value wrong for spec.connectCluster: Value must be one of [local-name]", actual.get(0));
+    }
+
+    @Test
     void validateLocallyNoClassName() {
         Connector connector = Connector.builder()
                 .metadata(ObjectMeta.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("local-name")
                         .config(Map.of())
                         .build())
                 .build();
@@ -236,7 +268,34 @@ public class KafkaConnectServiceTest {
     }
 
     @Test
-    void validateLocallyFailure() {
+    void validateLocallyInvalidClassName() {
+        Connector connector = Connector.builder()
+                .metadata(ObjectMeta.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("local-name")
+                        .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector"))
+                        .build())
+                .build();
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+        Mockito.when(kafkaConnectClient.connectPlugins("local", "local-name"))
+                .thenReturn(List.of());
+
+        List<String> actual = kafkaConnectService.validateLocally(ns, connector);
+        Assertions.assertEquals(1, actual.size());
+        Assertions.assertEquals("Failed to find any class that implements Connector and which name matches org.apache.kafka.connect.file.FileStreamSinkConnector", actual.get(0));
+
+    }
+
+    @Test
+    void validateLocallyValidationErrors() {
         Connector connector = Connector.builder()
                 .metadata(ObjectMeta.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -259,12 +318,13 @@ public class KafkaConnectServiceTest {
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
-
+        Mockito.when(kafkaConnectClient.connectPlugins("local", "local-name"))
+                .thenReturn(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1")));
 
         List<String> actual = kafkaConnectService.validateLocally(ns, connector);
-        Assertions.assertFalse(actual.stream().anyMatch(s -> s.startsWith("Failed to find any class that implements Connector and which name matches")));
-        Assertions.assertTrue(actual.stream().anyMatch(s -> s.startsWith("Invalid value null for configuration missing.field")));
-        Assertions.assertTrue(actual.size() > 0);
+        Assertions.assertEquals(1, actual.size());
+        Assertions.assertEquals("Invalid value null for configuration missing.field: Value must be non-null", actual.get(0));
+
     }
 
     @Test
@@ -291,13 +351,16 @@ public class KafkaConnectServiceTest {
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
+        Mockito.when(kafkaConnectClient.connectPlugins("local", "local-name"))
+                .thenReturn(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1")));
+
 
         List<String> actual = kafkaConnectService.validateLocally(ns, connector);
         Assertions.assertTrue(actual.isEmpty());
     }
 
     @Test
-    void validateRemotelyMissingClassName() {
+    void validateRemotely_Errors() {
         Connector connector = Connector.builder()
                 .metadata(ObjectMeta.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -314,11 +377,42 @@ public class KafkaConnectServiceTest {
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
-        Mockito.when(kafkaConnectClient.connectPlugins("local", "local-name"))
-                .thenReturn(List.of());
+        ConfigInfos configInfos = new ConfigInfos("name", 1, List.of(),
+                List.of(new ConfigInfo(new ConfigKeyInfo(null, null, false, null, null, null, null, 0, null, null, null),
+                        new ConfigValueInfo(null, null, null, List.of("error_message"), true))));
+        Mockito.when(kafkaConnectClient.validate(ArgumentMatchers.eq("local"), ArgumentMatchers.eq("local-name"), ArgumentMatchers.any(), ArgumentMatchers.anyMap()))
+                .thenReturn(configInfos);
 
         List<String> actual = kafkaConnectService.validateRemotely(ns, connector);
         Assertions.assertEquals(1, actual.size());
-        Assertions.assertIterableEquals(List.of("Failed to find any class that implements Connector and which name matches com.michelin.NoClass"), actual);
+        Assertions.assertIterableEquals(List.of("error_message"), actual);
     }
+
+    @Test
+    void validateRemotely_Success() {
+        Connector connector = Connector.builder()
+                .metadata(ObjectMeta.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("local-name")
+                        .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector"))
+                        .build())
+                .build();
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+        ConfigInfos configInfos = new ConfigInfos("name", 1, List.of(), List.of());
+        Mockito.when(kafkaConnectClient.validate(ArgumentMatchers.eq("local"), ArgumentMatchers.eq("local-name"), ArgumentMatchers.any(), ArgumentMatchers.anyMap()))
+                .thenReturn(configInfos);
+
+        List<String> actual = kafkaConnectService.validateRemotely(ns, connector);
+
+        Assertions.assertTrue(actual.isEmpty());
+    }
+
 }

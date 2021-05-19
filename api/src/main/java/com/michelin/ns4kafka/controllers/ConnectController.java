@@ -2,7 +2,7 @@ package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.services.connect.KafkaConnectService;
+import com.michelin.ns4kafka.services.KafkaConnectService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
