@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -86,6 +88,7 @@ public class ConnectController extends NamespacedResourceController {
         }
 
         // Augment with server side fields
+        connector.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
         connector.getMetadata().setCluster(ns.getMetadata().getCluster());
         connector.getMetadata().setNamespace(ns.getMetadata().getName());
         connector.setStatus(Connector.ConnectorStatus.builder()

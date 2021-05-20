@@ -1,7 +1,7 @@
 package com.michelin.ns4kafka.services.connect;
 
-import com.michelin.ns4kafka.services.KafkaAsyncExecutorConfig;
-import com.michelin.ns4kafka.services.KafkaAsyncExecutorConfig.ConnectConfig;
+import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig.ConnectConfig;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;

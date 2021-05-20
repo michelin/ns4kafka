@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.services.KafkaAsyncExecutorConfig.ConnectConfig;
+import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig.ConnectConfig;
 import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.http.*;
@@ -89,8 +90,8 @@ public class KafkaConnectClientProxyTest {
                 .header(KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local")
                 .header(KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER, "local-name");
         KafkaAsyncExecutorConfig config = new KafkaAsyncExecutorConfig("local");
-        ConnectConfig connectConfig = new KafkaAsyncExecutorConfig.ConnectConfig("invalid-name");
-        config.connects = Map.of("invalid-name",connectConfig);
+        ConnectConfig connectConfig = new KafkaAsyncExecutorConfig.ConnectConfig();
+        config.setConnects(Map.of("invalid-name",connectConfig));
 
         Mockito.when(kafkaAsyncExecutorConfigs.stream())
                 .thenReturn(Stream.of(config));
@@ -113,9 +114,9 @@ public class KafkaConnectClientProxyTest {
                 .header(KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local")
                 .header(KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER, "local-name");
         KafkaAsyncExecutorConfig config1 = new KafkaAsyncExecutorConfig("local");
-        ConnectConfig connectConfig = new KafkaAsyncExecutorConfig.ConnectConfig("local-name");
-        connectConfig.url = "http://target/";
-        config1.connects = Map.of("local-name",connectConfig);
+        ConnectConfig connectConfig = new KafkaAsyncExecutorConfig.ConnectConfig();
+        connectConfig.setUrl("http://target/");
+        config1.setConnects(Map.of("local-name",connectConfig));
         // Should not interfere
         KafkaAsyncExecutorConfig config2 = new KafkaAsyncExecutorConfig("not-match");
 
@@ -137,8 +138,8 @@ public class KafkaConnectClientProxyTest {
     @Test
     void testMutateKafkaConnectRequest() {
         MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors");
-        KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig("local-name");
-        config.url = "http://target/";
+        KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig();
+        config.setUrl("http://target/");
 
         MutableHttpRequest<?> actual = proxy.mutateKafkaConnectRequest(request, config);
 
@@ -148,8 +149,8 @@ public class KafkaConnectClientProxyTest {
     @Test
     void testMutateKafkaConnectRequestRewrite() {
         MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors");
-        KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig("local-name");
-        config.url = "http://target/rewrite";
+        KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig();
+        config.setUrl("http://target/rewrite");
 
         MutableHttpRequest<?> actual = proxy.mutateKafkaConnectRequest(request, config);
 
@@ -159,10 +160,10 @@ public class KafkaConnectClientProxyTest {
     @Test
     void testMutateKafkaConnectRequestAuthent() {
         MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors");
-        KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig("local-name");
-        config.url = "http://target/";
-        config.basicAuthUsername = "toto";
-        config.basicAuthPassword = "titi";
+        KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig();
+        config.setUrl("http://target/");
+        config.setBasicAuthUsername("toto");
+        config.setBasicAuthPassword("titi");
 
         MutableHttpRequest<?> actual = proxy.mutateKafkaConnectRequest(request, config);
 
