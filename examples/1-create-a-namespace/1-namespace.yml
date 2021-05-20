@@ -9,13 +9,14 @@ metadata:
     contacts: project1@mail.com
 spec:
   kafkaUser: toto
-  connectCluster: connector1
+  connectClusters:
+  - local
   topicValidator:
     validationConstraints:
       min.insync.replicas:
         validation-type: Range
-        min: 2
-        max: 2
+        min: 1
+        max: 1
       retention.ms:
         validation-type: Range
         min: 60000
@@ -26,8 +27,8 @@ spec:
         max: 6
       replication.factor:
         validation-type: Range
-        min: 3
-        max: 3
+        min: 1
+        max: 1
       cleanup.policy:
         validation-type: ValidList
         validStrings:
@@ -49,7 +50,7 @@ spec:
       producer.override.sasl.jaas.config:
         validation-type: NonEmptyString
     sinkValidationConstraints:
-      consumer.override.sasl.jaas.config:
+      value.converter:
         validation-type: NonEmptyString
     classValidationConstraints:
       io.confluent.connect.jdbc.JdbcSinkConnector:
