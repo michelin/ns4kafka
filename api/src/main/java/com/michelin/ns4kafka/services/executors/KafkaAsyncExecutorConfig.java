@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.Map;
+import java.util.Properties;
 
 @Getter
 @Setter
@@ -21,9 +22,13 @@ public class KafkaAsyncExecutorConfig {
     boolean manageUsers;
     boolean manageConnectors;
     boolean readOnly = true;
+    
+    Properties config;
+
+
     @MapFormat(transformation = MapFormat.MapTransformation.FLAT)
-    Map<String, Object> config;
     Map<String, ConnectConfig> connects;
+
     RegistryConfig schemaRegistry;
 
     public KafkaAsyncExecutorConfig(@Parameter String name) {
