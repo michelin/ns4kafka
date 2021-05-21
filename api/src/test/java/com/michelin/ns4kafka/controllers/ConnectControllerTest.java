@@ -4,7 +4,7 @@ import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.services.NamespaceService;
-import com.michelin.ns4kafka.services.connect.KafkaConnectService;
+import com.michelin.ns4kafka.services.KafkaConnectService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,12 +13,12 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+import java.util.Optional;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-
-import java.util.List;
-import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
 public class ConnectControllerTest {
@@ -42,7 +42,7 @@ public class ConnectControllerTest {
                 .build();
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(kafkaConnectService.list(ns))
+        Mockito.when(kafkaConnectService.findAllForNamespace(ns))
                 .thenReturn(List.of());
 
         List<Connector> actual = connectController.list("test");
@@ -59,7 +59,7 @@ public class ConnectControllerTest {
                 .build();
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(kafkaConnectService.list(ns))
+        Mockito.when(kafkaConnectService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()
