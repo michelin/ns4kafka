@@ -5,7 +5,6 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
-import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -38,9 +37,6 @@ public class KafkactlCommand implements Callable<Integer> {
 
 
     public static void main(String[] args) throws Exception {
-        String configPath = Paths.get(System.getProperty("user.home"), ".kafkactl", "config.yml").toString();
-        System.setProperty("micronaut.config.files", configPath);
-
         int exitCode = PicocliRunner.execute(KafkactlCommand.class, args);
         System.exit(exitCode);
     }

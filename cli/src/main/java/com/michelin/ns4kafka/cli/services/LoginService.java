@@ -11,6 +11,8 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -36,6 +38,9 @@ public class LoginService {
 
     public boolean isAuthenticated() {
         try {
+            // 0. JWT token file exists
+            if(!Files.exists(Path.of(jwtFilePath)))
+                return false;
             // 1. Open local JWT token file
             ObjectMapper objectMapper = new ObjectMapper();
             ClusterResourceClient.BearerAccessRefreshToken token = objectMapper.readValue(
@@ -85,12 +90,14 @@ public class LoginService {
                 System.out.println("Your session is valid until " + calendar.getTime());
             }
             // 4. Store token result locally
-            ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.writeValue(new File(jwtFilePath), tokenResponse);
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                objectMapper.writeValue(new File(jwtFilePath), tokenResponse);
+            }catch(IOException e){
+                System.out.println("WARNING : Unexpected error occurred: " + e.getMessage());
+            }
 
             return true;
-        } catch (IOException e) {
-            System.out.println("Unexpected error occurred: " + e.getMessage());
         } catch (HttpClientResponseException e) {
             System.out.println("Authentication failed with message: " + e.getMessage());
         }
