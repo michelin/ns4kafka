@@ -40,4 +40,4 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: ./gradlew build jacocoTestReport sonarqube --info
       - name: Push ns4kafka and kafkactl
-        run: ./gradlew dockerBuild dockerPush
+        run: ./gradlew dockerBuild api:dockerPush cli:dockerPush
