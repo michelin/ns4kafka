@@ -38,4 +38,10 @@ public interface NamespacedResourceClient {
             String kind,
             String resourcename,
             @Header("Authorization") String token);
+
+    @Post("{namespace}/synchronize{?dryrun}")
+    List<Resource> synchronize(
+            String namespace,
+            @Header("Authorization") String token,
+            @QueryValue boolean dryrun);
 }
