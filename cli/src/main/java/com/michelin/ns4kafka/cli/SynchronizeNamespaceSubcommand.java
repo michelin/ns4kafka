@@ -3,7 +3,6 @@ package com.michelin.ns4kafka.cli;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.LoginService;
-import com.michelin.ns4kafka.cli.services.YmlWriterService;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import picocli.CommandLine;
@@ -17,7 +16,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.Callable;
 
-@Command(name = "synchronize", description = "Synchronize topics for a namespace")
+@Command(name = "synchronize", description = "Synchronize resources for a namespace")
 public class SynchronizeNamespaceSubcommand implements Callable<Integer> {
 
     @Inject
@@ -46,6 +45,10 @@ public class SynchronizeNamespaceSubcommand implements Callable<Integer> {
             String defaultNamespace = kafkactlCommand.optionalNamespace.get();
             List<Resource> resources = namespacedClient.synchronize(defaultNamespace, loginService.getAuthorization(), dryRun);
 
+            if(resources.size() == 0){
+                System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS no resource to synchronize for namespace:|@") + defaultNamespace);
+                return 0;
+            }
             for (Resource resource : resources) {
                 System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS synchronizing resource:|@") + resource.getKind() + "/" + resource.getMetadata().getName());
             }
