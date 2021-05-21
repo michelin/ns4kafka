@@ -73,16 +73,28 @@ public class TopicValidator extends ResourceValidator {
         });
         return validationErrors;
     }
-
-    //TODO makeDefault from config or template ?
-    public static TopicValidator makeDefault(){
+    
+    public static TopicValidator makeDefault(Map<String, Object> validator) {
         return TopicValidator.builder()
                 .validationConstraints(
-                        Map.of( "replication.factor", ResourceValidator.Range.between(3,3),
-                                "partitions", ResourceValidator.Range.between(3,6),
-                                "cleanup.policy", ResourceValidator.ValidList.in("delete","compact"),
-                                "min.insync.replicas", ResourceValidator.Range.between(2,2),
-                                "retention.ms", ResourceValidator.Range.between(60000,604800000)
+                        Map.of("replication.factor",
+                                ResourceValidator.Range.between(
+                                        (Number) validator.get("replication.factor.min"),
+                                        (Number) validator.get("replication.factor.max")),
+                                "partitions",
+                                ResourceValidator.Range.between(
+                                        (Number) validator.get("partitions.min"),
+                                        (Number) validator.get("partitions.max")),
+                                "cleanup.policy",
+                                new ResourceValidator.ValidString((List<String>)(validator.get("cleanup.policy"))),
+                                "min.insync.replicas",
+                                ResourceValidator.Range.between(
+                                        (Number) validator.get("min.insync.replicas.min"),
+                                        (Number) validator.get("min.insync.replicas.max")),
+                                "retention.ms",
+                                ResourceValidator.Range.between(
+                                        (Number) validator.get("retention.ms.min"),
+                                        (Number) validator.get("retention.ms.max"))
                         )
                 )
                 .build();

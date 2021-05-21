@@ -91,18 +91,14 @@ public class ConnectValidator extends ResourceValidator{
         }
         return validationErrors;
     }
-
-    //TODO makeDefault from conf or template namespace ?
-    public static ConnectValidator makeDefault(){
+    
+    public static ConnectValidator makeDefault(Map<String, Object> validator){
         return ConnectValidator.builder()
                 .validationConstraints(Map.of(
                         "key.converter", new ResourceValidator.NonEmptyString(),
                         "value.converter", new ResourceValidator.NonEmptyString(),
                         "connector.class", new ResourceValidator.ValidString(
-                                List.of("io.confluent.connect.jdbc.JdbcSourceConnector",
-                                        "io.confluent.connect.jdbc.JdbcSinkConnector",
-                                        "com.splunk.kafka.connect.SplunkSinkConnector",
-                                        "org.apache.kafka.connect.file.FileStreamSinkConnector")
+                                (List<String>) validator.get("connectors")
                         )
                 ))
                 .sourceValidationConstraints(Map.of(
