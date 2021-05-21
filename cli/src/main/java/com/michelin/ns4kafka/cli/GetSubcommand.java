@@ -7,6 +7,7 @@ import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
+import org.apache.commons.lang3.StringUtils;
 import org.ocpsoft.prettytime.PrettyTime;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
@@ -15,6 +16,7 @@ import org.yaml.snakeyaml.representer.Representer;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
+import picocli.CommandLine.Option;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -52,6 +54,8 @@ public class GetSubcommand implements Callable<Integer> {
     String resourceType;
     @Parameters(index = "1", description = "Resource name", arity = "0..1")
     Optional<String> resourceName;
+    @Option(names = {"-o", "--output"}, description = "Output format. One of yml", scope = CommandLine.ScopeType.INHERIT)
+    Optional<String> output;
 
     @CommandLine.Spec
     CommandLine.Model.CommandSpec commandSpec;
@@ -75,12 +79,19 @@ public class GetSubcommand implements Callable<Integer> {
             List<Resource> resources = resourceService.listAll(apiResources, namespace);
 
             // 5.a display all resources by type
-            apiResources.forEach(apiResource ->
-                    displayAsTable(apiResource,
-                            resources.stream()
-                                    .filter(resource -> resource.getKind().equals(apiResource.getKind()))
-                                    .collect(Collectors.toList())
-                    )
+            apiResources.forEach(apiResource -> {
+                        if(StringUtils.equals(output.orElse(null), "yml")){
+                            resources.stream().forEach(resource -> 
+                            displayIndividual(resource)
+                            );
+                        } else {
+                            displayAsTable(apiResource,
+                                    resources.stream()
+                                            .filter(resource -> resource.getKind().equals(apiResource.getKind()))
+                                            .collect(Collectors.toList())
+                            );
+                        }
+                    }
             );
         } else {
             // 4.b get individual resources for given types (k get topic topic1)
