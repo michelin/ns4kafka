@@ -35,7 +35,7 @@ public class NamespaceController extends NonNamespacedResourceController {
 
         if (existingNamespace.isEmpty()) {
             // New Namespace checks
-            validationErrors = namespaceService.validateCreation(namespace);
+            validationErrors.addAll(namespaceService.validateCreation(namespace));
         } else {
             // Update checks
             //Immutable data
@@ -50,6 +50,9 @@ public class NamespaceController extends NonNamespacedResourceController {
                         + existingNamespace.get().getSpec().getKafkaUser() + ")");
             }
         }
+        // connect cluster check
+        validationErrors.addAll(namespaceService.validate(namespace));
+
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors);
         }
