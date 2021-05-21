@@ -17,6 +17,9 @@ nativeImage {
     imageName('kafkactl')
     // environment([MICRONAUT_CONFIG_FILES: System.getenv("user.home") + "/.kafkactl/config.yml" ])
 }
+dockerBuild {
+    images = ["twobeeb/kafkactl:dev"]
+}
 
 repositories {
     mavenCentral()
