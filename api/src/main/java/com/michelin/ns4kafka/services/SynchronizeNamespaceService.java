@@ -18,9 +18,7 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.net.MalformedURLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -60,10 +58,24 @@ public class SynchronizeNamespaceService {
      * @throws TimeoutException
      */
     public List<Topic> buildTopics(List<String> topics, String namespace) throws InterruptedException, ExecutionException, TimeoutException {
-
-        Map<String, TopicDescription> topicDescriptions = getAdminClient().describeTopics(topics).all().get();
+        
+        List<String> existingTopics =  topics.stream()
+                .filter( topic -> {
+                        try {
+                            getAdminClient().describeTopics(Arrays.asList(topic)).all().get();
+                            return true;
+                        } catch (Exception e) {
+                            return false;
+                        }
+        }
+        ).collect(Collectors.toList());
+        
+        Map<String, TopicDescription> topicDescriptions = getAdminClient().describeTopics(existingTopics).all().get();
+        if(topicDescriptions.size() == 0){
+            return new ArrayList<>();
+        }
         return getAdminClient()
-                .describeConfigs(topics.stream()
+                .describeConfigs(existingTopics.stream()
                         .map(s -> new ConfigResource(ConfigResource.Type.TOPIC, s))
                         .collect(Collectors.toList())
                 )

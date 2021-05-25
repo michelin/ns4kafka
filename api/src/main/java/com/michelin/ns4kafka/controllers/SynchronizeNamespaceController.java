@@ -101,9 +101,7 @@ public class SynchronizeNamespaceController extends NamespacedResourceController
             HttpResponse.noContent();
         }
         topics.stream().forEach(topic -> topicService.create(topic));
-        System.out.println(connectors);
-        System.out.println(kafkaConnectService);
-        System.out.println(ns);
+
         connectors.stream().forEach(connector -> kafkaConnectService.createOrUpdate(ns, connector));
         
         List<Object> list = new ArrayList<>();
