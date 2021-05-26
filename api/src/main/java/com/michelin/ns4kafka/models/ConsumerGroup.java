@@ -19,9 +19,21 @@ public class ConsumerGroup {
     @Valid
     @NotNull
     private ObjectMeta metadata;
-    @Valid
-    @NotNull
-    ConsumerGroupSpec spec;
+    // @Valid
+    // @NotNull
+    // ConsumerGroupSpec spec;
+
+    // @Introspected
+    // @Builder
+    // @AllArgsConstructor
+    // @NoArgsConstructor
+    // @Getter
+    // @Setter
+    // @ToString
+    // public static class ConsumerGroupSpec {
+
+
+    // }
 
     @Introspected
     @Builder
@@ -30,8 +42,8 @@ public class ConsumerGroup {
     @Getter
     @Setter
     @ToString
-    public static class ConsumerGroupSpec {
-
-
+    public static class ConsumerGroupOffset {
+        private int partition;
+        private long offset;
     }
 }
