@@ -10,6 +10,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -27,8 +28,8 @@ public class InitNamespaceService {
         return initNamespaceRepository.getRoleBindings(namespace, cluster);
     }
 
-    public List<AccessControlEntry> findAclsByUser(String namespace, String user, String cluster) throws ExecutionException, InterruptedException, TimeoutException {
-        return initNamespaceRepository.getAcls(namespace, user, cluster);
+    public List<AccessControlEntry> findAclsByUser(String namespace, String user, String cluster, String prefix) throws ExecutionException, InterruptedException, TimeoutException {
+        return initNamespaceRepository.getAcls(namespace, user, cluster, prefix);
     }
   
 }

@@ -26,15 +26,15 @@ public class InitNamespaceController extends NamespacedResourceController {
     @Inject
     InitNamespaceService initNamespaceService;
 
-    @Get("{cluster}/{user}")
-    public List<Object> init(String namespace, String cluster, String user) throws ExecutionException, InterruptedException, TimeoutException {
+    @Get("{cluster}/{user}/{prefix}")
+    public List<Object> init(String namespace, String cluster, String user, String prefix) throws ExecutionException, InterruptedException, TimeoutException {
         List<Object> list = new ArrayList<>();
         // init namespace
         list.add(initNamespaceService.findNameSpaceByUser(namespace, cluster, user));
         // init role bindings
         list.add(initNamespaceService.findRoleBindingByUser(namespace, cluster));
         // init topic acls
-        list.addAll(initNamespaceService.findAclsByUser(namespace, user, cluster));     
+        list.addAll(initNamespaceService.findAclsByUser(namespace, user, cluster, prefix));     
         return list;
     }
     

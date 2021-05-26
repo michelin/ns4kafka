@@ -6,6 +6,7 @@ import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.models.Topic;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -15,5 +16,5 @@ public interface InitNamespaceRepository {
     
     RoleBinding getRoleBindings(String namespace, String cluster);
 
-    List<AccessControlEntry> getAcls(String namespace, String userName, String cluster) throws ExecutionException, InterruptedException, TimeoutException;
+    List<AccessControlEntry> getAcls(String namespace, String userName, String cluster, String prefix) throws ExecutionException, InterruptedException, TimeoutException;
 }

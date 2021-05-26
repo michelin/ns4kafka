@@ -39,10 +39,11 @@ public interface NamespacedResourceClient {
             String resourcename,
             @Header("Authorization") String token);
 
-    @Get("{namespace}/init/{cluster}/{user}")
+    @Get("{namespace}/init/{cluster}/{user}/{prefix}")
     List<Resource> list(
             String namespace,
             String cluster,
             String user,
+            String prefix,
             @Header("Authorization") String token);
 }

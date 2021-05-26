@@ -34,6 +34,8 @@ public class InitUserSubcommand implements Callable<Integer> {
 
     @Option(names = {"-u", "--user"}, required = true, description = "The Kafka user to init")
     String user;
+    @Option(names = {"-p", "--prefix"}, required = true, description = "The prefix authorized")
+    String prefix;
     @Option(names = {"-c", "--cluster"}, required = true, description = "The Kafka cluster belonging to the user to init")
     String cluster;
      
@@ -49,7 +51,7 @@ public class InitUserSubcommand implements Callable<Integer> {
       
         try {
             String defaultNamespace = kafkactlCommand.optionalNamespace.get();
-            List<Resource> list = namespacedClient.list(defaultNamespace, cluster, user, loginService.getAuthorization());
+            List<Resource> list = namespacedClient.list(defaultNamespace, cluster, user, prefix, loginService.getAuthorization());
             
             ymlWriterService.writeYaml(list);
 
