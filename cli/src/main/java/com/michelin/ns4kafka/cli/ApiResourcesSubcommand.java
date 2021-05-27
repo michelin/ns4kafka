@@ -25,6 +25,7 @@ public class ApiResourcesSubcommand implements Callable<Integer> {
         apiResourcesService.getListResourceDefinition().forEach(rd ->
                 tt.addRowValues(rd.getKind(), String.join(",", rd.getNames()), String.valueOf(rd.isNamespaced()))
         );
+        System.out.println(tt);
         return 0;
     }
 }
