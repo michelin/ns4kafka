@@ -5,7 +5,6 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
-import java.util.Optional;
 import java.util.concurrent.Callable;
 
 @Command(name = "kafkactl",
@@ -28,12 +27,12 @@ public class KafkactlCommand implements Callable<Integer> {
     public static boolean VERBOSE = false;
 
     @Option(names = {"-v", "--verbose"}, description = "...", scope = CommandLine.ScopeType.INHERIT)
-    protected void setVerbose(final boolean verbose) {
+    public void setVerbose(final boolean verbose) {
         VERBOSE = verbose;
     }
 
-    @Option(names = {"-n", "--namespace"}, description = "Override namespace defined in config or yaml resource", scope = CommandLine.ScopeType.INHERIT)
-    Optional<String> optionalNamespace;
+    //@Option(names = {"-n", "--namespace"}, description = "Override namespace defined in config or yaml resource", scope = CommandLine.ScopeType.INHERIT)
+    //public Optional<String> optionalNamespace;
 
 
     public static void main(String[] args) throws Exception {

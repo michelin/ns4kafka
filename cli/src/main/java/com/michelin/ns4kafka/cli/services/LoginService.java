@@ -2,8 +2,11 @@ package com.michelin.ns4kafka.cli.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.michelin.ns4kafka.cli.KafkactlCommand;
-import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
 import com.michelin.ns4kafka.cli.KafkactlConfig;
+import com.michelin.ns4kafka.cli.client.BearerAccessRefreshToken;
+import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
+import com.michelin.ns4kafka.cli.client.UserInfoResponse;
+import com.michelin.ns4kafka.cli.client.UsernameAndPasswordRequest;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 
@@ -43,11 +46,11 @@ public class LoginService {
                 return false;
             // 1. Open local JWT token file
             ObjectMapper objectMapper = new ObjectMapper();
-            ClusterResourceClient.BearerAccessRefreshToken token = objectMapper.readValue(
+            BearerAccessRefreshToken token = objectMapper.readValue(
                     new File(jwtFilePath),
-                    ClusterResourceClient.BearerAccessRefreshToken.class);
+                    BearerAccessRefreshToken.class);
             // 2. Verify token against ns4kafka /user_info endpoint
-            ClusterResourceClient.UserInfoResponse userInfo = clusterResourceClient.tokenInfo("Bearer " + token.getAccessToken());
+            UserInfoResponse userInfo = clusterResourceClient.tokenInfo("Bearer " + token.getAccessToken());
             // 3. Display token result
 
             if (KafkactlCommand.VERBOSE) {
@@ -72,9 +75,9 @@ public class LoginService {
     public boolean login(String user, String password) {
         try {
             // 1. Call ns4kafka /login
-            ClusterResourceClient.BearerAccessRefreshToken tokenResponse =
+            BearerAccessRefreshToken tokenResponse =
                     clusterResourceClient.login(
-                            ClusterResourceClient.UsernameAndPasswordRequest
+                            UsernameAndPasswordRequest
                                     .builder()
                                     .username(user)
                                     .password(password)

@@ -9,7 +9,7 @@ import java.util.concurrent.Callable;
 @CommandLine.Command(name = "api-resources", description = "Print the supported API resources on the server")
 public class ApiResourcesSubcommand implements Callable<Integer> {
     @Inject
-    ApiResourcesService apiResourcesService;
+    public ApiResourcesService apiResourcesService;
 
     @Override
     public Integer call() {
@@ -25,7 +25,6 @@ public class ApiResourcesSubcommand implements Callable<Integer> {
         apiResourcesService.getListResourceDefinition().forEach(rd ->
                 tt.addRowValues(rd.getKind(), String.join(",", rd.getNames()), String.valueOf(rd.isNamespaced()))
         );
-        System.out.println(tt);
         return 0;
     }
 }
