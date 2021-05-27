@@ -141,7 +141,7 @@ public class KafkaInitNamespaceRepository implements InitNamespaceRepository {
         // build access control entry for each Acl
         userACLs.stream()
                 .filter(v -> {
-                    if (v.pattern().patternType().equals(PatternType.LITERAL) && v.pattern().resourceType().equals(ResourceType.TOPIC)
+                    if (v.pattern().resourceType().equals(ResourceType.TOPIC)
                             && v.entry().operation().equals(AclOperation.READ)) {
                         return false;
                     }
