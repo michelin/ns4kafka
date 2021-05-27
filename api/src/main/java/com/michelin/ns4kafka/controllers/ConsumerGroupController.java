@@ -1,29 +1,25 @@
 package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ConsumerGroup.ConsumerGroupOffset;
-import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
-import com.michelin.ns4kafka.services.NamespaceService;
+import com.michelin.ns4kafka.models.ConsumerGroup.ConsumerOffset;
+import com.michelin.ns4kafka.services.ConsumerGroupService;
 
+import org.apache.kafka.clients.admin.AlterConsumerGroupOffsetsResult;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
-import com.michelin.ns4kafka.services.ConsumerGroupService;
-import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
+
 import io.micronaut.http.annotation.*;
 import io.micronaut.security.authentication.Authentication;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.inject.Inject;
-import javax.validation.Valid;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.concurrent.ExecutionException;
 
 @Tag(name = "Consumer Group management",
         description = "APIs to handle Consumer Group")
@@ -33,8 +29,8 @@ public class ConsumerGroupController extends NamespacedResourceController {
     @Inject
     ConsumerGroupService consumerGroupService;
 
-    @Post("/{name}/reset")
-    void resetOffsets(String name ) {
+    @Post("/{consumerGroupName}/reset")
+    void resetOffsets(String namespace, String consumerGroupName, @Body List<ConsumerOffset> offsets) {
         /*
         List.of("topic(:partition)","method", "option");
         List.of("toto","to-earliest", "{}");
@@ -46,17 +42,44 @@ public class ConsumerGroupController extends NamespacedResourceController {
                         3, 456)
         );
         */
-        new TopicPartition(name, );
+
+        Namespace ns = getNamespace(namespace);
+        String cluster = ns.getMetadata().getCluster();
+
+        Map<TopicPartition, OffsetAndMetadata> mapOffset = new HashMap<>();
+        offsets.forEach(consumerOffset -> {
+                consumerOffset.getPartitionOffsets().forEach( partitionOffset -> {
+                        mapOffset.put(new TopicPartition(consumerOffset.getTopic(), partitionOffset.getPartition()), new OffsetAndMetadata(partitionOffset.getOffset()));
+                });
+        });
+        AlterConsumerGroupOffsetsResult result = consumerGroupService.setOffset(cluster,consumerGroupName, mapOffset);
+        try {
+            result.all().get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+
 
     }
 
-    @Post("/{name}/set-offset")
-    void changeOffsets(String name, @Body List<ConsumerGroupOffset> offsets) {
+    @Post("/{consumerGroupName}/set-offset")
+    void changeOffsets(String namespace, String consumerGroupName, @Body List<ConsumerOffset> offsets) {
+
+        Namespace ns = getNamespace(namespace);
+        String cluster = ns.getMetadata().getCluster();
+
         Map<TopicPartition, OffsetAndMetadata> mapOffset = new HashMap<>();
-        offsets.forEach(offset -> {
-                mapOffset.put(new TopicPartition(name, offset.getPartition()), new OffsetAndMetadata(offset.getOffset()));
+        offsets.forEach(consumerOffset -> {
+                consumerOffset.getPartitionOffsets().forEach( partitionOffset -> {
+                        mapOffset.put(new TopicPartition(consumerOffset.getTopic(), partitionOffset.getPartition()), new OffsetAndMetadata(partitionOffset.getOffset()));
+                });
         });
-        consumerGroupService.setOffset(name, mapOffset);
+        AlterConsumerGroupOffsetsResult result = consumerGroupService.setOffset(cluster,consumerGroupName, mapOffset);
+        try {
+            result.all().get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
     }
 
 

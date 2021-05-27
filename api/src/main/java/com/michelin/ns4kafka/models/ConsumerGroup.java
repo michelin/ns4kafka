@@ -3,6 +3,8 @@ package com.michelin.ns4kafka.models;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 
+import java.util.List;
+
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -42,7 +44,19 @@ public class ConsumerGroup {
     @Getter
     @Setter
     @ToString
-    public static class ConsumerGroupOffset {
+    public static class ConsumerOffset {
+        private String topic;
+        private List<PartitionOffset> partitionOffsets;
+    }
+
+    @Introspected
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
+    @Setter
+    @ToString
+    public static class PartitionOffset {
         private int partition;
         private long offset;
     }
