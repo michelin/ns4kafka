@@ -43,3 +43,9 @@ jobs:
         run: ./gradlew build jacocoTestReport sonarqube --info
       - name: Push ns4kafka and kafkactl
         run: ./gradlew dockerBuild api:dockerPush cli:dockerPush
+      - name: Native Image for CLI
+        run: ./gradlew :cli:nativeImage
+      - uses: actions/upload-artifact@v2
+        with:
+          name: kafkactl-linux
+          path: cli/build/native-image/*

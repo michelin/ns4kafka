@@ -29,25 +29,27 @@ import java.util.stream.Collectors;
 public class DiffSubcommand implements Callable<Integer> {
 
     @Inject
-    LoginService loginService;
+    public LoginService loginService;
     @Inject
-    ApiResourcesService apiResourcesService;
+    public ApiResourcesService apiResourcesService;
     @Inject
-    FileService fileService;
+    public FileService fileService;
     @Inject
-    ResourceService resourceService;
+    public ResourceService resourceService;
 
     @Inject
-    KafkactlConfig kafkactlConfig;
+    public KafkactlConfig kafkactlConfig;
 
-    @CommandLine.Spec
-    CommandLine.Model.CommandSpec commandSpec;
+    //@CommandLine.Spec
+    //CommandLine.Model.CommandSpec commandSpec;
     @CommandLine.ParentCommand
-    KafkactlCommand kafkactlCommand;
+    public KafkactlCommand kafkactlCommand;
     @Option(names = {"-f", "--file"}, description = "YAML File or Directory containing YAML resources")
-    Optional<File> file;
+    public Optional<File> file;
     @Option(names = {"-R", "--recursive"}, description = "Enable recursive search of file")
-    boolean recursive;
+    public boolean recursive;
+    @Option(names = {"-n", "--namespace"}, description = "Override namespace defined in config or yaml resource", scope = CommandLine.ScopeType.INHERIT)
+    public Optional<String> optionalNamespace;
 
     @Override
     public Integer call() throws Exception {
@@ -88,16 +90,20 @@ public class DiffSubcommand implements Callable<Integer> {
         List<Resource> invalidResources = apiResourcesService.validateResourceTypes(resources);
         if (!invalidResources.isEmpty()) {
             String invalid = String.join(", ", invalidResources.stream().map(Resource::getKind).distinct().collect(Collectors.toList()));
-            throw new CommandLine.ParameterException(commandSpec.commandLine(), "The server doesn't have resource type [" + invalid + "]");
+            System.out.println("The server doesn't have resource type [" + invalid + "]");
+            return 1;
+            //throw new CommandLine.ParameterException(commandSpec.commandLine(), "The server doesn't have resource type [" + invalid + "]");
         }
         // 4. validate namespace mismatch
-        String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
+        String namespace = optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
         List<Resource> nsMismatch = resources.stream()
                 .filter(resource -> resource.getMetadata().getNamespace() != null && !resource.getMetadata().getNamespace().equals(namespace))
                 .collect(Collectors.toList());
         if (!nsMismatch.isEmpty()) {
             String invalid = String.join(", ", nsMismatch.stream().map(resource -> resource.getKind() + "/" + resource.getMetadata().getName()).distinct().collect(Collectors.toList()));
-            throw new CommandLine.ParameterException(commandSpec.commandLine(), "Namespace mismatch between kafkactl and yaml document [" + invalid + "]");
+            System.out.println("Namespace mismatch between kafkactl and yaml document [" + invalid + "]");
+            return 1;
+            //throw new CommandLine.ParameterException(commandSpec.commandLine(), "Namespace mismatch between kafkactl and yaml document [" + invalid + "]");
         }
         List<ApiResource> apiResources = apiResourcesService.getListResourceDefinition();
 
