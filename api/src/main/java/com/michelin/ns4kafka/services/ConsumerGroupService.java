@@ -58,8 +58,7 @@ public class ConsumerGroupService {
 
         // set the new offset
         earliestOffsets.forEach( (topicPartition, offsetResultInfo) -> {
-                //TODO Change to another method to find the earliest offset of a topic
-                mapOffset.put(topicPartition, new OffsetAndMetadata(0));
+                mapOffset.put(topicPartition, new OffsetAndMetadata(offsetResultInfo.offset()));
         });
 
         return adminClient.alterConsumerGroupOffsets(consumerGroupId, mapOffset);
