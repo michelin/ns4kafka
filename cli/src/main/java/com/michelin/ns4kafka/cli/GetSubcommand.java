@@ -33,28 +33,30 @@ import java.util.stream.Collectors;
 public class GetSubcommand implements Callable<Integer> {
 
     @Inject
-    NamespacedResourceClient namespacedClient;
+    public NamespacedResourceClient namespacedClient;
     @Inject
-    ClusterResourceClient nonNamespacedClient;
+    public ClusterResourceClient nonNamespacedClient;
 
     @Inject
-    LoginService loginService;
+    public LoginService loginService;
     @Inject
-    ApiResourcesService apiResourcesService;
+    public ApiResourcesService apiResourcesService;
     @Inject
-    ResourceService resourceService;
+    public ResourceService resourceService;
     @Inject
-    KafkactlConfig kafkactlConfig;
+    public KafkactlConfig kafkactlConfig;
 
     @CommandLine.ParentCommand
-    KafkactlCommand kafkactlCommand;
+    public KafkactlCommand kafkactlCommand;
     @Parameters(index = "0", description = "Resource type or 'all' to display resources for all types", arity = "1")
-    String resourceType;
+    public String resourceType;
     @Parameters(index = "1", description = "Resource name", arity = "0..1")
-    Optional<String> resourceName;
+    public Optional<String> resourceName;
+    @CommandLine.Option(names = {"-n", "--namespace"}, description = "Override namespace defined in config or yaml resource", scope = CommandLine.ScopeType.INHERIT)
+    public Optional<String> optionalNamespace;
 
-    @CommandLine.Spec
-    CommandLine.Model.CommandSpec commandSpec;
+    //@CommandLine.Spec
+    //CommandLine.Model.CommandSpec commandSpec;
 
     @Override
     public Integer call() throws Exception {
@@ -68,7 +70,7 @@ public class GetSubcommand implements Callable<Integer> {
         // 2. validate resourceType + custom type ALL
         List<ApiResource> apiResources = validateResourceType();
 
-        String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
+        String namespace = optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
         // 3. list resources based on parameters
         if (resourceName.isEmpty() || apiResources.size() > 1) {
             // 4.a list all resources for given types (k get all, k get topics)
@@ -107,8 +109,9 @@ public class GetSubcommand implements Callable<Integer> {
         if (optionalApiResource.isPresent()) {
             return List.of(optionalApiResource.get());
         }
-        throw new CommandLine.ParameterException(commandSpec.commandLine(), "The server doesn't have resource type " + resourceType);
-
+        //throw new CommandLine.ParameterException(commandSpec.commandLine(), "The server doesn't have resource type " + resourceType);
+        System.out.println("The server doesn't have resource type " + resourceType);
+        return List.of();
     }
 
     private void displayAsTable(ApiResource apiResource, List<Resource> resources) {

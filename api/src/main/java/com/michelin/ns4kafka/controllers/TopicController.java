@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -90,6 +92,7 @@ public class TopicController extends NamespacedResourceController {
         // if so, just return 200 with current topic, do nothing
 
         //3. Fill server-side fields (server side metadata + status)
+        topic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
         topic.getMetadata().setCluster(ns.getMetadata().getCluster());
         topic.getMetadata().setNamespace(ns.getMetadata().getName());
         topic.setStatus(Topic.TopicStatus.ofPending());
