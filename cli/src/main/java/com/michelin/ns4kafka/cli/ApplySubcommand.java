@@ -1,7 +1,5 @@
 package com.michelin.ns4kafka.cli;
 
-import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
-import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
@@ -24,11 +22,6 @@ import java.util.stream.Collectors;
 public class ApplySubcommand implements Callable<Integer> {
 
     @Inject
-    public NamespacedResourceClient namespacedClient;
-    @Inject
-    public ClusterResourceClient nonNamespacedClient;
-
-    @Inject
     public LoginService loginService;
     @Inject
     public ApiResourcesService apiResourcesService;
@@ -40,19 +33,17 @@ public class ApplySubcommand implements Callable<Integer> {
     @Inject
     public KafkactlConfig kafkactlConfig;
 
-    //@CommandLine.Spec
-    //CommandLine.Model.CommandSpec commandSpec;
-
-    //@CommandLine.ParentCommand
-    //public KafkactlCommand kafkactlCommand;
+    @CommandLine.ParentCommand
+    public KafkactlCommand kafkactlCommand;
     @Option(names = {"-f", "--file"}, description = "YAML File or Directory containing YAML resources")
     public Optional<File> file;
     @Option(names = {"-R", "--recursive"}, description = "Enable recursive search of file")
     public boolean recursive;
     @Option(names = {"--dry-run"}, description = "Does not persist resources. Validate only")
     public boolean dryRun;
-    @Option(names = {"-n", "--namespace"}, description = "Override namespace defined in config or yaml resource", scope = CommandLine.ScopeType.INHERIT)
-    public Optional<String> optionalNamespace;
+
+    @CommandLine.Spec
+    public CommandLine.Model.CommandSpec commandSpec;
 
     @Override
     public Integer call() throws Exception {
@@ -63,16 +54,14 @@ public class ApplySubcommand implements Callable<Integer> {
 
         boolean authenticated = loginService.doAuthenticate();
         if (!authenticated) {
-            // Autentication failed, stopping
-            return 1;
+            throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
         }
 
         // 0. Check STDIN and -f
         boolean hasStdin = System.in.available() > 0;
         // If we have none or both stdin and File set, we stop
         if (hasStdin == file.isPresent()) {
-            System.out.println("Required one of -f or stdin");
-            return 1;
+            throw new CommandLine.ParameterException(commandSpec.commandLine(), "Required one of -f or stdin");
         }
 
         List<Resource> resources;
@@ -81,8 +70,7 @@ public class ApplySubcommand implements Callable<Integer> {
             // 1. list all files to process
             List<File> yamlFiles = fileService.computeYamlFileList(file.get(), recursive);
             if (yamlFiles.isEmpty()) {
-                System.out.println("Could not find yaml/yml files in " + file.get().getName());
-                return 1;
+                throw new CommandLine.ParameterException(commandSpec.commandLine(), "Could not find yaml/yml files in " + file.get().getName());
             }
             // 2 load each files
             resources = fileService.parseResourceListFromFiles(yamlFiles);
@@ -97,23 +85,17 @@ public class ApplySubcommand implements Callable<Integer> {
         List<Resource> invalidResources = apiResourcesService.validateResourceTypes(resources);
         if (!invalidResources.isEmpty()) {
             String invalid = String.join(", ", invalidResources.stream().map(Resource::getKind).distinct().collect(Collectors.toList()));
-            System.out.println("The server doesn't have resource type [" + invalid + "]");
-            return 1;
-            //throw new CommandLine.ParameterException(commandSpec.commandLine(), "The server doesn't have resource type [" + invalid + "]");
+            throw new CommandLine.ParameterException(commandSpec.commandLine(), "The server doesn't have resource type [" + invalid + "]");
         }
         // 4. validate namespace mismatch
-        String namespace = optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
+        String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
         List<Resource> nsMismatch = resources.stream()
                 .filter(resource -> resource.getMetadata().getNamespace() != null && !resource.getMetadata().getNamespace().equals(namespace))
                 .collect(Collectors.toList());
         if (!nsMismatch.isEmpty()) {
             String invalid = String.join(", ", nsMismatch.stream().map(resource -> resource.getKind() + "/" + resource.getMetadata().getName()).distinct().collect(Collectors.toList()));
-            System.out.println("Namespace mismatch between kafkactl and yaml document [" + invalid + "]");
-            return 1;
-            //throw new CommandLine.ParameterException(commandSpec.commandLine(), "Namespace mismatch between kafkactl and yaml document [" + invalid + "]");
+            throw new CommandLine.ParameterException(commandSpec.commandLine(), "Namespace mismatch between kafkactl and yaml document [" + invalid + "]");
         }
-
-
         List<ApiResource> apiResources = apiResourcesService.getListResourceDefinition();
 
         // 5. process each document individually, return 0 when all succeed

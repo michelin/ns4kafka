@@ -2,10 +2,10 @@ plugins {
     id "com.github.johnrengelman.shadow"
     id "io.micronaut.application"
     id 'jacoco'
+    id "nebula.release"
 }
 
 applicationName = 'kafkactl'
-version = "0.1"
 mainClassName = "com.michelin.ns4kafka.cli.KafkactlCommand"
 
 shadowJar {
