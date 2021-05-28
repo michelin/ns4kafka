@@ -45,7 +45,6 @@ dependencies {
     //External libs
     implementation("org.ocpsoft.prettytime:prettytime:5.0.1.Final")
     implementation("io.github.java-diff-utils:java-diff-utils:4.9")
-    implementation("org.apache.commons:commons-lang3:3.11")
 
     runtimeOnly("ch.qos.logback:logback-classic")
     testImplementation("io.micronaut:micronaut-http-client")
