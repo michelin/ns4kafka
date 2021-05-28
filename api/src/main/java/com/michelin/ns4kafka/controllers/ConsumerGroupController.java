@@ -1,25 +1,19 @@
 package com.michelin.ns4kafka.controllers;
 
+import java.util.concurrent.ExecutionException;
+
+import javax.inject.Inject;
+
+import com.michelin.ns4kafka.models.ConsumerGroupResetOffset;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ConsumerGroup.ConsumerOffset;
 import com.michelin.ns4kafka.services.ConsumerGroupService;
 
 import org.apache.kafka.clients.admin.AlterConsumerGroupOffsetsResult;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.common.TopicPartition;
 
-
-import io.micronaut.http.annotation.*;
-import io.micronaut.security.authentication.Authentication;
-import io.swagger.v3.oas.annotations.Operation;
+import io.micronaut.http.annotation.Body;
+import io.micronaut.http.annotation.Controller;
+import io.micronaut.http.annotation.Post;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
-import javax.inject.Inject;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 
 @Tag(name = "Consumer Group management",
         description = "APIs to handle Consumer Group")
@@ -30,7 +24,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
     ConsumerGroupService consumerGroupService;
 
     @Post("/{consumerGroupName}/reset")
-    void resetOffsets(String namespace, String consumerGroupName, @Body List<ConsumerOffset> offsets) {
+    void resetOffsets(String consumerGroupName, @Body ConsumerGroupResetOffset consumerGroupResetOffset) {
         /*
         List.of("topic(:partition)","method", "option");
         List.of("toto","to-earliest", "{}");
@@ -43,17 +37,10 @@ public class ConsumerGroupController extends NamespacedResourceController {
         );
         */
 
-        Namespace ns = getNamespace(namespace);
-        String cluster = ns.getMetadata().getCluster();
+        Namespace ns = getNamespace(consumerGroupResetOffset.getMetadata().getNamespace());
 
-        Map<TopicPartition, OffsetAndMetadata> mapOffset = new HashMap<>();
-        offsets.forEach(consumerOffset -> {
-                consumerOffset.getPartitionOffsets().forEach( partitionOffset -> {
-                        mapOffset.put(new TopicPartition(consumerOffset.getTopic(), partitionOffset.getPartition()), new OffsetAndMetadata(partitionOffset.getOffset()));
-                });
-        });
-        AlterConsumerGroupOffsetsResult result = consumerGroupService.setOffset(cluster,consumerGroupName, mapOffset);
         try {
+            AlterConsumerGroupOffsetsResult result = consumerGroupService.resetOffset(ns, consumerGroupName, consumerGroupResetOffset);
             result.all().get();
         } catch (InterruptedException | ExecutionException e) {
             throw new KafkaConsumerException(e.getMessage());
@@ -61,7 +48,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
 
 
     }
-
+    /*
     @Post("/{consumerGroupName}/set-offset")
     void changeOffsets(String namespace, String consumerGroupName, @Body List<ConsumerOffset> offsets) {
 
@@ -81,6 +68,6 @@ public class ConsumerGroupController extends NamespacedResourceController {
             throw new KafkaConsumerException(e.getMessage());
         }
     }
-
+    */
 
 }
