@@ -20,26 +20,28 @@ import java.util.concurrent.Callable;
 public class DeleteSubcommand implements Callable<Integer> {
 
     @Inject
-    NamespacedResourceClient namespacedClient;
+    public NamespacedResourceClient namespacedClient;
     @Inject
-    ClusterResourceClient nonNamespacedClient;
+    public ClusterResourceClient nonNamespacedClient;
 
     @Inject
-    KafkactlConfig kafkactlConfig;
+    public KafkactlConfig kafkactlConfig;
 
     @Inject
-    LoginService loginService;
+    public LoginService loginService;
     @Inject
-    ApiResourcesService apiResourcesService;
+    public ApiResourcesService apiResourcesService;
 
     @CommandLine.ParentCommand
-    KafkactlCommand kafkactlCommand;
+    public KafkactlCommand kafkactlCommand;
     @Parameters(index = "0", description = "Resource type", arity = "1")
-    String resourceType;
+    public String resourceType;
     @Parameters(index = "1", description = "Resource name", arity = "1")
-    String name;
+    public String name;
     @Option(names = {"--dry-run"}, description = "Does not persist operation. Validate only")
-    boolean dryRun;
+    public boolean dryRun;
+    @Option(names = {"-n", "--namespace"}, description = "Override namespace defined in config or yaml resource", scope = CommandLine.ScopeType.INHERIT)
+    public Optional<String> optionalNamespace;
 
     @Override
     public Integer call() {
@@ -53,7 +55,7 @@ public class DeleteSubcommand implements Callable<Integer> {
             return 1;
         }
 
-        String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
+        String namespace = optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
 
         Optional<ApiResource> optionalApiResource = apiResourcesService.getResourceDefinitionFromCommandName(resourceType);
         if (optionalApiResource.isEmpty()) {

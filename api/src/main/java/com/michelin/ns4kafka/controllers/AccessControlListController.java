@@ -14,7 +14,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.time.Instant;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -88,6 +90,7 @@ public class AccessControlListController extends NamespacedResourceController {
             throw new ResourceValidationException(validationErrors);
         }
         //augment
+        accessControlEntry.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
         accessControlEntry.getMetadata().setCluster(ns.getMetadata().getCluster());
         accessControlEntry.getMetadata().setNamespace(ns.getMetadata().getName());
         //dryrun checks
