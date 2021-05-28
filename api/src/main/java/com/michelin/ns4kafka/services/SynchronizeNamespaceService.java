@@ -3,8 +3,6 @@ package com.michelin.ns4kafka.services;
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
-import com.michelin.ns4kafka.repositories.NamespaceRepository;
-import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 import org.apache.commons.lang3.StringUtils;
@@ -22,18 +20,17 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Singleton
 public class SynchronizeNamespaceService {
 
     private static final Logger LOG = LoggerFactory.getLogger(SynchronizeNamespaceService.class);
-    
+
     private Admin adminClient;
 
     private final KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
-    
+
     @Inject
     private KafkaConnectClient kafkaConnectClient;
 
@@ -41,8 +38,8 @@ public class SynchronizeNamespaceService {
         this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
     }
 
-    private Admin getAdminClient(){
-        if(this.adminClient==null){
+    private Admin getAdminClient() {
+        if (this.adminClient == null) {
             this.adminClient = Admin.create(kafkaAsyncExecutorConfig.getConfig());
         }
         return this.adminClient;
@@ -50,6 +47,59 @@ public class SynchronizeNamespaceService {
 
     /**
      * 
+     * @param prefixedPattern
+     * @param namespace
+     * @return
+     * @throws InterruptedException
+     * @throws ExecutionException
+     * @throws TimeoutException
+     */
+    public List<Topic> buildPrefixedTopics(List<String> prefixedPattern, String namespace) throws InterruptedException, ExecutionException, TimeoutException {
+
+        Set<String> brokerTopicList = getAdminClient().listTopics().names().get();
+        List<String> prefixedTopics = brokerTopicList.stream()
+                .filter(
+                        topic -> {
+
+                            if (StringUtils.startsWithAny(topic, prefixedPattern.toArray(new String[0]))) {
+                                return true;
+                            }
+
+                            return false;
+                        })
+                .collect(Collectors.toList());
+        
+        return buildTopics(prefixedTopics, namespace);
+
+    }
+
+    /**
+     * @param literalTopics
+     * @param namespace
+     * @return
+     * @throws InterruptedException
+     * @throws ExecutionException
+     * @throws TimeoutException
+     */
+    public List<Topic> buildLiteralTopics(List<String> literalTopics, String namespace) throws InterruptedException, ExecutionException, TimeoutException {
+        
+        List<String> existingTopics = literalTopics.stream()
+                .filter(topic -> {
+                            try {
+                                getAdminClient().describeTopics(Arrays.asList(topic)).all().get();
+                                return true;
+                            } catch (Exception e) {
+                                return false;
+                            }
+                        }
+                ).collect(Collectors.toList());
+
+        return buildTopics(existingTopics, namespace);
+   
+    }
+
+
+    /**
      * @param topics
      * @param namespace
      * @return
@@ -57,25 +107,14 @@ public class SynchronizeNamespaceService {
      * @throws ExecutionException
      * @throws TimeoutException
      */
-    public List<Topic> buildTopics(List<String> topics, String namespace) throws InterruptedException, ExecutionException, TimeoutException {
+    private List<Topic> buildTopics(List<String> topics, String namespace) throws InterruptedException, ExecutionException, TimeoutException {
         
-        List<String> existingTopics =  topics.stream()
-                .filter( topic -> {
-                        try {
-                            getAdminClient().describeTopics(Arrays.asList(topic)).all().get();
-                            return true;
-                        } catch (Exception e) {
-                            return false;
-                        }
-        }
-        ).collect(Collectors.toList());
-        
-        Map<String, TopicDescription> topicDescriptions = getAdminClient().describeTopics(existingTopics).all().get();
-        if(topicDescriptions.size() == 0){
+        Map<String, TopicDescription> topicDescriptions = getAdminClient().describeTopics(topics).all().get();
+        if (topicDescriptions.size() == 0) {
             return new ArrayList<>();
         }
         return getAdminClient()
-                .describeConfigs(existingTopics.stream()
+                .describeConfigs(topics.stream()
                         .map(s -> new ConfigResource(ConfigResource.Type.TOPIC, s))
                         .collect(Collectors.toList())
                 )
@@ -89,7 +128,7 @@ public class SynchronizeNamespaceService {
                         , configResourceConfigEntry ->
                                 configResourceConfigEntry.getValue().entries()
                                         .stream()
-                                        .filter( configEntry -> configEntry.source() == ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG)
+                                        .filter(configEntry -> configEntry.source() == ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG)
                                         .collect(Collectors.toMap(ConfigEntry::name, ConfigEntry::value))
                 ))
                 .entrySet()
@@ -108,43 +147,42 @@ public class SynchronizeNamespaceService {
                         .build()
                 )
                 .collect(Collectors.toList());
-       }
+    }
 
     /**
-     * 
      * @param patterns
      * @return
      */
-    public List<Connector> buildConnectList(List<String> patterns){
-           List<Connector> connectors = new ArrayList<>();
-           String[] patternArray = new String[patterns.size()];
-           patterns.toArray(patternArray);
-           kafkaAsyncExecutorConfig.getConnects().forEach(
-                   (connectCluster, connectConfig) ->
-                           connectors.addAll(kafkaConnectClient.listAll(kafkaAsyncExecutorConfig.getName(), connectCluster)
-                                   .values()
-                                   .stream()
-                                   .map(connectorStatus -> {
-                                       return Connector.builder()
-                                               .metadata(ObjectMeta.builder()
-                                                       // Any other metadata is not usefull for this process
-                                                       .name(connectorStatus.getInfo().name())
-                                                       .cluster(kafkaAsyncExecutorConfig.getName())
-                                                       .build())
-                                               .spec(Connector.ConnectorSpec.builder()
-                                                       .connectCluster(connectCluster)
-                                                       .config(connectorStatus.getInfo().config())
-                                                       .build())
-                                               .build();
+    public List<Connector> buildConnectList(List<String> patterns) {
+        List<Connector> connectors = new ArrayList<>();
+        String[] patternArray = new String[patterns.size()];
+        patterns.toArray(patternArray);
+        kafkaAsyncExecutorConfig.getConnects().forEach(
+                (connectCluster, connectConfig) ->
+                        connectors.addAll(kafkaConnectClient.listAll(kafkaAsyncExecutorConfig.getName(), connectCluster)
+                                .values()
+                                .stream()
+                                .map(connectorStatus -> {
+                                    return Connector.builder()
+                                            .metadata(ObjectMeta.builder()
+                                                    // Any other metadata is not usefull for this process
+                                                    .name(connectorStatus.getInfo().name())
+                                                    .cluster(kafkaAsyncExecutorConfig.getName())
+                                                    .build())
+                                            .spec(Connector.ConnectorSpec.builder()
+                                                    .connectCluster(connectCluster)
+                                                    .config(connectorStatus.getInfo().config())
+                                                    .build())
+                                            .build();
 
-                                   })
-                                   .filter(connector -> StringUtils.startsWithAny(
-                                           connector.getMetadata().getName(), patternArray)
-                                   )
-                                   .collect(Collectors.toList()))
-           );
-           return connectors;
-       }
-       
+                                })
+                                .filter(connector -> StringUtils.startsWithAny(
+                                        connector.getMetadata().getName(), patternArray)
+                                )
+                                .collect(Collectors.toList()))
+        );
+        return connectors;
+    }
+
 }
 

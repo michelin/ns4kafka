@@ -9,13 +9,9 @@ import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.KafkaConnectService;
 import com.michelin.ns4kafka.services.SynchronizeNamespaceService;
 import com.michelin.ns4kafka.services.TopicService;
-import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
-import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
-import io.micronaut.http.annotation.Status;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.annotation.security.RolesAllowed;
@@ -46,7 +42,7 @@ public class SynchronizeNamespaceController extends NamespacedResourceController
     @Post
     public List<Object> synchronize(String namespace, @QueryValue(defaultValue = "false") boolean dryrun)
             throws ExecutionException, InterruptedException, TimeoutException {
-        
+
         Namespace ns = getNamespace(namespace);
 
         if (ns == null)
@@ -55,21 +51,12 @@ public class SynchronizeNamespaceController extends NamespacedResourceController
         // Get ns4kfk access control entries for namespace 
         List<AccessControlEntry> accessControlEntries = accessControlEntryService.findAllGrantedToNamespace(ns);
 
-        // Get list of ns4kfk topic names
-        List<Topic> existingTopics = topicService.findAllForNamespace(ns);
-        List<String> topicNames = existingTopics
-                .stream()
-                .map(topic ->
-                        topic.getMetadata().getName()).collect(Collectors.toList()
-                );
-
-        // Filter the list to create between existing ns4kfk topics and cluster topics
-        List<String> topicToCreate = accessControlEntries
+        // Get the list of topics with literal accessControlEntry that exists in ns4kfk
+        List<String> literalTopicToCreate = accessControlEntries
                 .stream()
                 .filter(accessControlEntry -> {
                             if (accessControlEntry.getSpec().getResourceType().equals(AccessControlEntry.ResourceType.TOPIC)
-                                    && accessControlEntry.getSpec().getResourcePatternType().equals(AccessControlEntry.ResourcePatternType.LITERAL)
-                                    && !topicNames.contains(accessControlEntry.getSpec().getResource())) {
+                                    && accessControlEntry.getSpec().getResourcePatternType().equals(AccessControlEntry.ResourcePatternType.LITERAL)) {
                                 return true;
                             }
                             return false;
@@ -78,6 +65,21 @@ public class SynchronizeNamespaceController extends NamespacedResourceController
                 .map(accessControlEntry -> accessControlEntry.getSpec().getResource())
                 .collect(Collectors.toList());
 
+        // Get the list of topics with prefixed accessControlEntry that exists in ns4kfk
+        List<String> prefixedTopicToCreate = accessControlEntries
+                .stream()
+                .filter(accessControlEntry -> {
+                            if (accessControlEntry.getSpec().getResourceType().equals(AccessControlEntry.ResourceType.TOPIC)
+                                    && accessControlEntry.getSpec().getResourcePatternType().equals(AccessControlEntry.ResourcePatternType.PREFIXED)) {
+                                return true;
+                            }
+                            return false;
+                        }
+                )
+                .map(accessControlEntry -> accessControlEntry.getSpec().getResource())
+                .collect(Collectors.toList());
+
+        //  Get the list of connectors with prefixed accessControlEntry that exists in ns4kfk
         List<String> connectPatternToCreate = accessControlEntries
                 .stream()
                 .filter(accessControlEntry -> {
@@ -91,22 +93,28 @@ public class SynchronizeNamespaceController extends NamespacedResourceController
                 )
                 .map(accessControlEntry -> accessControlEntry.getSpec().getResource())
                 .collect(Collectors.toList());
-        List<Connector> connectors =  synchronizeNamespaceService.buildConnectList(connectPatternToCreate);
 
-        // Build Topic object for topics to create in ns4kfk
-        List<Topic> topics = synchronizeNamespaceService.buildTopics(topicToCreate, namespace);
+        // Build Topic and Connect objects for topics to create in ns4kfk
+        List<Topic> literalTopics = synchronizeNamespaceService.buildLiteralTopics(literalTopicToCreate, namespace);
+        List<Topic> prefixedTopics = synchronizeNamespaceService.buildPrefixedTopics(prefixedTopicToCreate, namespace);
+        List<Connector> connectors = synchronizeNamespaceService.buildConnectList(connectPatternToCreate);
+
+        List<Object> list = new ArrayList<>();
+        list.addAll(literalTopics);
+        list.addAll(prefixedTopics);
+        list.addAll(connectors);
 
         // Create ns4kfk topics
-        if (!dryrun) {
-            HttpResponse.noContent();
+        
+        // if dry run, do nothing
+        if (dryrun) {
+            return list;
         }
-        topics.stream().forEach(topic -> topicService.create(topic));
 
+        literalTopics.stream().forEach(topic -> topicService.create(topic));
+        prefixedTopics.stream().forEach(topic -> topicService.create(topic));
         connectors.stream().forEach(connector -> kafkaConnectService.createOrUpdate(ns, connector));
         
-        List<Object> list = new ArrayList<>();
-        list.addAll(topics);
-        list.addAll(connectors);
         return list;
     }
 
