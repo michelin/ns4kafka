@@ -1,7 +1,9 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.TopicService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -11,15 +13,19 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 @Tag(name = "Topics")
 @Controller(value = "/api/namespaces/{namespace}/topics")
 public class TopicController extends NamespacedResourceController {
     @Inject
     TopicService topicService;
+    
+    @Inject
+    AccessControlEntryService accessControlEntryService;
 
     /**
      * @param namespace The namespace to query
@@ -133,6 +139,64 @@ public class TopicController extends NamespacedResourceController {
         topicService.delete(optionalTopic.get());
 
         return HttpResponse.noContent();
+    }
+
+    @Post("/_/synchronize")
+    public List<Topic> synchronize(String namespace, @QueryValue(defaultValue = "false") boolean dryrun)
+            throws ExecutionException, InterruptedException, TimeoutException {
+
+        Namespace ns = getNamespace(namespace);
+
+        if (ns == null)
+            throw new ResourceNotFoundException();
+
+        // Get ns4kfk access control entries for namespace 
+        List<AccessControlEntry> accessControlEntries = accessControlEntryService.findAllGrantedToNamespace(ns);
+
+        // Get the list of topics with literal accessControlEntry that exists in ns4kfk
+        List<String> literalTopicToCreate = accessControlEntries
+                .stream()
+                .filter(accessControlEntry -> {
+                            if (accessControlEntry.getSpec().getResourceType().equals(AccessControlEntry.ResourceType.TOPIC)
+                                    && accessControlEntry.getSpec().getResourcePatternType().equals(AccessControlEntry.ResourcePatternType.LITERAL)) {
+                                return true;
+                            }
+                            return false;
+                        }
+                )
+                .map(accessControlEntry -> accessControlEntry.getSpec().getResource())
+                .collect(Collectors.toList());
+
+        // Get the list of topics with prefixed accessControlEntry that exists in ns4kfk
+        List<String> prefixedTopicToCreate = accessControlEntries
+                .stream()
+                .filter(accessControlEntry -> {
+                            if (accessControlEntry.getSpec().getResourceType().equals(AccessControlEntry.ResourceType.TOPIC)
+                                    && accessControlEntry.getSpec().getResourcePatternType().equals(AccessControlEntry.ResourcePatternType.PREFIXED)) {
+                                return true;
+                            }
+                            return false;
+                        }
+                )
+                .map(accessControlEntry -> accessControlEntry.getSpec().getResource())
+                .collect(Collectors.toList());
+        
+        // Build Topic and Connect objects for topics to create in ns4kfk
+        Map<String, Topic> topics = topicService.buildTopicNames(literalTopicToCreate, prefixedTopicToCreate, ns);
+
+        List<Topic> list = new ArrayList<>();
+        list.addAll(topics.values());
+
+        // Create ns4kfk topics
+
+        // if dry run, do nothing
+        if (dryrun) {
+            return list;
+        }
+        
+        list.stream().forEach(topic -> topicService.create(topic));
+
+        return list;
     }
 
 

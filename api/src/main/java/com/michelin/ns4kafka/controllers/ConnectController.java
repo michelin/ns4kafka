@@ -1,7 +1,9 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.KafkaConnectService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -15,9 +17,13 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 @Tag(name = "Connects")
 @Controller(value = "/api/namespaces/{namespace}/connects")
@@ -27,6 +33,9 @@ public class ConnectController extends NamespacedResourceController {
     //TODO validate calls and forward to Connect REST API (sync ???)
     @Inject
     KafkaConnectService kafkaConnectService;
+    
+    @Inject
+    AccessControlEntryService accessControlEntryService;
 
     @Get
     public List<Connector> list(String namespace) {
@@ -102,6 +111,47 @@ public class ConnectController extends NamespacedResourceController {
         }
         //Create resource
         return kafkaConnectService.createOrUpdate(ns, connector);
+    }
+
+    @Post("/_/synchronize")
+    public List<Connector> synchronize(String namespace, @QueryValue(defaultValue = "false") boolean dryrun)
+            throws ExecutionException, InterruptedException, TimeoutException {
+
+        Namespace ns = getNamespace(namespace);
+
+        if (ns == null)
+            throw new ResourceNotFoundException();
+
+        // Get ns4kfk access control entries for namespace 
+        List<AccessControlEntry> accessControlEntries = accessControlEntryService.findAllGrantedToNamespace(ns);
+        
+        //  Get the list of connectors with prefixed accessControlEntry that exists in ns4kfk
+        List<String> connectPatternToCreate = accessControlEntries
+                .stream()
+                .filter(accessControlEntry -> {
+                            if (accessControlEntry.getSpec().getResourceType().equals(AccessControlEntry.ResourceType.CONNECT)
+                                    && accessControlEntry.getSpec().getResourcePatternType().equals(AccessControlEntry.ResourcePatternType.PREFIXED)
+                            ) {
+                                return true;
+                            }
+                            return false;
+                        }
+                )
+                .map(accessControlEntry -> accessControlEntry.getSpec().getResource())
+                .collect(Collectors.toList());
+
+        // Build Topic and Connect objects for topics to create in ns4kfk
+        List<Connector> connectors = kafkaConnectService.buildConnectList(connectPatternToCreate, ns);
+        
+
+        // if dry run, do nothing
+        if (dryrun) {
+            return connectors;
+        }
+
+        connectors.stream().forEach(connector -> kafkaConnectService.createOrUpdate(ns, connector));
+
+        return connectors;
     }
 
 }

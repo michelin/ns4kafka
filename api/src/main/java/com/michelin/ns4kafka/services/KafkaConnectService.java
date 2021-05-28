@@ -4,6 +4,7 @@ package com.michelin.ns4kafka.services;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
 import com.michelin.ns4kafka.services.connect.client.entities.ConfigInfos;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -115,5 +117,40 @@ public class KafkaConnectService {
                 namespace.getMetadata().getCluster(),
                 connector.getSpec().getConnectCluster(),
                 connector.getMetadata().getName());
+    }
+
+    /**
+     * @param patterns
+     * @return
+     */
+    public List<Connector> buildConnectList(List<String> patterns, Namespace namespace) {
+        List<Connector> connectors = new ArrayList<>();
+        String[] patternArray = new String[patterns.size()];
+        patterns.toArray(patternArray);
+        namespace.getSpec().getConnectClusters().forEach(
+                (connectCluster) ->
+                        connectors.addAll(kafkaConnectClient.listAll(namespace.getMetadata().getCluster(), connectCluster)
+                                .values()
+                                .stream()
+                                .map(connectorStatus -> {
+                                    return Connector.builder()
+                                            .metadata(ObjectMeta.builder()
+                                                    // Any other metadata is not usefull for this process
+                                                    .name(connectorStatus.getInfo().name())
+                                                    .cluster(namespace.getMetadata().getCluster())
+                                                    .build())
+                                            .spec(Connector.ConnectorSpec.builder()
+                                                    .connectCluster(connectCluster)
+                                                    .config(connectorStatus.getInfo().config())
+                                                    .build())
+                                            .build();
+
+                                })
+                                .filter(connector -> org.apache.commons.lang3.StringUtils.startsWithAny(
+                                        connector.getMetadata().getName(), patternArray)
+                                )
+                                .collect(Collectors.toList()))
+        );
+        return connectors;
     }
 }

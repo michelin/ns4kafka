@@ -1,7 +1,9 @@
 package com.michelin.ns4kafka.cli;
 
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
+import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
+import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
@@ -9,6 +11,7 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Help.Ansi;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 
 import javax.inject.Inject;
 import java.io.IOException;
@@ -29,10 +32,15 @@ public class SynchronizeSubcommand implements Callable<Integer> {
     @Inject
     public LoginService loginService;
 
+    @Inject
+    public ApiResourcesService apiResourcesService;
+
     //TODO check native-image with ParentCommand again
     //@CommandLine.ParentCommand
     //KafkactlCommand kafkactlCommand;
 
+    @Parameters(index = "0", description = "Resource type", arity = "1")
+    public String resourceType;
     @Option(names = {"--dry-run"}, description = "Does not persist resources. Validate only")
     public boolean dryRun;
     @Option(names = {"-n", "--namespace"}, description = "Override namespace defined in config or yaml resource", scope = CommandLine.ScopeType.INHERIT)
@@ -45,20 +53,32 @@ public class SynchronizeSubcommand implements Callable<Integer> {
         if (!authenticated) {
             return 1;
         }
+        
+        String namespace = optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
+
+        Optional<ApiResource> optionalApiResource = apiResourcesService.getResourceDefinitionFromCommandName(resourceType);
+        if (optionalApiResource.isEmpty()) {
+            System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + resourceType + ": The server doesn't have resource type");
+            return 1;
+        }
+
+        ApiResource apiResource = optionalApiResource.get();
 
         try {
-            String namespace = optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
-            List<Resource> resources = namespacedClient.synchronize(namespace, loginService.getAuthorization(), dryRun);
-
-            if(resources.size() == 0){
-                System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS no resource to synchronize for namespace:|@") + namespace);
-                return 0;
-            }
-            for (Resource resource : resources) {
-                System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS synchronizing resource:|@") + resource.getKind() + "/" + resource.getMetadata().getName());
+            if (apiResource.isNamespaced()) {
+                List<Resource> resources = namespacedClient.synchronize(namespace, apiResource.getPath(), loginService.getAuthorization(), dryRun);
+                if (resources.size() == 0) {
+                    System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS no resource to synchronize for namespace:|@") + namespace);
+                    return 0;
+                }
+                for (Resource resource : resources) {
+                    System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS synchronizing resource:|@") + resource.getKind() + "/" + resource.getMetadata().getName());
+                }
+            } else {
+                System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + apiResource.getKind() + ": The server doesn't have implemented this");
+                return 1;
             }
             System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS synchronizing namespace:|@") + namespace);
-            
         } catch (HttpClientResponseException e) {
             HttpStatus status = e.getStatus();
             switch (status) {
@@ -74,5 +94,6 @@ public class SynchronizeSubcommand implements Callable<Integer> {
             return 1;
         }
         return 0;
+
     }
 }
