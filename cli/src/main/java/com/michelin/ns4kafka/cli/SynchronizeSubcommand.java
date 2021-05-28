@@ -14,24 +14,29 @@ import javax.inject.Inject;
 import java.io.IOException;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
-@Command(name = "synchronize", description = "Synchronize resources for a namespace")
-public class SynchronizeNamespaceSubcommand implements Callable<Integer> {
+@Command(name = "synchronize", description = "Synchronize resources already present on the Kafka Cluster with ns4kafka")
+public class SynchronizeSubcommand implements Callable<Integer> {
 
     @Inject
-    NamespacedResourceClient namespacedClient;
+    public KafkactlConfig kafkactlConfig;
 
     @Inject
-    LoginService loginService;
+    public NamespacedResourceClient namespacedClient;
 
-    @CommandLine.ParentCommand
-    KafkactlCommand kafkactlCommand;
+    @Inject
+    public LoginService loginService;
+
+    //TODO check native-image with ParentCommand again
+    //@CommandLine.ParentCommand
+    //KafkactlCommand kafkactlCommand;
 
     @Option(names = {"--dry-run"}, description = "Does not persist resources. Validate only")
-    boolean dryRun;
-    @Option(names = {"--yml"}, description = "Describe resource as yml format")
-    boolean yml;
+    public boolean dryRun;
+    @Option(names = {"-n", "--namespace"}, description = "Override namespace defined in config or yaml resource", scope = CommandLine.ScopeType.INHERIT)
+    public Optional<String> optionalNamespace;
 
     public Integer call() throws IOException {
 
@@ -42,17 +47,17 @@ public class SynchronizeNamespaceSubcommand implements Callable<Integer> {
         }
 
         try {
-            String defaultNamespace = kafkactlCommand.optionalNamespace.get();
-            List<Resource> resources = namespacedClient.synchronize(defaultNamespace, loginService.getAuthorization(), dryRun);
+            String namespace = optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
+            List<Resource> resources = namespacedClient.synchronize(namespace, loginService.getAuthorization(), dryRun);
 
             if(resources.size() == 0){
-                System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS no resource to synchronize for namespace:|@") + defaultNamespace);
+                System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS no resource to synchronize for namespace:|@") + namespace);
                 return 0;
             }
             for (Resource resource : resources) {
                 System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS synchronizing resource:|@") + resource.getKind() + "/" + resource.getMetadata().getName());
             }
-            System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS synchronizing namespace:|@") + defaultNamespace);
+            System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS synchronizing namespace:|@") + namespace);
             
         } catch (HttpClientResponseException e) {
             HttpStatus status = e.getStatus();
