@@ -20,4 +20,10 @@ public class ExceptionHandlerController {
     public HttpResponse<JsonError> error(HttpRequest<?> request, ResourceNotFoundException exception) {
         return HttpResponse.notFound().body(new JsonError("Ressource not Found"));
     }
+
+    @Error(global = true)
+    public HttpResponse<JsonError> error(HttpRequest<?> request, KafkaConsumerException exception) {
+        return HttpResponse.badRequest()
+                .body(new JsonError("Consumer action can't be executed: " + exception.getMessage()));
+    }
 }

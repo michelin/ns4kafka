@@ -56,7 +56,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
         try {
             result.all().get();
         } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+            throw new KafkaConsumerException(e.getMessage());
         }
 
 
@@ -78,7 +78,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
         try {
             result.all().get();
         } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+            throw new KafkaConsumerException(e.getMessage());
         }
     }
 
