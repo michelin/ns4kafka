@@ -2,7 +2,6 @@ plugins {
     id "com.github.johnrengelman.shadow"
     id "io.micronaut.application"
     id 'jacoco'
-    id "nebula.release"
 }
 
 applicationName = 'kafkactl'
