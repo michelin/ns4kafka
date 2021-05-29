@@ -13,13 +13,13 @@ shadowJar {
 }
 
 nativeImage {
-    imageName('kafkactl')
+    imageName('kafkactl-'+version)
     args = ['-H:Class=com.michelin.ns4kafka.cli.KafkactlCommand ',
             '-H:IncludeResourceBundles=org.ocpsoft.prettytime.i18n.Resources',
             '-H:+ReportUnsupportedElementsAtRuntime']
 }
 dockerBuild {
-    images = ["twobeeb/kafkactl:dev"]
+    images = ["twobeeb/kafkactl:"+version]
 }
 
 repositories {

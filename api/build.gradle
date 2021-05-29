@@ -73,7 +73,7 @@ test {
 }
 
 dockerBuild {
-    images = ["twobeeb/ns4kafka:dev"]
+    images = ["twobeeb/ns4kafka:"+version]
 }
 
 jacocoTestReport {

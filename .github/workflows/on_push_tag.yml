@@ -1,7 +1,7 @@
-name: Release SNAPSHOT
+name: Release Version
 on:
   push:
-    branches: [ master ]
+    tags: [ '*' ]
 
 jobs:
   build:
@@ -22,12 +22,6 @@ jobs:
           java: 'java11'
       - name: Install Native Image
         run: gu install native-image
-      - name: Cache SonarCloud packages
-        uses: actions/cache@v1
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
       - name: Cache Gradle packages
         uses: actions/cache@v1
         with:
@@ -36,20 +30,19 @@ jobs:
           restore-keys: ${{ runner.os }}-gradle
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
-      - name: Build and analyze
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: ./gradlew build jacocoTestReport sonarqube --info
-      - name: Push ns4kafka and kafkactl
-        run: ./gradlew dockerBuild api:dockerPush cli:dockerPush
+      - name: Build and Test
+        run: ./gradlew build check
       - name: Native Image for CLI
         run: ./gradlew :cli:shadowJar :cli:nativeImage
-      - uses: actions/upload-artifact@v2
+      - name: Push ns4kafka and kafkactl
+        run: ./gradlew dockerBuild api:dockerPush cli:dockerPush
+      - name: Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: native-image
-          path: cli/build/native-image/kafkactl*
-      - uses: actions/upload-artifact@v2
-          with:
-            name: jar
-            path: cli/build/libs/kafkactl*
+          draft: true
+          prerelease: true
+          files: |
+            cli/build/native-image/kafkactl*
+            cli/build/libs/kafkactl*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
