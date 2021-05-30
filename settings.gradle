@@ -1,3 +1,16 @@
+buildscript {
+    repositories {
+        maven {
+            url 'https://plugins.gradle.org/m2/'
+        }
+    }
+    dependencies {
+        classpath 'io.alcide:gradle-semantic-build-versioning:4.2.1'
+    }
+}
+
+apply plugin: 'io.alcide.gradle-semantic-build-versioning'
+
 rootProject.name="ns4kafka"
 include 'cli'
 include 'api'

@@ -1,4 +1,4 @@
-name: Build Test Push
+name: Release SNAPSHOT
 on:
   push:
     branches: [ master ]
@@ -44,8 +44,12 @@ jobs:
       - name: Push ns4kafka and kafkactl
         run: ./gradlew dockerBuild api:dockerPush cli:dockerPush
       - name: Native Image for CLI
-        run: ./gradlew :cli:nativeImage
+        run: ./gradlew :cli:shadowJar :cli:nativeImage
       - uses: actions/upload-artifact@v2
         with:
-          name: kafkactl-linux
-          path: cli/build/native-image/*
+          name: native-image
+          path: cli/build/native-image/kafkactl*
+      - uses: actions/upload-artifact@v2
+        with:
+          name: jar
+          path: cli/build/libs/kafkactl*
