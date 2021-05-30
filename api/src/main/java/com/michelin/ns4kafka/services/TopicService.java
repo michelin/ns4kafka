@@ -81,7 +81,7 @@ public class TopicService {
                 Qualifiers.byName(namespace.getMetadata().getCluster()));
 
         // Get existing cluster topics...
-        List<String> namespaceTopics = topicAsyncExecutor.listTopics()
+        List<String> unsynchronizedTopicNames = topicAsyncExecutor.listBrokerTopicNames()
                 .stream()
                 // ...that belongs to this namespace
                 .filter(topic -> isNamespaceOwnerOfTopic(namespace.getMetadata().getName(), topic))
@@ -89,7 +89,7 @@ public class TopicService {
                 .filter(topic -> findByName(namespace, topic).isEmpty())
                 .collect(Collectors.toList());
         // Get topics definitions
-        Collection<Topic> unsynchronizedTopics = topicAsyncExecutor.collectBrokerTopicList(namespaceTopics)
+        Collection<Topic> unsynchronizedTopics = topicAsyncExecutor.collectBrokerTopicsFromNames(unsynchronizedTopicNames)
                 .values();
         return new ArrayList<>(unsynchronizedTopics);
 

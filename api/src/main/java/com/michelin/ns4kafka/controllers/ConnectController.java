@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.services.AccessControlEntryService;
@@ -17,12 +16,9 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @Tag(name = "Connects")
@@ -114,44 +110,26 @@ public class ConnectController extends NamespacedResourceController {
     }
 
     @Post("/_/synchronize")
-    public List<Connector> synchronize(String namespace, @QueryValue(defaultValue = "false") boolean dryrun)
-            throws ExecutionException, InterruptedException, TimeoutException {
+    public List<Connector> synchronize(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         Namespace ns = getNamespace(namespace);
 
-        if (ns == null)
-            throw new ResourceNotFoundException();
+        List<Connector> unsynchronizedConnectors = kafkaConnectService.listUnsynchronizedConnectors(ns);
 
-        // Get ns4kfk access control entries for namespace 
-        List<AccessControlEntry> accessControlEntries = accessControlEntryService.findAllGrantedToNamespace(ns);
-        
-        //  Get the list of connectors with prefixed accessControlEntry that exists in ns4kfk
-        List<String> connectPatternToCreate = accessControlEntries
-                .stream()
-                .filter(accessControlEntry -> {
-                            if (accessControlEntry.getSpec().getResourceType().equals(AccessControlEntry.ResourceType.CONNECT)
-                                    && accessControlEntry.getSpec().getResourcePatternType().equals(AccessControlEntry.ResourcePatternType.PREFIXED)
-                            ) {
-                                return true;
-                            }
-                            return false;
-                        }
-                )
-                .map(accessControlEntry -> accessControlEntry.getSpec().getResource())
-                .collect(Collectors.toList());
+        // Augment
+        unsynchronizedConnectors.forEach(connector -> {
+            connector.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+            connector.getMetadata().setCluster(ns.getMetadata().getCluster());
+            connector.getMetadata().setNamespace(ns.getMetadata().getName());
+        });
 
-        // Build Topic and Connect objects for topics to create in ns4kfk
-        List<Connector> connectors = kafkaConnectService.buildConnectList(connectPatternToCreate, ns);
-        
-
-        // if dry run, do nothing
         if (dryrun) {
-            return connectors;
+            return unsynchronizedConnectors;
         }
 
-        connectors.stream().forEach(connector -> kafkaConnectService.createOrUpdate(ns, connector));
-
-        return connectors;
+        List<Connector> synchronizedConnectors = unsynchronizedConnectors.stream()
+                .map(connector -> kafkaConnectService.createOrUpdate(ns, connector))
+                .collect(Collectors.toList());
+        return synchronizedConnectors;
     }
-
 }

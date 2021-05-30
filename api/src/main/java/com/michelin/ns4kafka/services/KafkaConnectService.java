@@ -4,18 +4,19 @@ package com.michelin.ns4kafka.services;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
 import com.michelin.ns4kafka.services.connect.client.entities.ConfigInfos;
+import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
+import io.micronaut.context.ApplicationContext;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.inject.qualifiers.Qualifiers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -32,6 +33,8 @@ public class KafkaConnectService {
     KafkaConnectClient kafkaConnectClient;
     @Inject
     ConnectorRepository connectorRepository;
+    @Inject
+    ApplicationContext applicationContext;
 
     public List<Connector> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace);
@@ -119,38 +122,16 @@ public class KafkaConnectService {
                 connector.getMetadata().getName());
     }
 
-    /**
-     * @param patterns
-     * @return
-     */
-    public List<Connector> buildConnectList(List<String> patterns, Namespace namespace) {
-        List<Connector> connectors = new ArrayList<>();
-        String[] patternArray = new String[patterns.size()];
-        patterns.toArray(patternArray);
-        namespace.getSpec().getConnectClusters().forEach(
-                (connectCluster) ->
-                        connectors.addAll(kafkaConnectClient.listAll(namespace.getMetadata().getCluster(), connectCluster)
-                                .values()
-                                .stream()
-                                .map(connectorStatus -> {
-                                    return Connector.builder()
-                                            .metadata(ObjectMeta.builder()
-                                                    // Any other metadata is not usefull for this process
-                                                    .name(connectorStatus.getInfo().name())
-                                                    .cluster(namespace.getMetadata().getCluster())
-                                                    .build())
-                                            .spec(Connector.ConnectorSpec.builder()
-                                                    .connectCluster(connectCluster)
-                                                    .config(connectorStatus.getInfo().config())
-                                                    .build())
-                                            .build();
-
-                                })
-                                .filter(connector -> org.apache.commons.lang3.StringUtils.startsWithAny(
-                                        connector.getMetadata().getName(), patternArray)
-                                )
-                                .collect(Collectors.toList()))
-        );
-        return connectors;
+    public List<Connector> listUnsynchronizedConnectors(Namespace namespace) {
+        ConnectorAsyncExecutor connectorAsyncExecutor = applicationContext.getBean(ConnectorAsyncExecutor.class,
+                Qualifiers.byName(namespace.getMetadata().getCluster()));
+        return namespace.getSpec().getConnectClusters().stream()
+                // get all connectors from all connect clusters...
+                .flatMap(connectCluster -> connectorAsyncExecutor.collectBrokerConnectors(connectCluster).stream())
+                // ...that belongs to this namespace
+                .filter(connector -> isNamespaceOwnerOfConnect(namespace, connector.getMetadata().getName()))
+                // ...and aren't in ns4kafka storage
+                .filter(connector -> findByName(namespace, connector.getMetadata().getName()).isEmpty())
+                .collect(Collectors.toList());
     }
 }

@@ -66,8 +66,7 @@ public class TopicAsyncExecutor {
         LOG.debug("Starting topic collection for cluster "+kafkaAsyncExecutorConfig.getName());
         try {
             // List topics from broker
-            List<String> topicNames = listTopics();
-            Map<String, Topic> brokerTopicList = collectBrokerTopicList(topicNames);
+            Map<String, Topic> brokerTopicList = collectBrokerTopics();
             // List topics from ns4kafka Repository
             List<Topic> ns4kafkaTopicList = topicRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName());
 
@@ -150,17 +149,19 @@ public class TopicAsyncExecutor {
     public void deleteTopic(Topic topic) throws InterruptedException, ExecutionException, TimeoutException {
         getAdminClient().deleteTopics(List.of(topic.getMetadata().getName())).all().get(30, TimeUnit.SECONDS);
     }
-    public Map<String, TopicDescription> describeTopics(List<String> topics) throws ExecutionException, InterruptedException {
-        return getAdminClient().describeTopics(topics).all().get();        
+
+    public Map<String, Topic> collectBrokerTopics() throws ExecutionException, InterruptedException, TimeoutException {
+        return collectBrokerTopicsFromNames(listBrokerTopicNames());
     }
-    public List<String> listTopics() throws InterruptedException, ExecutionException, TimeoutException {
+    public List<String> listBrokerTopicNames() throws InterruptedException, ExecutionException, TimeoutException {
         return getAdminClient().listTopics().listings()
                 .get(30, TimeUnit.SECONDS)
                 .stream()
-                .map(topicListing -> topicListing.name())
-                .collect(Collectors.toList());        
+                .map(TopicListing::name)
+                .collect(Collectors.toList());
     }
-    public Map<String, Topic> collectBrokerTopicList(List<String> topicNames) throws InterruptedException, ExecutionException, TimeoutException {
+
+    public Map<String, Topic> collectBrokerTopicsFromNames(List<String> topicNames) throws InterruptedException, ExecutionException, TimeoutException {
         Map<String, TopicDescription> topicDescriptions = getAdminClient().describeTopics(topicNames).all().get();
         // Create a Map<TopicName, Map<ConfigName, ConfigValue>> for all topics
         // includes only Dynamic config properties
