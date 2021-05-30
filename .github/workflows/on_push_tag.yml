@@ -31,11 +31,11 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Build and Test
-        run: ./gradlew build check
+        run: ./gradlew build check -Prelease
       - name: Native Image for CLI
-        run: ./gradlew :cli:shadowJar :cli:nativeImage
+        run: ./gradlew :cli:shadowJar :cli:nativeImage -Prelease
       - name: Push ns4kafka and kafkactl
-        run: ./gradlew dockerBuild api:dockerPush cli:dockerPush
+        run: ./gradlew dockerBuild api:dockerPush cli:dockerPush -Prelease
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
