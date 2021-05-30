@@ -4,7 +4,6 @@ plugins {
     id 'jacoco'
 }
 
-version "0.1"
 mainClassName = "com.michelin.ns4kafka.Application"
 
 repositories {
