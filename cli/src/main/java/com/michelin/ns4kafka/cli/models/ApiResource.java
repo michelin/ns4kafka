@@ -12,6 +12,7 @@ import java.util.List;
 public class ApiResource {
     private String kind;
     private boolean namespaced;
+    private boolean synchronizable;
     private String path;
     private List<String> names;
 }
