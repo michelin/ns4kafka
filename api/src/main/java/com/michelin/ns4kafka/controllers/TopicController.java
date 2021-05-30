@@ -1,9 +1,7 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
-import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.TopicService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -13,7 +11,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -23,9 +23,6 @@ import java.util.stream.Collectors;
 public class TopicController extends NamespacedResourceController {
     @Inject
     TopicService topicService;
-    
-    @Inject
-    AccessControlEntryService accessControlEntryService;
 
     /**
      * @param namespace The namespace to query
@@ -147,56 +144,27 @@ public class TopicController extends NamespacedResourceController {
 
         Namespace ns = getNamespace(namespace);
 
-        if (ns == null)
-            throw new ResourceNotFoundException();
+        List<Topic> unsynchronizedTopics = topicService.listUnsynchronizedTopics(ns);
 
-        // Get ns4kfk access control entries for namespace 
-        List<AccessControlEntry> accessControlEntries = accessControlEntryService.findAllGrantedToNamespace(ns);
+        // Augment
+        unsynchronizedTopics.forEach(topic -> {
+            topic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                topic.getMetadata().setCluster(ns.getMetadata().getCluster());
+                topic.getMetadata().setNamespace(ns.getMetadata().getName());
+                topic.setStatus(Topic.TopicStatus.builder()
+                        .phase(Topic.TopicPhase.Success)
+                        .message("Synchronized from cluster")
+                        .build());
+        });
 
-        // Get the list of topics with literal accessControlEntry that exists in ns4kfk
-        List<String> literalTopicToCreate = accessControlEntries
-                .stream()
-                .filter(accessControlEntry -> {
-                            if (accessControlEntry.getSpec().getResourceType().equals(AccessControlEntry.ResourceType.TOPIC)
-                                    && accessControlEntry.getSpec().getResourcePatternType().equals(AccessControlEntry.ResourcePatternType.LITERAL)) {
-                                return true;
-                            }
-                            return false;
-                        }
-                )
-                .map(accessControlEntry -> accessControlEntry.getSpec().getResource())
-                .collect(Collectors.toList());
-
-        // Get the list of topics with prefixed accessControlEntry that exists in ns4kfk
-        List<String> prefixedTopicToCreate = accessControlEntries
-                .stream()
-                .filter(accessControlEntry -> {
-                            if (accessControlEntry.getSpec().getResourceType().equals(AccessControlEntry.ResourceType.TOPIC)
-                                    && accessControlEntry.getSpec().getResourcePatternType().equals(AccessControlEntry.ResourcePatternType.PREFIXED)) {
-                                return true;
-                            }
-                            return false;
-                        }
-                )
-                .map(accessControlEntry -> accessControlEntry.getSpec().getResource())
-                .collect(Collectors.toList());
-        
-        // Build Topic and Connect objects for topics to create in ns4kfk
-        Map<String, Topic> topics = topicService.buildTopicNames(literalTopicToCreate, prefixedTopicToCreate, ns);
-
-        List<Topic> list = new ArrayList<>();
-        list.addAll(topics.values());
-
-        // Create ns4kfk topics
-
-        // if dry run, do nothing
         if (dryrun) {
-            return list;
+            return unsynchronizedTopics;
         }
-        
-        list.stream().forEach(topic -> topicService.create(topic));
 
-        return list;
+        List<Topic> synchronizedTopics = unsynchronizedTopics.stream()
+                .map(topic -> topicService.create(topic))
+                .collect(Collectors.toList());
+        return synchronizedTopics;
     }
 
 

@@ -3,25 +3,19 @@ package com.michelin.ns4kafka.services;
 import com.michelin.ns4kafka.controllers.ResourceValidationException;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.clients.admin.ConfigEntry;
-import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.common.config.ConfigResource;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
@@ -81,41 +75,23 @@ public class TopicService {
         topicRepository.delete(topic);
     }
 
-    /**
-     * @param literalTopics
-     * @param namespace
-     * @return
-     * @throws InterruptedException
-     * @throws ExecutionException
-     * @throws TimeoutException
-     */
-    public Map<String, Topic> buildTopicNames(List<String> literalTopics, List<String> prefixedPattern, Namespace namespace) throws InterruptedException, ExecutionException, TimeoutException {
+    public List<Topic> listUnsynchronizedTopics(Namespace namespace) throws ExecutionException, InterruptedException, TimeoutException {
 
         TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
                 Qualifiers.byName(namespace.getMetadata().getCluster()));
 
-        // Get existing cluster topics
-        List<String> clusterTopics = topicAsyncExecutor.listTopics()
+        // Get existing cluster topics...
+        List<String> namespaceTopics = topicAsyncExecutor.listTopics()
                 .stream()
+                // ...that belongs to this namespace
+                .filter(topic -> isNamespaceOwnerOfTopic(namespace.getMetadata().getName(), topic))
+                // ...and aren't in ns4kafka storage
+                .filter(topic -> findByName(namespace, topic).isEmpty())
                 .collect(Collectors.toList());
-        
-        // filter prefixed topics
-        List<String> topics = clusterTopics.stream()
-                .filter(
-                        topic -> {
-
-                            if (StringUtils.startsWithAny(topic, prefixedPattern.toArray(new String[0]))) {
-                                return true;
-                            }
-                            if(literalTopics.contains(topic)){
-                                return true;
-                            }
-                            return false;
-                        })
-                .collect(Collectors.toList());
-        
-        return topicAsyncExecutor.collectBrokerTopicList(topics);
+        // Get topics definitions
+        Collection<Topic> unsynchronizedTopics = topicAsyncExecutor.collectBrokerTopicList(namespaceTopics)
+                .values();
+        return new ArrayList<>(unsynchronizedTopics);
 
     }
-    
 }
