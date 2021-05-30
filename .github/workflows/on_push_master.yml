@@ -48,8 +48,8 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: native-image
-          path: cli/build/native-image/kafkactl*
+          path: cli/build/native-image/kafkactl-+([0-9]).+([0-9]).+([0-9])?(-SNAPSHOT)
       - uses: actions/upload-artifact@v2
         with:
           name: jar
-          path: cli/build/libs/kafkactl*
+          path: cli/build/libs/kafkactl-+([0-9]).+([0-9]).+([0-9])?(-SNAPSHOT).jar

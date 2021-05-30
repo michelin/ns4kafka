@@ -40,7 +40,7 @@ jobs:
           draft: true
           prerelease: true
           files: |
-            cli/build/native-image/kafkactl*
-            cli/build/libs/kafkactl*
+            cli/build/native-image/kafkactl-+([0-9]).+([0-9]).+([0-9])
+            cli/build/libs/kafkactl-+([0-9]).+([0-9]).+([0-9]).jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
