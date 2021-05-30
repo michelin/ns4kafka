@@ -50,6 +50,6 @@ jobs:
           name: native-image
           path: cli/build/native-image/kafkactl*
       - uses: actions/upload-artifact@v2
-          with:
-            name: jar
-            path: cli/build/libs/kafkactl*
+        with:
+          name: jar
+          path: cli/build/libs/kafkactl*
