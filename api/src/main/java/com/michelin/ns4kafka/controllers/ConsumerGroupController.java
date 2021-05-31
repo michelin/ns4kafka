@@ -1,15 +1,19 @@
 package com.michelin.ns4kafka.controllers;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffset;
 import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.ConsumerGroupResetOffset.ConsumerGroupResetOffsetMethod;
 import com.michelin.ns4kafka.services.ConsumerGroupService;
 
 import org.apache.kafka.clients.admin.AlterConsumerGroupOffsetsResult;
 
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
@@ -25,19 +29,20 @@ public class ConsumerGroupController extends NamespacedResourceController {
 
     @Post("/{consumerGroupName}/reset")
     void resetOffsets(String consumerGroupName, @Body ConsumerGroupResetOffset consumerGroupResetOffset) {
-        /*
-        List.of("topic(:partition)","method", "option");
-        List.of("toto","to-earliest", "{}");
-        List.of("toto","to-datetime", "{2021-01-01T00:00:00.000}");
-        List.of("toto","to-offset",
-                Map.of(0, 123,
-                        1, 234,
-                        2, 345,
-                        3, 456)
-        );
-        */
 
         Namespace ns = getNamespace(consumerGroupResetOffset.getMetadata().getNamespace());
+
+        // validation
+        List<String> validationErrors = new ArrayList<>();
+        if (consumerGroupResetOffset.getSpec().getMethod().compareTo(ConsumerGroupResetOffsetMethod.TO_EARLIEST) != 0) {
+            validationErrors.add("Method different of TO_EARLIEST");
+        }
+        if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(consumerGroupResetOffset.getMetadata().getNamespace(), consumerGroupName)) {
+            validationErrors.add("Namespace is not owner of group");
+        }
+        if (!validationErrors.isEmpty()) {
+            throw new ResourceValidationException(validationErrors);
+        }
 
         try {
             AlterConsumerGroupOffsetsResult result = consumerGroupService.resetOffset(ns, consumerGroupName, consumerGroupResetOffset);
@@ -51,7 +56,23 @@ public class ConsumerGroupController extends NamespacedResourceController {
 
     @Post("/{consumerGroupName}/to-date-time")
     void toTimeDateOffsets(String consumerGroupName, @Body ConsumerGroupResetOffset consumerGroupResetOffset) {
+
         Namespace ns = getNamespace(consumerGroupResetOffset.getMetadata().getNamespace());
+
+        // validation
+        List<String> validationErrors = new ArrayList<>();
+        if (consumerGroupResetOffset.getSpec().getMethod().compareTo(ConsumerGroupResetOffsetMethod.TO_DATE_TIME) != 0) {
+            validationErrors.add("Method different of TO_DATE_TIME");
+        }
+        if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(consumerGroupResetOffset.getMetadata().getNamespace(), consumerGroupName)) {
+            validationErrors.add("Namespace is not owner of group");
+        }
+        if (consumerGroupResetOffset.getSpec().getTimestamp() == null) {
+            validationErrors.add("Timestamp is null");
+        }
+        if (!validationErrors.isEmpty()) {
+            throw new ResourceValidationException(validationErrors);
+        }
 
         try {
             AlterConsumerGroupOffsetsResult result = consumerGroupService.toTimeDateOffset(ns, consumerGroupName, consumerGroupResetOffset);

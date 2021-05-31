@@ -36,7 +36,7 @@ public class ConsumerGroupResetOffset {
         private String topic;
         @NotNull
         private ConsumerGroupResetOffsetMethod method;
-        private long timestamp;
+        private Long timestamp;
         private AlterConsumerGroupOffsetsOptions option;
     }
 

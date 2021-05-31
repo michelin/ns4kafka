@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.services;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,12 +10,12 @@ import java.util.concurrent.ExecutionException;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffset;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.AlterConsumerGroupOffsetsOptions;
 import org.apache.kafka.clients.admin.AlterConsumerGroupOffsetsResult;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
 import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
@@ -30,6 +29,13 @@ public class ConsumerGroupService {
 
     @Inject
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigs;
+
+    @Inject
+    AccessControlEntryService accessControlEntryService;
+
+    public boolean isNamespaceOwnerOfConsumerGroup(String namespace, String consumerGroupName) {
+        return accessControlEntryService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.GROUP, consumerGroupName);
+    }
 
     public AlterConsumerGroupOffsetsResult resetOffset(Namespace namespace, String consumerGroupId, ConsumerGroupResetOffset consumerGroupResetOffset) throws InterruptedException, ExecutionException {
 
@@ -89,5 +95,6 @@ public class ConsumerGroupService {
 
         return adminClient.alterConsumerGroupOffsets(consumerGroupId, mapOffsetMetadata);
     }
+
 
 }
