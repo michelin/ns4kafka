@@ -28,18 +28,15 @@ public class KafkactlCommand implements Callable<Integer> {
     public static boolean VERBOSE = false;
 
     @Option(names = {"-v", "--verbose"}, description = "...", scope = CommandLine.ScopeType.INHERIT)
-    protected void setVerbose(final boolean verbose) {
+    public void setVerbose(final boolean verbose) {
         VERBOSE = verbose;
     }
 
     @Option(names = {"-n", "--namespace"}, description = "Override namespace defined in config or yaml resource", scope = CommandLine.ScopeType.INHERIT)
-    Optional<String> optionalNamespace;
+    public Optional<String> optionalNamespace;
 
 
     public static void main(String[] args) throws Exception {
-        String configPath = System.getProperty("user.home") + "/.kafkactl/config.yml";
-        System.setProperty("micronaut.config.files", configPath);
-
         int exitCode = PicocliRunner.execute(KafkactlCommand.class, args);
         System.exit(exitCode);
     }

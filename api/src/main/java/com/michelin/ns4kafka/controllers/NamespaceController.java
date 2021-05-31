@@ -14,7 +14,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,7 +37,7 @@ public class NamespaceController extends NonNamespacedResourceController {
 
         if (existingNamespace.isEmpty()) {
             // New Namespace checks
-            validationErrors = namespaceService.validateCreation(namespace);
+            validationErrors.addAll(namespaceService.validateCreation(namespace));
         } else {
             // Update checks
             //Immutable data
@@ -50,9 +52,14 @@ public class NamespaceController extends NonNamespacedResourceController {
                         + existingNamespace.get().getSpec().getKafkaUser() + ")");
             }
         }
+        // connect cluster check
+        validationErrors.addAll(namespaceService.validate(namespace));
+
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors);
         }
+        //augment
+        namespace.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
 
         //dryrun checks
         if (dryrun) {

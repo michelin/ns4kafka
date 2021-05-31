@@ -5,7 +5,6 @@ plugins {
 }
 
 applicationName = 'kafkactl'
-version = "0.1"
 mainClassName = "com.michelin.ns4kafka.cli.KafkactlCommand"
 
 shadowJar {
@@ -14,8 +13,13 @@ shadowJar {
 }
 
 nativeImage {
-    imageName('kafkactl')
-    // environment([MICRONAUT_CONFIG_FILES: System.getenv("user.home") + "/.kafkactl/config.yml" ])
+    imageName('kafkactl-'+version)
+    args = ['-H:Class=com.michelin.ns4kafka.cli.KafkactlCommand ',
+            '-H:IncludeResourceBundles=org.ocpsoft.prettytime.i18n.Resources',
+            '-H:+ReportUnsupportedElementsAtRuntime']
+}
+dockerBuild {
+    images = ["twobeeb/kafkactl:"+version]
 }
 
 repositories {
@@ -35,6 +39,8 @@ dependencies {
 
     annotationProcessor 'org.projectlombok:lombok:1.18.16'
     annotationProcessor("info.picocli:picocli-codegen:4.6.1")
+    annotationProcessor "io.micronaut:micronaut-graal"
+    compileOnly "org.graalvm.nativeimage:svm"
     implementation("info.picocli:picocli:4.6.1")
     implementation("io.micronaut.picocli:micronaut-picocli")
     implementation("io.micronaut:micronaut-validation")

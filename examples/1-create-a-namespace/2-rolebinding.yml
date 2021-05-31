@@ -4,7 +4,6 @@ kind: RoleBinding
 metadata:
   name: project1-rolebinding
   namespace: project1
-  cluster: local
 spec:
   role:
     resourceTypes:
@@ -18,4 +17,4 @@ spec:
       - DELETE
   subject:
     subjectType: GROUP
-    subjectName: LDAP-GROUP-1
+    subjectName: f4m

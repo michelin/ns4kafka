@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 public class KafkactlConfig {
 
-    String api;
-    String userToken;
-    String currentNamespace;
+    public String api;
+    public String userToken;
+    public String currentNamespace;
 }

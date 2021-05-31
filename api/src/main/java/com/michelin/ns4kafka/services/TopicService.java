@@ -5,6 +5,7 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.TopicRepository;
+import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 
@@ -59,10 +60,10 @@ public class TopicService {
 
     public void delete(Topic topic) {
         //TODO cleaner delete implementation, to be discussed
-        KafkaAsyncExecutor kafkaAsyncExecutor = applicationContext.getBean(KafkaAsyncExecutor.class,
+        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
                 Qualifiers.byName(topic.getMetadata().getCluster()));
         try {
-            kafkaAsyncExecutor.deleteTopic(topic);
+            topicAsyncExecutor.deleteTopic(topic);
         } catch (Exception e) {
             //TODO refactor global error handling model
             throw new ResourceValidationException(List.of(e.getMessage()));

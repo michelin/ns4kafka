@@ -35,25 +35,25 @@ import java.util.stream.Collectors;
 public class GetSubcommand implements Callable<Integer> {
 
     @Inject
-    NamespacedResourceClient namespacedClient;
+    public NamespacedResourceClient namespacedClient;
     @Inject
-    ClusterResourceClient nonNamespacedClient;
+    public ClusterResourceClient nonNamespacedClient;
 
     @Inject
-    LoginService loginService;
+    public LoginService loginService;
     @Inject
-    ApiResourcesService apiResourcesService;
+    public ApiResourcesService apiResourcesService;
     @Inject
-    ResourceService resourceService;
+    public ResourceService resourceService;
     @Inject
-    KafkactlConfig kafkactlConfig;
+    public KafkactlConfig kafkactlConfig;
 
     @CommandLine.ParentCommand
-    KafkactlCommand kafkactlCommand;
+    public KafkactlCommand kafkactlCommand;
     @Parameters(index = "0", description = "Resource type or 'all' to display resources for all types", arity = "1")
-    String resourceType;
+    public String resourceType;
     @Parameters(index = "1", description = "Resource name", arity = "0..1")
-    Optional<String> resourceName;
+    public Optional<String> resourceName;
     @Option(names = {"-o", "--output"}, description = "Output format. One of yml", scope = CommandLine.ScopeType.INHERIT)
     Optional<String> output;
 
@@ -66,7 +66,7 @@ public class GetSubcommand implements Callable<Integer> {
         // 1. Authent
         boolean authenticated = loginService.doAuthenticate();
         if (!authenticated) {
-            return 1;
+            throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
         }
 
         // 2. validate resourceType + custom type ALL
@@ -81,7 +81,7 @@ public class GetSubcommand implements Callable<Integer> {
             // 5.a display all resources by type
             apiResources.forEach(apiResource -> {
                         if(StringUtils.equals(output.orElse(null), "yml")){
-                            resources.stream().forEach(resource -> 
+                            resources.stream().forEach(resource ->
                             displayIndividual(resource)
                             );
                         } else {

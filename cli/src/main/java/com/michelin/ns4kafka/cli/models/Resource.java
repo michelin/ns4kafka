@@ -17,4 +17,5 @@ public class Resource {
     private String kind;
     private ObjectMeta metadata;
     private Map<String,Object> spec;
+    private Object status;
 }
