@@ -16,6 +16,7 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.AlterConsumerGroupOffsetsOptions;
 import org.apache.kafka.clients.admin.AlterConsumerGroupOffsetsResult;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
 import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
@@ -32,6 +33,28 @@ public class ConsumerGroupService {
 
     public AlterConsumerGroupOffsetsResult resetOffset(Namespace namespace, String consumerGroupId, ConsumerGroupResetOffset consumerGroupResetOffset) throws InterruptedException, ExecutionException {
 
+        AdminClient adminClient = generateAdminClientWithProperties(namespace);
+
+        OffsetSpec offsetSpec = OffsetSpec.earliest();
+
+        String topic = consumerGroupResetOffset.getSpec().getTopic();
+
+        return setNewOffset(adminClient, consumerGroupId, topic, offsetSpec);
+    }
+
+    public AlterConsumerGroupOffsetsResult toTimeDateOffset(Namespace namespace, String consumerGroupId, ConsumerGroupResetOffset consumerGroupResetOffset) throws InterruptedException, ExecutionException {
+
+        AdminClient adminClient = generateAdminClientWithProperties(namespace);
+
+        OffsetSpec offsetSpec = OffsetSpec.forTimestamp(consumerGroupResetOffset.getSpec().getTimestamp());
+
+        String topic = consumerGroupResetOffset.getSpec().getTopic();
+
+        return setNewOffset(adminClient, consumerGroupId, topic, offsetSpec);
+    }
+
+    private AdminClient generateAdminClientWithProperties(Namespace namespace) {
+
         String cluster = namespace.getMetadata().getCluster();
 
         // get config
@@ -40,28 +63,31 @@ public class ConsumerGroupService {
                 .findFirst();
         Properties config = configOptional.get().getConfig();
 
-        Map<TopicPartition, OffsetAndMetadata> mapOffset = new HashMap<>();
-        String topic = consumerGroupResetOffset.getSpec().getTopic();
+        return KafkaAdminClient.create(config);
+    }
 
-        AdminClient adminClient = KafkaAdminClient.create(config);
+    private AlterConsumerGroupOffsetsResult setNewOffset(AdminClient adminClient, String consumerGroupId, String topic, OffsetSpec offsetSpec) throws InterruptedException, ExecutionException {
+
+
+        //get partitions for a topic
         List<TopicPartitionInfo> partitions = adminClient.describeTopics(List.of(topic)).all().get().get(topic).partitions();
 
-        Map<TopicPartition, OffsetSpec> earliest = new HashMap<>();
-
-        //get the earliest offset for each partition
+        //get the offset corresponding to the spec for each partition
+        Map<TopicPartition, OffsetSpec> offsetsForTheSpec = new HashMap<>();
         partitions.forEach( partition -> {
-                TopicPartition topicPartition = new TopicPartition(consumerGroupResetOffset.getSpec().getTopic(), partition.partition());
-                earliest.put(topicPartition, OffsetSpec.earliest());
+                TopicPartition topicPartition = new TopicPartition(topic, partition.partition());
+                offsetsForTheSpec.put(topicPartition, offsetSpec);
         });
+        Map<TopicPartition, ListOffsetsResultInfo> newOffsets = adminClient.listOffsets(offsetsForTheSpec).all().get();
 
-        Map<TopicPartition, ListOffsetsResultInfo> earliestOffsets = adminClient.listOffsets(earliest).all().get();
 
         // set the new offset
-        earliestOffsets.forEach( (topicPartition, offsetResultInfo) -> {
-                mapOffset.put(topicPartition, new OffsetAndMetadata(offsetResultInfo.offset()));
+        Map<TopicPartition, OffsetAndMetadata> mapOffsetMetadata = new HashMap<>();
+        newOffsets.forEach( (topicPartition, offsetResultInfo) -> {
+                mapOffsetMetadata.put(topicPartition, new OffsetAndMetadata(offsetResultInfo.offset()));
         });
 
-        return adminClient.alterConsumerGroupOffsets(consumerGroupId, mapOffset);
+        return adminClient.alterConsumerGroupOffsets(consumerGroupId, mapOffsetMetadata);
     }
 
 }

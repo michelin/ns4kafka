@@ -6,6 +6,8 @@ import lombok.*;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
+import org.apache.kafka.clients.admin.AlterConsumerGroupOffsetsOptions;
+
 @Introspected
 @Builder
 @NoArgsConstructor
@@ -30,9 +32,12 @@ public class ConsumerGroupResetOffset {
     @Setter
     @ToString
     public static class ConsumerGroupResetOffsetSpec {
+        @NotNull
         private String topic;
+        @NotNull
         private ConsumerGroupResetOffsetMethod method;
-        private Object option;
+        private long timestamp;
+        private AlterConsumerGroupOffsetsOptions option;
     }
 
     @Introspected

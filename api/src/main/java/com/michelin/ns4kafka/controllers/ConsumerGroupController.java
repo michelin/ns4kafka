@@ -48,6 +48,20 @@ public class ConsumerGroupController extends NamespacedResourceController {
 
 
     }
+
+    @Post("/{consumerGroupName}/to-date-time")
+    void toTimeDateOffsets(String consumerGroupName, @Body ConsumerGroupResetOffset consumerGroupResetOffset) {
+        Namespace ns = getNamespace(consumerGroupResetOffset.getMetadata().getNamespace());
+
+        try {
+            AlterConsumerGroupOffsetsResult result = consumerGroupService.toTimeDateOffset(ns, consumerGroupName, consumerGroupResetOffset);
+            result.all().get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new KafkaConsumerException(e.getMessage());
+        }
+
+
+    }
     /*
     @Post("/{consumerGroupName}/set-offset")
     void changeOffsets(String namespace, String consumerGroupName, @Body List<ConsumerOffset> offsets) {
