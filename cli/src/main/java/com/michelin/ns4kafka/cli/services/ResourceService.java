@@ -72,4 +72,17 @@ public class ResourceService {
         }
         return null;
     }
+    public boolean delete(ApiResource apiResource, String namespace, String resource, boolean dryRun) {
+        try {
+            if (apiResource.isNamespaced()) {
+                namespacedClient.delete(namespace, apiResource.getPath(), resource, loginService.getAuthorization(), dryRun);
+                return true;
+            } else {
+                System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red FAILED: |@") + apiResource.getKind() + "/" + resource + ": The server doesn't have implemented this");
+            }
+        } catch (HttpClientResponseException e) {
+            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red FAILED |@") + apiResource.getKind() + "/" + resource + CommandLine.Help.Ansi.AUTO.string("@|bold,red failed with message : |@") + e.getMessage());
+        }
+        return false;
+    }
 }

@@ -52,11 +52,9 @@ public class GetSubcommand implements Callable<Integer> {
     public String resourceType;
     @Parameters(index = "1", description = "Resource name", arity = "0..1")
     public Optional<String> resourceName;
-    @CommandLine.Option(names = {"-n", "--namespace"}, description = "Override namespace defined in config or yaml resource", scope = CommandLine.ScopeType.INHERIT)
-    public Optional<String> optionalNamespace;
 
-    //@CommandLine.Spec
-    //CommandLine.Model.CommandSpec commandSpec;
+    @CommandLine.Spec
+    CommandLine.Model.CommandSpec commandSpec;
 
     @Override
     public Integer call() throws Exception {
@@ -64,13 +62,13 @@ public class GetSubcommand implements Callable<Integer> {
         // 1. Authent
         boolean authenticated = loginService.doAuthenticate();
         if (!authenticated) {
-            return 1;
+            throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
         }
 
         // 2. validate resourceType + custom type ALL
         List<ApiResource> apiResources = validateResourceType();
 
-        String namespace = optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
+        String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
         // 3. list resources based on parameters
         if (resourceName.isEmpty() || apiResources.size() > 1) {
             // 4.a list all resources for given types (k get all, k get topics)
