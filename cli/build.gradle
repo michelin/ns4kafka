@@ -36,11 +36,12 @@ micronaut {
 
 dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.16'
+    compileOnly "org.graalvm.nativeimage:svm"
 
     annotationProcessor 'org.projectlombok:lombok:1.18.16'
     annotationProcessor("info.picocli:picocli-codegen:4.6.1")
     annotationProcessor "io.micronaut:micronaut-graal"
-    compileOnly "org.graalvm.nativeimage:svm"
+
     implementation("info.picocli:picocli:4.6.1")
     implementation("io.micronaut.picocli:micronaut-picocli")
     implementation("io.micronaut:micronaut-validation")
