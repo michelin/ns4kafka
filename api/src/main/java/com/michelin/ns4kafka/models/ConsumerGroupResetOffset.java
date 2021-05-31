@@ -48,7 +48,7 @@ public class ConsumerGroupResetOffset {
 
     @Introspected
     public static enum ConsumerGroupResetOffsetMethod {
-        TO_EARLIEST, TO_DATE_TIME
+        TO_EARLIEST, TO_DATETIME
     }
 
     @Introspected

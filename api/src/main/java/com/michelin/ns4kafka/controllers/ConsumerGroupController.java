@@ -75,15 +75,15 @@ public class ConsumerGroupController extends NamespacedResourceController {
 
     }
 
-    @Post("/{consumerGroupName}/to-date-time{?dryrun}")
+    @Post("/{consumerGroupName}/to-datetime{?dryrun}")
     ConsumerGroupResetOffset toTimeDateOffsets(String consumerGroupName, @Body ConsumerGroupResetOffset consumerGroupResetOffset, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         Namespace ns = getNamespace(consumerGroupResetOffset.getMetadata().getNamespace());
 
         // validation
         List<String> validationErrors = new ArrayList<>();
-        if (consumerGroupResetOffset.getSpec().getMethod().compareTo(ConsumerGroupResetOffsetMethod.TO_DATE_TIME) != 0) {
-            validationErrors.add("Method different of TO_DATE_TIME");
+        if (consumerGroupResetOffset.getSpec().getMethod().compareTo(ConsumerGroupResetOffsetMethod.TO_DATETIME) != 0) {
+            validationErrors.add("Method different of TO_DATETIME");
         }
         if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(consumerGroupResetOffset.getMetadata().getNamespace(), consumerGroupName)) {
             validationErrors.add("Namespace is not owner of group");
