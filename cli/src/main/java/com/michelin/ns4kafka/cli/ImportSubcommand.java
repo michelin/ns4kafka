@@ -17,8 +17,8 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
-@Command(name = "synchronize", description = "Synchronize resources already present on the Kafka Cluster with ns4kafka")
-public class SynchronizeSubcommand implements Callable<Integer> {
+@Command(name = "import", description = "Import resources already present on the Kafka Cluster in ns4kafka")
+public class ImportSubcommand implements Callable<Integer> {
 
     @Inject
     public LoginService loginService;
@@ -55,7 +55,7 @@ public class SynchronizeSubcommand implements Callable<Integer> {
 
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
 
-        List<Resource> resources = resourceService.synchronizeAll(apiResources, namespace, dryRun);
+        List<Resource> resources = resourceService.importAll(apiResources, namespace, dryRun);
 
         // 5.a display all resources by type
         apiResources.forEach(apiResource ->

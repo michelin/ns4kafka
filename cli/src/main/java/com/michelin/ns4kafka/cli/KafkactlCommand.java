@@ -16,7 +16,7 @@ import java.util.concurrent.Callable;
                         DeleteSubcommand.class,
                         ApiResourcesSubcommand.class,
                         DiffSubcommand.class,
-                        SynchronizeSubcommand.class
+                        ImportSubcommand.class
                 },
         description = "...",
         mixinStandardHelpOptions = true,

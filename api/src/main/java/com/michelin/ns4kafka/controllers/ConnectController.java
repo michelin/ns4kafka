@@ -109,7 +109,7 @@ public class ConnectController extends NamespacedResourceController {
         return kafkaConnectService.createOrUpdate(ns, connector);
     }
 
-    @Post("/_/synchronize")
+    @Post("/_/import{?dryrun}")
     public List<Connector> synchronize(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         Namespace ns = getNamespace(namespace);

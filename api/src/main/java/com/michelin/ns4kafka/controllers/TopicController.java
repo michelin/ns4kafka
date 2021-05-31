@@ -138,8 +138,8 @@ public class TopicController extends NamespacedResourceController {
         return HttpResponse.noContent();
     }
 
-    @Post("/_/synchronize")
-    public List<Topic> synchronize(String namespace, @QueryValue(defaultValue = "false") boolean dryrun)
+    @Post("/_/import{?dryrun}")
+    public List<Topic> importResources(String namespace, @QueryValue(defaultValue = "false") boolean dryrun)
             throws ExecutionException, InterruptedException, TimeoutException {
 
         Namespace ns = getNamespace(namespace);
@@ -153,7 +153,7 @@ public class TopicController extends NamespacedResourceController {
                 topic.getMetadata().setNamespace(ns.getMetadata().getName());
                 topic.setStatus(Topic.TopicStatus.builder()
                         .phase(Topic.TopicPhase.Success)
-                        .message("Synchronized from cluster")
+                        .message("Imported from cluster")
                         .build());
         });
 

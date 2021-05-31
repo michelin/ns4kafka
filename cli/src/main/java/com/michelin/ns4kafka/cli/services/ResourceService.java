@@ -85,18 +85,18 @@ public class ResourceService {
         }
         return false;
     }
-    public List<Resource> synchronizeAll(List<ApiResource> apiResources, String namespace, boolean dryRun) {
+    public List<Resource> importAll(List<ApiResource> apiResources, String namespace, boolean dryRun) {
         return apiResources
                 .stream()
-                .flatMap(apiResource -> synchronizeResourcesWithType(apiResource, namespace, dryRun).stream())
+                .flatMap(apiResource -> importResourcesWithType(apiResource, namespace, dryRun).stream())
                 .collect(Collectors.toList());
     }
 
-    private List<Resource> synchronizeResourcesWithType(ApiResource apiResource, String namespace, boolean dryRun) {
+    private List<Resource> importResourcesWithType(ApiResource apiResource, String namespace, boolean dryRun) {
         List<Resource> resources;
 
         try {
-            resources = namespacedClient.synchronize(namespace, apiResource.getPath(), loginService.getAuthorization(), dryRun);
+            resources = namespacedClient.importResources(namespace, apiResource.getPath(), loginService.getAuthorization(), dryRun);
         } catch (HttpClientResponseException e) {
             System.out.println("Error during synchronize for resource type " + apiResource.getKind() + ": " + e.getMessage());
             resources = List.of();
