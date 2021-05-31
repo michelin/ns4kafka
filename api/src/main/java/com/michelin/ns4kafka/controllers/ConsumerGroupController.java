@@ -1,56 +1,56 @@
 package com.michelin.ns4kafka.controllers;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-
-import javax.inject.Inject;
-
-import com.michelin.ns4kafka.models.ConsumerGroupResetOffset;
+import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets;
+import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets.ResetOffsetsMethod;
+import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets.ConsumerGroupResetOffsetStatus;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ConsumerGroupResetOffset.ConsumerGroupResetOffsetMethod;
-import com.michelin.ns4kafka.models.ConsumerGroupResetOffset.ConsumerGroupResetOffsetStatus;
 import com.michelin.ns4kafka.services.ConsumerGroupService;
 import com.michelin.ns4kafka.services.ConsumerGroupService.resultWithOffsets;
-
-import org.apache.kafka.clients.admin.AlterConsumerGroupOffsetsResult;
-import org.apache.kafka.common.TopicPartition;
-
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Tag(name = "Consumer Group management",
-        description = "APIs to handle Consumer Group")
-@Controller("/api/namespaces/{namespace}/consumer-group")
+import javax.inject.Inject;
+import javax.validation.Valid;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+
+@Tag(name = "Consumer Groups")
+@Controller("/api/namespaces/{namespace}/consumer-groups")
 public class ConsumerGroupController extends NamespacedResourceController {
 
     @Inject
     ConsumerGroupService consumerGroupService;
 
-    @Post("/{consumerGroupName}/reset{?dryrun}")
-    ConsumerGroupResetOffset resetOffsets(String consumerGroupName, @Body ConsumerGroupResetOffset consumerGroupResetOffset, @QueryValue(defaultValue = "false") boolean dryrun) {
+    @Post("/{consumerGroup}/reset{?dryrun}")
+    public ConsumerGroupResetOffsets resetOffsets(String namespace, String consumerGroup,
+                                                  @Valid @Body ConsumerGroupResetOffsets consumerGroupResetOffsets,
+                                                  @QueryValue(defaultValue = "false") boolean dryrun) {
 
-        Namespace ns = getNamespace(consumerGroupResetOffset.getMetadata().getNamespace());
+        Namespace ns = getNamespace(namespace);
 
-        // validation
-        List<String> validationErrors = new ArrayList<>();
-        if (consumerGroupResetOffset.getSpec().getMethod().compareTo(ConsumerGroupResetOffsetMethod.TO_EARLIEST) != 0) {
-            validationErrors.add("Method different of TO_EARLIEST");
-        }
-        if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(consumerGroupResetOffset.getMetadata().getNamespace(), consumerGroupName)) {
-            validationErrors.add("Namespace is not owner of group");
+        // validate spec
+        List<String> validationErrors = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
+        // validate ownership
+        if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(namespace, consumerGroup)) {
+            validationErrors.add("Invalid value " + consumerGroup + " for name: Namespace not OWNER of this consumer group");
         }
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors);
         }
+        // TODO THIS
+        //  val partitionsToReset = getPartitionsToReset(groupId)
+        //  val preparedOffsets = prepareOffsetsToReset(groupId, partitionsToReset)
+        //  if dry-run return preparedOffsets
+        //
         resultWithOffsets result;
         try {
-            result = consumerGroupService.resetOffset(ns, consumerGroupName, consumerGroupResetOffset);
+            result = consumerGroupService.resetOffset(ns, consumerGroup, consumerGroupResetOffsets);
 
             if (!dryrun) {
                 result.getResult().all().get();
@@ -69,26 +69,26 @@ public class ConsumerGroupController extends NamespacedResourceController {
             .offsetChanged(mapResult)
             .build();
 
-        consumerGroupResetOffset.setStatus(status);
-        return consumerGroupResetOffset;
+        consumerGroupResetOffsets.setStatus(status);
+        return consumerGroupResetOffsets;
 
 
     }
 
     @Post("/{consumerGroupName}/to-datetime{?dryrun}")
-    ConsumerGroupResetOffset toTimeDateOffsets(String consumerGroupName, @Body ConsumerGroupResetOffset consumerGroupResetOffset, @QueryValue(defaultValue = "false") boolean dryrun) {
+    ConsumerGroupResetOffsets toTimeDateOffsets(String consumerGroupName, @Body ConsumerGroupResetOffsets consumerGroupResetOffsets, @QueryValue(defaultValue = "false") boolean dryrun) {
 
-        Namespace ns = getNamespace(consumerGroupResetOffset.getMetadata().getNamespace());
+        Namespace ns = getNamespace(consumerGroupResetOffsets.getMetadata().getNamespace());
 
         // validation
         List<String> validationErrors = new ArrayList<>();
-        if (consumerGroupResetOffset.getSpec().getMethod().compareTo(ConsumerGroupResetOffsetMethod.TO_DATETIME) != 0) {
+        if (consumerGroupResetOffsets.getSpec().getMethod().compareTo(ResetOffsetsMethod.TO_DATETIME) != 0) {
             validationErrors.add("Method different of TO_DATETIME");
         }
-        if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(consumerGroupResetOffset.getMetadata().getNamespace(), consumerGroupName)) {
+        if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(consumerGroupResetOffsets.getMetadata().getNamespace(), consumerGroupName)) {
             validationErrors.add("Namespace is not owner of group");
         }
-        if (consumerGroupResetOffset.getSpec().getTimestamp() == null) {
+        if (consumerGroupResetOffsets.getSpec().getTimestamp() == null) {
             validationErrors.add("Timestamp is null");
         }
         if (!validationErrors.isEmpty()) {
@@ -96,7 +96,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
         }
         resultWithOffsets result;
         try {
-             result = consumerGroupService.toTimeDateOffset(ns, consumerGroupName, consumerGroupResetOffset);
+             result = consumerGroupService.toTimeDateOffset(ns, consumerGroupName, consumerGroupResetOffsets);
 
             if (!dryrun) {
                 result.getResult().all().get();
@@ -114,8 +114,8 @@ public class ConsumerGroupController extends NamespacedResourceController {
             .offsetChanged(mapResult)
             .build();
 
-        consumerGroupResetOffset.setStatus(status);
-        return consumerGroupResetOffset;
+        consumerGroupResetOffsets.setStatus(status);
+        return consumerGroupResetOffsets;
 
 
     }
