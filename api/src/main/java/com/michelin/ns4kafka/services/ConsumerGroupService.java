@@ -24,6 +24,10 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+
 @Singleton
 public class ConsumerGroupService {
 
@@ -37,7 +41,7 @@ public class ConsumerGroupService {
         return accessControlEntryService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.GROUP, consumerGroupName);
     }
 
-    public AlterConsumerGroupOffsetsResult resetOffset(Namespace namespace, String consumerGroupId, ConsumerGroupResetOffset consumerGroupResetOffset) throws InterruptedException, ExecutionException {
+    public resultWithOffsets resetOffset(Namespace namespace, String consumerGroupId, ConsumerGroupResetOffset consumerGroupResetOffset) throws InterruptedException, ExecutionException {
 
         AdminClient adminClient = generateAdminClientWithProperties(namespace);
 
@@ -48,7 +52,7 @@ public class ConsumerGroupService {
         return setNewOffset(adminClient, consumerGroupId, topic, offsetSpec);
     }
 
-    public AlterConsumerGroupOffsetsResult toTimeDateOffset(Namespace namespace, String consumerGroupId, ConsumerGroupResetOffset consumerGroupResetOffset) throws InterruptedException, ExecutionException {
+    public resultWithOffsets toTimeDateOffset(Namespace namespace, String consumerGroupId, ConsumerGroupResetOffset consumerGroupResetOffset) throws InterruptedException, ExecutionException {
 
         AdminClient adminClient = generateAdminClientWithProperties(namespace);
 
@@ -72,7 +76,7 @@ public class ConsumerGroupService {
         return KafkaAdminClient.create(config);
     }
 
-    private AlterConsumerGroupOffsetsResult setNewOffset(AdminClient adminClient, String consumerGroupId, String topic, OffsetSpec offsetSpec) throws InterruptedException, ExecutionException {
+    private resultWithOffsets setNewOffset(AdminClient adminClient, String consumerGroupId, String topic, OffsetSpec offsetSpec) throws InterruptedException, ExecutionException {
 
 
         //get partitions for a topic
@@ -91,10 +95,19 @@ public class ConsumerGroupService {
         Map<TopicPartition, OffsetAndMetadata> mapOffsetMetadata = new HashMap<>();
         newOffsets.forEach( (topicPartition, offsetResultInfo) -> {
                 mapOffsetMetadata.put(topicPartition, new OffsetAndMetadata(offsetResultInfo.offset()));
+                new OffsetAndMetadata(0).offset();
         });
 
-        return adminClient.alterConsumerGroupOffsets(consumerGroupId, mapOffsetMetadata);
+        AlterConsumerGroupOffsetsResult result = adminClient.alterConsumerGroupOffsets(consumerGroupId, mapOffsetMetadata);
+        return new resultWithOffsets(result, mapOffsetMetadata);
     }
 
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    public static class resultWithOffsets {
+        private AlterConsumerGroupOffsetsResult result;
+        private Map<TopicPartition, OffsetAndMetadata> mapOffset;
+    }
 
 }

@@ -1,7 +1,9 @@
 package com.michelin.ns4kafka.controllers;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
@@ -9,14 +11,17 @@ import javax.inject.Inject;
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffset;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffset.ConsumerGroupResetOffsetMethod;
+import com.michelin.ns4kafka.models.ConsumerGroupResetOffset.ConsumerGroupResetOffsetStatus;
 import com.michelin.ns4kafka.services.ConsumerGroupService;
+import com.michelin.ns4kafka.services.ConsumerGroupService.resultWithOffsets;
 
 import org.apache.kafka.clients.admin.AlterConsumerGroupOffsetsResult;
+import org.apache.kafka.common.TopicPartition;
 
-import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
+import io.micronaut.http.annotation.QueryValue;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Tag(name = "Consumer Group management",
@@ -27,8 +32,8 @@ public class ConsumerGroupController extends NamespacedResourceController {
     @Inject
     ConsumerGroupService consumerGroupService;
 
-    @Post("/{consumerGroupName}/reset")
-    void resetOffsets(String consumerGroupName, @Body ConsumerGroupResetOffset consumerGroupResetOffset) {
+    @Post("/{consumerGroupName}/reset{?dryrun}")
+    ConsumerGroupResetOffset resetOffsets(String consumerGroupName, @Body ConsumerGroupResetOffset consumerGroupResetOffset, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         Namespace ns = getNamespace(consumerGroupResetOffset.getMetadata().getNamespace());
 
@@ -43,19 +48,35 @@ public class ConsumerGroupController extends NamespacedResourceController {
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors);
         }
-
+        resultWithOffsets result;
         try {
-            AlterConsumerGroupOffsetsResult result = consumerGroupService.resetOffset(ns, consumerGroupName, consumerGroupResetOffset);
-            result.all().get();
+            result = consumerGroupService.resetOffset(ns, consumerGroupName, consumerGroupResetOffset);
+
+            if (!dryrun) {
+                result.getResult().all().get();
+            }
         } catch (InterruptedException | ExecutionException e) {
             throw new KafkaConsumerException(e.getMessage());
         }
 
+        Map<String, Long> mapResult = new HashMap<>();
+        result.getMapOffset().forEach((topicPartition, offsetAndMetadata) -> {
+                mapResult.put(topicPartition.topic() + topicPartition.partition(), offsetAndMetadata.offset());
+        });
+
+        ConsumerGroupResetOffsetStatus status =  ConsumerGroupResetOffsetStatus.builder()
+            .success(true)
+            .offsetChanged(mapResult)
+            .build();
+
+        consumerGroupResetOffset.setStatus(status);
+        return consumerGroupResetOffset;
+
 
     }
 
-    @Post("/{consumerGroupName}/to-date-time")
-    void toTimeDateOffsets(String consumerGroupName, @Body ConsumerGroupResetOffset consumerGroupResetOffset) {
+    @Post("/{consumerGroupName}/to-date-time{?dryrun}")
+    ConsumerGroupResetOffset toTimeDateOffsets(String consumerGroupName, @Body ConsumerGroupResetOffset consumerGroupResetOffset, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         Namespace ns = getNamespace(consumerGroupResetOffset.getMetadata().getNamespace());
 
@@ -73,13 +94,28 @@ public class ConsumerGroupController extends NamespacedResourceController {
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors);
         }
-
+        resultWithOffsets result;
         try {
-            AlterConsumerGroupOffsetsResult result = consumerGroupService.toTimeDateOffset(ns, consumerGroupName, consumerGroupResetOffset);
-            result.all().get();
+             result = consumerGroupService.toTimeDateOffset(ns, consumerGroupName, consumerGroupResetOffset);
+
+            if (!dryrun) {
+                result.getResult().all().get();
+            }
         } catch (InterruptedException | ExecutionException e) {
             throw new KafkaConsumerException(e.getMessage());
         }
+        Map<String, Long> mapResult = new HashMap<>();
+        result.getMapOffset().forEach((topicPartition, offsetAndMetadata) -> {
+                mapResult.put(topicPartition.topic() + topicPartition.partition(), offsetAndMetadata.offset());
+        });
+
+        ConsumerGroupResetOffsetStatus status =  ConsumerGroupResetOffsetStatus.builder()
+            .success(true)
+            .offsetChanged(mapResult)
+            .build();
+
+        consumerGroupResetOffset.setStatus(status);
+        return consumerGroupResetOffset;
 
 
     }

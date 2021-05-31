@@ -3,10 +3,13 @@ package com.michelin.ns4kafka.models;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 
+import java.util.Map;
+
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
 import org.apache.kafka.clients.admin.AlterConsumerGroupOffsetsOptions;
+import org.apache.kafka.common.TopicPartition;
 
 @Introspected
 @Builder
@@ -22,7 +25,10 @@ public class ConsumerGroupResetOffset {
     private ObjectMeta metadata;
     @Valid
     @NotNull
-    ConsumerGroupResetOffsetSpec spec;
+    private ConsumerGroupResetOffsetSpec spec;
+    @Valid
+    private ConsumerGroupResetOffsetStatus status;
+
 
     @Introspected
     @Builder
@@ -45,5 +51,17 @@ public class ConsumerGroupResetOffset {
         TO_EARLIEST, TO_DATE_TIME
     }
 
+    @Introspected
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
+    @Setter
+    @ToString
+    public static class ConsumerGroupResetOffsetStatus {
+        private boolean success;
+        private Map<String, Long> offsetChanged;
+
+    }
 
 }
