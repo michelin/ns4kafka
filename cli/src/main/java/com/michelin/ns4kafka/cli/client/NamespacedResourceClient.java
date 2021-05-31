@@ -24,7 +24,6 @@ public interface NamespacedResourceClient {
             @Header("Authorization") String token,
             @Body Resource json,
             @QueryValue boolean dryrun);
-;
 
     @Get("{namespace}/{kind}")
     List<Resource> list(
