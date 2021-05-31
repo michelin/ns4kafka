@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.cli.models;
 
 import io.micronaut.core.annotation.Introspected;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -10,6 +11,7 @@ import java.util.Map;
 @Introspected
 @Getter
 @Setter
+@Builder
 @ToString
 public class Resource {
 
