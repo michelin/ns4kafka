@@ -36,11 +36,12 @@ micronaut {
 
 dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.16'
+    compileOnly "org.graalvm.nativeimage:svm"
 
     annotationProcessor 'org.projectlombok:lombok:1.18.16'
     annotationProcessor("info.picocli:picocli-codegen:4.6.1")
     annotationProcessor "io.micronaut:micronaut-graal"
-    compileOnly "org.graalvm.nativeimage:svm"
+
     implementation("info.picocli:picocli:4.6.1")
     implementation("io.micronaut.picocli:micronaut-picocli")
     implementation("io.micronaut:micronaut-validation")
@@ -51,7 +52,6 @@ dependencies {
     //External libs
     implementation("org.ocpsoft.prettytime:prettytime:5.0.1.Final")
     implementation("io.github.java-diff-utils:java-diff-utils:4.9")
-    implementation("org.apache.commons:commons-lang3:3.11")
 
     runtimeOnly("ch.qos.logback:logback-classic")
     testImplementation("io.micronaut:micronaut-http-client")

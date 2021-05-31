@@ -7,7 +7,6 @@ import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
-import org.apache.commons.lang3.StringUtils;
 import org.ocpsoft.prettytime.PrettyTime;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
@@ -15,8 +14,8 @@ import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Parameters;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -54,8 +53,8 @@ public class GetSubcommand implements Callable<Integer> {
     public String resourceType;
     @Parameters(index = "1", description = "Resource name", arity = "0..1")
     public Optional<String> resourceName;
-    @Option(names = {"-o", "--output"}, description = "Output format. One of yml", scope = CommandLine.ScopeType.INHERIT)
-    Optional<String> output;
+    @Option(names = {"-o", "--output"}, description = "Output format. One of: yaml|table", defaultValue = "table")
+    public String output;
 
     @CommandLine.Spec
     CommandLine.Model.CommandSpec commandSpec;
@@ -72,6 +71,8 @@ public class GetSubcommand implements Callable<Integer> {
         // 2. validate resourceType + custom type ALL
         List<ApiResource> apiResources = validateResourceType();
 
+        validateOutput();
+
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
         // 3. list resources based on parameters
         if (resourceName.isEmpty() || apiResources.size() > 1) {
@@ -80,10 +81,8 @@ public class GetSubcommand implements Callable<Integer> {
 
             // 5.a display all resources by type
             apiResources.forEach(apiResource -> {
-                        if(StringUtils.equals(output.orElse(null), "yml")){
-                            resources.stream().forEach(resource ->
-                            displayIndividual(resource)
-                            );
+                        if (output.equals("yaml")) {
+                            resources.stream().forEach(this::displayIndividual);
                         } else {
                             displayAsTable(apiResource,
                                     resources.stream()
@@ -103,6 +102,12 @@ public class GetSubcommand implements Callable<Integer> {
         }
 
         return 0;
+    }
+
+    private void validateOutput() {
+        if (!List.of("table", "yaml").contains(output)) {
+            throw new CommandLine.ParameterException(commandSpec.commandLine(), "Invalid value " + output + " for option -o");
+        }
     }
 
     private List<ApiResource> validateResourceType() {
