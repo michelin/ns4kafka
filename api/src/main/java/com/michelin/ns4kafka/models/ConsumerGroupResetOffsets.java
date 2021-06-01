@@ -67,6 +67,7 @@ public class ConsumerGroupResetOffsets {
     @ToString
     public static class ConsumerGroupResetOffsetStatus {
         private boolean success;
+        private String errorMessage;
         private Map<String, Long> offsetChanged;
 
     }
