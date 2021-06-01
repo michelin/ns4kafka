@@ -88,23 +88,21 @@ public class TopicController extends NamespacedResourceController {
             throw new ResourceValidationException(validationErrors);
         }
 
-        //TODO hasChanged ?
-        // if so, just return 200 with current topic, do nothing
-
         //3. Fill server-side fields (server side metadata + status)
         topic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
         topic.getMetadata().setCluster(ns.getMetadata().getCluster());
         topic.getMetadata().setNamespace(ns.getMetadata().getName());
         topic.setStatus(Topic.TopicStatus.ofPending());
+
+        if(existingTopic.get().equals(topic)){
+            return existingTopic.get();
+        }
+
         if (dryrun) {
             return topic;
         }
-        return topicService.create(topic);
-        //TODO quota management
-        // pour les topics dont je suis owner, somme d'usage
-        // pour le topic à créer usageTopic
-        // si somme + usageTopic > quota KO
 
+        return topicService.create(topic);
     }
 
     @Status(HttpStatus.NO_CONTENT)

@@ -1,8 +1,10 @@
 package com.michelin.ns4kafka.models;
 
 import io.micronaut.core.annotation.Introspected;
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
@@ -15,14 +17,13 @@ import java.util.Collection;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter
-@Setter
-@ToString
+@Data
 public class RoleBinding {
 
     private final String apiVersion = "v1";
     private final String kind = "RoleBinding";
 
+    @Valid
     @NotNull
     private ObjectMeta metadata;
 
@@ -33,9 +34,7 @@ public class RoleBinding {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @Getter
-    @Setter
-    @Schema(description = "Contains the Role Binding specification")
+    @Data
     public static class RoleBindingSpec {
 
         @Valid
@@ -50,8 +49,7 @@ public class RoleBinding {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @Getter
-    @Setter
+    @Data
     public static class Role {
 
         @NotNull
@@ -66,8 +64,7 @@ public class RoleBinding {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @Getter
-    @Setter
+    @Data
     public static class Subject {
 
         @NotNull

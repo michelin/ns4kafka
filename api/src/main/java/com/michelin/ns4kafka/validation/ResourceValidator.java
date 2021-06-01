@@ -10,16 +10,10 @@ import java.util.stream.Collectors;
 
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter
-@Setter
+@Data
 public abstract class ResourceValidator {
 
     protected Map<String,Validator> validationConstraints;
-
-    public void validateProps(Map<String, String> props) {
-
-
-    }
 
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,
