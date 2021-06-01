@@ -15,12 +15,4 @@ public interface ConsumerGroupClient {
             @Body Resource json,
             @QueryValue boolean dryrun);
 
-    @Post("{namespace}/consumer-group/{consumerGroupName}/to-date-time{?dryrun}")
-    Resource toDateTime(
-            @Header("Authorization") String token,
-            String namespace,
-            String consumerGroupName,
-            @Body Resource json,
-            @QueryValue boolean dryrun);
-
 }

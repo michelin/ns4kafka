@@ -15,9 +15,6 @@ public class ConsumerGroupService {
     @Inject
     public LoginService loginService;
 
-    public Resource toDateTime(String namespace, String group, Resource resource, boolean dryRun) {
-        return consumerGroupClient.toDateTime(loginService.getAuthorization(), namespace, group, resource, dryRun);
-    }
 
     public Resource reset(String namespace, String group, Resource resource, boolean dryRun) {
         return consumerGroupClient.reset(loginService.getAuthorization(), namespace, group, resource, dryRun);
