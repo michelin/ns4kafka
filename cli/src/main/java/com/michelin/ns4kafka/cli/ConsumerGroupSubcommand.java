@@ -1,6 +1,8 @@
 package com.michelin.ns4kafka.cli;
 
 import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -54,7 +56,7 @@ public class ConsumerGroupSubcommand implements Callable<Integer> {
         @Option(names = {"--to-latest"}, description = "Set offset to its latest value", required = true)
         public boolean latest;
         @Option(names = {"--to-datetime"}, description = "Set offset to a specific ISO 8601 DateTime with Time zone [ yyyy-MM-dd'T'HH:mm:ss.SSSXXX ] formats", required = true)
-        public String datetime;
+        public OffsetDateTime datetime;
         @Option(names = {"--shift-by"}, description = "Shift offset by a number", required = true)
         public Integer shiftBy;
         @Option(names = {"--by-duration"}, description = "Shift offset by a duration format [ PnDTnHnMnS ]", required = true)
@@ -88,7 +90,7 @@ public class ConsumerGroupSubcommand implements Callable<Integer> {
         }
         else if (method.datetime != null) {
             consumerGroupResetOffsetSpec.put("method", "TO_DATETIME");
-            consumerGroupResetOffsetSpec.put("options", method.datetime);
+            consumerGroupResetOffsetSpec.put("options", method.datetime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
         }
         else if (method.shiftBy != null) {
             consumerGroupResetOffsetSpec.put("method", "SHIFT_BY");
