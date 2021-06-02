@@ -144,7 +144,9 @@ public class TopicController extends NamespacedResourceController {
 
         Namespace ns = getNamespace(namespace);
 
-        List<Topic> unsynchronizedTopics = topicService.listUnsynchronizedTopics(ns);
+        List<String> unsynchronizedTopicsNames = topicService.listUnsynchronizedTopicNames(ns);
+
+        List<Topic> unsynchronizedTopics = topicService.listUnsynchronizedTopics(ns, unsynchronizedTopicsNames);        
 
         // Augment
         unsynchronizedTopics.forEach(topic -> {

@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class TopicService {
+    
     @Inject
     TopicRepository topicRepository;
     @Inject
@@ -75,7 +76,7 @@ public class TopicService {
         topicRepository.delete(topic);
     }
 
-    public List<Topic> listUnsynchronizedTopics(Namespace namespace) throws ExecutionException, InterruptedException, TimeoutException {
+    public List<String> listUnsynchronizedTopicNames(Namespace namespace) throws ExecutionException, InterruptedException, TimeoutException {
 
         TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
                 Qualifiers.byName(namespace.getMetadata().getCluster()));
@@ -88,8 +89,17 @@ public class TopicService {
                 // ...and aren't in ns4kafka storage
                 .filter(topic -> findByName(namespace, topic).isEmpty())
                 .collect(Collectors.toList());
+        return unsynchronizedTopicNames;
+
+    }
+
+    public List<Topic> listUnsynchronizedTopics(Namespace namespace, List<String> topicNames) throws ExecutionException, InterruptedException, TimeoutException {
+
+        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
+                Qualifiers.byName(namespace.getMetadata().getCluster()));
+
         // Get topics definitions
-        Collection<Topic> unsynchronizedTopics = topicAsyncExecutor.collectBrokerTopicsFromNames(unsynchronizedTopicNames)
+        Collection<Topic> unsynchronizedTopics = topicAsyncExecutor.collectBrokerTopicsFromNames(topicNames)
                 .values();
         return new ArrayList<>(unsynchronizedTopics);
 
