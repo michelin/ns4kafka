@@ -110,7 +110,7 @@ public class ConnectController extends NamespacedResourceController {
     }
 
     @Post("/_/import{?dryrun}")
-    public List<Connector> synchronize(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public List<Connector> importResources(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         Namespace ns = getNamespace(namespace);
 
