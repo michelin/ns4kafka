@@ -1,18 +1,18 @@
 package com.michelin.ns4kafka.services;
 
-import java.sql.Time;
-import java.text.DateFormat;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -23,21 +23,13 @@ import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets.ResetOffsetsMethod;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
-import com.nimbusds.jose.crypto.impl.MACProvider;
 
-import io.micronaut.core.util.StringUtils;
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.AlterConsumerGroupOffsetsResult;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
 import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.TopicPartitionInfo;
-
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
 
 @Singleton
 public class ConsumerGroupService {
@@ -91,8 +83,8 @@ public class ConsumerGroupService {
                 offsetSpec = OffsetSpec.forTimestamp(timestamp);
                 break;
             case TO_DATETIME:
-                DateFormat iso8601DateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
-                timestamp = iso8601DateFormat.parse(options).getTime();
+                OffsetDateTime dateTime = OffsetDateTime.parse(options);
+                timestamp = dateTime.toInstant().toEpochMilli();
                 offsetSpec = OffsetSpec.forTimestamp(timestamp);
                 break;
             case TO_LATEST:
@@ -151,9 +143,9 @@ public class ConsumerGroupService {
                 }
                 break;
             case TO_DATETIME:
-                DateFormat iso8601DateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+                // OffsetDateTime is of format iso6801 with time zone
                 try {
-                    iso8601DateFormat.parse(options);
+                    OffsetDateTime.parse(options);
                 } catch (Exception e) {
                     validationErrors.add("Invalid value " + options + " for options : Value must be an ISO 8601 DateTime with Time zone [ yyyy-MM-dd'T'HH:mm:ss.SSSXXX ]");
                 }
