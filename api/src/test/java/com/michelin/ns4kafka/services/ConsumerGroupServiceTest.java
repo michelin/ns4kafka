@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets.ConsumerGroupResetOffsetsSpec;
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets.ResetOffsetsMethod;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
@@ -61,6 +60,19 @@ public class ConsumerGroupServiceTest {
 
         List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void doValidation_MissingTopic() {
+        ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
+            .spec(ConsumerGroupResetOffsetsSpec.builder()
+                .topic(":2")
+                .method(ResetOffsetsMethod.TO_EARLIEST)
+                .build())
+            .build();
+
+        List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
+        assertTrue(result.size() == 1);
     }
 
     @Test
@@ -202,4 +214,5 @@ public class ConsumerGroupServiceTest {
         List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
         assertTrue(result.size() == 1);
     }
+
 }
