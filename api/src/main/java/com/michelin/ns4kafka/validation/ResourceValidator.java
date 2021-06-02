@@ -39,8 +39,7 @@ public abstract class ResourceValidator {
     /**
      * Validation logic for numeric ranges
      */
-    @Getter
-    @Setter
+    @Data
     @NoArgsConstructor
     public static class Range implements ResourceValidator.Validator {
         private Number min;
@@ -99,8 +98,7 @@ public abstract class ResourceValidator {
         }
     }
 
-    @Getter
-    @Setter
+    @Data
     @NoArgsConstructor
     public static class ValidList implements ResourceValidator.Validator {
 
@@ -137,8 +135,7 @@ public abstract class ResourceValidator {
         }
     }
 
-    @Getter
-    @Setter
+    @Data
     @NoArgsConstructor
     public static class ValidString implements ResourceValidator.Validator {
         List<String> validStrings;
@@ -184,10 +181,17 @@ public abstract class ResourceValidator {
         public String toString() {
             return "non-empty string";
         }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (obj == null) return false;
+            if (!(obj instanceof NonEmptyString)) return false;
+            return true;
+        }
     }
 
-    @Getter
-    @Setter
+    @Data
     @NoArgsConstructor
     public static class CompositeValidator implements ResourceValidator.Validator {
         private List<ResourceValidator.Validator> validators;
