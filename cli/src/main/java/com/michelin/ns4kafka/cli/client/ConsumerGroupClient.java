@@ -7,7 +7,7 @@ import io.micronaut.http.client.annotation.Client;
 @Client("${kafkactl.api}/api/namespaces/")
 public interface ConsumerGroupClient {
 
-    @Post("{namespace}/consumer-group/{consumerGroupName}/reset{?dryrun}")
+    @Post("{namespace}/consumer-groups/{consumerGroupName}/reset{?dryrun}")
     Resource reset(
             @Header("Authorization") String token,
             String namespace,

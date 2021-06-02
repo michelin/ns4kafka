@@ -9,6 +9,7 @@ import java.util.concurrent.Callable;
 
 import javax.inject.Inject;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.michelin.ns4kafka.cli.models.ObjectMeta;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ConsumerGroupService;
@@ -103,9 +104,10 @@ public class ConsumerGroupSubcommand implements Callable<Integer> {
 
         Resource consumerGroupResetOffset = Resource.builder()
             .apiVersion("v1")
-            .kind("ConsumerGroupResetOffset")
+            .kind("ConsumerGroupResetOffsets")
             .metadata(ObjectMeta.builder()
                     .namespace(namespace)
+                    .name(group)
                     .build())
             .spec(consumerGroupResetOffsetSpec)
             .build();
@@ -118,10 +120,10 @@ public class ConsumerGroupSubcommand implements Callable<Integer> {
             System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red ERROR: |@" + e.getMessage()));
             return 1;
         }
-
-        ConsumerGroupResetOffsetStatus status = (ConsumerGroupResetOffsetStatus)result.getStatus();
-        if (status.success) {
-            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,green SUCCESS|@"));
+        ObjectMapper mapper = new ObjectMapper();
+        ConsumerGroupResetOffsetStatus status = mapper.convertValue(result.getStatus(), ConsumerGroupResetOffsetStatus.class);
+        if (status.isSuccess()) {
+            System.out.println("New Offsets:");
             displayAsTable(status.getOffsetChanged());
         } else {
             System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red ERROR: |@" + status.getErrorMessage()));
@@ -152,9 +154,9 @@ public class ConsumerGroupSubcommand implements Callable<Integer> {
     @Setter
     @ToString
     public static class ConsumerGroupResetOffsetStatus {
-        private boolean success;
-        private String errorMessage;
-        private Map<String, Long> offsetChanged;
+        public boolean success;
+        public String errorMessage;
+        public Map<String, Long> offsetChanged;
 
     }
 }
