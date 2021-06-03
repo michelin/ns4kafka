@@ -7,8 +7,11 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
 import com.michelin.ns4kafka.services.connect.client.entities.ConfigInfos;
+import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
+import io.micronaut.context.ApplicationContext;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.inject.qualifiers.Qualifiers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +33,8 @@ public class KafkaConnectService {
     KafkaConnectClient kafkaConnectClient;
     @Inject
     ConnectorRepository connectorRepository;
+    @Inject
+    ApplicationContext applicationContext;
 
     public List<Connector> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace);
@@ -115,5 +120,18 @@ public class KafkaConnectService {
                 namespace.getMetadata().getCluster(),
                 connector.getSpec().getConnectCluster(),
                 connector.getMetadata().getName());
+    }
+
+    public List<Connector> listUnsynchronizedConnectors(Namespace namespace) {
+        ConnectorAsyncExecutor connectorAsyncExecutor = applicationContext.getBean(ConnectorAsyncExecutor.class,
+                Qualifiers.byName(namespace.getMetadata().getCluster()));
+        return namespace.getSpec().getConnectClusters().stream()
+                // get all connectors from all connect clusters...
+                .flatMap(connectCluster -> connectorAsyncExecutor.collectBrokerConnectors(connectCluster).stream())
+                // ...that belongs to this namespace
+                .filter(connector -> isNamespaceOwnerOfConnect(namespace, connector.getMetadata().getName()))
+                // ...and aren't in ns4kafka storage
+                .filter(connector -> findByName(namespace, connector.getMetadata().getName()).isEmpty())
+                .collect(Collectors.toList());
     }
 }

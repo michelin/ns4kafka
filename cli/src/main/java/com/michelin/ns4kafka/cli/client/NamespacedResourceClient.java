@@ -38,4 +38,11 @@ public interface NamespacedResourceClient {
             String kind,
             String resourcename,
             @Header("Authorization") String token);
+
+    @Post("{namespace}/{kind}/_/import{?dryrun}")
+    List<Resource> importResources(
+            String namespace,
+            String kind,
+            @Header("Authorization") String token,
+            @QueryValue boolean dryrun);
 }
