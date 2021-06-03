@@ -61,6 +61,9 @@ public class NamespaceController extends NonNamespacedResourceController {
         //augment
         namespace.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
 
+        if(existingNamespace.isPresent() && existingNamespace.get().equals(namespace)){
+            return existingNamespace.get();
+        }
         //dryrun checks
         if (dryrun) {
             return namespace;

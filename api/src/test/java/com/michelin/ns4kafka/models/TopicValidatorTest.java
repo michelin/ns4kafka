@@ -10,8 +10,26 @@ import java.util.Map;
 public class TopicValidatorTest {
     @Test
     void testEquals() {
-        TopicValidator original = TopicValidator.makeDefault();
-        TopicValidator same = TopicValidator.makeDefault();
+        TopicValidator original = TopicValidator.builder()
+                .validationConstraints(
+                        Map.of( "replication.factor", ResourceValidator.Range.between(3,3),
+                                "partitions", ResourceValidator.Range.between(3,6),
+                                "cleanup.policy", ResourceValidator.ValidList.in("delete","compact"),
+                                "min.insync.replicas", ResourceValidator.Range.between(2,2),
+                                "retention.ms", ResourceValidator.Range.between(60000,604800000)
+                        )
+                )
+                .build();
+        TopicValidator same = TopicValidator.builder()
+                .validationConstraints(
+                        Map.of( "replication.factor", ResourceValidator.Range.between(3,3),
+                                "partitions", ResourceValidator.Range.between(3,6),
+                                "cleanup.policy", ResourceValidator.ValidList.in("delete","compact"),
+                                "min.insync.replicas", ResourceValidator.Range.between(2,2),
+                                "retention.ms", ResourceValidator.Range.between(60000,604800000)
+                        )
+                )
+                .build();
         TopicValidator sameReordered = TopicValidator.builder()
                 .validationConstraints(
                         Map.of("partitions", ResourceValidator.Range.between(3,6),
@@ -23,16 +41,42 @@ public class TopicValidatorTest {
                         )
                 )
                 .build();
+        TopicValidator differentByKey = TopicValidator.builder()
+                .validationConstraints(
+                        Map.of( "DIFFERENT_replication.factor", ResourceValidator.Range.between(3,3),
+                                "partitions", ResourceValidator.Range.between(3,6),
+                                "cleanup.policy", ResourceValidator.ValidList.in("delete","compact"),
+                                "min.insync.replicas", ResourceValidator.Range.between(2,2),
+                                "retention.ms", ResourceValidator.Range.between(60000,604800000)
+                        )
+                )
+                .build();
+        TopicValidator differentByVal = TopicValidator.builder()
+                .validationConstraints(
+                        Map.of( "replication.factor", ResourceValidator.Range.between(3,99999999),
+                                "partitions", ResourceValidator.Range.between(3,6),
+                                "cleanup.policy", ResourceValidator.ValidList.in("delete","compact"),
+                                "min.insync.replicas", ResourceValidator.Range.between(2,2),
+                                "retention.ms", ResourceValidator.Range.between(60000,604800000)
+                        )
+                )
+                .build();
+        TopicValidator differentBySize = TopicValidator.builder()
+                .validationConstraints(
+                        Map.of( "replication.factor", ResourceValidator.Range.between(3,3),
+                                "partitions", ResourceValidator.Range.between(3,6),
+                                "cleanup.policy", ResourceValidator.ValidList.in("delete","compact"),
+                                "min.insync.replicas", ResourceValidator.Range.between(2,2)
+                        )
+                )
+                .build();
         Assertions.assertEquals(original, same);
         Assertions.assertEquals(original, sameReordered);
 
-        original = TopicValidator.builder()
-                .validationConstraints(Map.of("k1", new ResourceValidator.NonEmptyString()))
-                .build();
-        same = TopicValidator.builder()
-                .validationConstraints(Map.of("k1", new ResourceValidator.NonEmptyString()))
-                .build();
-        Assertions.assertEquals(original, same);
+        Assertions.assertNotEquals(original, differentByKey);
+        Assertions.assertNotEquals(original, differentByVal);
+        Assertions.assertNotEquals(original, differentBySize);
+
 
     }
 }

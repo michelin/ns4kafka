@@ -29,7 +29,7 @@ public class ConnectController extends NamespacedResourceController {
     //TODO validate calls and forward to Connect REST API (sync ???)
     @Inject
     KafkaConnectService kafkaConnectService;
-    
+
     @Inject
     AccessControlEntryService accessControlEntryService;
 
@@ -55,7 +55,7 @@ public class ConnectController extends NamespacedResourceController {
 
         // exists ?
         Optional<Connector> optionalConnector = kafkaConnectService.findByName(ns, connector);
-        if(optionalConnector.isEmpty())
+        if (optionalConnector.isEmpty())
             return HttpResponse.notFound();
 
         if (dryrun) {
@@ -101,6 +101,10 @@ public class ConnectController extends NamespacedResourceController {
                 //.tasks(List.of(Tas))
                 .build());
 
+        Optional<Connector> existingConnector = kafkaConnectService.findByName(ns, connector.getMetadata().getName());
+        if (existingConnector.isPresent() && existingConnector.get().equals(connector)) {
+            return existingConnector.get();
+        }
         //dryrun checks
         if (dryrun) {
             return connector;

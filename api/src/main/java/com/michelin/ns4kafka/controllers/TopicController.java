@@ -97,7 +97,7 @@ public class TopicController extends NamespacedResourceController {
         topic.getMetadata().setNamespace(ns.getMetadata().getName());
         topic.setStatus(Topic.TopicStatus.ofPending());
 
-        if(existingTopic.get().equals(topic)){
+        if(existingTopic.isPresent() && existingTopic.get().equals(topic)){
             return existingTopic.get();
         }
 
