@@ -1,7 +1,9 @@
 package com.michelin.ns4kafka.controllers;
 
+import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -50,6 +52,10 @@ public class ConsumerGroupController extends NamespacedResourceController {
             Map<TopicPartition,Long> preparedOffsets = consumerGroupService.prepareOffsetsToReset(ns,consumerGroup, consumerGroupResetOffsets.getSpec().getOptions(), partitionsToReset, consumerGroupResetOffsets.getSpec().getMethod());
             if (!dryrun) {
                 finalOffsets = consumerGroupService.apply(ns,consumerGroup ,preparedOffsets);
+            } else {
+                finalOffsets = preparedOffsets.entrySet().stream()
+                    .map(e -> new AbstractMap.SimpleEntry<>(e.getKey().toString(), e.getValue()))
+                    .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue()));
             }
 
         } catch (Exception e) {
