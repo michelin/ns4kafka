@@ -3,8 +3,10 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.KafkaConnectService;
+import com.michelin.ns4kafka.validation.TopicValidator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,11 +16,14 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class ConnectControllerTest {
@@ -275,5 +280,79 @@ public class ConnectControllerTest {
         Connector actual = connectController.apply("test", connector, true);
         verify(kafkaConnectService, never()).createOrUpdate(ns, connector);
 
+    }
+
+    @Test
+    public void ImportConnector() {
+       
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Connector connector1 = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Connector connector2 = Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build();
+        Connector connector3 = Connector.builder().metadata(ObjectMeta.builder().name("connect3").build()).build();
+
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        
+        when(kafkaConnectService.listUnsynchronizedConnectors(ns))
+                .thenReturn(List.of(connector1, connector2));
+        
+        when(kafkaConnectService.createOrUpdate(ns, connector1)).thenReturn(connector1);
+        when(kafkaConnectService.createOrUpdate(ns, connector2)).thenReturn(connector2);
+
+        List<Connector> actual = connectController.importResources("test", false);
+        Assertions.assertTrue(actual.stream()
+                .anyMatch(c ->
+                        c.getMetadata().getName().equals("connect1")
+                ));
+        Assertions.assertTrue(actual.stream()
+                .anyMatch(c ->
+                        c.getMetadata().getName().equals("connect2")
+                ));
+        Assertions.assertFalse(actual.stream()
+                .anyMatch(c ->
+                        c.getMetadata().getName().equals("connect3")
+                ));
+    }
+
+    @Test
+    public void ImportConnectorDryRun() {
+
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Connector connector1 = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Connector connector2 = Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build();
+        Connector connector3 = Connector.builder().metadata(ObjectMeta.builder().name("connect3").build()).build();
+
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+
+        when(kafkaConnectService.listUnsynchronizedConnectors(ns))
+                .thenReturn(List.of(connector1, connector2));
+
+        List<Connector> actual = connectController.importResources("test", true);
+        Assertions.assertTrue(actual.stream()
+                .anyMatch(c ->
+                        c.getMetadata().getName().equals("connect1")
+                ));
+        Assertions.assertTrue(actual.stream()
+                .anyMatch(c ->
+                        c.getMetadata().getName().equals("connect2")
+                ));
+        Assertions.assertFalse(actual.stream()
+                .anyMatch(c ->
+                        c.getMetadata().getName().equals("connect3")
+                ));
+        verify(kafkaConnectService, never()).createOrUpdate(ns, connector1);
+        verify(kafkaConnectService, never()).createOrUpdate(ns, connector2);
+        verify(kafkaConnectService, never()).createOrUpdate(ns, connector3);
     }
 }

@@ -22,9 +22,8 @@ public class KafkaAsyncExecutorConfig {
     boolean manageUsers;
     boolean manageConnectors;
     boolean readOnly = true;
-    
-    Properties config;
 
+    Properties config;
 
     @MapFormat(transformation = MapFormat.MapTransformation.FLAT)
     Map<String, ConnectConfig> connects;
