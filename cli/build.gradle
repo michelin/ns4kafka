@@ -48,6 +48,7 @@ java {
 }
 
 shadowJar {
+    archiveFileName = "kafkactl-${version}.jar"
     manifest {
         attributes 'Implementation-Version': rootProject.version
     }
