@@ -341,9 +341,7 @@ public class TopicControllerTest {
                 .build();
         when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        when(topicService.listUnsynchronizedTopicNames(ns))
-                .thenReturn(List.of("test.topic1","test.topic2"));
-        when(topicService.listUnsynchronizedTopics(ns, List.of("test.topic1","test.topic2")))
+        when(topicService.listUnsynchronizedTopics(ns))
                 .thenReturn(List.of(topic1, topic2));
         when(topicService.create(topic1)).thenReturn(topic1);
         when(topicService.create(topic2)).thenReturn(topic2);
@@ -417,9 +415,7 @@ public class TopicControllerTest {
                 .build();
         when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        when(topicService.listUnsynchronizedTopicNames(ns))
-                .thenReturn(List.of("test.topic1","test.topic2"));
-        when(topicService.listUnsynchronizedTopics(ns, List.of("test.topic1","test.topic2")))
+        when(topicService.listUnsynchronizedTopics(ns))
                 .thenReturn(List.of(topic1, topic2));
 
 

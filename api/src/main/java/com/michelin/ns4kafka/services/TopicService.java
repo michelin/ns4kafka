@@ -76,11 +76,22 @@ public class TopicService {
         topicRepository.delete(topic);
     }
 
+    public List<Topic> listUnsynchronizedTopics(Namespace namespace) throws ExecutionException, InterruptedException, TimeoutException {
+
+        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
+                Qualifiers.byName(namespace.getMetadata().getCluster()));
+        // List topics for this namespace
+        List<String> topicNames = listUnsynchronizedTopicNames(namespace);
+        // Get topics definitions
+        Collection<Topic> unsynchronizedTopics = topicAsyncExecutor.collectBrokerTopicsFromNames(topicNames)
+                .values();
+        return new ArrayList<>(unsynchronizedTopics);
+    }
+
     public List<String> listUnsynchronizedTopicNames(Namespace namespace) throws ExecutionException, InterruptedException, TimeoutException {
 
         TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
                 Qualifiers.byName(namespace.getMetadata().getCluster()));
-
         // Get existing cluster topics...
         List<String> unsynchronizedTopicNames = topicAsyncExecutor.listBrokerTopicNames()
                 .stream()
@@ -90,18 +101,5 @@ public class TopicService {
                 .filter(topic -> findByName(namespace, topic).isEmpty())
                 .collect(Collectors.toList());
         return unsynchronizedTopicNames;
-
-    }
-
-    public List<Topic> listUnsynchronizedTopics(Namespace namespace, List<String> topicNames) throws ExecutionException, InterruptedException, TimeoutException {
-
-        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
-                Qualifiers.byName(namespace.getMetadata().getCluster()));
-
-        // Get topics definitions
-        Collection<Topic> unsynchronizedTopics = topicAsyncExecutor.collectBrokerTopicsFromNames(topicNames)
-                .values();
-        return new ArrayList<>(unsynchronizedTopics);
-
     }
 }
