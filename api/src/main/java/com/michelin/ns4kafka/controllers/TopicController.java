@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 @Tag(name = "Topics")
 @Controller(value = "/api/namespaces/{namespace}/topics")
@@ -135,6 +136,30 @@ public class TopicController extends NamespacedResourceController {
         return HttpResponse.noContent();
     }
 
+    @Post("{topic}/empty{?dryrun}")
+    public HttpResponse<?> empty(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun) {
+        Namespace ns = getNamespace(namespace);
+        // allowed ?
+        if (!topicService.isNamespaceOwnerOfTopic(namespace, topic))
+            return HttpResponse.unauthorized();
+
+        // exists ?
+
+        Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
+        if (optionalTopic.isEmpty())
+            return HttpResponse.notFound();
+
+
+        try {
+            if (!dryrun) {
+                topicService.empty(ns, topic);
+            }
+            return HttpResponse.noContent();
+		} catch (ExecutionException|InterruptedException e) {
+            return HttpResponse.badRequest(e.getMessage());
+		}
+
+    }
 
     public enum TopicListLimit {
         ALL, OWNED, ACCESS_GIVEN
