@@ -9,8 +9,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -22,20 +20,21 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets.ResetOffsetsMethod;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.services.executors.ConsumerGroupAsyncExecutor;
 
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.KafkaAdminClient;
 import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
+import io.micronaut.context.ApplicationContext;
+import io.micronaut.inject.qualifiers.Qualifiers;
+
 @Singleton
 public class ConsumerGroupService {
 
     @Inject
-    List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigs;
+    ApplicationContext applicationContext;
 
     @Inject
     AccessControlEntryService accessControlEntryService;
@@ -46,17 +45,18 @@ public class ConsumerGroupService {
 
     public List<TopicPartition> getPartitionsToReset(Namespace namespace,String groupId, String topic) throws InterruptedException, ExecutionException {
 
-        AdminClient adminClient = generateAdminClientWithProperties(namespace);
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = applicationContext.getBean(ConsumerGroupAsyncExecutor.class,
+        Qualifiers.byName(namespace.getMetadata().getCluster()));
         //List<TopicPartition> result;
         //get partitions for a topic
         if (topic.equals("*")) {
-            return adminClient.listConsumerGroupOffsets(groupId).partitionsToOffsetAndMetadata().get()
+            return consumerGroupAsyncExecutor.listConsumerGroupOffsets(groupId)
                 .keySet().stream().collect(Collectors.toList());
         } else if (topic.contains(":")) {
             String[] splitResult = topic.split(":");
             return List.of(new TopicPartition(splitResult[0],Integer.parseInt(splitResult[1])));
         } else {
-            return adminClient.listConsumerGroupOffsets(groupId).partitionsToOffsetAndMetadata().get()
+            return consumerGroupAsyncExecutor.listConsumerGroupOffsets(groupId)
                 .keySet()
                 .stream()
                 .filter((topicPartition) -> topicPartition.topic().equals(topic))
@@ -65,17 +65,17 @@ public class ConsumerGroupService {
     }
     public Map<TopicPartition, Long> prepareOffsetsToReset(Namespace namespace, String groupId, String options, List<TopicPartition> partitionsToReset, ResetOffsetsMethod method) throws ParseException, InterruptedException, ExecutionException {
 
-        AdminClient adminClient = generateAdminClientWithProperties(namespace);
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = applicationContext.getBean(ConsumerGroupAsyncExecutor.class,
+        Qualifiers.byName(namespace.getMetadata().getCluster()));
         long timestamp;
         OffsetSpec offsetSpec = null;
         switch (method) {
             case SHIFT_BY:
-                Map<TopicPartition,OffsetAndMetadata> currentCommittedOffset = adminClient.listConsumerGroupOffsets(groupId).partitionsToOffsetAndMetadata().get();
+
+                Map<TopicPartition,OffsetAndMetadata> currentCommittedOffset = consumerGroupAsyncExecutor.listConsumerGroupOffsets(groupId);
                 int shiftValue = Integer.parseInt(options);
-                Map<TopicPartition, Long> result = new HashMap<>();
-                partitionsToReset.forEach((partitionToReset) -> {
-                        result.put(partitionToReset, currentCommittedOffset.get(partitionToReset).offset() + shiftValue);
-                    });
+                Map<TopicPartition, Long> result = currentCommittedOffset.entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().offset() + shiftValue));
                 return result;
             case BY_DURATION:
                 Duration duration = Duration.parse(options);
@@ -96,22 +96,20 @@ public class ConsumerGroupService {
             default:
                 break;
         }
-        return getNewOffset(adminClient, partitionsToReset, offsetSpec);
+        return getNewOffset(consumerGroupAsyncExecutor, partitionsToReset, offsetSpec);
 
     }
 
     public Map<String, Long> apply(Namespace namespace, String consumerGroupId, Map<TopicPartition, Long> preparedOffsets) throws InterruptedException, ExecutionException {
 
-        AdminClient adminClient = generateAdminClientWithProperties(namespace);
         // set the new offset
         Map<String,Long> result = new HashMap<>();
-        Map<TopicPartition, OffsetAndMetadata> mapOffsetMetadata = new HashMap<>();
-        preparedOffsets.forEach((topicPartition, offset) -> {
-            mapOffsetMetadata.put(topicPartition, new OffsetAndMetadata(offset));
-            result.put(topicPartition.toString(), offset);
-        });
+        Map<TopicPartition, OffsetAndMetadata> mapOffsetMetadata = preparedOffsets.entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, e -> new OffsetAndMetadata(e.getValue())));
 
-        adminClient.alterConsumerGroupOffsets(consumerGroupId, mapOffsetMetadata).all().get();
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = applicationContext.getBean(ConsumerGroupAsyncExecutor.class,
+                Qualifiers.byName(namespace.getMetadata().getCluster()));
+        consumerGroupAsyncExecutor.alterConsumerGroupOffsets(consumerGroupId, mapOffsetMetadata);
         return result;
     }
 
@@ -159,32 +157,14 @@ public class ConsumerGroupService {
         return validationErrors;
     }
 
-    private AdminClient generateAdminClientWithProperties(Namespace namespace) {
-
-        String cluster = namespace.getMetadata().getCluster();
-
-        // get config
-        Optional<KafkaAsyncExecutorConfig> configOptional = kafkaAsyncExecutorConfigs.stream()
-                .filter(kafkaAsyncExecutorConfig -> kafkaAsyncExecutorConfig.getName().equals(cluster))
-                .findFirst();
-        Properties config = configOptional.get().getConfig();
-
-        return KafkaAdminClient.create(config);
-    }
-
-    private Map<TopicPartition,Long> getNewOffset(AdminClient adminClient,  List<TopicPartition> partitionsToReset, OffsetSpec offsetSpec) throws InterruptedException, ExecutionException {
+    private Map<TopicPartition,Long> getNewOffset(ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor,List<TopicPartition> partitionsToReset, OffsetSpec offsetSpec) throws InterruptedException, ExecutionException {
 
         //get the offset corresponding to the spec for each partition
         Map<TopicPartition, OffsetSpec> offsetsForTheSpec = new HashMap<>();
-        partitionsToReset.forEach(topicPartition -> {
-                offsetsForTheSpec.put(topicPartition, offsetSpec);
-            });
+        partitionsToReset.stream().collect(Collectors.toMap(e->e, e -> offsetSpec));
 
-        Map<TopicPartition, ListOffsetsResultInfo> newOffsets = adminClient.listOffsets(offsetsForTheSpec).all().get();
-        Map<TopicPartition, Long> result = new HashMap<>();
-        newOffsets.forEach((topicPartition, listOffsetResultInfo) -> {
-                result.put(topicPartition, listOffsetResultInfo.offset());
-        });
+        Map<TopicPartition, ListOffsetsResultInfo> newOffsets = consumerGroupAsyncExecutor.listOffsets(offsetsForTheSpec);
+        Map<TopicPartition, Long> result = newOffsets.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().offset()));
         return result;
     }
 

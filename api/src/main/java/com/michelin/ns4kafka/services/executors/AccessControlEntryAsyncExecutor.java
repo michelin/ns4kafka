@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 public class AccessControlEntryAsyncExecutor {
     private static final Logger LOG = LoggerFactory.getLogger(ConnectorAsyncExecutor.class);
 
-    private Admin adminClient;
     private KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
 
     @Inject
@@ -48,10 +47,7 @@ public class AccessControlEntryAsyncExecutor {
     }
 
     private Admin getAdminClient() {
-        if (this.adminClient == null) {
-            this.adminClient = Admin.create(kafkaAsyncExecutorConfig.getConfig());
-        }
-        return this.adminClient;
+        return kafkaAsyncExecutorConfig.getAdminClient();
     }
 
     private void synchronizeACLs() {
