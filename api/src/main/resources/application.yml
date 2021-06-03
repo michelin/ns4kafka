@@ -70,13 +70,13 @@ kafka:
 
 ns4kafka:
   security:
-    admin-group: admin
-    local-users: # Not for production use.
-      - username: admin
-        # SHA-256 password.
-        password: 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
-        groups:
-          - "admin"
+    admin-group: _
+#    local-users: # Not for production use.
+#      - username: admin
+#        # SHA-256 password.
+#        password: 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+#        groups:
+#          - "admin"
   store:
     kafka:
       enabled: true
@@ -88,5 +88,5 @@ ns4kafka:
           min.insync.replicas: 1
           cleanup.policy: "compact"
           min.compaction.lag.ms: "0"
-          max.compaction.lag.ms: "60000"
-          segment.ms: "60000"
+          max.compaction.lag.ms: "604800000"
+          segment.ms: "600000"

@@ -15,14 +15,11 @@ import java.util.concurrent.Callable;
                         GetSubcommand.class,
                         DeleteSubcommand.class,
                         ApiResourcesSubcommand.class,
-                        DiffSubcommand.class
+                        DiffSubcommand.class,
+                        ImportSubcommand.class
                 },
-        description = "...",
-        mixinStandardHelpOptions = true,
-        version = {
-                "kafkactl CLI v0.1 build 20210511",
-                "Picocli " + picocli.CommandLine.VERSION
-        })
+                versionProvider = KafkactlCommand.ManifestVersionProvider.class,
+                mixinStandardHelpOptions=true)
 public class KafkactlCommand implements Callable<Integer> {
 
     public static boolean VERBOSE = false;
@@ -44,10 +41,21 @@ public class KafkactlCommand implements Callable<Integer> {
     public Integer call() throws Exception {
         CommandLine cmd = new CommandLine(new KafkactlCommand());
         // Display help
+        cmd.printVersionHelp(System.out);
         cmd.usage(System.out);
 
         return 0;
 
+    }
+
+    public static class ManifestVersionProvider implements CommandLine.IVersionProvider {
+
+        @Override
+        public String[] getVersion() {
+            return new String[] {
+                    "v" + getClass().getPackage().getImplementationVersion()
+            };
+        }
     }
 
 }

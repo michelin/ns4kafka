@@ -2,6 +2,10 @@ micronaut:
   application:
     name: kafkactl
 
+
+  http:
+    client:
+      read-timeout: 30s
 #kafkactl:
 #  api: http://localhost:8080
 #  user-token: token
