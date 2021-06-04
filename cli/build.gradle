@@ -61,7 +61,7 @@ jar{
 
 nativeImage {
     imageName('kafkactl-'+rootProject.version)
-    args = ['-H:Class=com.michelin.ns4kafka.cli.KafkactlCommand ',
+    args = ['-H:Class=com.michelin.ns4kafka.cli.KafkactlCommand',
             '-H:IncludeResourceBundles=org.ocpsoft.prettytime.i18n.Resources',
             '-H:+ReportUnsupportedElementsAtRuntime',
             '-H:+ReportExceptionStackTraces']
