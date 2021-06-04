@@ -75,6 +75,7 @@ public class ConsumerGroupService {
                 Map<TopicPartition,OffsetAndMetadata> currentCommittedOffset = consumerGroupAsyncExecutor.listConsumerGroupOffsets(groupId);
                 int shiftValue = Integer.parseInt(options);
                 Map<TopicPartition, Long> result = currentCommittedOffset.entrySet().stream()
+                    .filter(e -> partitionsToReset.contains(e.getKey()))
                     .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().offset() + shiftValue));
                 return result;
             case BY_DURATION:

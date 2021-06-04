@@ -1,25 +1,35 @@
 package com.michelin.ns4kafka.services;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets;
+import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets.ConsumerGroupResetOffsetsSpec;
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets.ResetOffsetsMethod;
-import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.services.executors.ConsumerGroupAsyncExecutor;
 
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import io.micronaut.context.ApplicationContext;
+import io.micronaut.inject.qualifiers.Qualifiers;
+
 @ExtendWith(MockitoExtension.class)
 public class ConsumerGroupServiceTest {
     @Mock
-    List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigs;
-
+    ApplicationContext applicationContext;
     @InjectMocks
     ConsumerGroupService consumerGroupService;
 
@@ -215,4 +225,41 @@ public class ConsumerGroupServiceTest {
         assertTrue(result.size() == 1);
     }
 
+    @Test
+    void doPrepareOffsetsToReset_ShiftBy() {
+        Namespace namespace = Namespace.builder()
+            .metadata(ObjectMeta.builder()
+                      .cluster("test")
+                      .build())
+            .build();
+        String groupId = "testGroup";
+        String options = "-5";
+        TopicPartition topicPartition1 = new TopicPartition("topic1", 0);
+        TopicPartition topicPartition2 = new TopicPartition("topic1", 1);
+        List<TopicPartition> partitionsToReset = List.of(topicPartition1,topicPartition2);
+
+        ResetOffsetsMethod method = ResetOffsetsMethod.SHIFT_BY;
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
+        when(applicationContext.getBean(ConsumerGroupAsyncExecutor.class,
+                        Qualifiers.byName(namespace.getMetadata().getCluster()))).thenReturn(consumerGroupAsyncExecutor);
+        try {
+            when(consumerGroupAsyncExecutor.listConsumerGroupOffsets(anyString())).thenReturn(
+                Map.of(new TopicPartition("topic1", 0),new OffsetAndMetadata(10),
+                    new TopicPartition("topic1", 1),new OffsetAndMetadata(15),
+                    new TopicPartition("topic2", 0),new OffsetAndMetadata(10)));
+        } catch (Exception e){
+            assertTrue(false);
+        }
+
+        Map<TopicPartition, Long> result = null;
+        try {
+            result = consumerGroupService.prepareOffsetsToReset(namespace, groupId, options, partitionsToReset, method);
+        } catch (Exception e){
+            assertTrue(false);
+        }
+
+        assertTrue(result.size() == 2);
+        assertTrue(result.get(topicPartition1) == 5);
+        assertTrue(result.get(topicPartition2) == 10);
+    }
 }
