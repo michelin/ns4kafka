@@ -291,4 +291,78 @@ public class TopicControllerTest {
         Assertions.assertEquals(1, actual.getValidationErrors().size());
         Assertions.assertLinesMatch(List.of(".*replication\\.factor.*"), actual.getValidationErrors());
     }
+
+    @Test
+    public void EmptyTopic() throws InterruptedException, ExecutionException, TimeoutException {
+        //Given
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Optional<Topic> toEmpty = Optional.of(
+                Topic.builder().metadata(ObjectMeta.builder().name("topic.empty").build()).build());
+        when(topicService.findByName(ns, "topic.empty"))
+                .thenReturn(toEmpty);
+        when(topicService.isNamespaceOwnerOfTopic("test","topic.empty"))
+                .thenReturn(true);
+        doNothing().when(topicService).empty(ns, toEmpty.get());
+
+
+        //When
+        HttpResponse<?> actual = topicController.empty("test", "topic.empty", false);
+
+        //Then
+        Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
+    }
+
+    @Test
+    public void EmptyTopicDryRun() throws InterruptedException, ExecutionException, TimeoutException {
+        //Given
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Optional<Topic> toEmpty = Optional.of(
+                Topic.builder().metadata(ObjectMeta.builder().name("topic.empty").build()).build());
+        when(topicService.findByName(ns, "topic.empty"))
+                .thenReturn(toEmpty);
+        when(topicService.isNamespaceOwnerOfTopic("test","topic.empty"))
+                .thenReturn(true);
+
+        //When
+        HttpResponse<?> actual = topicController.empty("test", "topic.empty", true);
+
+        //Then
+        verify(topicService, never()).empty(any(), any());
+    }
+
+    @Test
+    public void EmptyTopicUnauthorized() throws InterruptedException, ExecutionException, TimeoutException {
+        //Given
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.isNamespaceOwnerOfTopic("test","topic.empty"))
+                .thenReturn(false);
+
+        //When
+        HttpResponse<?> actual = topicController.empty("test", "topic.empty", false);
+
+        //Then
+        Assertions.assertEquals(HttpStatus.UNAUTHORIZED, actual.getStatus());
+
+    }
 }
