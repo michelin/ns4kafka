@@ -1,25 +1,21 @@
 package com.michelin.ns4kafka.controllers;
 
-import java.util.AbstractMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import javax.inject.Inject;
-import javax.validation.Valid;
-
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets.ConsumerGroupResetOffsetStatus;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.services.ConsumerGroupService;
-
-import org.apache.kafka.common.TopicPartition;
-
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.apache.kafka.common.TopicPartition;
+
+import javax.inject.Inject;
+import javax.validation.Valid;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Tag(name = "Consumer Groups")
 @Controller("/api/namespaces/{namespace}/consumer-groups")
@@ -52,10 +48,10 @@ public class ConsumerGroupController extends NamespacedResourceController {
             Map<TopicPartition,Long> preparedOffsets = consumerGroupService.prepareOffsetsToReset(ns,consumerGroup, consumerGroupResetOffsets.getSpec().getOptions(), partitionsToReset, consumerGroupResetOffsets.getSpec().getMethod());
             if (!dryrun) {
                 finalOffsets = consumerGroupService.apply(ns,consumerGroup ,preparedOffsets);
+
             } else {
                 finalOffsets = preparedOffsets.entrySet().stream()
-                    .map(e -> new AbstractMap.SimpleEntry<>(e.getKey().toString(), e.getValue()))
-                    .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue()));
+                    .collect(Collectors.toMap(kv -> kv.getKey().toString(), Map.Entry::getValue));
             }
 
         } catch (Exception e) {
