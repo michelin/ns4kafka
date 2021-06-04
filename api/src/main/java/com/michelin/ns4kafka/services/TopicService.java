@@ -87,40 +87,22 @@ public class TopicService {
         topicRepository.delete(topic);
     }
 
-    public void empty(Namespace namespace, String topic) throws InterruptedException, ExecutionException {
+    public void empty(Namespace namespace, Topic topic) throws InterruptedException, ExecutionException {
 
-        Admin adminClient = KafkaHelper.createAdminClientFromNamespace(namespace);
+        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
+                Qualifiers.byName(topic.getMetadata().getCluster()));
 
-        Map<TopicPartition, OffsetSpec> topicPartitionsOffsetSpec = new HashMap<>();
-        adminClient.describeTopics(List.of(topic)).all().get().get(topic).partitions().forEach( partition -> {
-                topicPartitionsOffsetSpec.put(new TopicPartition(topic, partition.partition()), OffsetSpec.latest() );
-        });
+        Map<TopicPartition, OffsetSpec> topicPartitionsOffsetSpec = topicAsyncExecutor.describeTopics(List.of(topic.getMetadata().getName()))
+                .get(topic.getMetadata().getName())
+                .partitions()
+                .stream()
+                .collect(Collectors.toMap(partitions -> new TopicPartition(topic.getMetadata().getName(), partitions.partition()),  partitions ->  OffsetSpec.latest()));
 
-        Map<TopicPartition, RecordsToDelete> recordsToDelete = new HashMap<>();
-        adminClient.listOffsets(topicPartitionsOffsetSpec).all().get().forEach((topicPartition, offsetResultInfo)-> {
-                // add 1 to remove every records
-                recordsToDelete.put(topicPartition, RecordsToDelete.beforeOffset(offsetResultInfo.offset() + 1));
-        });
+        Map<TopicPartition, RecordsToDelete> recordsToDelete = topicAsyncExecutor.listOffsets(topicPartitionsOffsetSpec).entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, kv -> RecordsToDelete.beforeOffset(kv.getValue().offset() + 1)));
 
-        adminClient.deleteRecords(recordsToDelete).all().get();
-
-    }
-
-    public static class KafkaHelper {
-
-        @Inject
-        private static List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigs;
-
-        public static Admin createAdminClientFromNamespace(Namespace namespace) {
-            String cluster = namespace.getMetadata().getCluster();
-
-            Optional<KafkaAsyncExecutorConfig> configOptional = kafkaAsyncExecutorConfigs.stream()
-                .filter(kafkaAsyncExecutorConfig -> kafkaAsyncExecutorConfig.getName().equals(cluster))
-                .findFirst();
-            Properties config = configOptional.get().getConfig();
-
-            return KafkaAdminClient.create(config);
-        }
+        topicAsyncExecutor.deleteRecords(recordsToDelete);
 
     }
+
 }

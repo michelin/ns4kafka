@@ -152,12 +152,12 @@ public class TopicController extends NamespacedResourceController {
 
         try {
             if (!dryrun) {
-                topicService.empty(ns, topic);
+                topicService.empty(ns, optionalTopic.get());
             }
             return HttpResponse.noContent();
-		} catch (ExecutionException|InterruptedException e) {
-            return HttpResponse.badRequest(e.getMessage());
-		}
+        } catch (ExecutionException | InterruptedException e) {
+          return HttpResponse.badRequest(e.getMessage());
+        }
 
     }
 

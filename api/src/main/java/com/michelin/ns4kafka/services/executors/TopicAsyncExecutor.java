@@ -6,6 +6,8 @@ import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
 import io.micronaut.context.annotation.EachBean;
 import org.apache.kafka.clients.admin.*;
+import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.ConfigResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -279,5 +281,17 @@ public class TopicAsyncExecutor {
         total.addAll(toChange);
 
         return total;
+    }
+
+    public Map<String, TopicDescription> describeTopics(List<String> topics) throws InterruptedException, ExecutionException {
+        return getAdminClient().describeTopics(topics).all().get();
+    }
+
+    public Map<TopicPartition, ListOffsetsResultInfo> listOffsets(Map<TopicPartition, OffsetSpec> topicPartitionsOffsetSpec) throws InterruptedException, ExecutionException {
+        return getAdminClient().listOffsets(topicPartitionsOffsetSpec).all().get();
+    }
+
+    public void deleteRecords(Map<TopicPartition, RecordsToDelete> recordsToDelete) throws InterruptedException, ExecutionException {
+        getAdminClient().deleteRecords(recordsToDelete).all().get();
     }
 }
