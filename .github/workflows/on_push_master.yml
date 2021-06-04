@@ -72,8 +72,8 @@ jobs:
           restore-keys: ${{ runner.os }}-gradle
       - name: Native Image for CLI
         run: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
-        ./gradlew :cli:nativeImage
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
+          ./gradlew :cli:nativeImage
       - uses: actions/upload-artifact@v2
         with:
           name: native-image-windows
