@@ -189,6 +189,11 @@ public abstract class ResourceValidator {
             if (!(obj instanceof NonEmptyString)) return false;
             return true;
         }
+
+        @Override
+        public int hashCode() {
+            return 1;
+        }
     }
 
     @Data

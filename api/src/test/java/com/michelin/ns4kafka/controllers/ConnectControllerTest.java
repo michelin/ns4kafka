@@ -3,27 +3,22 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.Topic;
-import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.KafkaConnectService;
-import com.michelin.ns4kafka.validation.TopicValidator;
+import com.michelin.ns4kafka.services.NamespaceService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class ConnectControllerTest {
@@ -252,6 +247,41 @@ public class ConnectControllerTest {
 
         Assertions.assertEquals(expected.getStatus().getState(), actual.getStatus().getState());
 
+    }
+
+    @Test
+    void createConnectorSuccess_AlreadyExists() {
+        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Connector expected = Connector.builder()
+                .metadata(ObjectMeta.builder()
+                        .namespace("test")
+                        .cluster("local")
+                        .name("connect1").build())
+                .status(Connector.ConnectorStatus.builder().state(Connector.TaskState.UNASSIGNED).build())
+                .build();
+
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
+                .thenReturn(true);
+        Mockito.when(kafkaConnectService.validateLocally(ns, connector))
+                .thenReturn(List.of());
+        Mockito.when(kafkaConnectService.validateRemotely(ns, connector))
+                .thenReturn(List.of());
+        Mockito.when(kafkaConnectService.findByName(ns, "connect1"))
+                .thenReturn(Optional.of(connector));
+
+
+        Connector actual = connectController.apply("test", connector, false);
+
+        Assertions.assertEquals(expected, actual);
+        verify(kafkaConnectService,never()).createOrUpdate(ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 
     @Test

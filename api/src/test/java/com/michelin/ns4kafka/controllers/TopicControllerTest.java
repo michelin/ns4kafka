@@ -13,6 +13,7 @@ import io.micronaut.http.HttpStatus;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -226,6 +227,97 @@ public class TopicControllerTest {
 
         Topic actual = topicController.apply("test", topic, false);
         assertEquals(actual.getMetadata().getName(), "test.topic");
+    }
+
+    @Test
+    public void UpdateTopic() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+        Topic existing = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","compact",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","delete",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+        when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
+        when(topicService.create(topic)).thenReturn(topic);
+
+        Topic actual = topicController.apply("test", topic, false);
+        assertEquals(actual.getMetadata().getName(), "test.topic");
+    }
+
+    @Test
+    public void UpdateTopic_AlreadyExists() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+        Topic existing = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","compact",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","compact",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+        when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
+
+        Topic actual = topicController.apply("test", topic, false);
+        verify(topicService, never()).create(ArgumentMatchers.any());
+        assertEquals(existing, actual);
+
     }
 
     @Test
