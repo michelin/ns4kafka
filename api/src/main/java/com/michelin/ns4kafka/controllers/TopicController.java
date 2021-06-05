@@ -15,6 +15,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 @Tag(name = "Topics")
 @Controller(value = "/api/namespaces/{namespace}/topics")
@@ -89,23 +91,21 @@ public class TopicController extends NamespacedResourceController {
             throw new ResourceValidationException(validationErrors);
         }
 
-        //TODO hasChanged ?
-        // if so, just return 200 with current topic, do nothing
-
         //3. Fill server-side fields (server side metadata + status)
         topic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
         topic.getMetadata().setCluster(ns.getMetadata().getCluster());
         topic.getMetadata().setNamespace(ns.getMetadata().getName());
         topic.setStatus(Topic.TopicStatus.ofPending());
+
+        if(existingTopic.isPresent() && existingTopic.get().equals(topic)){
+            return existingTopic.get();
+        }
+
         if (dryrun) {
             return topic;
         }
-        return topicService.create(topic);
-        //TODO quota management
-        // pour les topics dont je suis owner, somme d'usage
-        // pour le topic à créer usageTopic
-        // si somme + usageTopic > quota KO
 
+        return topicService.create(topic);
     }
 
     @Status(HttpStatus.NO_CONTENT)
@@ -136,6 +136,34 @@ public class TopicController extends NamespacedResourceController {
         return HttpResponse.noContent();
     }
 
+    @Post("/_/import{?dryrun}")
+    public List<Topic> importResources(String namespace, @QueryValue(defaultValue = "false") boolean dryrun)
+            throws ExecutionException, InterruptedException, TimeoutException {
+
+        Namespace ns = getNamespace(namespace);
+
+        List<Topic> unsynchronizedTopics = topicService.listUnsynchronizedTopics(ns);
+
+        // Augment
+        unsynchronizedTopics.forEach(topic -> {
+            topic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                topic.getMetadata().setCluster(ns.getMetadata().getCluster());
+                topic.getMetadata().setNamespace(ns.getMetadata().getName());
+                topic.setStatus(Topic.TopicStatus.builder()
+                        .phase(Topic.TopicPhase.Success)
+                        .message("Imported from cluster")
+                        .build());
+        });
+
+        if (dryrun) {
+            return unsynchronizedTopics;
+        }
+
+        List<Topic> synchronizedTopics = unsynchronizedTopics.stream()
+                .map(topic -> topicService.create(topic))
+                .collect(Collectors.toList());
+        return synchronizedTopics;
+    }
     @Post("{topic}/empty{?dryrun}")
     public HttpResponse<?> empty(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
@@ -156,7 +184,7 @@ public class TopicController extends NamespacedResourceController {
             }
             return HttpResponse.noContent();
         } catch (ExecutionException | InterruptedException e) {
-          return HttpResponse.badRequest(e.getMessage());
+            return HttpResponse.badRequest(e.getMessage());
         }
 
     }

@@ -21,15 +21,13 @@ public class AccessControlEntry {
     private ObjectMeta metadata;
     @Valid
     @NotNull
-    AccessControlEntrySpec spec;
+    private AccessControlEntrySpec spec;
 
     @Introspected
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @Getter
-    @Setter
-    @ToString
+    @Data
     public static class AccessControlEntrySpec {
         @NotNull
         protected ResourceType resourceType;

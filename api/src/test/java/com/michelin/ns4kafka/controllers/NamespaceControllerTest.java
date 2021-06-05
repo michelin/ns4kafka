@@ -6,17 +6,18 @@ import com.michelin.ns4kafka.services.NamespaceService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 public class NamespaceControllerTest {
@@ -138,6 +139,33 @@ public class NamespaceControllerTest {
         Assertions.assertEquals("namespace", actual.getMetadata().getName());
         Assertions.assertEquals("local", actual.getMetadata().getCluster());
         Assertions.assertEquals("label", actual.getMetadata().getLabels().get("new"));
+    }
+    @Test
+    void applyUpdateSuccess_AlreadyExists(){
+        Namespace existing = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user")
+                        .build())
+                .build();
+        Namespace toUpdate = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("namespace"))
+                .thenReturn(Optional.of(existing));
+
+        Namespace actual = namespaceController.apply(toUpdate, false);
+        Assertions.assertEquals(existing, actual);
+        verify(namespaceService,never()).createOrUpdate(ArgumentMatchers.any());
     }
     @Test
     void applyUpdateDryRun(){
