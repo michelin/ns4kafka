@@ -1,18 +1,15 @@
 package com.michelin.ns4kafka.validation;
 
 import com.michelin.ns4kafka.models.Connector;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 @NoArgsConstructor
-@Getter
-@Setter
+@Data
+@EqualsAndHashCode(callSuper=true)
 public class ConnectValidator extends ResourceValidator{
 
     //constraints applies to all connectors

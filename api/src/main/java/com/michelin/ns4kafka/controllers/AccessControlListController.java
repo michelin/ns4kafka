@@ -93,10 +93,17 @@ public class AccessControlListController extends NamespacedResourceController {
         accessControlEntry.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
         accessControlEntry.getMetadata().setCluster(ns.getMetadata().getCluster());
         accessControlEntry.getMetadata().setNamespace(ns.getMetadata().getName());
+
+        Optional<AccessControlEntry> existingACL = accessControlEntryService.findByName(namespace, accessControlEntry.getMetadata().getName());
+        if(existingACL.isPresent() && existingACL.get().equals(accessControlEntry)){
+            return existingACL.get();
+        }
+
         //dryrun checks
         if (dryrun) {
             return accessControlEntry;
         }
+
         //store
         return accessControlEntryService.create(accessControlEntry);
     }
