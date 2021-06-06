@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.models.DeleteRecords;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.ObjectMeta;
@@ -9,9 +10,11 @@ import com.michelin.ns4kafka.services.TopicService;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -527,7 +530,7 @@ public class TopicControllerTest {
 
 
     @Test
-    public void EmptyTopic() throws InterruptedException, ExecutionException, TimeoutException {
+    public void deleteRecords_Success() {
         //Given
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
@@ -535,26 +538,35 @@ public class TopicControllerTest {
                         .cluster("local")
                         .build())
                 .build();
+
+        Topic toEmpty = Topic.builder().metadata(ObjectMeta.builder().name("topic.empty").build()).build();
+        Map<TopicPartition, Long> partitionsToDelete = Map.of(
+                new TopicPartition("topic.empty",0), 100L,
+                new TopicPartition("topic.empty", 1), 101L);
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Optional<Topic> toEmpty = Optional.of(
-                Topic.builder().metadata(ObjectMeta.builder().name("topic.empty").build()).build());
-        when(topicService.findByName(ns, "topic.empty"))
-                .thenReturn(toEmpty);
         when(topicService.isNamespaceOwnerOfTopic("test","topic.empty"))
                 .thenReturn(true);
-        doNothing().when(topicService).empty(ns, toEmpty.get());
-
+        when(topicService.findByName(ns, "topic.empty"))
+                .thenReturn(Optional.of(toEmpty));
+        when(topicService.prepareRecordsToDelete(toEmpty))
+                .thenReturn(partitionsToDelete);
+        when(topicService.deleteRecords(ArgumentMatchers.eq(toEmpty), anyMap()))
+                .thenReturn(partitionsToDelete);
 
         //When
-        HttpResponse<?> actual = topicController.empty("test", "topic.empty", false);
+        DeleteRecords actual = topicController.deleteRecords("test", "topic.empty", false);
 
         //Then
-        Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
+        Assertions.assertEquals("test", actual.getMetadata().getNamespace());
+        Assertions.assertEquals("topic.empty", actual.getMetadata().getName());
+        Assertions.assertTrue(actual.getStatus().isSuccess());
+        Assertions.assertEquals(2, actual.getStatus().getLowWaterMarks().size());
+
     }
 
     @Test
-    public void EmptyTopicDryRun() throws InterruptedException, ExecutionException, TimeoutException {
+    public void deleteRecords_DryRun() {
         //Given
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
@@ -562,24 +574,32 @@ public class TopicControllerTest {
                         .cluster("local")
                         .build())
                 .build();
+        Topic toEmpty = Topic.builder().metadata(ObjectMeta.builder().name("topic.empty").build()).build();
+        Map<TopicPartition, Long> partitionsToDelete = Map.of(
+                new TopicPartition("topic.empty",0), 100L,
+                new TopicPartition("topic.empty", 1), 101L);
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Optional<Topic> toEmpty = Optional.of(
-                Topic.builder().metadata(ObjectMeta.builder().name("topic.empty").build()).build());
-        when(topicService.findByName(ns, "topic.empty"))
-                .thenReturn(toEmpty);
         when(topicService.isNamespaceOwnerOfTopic("test","topic.empty"))
                 .thenReturn(true);
+        when(topicService.findByName(ns, "topic.empty"))
+                .thenReturn(Optional.of(toEmpty));
+        when(topicService.prepareRecordsToDelete(toEmpty))
+                .thenReturn(partitionsToDelete);
 
         //When
-        HttpResponse<?> actual = topicController.empty("test", "topic.empty", true);
+        DeleteRecords actual = topicController.deleteRecords("test", "topic.empty", true);
 
-        //Then
-        verify(topicService, never()).empty(any(), any());
+
+        Assertions.assertEquals("test", actual.getMetadata().getNamespace());
+        Assertions.assertEquals("topic.empty", actual.getMetadata().getName());
+        Assertions.assertTrue(actual.getStatus().isSuccess());
+        Assertions.assertEquals(2, actual.getStatus().getLowWaterMarks().size());
+        verify(topicService, never()).deleteRecords(any(), anyMap());
     }
 
     @Test
-    public void EmptyTopicUnauthorized() throws InterruptedException, ExecutionException, TimeoutException {
+    public void deleteRecords_NotOwner() {
         //Given
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
@@ -593,10 +613,34 @@ public class TopicControllerTest {
                 .thenReturn(false);
 
         //When
-        HttpResponse<?> actual = topicController.empty("test", "topic.empty", false);
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+                () -> topicController.deleteRecords("test", "topic.empty", false));
 
-        //Then
-        Assertions.assertEquals(HttpStatus.UNAUTHORIZED, actual.getStatus());
+        Assertions.assertEquals(1, actual.getValidationErrors().size());
+        Assertions.assertTrue(actual.getValidationErrors().get(0).matches(".*Namespace not OWNER of this topic.*"));
+    }
+
+    @Test
+    public void deleteRecords_NotExistingTopic() {
+        //Given
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.isNamespaceOwnerOfTopic("test","topic.empty"))
+                .thenReturn(true);
+        when(topicService.findByName(ns, "topic.empty"))
+                .thenReturn(Optional.empty());
+        //When
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+                () -> topicController.deleteRecords("test", "topic.empty", false));
+
+        Assertions.assertEquals(1, actual.getValidationErrors().size());
+        Assertions.assertTrue(actual.getValidationErrors().get(0).matches(".*Topic doesn't exist.*"));
 
     }
 }

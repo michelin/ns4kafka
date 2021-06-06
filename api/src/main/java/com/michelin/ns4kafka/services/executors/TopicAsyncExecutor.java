@@ -6,7 +6,6 @@ import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
 import io.micronaut.context.annotation.EachBean;
 import org.apache.kafka.clients.admin.*;
-import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.ConfigResource;
 import org.slf4j.Logger;
@@ -291,15 +290,31 @@ public class TopicAsyncExecutor {
         return total;
     }
 
-    public Map<String, TopicDescription> describeTopics(List<String> topics) throws InterruptedException, ExecutionException {
-        return getAdminClient().describeTopics(topics).all().get();
+    public Map<TopicPartition, RecordsToDelete> prepareRecordsToDelete(String topic) throws ExecutionException, InterruptedException {
+        // List all partitions for topic and prepare a listOffsets call
+        Map<TopicPartition, OffsetSpec> topicsPartitionsToDelete = getAdminClient().describeTopics(List.of(topic)).all().get()
+                .entrySet()
+                .stream()
+                .flatMap(topicDescriptionEntry -> topicDescriptionEntry.getValue().partitions().stream())
+                .map(partitionInfo -> new TopicPartition(topic, partitionInfo.partition()))
+                .collect(Collectors.toMap(Function.identity(), v -> OffsetSpec.latest()));
+
+        // list all latest offsets for each partitions
+        return getAdminClient().listOffsets(topicsPartitionsToDelete).all().get()
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, kv -> RecordsToDelete.beforeOffset(kv.getValue().offset() + 1)));
     }
 
-    public Map<TopicPartition, ListOffsetsResultInfo> listOffsets(Map<TopicPartition, OffsetSpec> topicPartitionsOffsetSpec) throws InterruptedException, ExecutionException {
-        return getAdminClient().listOffsets(topicPartitionsOffsetSpec).all().get();
-    }
+    public Map<TopicPartition, Long> deleteRecords(Map<TopicPartition, RecordsToDelete> recordsToDelete) throws ExecutionException, InterruptedException {
+        return getAdminClient().deleteRecords(recordsToDelete).lowWatermarks().entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, kv-> {
+                    try {
+                        return kv.getValue().get().lowWatermark();
+                    } catch (Exception e) {
+                        return 0L;
+                    }
+                }));
 
-    public void deleteRecords(Map<TopicPartition, RecordsToDelete> recordsToDelete) throws InterruptedException, ExecutionException {
-        getAdminClient().deleteRecords(recordsToDelete).all().get();
     }
 }

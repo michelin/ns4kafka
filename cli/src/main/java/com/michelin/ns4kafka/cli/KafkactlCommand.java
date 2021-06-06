@@ -16,7 +16,7 @@ import java.util.concurrent.Callable;
                         DeleteSubcommand.class,
                         ApiResourcesSubcommand.class,
                         DiffSubcommand.class,
-                        TopicSubcommand.class
+                        DeleteRecordsSubcommand.class
                 },
                 versionProvider = KafkactlCommand.ManifestVersionProvider.class,
                 mixinStandardHelpOptions=true)

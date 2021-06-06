@@ -1,43 +1,24 @@
 package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.controllers.ResourceValidationException;
-import com.michelin.ns4kafka.models.AccessControlEntry;
-import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.repositories.TopicRepository;
-import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
-
-import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.KafkaAdminClient;
-import org.apache.kafka.clients.admin.OffsetSpec;
-import org.apache.kafka.clients.admin.RecordsToDelete;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.TopicPartitionInfo;
-
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
+import org.apache.kafka.clients.admin.RecordsToDelete;
+import org.apache.kafka.common.TopicPartition;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.Collection;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
-import java.util.Properties;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 @Singleton
 public class TopicService {
-    
+
     @Inject
     TopicRepository topicRepository;
     @Inject
@@ -119,22 +100,38 @@ public class TopicService {
         return unsynchronizedTopicNames;
     }
 
-    public void empty(Namespace namespace, Topic topic) throws InterruptedException, ExecutionException {
+    public Map<TopicPartition, Long> prepareRecordsToDelete(Topic topic) {
+        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
+                Qualifiers.byName(topic.getMetadata().getCluster()));
+        try {
+            return topicAsyncExecutor.prepareRecordsToDelete(topic.getMetadata().getName())
+                    .entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, kv -> kv.getValue().beforeOffset()));
+        } catch (ExecutionException e) {
+            //TODO refactor global error handling model
+            throw new ResourceValidationException(List.of(e.getMessage()));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        throw new ResourceValidationException(List.of("Unknown error"));
+    }
+
+    public Map<TopicPartition, Long> deleteRecords(Topic topic, Map<TopicPartition, Long> recordsToDelete) {
 
         TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
                 Qualifiers.byName(topic.getMetadata().getCluster()));
+        try {
+            Map<TopicPartition, RecordsToDelete> recordsToDeleteMap = recordsToDelete.entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, kv -> RecordsToDelete.beforeOffset(kv.getValue())));
 
-        Map<TopicPartition, OffsetSpec> topicPartitionsOffsetSpec = topicAsyncExecutor.describeTopics(List.of(topic.getMetadata().getName()))
-                .get(topic.getMetadata().getName())
-                .partitions()
-                .stream()
-                .collect(Collectors.toMap(partitions -> new TopicPartition(topic.getMetadata().getName(), partitions.partition()),  partitions ->  OffsetSpec.latest()));
-
-        Map<TopicPartition, RecordsToDelete> recordsToDelete = topicAsyncExecutor.listOffsets(topicPartitionsOffsetSpec).entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, kv -> RecordsToDelete.beforeOffset(kv.getValue().offset() + 1)));
-
-        topicAsyncExecutor.deleteRecords(recordsToDelete);
-
+            return topicAsyncExecutor.deleteRecords(recordsToDeleteMap);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (Exception e) {
+            //TODO refactor global error handling model
+            throw new ResourceValidationException(List.of(e.getMessage()));
+        }
+        throw new ResourceValidationException(List.of("Unknown error"));
     }
 
 }

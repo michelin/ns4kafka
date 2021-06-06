@@ -1,20 +1,22 @@
 package com.michelin.ns4kafka.cli;
 
-import java.util.concurrent.Callable;
-
-import javax.inject.Inject;
-
+import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.LoginService;
-import com.michelin.ns4kafka.cli.services.TopicService;
-
+import com.michelin.ns4kafka.cli.services.ResourceService;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.nodes.Tag;
+import org.yaml.snakeyaml.representer.Representer;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
-import picocli.CommandLine.Help.Ansi;
 
-@Command(name = "empty-topic", description = "Interact with a Topic")
-public class TopicSubcommand implements Callable<Integer> {
+import javax.inject.Inject;
+import java.util.concurrent.Callable;
+
+@Command(name = "delete-records", description = "Deletes all records within a topic")
+public class DeleteRecordsSubcommand implements Callable<Integer> {
 
     @Inject
     public KafkactlConfig kafkactlConfig;
@@ -22,7 +24,7 @@ public class TopicSubcommand implements Callable<Integer> {
     @Inject
     public LoginService loginService;
     @Inject
-    public TopicService topicService;
+    public ResourceService resourceService;
 
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
@@ -46,14 +48,19 @@ public class TopicSubcommand implements Callable<Integer> {
 
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
 
+        Resource resource = resourceService.deleteRecords(namespace, topic, dryRun);
 
-        boolean deleted = topicService.empty(namespace, topic, dryRun);
-        if (!deleted) {
-            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red FAILED |@"));
-            return 1;
-        }
-        System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS |@"));
+        displayIndividual(resource);
+
         return 0;
+    }
+    private void displayIndividual(Resource resource) {
+        DumperOptions options = new DumperOptions();
+        options.setExplicitStart(true);
+        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        Representer representer = new Representer();
+        representer.addClassTag(Resource.class, Tag.MAP);
+        System.out.println(new Yaml(representer, options).dump(resource));
     }
 
 }
