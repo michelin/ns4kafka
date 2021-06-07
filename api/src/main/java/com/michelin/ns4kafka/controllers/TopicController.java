@@ -194,8 +194,10 @@ public class TopicController extends NamespacedResourceController {
 
         return DeleteRecords.builder()
                 .metadata(ObjectMeta.builder()
+                        .cluster(ns.getMetadata().getCluster())
                         .namespace(namespace)
                         .name(topic)
+                        .creationTimestamp(Date.from(Instant.now()))
                         .build())
                 .status(DeleteRecords.DeleteRecordsStatus.builder()
                         .success(true)
