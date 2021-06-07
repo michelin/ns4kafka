@@ -41,7 +41,10 @@ public class KafkaConnectService {
         return connectorRepository.findAllForCluster(namespace.getMetadata().getCluster())
                 .stream()
                 .filter(connector -> acls.stream().anyMatch(accessControlEntry -> {
-                    //no need to check accessControlEntry.Permission, we want READ, WRITE or OWNER
+                    //need to check accessControlEntry.Permission, we want OWNER
+                    if (accessControlEntry.getSpec().getPermission() != AccessControlEntry.Permission.OWNER) {
+                        return false;
+                    }
                     if (accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT) {
                         switch (accessControlEntry.getSpec().getResourcePatternType()) {
                             case PREFIXED:
