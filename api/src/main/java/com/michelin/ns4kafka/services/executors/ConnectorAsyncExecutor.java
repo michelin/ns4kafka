@@ -83,7 +83,7 @@ public class ConnectorAsyncExecutor {
         }
     }
 
-    private List<Connector> collectBrokerConnectors(String connectCluster) {
+    public List<Connector> collectBrokerConnectors(String connectCluster) {
         List<Connector> connectorList = kafkaConnectClient.listAll(kafkaAsyncExecutorConfig.getName(), connectCluster)
                 .values()
                 .stream()

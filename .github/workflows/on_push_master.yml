@@ -4,7 +4,7 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  build-linux:
     runs-on: ubuntu-latest
     environment: Build
     steps:
@@ -34,8 +34,6 @@ jobs:
           path: ~/.gradle/caches
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
           restore-keys: ${{ runner.os }}-gradle
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
       - name: Build and analyze
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
@@ -47,9 +45,39 @@ jobs:
         run: ./gradlew :cli:shadowJar :cli:nativeImage
       - uses: actions/upload-artifact@v2
         with:
-          name: native-image
-          path: cli/build/native-image/kafkactl-+([0-9]).+([0-9]).+([0-9])?(-SNAPSHOT)
+          name: native-image-linux
+          path: ${{ github.workspace }}/cli/build/native-image/kafkactl-*
       - uses: actions/upload-artifact@v2
         with:
           name: jar
-          path: cli/build/libs/kafkactl-+([0-9]).+([0-9]).+([0-9])?(-SNAPSHOT).jar
+          path: ${{ github.workspace }}/cli/build/libs/kafkactl-*.jar
+  build-windows:
+    runs-on: windows-latest
+    environment: Build
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - uses: DeLaGuardo/setup-graalvm@4.0
+        with:
+          graalvm: '20.3.2'
+          java: 'java11'
+      - name: Install Native Image
+        run: ${{ env.JAVA_HOME }}\bin\gu.cmd install native-image
+      - name: Cache Gradle packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+          restore-keys: ${{ runner.os }}-gradle
+      - name: Configure Pagefile
+        uses: al-cheb/configure-pagefile-action@v1.2
+      - name: Native Image for CLI
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
+          gradlew.bat :cli:shadowJar :cli:nativeImage
+        shell: cmd
+      - uses: actions/upload-artifact@v2
+        with:
+          name: native-image-windows
+          path: ${{ github.workspace }}/cli/build/native-image/kafkactl-*

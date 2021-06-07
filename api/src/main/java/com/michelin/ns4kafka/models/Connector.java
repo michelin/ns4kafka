@@ -2,7 +2,6 @@ package com.michelin.ns4kafka.models;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.micronaut.core.annotation.Introspected;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import javax.validation.Valid;
@@ -16,8 +15,7 @@ import java.util.Map;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter
-@Setter
+@Data
 public class Connector {
     private final String apiVersion = "v1";
     private final String kind = "Connector";
@@ -29,14 +27,13 @@ public class Connector {
     @NotNull
     private ConnectorSpec spec;
 
-    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+    @EqualsAndHashCode.Exclude
     private ConnectorStatus status;
 
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @Getter
-    @Setter
+    @Data
     public static class ConnectorSpec {
         @NotBlank
         private String connectCluster;
