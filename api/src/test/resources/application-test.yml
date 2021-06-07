@@ -12,9 +12,14 @@ ns4kafka:
         groups:
           - "adminGroup"
   managed-clusters:
-    df4mgbl0:
+    test-cluster:
       manage-users: false # requires Broker >= 2.7.0
       manage-acls: false
       manage-topics: false
+      connects:
+        test-connect:
+          url: "http://localhost/kafka/connect/"
+          basicAuthUsername: "user"
+          basicAuthPassword: "password"
       config:
         bootstrap.servers: "localhost:9092"
