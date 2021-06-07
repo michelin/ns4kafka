@@ -70,6 +70,19 @@ public class ConsumerGroupResetOffsets {
         private String errorMessage;
         private Map<String, Long> offsetChanged;
 
+        public static ConsumerGroupResetOffsetStatus ofSuccess(Map<String, Long> offsetChanged) {
+            return ConsumerGroupResetOffsetStatus.builder()
+                    .success(true)
+                    .offsetChanged(offsetChanged)
+                    .build();
+        }
+
+        public static ConsumerGroupResetOffsetStatus ofFailure(String errorMessage) {
+            return ConsumerGroupResetOffsetStatus.builder()
+                    .success(false)
+                    .errorMessage(errorMessage)
+                    .build();
+        }
     }
 
 }

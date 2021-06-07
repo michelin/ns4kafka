@@ -41,39 +41,32 @@ public class ConsumerGroupController extends NamespacedResourceController {
             throw new ResourceValidationException(validationErrors);
         }
 
-        Map<String, Long> finalOffsets = null;
-
+        ConsumerGroupResetOffsetStatus status = null;
         try {
-            List<TopicPartition> partitionsToReset = consumerGroupService.getPartitionsToReset(ns, consumerGroup, consumerGroupResetOffsets.getSpec().getTopic());
-            Map<TopicPartition,Long> preparedOffsets = consumerGroupService.prepareOffsetsToReset(ns,consumerGroup, consumerGroupResetOffsets.getSpec().getOptions(), partitionsToReset, consumerGroupResetOffsets.getSpec().getMethod());
-            if (!dryrun) {
-                finalOffsets = consumerGroupService.apply(ns,consumerGroup ,preparedOffsets);
-
-            } else {
-                finalOffsets = preparedOffsets.entrySet().stream()
-                    .collect(Collectors.toMap(kv -> kv.getKey().toString(), Map.Entry::getValue));
+            // Starting from here, all the code is from Kafka kafka-consumer-group command
+            // https://github.com/apache/kafka/blob/trunk/core/src/main/scala/kafka/admin/ConsumerGroupCommand.scala
+            // validate Consumer Group is Dead or Inative
+            String currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
+            if (!List.of("Empty", "Dead").contains(currentState)) {
+                throw new IllegalStateException("Assignments can only be reset if the group '" + consumerGroup + "' is inactive, but the current state is " + currentState + ".");
             }
-
+            // list partitions
+            List<TopicPartition> partitionsToReset = consumerGroupService.getPartitionsToReset(ns, consumerGroup, consumerGroupResetOffsets.getSpec().getTopic());
+            // prepare offsets
+            Map<TopicPartition, Long> preparedOffsets = consumerGroupService.prepareOffsetsToReset(ns, consumerGroup, consumerGroupResetOffsets.getSpec().getOptions(), partitionsToReset, consumerGroupResetOffsets.getSpec().getMethod());
+            if (!dryrun) {
+                consumerGroupService.alterConsumerGroupOffsets(ns, consumerGroup, preparedOffsets);
+            }
+            status = ConsumerGroupResetOffsetStatus.ofSuccess(
+                    preparedOffsets.entrySet().stream()
+                            .collect(Collectors.toMap(kv -> kv.getKey().toString(), Map.Entry::getValue)));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
-            ConsumerGroupResetOffsetStatus status =  ConsumerGroupResetOffsetStatus.builder()
-                .success(false)
-                .errorMessage(e.getMessage())
-                .build();
-
-            consumerGroupResetOffsets.setStatus(status);
-            return consumerGroupResetOffsets;
+            status = ConsumerGroupResetOffsetStatus.ofFailure(e.getMessage());
         }
-
-        ConsumerGroupResetOffsetStatus status =  ConsumerGroupResetOffsetStatus.builder()
-            .success(true)
-            .offsetChanged(finalOffsets)
-            .build();
 
         consumerGroupResetOffsets.setStatus(status);
         return consumerGroupResetOffsets;
-
-
     }
-
-
 }
