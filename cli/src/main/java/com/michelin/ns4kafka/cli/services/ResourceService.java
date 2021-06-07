@@ -104,4 +104,12 @@ public class ResourceService {
 
         return resources;
     }
+    public Resource deleteRecords(String namespace, String topic, boolean dryrun) {
+        try {
+            return namespacedClient.deleteRecords(loginService.getAuthorization(),namespace, topic, dryrun);
+        } catch (HttpClientResponseException e) {
+            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red FAILED |@") + topic + CommandLine.Help.Ansi.AUTO.string("@|bold,red failed with message : |@") + e.getMessage());
+        }
+        return null;
+    }
 }

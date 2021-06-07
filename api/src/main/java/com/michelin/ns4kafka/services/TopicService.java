@@ -1,27 +1,24 @@
 package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.controllers.ResourceValidationException;
-import com.michelin.ns4kafka.models.AccessControlEntry;
-import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
+import org.apache.kafka.clients.admin.RecordsToDelete;
+import org.apache.kafka.common.TopicPartition;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @Singleton
 public class TopicService {
-    
+
     @Inject
     TopicRepository topicRepository;
     @Inject
@@ -102,4 +99,39 @@ public class TopicService {
                 .collect(Collectors.toList());
         return unsynchronizedTopicNames;
     }
+
+    public Map<TopicPartition, Long> prepareRecordsToDelete(Topic topic) {
+        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
+                Qualifiers.byName(topic.getMetadata().getCluster()));
+        try {
+            return topicAsyncExecutor.prepareRecordsToDelete(topic.getMetadata().getName())
+                    .entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, kv -> kv.getValue().beforeOffset()));
+        } catch (ExecutionException e) {
+            //TODO refactor global error handling model
+            throw new ResourceValidationException(List.of(e.getMessage()));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        throw new ResourceValidationException(List.of("Unknown error"));
+    }
+
+    public Map<TopicPartition, Long> deleteRecords(Topic topic, Map<TopicPartition, Long> recordsToDelete) {
+
+        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
+                Qualifiers.byName(topic.getMetadata().getCluster()));
+        try {
+            Map<TopicPartition, RecordsToDelete> recordsToDeleteMap = recordsToDelete.entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, kv -> RecordsToDelete.beforeOffset(kv.getValue())));
+
+            return topicAsyncExecutor.deleteRecords(recordsToDeleteMap);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (Exception e) {
+            //TODO refactor global error handling model
+            throw new ResourceValidationException(List.of(e.getMessage()));
+        }
+        throw new ResourceValidationException(List.of("Unknown error"));
+    }
+
 }

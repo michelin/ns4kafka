@@ -45,4 +45,11 @@ public interface NamespacedResourceClient {
             String kind,
             @Header("Authorization") String token,
             @QueryValue boolean dryrun);
+
+    @Post("{namespace}/topics/{topic}/delete-records{?dryrun}")
+    Resource deleteRecords(
+            @Header("Authorization") String token,
+            String namespace,
+            String topic,
+            @QueryValue boolean dryrun);
 }
