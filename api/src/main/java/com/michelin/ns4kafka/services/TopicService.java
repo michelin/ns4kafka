@@ -60,7 +60,7 @@ public class TopicService {
             return map.entrySet().stream()
                     .filter(
                             (entry ->
-                                    topic.getMetadata().getName().equals(entry.getKey())
+                                    !topic.getMetadata().getName().equals(entry.getKey())
                                             && topic.getMetadata().getName().replace('.', '_')
                                             .equals(entry.getKey().replace('.', '_')))
 

@@ -643,4 +643,53 @@ public class TopicControllerTest {
         Assertions.assertTrue(actual.getValidationErrors().get(0).matches(".*Topic doesn't exist.*"));
 
     }
+
+    @Test
+    public void CreateCollidingTopic() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","delete",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+        Topic topicCollide = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test_topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","delete",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+        when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
+        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
+        when(topicService.findCollidingTopics(topic)).thenReturn(Optional.of(topicCollide));
+
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> topicController.apply("test", topic, false));
+        Assertions.assertEquals(1, actual.getValidationErrors().size());
+        Assertions.assertEquals("Topic "
+                + topic.getMetadata().getName()
+                + " collides with existing topics: "
+                + topicCollide.getMetadata().getName(), actual.getValidationErrors().get(0));
+    }
 }
