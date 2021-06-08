@@ -17,7 +17,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -79,7 +81,7 @@ public class ConsumerGroupServiceTest {
                 .build();
 
         List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
-        assertTrue(result.size() == 1);
+        assertEquals(result.size(), 1);
     }
 
     @Test
@@ -135,7 +137,7 @@ public class ConsumerGroupServiceTest {
                 .build();
 
         List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
-        assertTrue(result.size() == 1);
+        assertEquals(result.size(), 1);
     }
 
     @Test
@@ -219,11 +221,83 @@ public class ConsumerGroupServiceTest {
                 .build();
 
         List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
-        assertTrue(result.size() == 1);
+        assertEquals(result.size(), 1);
     }
 
     @Test
-    void doPrepareOffsetsToReset_ShiftBy() {
+    void doGetPartitionsToReset_AllTopic() throws InterruptedException, ExecutionException {
+        Namespace namespace = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("test")
+                        .build())
+                .build();
+        String groupId = "testGroup";
+        String topic = "*";
+
+        TopicPartition topicPartition1 = new TopicPartition("topic1", 0);
+        TopicPartition topicPartition2 = new TopicPartition("topic1", 1);
+        TopicPartition topicPartition3 = new TopicPartition("topic2", 0);
+        List<TopicPartition> partitionsToReset = List.of(topicPartition1, topicPartition2, topicPartition3);
+
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
+        when(applicationContext.getBean(ConsumerGroupAsyncExecutor.class,
+                Qualifiers.byName(namespace.getMetadata().getCluster()))).thenReturn(consumerGroupAsyncExecutor);
+        when(consumerGroupAsyncExecutor.getCommittedOffsets(groupId)).thenReturn(
+                Map.of(topicPartition1, 5L,
+                       topicPartition2, 10L,
+                       topicPartition3, 5L));
+        List<TopicPartition> result = consumerGroupService.getPartitionsToReset(namespace, groupId, topic);
+
+        assertEquals(result.size(),3);
+        assertTrue(result.containsAll(partitionsToReset));
+    }
+
+    @Test
+    void doGetPartitionsToReset_OneTopic() throws InterruptedException, ExecutionException {
+        Namespace namespace = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("test")
+                        .build())
+                .build();
+        String groupId = "testGroup";
+        String topic = "topic1";
+
+        TopicPartition topicPartition1 = new TopicPartition("topic1", 0);
+        TopicPartition topicPartition2 = new TopicPartition("topic1", 1);
+        TopicPartition topicPartition3 = new TopicPartition("topic2", 0);
+        List<TopicPartition> partitionsToReset = List.of(topicPartition1, topicPartition2);
+
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
+        when(applicationContext.getBean(ConsumerGroupAsyncExecutor.class,
+                Qualifiers.byName(namespace.getMetadata().getCluster()))).thenReturn(consumerGroupAsyncExecutor);
+        when(consumerGroupAsyncExecutor.getCommittedOffsets(groupId)).thenReturn(
+                Map.of(topicPartition1, 5L, topicPartition2, 10L, topicPartition3, 5L));
+        List<TopicPartition> result = consumerGroupService.getPartitionsToReset(namespace, groupId, topic);
+
+        assertEquals(result.size(),2);
+        assertTrue(result.containsAll(partitionsToReset));
+    }
+
+    @Test
+    void doGetPartitionsToReset_OneTopicPartition() throws InterruptedException, ExecutionException {
+        Namespace namespace = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("test")
+                        .build())
+                .build();
+        String groupId = "testGroup";
+        String topic = "topic1:0";
+
+        TopicPartition topicPartition1 = new TopicPartition("topic1", 0);
+
+        List<TopicPartition> result = consumerGroupService.getPartitionsToReset(namespace, groupId, topic);
+
+        assertEquals(result.size(),1);
+        assertTrue(result.contains(topicPartition1));
+    }
+
+    @Test
+    void doPrepareOffsetsToReset_ShiftBy() throws ExecutionException, InterruptedException {
         Namespace namespace = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .cluster("test")
@@ -239,29 +313,20 @@ public class ConsumerGroupServiceTest {
         ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
         when(applicationContext.getBean(ConsumerGroupAsyncExecutor.class,
                 Qualifiers.byName(namespace.getMetadata().getCluster()))).thenReturn(consumerGroupAsyncExecutor);
-        try {
-            when(consumerGroupAsyncExecutor.getCommittedOffsets(anyString())).thenReturn(
-                    Map.of(new TopicPartition("topic1", 0), 10L,
-                           new TopicPartition("topic1", 1), 15L,
-                           new TopicPartition("topic2", 0), 10L));
-            when(consumerGroupAsyncExecutor.checkOffsetsRange(groupId,
-                    Map.of(new TopicPartition("topic1", 0), 5L,
-                           new TopicPartition("topic1", 1), 10L))).thenReturn(
-                    Map.of(new TopicPartition("topic1", 0), 5L,
-                           new TopicPartition("topic1", 1), 10L));
-        } catch (Exception e) {
-            assertTrue(false);
-        }
+        when(consumerGroupAsyncExecutor.getCommittedOffsets(anyString())).thenReturn(
+                Map.of(new TopicPartition("topic1", 0), 10L,
+                        new TopicPartition("topic1", 1), 15L,
+                        new TopicPartition("topic2", 0), 10L));
+        when(consumerGroupAsyncExecutor.checkOffsetsRange(groupId,
+                Map.of(new TopicPartition("topic1", 0), 5L,
+                        new TopicPartition("topic1", 1), 10L))).thenReturn(
+                Map.of(new TopicPartition("topic1", 0), 5L,
+                        new TopicPartition("topic1", 1), 10L));
 
-        Map<TopicPartition, Long> result = null;
-        try {
-            result = consumerGroupService.prepareOffsetsToReset(namespace, groupId, options, partitionsToReset, method);
-        } catch (Exception e) {
-            assertTrue(false);
-        }
+        Map<TopicPartition, Long> result = consumerGroupService.prepareOffsetsToReset(namespace, groupId, options, partitionsToReset, method);
 
-        assertTrue(result.size() == 2);
-        assertTrue(result.get(topicPartition1) == 5);
-        assertTrue(result.get(topicPartition2) == 10);
+        assertEquals(result.size(), 2);
+        assertEquals(result.get(topicPartition1), 5);
+        assertEquals(result.get(topicPartition2), 10);
     }
 }
