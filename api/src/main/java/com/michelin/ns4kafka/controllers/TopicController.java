@@ -77,6 +77,13 @@ public class TopicController extends NamespacedResourceController {
                 validationErrors.add("Invalid value " + topic.getMetadata().getName()
                         + " for name: Namespace not OWNER of this topic");
             }
+            //Topic names with a period ('.') or underscore ('_') could collide
+            Optional<Topic> collidingTopic = topicService.findCollidingTopics(topic);
+            if (collidingTopic.isPresent()) {
+                validationErrors.add("Topic " + topic.getMetadata().getName()
+                        + " collides with existing topics: "
+                        + collidingTopic.get().getMetadata().getName());
+            }
 
         } else {
             //2.2 forbidden changes when updating (partitions, replicationFactor)

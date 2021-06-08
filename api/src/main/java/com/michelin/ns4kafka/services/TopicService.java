@@ -52,6 +52,29 @@ public class TopicService {
                 .collect(Collectors.toList());
     }
 
+    public Optional<Topic> findCollidingTopics(Topic topic)  {
+        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
+                Qualifiers.byName(topic.getMetadata().getCluster()));
+        try {
+            Map<String, Topic> map = topicAsyncExecutor.collectBrokerTopics();
+            return map.entrySet().stream()
+                    .filter(
+                            (entry ->
+                                    topic.getMetadata().getName().equals(entry.getKey())
+                                            && topic.getMetadata().getName().replace('.', '_')
+                                            .equals(entry.getKey().replace('.', '_')))
+
+
+                    ).map(
+                            entry -> entry.getValue()
+                    )
+                    .findFirst();
+        } catch (Exception e) {
+            //TODO refactor global error handling model
+            throw new ResourceValidationException(List.of(e.getMessage()));
+        }
+    }
+
     public boolean isNamespaceOwnerOfTopic(String namespace, String topic) {
         return accessControlEntryService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.TOPIC, topic);
     }
