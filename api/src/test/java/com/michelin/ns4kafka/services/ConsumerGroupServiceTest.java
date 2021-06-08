@@ -242,8 +242,13 @@ public class ConsumerGroupServiceTest {
         try {
             when(consumerGroupAsyncExecutor.getCommittedOffsets(anyString())).thenReturn(
                     Map.of(new TopicPartition("topic1", 0), 10L,
-                            new TopicPartition("topic1", 1), 15L,
-                            new TopicPartition("topic2", 0), 10L));
+                           new TopicPartition("topic1", 1), 15L,
+                           new TopicPartition("topic2", 0), 10L));
+            when(consumerGroupAsyncExecutor.checkOffsetsRange(groupId,
+                    Map.of(new TopicPartition("topic1", 0), 5L,
+                           new TopicPartition("topic1", 1), 10L))).thenReturn(
+                    Map.of(new TopicPartition("topic1", 0), 5L,
+                           new TopicPartition("topic1", 1), 10L));
         } catch (Exception e) {
             assertTrue(false);
         }

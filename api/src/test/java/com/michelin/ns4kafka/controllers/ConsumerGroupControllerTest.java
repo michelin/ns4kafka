@@ -250,8 +250,10 @@ public class ConsumerGroupControllerTest {
                 .thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID"))
                 .thenReturn("Active");
-        assertThrows(ResourceValidationException.class,
-                () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
+
+        ConsumerGroupResetOffsets result = consumerGroupController.resetOffsets("test", "groupID", resetOffset, false);
+        assertFalse(result.getStatus().isSuccess());
+        assertFalse(result.getStatus().getErrorMessage().isBlank());
 
     }
 
