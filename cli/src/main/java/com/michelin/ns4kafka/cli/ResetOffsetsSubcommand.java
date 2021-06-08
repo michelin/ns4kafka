@@ -2,7 +2,7 @@ package com.michelin.ns4kafka.cli;
 
 import com.michelin.ns4kafka.cli.models.ObjectMeta;
 import com.michelin.ns4kafka.cli.models.Resource;
-import com.michelin.ns4kafka.cli.services.ConsumerGroupService;
+import com.michelin.ns4kafka.cli.services.ResourceService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import io.micronaut.core.annotation.Introspected;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
@@ -30,7 +30,7 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
     @Inject
     public LoginService loginService;
     @Inject
-    public ConsumerGroupService consumerGroupService;
+    public ResourceService resourceService;
 
     @Inject
     public KafkactlConfig kafkactlConfig;
@@ -118,7 +118,7 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
         Resource resource;
 
         try {
-            resource = consumerGroupService.reset(namespace, group, consumerGroupResetOffset, dryRun);
+            resource = resourceService.resetOffsets(namespace, group, consumerGroupResetOffset, dryRun);
         } catch (HttpClientResponseException e) {
             System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red ERROR: |@" + e.getMessage()));
             return 1;

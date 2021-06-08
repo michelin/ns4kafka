@@ -112,4 +112,8 @@ public class ResourceService {
         }
         return null;
     }
+
+    public Resource resetOffsets(String namespace, String group, Resource resource, boolean dryRun) {
+        return namespacedClient.resetOffsets(loginService.getAuthorization(), namespace, group, resource, dryRun);
+    }
 }

@@ -51,4 +51,12 @@ public interface NamespacedResourceClient {
             String namespace,
             String topic,
             @QueryValue boolean dryrun);
+
+    @Post("{namespace}/consumer-groups/{consumerGroupName}/reset{?dryrun}")
+    Resource resetOffsets(
+            @Header("Authorization") String token,
+            String namespace,
+            String consumerGroupName,
+            @Body Resource json,
+            @QueryValue boolean dryrun);
 }
