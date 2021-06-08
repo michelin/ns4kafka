@@ -118,9 +118,9 @@ public class ConsumerGroupControllerTest {
         when(consumerGroupService.prepareOffsetsToReset(ns, "groupID", null, topicPartitions, ResetOffsetsMethod.TO_EARLIEST))
                 .thenReturn(Map.of(topicPartition1, 5L, topicPartition2, 10L));
 
+        verify(consumerGroupService, never()).alterConsumerGroupOffsets(notNull(), anyString(), anyMap());
 
         ConsumerGroupResetOffsets result = consumerGroupController.resetOffsets("test", "groupID", resetOffset, true);
-        verify(consumerGroupService, never()).alterConsumerGroupOffsets(notNull(), anyString(), anyMap());
         assertTrue(result.getStatus().isSuccess());
         assertEquals(result.getStatus().getOffsetChanged().get(topicPartition1.toString()), 5L);
         assertEquals(result.getStatus().getOffsetChanged().get(topicPartition2.toString()), 10L);
@@ -189,8 +189,9 @@ public class ConsumerGroupControllerTest {
                 .thenReturn(new ArrayList<>());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(false);
-        assertThrows(ResourceValidationException.class,
+        ResourceValidationException result = assertThrows(ResourceValidationException.class,
                 () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
+        assertEquals(result.getValidationErrors(),List.of("Invalid value groupID for name: Namespace not OWNER of this consumer group"));
 
     }
 
@@ -219,8 +220,9 @@ public class ConsumerGroupControllerTest {
                 .thenReturn(List.of("Validation Error"));
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
-        assertThrows(ResourceValidationException.class,
+        ResourceValidationException result = assertThrows(ResourceValidationException.class,
                 () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
+        assertEquals(result.getValidationErrors(),List.of("Validation Error"));
 
     }
     @Test
@@ -253,7 +255,7 @@ public class ConsumerGroupControllerTest {
 
         ConsumerGroupResetOffsets result = consumerGroupController.resetOffsets("test", "groupID", resetOffset, false);
         assertFalse(result.getStatus().isSuccess());
-        assertFalse(result.getStatus().getErrorMessage().isBlank());
+        assertEquals(result.getStatus().getErrorMessage(), "Assignments can only be reset if the group 'groupID' is inactive, but the current state is Active.");
 
     }
 
