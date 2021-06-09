@@ -13,9 +13,11 @@ ns4kafka:
           - "adminGroup"
   managed-clusters:
     test-cluster:
-      manage-users: false # requires Broker >= 2.7.0
-      manage-acls: false
-      manage-topics: false
+      manage-users: false
+      manage-acls: true
+      manage-topics: true
+      manage-connect: false
+      manage-role-bindings: false
       connects:
         test-connect:
           url: "http://localhost/kafka/connect/"
