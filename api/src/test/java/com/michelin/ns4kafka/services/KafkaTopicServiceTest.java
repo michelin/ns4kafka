@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.services;
 
+import com.michelin.ns4kafka.controllers.ResourceValidationException;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
@@ -484,6 +485,125 @@ public class KafkaTopicServiceTest {
         Assertions.assertFalse(actual.stream().anyMatch(topic -> topic.equals("ns-topic1")));
         Assertions.assertFalse(actual.stream().anyMatch(topic -> topic.equals("ns2-topic1")));
 
+    }
+
+    @Test
+    void testFindCollidingTopics_NoCollision() throws ExecutionException, InterruptedException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("project1.topic").build())
+                .build();
+
+        TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
+        Mockito.when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
+                .thenReturn(topicAsyncExecutor);
+        Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
+                .thenReturn(List.of("project2.topic", "project1.other"));
+
+        List<String> actual = topicService.findCollidingTopics(ns, topic);
+
+        Assertions.assertTrue(actual.isEmpty());
+    }
+
+    @Test
+    void testFindCollidingTopics_IdenticalName() throws ExecutionException, InterruptedException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("project1.topic").build())
+                .build();
+
+        TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
+        Mockito.when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
+                .thenReturn(topicAsyncExecutor);
+        Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
+                .thenReturn(List.of("project1.topic", "project2.topic", "project1.other"));
+
+        List<String> actual = topicService.findCollidingTopics(ns, topic);
+
+        Assertions.assertTrue(actual.isEmpty(), "Topic with exactly the same name should not interfere with collision check");
+    }
+
+    @Test
+    void testFindCollidingTopics_CollidingName() throws ExecutionException, InterruptedException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("project1.topic").build())
+                .build();
+
+        TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
+        Mockito.when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
+                .thenReturn(topicAsyncExecutor);
+        Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
+                .thenReturn(List.of("project1_topic"));
+
+        List<String> actual = topicService.findCollidingTopics(ns, topic);
+
+        Assertions.assertEquals(1, actual.size());
+        Assertions.assertLinesMatch(List.of("project1_topic"), actual);
+    }
+
+    @Test
+    void testFindCollidingTopics_InterruptedException() throws ExecutionException, InterruptedException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("project1.topic").build())
+                .build();
+
+        TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
+        Mockito.when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
+                .thenReturn(topicAsyncExecutor);
+        Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
+                .thenThrow(new InterruptedException());
+
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+                () -> topicService.findCollidingTopics(ns, topic));
+
+        Assertions.assertTrue(Thread.interrupted());
+        Assertions.assertEquals(1, actual.getValidationErrors().size());
+    }
+
+    @Test
+    void testFindCollidingTopics_OtherException() throws ExecutionException, InterruptedException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("project1.topic").build())
+                .build();
+
+        TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
+        Mockito.when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
+                .thenReturn(topicAsyncExecutor);
+        Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
+                .thenThrow(new RuntimeException("Unknown Error"));
+
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+                () -> topicService.findCollidingTopics(ns, topic));
+
+        Assertions.assertEquals(1, actual.getValidationErrors().size());
     }
 
 }
