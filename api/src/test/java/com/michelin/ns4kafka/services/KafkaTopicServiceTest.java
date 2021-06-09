@@ -188,6 +188,9 @@ public class KafkaTopicServiceTest {
                 .build();
 
         // init ns4kfk topics
+        Topic t0 = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns0-topic1").build())
+                .build();
         Topic t1 = Topic.builder()
                 .metadata(ObjectMeta.builder().name("ns-topic1").build())
                 .build();
@@ -201,11 +204,20 @@ public class KafkaTopicServiceTest {
                 .metadata(ObjectMeta.builder().name("ns2-topic1").build())
                 .build();
         Mockito.when(topicRepository.findAllForCluster("local"))
-                .thenReturn(List.of(t1, t2, t3, t4));
+                .thenReturn(List.of(t0,t1, t2, t3, t4));
 
         // ns4kfk access control entries
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                        .resource("ns0-topic1")
+                                        .build())
+                                .build(),
                         AccessControlEntry.builder()
                                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                         .permission(AccessControlEntry.Permission.OWNER)
@@ -217,11 +229,20 @@ public class KafkaTopicServiceTest {
                                 .build(),
                         AccessControlEntry.builder()
                                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .permission(AccessControlEntry.Permission.READ)
                                         .grantedTo("namespace")
                                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                                         .resource("ns1-topic1")
+                                        .build())
+                                .build(),
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.WRITE)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                        .resource("ns2-topic1")
                                         .build())
                                 .build()
                 ));
@@ -232,10 +253,11 @@ public class KafkaTopicServiceTest {
 
         Assertions.assertEquals(3, actual.size());
         // contains
+        Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns0-topic1")));
         Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns-topic1")));
         Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns-topic2")));
-        Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns1-topic1")));
         // doesn't contain
+        Assertions.assertFalse(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns1-topic1")));
         Assertions.assertFalse(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns2-topic1")));
     }
 
