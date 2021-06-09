@@ -1,10 +1,10 @@
-name: Release Version
+name: Release
 on:
   push:
     tags: [ '*' ]
 
 jobs:
-  build:
+  build-linux:
     runs-on: ubuntu-latest
     environment: Build
     steps:
@@ -34,7 +34,7 @@ jobs:
         run: ./gradlew :cli:shadowJar :cli:nativeImage -Prelease
       - name: Push ns4kafka and kafkactl
         run: ./gradlew dockerBuild api:dockerPush cli:dockerPush -Prelease
-      - name: Release
+      - name: Prepare Release
         uses: softprops/action-gh-release@v1
         with:
           draft: true
@@ -42,5 +42,43 @@ jobs:
           files: |
             cli/build/native-image/kafkactl-+([0-9]).+([0-9]).+([0-9])
             cli/build/libs/kafkactl-+([0-9]).+([0-9]).+([0-9]).jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build-windows:
+    runs-on: windows-latest
+    environment: Build
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - uses: DeLaGuardo/setup-graalvm@4.0
+        with:
+          graalvm: '20.3.2'
+          java: 'java11'
+      - name: Install Native Image
+        run: ${{ env.JAVA_HOME }}\bin\gu.cmd install native-image
+      - name: Cache Gradle packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+          restore-keys: ${{ runner.os }}-gradle
+      - name: Configure Pagefile
+        uses: al-cheb/configure-pagefile-action@v1.2
+      - name: Native Image for CLI
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
+          gradlew.bat :cli:shadowJar :cli:nativeImage
+        shell: cmd
+      - uses: actions/upload-artifact@v2
+        with:
+          name: native-image-windows
+          path: ${{ github.workspace }}/cli/build/native-image/kafkactl-*.exe
+      - name: Prepare Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          prerelease: true
+          files: ${{ github.workspace }}/cli/build/native-image/kafkactl-*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
