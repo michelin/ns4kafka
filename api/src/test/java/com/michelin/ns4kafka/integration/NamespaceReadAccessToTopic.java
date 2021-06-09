@@ -9,11 +9,12 @@ import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
@@ -22,7 +23,6 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
@@ -156,12 +156,14 @@ public class NamespaceReadAccessToTopic {
                   .build())
             .build();
 
+
+
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin","admin");
-        HttpResponse<BearerAccessRefreshToken> response = client.exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class).blockingFirst();
+        HttpResponse<BearerAccessRefreshToken> response = client.toBlocking().exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
         String token = response.getBody().get().getAccessToken();
 
 
-        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces").bearerAuth(token).body(ns1));
+        client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces").bearerAuth(token).body(ns1)).blockingFirst();
         client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1)).blockingFirst();
         client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces").bearerAuth(token).body(ns2)).blockingFirst();
         client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns2/role-bindings").bearerAuth(token).body(rb2)).blockingFirst();
@@ -183,19 +185,18 @@ public class NamespaceReadAccessToTopic {
     }
 
     @Introspected
-    @Getter
-    @Setter
-    public class BearerAccessRefreshToken {
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Data
+    public static class BearerAccessRefreshToken {
         private String username;
         private Collection<String> roles;
 
-        @JsonProperty("access_token")
         private String accessToken;
 
-        @JsonProperty("token_type")
         private String tokenType;
 
-        @JsonProperty("expires_in")
         private Integer expiresIn;
     }
 
