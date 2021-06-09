@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 @Singleton
 public class TopicAsyncExecutor {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaAsyncExecutorScheduler.class);
-    private Admin adminClient;
     private final KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
 
     @Inject
@@ -39,10 +38,7 @@ public class TopicAsyncExecutor {
     }
 
     private Admin getAdminClient(){
-        if(this.adminClient==null){
-            this.adminClient = Admin.create(kafkaAsyncExecutorConfig.getConfig());
-        }
-        return this.adminClient;
+        return kafkaAsyncExecutorConfig.getAdminClient();
     }
 
     //TODO abstract synchronization process to handle different Kafka "models"
