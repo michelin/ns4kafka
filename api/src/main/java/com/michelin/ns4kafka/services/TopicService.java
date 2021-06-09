@@ -52,27 +52,27 @@ public class TopicService {
                 .collect(Collectors.toList());
     }
 
-    public Optional<Topic> findCollidingTopics(Topic topic)  {
+    public List<String> findCollidingTopics(Namespace namespace, Topic topic)  {
         TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
-                Qualifiers.byName(topic.getMetadata().getCluster()));
+                Qualifiers.byName(namespace.getMetadata().getCluster()));
         try {
-            Map<String, Topic> map = topicAsyncExecutor.collectBrokerTopics();
-            return map.entrySet().stream()
-                    .filter(
-                            (entry ->
-                                    !topic.getMetadata().getName().equals(entry.getKey())
-                                            && topic.getMetadata().getName().replace('.', '_')
-                                            .equals(entry.getKey().replace('.', '_')))
-
-
-                    ).map(
-                            entry -> entry.getValue()
-                    )
-                    .findFirst();
+            List<String> clusterTopics = topicAsyncExecutor.listBrokerTopicNames();
+            return clusterTopics.stream()
+                    // existing topics with the exact same name (and not currently in ns4kafka) should not interfere
+                    // this topic could be created on ns4kafka during "import" step
+                    .filter(clusterTopic -> !topic.getMetadata().getName().equals(clusterTopic))
+                    .filter(clusterTopic -> hasCollision(clusterTopic, topic.getMetadata().getName()))
+                   .collect(Collectors.toList());
+        } catch (InterruptedException e){
+            Thread.currentThread().interrupt();
+            throw new ResourceValidationException(List.of("InterruptedException"));
         } catch (Exception e) {
-            //TODO refactor global error handling model
             throw new ResourceValidationException(List.of(e.getMessage()));
         }
+    }
+
+    private boolean hasCollision(String topicA, String topicB){
+        return topicA.replace('.', '_').equals(topicB.replace('.', '_'));
     }
 
     public boolean isNamespaceOwnerOfTopic(String namespace, String topic) {
