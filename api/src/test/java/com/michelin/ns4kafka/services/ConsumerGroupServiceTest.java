@@ -15,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -118,7 +119,20 @@ public class ConsumerGroupServiceTest {
                 .spec(ConsumerGroupResetOffsetsSpec.builder()
                         .topic("namespace_testTopic01:2")
                         .method(ResetOffsetsMethod.TO_DATETIME)
-                        .options("2021-06-02T11:23:33.0249+02:00")
+                        .options("2021-06-02T11:23:33.249+02:00")
+                        .build())
+                .build();
+
+        List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
+        assertTrue(result.isEmpty());
+    }
+    @Test
+    void doValidation_ValidDateTimeOption_DateWithoutMS() {
+        ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
+                .spec(ConsumerGroupResetOffsetsSpec.builder()
+                        .topic("namespace_testTopic01:2")
+                        .method(ResetOffsetsMethod.TO_DATETIME)
+                        .options("2021-06-02T11:22:33+02:00")
                         .build())
                 .build();
 
@@ -132,7 +146,35 @@ public class ConsumerGroupServiceTest {
                 .spec(ConsumerGroupResetOffsetsSpec.builder()
                         .topic("namespace_testTopic01:2")
                         .method(ResetOffsetsMethod.TO_DATETIME)
-                        .options("2021-06-025T11:23:33.0249+02:00")
+                        .options("NOT A DATE")
+                        .build())
+                .build();
+
+        List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
+        assertEquals(result.size(), 1);
+    }
+
+    @Test
+    void doValidation_InvalidDateTimeOption_DateWithoutTZ() {
+        ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
+                .spec(ConsumerGroupResetOffsetsSpec.builder()
+                        .topic("namespace_testTopic01:2")
+                        .method(ResetOffsetsMethod.TO_DATETIME)
+                        .options("2021-06-02T11:22:33.249")
+                        .build())
+                .build();
+
+        List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
+        assertEquals(result.size(), 1);
+    }
+
+    @Test
+    void doValidation_InvalidDateTimeOption_DateWithInvalidTZ() {
+        ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
+                .spec(ConsumerGroupResetOffsetsSpec.builder()
+                        .topic("namespace_testTopic01:2")
+                        .method(ResetOffsetsMethod.TO_DATETIME)
+                        .options("2021-06-02T11:22:33+99:99")
                         .build())
                 .build();
 
@@ -221,7 +263,7 @@ public class ConsumerGroupServiceTest {
                 .build();
 
         List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
-        assertEquals(result.size(), 1);
+        assertEquals(1, result.size());
     }
 
     @Test
@@ -248,8 +290,8 @@ public class ConsumerGroupServiceTest {
                        topicPartition3, 5L));
         List<TopicPartition> result = consumerGroupService.getPartitionsToReset(namespace, groupId, topic);
 
-        assertEquals(result.size(),3);
-        assertTrue(result.containsAll(partitionsToReset));
+        assertEquals(3, result.size());
+        assertEquals(new HashSet<>(partitionsToReset), new HashSet<>(result));
     }
 
     @Test
@@ -265,7 +307,6 @@ public class ConsumerGroupServiceTest {
         TopicPartition topicPartition1 = new TopicPartition("topic1", 0);
         TopicPartition topicPartition2 = new TopicPartition("topic1", 1);
         TopicPartition topicPartition3 = new TopicPartition("topic2", 0);
-        List<TopicPartition> partitionsToReset = List.of(topicPartition1, topicPartition2);
 
         ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
         when(applicationContext.getBean(ConsumerGroupAsyncExecutor.class,
@@ -274,8 +315,8 @@ public class ConsumerGroupServiceTest {
                 Map.of(topicPartition1, 5L, topicPartition2, 10L, topicPartition3, 5L));
         List<TopicPartition> result = consumerGroupService.getPartitionsToReset(namespace, groupId, topic);
 
-        assertEquals(result.size(),2);
-        assertTrue(result.containsAll(partitionsToReset));
+        assertEquals(2, result.size());
+        assertEquals(new HashSet<>(List.of(topicPartition1, topicPartition2)), new HashSet<>(result));
     }
 
     @Test
@@ -292,8 +333,8 @@ public class ConsumerGroupServiceTest {
 
         List<TopicPartition> result = consumerGroupService.getPartitionsToReset(namespace, groupId, topic);
 
-        assertEquals(result.size(),1);
-        assertTrue(result.contains(topicPartition1));
+        assertEquals(1, result.size());
+        assertEquals(List.of(topicPartition1), result);
     }
 
     @Test
@@ -325,8 +366,10 @@ public class ConsumerGroupServiceTest {
 
         Map<TopicPartition, Long> result = consumerGroupService.prepareOffsetsToReset(namespace, groupId, options, partitionsToReset, method);
 
-        assertEquals(result.size(), 2);
-        assertEquals(result.get(topicPartition1), 5);
-        assertEquals(result.get(topicPartition2), 10);
+        assertEquals(2, result.size());
+        assertTrue(result.containsKey(topicPartition1));
+        assertTrue(result.containsKey(topicPartition2));
+        assertEquals(5, result.get(topicPartition1));
+        assertEquals(10, result.get(topicPartition2));
     }
 }

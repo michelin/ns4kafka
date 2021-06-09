@@ -2,11 +2,9 @@ package com.michelin.ns4kafka.cli;
 
 import com.michelin.ns4kafka.cli.models.ObjectMeta;
 import com.michelin.ns4kafka.cli.models.Resource;
-import com.michelin.ns4kafka.cli.services.ResourceService;
 import com.michelin.ns4kafka.cli.services.LoginService;
-import io.micronaut.core.annotation.Introspected;
+import com.michelin.ns4kafka.cli.services.ResourceService;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import lombok.*;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.nodes.Tag;
@@ -135,19 +133,5 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
         Representer representer = new Representer();
         representer.addClassTag(Resource.class, Tag.MAP);
         System.out.println(new Yaml(representer, options).dump(resource));
-    }
-
-    @Introspected
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Getter
-    @Setter
-    @ToString
-    public static class ConsumerGroupResetOffsetStatus {
-        public boolean success;
-        public String errorMessage;
-        public Map<String, Long> offsetChanged;
-
     }
 }
