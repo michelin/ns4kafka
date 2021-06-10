@@ -75,12 +75,11 @@ public class AccessControlListController extends NamespacedResourceController {
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
         boolean isAdmin = roles.contains(ResourceBasedSecurityRule.IS_ADMIN);
-        // self assigned ACL (spec.grantedTo == metadata.namespace) with permission OWNER
-        boolean isSelfAssignedOwnerACL = namespace.equals(accessControlEntry.getSpec().getGrantedTo())
-                && accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER;
+        // self assigned ACL (spec.grantedTo == metadata.namespace)
+        boolean isSelfAssignedACL = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
 
         List<String> validationErrors;
-        if (isAdmin && isSelfAssignedOwnerACL) {
+        if (isAdmin && isSelfAssignedACL) {
             // validate overlapping OWNER
             validationErrors = accessControlEntryService.validateAsAdmin(accessControlEntry, ns);
         } else {
@@ -120,7 +119,7 @@ public class AccessControlListController extends NamespacedResourceController {
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
         boolean isAdmin = roles.contains(ResourceBasedSecurityRule.IS_ADMIN);
-        // self assigned ACL (spec.grantedTo == metadata.namespace) with permission OWNER
+        // self assigned ACL (spec.grantedTo == metadata.namespace)
         boolean isSelfAssignedACL = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
         if (isSelfAssignedACL && !isAdmin) {
             // prevent delete

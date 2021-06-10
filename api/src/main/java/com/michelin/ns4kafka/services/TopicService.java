@@ -38,7 +38,10 @@ public class TopicService {
         return topicRepository.findAllForCluster(namespace.getMetadata().getCluster())
                 .stream()
                 .filter(topic -> acls.stream().anyMatch(accessControlEntry -> {
-                    //no need to check accessControlEntry.Permission, we want READ, WRITE or OWNER
+                    //need to check accessControlEntry.Permission, we want OWNER
+                    if (accessControlEntry.getSpec().getPermission() != AccessControlEntry.Permission.OWNER) {
+                        return false;
+                    }
                     if (accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC) {
                         switch (accessControlEntry.getSpec().getResourcePatternType()) {
                             case PREFIXED:
@@ -50,6 +53,29 @@ public class TopicService {
                     return false;
                 }))
                 .collect(Collectors.toList());
+    }
+
+    public List<String> findCollidingTopics(Namespace namespace, Topic topic)  {
+        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
+                Qualifiers.byName(namespace.getMetadata().getCluster()));
+        try {
+            List<String> clusterTopics = topicAsyncExecutor.listBrokerTopicNames();
+            return clusterTopics.stream()
+                    // existing topics with the exact same name (and not currently in ns4kafka) should not interfere
+                    // this topic could be created on ns4kafka during "import" step
+                    .filter(clusterTopic -> !topic.getMetadata().getName().equals(clusterTopic))
+                    .filter(clusterTopic -> hasCollision(clusterTopic, topic.getMetadata().getName()))
+                   .collect(Collectors.toList());
+        } catch (InterruptedException e){
+            Thread.currentThread().interrupt();
+            throw new ResourceValidationException(List.of("InterruptedException"));
+        } catch (Exception e) {
+            throw new ResourceValidationException(List.of(e.getMessage()));
+        }
+    }
+
+    private boolean hasCollision(String topicA, String topicB){
+        return topicA.replace('.', '_').equals(topicB.replace('.', '_'));
     }
 
     public boolean isNamespaceOwnerOfTopic(String namespace, String topic) {

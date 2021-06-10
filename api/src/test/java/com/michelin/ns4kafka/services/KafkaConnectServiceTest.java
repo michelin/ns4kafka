@@ -84,6 +84,12 @@ public class KafkaConnectServiceTest {
         Connector c4 = Connector.builder()
                 .metadata(ObjectMeta.builder().name("other-connect2").build())
                 .build();
+        Connector c5 = Connector.builder()
+                .metadata(ObjectMeta.builder().name("ns2-connect1").build())
+                .build();
+        Connector c6 = Connector.builder()
+                .metadata(ObjectMeta.builder().name("ns3-connect1").build())
+                .build();
 
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(
@@ -113,10 +119,28 @@ public class KafkaConnectServiceTest {
                                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                                         .resource("ns-")
                                         .build())
+                                .build(),
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.READ)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                                        .resource("ns2-")
+                                        .build())
+                                .build(),
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.WRITE)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                                        .resource("ns3-")
+                                        .build())
                                 .build()
                 ));
         Mockito.when(connectorRepository.findAllForCluster("local"))
-                .thenReturn(List.of(c1, c2, c3, c4));
+                .thenReturn(List.of(c1, c2, c3, c4, c5));
 
         List<Connector> actual = kafkaConnectService.findAllForNamespace(ns);
 
@@ -127,6 +151,8 @@ public class KafkaConnectServiceTest {
         Assertions.assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("other-connect1")));
         // doesn't contain
         Assertions.assertFalse(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("other-connect2")));
+        Assertions.assertFalse(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns2-connect1")));
+        Assertions.assertFalse(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns3-connect1")));
     }
 
     @Test

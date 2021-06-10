@@ -106,7 +106,9 @@ public class ApplySubcommand implements Callable<Integer> {
                             .findFirst()
                             .orElseThrow(); // already validated
                     Resource merged = resourceService.apply(apiResource, namespace, resource, dryRun);
-                    System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,green SUCCESS: |@") + merged.getKind() + "/" + merged.getMetadata().getName());
+                    if(merged != null) {
+                        System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,green SUCCESS: |@") + merged.getKind() + "/" + merged.getMetadata().getName());
+                    }
                     return merged;
                 })
                 .mapToInt(value -> value != null ? 0 : 1)

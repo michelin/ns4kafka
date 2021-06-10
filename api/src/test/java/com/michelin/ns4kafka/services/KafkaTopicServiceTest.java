@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.services;
 
+import com.michelin.ns4kafka.controllers.ResourceValidationException;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
@@ -188,6 +189,9 @@ public class KafkaTopicServiceTest {
                 .build();
 
         // init ns4kfk topics
+        Topic t0 = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns0-topic1").build())
+                .build();
         Topic t1 = Topic.builder()
                 .metadata(ObjectMeta.builder().name("ns-topic1").build())
                 .build();
@@ -201,11 +205,20 @@ public class KafkaTopicServiceTest {
                 .metadata(ObjectMeta.builder().name("ns2-topic1").build())
                 .build();
         Mockito.when(topicRepository.findAllForCluster("local"))
-                .thenReturn(List.of(t1, t2, t3, t4));
+                .thenReturn(List.of(t0,t1, t2, t3, t4));
 
         // ns4kfk access control entries
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                        .resource("ns0-topic1")
+                                        .build())
+                                .build(),
                         AccessControlEntry.builder()
                                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                         .permission(AccessControlEntry.Permission.OWNER)
@@ -217,11 +230,20 @@ public class KafkaTopicServiceTest {
                                 .build(),
                         AccessControlEntry.builder()
                                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .permission(AccessControlEntry.Permission.READ)
                                         .grantedTo("namespace")
                                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                                         .resource("ns1-topic1")
+                                        .build())
+                                .build(),
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.WRITE)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                        .resource("ns2-topic1")
                                         .build())
                                 .build()
                 ));
@@ -232,10 +254,11 @@ public class KafkaTopicServiceTest {
 
         Assertions.assertEquals(3, actual.size());
         // contains
+        Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns0-topic1")));
         Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns-topic1")));
         Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns-topic2")));
-        Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns1-topic1")));
         // doesn't contain
+        Assertions.assertFalse(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns1-topic1")));
         Assertions.assertFalse(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns2-topic1")));
     }
 
@@ -462,6 +485,125 @@ public class KafkaTopicServiceTest {
         Assertions.assertFalse(actual.stream().anyMatch(topic -> topic.equals("ns-topic1")));
         Assertions.assertFalse(actual.stream().anyMatch(topic -> topic.equals("ns2-topic1")));
 
+    }
+
+    @Test
+    void testFindCollidingTopics_NoCollision() throws ExecutionException, InterruptedException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("project1.topic").build())
+                .build();
+
+        TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
+        Mockito.when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
+                .thenReturn(topicAsyncExecutor);
+        Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
+                .thenReturn(List.of("project2.topic", "project1.other"));
+
+        List<String> actual = topicService.findCollidingTopics(ns, topic);
+
+        Assertions.assertTrue(actual.isEmpty());
+    }
+
+    @Test
+    void testFindCollidingTopics_IdenticalName() throws ExecutionException, InterruptedException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("project1.topic").build())
+                .build();
+
+        TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
+        Mockito.when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
+                .thenReturn(topicAsyncExecutor);
+        Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
+                .thenReturn(List.of("project1.topic", "project2.topic", "project1.other"));
+
+        List<String> actual = topicService.findCollidingTopics(ns, topic);
+
+        Assertions.assertTrue(actual.isEmpty(), "Topic with exactly the same name should not interfere with collision check");
+    }
+
+    @Test
+    void testFindCollidingTopics_CollidingName() throws ExecutionException, InterruptedException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("project1.topic").build())
+                .build();
+
+        TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
+        Mockito.when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
+                .thenReturn(topicAsyncExecutor);
+        Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
+                .thenReturn(List.of("project1_topic"));
+
+        List<String> actual = topicService.findCollidingTopics(ns, topic);
+
+        Assertions.assertEquals(1, actual.size());
+        Assertions.assertLinesMatch(List.of("project1_topic"), actual);
+    }
+
+    @Test
+    void testFindCollidingTopics_InterruptedException() throws ExecutionException, InterruptedException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("project1.topic").build())
+                .build();
+
+        TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
+        Mockito.when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
+                .thenReturn(topicAsyncExecutor);
+        Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
+                .thenThrow(new InterruptedException());
+
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+                () -> topicService.findCollidingTopics(ns, topic));
+
+        Assertions.assertTrue(Thread.interrupted());
+        Assertions.assertEquals(1, actual.getValidationErrors().size());
+    }
+
+    @Test
+    void testFindCollidingTopics_OtherException() throws ExecutionException, InterruptedException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("project1.topic").build())
+                .build();
+
+        TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
+        Mockito.when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
+                .thenReturn(topicAsyncExecutor);
+        Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
+                .thenThrow(new RuntimeException("Unknown Error"));
+
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+                () -> topicService.findCollidingTopics(ns, topic));
+
+        Assertions.assertEquals(1, actual.getValidationErrors().size());
     }
 
 }

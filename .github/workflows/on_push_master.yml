@@ -1,4 +1,4 @@
-name: Release SNAPSHOT
+name: Snapshot
 on:
   push:
     branches: [ master ]
@@ -80,4 +80,4 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: native-image-windows
-          path: ${{ github.workspace }}/cli/build/native-image/kafkactl-*
+          path: ${{ github.workspace }}/cli/build/native-image/kafkactl-*.exe
