@@ -7,6 +7,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import lombok.AllArgsConstructor;
@@ -224,9 +225,9 @@ public class NamespaceReadAccessToTopic {
                                                  "min.insync.replicas", "2",
                                                  "retention.ms", "90000"))
                                  .build());
-        client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns2/topics").bearerAuth(token).body(t1bis)).blockingFirst();
 
-        Assertions.assertEquals(HttpStatus.BAD_REQUEST,client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns2/topics").bearerAuth(token).body(t1bis)).blockingFirst().getStatus());
+        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,() -> client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns2/topics").bearerAuth(token).body(t1bis)).blockingFirst());
+        Assertions.assertEquals(exception.getMessage(),  "Validation failed: [Invalid value ns1-topic1 for name: Namespace not OWNER of this topic]");
 
         Topic newTopic = client.exchange(HttpRequest.create(HttpMethod.GET,"api/namespaces/ns1/topics/ns1-topic1").bearerAuth(token)).blockingFirst().getBody(Topic.class).get();
         Assertions.assertEquals(newTopic.getSpec(), t1.getSpec());
