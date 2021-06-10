@@ -15,6 +15,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
@@ -74,8 +75,8 @@ public class NamespaceReadAccessToTopic {
                       .build())
             .spec(RoleBindingSpec.builder()
                   .role(Role.builder()
-                        .resourceTypes(List.of("topics"))
-                        .verbs(List.of(Verb.POST))
+                        .resourceTypes(List.of("topics", "acls"))
+                        .verbs(List.of(Verb.POST, Verb.GET))
                         .build())
                   .subject(Subject.builder()
                            .subjectName("group1")
@@ -103,8 +104,8 @@ public class NamespaceReadAccessToTopic {
                       .build())
             .spec(RoleBindingSpec.builder()
                   .role(Role.builder()
-                        .resourceTypes(List.of("topics"))
-                        .verbs(List.of(Verb.POST))
+                        .resourceTypes(List.of("topics", "acls"))
+                        .verbs(List.of(Verb.POST, Verb.GET))
                         .build())
                   .subject(Subject.builder()
                            .subjectName("group2")
@@ -217,22 +218,23 @@ public class NamespaceReadAccessToTopic {
         client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns1/acls").bearerAuth(token).body(aclns1Tons2)).blockingFirst();
 
         Assertions.assertEquals(HttpStatus.OK, client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns1/topics").bearerAuth(token).body(t1)).blockingFirst().getStatus());
-        Topic t1bis = t1;
-        t1bis.setSpec(TopicSpec.builder()
-                                 .partitions(3)
-                                 .replicationFactor(3)
-                                 .configs(Map.of("cleanup.policy", "delete",
-                                                 "min.insync.replicas", "2",
-                                                 "retention.ms", "90000"))
-                                 .build());
+        Topic t1bis = Topic.builder()
+            .metadata(t1.getMetadata())
+            .spec(TopicSpec.builder()
+                .partitions(3)
+                .replicationFactor(3)
+                .configs(Map.of("cleanup.policy", "delete",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "90000"))
+                .build())
+            .build();
 
         HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,() -> client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns2/topics").bearerAuth(token).body(t1bis)).blockingFirst());
         Assertions.assertEquals(exception.getMessage(),  "Validation failed: [Invalid value ns1-topic1 for name: Namespace not OWNER of this topic]");
 
-        Assertions.assertEquals(HttpStatus.OK,client.exchange(HttpRequest.create(HttpMethod.GET,"api/namespaces/ns1/topics/ns1-topic1").bearerAuth(token)).blockingFirst().getStatus());
+        // Compare spec of the topics and assure there is no change
+        Assertions.assertEquals(t1.getSpec(),client.retrieve(HttpRequest.create(HttpMethod.GET,"api/namespaces/ns1/topics/ns1-topic1").bearerAuth(token), Topic.class ).blockingFirst().getSpec());
 
-        Topic newTopic = client.exchange(HttpRequest.create(HttpMethod.GET,"api/namespaces/ns1/topics/ns1-topic1").bearerAuth(token)).blockingFirst().getBody(Topic.class).get();
-        Assertions.assertEquals(newTopic.getSpec(), t1.getSpec());
 
     }
 
