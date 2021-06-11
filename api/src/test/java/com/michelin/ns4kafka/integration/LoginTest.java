@@ -6,19 +6,13 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
-import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
-
-@MicronautTest
-public class LoginTest {
-
-    @Inject
-    @Client("/")
-    RxHttpClient client;
+@Testcontainers
+public class LoginTest extends AbstractIntegrationTest{
 
     @Test
     void login(){

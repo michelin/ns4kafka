@@ -1,66 +1,42 @@
 package com.michelin.ns4kafka.integration;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.michelin.ns4kafka.models.*;
-import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
-import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
-import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
-import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
-import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
-import com.michelin.ns4kafka.models.RoleBinding.*;
-import com.michelin.ns4kafka.models.Topic.TopicSpec;
-import com.michelin.ns4kafka.validation.TopicValidator;
-import io.micronaut.context.ApplicationContext;
-import io.micronaut.context.env.PropertySource;
-import io.micronaut.http.HttpMethod;
-import io.micronaut.http.HttpRequest;
-import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
-import io.micronaut.http.client.RxHttpClient;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import io.micronaut.runtime.server.EmbeddedServer;
-import io.micronaut.security.authentication.UsernamePasswordCredentials;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.AccessControlEntry.*;
+import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
+import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.RoleBinding;
+import com.michelin.ns4kafka.models.RoleBinding.Role;
+import com.michelin.ns4kafka.models.RoleBinding.RoleBindingSpec;
+import com.michelin.ns4kafka.models.RoleBinding.Subject;
+import com.michelin.ns4kafka.models.RoleBinding.SubjectType;
+import com.michelin.ns4kafka.models.RoleBinding.Verb;
+import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.models.Topic.TopicSpec;
+import com.michelin.ns4kafka.validation.TopicValidator;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.testcontainers.junit.jupiter.Testcontainers;
+
+import io.micronaut.http.HttpMethod;
+import io.micronaut.http.HttpRequest;
+import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import io.micronaut.security.authentication.UsernamePasswordCredentials;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 
 @Testcontainers
-public class NamespaceReadAccessToTopic {
-
-    @Container
-    static KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:6.2.0"))
-            .withEmbeddedZookeeper()
-            .withExposedPorts(9093);
-
-
-    static RxHttpClient client;
-    static EmbeddedServer server;
-    static ApplicationContext context;
-
-    @BeforeAll
-    public static void initUnitTest() throws InterruptedException {
-        kafka.start();
-        server = ApplicationContext.run(EmbeddedServer.class, PropertySource.of(
-                "test", Map.of(
-                        "kafka.bootstrap.servers", kafka.getBootstrapServers(),
-                        "ns4kafka.managed-clusters.test-cluster.config.bootstrap.servers", kafka.getBootstrapServers(),
-                        "kafka.embedded.enabled", "false"
-                )), "test");
-
-        client = RxHttpClient.create(server.getURL());
-    }
+public class NamespaceReadAccessToTopic extends AbstractIntegrationTest {
 
     @Test
     void unauthorizedModifications() throws InterruptedException {
@@ -208,34 +184,26 @@ public class NamespaceReadAccessToTopic {
                   .build())
             .build();
 
-        while(!server.isRunning()){
-            Thread.sleep(1000);
-        }
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin","admin");
         HttpResponse<BearerAccessRefreshToken> response = client.exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class).blockingFirst();
         String token = response.getBody().get().getAccessToken();
 
 
 
-        try {
-            client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "api/namespaces").bearerAuth(token).body(ns1));
-        }catch (Exception e){
-            System.out.println(e);
-            System.out.println(server.getURL()+":"+server.getHost());
-        }
-        client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces").bearerAuth(token).body(ns2)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns2/role-bindings").bearerAuth(token).body(rb2)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1));
+        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces").bearerAuth(token).body(ns2)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns2/role-bindings").bearerAuth(token).body(rb2)).blockingFirst();
 
-        client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns1/acls").bearerAuth(token).body(acl1ns1)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns1/acls").bearerAuth(token).body(acl2ns1)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(acl1ns1)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(acl2ns1)).blockingFirst();
 
-        client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns2/acls").bearerAuth(token).body(acl1ns2)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns2/acls").bearerAuth(token).body(acl2ns2)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns2/acls").bearerAuth(token).body(acl1ns2)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns2/acls").bearerAuth(token).body(acl2ns2)).blockingFirst();
 
-        client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns1/acls").bearerAuth(token).body(aclns1Tons2)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclns1Tons2)).blockingFirst();
 
-        Assertions.assertEquals(HttpStatus.OK, client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns1/topics").bearerAuth(token).body(t1)).blockingFirst().getStatus());
+        Assertions.assertEquals(HttpStatus.OK, client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics").bearerAuth(token).body(t1)).blockingFirst().getStatus());
         Topic t1bis = Topic.builder()
             .metadata(t1.getMetadata())
             .spec(TopicSpec.builder()
@@ -247,11 +215,11 @@ public class NamespaceReadAccessToTopic {
                 .build())
             .build();
 
-        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,() -> client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns2/topics").bearerAuth(token).body(t1bis)).blockingFirst());
+        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,() -> client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns2/topics").bearerAuth(token).body(t1bis)).blockingFirst());
         Assertions.assertEquals(exception.getMessage(),  "Validation failed: [Invalid value ns1-topic1 for name: Namespace not OWNER of this topic]");
 
         // Compare spec of the topics and assure there is no change
-        Assertions.assertEquals(t1.getSpec(),client.retrieve(HttpRequest.create(HttpMethod.GET,"api/namespaces/ns1/topics/ns1-topic1").bearerAuth(token), Topic.class ).blockingFirst().getSpec());
+        Assertions.assertEquals(t1.getSpec(),client.retrieve(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/topics/ns1-topic1").bearerAuth(token), Topic.class ).blockingFirst().getSpec());
 
 
     }
