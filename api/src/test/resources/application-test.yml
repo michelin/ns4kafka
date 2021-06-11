@@ -1,6 +1,6 @@
 kafka:
   embedded:
-    enabled: true
+    enabled: false
   bootstrap.servers: "localhost:9092"
 
 ns4kafka:

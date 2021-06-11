@@ -10,13 +10,20 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import io.micronaut.test.support.TestPropertyProvider;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import org.junit.ClassRule;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.containers.Network;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import java.util.Collection;
 import java.util.List;
@@ -43,15 +50,26 @@ import com.michelin.ns4kafka.models.RoleBinding.Verb;
 import com.michelin.ns4kafka.models.Topic.TopicSpec;
 import com.michelin.ns4kafka.validation.TopicValidator;
 
+
 @MicronautTest
 //@Property(name = "micronaut.security.enabled", value = "false")
-public class NamespaceReadAccessToTopic {
+@Property(name = "kafka.embedded.enabled", value = "false")
+@Testcontainers
+public class NamespaceReadAccessToTopic implements TestPropertyProvider {
 
     @Inject
     @Client("/")
     RxHttpClient client;
 
+    @Container
+    @ClassRule
+    public static KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:6.2.0"));
 
+	@Override
+	public Map<String, String> getProperties() {
+        return Map.of("kafka.bootstrap.servers", kafka.getBootstrapServers(),
+                     "ns4kafka.managed-clusters.test-cluster.config.bootstrap.servers", kafka.getBootstrapServers());
+	}
 
     @Test
     void unauthorizedModifications() {
@@ -254,4 +272,6 @@ public class NamespaceReadAccessToTopic {
         @JsonProperty("expires_in")
         private Integer expiresIn;
     }
+
+
 }
