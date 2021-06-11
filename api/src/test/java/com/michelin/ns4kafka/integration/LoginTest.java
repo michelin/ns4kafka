@@ -3,8 +3,6 @@ package com.michelin.ns4kafka.integration;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.client.RxHttpClient;
-import io.micronaut.http.client.annotation.Client;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.junit.jupiter.api.Assertions;
