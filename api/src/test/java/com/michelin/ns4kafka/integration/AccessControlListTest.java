@@ -40,6 +40,7 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
@@ -121,5 +122,7 @@ public class AccessControlListTest extends AbstractIntegrationTest {
         System.out.println(aclTopicSaved);
         AccessControlEntrySpec specExpected = aclTopic.getSpec();
         Assertions.assertNotNull(aclTopicSaved.get(0));
+
+        Assertions.assertEquals(HttpStatus.NO_CONTENT , client.exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl").bearerAuth(token)).blockingFirst().getStatus());
     }
 }
