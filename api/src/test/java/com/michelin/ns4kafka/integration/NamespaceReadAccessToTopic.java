@@ -1,26 +1,32 @@
 package com.michelin.ns4kafka.integration;
 
-import io.micronaut.context.annotation.Property;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.michelin.ns4kafka.models.*;
+import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
+import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
+import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
+import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
+import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
+import com.michelin.ns4kafka.models.RoleBinding.*;
+import com.michelin.ns4kafka.models.Topic.TopicSpec;
+import com.michelin.ns4kafka.validation.TopicValidator;
+import io.micronaut.context.ApplicationContext;
+import io.micronaut.context.env.PropertySource;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.RxHttpClient;
-import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import io.micronaut.runtime.server.EmbeddedServer;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
-import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
-import io.micronaut.test.support.TestPropertyProvider;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import org.junit.ClassRule;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.Network;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
@@ -29,50 +35,35 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import javax.inject.Inject;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.michelin.ns4kafka.models.AccessControlEntry;
-import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.RoleBinding;
-import com.michelin.ns4kafka.models.Topic;
-import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
-import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
-import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
-import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
-import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
-import com.michelin.ns4kafka.models.RoleBinding.Role;
-import com.michelin.ns4kafka.models.RoleBinding.RoleBindingSpec;
-import com.michelin.ns4kafka.models.RoleBinding.Subject;
-import com.michelin.ns4kafka.models.RoleBinding.SubjectType;
-import com.michelin.ns4kafka.models.RoleBinding.Verb;
-import com.michelin.ns4kafka.models.Topic.TopicSpec;
-import com.michelin.ns4kafka.validation.TopicValidator;
-
-
-@MicronautTest
-//@Property(name = "micronaut.security.enabled", value = "false")
-@Property(name = "kafka.embedded.enabled", value = "false")
 @Testcontainers
-public class NamespaceReadAccessToTopic implements TestPropertyProvider {
-
-    @Inject
-    @Client("/")
-    RxHttpClient client;
+public class NamespaceReadAccessToTopic {
 
     @Container
-    @ClassRule
-    public static KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:6.2.0"));
+    static KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:6.2.0"))
+            .withEmbeddedZookeeper()
+            .withExposedPorts(9093);
 
-	@Override
-	public Map<String, String> getProperties() {
-        return Map.of("kafka.bootstrap.servers", kafka.getBootstrapServers(),
-                     "ns4kafka.managed-clusters.test-cluster.config.bootstrap.servers", kafka.getBootstrapServers());
-	}
+
+    static RxHttpClient client;
+    static EmbeddedServer server;
+    static ApplicationContext context;
+
+    @BeforeAll
+    public static void initUnitTest() throws InterruptedException {
+        kafka.start();
+        server = ApplicationContext.run(EmbeddedServer.class, PropertySource.of(
+                "test", Map.of(
+                        "kafka.bootstrap.servers", kafka.getBootstrapServers(),
+                        "ns4kafka.managed-clusters.test-cluster.config.bootstrap.servers", kafka.getBootstrapServers(),
+                        "kafka.embedded.enabled", "false"
+                )), "test");
+
+        client = RxHttpClient.create(server.getURL());
+    }
 
     @Test
-    void unauthorizedModifications() {
+    void unauthorizedModifications() throws InterruptedException {
 
         Namespace ns1 = Namespace.builder()
             .metadata(ObjectMeta.builder()
@@ -217,12 +208,21 @@ public class NamespaceReadAccessToTopic implements TestPropertyProvider {
                   .build())
             .build();
 
+        while(!server.isRunning()){
+            Thread.sleep(1000);
+        }
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin","admin");
         HttpResponse<BearerAccessRefreshToken> response = client.exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class).blockingFirst();
         String token = response.getBody().get().getAccessToken();
 
 
-        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces").bearerAuth(token).body(ns1));
+
+        try {
+            client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "api/namespaces").bearerAuth(token).body(ns1));
+        }catch (Exception e){
+            System.out.println(e);
+            System.out.println(server.getURL()+":"+server.getHost());
+        }
         client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1)).blockingFirst();
         client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces").bearerAuth(token).body(ns2)).blockingFirst();
         client.exchange(HttpRequest.create(HttpMethod.POST,"api/namespaces/ns2/role-bindings").bearerAuth(token).body(rb2)).blockingFirst();
