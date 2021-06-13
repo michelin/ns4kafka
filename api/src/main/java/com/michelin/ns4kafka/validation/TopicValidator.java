@@ -85,5 +85,17 @@ public class TopicValidator extends ResourceValidator {
                 )
                 .build();
     }
+    public static TopicValidator makeDefaultOneBroker(){
+        return TopicValidator.builder()
+                .validationConstraints(
+                        Map.of( "replication.factor", ResourceValidator.Range.between(1,1),
+                                "partitions", ResourceValidator.Range.between(3,6),
+                                "cleanup.policy", ResourceValidator.ValidList.in("delete","compact"),
+                                "min.insync.replicas", ResourceValidator.Range.between(1,1),
+                                "retention.ms", ResourceValidator.Range.between(60000,604800000)
+                        )
+                )
+                .build();
+    }
 
 }

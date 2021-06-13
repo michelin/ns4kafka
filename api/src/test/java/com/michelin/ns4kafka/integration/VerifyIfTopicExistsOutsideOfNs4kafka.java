@@ -1,42 +1,43 @@
 package com.michelin.ns4kafka.integration;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-
 import com.michelin.ns4kafka.integration.NamespaceReadAccessToTopic.BearerAccessRefreshToken;
-import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
-import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
-import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.RoleBinding;
-import com.michelin.ns4kafka.models.RoleBinding.Role;
-import com.michelin.ns4kafka.models.RoleBinding.RoleBindingSpec;
-import com.michelin.ns4kafka.models.RoleBinding.Subject;
-import com.michelin.ns4kafka.models.RoleBinding.SubjectType;
-import com.michelin.ns4kafka.models.RoleBinding.Verb;
-import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.models.RoleBinding.*;
 import com.michelin.ns4kafka.models.Topic.TopicSpec;
+import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
-
+import io.micronaut.context.annotation.Property;
+import io.micronaut.http.HttpMethod;
+import io.micronaut.http.HttpRequest;
+import io.micronaut.http.HttpResponse;
+import io.micronaut.http.client.RxHttpClient;
+import io.micronaut.http.client.annotation.Client;
+import io.micronaut.security.authentication.UsernamePasswordCredentials;
+import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-import io.micronaut.http.HttpMethod;
-import io.micronaut.http.HttpRequest;
-import io.micronaut.http.HttpResponse;
-import io.micronaut.security.authentication.UsernamePasswordCredentials;
+import javax.inject.Inject;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
-@Testcontainers
+@MicronautTest
+@Property(name = "micronaut.security.gitlab.enabled", value = "false")
 public class VerifyIfTopicExistsOutsideOfNs4kafka extends AbstractIntegrationTest{
 
+    @Inject
+    List<TopicAsyncExecutor> topicAsyncExecutorList;
+    @Inject
+    @Client("/")
+    RxHttpClient client;
     @Test
     void verifyIfTopicExistsOutsideOfNs4kafka() throws InterruptedException, ExecutionException {
 
@@ -48,7 +49,7 @@ public class VerifyIfTopicExistsOutsideOfNs4kafka extends AbstractIntegrationTes
             .spec(NamespaceSpec.builder()
                   .kafkaUser("user1")
                   .connectClusters(List.of("test-connect"))
-                  .topicValidator(TopicValidator.makeDefault())
+                  .topicValidator(TopicValidator.makeDefaultOneBroker())
                   .build())
             .build();
 
@@ -104,9 +105,9 @@ public class VerifyIfTopicExistsOutsideOfNs4kafka extends AbstractIntegrationTes
                       .build())
             .spec(TopicSpec.builder()
                   .partitions(3)
-                  .replicationFactor(3)
+                  .replicationFactor(1)
                   .configs(Map.of("cleanup.policy", "delete",
-                                  "min.insync.replicas", "2",
+                                  "min.insync.replicas", "1",
                                   "retention.ms", "60000"))
                   .build())
             .build();
@@ -122,14 +123,15 @@ public class VerifyIfTopicExistsOutsideOfNs4kafka extends AbstractIntegrationTes
 
         client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics").bearerAuth(token).body(t1)).blockingFirst();
 
-        Admin kafkaClient = Admin.create(Map.of("bootstrap.servers", kafka.getBootstrapServers()));
+        //force Topic Sync
+        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+
+        Admin kafkaClient = KafkaCluster.getAdminClient();
         System.out.println(kafkaClient.describeTopics(List.of("ns1-topic1")).all().get());
         List<TopicPartitionInfo> topicPartitionInfos = kafkaClient.describeTopics(List.of("ns1-topic1")).all().get()
             .get("ns1-topic1").partitions();
         Assertions.assertEquals(t1.getSpec().getPartitions(), topicPartitionInfos.size());
-        topicPartitionInfos.stream()
-            .forEach(topicPartitionInfo -> {
-        });
+
     }
 
 }
