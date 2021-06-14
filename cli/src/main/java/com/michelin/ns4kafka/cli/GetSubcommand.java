@@ -82,7 +82,9 @@ public class GetSubcommand implements Callable<Integer> {
             // 5.a display all resources by type
             apiResources.forEach(apiResource -> {
                         if (output.equals("yaml")) {
-                            resources.stream().forEach(this::displayIndividual);
+                            resources.stream()
+                                    .filter(resource -> resource.getKind().equals(apiResource.getKind()))
+                                    .forEach(this::displayIndividual);
                         } else {
                             displayAsTable(apiResource,
                                     resources.stream()
