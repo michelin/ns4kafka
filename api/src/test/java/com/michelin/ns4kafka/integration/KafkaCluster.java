@@ -16,6 +16,17 @@ public class KafkaCluster {
         }
     }
 
+    static void close() {
+        if (kafka != null) {
+            kafka.close();
+            kafka = null;
+        }
+        if (adminClient != null) {
+            adminClient.close();
+            adminClient = null;
+        }
+    }
+
     static Admin getAdminClient() {
         if (adminClient == null)
             adminClient = Admin.create(Map.of("bootstrap.servers", kafka.getBootstrapServers()));

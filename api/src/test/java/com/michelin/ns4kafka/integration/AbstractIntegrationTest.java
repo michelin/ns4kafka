@@ -13,6 +13,7 @@ public abstract class AbstractIntegrationTest implements TestPropertyProvider {
     @NonNull
     @Override
     public Map<String, String> getProperties() {
+        KafkaCluster.close();
         KafkaCluster.init();
         return Map.of(
                 "kafka.bootstrap.servers", KafkaCluster.kafka.getBootstrapServers(),
