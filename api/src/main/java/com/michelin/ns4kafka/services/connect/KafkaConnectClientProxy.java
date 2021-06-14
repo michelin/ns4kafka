@@ -17,12 +17,18 @@ import javax.inject.Inject;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Filter(KafkaConnectClientProxy.PROXY_PREFIX + "/**")
 public class KafkaConnectClientProxy extends OncePerRequestHttpServerFilter {
     public static final String PROXY_PREFIX = "/connect-proxy";
     public static final String PROXY_HEADER_KAFKA_CLUSTER = "X-Kafka-Cluster";
     public static final String PROXY_HEADER_CONNECT_CLUSTER = "X-Connect-Cluster";
+
+    // This UUID prevents anyone to access this filter directly and bypassing ConnectController and ConnectService.
+    // Only Micronaut can call this filter successfully
+    public static final String PROXY_HEADER_SECRET = "X-Proxy-Secret";
+    public static final String PROXY_SECRET = UUID.randomUUID().toString();
 
     @Inject
     ProxyHttpClient client;
@@ -31,6 +37,14 @@ public class KafkaConnectClientProxy extends OncePerRequestHttpServerFilter {
 
     @Override
     public Publisher<MutableHttpResponse<?>> doFilterOnce(HttpRequest<?> request, ServerFilterChain chain) {
+        // check call is initiated from micronaut and not from outisde
+        if (!request.getHeaders().contains(KafkaConnectClientProxy.PROXY_HEADER_SECRET)) {
+            return Publishers.just(new Exception("Missing required Header " + KafkaConnectClientProxy.PROXY_HEADER_SECRET));
+        }
+        String secret = request.getHeaders().get(KafkaConnectClientProxy.PROXY_HEADER_SECRET);
+        if (!PROXY_SECRET.equals(secret)) {
+            return Publishers.just(new Exception("Invalid value " + secret + " for Header " + KafkaConnectClientProxy.PROXY_HEADER_SECRET));
+        }
         // retrieve the connectConfig based on Header
         if (!request.getHeaders().contains(KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER)) {
             return Publishers.just(new Exception("Missing required Header " + KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER));
