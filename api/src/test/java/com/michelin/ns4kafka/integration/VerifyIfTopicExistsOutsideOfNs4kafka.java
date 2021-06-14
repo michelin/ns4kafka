@@ -20,14 +20,19 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.common.TopicPartitionInfo;
+import org.apache.kafka.common.config.ConfigResource;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
+
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
@@ -132,6 +137,17 @@ public class VerifyIfTopicExistsOutsideOfNs4kafka extends AbstractIntegrationTes
             .get("ns1-topic1").partitions();
         Assertions.assertEquals(t1.getSpec().getPartitions(), topicPartitionInfos.size());
 
-    }
+        Map<String, String> config = t1.getSpec().getConfigs();
+        Set<String> configKey = config.keySet();
 
+        ConfigResource configResource = new ConfigResource(ConfigResource.Type.TOPIC,"ns1-topic1");
+        List<ConfigEntry> valueToVerify = kafkaClient.describeConfigs(List.of(configResource)).all().get().get(configResource).entries().stream()
+            .filter(e -> configKey.contains(e.name()))
+            .collect(Collectors.toList());
+
+        Assertions.assertEquals(config.size(), valueToVerify.size());
+        valueToVerify.forEach(entry -> {
+            Assertions.assertEquals(config.get(entry.name()), entry.value());
+        });
+    }
 }
