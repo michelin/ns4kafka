@@ -1,16 +1,16 @@
 package com.michelin.ns4kafka.integration;
 
+import io.micronaut.core.annotation.NonNull;
 import io.micronaut.test.support.TestPropertyProvider;
 import org.junit.jupiter.api.TestInstance;
 
-import javax.annotation.Nonnull;
 import java.util.Map;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AbstractIntegrationTest implements TestPropertyProvider {
 
 
-    @Nonnull
+    @NonNull
     @Override
     public Map<String, String> getProperties() {
         KafkaCluster.init();
