@@ -203,10 +203,41 @@ Here is a list of the most useful:
 - ``get`` to know the configuration of a deployed resource
 - ``api-resources`` to know the supported resource by the api
 
+## Functions
+
+### Apply
+
+### Get
+
+### Delete
+
+### Diff
+
+### Reset offsets
+
+### Delete records
+
+### Api resources
+
 # Examples
 
 A list of resources exist in the ``example`` folder:
 You can create them with the command: ``kafkactl apply -f path-to-descriptor.yml``
+
+## Resources
+
+### Namespaces (Admin only)
+
+### Role bindings (Admin only)
+
+### Access control entries
+
+### Topics
+
+### Connectors
+
+### Consumer groups
+
 
 
 ````yaml
