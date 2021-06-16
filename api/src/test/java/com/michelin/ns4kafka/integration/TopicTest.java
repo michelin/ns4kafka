@@ -1,42 +1,16 @@
 package com.michelin.ns4kafka.integration;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
-
-import javax.inject.Inject;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
-import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
-import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.RoleBinding;
-import com.michelin.ns4kafka.models.RoleBinding.Role;
-import com.michelin.ns4kafka.models.RoleBinding.RoleBindingSpec;
-import com.michelin.ns4kafka.models.RoleBinding.Subject;
-import com.michelin.ns4kafka.models.RoleBinding.SubjectType;
-import com.michelin.ns4kafka.models.RoleBinding.Verb;
-import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.models.RoleBinding.*;
 import com.michelin.ns4kafka.models.Topic.TopicSpec;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
-
-import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.clients.admin.ConfigEntry;
-import org.apache.kafka.common.TopicPartitionInfo;
-import org.apache.kafka.common.config.ConfigResource;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
@@ -50,6 +24,21 @@ import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.ConfigEntry;
+import org.apache.kafka.common.TopicPartitionInfo;
+import org.apache.kafka.common.config.ConfigResource;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import javax.inject.Inject;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 
 @MicronautTest
@@ -189,7 +178,7 @@ public class TopicTest extends AbstractIntegrationTest {
         //force Topic Sync
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
 
-        Admin kafkaClient = KafkaCluster.getAdminClient();
+        Admin kafkaClient = getAdminClient();
         System.out.println(kafkaClient.describeTopics(List.of("ns1-topicFirstCreate")).all().get());
         List<TopicPartitionInfo> topicPartitionInfos = kafkaClient.describeTopics(List.of("ns1-topicFirstCreate")).all().get()
             .get("ns1-topicFirstCreate").partitions();
