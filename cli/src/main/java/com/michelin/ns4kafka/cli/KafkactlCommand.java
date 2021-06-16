@@ -17,7 +17,8 @@ import java.util.concurrent.Callable;
                         ApiResourcesSubcommand.class,
                         DiffSubcommand.class,
                         ResetOffsetsSubcommand.class,
-                        DeleteRecordsSubcommand.class
+                        DeleteRecordsSubcommand.class,
+                        ImportSubcommand.class
                 },
                 versionProvider = KafkactlCommand.ManifestVersionProvider.class,
                 mixinStandardHelpOptions=true)
