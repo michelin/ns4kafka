@@ -252,6 +252,6 @@ public class NamespaceServiceTest {
         List<Namespace> result = namespaceService.listAll();
 
         assertEquals(3,result.size());
-        Assertions.assertEquals(List.of(ns,ns3,ns2),result);
+        assertTrue(result.containsAll(List.of(ns,ns3,ns2)));
     }
 }
