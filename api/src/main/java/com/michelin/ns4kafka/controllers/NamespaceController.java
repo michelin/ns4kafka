@@ -7,6 +7,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Delete;
+import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,6 +28,17 @@ public class NamespaceController extends NonNamespacedResourceController {
 
     @Inject
     NamespaceService namespaceService;
+
+    @Get("/")
+    public List<Namespace> list() {
+        return namespaceService.listAll();
+    }
+
+    @Get("/{namespace}")
+    public Namespace get(String namespace) {
+        return namespaceService.findByName(namespace).get();
+
+    }
 
     @Post("{?dryrun}")
     public Namespace apply(@Valid @Body Namespace namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
@@ -73,11 +85,18 @@ public class NamespaceController extends NonNamespacedResourceController {
     }
 
     @Delete("/{namespace}{?dryrun}")
-    public HttpResponse<Void> delete(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<?> delete(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
+
+        // exists ?
+        Optional<Namespace> optionalNamespace = namespaceService.findByName(namespace);
+
+        if (optionalNamespace.isEmpty())
+            return HttpResponse.notFound();
 
         if (dryrun) {
             return HttpResponse.noContent();
         }
+        namespaceService.delete(optionalNamespace.get());
 
         return HttpResponse.noContent();
     }

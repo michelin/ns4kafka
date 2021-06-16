@@ -64,6 +64,11 @@ public class NamespaceService {
         return namespaceRepository.createNamespace(namespace);
     }
 
+    public void delete(Namespace namespace) {
+        namespaceRepository.delete(namespace);
+
+    }
+
     public List<Namespace> listAll() {
         return kafkaAsyncExecutorConfigList.stream()
                 .map(KafkaAsyncExecutorConfig::getName)
