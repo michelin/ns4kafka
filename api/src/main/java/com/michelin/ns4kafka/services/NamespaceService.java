@@ -63,4 +63,11 @@ public class NamespaceService {
     public Namespace createOrUpdate(Namespace namespace) {
         return namespaceRepository.createNamespace(namespace);
     }
+
+    public List<Namespace> listAll() {
+        return kafkaAsyncExecutorConfigList.stream()
+                .map(KafkaAsyncExecutorConfig::getName)
+                .flatMap(s -> namespaceRepository.findAllForCluster(s).stream())
+                .collect(Collectors.toList());
+    }
 }

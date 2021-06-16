@@ -33,9 +33,42 @@ public class KafkaConnectClientProxyTest {
     KafkaConnectClientProxy proxy;
 
     @Test
+    void doFilterMissingHeader_Secret() {
+        MutableHttpRequest<?> request = HttpRequest
+                .GET("http://localhost/connect-proxy/connectors")
+                .header("X-Unused", "123");
+
+        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+
+        mutableHttpResponsePublisher.subscribe(subscriber);
+        subscriber.awaitTerminalEvent();
+
+        subscriber.assertError(Exception.class);
+        subscriber.assertError(throwable -> throwable.getClass().equals(Exception.class));
+        subscriber.assertErrorMessage("Missing required Header X-Proxy-Secret");
+    }
+    @Test
+    void doFilterWrongSecret() {
+        MutableHttpRequest<?> request = HttpRequest
+                .GET("http://localhost/connect-proxy/connectors")
+                .header("X-Proxy-Secret", "123");
+
+        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+
+        mutableHttpResponsePublisher.subscribe(subscriber);
+        subscriber.awaitTerminalEvent();
+
+        subscriber.assertError(Exception.class);
+        subscriber.assertError(throwable -> throwable.getClass().equals(Exception.class));
+        subscriber.assertErrorMessage("Invalid value 123 for Header X-Proxy-Secret");
+    }
+    @Test
     void doFilterMissingHeader_KafkaCluster() {
         MutableHttpRequest<?> request = HttpRequest
                 .GET("http://localhost/connect-proxy/connectors")
+                .header("X-Proxy-Secret", KafkaConnectClientProxy.PROXY_SECRET)
                 .header("X-Unused", "123");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
@@ -52,6 +85,7 @@ public class KafkaConnectClientProxyTest {
     void doFilterMissingHeader_ConnectCluster() {
         MutableHttpRequest<?> request = HttpRequest
                 .GET("http://localhost/connect-proxy/connectors")
+                .header("X-Proxy-Secret", KafkaConnectClientProxy.PROXY_SECRET)
                 .header(KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
@@ -69,6 +103,7 @@ public class KafkaConnectClientProxyTest {
     void doFilterWrongKafkaCluster() {
         MutableHttpRequest<?> request = HttpRequest
                 .GET("http://localhost/connect-proxy/connectors")
+                .header("X-Proxy-Secret", KafkaConnectClientProxy.PROXY_SECRET)
                 .header(KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local")
                 .header(KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER, "local-name");
         Mockito.when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.empty());
@@ -87,6 +122,7 @@ public class KafkaConnectClientProxyTest {
     void doFilterWrongConnectCluster() {
         MutableHttpRequest<?> request = HttpRequest
                 .GET("http://localhost/connect-proxy/connectors")
+                .header("X-Proxy-Secret", KafkaConnectClientProxy.PROXY_SECRET)
                 .header(KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local")
                 .header(KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER, "local-name");
         KafkaAsyncExecutorConfig config = new KafkaAsyncExecutorConfig("local");
@@ -111,6 +147,7 @@ public class KafkaConnectClientProxyTest {
     void doFilterSuccess() {
 
         MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors")
+                .header("X-Proxy-Secret", KafkaConnectClientProxy.PROXY_SECRET)
                 .header(KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local")
                 .header(KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER, "local-name");
         KafkaAsyncExecutorConfig config1 = new KafkaAsyncExecutorConfig("local");

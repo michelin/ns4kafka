@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.services.executors;
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
+import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
 import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStatus;
 import io.micronaut.context.annotation.EachBean;
@@ -84,7 +85,7 @@ public class ConnectorAsyncExecutor {
     }
 
     public List<Connector> collectBrokerConnectors(String connectCluster) {
-        List<Connector> connectorList = kafkaConnectClient.listAll(kafkaAsyncExecutorConfig.getName(), connectCluster)
+        List<Connector> connectorList = kafkaConnectClient.listAll(KafkaConnectClientProxy.PROXY_SECRET, kafkaAsyncExecutorConfig.getName(), connectCluster)
                 .values()
                 .stream()
                 .map(connectorStatus -> buildConnectorFromConnectorStatus(connectorStatus, connectCluster))
@@ -127,7 +128,9 @@ public class ConnectorAsyncExecutor {
 
     private void deployConnector(Connector connector) {
         try {
-            kafkaConnectClient.createOrUpdate(kafkaAsyncExecutorConfig.getName(),
+            kafkaConnectClient.createOrUpdate(
+                    KafkaConnectClientProxy.PROXY_SECRET,
+                    kafkaAsyncExecutorConfig.getName(),
                     connector.getSpec().getConnectCluster(),
                     connector.getMetadata().getName(),
                     connector.getSpec().getConfig());

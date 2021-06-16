@@ -1,12 +1,15 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.models.*;
+import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Connector;
+import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
+import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
+import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
 import com.michelin.ns4kafka.services.connect.client.entities.*;
 import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
-import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.ResourceValidator;
 import io.micronaut.context.ApplicationContext;
@@ -316,7 +319,7 @@ public class KafkaConnectServiceTest {
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
-        Mockito.when(kafkaConnectClient.connectPlugins("local", "local-name"))
+        Mockito.when(kafkaConnectClient.connectPlugins(KafkaConnectClientProxy.PROXY_SECRET, "local", "local-name"))
                 .thenReturn(List.of());
 
         List<String> actual = kafkaConnectService.validateLocally(ns, connector);
@@ -349,7 +352,7 @@ public class KafkaConnectServiceTest {
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
-        Mockito.when(kafkaConnectClient.connectPlugins("local", "local-name"))
+        Mockito.when(kafkaConnectClient.connectPlugins(KafkaConnectClientProxy.PROXY_SECRET, "local", "local-name"))
                 .thenReturn(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1")));
 
         List<String> actual = kafkaConnectService.validateLocally(ns, connector);
@@ -382,7 +385,7 @@ public class KafkaConnectServiceTest {
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
-        Mockito.when(kafkaConnectClient.connectPlugins("local", "local-name"))
+        Mockito.when(kafkaConnectClient.connectPlugins(KafkaConnectClientProxy.PROXY_SECRET, "local", "local-name"))
                 .thenReturn(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1")));
 
 
@@ -411,7 +414,12 @@ public class KafkaConnectServiceTest {
         ConfigInfos configInfos = new ConfigInfos("name", 1, List.of(),
                 List.of(new ConfigInfo(new ConfigKeyInfo(null, null, false, null, null, null, null, 0, null, null, null),
                         new ConfigValueInfo(null, null, null, List.of("error_message"), true))));
-        Mockito.when(kafkaConnectClient.validate(ArgumentMatchers.eq("local"), ArgumentMatchers.eq("local-name"), ArgumentMatchers.any(), ArgumentMatchers.anyMap()))
+        Mockito.when(kafkaConnectClient.validate(
+                ArgumentMatchers.anyString(),
+                ArgumentMatchers.eq("local"),
+                ArgumentMatchers.eq("local-name"),
+                ArgumentMatchers.any(),
+                ArgumentMatchers.anyMap()))
                 .thenReturn(configInfos);
 
         List<String> actual = kafkaConnectService.validateRemotely(ns, connector);
@@ -438,7 +446,12 @@ public class KafkaConnectServiceTest {
                         .build())
                 .build();
         ConfigInfos configInfos = new ConfigInfos("name", 1, List.of(), List.of());
-        Mockito.when(kafkaConnectClient.validate(ArgumentMatchers.eq("local"), ArgumentMatchers.eq("local-name"), ArgumentMatchers.any(), ArgumentMatchers.anyMap()))
+        Mockito.when(kafkaConnectClient.validate(
+                ArgumentMatchers.anyString(),
+                ArgumentMatchers.eq("local"),
+                ArgumentMatchers.eq("local-name"),
+                ArgumentMatchers.any(),
+                ArgumentMatchers.anyMap()))
                 .thenReturn(configInfos);
 
         List<String> actual = kafkaConnectService.validateRemotely(ns, connector);

@@ -5,6 +5,7 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
+import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
 import com.michelin.ns4kafka.services.connect.client.entities.ConfigInfos;
 import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
@@ -78,7 +79,7 @@ public class KafkaConnectService {
             return List.of("Invalid value for spec.config.'connector.class': Value must be non-null");
 
         // Connector type exists on this target connect cluster ?
-        Optional<String> connectorType = kafkaConnectClient.connectPlugins(namespace.getMetadata().getCluster(), connector.getSpec().getConnectCluster())
+        Optional<String> connectorType = kafkaConnectClient.connectPlugins(KafkaConnectClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), connector.getSpec().getConnectCluster())
                 .stream()
                 .filter(connectPluginItem -> connectPluginItem.className().equals(connector.getSpec().getConfig().get("connector.class")))
                 .map(connectorPluginInfo -> connectorPluginInfo.type().toString().toLowerCase(Locale.ROOT))
@@ -101,6 +102,7 @@ public class KafkaConnectService {
     public List<String> validateRemotely(Namespace namespace, Connector connector) {
         // Calls the validate endpoints and returns the validation error messages if any
         ConfigInfos configInfos = kafkaConnectClient.validate(
+                KafkaConnectClientProxy.PROXY_SECRET,
                 namespace.getMetadata().getCluster(),
                 connector.getSpec().getConnectCluster(),
                 connector.getSpec().getConfig().get("connector.class"),
@@ -120,6 +122,7 @@ public class KafkaConnectService {
     public HttpResponse delete(Namespace namespace, Connector connector) {
         connectorRepository.delete(connector);
         return kafkaConnectClient.delete(
+                KafkaConnectClientProxy.PROXY_SECRET,
                 namespace.getMetadata().getCluster(),
                 connector.getSpec().getConnectCluster(),
                 connector.getMetadata().getName());
