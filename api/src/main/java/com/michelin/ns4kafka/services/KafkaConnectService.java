@@ -121,11 +121,15 @@ public class KafkaConnectService {
 
     public HttpResponse delete(Namespace namespace, Connector connector) {
         connectorRepository.delete(connector);
-        return kafkaConnectClient.delete(
+        kafkaConnectClient.delete(
                 KafkaConnectClientProxy.PROXY_SECRET,
                 namespace.getMetadata().getCluster(),
                 connector.getSpec().getConnectCluster(),
                 connector.getMetadata().getName());
+        LOG.info("Success removing Connector [" + connector.getMetadata().getName() +
+                "] on Kafka [" + namespace.getMetadata().getName() +
+                "] Connect [" + connector.getSpec().getConnectCluster() + "]");
+        return HttpResponse.noContent();
     }
 
     public List<Connector> listUnsynchronizedConnectors(Namespace namespace) {
