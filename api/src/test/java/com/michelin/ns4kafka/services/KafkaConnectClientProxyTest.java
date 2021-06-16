@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.services;
 
+import com.michelin.ns4kafka.controllers.ResourceValidationException;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig.ConnectConfig;
 import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
@@ -44,9 +45,12 @@ public class KafkaConnectClientProxyTest {
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
 
-        subscriber.assertError(Exception.class);
-        subscriber.assertError(throwable -> throwable.getClass().equals(Exception.class));
-        subscriber.assertErrorMessage("Missing required Header X-Proxy-Secret");
+        subscriber.assertError(ResourceValidationException.class);
+        subscriber.assertError(throwable ->
+                ((ResourceValidationException)throwable)
+                        .getValidationErrors()
+                        .contains("Missing required Header X-Proxy-Secret")
+        );
     }
     @Test
     void doFilterWrongSecret() {
@@ -60,9 +64,12 @@ public class KafkaConnectClientProxyTest {
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
 
-        subscriber.assertError(Exception.class);
-        subscriber.assertError(throwable -> throwable.getClass().equals(Exception.class));
-        subscriber.assertErrorMessage("Invalid value 123 for Header X-Proxy-Secret");
+        subscriber.assertError(ResourceValidationException.class);
+        subscriber.assertError(throwable ->
+                ((ResourceValidationException)throwable)
+                        .getValidationErrors()
+                        .contains("Invalid value 123 for Header X-Proxy-Secret")
+        );
     }
     @Test
     void doFilterMissingHeader_KafkaCluster() {
@@ -77,9 +84,12 @@ public class KafkaConnectClientProxyTest {
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
 
-        subscriber.assertError(Exception.class);
-        subscriber.assertError(throwable -> throwable.getClass().equals(Exception.class));
-        subscriber.assertErrorMessage("Missing required Header X-Kafka-Cluster");
+        subscriber.assertError(ResourceValidationException.class);
+        subscriber.assertError(throwable ->
+                ((ResourceValidationException)throwable)
+                        .getValidationErrors()
+                        .contains("Missing required Header X-Kafka-Cluster")
+        );
     }
     @Test
     void doFilterMissingHeader_ConnectCluster() {
@@ -94,9 +104,12 @@ public class KafkaConnectClientProxyTest {
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
 
-        subscriber.assertError(Exception.class);
-        subscriber.assertError(throwable -> throwable.getClass().equals(Exception.class));
-        subscriber.assertErrorMessage("Missing required Header X-Connect-Cluster");
+        subscriber.assertError(ResourceValidationException.class);
+        subscriber.assertError(throwable ->
+                ((ResourceValidationException)throwable)
+                        .getValidationErrors()
+                        .contains("Missing required Header X-Connect-Cluster")
+        );
     }
 
     @Test
@@ -114,9 +127,12 @@ public class KafkaConnectClientProxyTest {
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
 
-        subscriber.assertError(Exception.class);
-        subscriber.assertError(throwable -> throwable.getClass().equals(Exception.class));
-        subscriber.assertErrorMessage("Kafka Cluster [local] not found");
+        subscriber.assertError(ResourceValidationException.class);
+        subscriber.assertError(throwable ->
+                ((ResourceValidationException)throwable)
+                        .getValidationErrors()
+                        .contains("Kafka Cluster [local] not found")
+        );
     }
     @Test
     void doFilterWrongConnectCluster() {
@@ -138,9 +154,13 @@ public class KafkaConnectClientProxyTest {
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
 
-        subscriber.assertError(Exception.class);
-        subscriber.assertError(throwable -> throwable.getClass().equals(Exception.class));
-        subscriber.assertErrorMessage("Connect Cluster [local-name] not found");
+        subscriber.assertError(ResourceValidationException.class);
+        subscriber.assertError(throwable ->
+             ((ResourceValidationException)throwable)
+                     .getValidationErrors()
+                     .contains("Connect Cluster [local-name] not found")
+        );
+
     }
 
     @Test
