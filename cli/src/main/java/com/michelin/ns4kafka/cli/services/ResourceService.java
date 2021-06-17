@@ -50,7 +50,7 @@ public class ResourceService {
             if (apiResource.isNamespaced()) {
                 return namespacedClient.get(namespace, apiResource.getPath(), resourceName, loginService.getAuthorization());
             } else {
-                return nonNamespacedClient.get(loginService.getAuthorization(), apiResource.getKind(), resourceName);
+                return nonNamespacedClient.get(loginService.getAuthorization(), apiResource.getPath(), resourceName);
             }
         } catch (Exception e) {
             System.out.println("Error during get for resource type " + apiResource.getKind() + "/" + resourceName + ": " + e.getMessage());

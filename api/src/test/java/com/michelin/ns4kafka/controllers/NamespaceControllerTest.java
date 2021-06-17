@@ -12,10 +12,13 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import io.micronaut.http.HttpResponse;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -197,7 +200,6 @@ public class NamespaceControllerTest {
 
     @Test
     void deleteSucess() {
-        //TODO change when implemented
         Namespace existing = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -207,12 +209,15 @@ public class NamespaceControllerTest {
                         .kafkaUser("user")
                         .build())
                 .build();
-        namespaceController.delete("namespace", false);
+        Mockito.when(namespaceService.findByName("namespace"))
+                .thenReturn(Optional.of(existing));
+        var result = namespaceController.delete("namespace", false);
+        Assertions.assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
+
     }
 
     @Test
     void deleteSucessDryRun() {
-        //TODO change when implemented
         Namespace existing = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -222,8 +227,23 @@ public class NamespaceControllerTest {
                         .kafkaUser("user")
                         .build())
                 .build();
-        namespaceController.delete("namespace", true);
-        // verify(namespaceService, never()).delete(any());
+        Mockito.when(namespaceService.findByName("namespace"))
+                .thenReturn(Optional.of(existing));
+
+        var result = namespaceController.delete("namespace", true);
+
+        verify(namespaceService, never()).delete(any());
+        Assertions.assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
+
+    }
+
+    @Test
+    void deleteFailNoNamespace() {
+        Mockito.when(namespaceService.findByName("namespace"))
+                .thenReturn(Optional.empty());
+        var result = namespaceController.delete("namespace", false);
+        Assertions.assertEquals(HttpResponse.notFound().getStatus(), result.getStatus());
+
     }
 
 }
