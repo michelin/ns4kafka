@@ -35,9 +35,8 @@ public class NamespaceController extends NonNamespacedResourceController {
     }
 
     @Get("/{namespace}")
-    public Namespace get(String namespace) {
-        return namespaceService.findByName(namespace).get();
-
+    public Optional<Namespace> get(String namespace) {
+        return namespaceService.findByName(namespace);
     }
 
     @Post("{?dryrun}")
