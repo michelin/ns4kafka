@@ -211,6 +211,8 @@ public class NamespaceControllerTest {
                 .build();
         Mockito.when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
+        Mockito.when(namespaceService.isNamespaceEmpty(existing))
+                .thenReturn(true);
         var result = namespaceController.delete("namespace", false);
         Assertions.assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
 
@@ -230,6 +232,9 @@ public class NamespaceControllerTest {
         Mockito.when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
 
+        Mockito.when(namespaceService.isNamespaceEmpty(existing))
+                .thenReturn(true);
+
         var result = namespaceController.delete("namespace", true);
 
         verify(namespaceService, never()).delete(any());
@@ -242,7 +247,28 @@ public class NamespaceControllerTest {
         Mockito.when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.empty());
         var result = namespaceController.delete("namespace", false);
+        verify(namespaceService, never()).delete(any());
         Assertions.assertEquals(HttpResponse.notFound().getStatus(), result.getStatus());
+
+    }
+
+    @Test
+    void deleteFailNamespaceNotEmpty() {
+        Namespace existing = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("namespace"))
+                .thenReturn(Optional.of(existing));
+        Mockito.when(namespaceService.isNamespaceEmpty(existing))
+                .thenReturn(false);
+        Assertions.assertThrows(ResourceValidationException.class,() -> namespaceController.delete("namespace", false));
+        verify(namespaceService, never()).delete(any());
 
     }
 

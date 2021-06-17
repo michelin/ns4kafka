@@ -92,6 +92,11 @@ public class NamespaceController extends NonNamespacedResourceController {
         if (optionalNamespace.isEmpty())
             return HttpResponse.notFound();
 
+        if(!namespaceService.isNamespaceEmpty(optionalNamespace.get())){
+            throw new ResourceValidationException(List.of("Namespace " + namespace + " is not Empty"));
+
+        }
+
         if (dryrun) {
             return HttpResponse.noContent();
         }

@@ -18,6 +18,12 @@ public class NamespaceService {
     NamespaceRepository namespaceRepository;
     @Inject
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigList;
+    @Inject
+    TopicService topicService;
+    @Inject
+    RoleBindingService roleBindingService;
+    @Inject
+    AccessControlEntryService accessControlEntryService;
 
     /**
      * Namespace validation in case of new namespace
@@ -74,5 +80,11 @@ public class NamespaceService {
                 .map(KafkaAsyncExecutorConfig::getName)
                 .flatMap(s -> namespaceRepository.findAllForCluster(s).stream())
                 .collect(Collectors.toList());
+    }
+
+    public boolean isNamespaceEmpty(Namespace namespace) {
+        return topicService.findAllForNamespace(namespace).isEmpty() &&
+               accessControlEntryService.findAllNamespaceIsGrantor(namespace).isEmpty() &&
+               roleBindingService.list(namespace.getMetadata().getName()).isEmpty();
     }
 }
