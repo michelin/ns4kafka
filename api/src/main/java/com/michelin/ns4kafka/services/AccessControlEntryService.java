@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.services;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
+import io.micronaut.context.ApplicationContext;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
@@ -18,7 +19,7 @@ public class AccessControlEntryService {
     @Inject
     AccessControlEntryRepository accessControlEntryRepository;
     @Inject
-    NamespaceService namespaceService;
+    ApplicationContext applicationContext;
 
     public List<String> validate(AccessControlEntry accessControlEntry, Namespace namespace) {
         List<String> validationErrors = new ArrayList<>();
@@ -57,6 +58,7 @@ public class AccessControlEntryService {
 
 
         // GrantedTo Namespace exists ?
+        NamespaceService namespaceService = applicationContext.getBean(NamespaceService.class);
         Optional<Namespace> grantedToNamespace = namespaceService.findByName(accessControlEntry.getSpec().getGrantedTo());
         if (grantedToNamespace.isEmpty()) {
             validationErrors.add("Invalid value " + accessControlEntry.getSpec().getGrantedTo() + " for grantedTo: Namespace doesn't exist");

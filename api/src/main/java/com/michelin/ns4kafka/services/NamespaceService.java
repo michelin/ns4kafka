@@ -4,8 +4,6 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 
-import io.micronaut.context.BeanProvider;
-
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
@@ -21,11 +19,11 @@ public class NamespaceService {
     @Inject
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigList;
     @Inject
-    BeanProvider<TopicService> topicService;
+    TopicService topicService;
     @Inject
-    BeanProvider<RoleBindingService> roleBindingService;
+    RoleBindingService roleBindingService;
     @Inject
-    BeanProvider<AccessControlEntryService> accessControlEntryService;
+    AccessControlEntryService accessControlEntryService;
 
     /**
      * Namespace validation in case of new namespace
@@ -85,8 +83,8 @@ public class NamespaceService {
     }
 
     public boolean isNamespaceEmpty(Namespace namespace) {
-        return topicService.get().findAllForNamespace(namespace).isEmpty() &&
-               accessControlEntryService.get().findAllNamespaceIsGrantor(namespace).isEmpty() &&
-               roleBindingService.get().list(namespace.getMetadata().getName()).isEmpty();
+        return topicService.findAllForNamespace(namespace).isEmpty() &&
+               accessControlEntryService.findAllNamespaceIsGrantor(namespace).isEmpty() &&
+               roleBindingService.list(namespace.getMetadata().getName()).isEmpty();
     }
 }

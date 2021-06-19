@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
+import io.micronaut.context.ApplicationContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,7 +21,8 @@ public class AccessControlEntryServiceTest {
     @Mock
     AccessControlEntryRepository accessControlEntryRepository;
     @Mock
-    NamespaceService namespaceService;
+    ApplicationContext applicationContext;
+    NamespaceService namespaceService = Mockito.mock(NamespaceService.class);
 
     @InjectMocks
     AccessControlEntryService accessControlEntryService;
@@ -46,6 +48,8 @@ public class AccessControlEntryServiceTest {
                         .grantedTo("target-ns")
                         .build())
                 .build();
+        Mockito.when(applicationContext.getBean(NamespaceService.class))
+                .thenReturn(namespaceService);
         Mockito.when(namespaceService.findByName("target-ns"))
                 .thenReturn(Optional.empty());
         Mockito.when(accessControlEntryRepository.findAll())
@@ -81,6 +85,8 @@ public class AccessControlEntryServiceTest {
                         .grantedTo("namespace")
                         .build())
                 .build();
+        Mockito.when(applicationContext.getBean(NamespaceService.class))
+                .thenReturn(namespaceService);
         Mockito.when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(ns));
         Mockito.when(accessControlEntryRepository.findAll())
@@ -114,6 +120,8 @@ public class AccessControlEntryServiceTest {
                         .grantedTo("target-ns")
                         .build())
                 .build();
+        Mockito.when(applicationContext.getBean(NamespaceService.class))
+                .thenReturn(namespaceService);
         Mockito.when(namespaceService.findByName("target-ns"))
                 .thenReturn(Optional.of(Namespace.builder().build()));
         Mockito.when(accessControlEntryRepository.findAll())
@@ -153,6 +161,8 @@ public class AccessControlEntryServiceTest {
                         .grantedTo("target-ns")
                         .build())
                 .build();
+        Mockito.when(applicationContext.getBean(NamespaceService.class))
+                .thenReturn(namespaceService);
         Mockito.when(namespaceService.findByName("target-ns"))
                 .thenReturn(Optional.of(Namespace.builder().build()));
         Mockito.when(accessControlEntryRepository.findAll())
@@ -192,6 +202,8 @@ public class AccessControlEntryServiceTest {
                         .grantedTo("target-ns")
                         .build())
                 .build();
+        Mockito.when(applicationContext.getBean(NamespaceService.class))
+                .thenReturn(namespaceService);
         Mockito.when(namespaceService.findByName("target-ns"))
                 .thenReturn(Optional.of(Namespace.builder().build()));
         Mockito.when(accessControlEntryRepository.findAll())
@@ -231,6 +243,8 @@ public class AccessControlEntryServiceTest {
                         .grantedTo("target-ns")
                         .build())
                 .build();
+        Mockito.when(applicationContext.getBean(NamespaceService.class))
+                .thenReturn(namespaceService);
         Mockito.when(namespaceService.findByName("target-ns"))
                 .thenReturn(Optional.of(Namespace.builder().metadata(ObjectMeta.builder().name("target-ns").build()).build()));
         Mockito.when(accessControlEntryRepository.findAll())
