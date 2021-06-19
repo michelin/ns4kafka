@@ -1,6 +1,6 @@
 kafka:
   embedded:
-    enabled: true
+    enabled: false
   bootstrap.servers: "localhost:9092"
 
 ns4kafka:
@@ -12,9 +12,16 @@ ns4kafka:
         groups:
           - "adminGroup"
   managed-clusters:
-    df4mgbl0:
-      manage-users: false # requires Broker >= 2.7.0
-      manage-acls: false
-      manage-topics: false
+    test-cluster:
+      manage-users: false
+      manage-acls: true
+      manage-topics: true
+      manage-connect: false
+      manage-role-bindings: false
+      connects:
+        test-connect:
+          url: "http://localhost/kafka/connect/"
+          basicAuthUsername: "user"
+          basicAuthPassword: "password"
       config:
         bootstrap.servers: "localhost:9092"

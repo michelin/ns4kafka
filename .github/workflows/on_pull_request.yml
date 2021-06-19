@@ -34,6 +34,11 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: ./gradlew jacocoTestReport sonarqube --info
+    - name: Publish Test Report
+      if: always()
+      uses: mikepenz/action-junit-report@v2
+      with:
+        report_paths: '**/build/test-results/test/TEST-*.xml'
     - name: Native Image for CLI
       run: ./gradlew :cli:shadowJar :cli:nativeImage
     - uses: actions/upload-artifact@v2

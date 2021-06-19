@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 @EachBean(KafkaAsyncExecutorConfig.class)
 @Singleton
 public class AccessControlEntryAsyncExecutor {
-    private static final Logger LOG = LoggerFactory.getLogger(ConnectorAsyncExecutor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AccessControlEntryAsyncExecutor.class);
 
     private KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
 
