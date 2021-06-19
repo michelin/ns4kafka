@@ -1,27 +1,24 @@
 package com.michelin.ns4kafka.services;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig.ConnectConfig;
-
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class NamespaceServiceTest {
@@ -34,9 +31,8 @@ public class NamespaceServiceTest {
     RoleBindingService roleBindingService;
     @Mock
     AccessControlEntryService accessControlEntryService;
-
-    @Spy
-    List<KafkaAsyncExecutorConfig> kafkaConfigList = new ArrayList<>();
+    @Mock
+    List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigList;
 
     @InjectMocks
     NamespaceService namespaceService;
@@ -54,7 +50,8 @@ public class NamespaceServiceTest {
                         .build())
                 .build();
 
-        when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of());
+        when(namespaceRepository.findAllForCluster("local"))
+                .thenReturn(List.of());
 
         List<String> result = namespaceService.validateCreation(ns);
         assertEquals(1, result.size());
@@ -86,11 +83,12 @@ public class NamespaceServiceTest {
                         .kafkaUser("user")
                         .build())
                 .build();
+        KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig1 = new KafkaAsyncExecutorConfig("local");
 
-        KafkaAsyncExecutorConfig kafka = new KafkaAsyncExecutorConfig("local");
-        kafkaConfigList.add(kafka);
-
-        when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of(ns2));
+        when(kafkaAsyncExecutorConfigList.stream())
+                .thenReturn(Stream.of(kafkaAsyncExecutorConfig1));
+        when(namespaceRepository.findAllForCluster("local"))
+                .thenReturn(List.of(ns2));
 
         List<String> result = namespaceService.validateCreation(ns);
         assertEquals(1, result.size());
@@ -112,10 +110,12 @@ public class NamespaceServiceTest {
                         .build())
                 .build();
 
-        KafkaAsyncExecutorConfig kafka = new KafkaAsyncExecutorConfig("local");
-        kafkaConfigList.add(kafka);
+        KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig1 = new KafkaAsyncExecutorConfig("local");
 
-        when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of());
+        when(kafkaAsyncExecutorConfigList.stream())
+                .thenReturn(Stream.of(kafkaAsyncExecutorConfig1));
+        when(namespaceRepository.findAllForCluster("local"))
+                .thenReturn(List.of());
 
         List<String> result = namespaceService.validateCreation(ns);
         assertTrue(result.isEmpty());
@@ -145,10 +145,12 @@ public class NamespaceServiceTest {
                         .build())
                 .build();
 
-        KafkaAsyncExecutorConfig kafka = new KafkaAsyncExecutorConfig("local");
-        kafkaConfigList.add(kafka);
+        KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig1 = new KafkaAsyncExecutorConfig("local");
 
-        when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of(ns2));
+        when(kafkaAsyncExecutorConfigList.stream())
+                .thenReturn(Stream.of(kafkaAsyncExecutorConfig1));
+        when(namespaceRepository.findAllForCluster("local"))
+                .thenReturn(List.of(ns2));
 
         List<String> result = namespaceService.validateCreation(ns);
         assertTrue(result.isEmpty());
@@ -170,7 +172,9 @@ public class NamespaceServiceTest {
 
         KafkaAsyncExecutorConfig kafka = new KafkaAsyncExecutorConfig("local");
         kafka.setConnects(Map.of("local-name", new ConnectConfig()));
-        kafkaConfigList.add(kafka);
+
+        when(kafkaAsyncExecutorConfigList.stream())
+                .thenReturn(Stream.of(kafka));
 
         List<String> result = namespaceService.validate(ns);
 
@@ -203,9 +207,11 @@ public class NamespaceServiceTest {
                         .build())
                 .build();
 
-        KafkaAsyncExecutorConfig kafka = new KafkaAsyncExecutorConfig("local");
-        kafka.setConnects(Map.of("other-connect-config", new ConnectConfig()));
-        kafkaConfigList.add(kafka);
+        KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig1 = new KafkaAsyncExecutorConfig("local");
+        kafkaAsyncExecutorConfig1.setConnects(Map.of("other-connect-config", new ConnectConfig()));
+
+        when(kafkaAsyncExecutorConfigList.stream())
+                .thenReturn(Stream.of(kafkaAsyncExecutorConfig1));
 
         List<String> result = namespaceService.validate(ns);
 
@@ -247,11 +253,11 @@ public class NamespaceServiceTest {
                         .build())
                 .build();
 
-        KafkaAsyncExecutorConfig kafka = new KafkaAsyncExecutorConfig("local");
-        KafkaAsyncExecutorConfig kafka2 = new KafkaAsyncExecutorConfig("other-cluster");
-        kafkaConfigList.add(kafka);
-        kafkaConfigList.add(kafka2);
+        KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig1 = new KafkaAsyncExecutorConfig("local");
+        KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig2 = new KafkaAsyncExecutorConfig("other-cluster");
 
+        when(kafkaAsyncExecutorConfigList.stream())
+                .thenReturn(Stream.of(kafkaAsyncExecutorConfig1, kafkaAsyncExecutorConfig2));
         when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of(ns, ns2));
         when(namespaceRepository.findAllForCluster("other-cluster")).thenReturn(List.of(ns3));
 
