@@ -173,7 +173,7 @@ public class AccessControlEntryService {
                 .collect(Collectors.toList());
     }
 
-    public List<AccessControlEntry> findAllNamespaceIsGrantor(Namespace namespace) {
+    public List<AccessControlEntry> findAllForNamespace(Namespace namespace) {
         return accessControlEntryRepository.findAll().stream()
                 .filter(accessControlEntry -> accessControlEntry.getMetadata().getNamespace().equals(namespace.getMetadata().getName()))
                 .collect(Collectors.toList());

@@ -4,12 +4,7 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.annotation.Body;
-import io.micronaut.http.annotation.Controller;
-import io.micronaut.http.annotation.Delete;
-import io.micronaut.http.annotation.Get;
-import io.micronaut.http.annotation.Post;
-import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.annotation.security.RolesAllowed;
@@ -20,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 @Tag(name = "Namespaces")
@@ -72,7 +68,7 @@ public class NamespaceController extends NonNamespacedResourceController {
         //augment
         namespace.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
 
-        if(existingNamespace.isPresent() && existingNamespace.get().equals(namespace)){
+        if (existingNamespace.isPresent() && existingNamespace.get().equals(namespace)) {
             return existingNamespace.get();
         }
         //dryrun checks
@@ -85,23 +81,22 @@ public class NamespaceController extends NonNamespacedResourceController {
 
     @Delete("/{namespace}{?dryrun}")
     public HttpResponse<?> delete(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
-
         // exists ?
         Optional<Namespace> optionalNamespace = namespaceService.findByName(namespace);
-
         if (optionalNamespace.isEmpty())
             return HttpResponse.notFound();
-
-        if(!namespaceService.isNamespaceEmpty(optionalNamespace.get())){
-            throw new ResourceValidationException(List.of("Namespace " + namespace + " is not Empty"));
-
+        // check existing resources
+        List<String> namespaceResources = namespaceService.listAllNamespaceResources(optionalNamespace.get());
+        if (!namespaceResources.isEmpty()) {
+            throw new ResourceValidationException(namespaceResources.stream()
+                    .map(s -> "Namespace resource must be deleted first :" + s)
+                    .collect(Collectors.toList()));
         }
 
         if (dryrun) {
             return HttpResponse.noContent();
         }
         namespaceService.delete(optionalNamespace.get());
-
         return HttpResponse.noContent();
     }
 

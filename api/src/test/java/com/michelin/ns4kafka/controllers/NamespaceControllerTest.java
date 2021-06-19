@@ -211,8 +211,8 @@ public class NamespaceControllerTest {
                 .build();
         Mockito.when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
-        Mockito.when(namespaceService.isNamespaceEmpty(existing))
-                .thenReturn(true);
+        Mockito.when(namespaceService.listAllNamespaceResources(existing))
+                .thenReturn(List.of());
         var result = namespaceController.delete("namespace", false);
         Assertions.assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
 
@@ -229,11 +229,11 @@ public class NamespaceControllerTest {
                         .kafkaUser("user")
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
-
-        Mockito.when(namespaceService.isNamespaceEmpty(existing))
-                .thenReturn(true);
+        Mockito.when(namespaceService.listAllNamespaceResources(existing))
+                .thenReturn(List.of());
 
         var result = namespaceController.delete("namespace", true);
 
@@ -265,8 +265,8 @@ public class NamespaceControllerTest {
                 .build();
         Mockito.when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
-        Mockito.when(namespaceService.isNamespaceEmpty(existing))
-                .thenReturn(false);
+        Mockito.when(namespaceService.listAllNamespaceResources(existing))
+                .thenReturn(List.of("Topic/topic1"));
         Assertions.assertThrows(ResourceValidationException.class,() -> namespaceController.delete("namespace", false));
         verify(namespaceService, never()).delete(any());
 

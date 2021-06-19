@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Singleton
 public class NamespaceService {
@@ -24,6 +25,8 @@ public class NamespaceService {
     RoleBindingService roleBindingService;
     @Inject
     AccessControlEntryService accessControlEntryService;
+    @Inject
+    KafkaConnectService kafkaConnectService;
 
     /**
      * Namespace validation in case of new namespace
@@ -72,7 +75,6 @@ public class NamespaceService {
 
     public void delete(Namespace namespace) {
         namespaceRepository.delete(namespace);
-
     }
 
     public List<Namespace> listAll() {
@@ -82,9 +84,22 @@ public class NamespaceService {
                 .collect(Collectors.toList());
     }
 
-    public boolean isNamespaceEmpty(Namespace namespace) {
-        return topicService.findAllForNamespace(namespace).isEmpty() &&
-               accessControlEntryService.findAllNamespaceIsGrantor(namespace).isEmpty() &&
-               roleBindingService.list(namespace.getMetadata().getName()).isEmpty();
+    public List<String> listAllNamespaceResources(Namespace namespace){
+        //TODO rework xxxService implements NamespacedResourceService
+        // Inject List<NamespacedResourceService> allServices
+        // allServices.flatMap(x->x.findAllForNamespace(ns).stream())...
+        return Stream.of(
+                topicService.findAllForNamespace(namespace).stream()
+                        .map(topic -> topic.getKind()+"/"+topic.getMetadata().getName()),
+                kafkaConnectService.findAllForNamespace(namespace).stream()
+                        .map(connector -> connector.getKind()+"/"+connector.getMetadata().getName()),
+                accessControlEntryService.findAllForNamespace(namespace).stream()
+                        .map(ace -> ace.getKind()+"/"+ace.getMetadata().getName()),
+                roleBindingService.list(namespace.getMetadata().getName()).stream()
+                        .map(roleBinding -> roleBinding.getKind()+"/"+roleBinding.getMetadata().getName())
+                )
+                .reduce(Stream::concat)
+                .orElseGet(Stream::empty)
+                .collect(Collectors.toList());
     }
 }

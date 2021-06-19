@@ -24,6 +24,7 @@ import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+@Disabled("Test Class doesn't contain tests yet")
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 public class AccessControlListTest extends AbstractIntegrationTest {
