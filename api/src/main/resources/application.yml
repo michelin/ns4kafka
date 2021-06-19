@@ -1,4 +1,19 @@
 micronaut:
+# BEGIN ThreadPoolOptimization
+# https://docs.micronaut.io/latest/guide/#clientConfiguration
+# Moves HttpClient calls to a different ThreadPool
+# This is mainly for Kafka Connect calls
+  netty:
+    event-loops:
+      default:
+        num-threads: 8
+      connect:
+        num-threads: 4
+        prefer-native-transport: true
+  http:
+    client:
+      event-loop-group: connect
+# END ThreadPoolOptimization
   application:
     name: ns4kafka
   security:
