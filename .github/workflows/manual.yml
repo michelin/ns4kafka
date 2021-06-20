@@ -17,7 +17,6 @@ jobs:
         id: github_release
         uses: mikepenz/release-changelog-builder-action@v1
         with:
-          toTag: v1.1.0
           outputFile: Release.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
