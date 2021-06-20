@@ -13,6 +13,7 @@ jobs:
         with:
           fetch-depth: 0
       - uses: mikepenz/release-changelog-builder-action@v1
+        id: build_changelog
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: echo ${{steps.build_changelog.outputs.changelog}}
+      - run: echo "${{steps.build_changelog.outputs.changelog}}"
