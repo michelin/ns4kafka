@@ -14,6 +14,8 @@ jobs:
           fetch-depth: 0
       - uses: mikepenz/release-changelog-builder-action@v1
         id: build_changelog
+        with:
+          configuration: "changelog-builder.json"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: echo "${{steps.build_changelog.outputs.changelog}}"
