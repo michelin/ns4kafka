@@ -8,19 +8,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: Build
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: Build Changelog
-        id: github_release
-        uses: mikepenz/release-changelog-builder-action@v1
-        with:
-          outputFile: Release.txt
+      - uses: mikepenz/release-changelog-builder-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v2
-        with:
-          name: release
-          path: Release.txt
+      - run: echo ${{steps.build_changelog.outputs.changelog}}
