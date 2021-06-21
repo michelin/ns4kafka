@@ -29,6 +29,8 @@ public class NamespaceServiceTest {
     @Mock
     AccessControlEntryService accessControlEntryService;
     @Mock
+    KafkaConnectService kafkaConnectService;
+    @Mock
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigList;
 
     @InjectMocks
@@ -266,4 +268,172 @@ public class NamespaceServiceTest {
         Assertions.assertEquals(3, result.size());
         Assertions.assertTrue(result.containsAll(List.of(ns, ns3, ns2)));
     }
+
+    @Test
+    void listAllNamespaceResourcesEmpty() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .kafkaUser("user")
+                        .build())
+                .build();
+
+        Mockito.when(topicService.findAllForNamespace(ns))
+                .thenReturn(List.of());
+        Mockito.when(kafkaConnectService.findAllForNamespace(ns))
+                .thenReturn(List.of());
+        Mockito.when(roleBindingService.list("namespace"))
+                .thenReturn(List.of());
+        Mockito.when(accessControlEntryService.findAllForNamespace(ns))
+                .thenReturn(List.of());
+
+
+        List<String> result = namespaceService.listAllNamespaceResources(ns);
+        Assertions.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void listAllNamespaceResourcesTopic() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .kafkaUser("user")
+                        .build())
+                .build();
+
+        Topic topic = Topic.builder()
+            .metadata(ObjectMeta.builder()
+                      .name("topic")
+                      .namespace("namespace")
+                      .build())
+            .build();
+
+        Mockito.when(topicService.findAllForNamespace(ns))
+                .thenReturn(List.of(topic));
+        Mockito.when(kafkaConnectService.findAllForNamespace(ns))
+                .thenReturn(List.of());
+        Mockito.when(roleBindingService.list("namespace"))
+                .thenReturn(List.of());
+        Mockito.when(accessControlEntryService.findAllForNamespace(ns))
+                .thenReturn(List.of());
+
+
+        List<String> result = namespaceService.listAllNamespaceResources(ns);
+        Assertions.assertEquals(1,result.size());
+        Assertions.assertEquals("Topic/topic",result.get(0));
+    }
+
+    @Test
+    void listAllNamespaceResourcesConnect() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .kafkaUser("user")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+            .metadata(ObjectMeta.builder()
+                      .name("connector")
+                      .namespace("namespace")
+                      .build())
+            .build();
+
+        Mockito.when(topicService.findAllForNamespace(ns))
+                .thenReturn(List.of());
+        Mockito.when(kafkaConnectService.findAllForNamespace(ns))
+                .thenReturn(List.of(connector));
+        Mockito.when(roleBindingService.list("namespace"))
+                .thenReturn(List.of());
+        Mockito.when(accessControlEntryService.findAllForNamespace(ns))
+                .thenReturn(List.of());
+
+
+        List<String> result = namespaceService.listAllNamespaceResources(ns);
+        Assertions.assertEquals(1,result.size());
+        Assertions.assertEquals("Connector/connector",result.get(0));
+    }
+
+    @Test
+    void listAllNamespaceResourcesRoleBinding() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .kafkaUser("user")
+                        .build())
+                .build();
+
+        RoleBinding rb = RoleBinding.builder()
+            .metadata(ObjectMeta.builder()
+                      .name("rolebinding")
+                      .namespace("namespace")
+                      .build())
+            .build();
+
+        Mockito.when(topicService.findAllForNamespace(ns))
+                .thenReturn(List.of());
+        Mockito.when(kafkaConnectService.findAllForNamespace(ns))
+                .thenReturn(List.of());
+        Mockito.when(roleBindingService.list("namespace"))
+                .thenReturn(List.of(rb));
+        Mockito.when(accessControlEntryService.findAllForNamespace(ns))
+                .thenReturn(List.of());
+
+
+        List<String> result = namespaceService.listAllNamespaceResources(ns);
+        Assertions.assertEquals(1,result.size());
+        Assertions.assertEquals("RoleBinding/rolebinding",result.get(0));
+    }
+
+    @Test
+    void listAllNamespaceResourcesAccessControlEntry() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .kafkaUser("user")
+                        .build())
+                .build();
+
+        AccessControlEntry ace = AccessControlEntry.builder()
+            .metadata(ObjectMeta.builder()
+                      .name("ace")
+                      .namespace("namespace")
+                      .build())
+            .build();
+
+        Mockito.when(topicService.findAllForNamespace(ns))
+                .thenReturn(List.of());
+        Mockito.when(kafkaConnectService.findAllForNamespace(ns))
+                .thenReturn(List.of());
+        Mockito.when(roleBindingService.list("namespace"))
+                .thenReturn(List.of());
+        Mockito.when(accessControlEntryService.findAllForNamespace(ns))
+                .thenReturn(List.of(ace));
+
+
+        List<String> result = namespaceService.listAllNamespaceResources(ns);
+        Assertions.assertEquals(1,result.size());
+        Assertions.assertEquals("AccessControlEntry/ace",result.get(0));
+    }
+
 }
