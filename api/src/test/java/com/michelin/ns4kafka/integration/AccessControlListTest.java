@@ -1,13 +1,5 @@
 package com.michelin.ns4kafka.integration;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
-
-import javax.inject.Inject;
-
 import com.michelin.ns4kafka.integration.TopicTest.BearerAccessRefreshToken;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
@@ -18,24 +10,9 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
-import com.michelin.ns4kafka.models.RoleBinding.Role;
-import com.michelin.ns4kafka.models.RoleBinding.RoleBindingSpec;
-import com.michelin.ns4kafka.models.RoleBinding.Subject;
-import com.michelin.ns4kafka.models.RoleBinding.SubjectType;
-import com.michelin.ns4kafka.models.RoleBinding.Verb;
-import com.michelin.ns4kafka.models.Topic;
-import com.michelin.ns4kafka.models.Topic.TopicSpec;
+import com.michelin.ns4kafka.models.RoleBinding.*;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
-
-import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.clients.admin.ConfigEntry;
-import org.apache.kafka.common.TopicPartitionInfo;
-import org.apache.kafka.common.config.ConfigResource;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
@@ -45,7 +22,17 @@ import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
+import javax.inject.Inject;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+
+@Disabled("Test Class doesn't contain tests yet")
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 public class AccessControlListTest extends AbstractIntegrationTest {
