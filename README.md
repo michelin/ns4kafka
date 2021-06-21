@@ -43,22 +43,6 @@ The prefix should be defined with the help of your Full Stack Architect who has 
 It is acceptable to have a functional name as prefix such as curing or datalake.  
 Project trigrams are also pertinent : upx, f4m, … depending on your use-case. You will be given FULL ownership over ALL resources within your prefix.
 
-#### Namespace
-The namespace must respect the M27 naming convention :
-
-**exxxyyyv** with :  
- * **e**: environment code (d, c, i, r)  
- * **xxx**: project trigram (fop, bma, bsm, cu4, …)  
- * **yyy**: location code (ols, ugo, vld, … use gbl for Central)  
- * **v**: version (use 0 unless aksed otherwise)    
-
-Examples:
- * **icu4bkr0**
- * **rupxgbl0**
-
-#### Request a namespace
-Send an email to the admin team
-
 ### Download and setup CLI
 * Get the last or an older release from [**ns4kfk** Github project](https://github.com/michelin/ns4kafka/releases/).
 ````shell
@@ -98,8 +82,31 @@ kafkactl:
 
 ## First api interaction
 
-Run ``kafkactl get topics --namespace your_namespace ``
-The list of topics for the namespace will be displayed
+Run ``kafkact apply -f namespace-to-apply.yml``
+The namespace described by the file yaml will be created. 
+
+## Functions
+
+The list of function can be accessed with ``kafkactl`` without argument.
+
+Here is a list of the most useful:
+- ``apply`` to create a resource
+- ``get`` to know the configuration of a deployed resource
+- ``api-resources`` to know the supported resource by the api
+
+### Apply
+
+### Get
+
+### Delete
+
+### Diff
+
+### Reset offsets
+
+### Delete records
+
+### Api resources
 
 Table of Contents
 =================
@@ -197,32 +204,6 @@ MICRONAUT_CONFIG_FILE=application.yml java -jar api-0.1-all.jar
 ns4kafka
 =======================
 
-
-# CLI specification
-
-The list of function can be accessed with ``kafkactl`` without argument.
-
-Here is a list of the most useful:
-- ``apply`` to create a resource
-- ``get`` to know the configuration of a deployed resource
-- ``api-resources`` to know the supported resource by the api
-
-## Functions
-
-### Apply
-
-### Get
-
-### Delete
-
-### Diff
-
-### Reset offsets
-
-### Delete records
-
-### Api resources
-
 # Examples
 
 A list of resources exist in the ``example`` folder:
@@ -304,6 +285,7 @@ In the *spec* section, additional information must be given:
 
 #### Available functions
 - ``apply`` to create a namespace
+- ``get`` to list all namespace or describe a specific namespace
 - ``delete`` to delete a namespace
 
 ### Role binding (Admin only)
