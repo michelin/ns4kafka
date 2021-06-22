@@ -39,8 +39,7 @@ On the left menu, click **Access Tokens** menu item. Create your token freely by
 
 #### Prefix
 The prefix should be defined with the help of your Full Stack Architect who has a global view of the domain.  
-It is acceptable to have a functional name as prefix such as curing or datalake.  
-Project trigrams are also pertinent : upx, f4m, … depending on your use-case. You will be given FULL ownership over ALL resources within your prefix.
+You will be given FULL ownership over ALL resources within your prefix.
 
 ### Download and setup CLI
 * Get the last or an older release from [**ns4kfk** Github project](https://github.com/michelin/ns4kafka/releases/).
@@ -103,7 +102,7 @@ And here is a list of Option:
 Option: "--dry-run, --recursive"
 
 Apply is the function used to create resources on the cluster Kafka.
-There is two man methods: the first is by using a yaml descriptor.
+There is two main methods: the first is by using a yaml descriptor.
 ````shell
 kafkactl apply -f namespace.yml
 ````
