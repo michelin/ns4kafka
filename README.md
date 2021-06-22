@@ -358,13 +358,13 @@ In the *spec* section, additional information must be given:
 - ``delete`` to delete a namespace
 
 ### Role binding (Admin only)
-For an existing **namespace** and a given Gitlab group, the **role binding** resource defines authorized functions for a list of resources.  
+For an existing **namespace** and a given Gitlab group, the **role binding** resource defines authorized functions for a list of resources.
 
-List of resource types in the *resourceTypes* section:   
-topics, connects, acls  
+List of resource types in the *resourceTypes* section:
+topics, connects, acls
 
-List of functions available in the *verbs* section:   
-GET, POST, PUT and DELETE  
+List of functions available in the *verbs* section:
+GET, POST, PUT and DELETE
 
 In the following example, all users belonging to the *Gitlab* group *access-ns4kfk/user-ns4kfk* will be authorized to do GET and POST on topics and connects resources:
 
@@ -460,6 +460,10 @@ spec:
 
 ### Topics
 
+For an existing **namespace** the **topic** resource define a Kafka topic
+
+The spec of the topic must respect the **topicValidator** field from the Namespace
+
 ```yaml
 # topic.yml
 ---
@@ -476,7 +480,18 @@ spec:
     retention.ms: '60000'
 
 ```
+
+#### Available functions
+- ``apply`` to create the topic
+- ``get`` to list all role bindings or describe a specific topic
+- ``delete`` to delete a topic
+- ``delete-records`` to delete the record of a topic
+
 ### Connectors
+
+For an existing **namespace** the **connector** resource define a Kafka connect
+
+The spec of the connector must respect the **connectValidator** field from the Namespace
 
 ``` yaml
 # connector.yml
@@ -492,5 +507,9 @@ spec:
   file: /tmp/project1.topic1.out
   consumer.override.sasl.jaas.config: org.apache.kafka.common.security.scram.ScramLoginModule required username="<user>" password="<passord>"
 ```
+#### Available functions
+- ``apply`` to create the connector
+- ``get`` to list all role bindings or describe a specific connector
+- ``delete`` to delete a connector
 
 ### Consumer groups
