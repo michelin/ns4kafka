@@ -460,17 +460,8 @@ spec:
 
 ### Topics
 
-### Connectors
-
-### Consumer groups
-
-
-
-
-
-
-````yaml
-# descriptor.yml
+```yaml
+# topic.yml
 ---
 apiVersion: v1
 kind: Topic
@@ -483,6 +474,12 @@ spec:
     min.insync.replicas: '2'
     cleanup.policy: delete
     retention.ms: '60000'
+
+```
+### Connectors
+
+``` yaml
+# connector.yml
 ---
 apiVersion: v1
 kind: Connector
@@ -494,4 +491,6 @@ spec:
   topics: connect-test
   file: /tmp/project1.topic1.out
   consumer.override.sasl.jaas.config: org.apache.kafka.common.security.scram.ScramLoginModule required username="<user>" password="<passord>"
-````
+```
+
+### Consumer groups
