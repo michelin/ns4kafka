@@ -45,7 +45,7 @@ Project trigrams are also pertinent : upx, f4m, … depending on your use-case. 
 ### Download and setup CLI
 * Get the last or an older release from [**ns4kfk** Github project](https://github.com/michelin/ns4kafka/releases/).
 ````shell
-curl -L -o $HOME/kafkactl https://github.com/michelin/ns4kafka/releases/download/v0.2.1/kafkactl-0.2.1
+curl -L -o $HOME/kafkactl https://github.com/michelin/ns4kafka/releases/download/v1.0.0/kafkactl-1.0.0
 chmod u+x $HOME/kafkactl
 ````
 * Create a temporary alias by doing 
@@ -93,7 +93,15 @@ Here is a list of the most useful:
 - ``get`` to know the configuration of a deployed resource
 - ``api-resources`` to know the supported resource by the api
 
+And here is a list of Option:
+
+- ``--dry-run`` to do the validation of a method without persisting on the cluster Kafka
+- ``--recursive`` to recursively search files 
+
+
 ### Apply
+Option: "--dry-run, --recursive"
+
 Apply is the function used to create resources on the cluster Kafka.
 There is two man methods: the first is by using a yaml descriptor.
 ````shell
@@ -105,16 +113,70 @@ cat namespace.yml | kafkactl apply
 ````
 
 ### Get
+Get is used to get either every resource of a certain kind:
+````shell
+kafkactl get topics
+````
+or the specification of a ressource:
+````shell
+kafkactl get topic prefix_topic-name
+````
 
 ### Delete
+Option: "--dry-run"
+
+Delete a resource from the cluster Kafka
+````shell
+kafkactl delete topic prefix_topic-name
+````
 
 ### Diff
+Option "--recursive"
+
+Compare the resource described by the descriptor with the resource persisted in the cluster kafka
+````shell
+kafkactl diff -f topic.yml
+````
 
 ### Reset offsets
+Option: "--dry-run"
+
+Change the offsets of a consumer group with a specific methods:
+- ``--to-earliest`` set offset to its earliest value [reprocess all]
+- ``--to-latest``set offset to its latest value [skip all]
+- ``--to-datetime`` Set offset to a specific ISO 8601 DateTime with Timezone [yyyy-MM-ddTHH:mm:ss.SSSSXXXXX]
+- ``--shift-by`` Shift the offset by a number [negative to reprocess, positive to skip]
+- ``--by-duration`` Shift offset by a duration format ISO 8601 [PdDThHmMsS]
+
+for a certain topic:
+- ``--topic`` for a specific partition of a topic "topic-name:partition"  or for all partition of a topic "topic-name"
+- ``--all-topics`` for all partitions of all topics followed by the consumer group
+
+
+````shell
+kafkactl reset-offsets --group prefix_consumer-group-name --topic prefix_topic-name:2 --to-latest
+````
+````shell
+kafkactl reset-offsets --group prefix_consumer-group-name --topic prefix_topic-name --to-datetime 2021-03-08T09:30:00.025+02:00
+````
+````shell
+kafkactl reset-offsets --group prefix_consumer-group-name --all-topics --by-duration P1DT3H45M30S
+````
 
 ### Delete records
+Option: "--dry-run"
+
+Delete records of a topic
+````shell
+kafkactl delete-records prefix_topic-name
+````
 
 ### Api resources
+
+Print the supported resources of the server, we can use the column "Names" to designate the kind of resource in kafkactl (as in ``kafkactl get kind-name``)
+````shell
+kafkactl api-resources
+````
 
 Table of Contents
 =================
