@@ -231,7 +231,7 @@ Or else, there is a Docker Image at: https://hub.docker.com/r/twobeeb/ns4kafka
 
 The project use micronaut configuration file, there is an example of configuration file in ``api/src/ressource/application.yml``
 
-The project needs to set the variable **MICRONAUT_CONFIG_FILE** with the path to this variable.
+The project needs to set the variable **MICRONAUT_CONFIG_FILE** with the path to this configuration file.
 
 We can inject the configuration file in the fat jar with the following commands: 
 ````shell
