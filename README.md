@@ -24,9 +24,8 @@ The CLI is, much like kubectl, a wrapper on the API to let any user or CI/CD pip
 Before being able to request namespace, you need to gather some informations:
 
 - A gitlab group
-- A list of contact email addresses (Devops)
 - A prefix for your Kafka resources
-- And of course, the Namespace for your app-environment (i.e. cupxgbl0)
+- And of course, the API already configured
 
 #### Gitlab group
 In **ns4kafka**, management of Kafka resources is based on groups instead of individual users and these groups are managed inside **Gitlab**.  
@@ -74,9 +73,9 @@ nano $HOME/.kafkactl/config.yml
 Examples:
 ````yaml
 kafkactl:
-  api: http://ns4kfk-api.com
+  api: http://url-of-the-API 
   user-token: dkdk44lfl4d-flfl
-  current-namespace: your-namespacecupxgbl0
+  current-namespace: your-namespace
 ````
 
 
@@ -95,6 +94,15 @@ Here is a list of the most useful:
 - ``api-resources`` to know the supported resource by the api
 
 ### Apply
+Apply is the function used to create resources on the cluster Kafka.
+There is two man methods: the first is by using a yaml descriptor.
+````shell
+kafkactl apply -f namespace.yml
+````
+The second is by using pipe, this is useful in CI context:
+````shell
+cat namespace.yml | kafkactl apply
+````
 
 ### Get
 
