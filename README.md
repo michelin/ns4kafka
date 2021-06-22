@@ -18,9 +18,39 @@ ns4kafka is built on top of 2 components : an API and a CLI.
 The API exposes all the required controllers to list, create and delete Kafka resources. It must be deployed and managed by Kafka administrators.  
 The CLI is, much like kubectl, a wrapper on the API to let any user or CI/CD pipeline deploy Kafka resources using yaml descriptors. It is made available to any project who needs to manage Kafka resources.
 
+# Table of Contents
+
+  * [Key features](#key-features)
+  * [Quick Start CLI](#quick-start-cli)
+  * [Methods](#methods)
+  * [Install API](#install-api)
+  * [Examples](#examples)
+
+# Key features
+- Desired state API
+  - Mimics K8S principles
+  - Easy to use
+    - View : kafkactl get topic topic-name
+    - List : kafkactl get topic
+    - Create : kafkactl apply -f descriptor-of-topic
+- Self-service
+  - Topics
+  - Schemas, Connects, KafkaUsers
+- Configuration validation that can differ for each namespace
+  - Enforce any configuration for any resource
+    - min.insync.replica = 2
+    - partitions between 3 and 10
+  - Multiple validators
+- Isolation between Kafka Users within a cluster
+- Security model
+- Disk Quota management
+  - Enforce limits per namespace
+  - Provide usage metrics
+- Cross Namespace ACLs
+- Multi cluster
+
 ## Quick start CLI
-### Request a namespace
-#### Prerequisites
+### Prerequisites
 Before being able to request namespace, you need to gather some informations:
 
 - A gitlab group
@@ -42,7 +72,7 @@ The prefix should be defined with the help of your Full Stack Architect who has 
 You will be given FULL ownership over ALL resources within your prefix.
 
 ### Download and setup CLI
-* Get the last or an older release from [**ns4kfk** Github project](https://github.com/michelin/ns4kafka/releases/).
+* Get the last or an older release from [**ns4kafka** Github project](https://github.com/michelin/ns4kafka/releases/).
 ````shell
 curl -L -o $HOME/kafkactl https://github.com/michelin/ns4kafka/releases/download/v1.0.0/kafkactl-1.0.0
 chmod u+x $HOME/kafkactl
@@ -61,9 +91,9 @@ mkdir $HOME/.kafkactl
 ````
 
 * Create a **config.yml** file containing  
-  - the ns4kfk api url  
-  - the Access token created in **Gitlab**  
-  -  the default used namespace
+  - the ns4kafka api url
+  - the Access token created in **Gitlab**
+  - the default used namespace
 
 ````shell
 nano $HOME/.kafkactl/config.yml
@@ -78,21 +108,21 @@ kafkactl:
 ````
 
 
-## First api interaction
+### First api interaction
 
 Run ``kafkact apply -f namespace-to-apply.yml``
 The namespace described by the file yaml will be created. 
 
-## Functions
+## Methods
 
-The list of function can be accessed with ``kafkactl`` without argument.
+The list of methods can be accessed with ``kafkactl`` without argument.
 
 Here is a list of the most useful:
 - ``apply`` to create a resource
 - ``get`` to know the configuration of a deployed resource
 - ``api-resources`` to know the supported resource by the api
 
-And here is a list of Option:
+And here is a list of options:
 
 - ``--dry-run`` to do the validation of a method without persisting on the cluster Kafka
 - ``--recursive`` to recursively search files 
@@ -177,40 +207,9 @@ Print the supported resources of the server, we can use the column "Names" to de
 kafkactl api-resources
 ````
 
-Table of Contents
-=================
-  * [Table of Contents](#table-of-contents)
-  * [Key features](#key-features)
-  * [Prerequisite](#prerequisite)
-  * [Installation](#installation)
-  * [Configuration](#configuration)
-  * [CLI specification](#cli-specification)
-  * [Examples](#examples)
 
-# Key features
-- Desired state API
-  - Mimics K8S principles
-  - Easy to use
-    - View : kafkactl get topic topic-name
-    - List : kafkactl get topic
-    - Create : kafkactl apply -f descriptor-of-topic
-- Self-service
-  - Topics
-  - Schemas, Connects, KafkaUsers
-- Configuration validation that can differ for each namespace
-  - Enforce any configuration for any resource
-    - min.insync.replica = 2
-    - partitions between 3 and 10
-  - Multiple validators
-- Isolation between Kafka Users within a cluster
-- Security model
-- Disk Quota management
-  - Enforce limits per namespace
-  - Provide usage metrics
-- Cross Namespace ACLs
-- Multi cluster
-
-# Prerequisite
+# Install API
+## Prerequisite
 **ns4kafka** use gitlab's groups to authenticate user, so a group has to be created.
 
 A Gitlab's access token has to be generated with the following rights:
@@ -219,26 +218,6 @@ A Gitlab's access token has to be generated with the following rights:
 
 The API use a kafka instance to store its data. 
 
-# Install
-
-## CLI installation
-
-The CLI can be downloaded here:[https://github.com/michelin/ns4kafka/releases](https://github.com/michelin/ns4kafka/releases)
-
-- Unzip and create a folder ``.kafkactl``
-    - Windows : **C:\\Users\\xxxxxx\\.kafkactl**
-    - Linux : **~/.kafkactl**
-- Create another folder: ``.kafkactl/tmp``
-- copy paste the following yaml in ``.kafkactl/config.yml``:
-
-````yaml
-# config.yml
-kafkactl:
-  api: the-url-of-the-api
-  user-token: your-gitlab-token
-  current-namespace: your-namespace
-````
-
 ## API installation
 
 The API can be cloned and build with gradle:
@@ -246,32 +225,22 @@ The API can be cloned and build with gradle:
 
 It generated a fat jar in ``api/build/libs``.
 
-# Configuration
+Or else, there is a Docker Image at: https://hub.docker.com/r/twobeeb/ns4kafka
 
-## CLI configration
-To configure the CLI, the file in ``.kafkactl/config.yml`` has to be modified;
-````yaml
-# config.yml
-kafkactl:
-  api: the-url-of-the-api
-  user-token: your-gitlab-token
-  current-namespace: your-namespace
-````
 ## API configuration
 
-The project use micronaut configuration file, there is an example of configuration file in ``api/src/ressource/application.yml`` 
+The project use micronaut configuration file, there is an example of configuration file in ``api/src/ressource/application.yml``
+
+The project needs to set the variable **MICRONAUT_CONFIG_FILE** with the path to this variable.
 
 We can inject the configuration file in the fat jar with the following commands: 
 ````shell
-java -Dmicronaut.config.file=application.yml -jar api-0.1-all.jar
+java -Dmicronaut.config.file=application.yml -jar api-x.x-all.jar
 ````
 Or
 ````shell
-MICRONAUT_CONFIG_FILE=application.yml java -jar api-0.1-all.jar
+MICRONAUT_CONFIG_FILE=application.yml java -jar api-x.x-all.jar
 ````
-
-ns4kafka
-=======================
 
 # Examples
 
@@ -281,7 +250,7 @@ You can create them with the command: ``kafkactl apply -f path-to-descriptor.yml
 ## Resources
 
 ### Namespaces (Admin only)
-The **namespace** resource defines the name of namespace and the cluster to deploy it.  
+The **namespace** resource defines the name of namespace and the cluster to deploy it.
 In the *spec* section, additional information must be given: 
 - the Kafka user associated to the namespace
 - a list of Kafka Connect clusters where connectors should be deployed
