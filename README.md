@@ -399,7 +399,7 @@ spec:
 For an existing **namespace** the **access control entry** resource define a Kafka ACL on a specific resource  
 
 List of resource types in the *resourceTypes* section:   
-topics, connects, acls  
+TOPIC, CONNECT, SCHEMA and GROUP
 
 List of functions available in the *verbs* section:   
 GET, POST, PUT and DELETE  
@@ -513,3 +513,8 @@ spec:
 - ``delete`` to delete a connector
 
 ### Consumer groups
+
+Its possible to give to consumer groups Owner, Read and Write access to a Consumer Group thank to **Access Control Entry** by set up the **resourceType** GROUP
+
+#### Available functions
+- ``reset-offsets`` to change the offsets of the consumer group
