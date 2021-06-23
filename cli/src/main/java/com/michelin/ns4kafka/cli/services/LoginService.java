@@ -31,6 +31,13 @@ public class LoginService {
 
     private String accessToken = null;
 
+    public LoginService() {
+        File directory = new File(System.getProperty("user.home") + "/.kafkactl");
+        if (!directory.exists()) {
+            directory.mkdir();
+        }
+    }
+
     public String getAuthorization() {
         return "Bearer " + accessToken;
     }
