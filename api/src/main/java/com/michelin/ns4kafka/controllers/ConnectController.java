@@ -10,8 +10,7 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -21,11 +20,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Tag(name = "Connects")
 @Controller(value = "/api/namespaces/{namespace}/connects")
 @ExecuteOn(TaskExecutors.IO)
 public class ConnectController extends NamespacedResourceController {
-    private static final Logger LOG = LoggerFactory.getLogger(ConnectController.class);
     //TODO validate calls and forward to Connect REST API (sync ???)
     @Inject
     KafkaConnectService kafkaConnectService;

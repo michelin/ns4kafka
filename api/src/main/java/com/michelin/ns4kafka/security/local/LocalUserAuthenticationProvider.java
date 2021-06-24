@@ -7,18 +7,17 @@ import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.*;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
+import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @Singleton
 public class LocalUserAuthenticationProvider implements AuthenticationProvider {
-    private static final Logger LOG = LoggerFactory.getLogger(LocalUserAuthenticationProvider.class);
     @Inject
     SecurityConfig securityConfig;
     @Inject
@@ -29,7 +28,7 @@ public class LocalUserAuthenticationProvider implements AuthenticationProvider {
         Flowable<AuthenticationResponse> responseFlowable = Flowable.create(emitter -> {
             String username = authenticationRequest.getIdentity().toString();
             String password = authenticationRequest.getSecret().toString();
-            LOG.debug("Checking local authentication for user : " + username);
+            log.debug("Checking local authentication for user : " + username);
 
             Optional<LocalUser> authenticatedUser = securityConfig.getLocalUsers().stream()
                     .filter(localUser -> localUser.getUsername().equals(username))

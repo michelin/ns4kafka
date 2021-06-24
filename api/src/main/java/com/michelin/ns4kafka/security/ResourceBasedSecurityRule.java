@@ -9,8 +9,7 @@ import io.micronaut.http.HttpRequest;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.security.rules.SecurityRuleResult;
 import io.micronaut.web.router.RouteMatch;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Singleton;
 import java.util.ArrayList;
@@ -21,9 +20,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Singleton
 public class ResourceBasedSecurityRule implements SecurityRule {
-    private static final Logger LOG = LoggerFactory.getLogger(ResourceBasedSecurityRule.class);
 
     public static final String IS_ADMIN = "isAdmin()";
 
@@ -45,7 +44,7 @@ public class ResourceBasedSecurityRule implements SecurityRule {
     public SecurityRuleResult check(HttpRequest<?> request, @Nullable RouteMatch<?> routeMatch, @Nullable Map<String, Object> claims) {
         //Unauthenticated request
         if (claims == null || !claims.keySet().containsAll( List.of("groups", "sub", "roles"))) {
-            LOG.debug("No Authentication available for path [" + request.getPath() + "]. Returning unknown.");
+            log.debug("No Authentication available for path [" + request.getPath() + "]. Returning unknown.");
             return SecurityRuleResult.UNKNOWN;
         }
 
@@ -56,7 +55,7 @@ public class ResourceBasedSecurityRule implements SecurityRule {
         //Request to a URL that is not in the scope of this SecurityRule
         Matcher matcher = namespacedResourcePattern.matcher(request.getPath());
         if (!matcher.find()) {
-            LOG.debug("Invalid Namespaced Resource for path [" + request.getPath() + "]. Returning unknown.");
+            log.debug("Invalid Namespaced Resource for path [" + request.getPath() + "]. Returning unknown.");
             return SecurityRuleResult.UNKNOWN;
         }
 
@@ -72,12 +71,12 @@ public class ResourceBasedSecurityRule implements SecurityRule {
 
         //Namespace doesn't exist
         if (namespaceRepository.findByName(namespace).isEmpty()) {
-            LOG.debug("Namespace not found for user [" + sub + "] on path [" + request.getPath() + "]. Returning unknown.");
+            log.debug("Namespace not found for user [" + sub + "] on path [" + request.getPath() + "]. Returning unknown.");
             return SecurityRuleResult.UNKNOWN;
         }
         //Admin are allowed everything (provided that the namespace exists)
         if(roles.contains(IS_ADMIN)){
-            LOG.debug("Authorized admin user [" + sub + "] on path [" + request.getPath() + "]. Returning ALLOWED.");
+            log.debug("Authorized admin user [" + sub + "] on path [" + request.getPath() + "]. Returning ALLOWED.");
             return SecurityRuleResult.ALLOWED;
         }
 
@@ -91,13 +90,13 @@ public class ResourceBasedSecurityRule implements SecurityRule {
 
         //User not authorized to access requested resource
         if (authorizedRoleBindings.isEmpty()) {
-            LOG.debug("No matching RoleBinding for user [" + sub + "] on path [" + request.getPath() + "]. Returning unknown.");
+            log.debug("No matching RoleBinding for user [" + sub + "] on path [" + request.getPath() + "]. Returning unknown.");
             return SecurityRuleResult.UNKNOWN;
         }
 
-        if (LOG.isDebugEnabled()) {
-            authorizedRoleBindings.forEach(roleBinding -> LOG.debug("Found matching RoleBinding : " + roleBinding.toString()));
-            LOG.debug("Authorized user [" + sub + "] on path [" + request.getPath() + "]");
+        if (log.isDebugEnabled()) {
+            authorizedRoleBindings.forEach(roleBinding -> log.debug("Found matching RoleBinding : " + roleBinding.toString()));
+            log.debug("Authorized user [" + sub + "] on path [" + request.getPath() + "]");
         }
 
 

@@ -7,15 +7,16 @@ import io.micronaut.configuration.kafka.annotation.KafkaListener;
 import io.micronaut.configuration.kafka.annotation.OffsetReset;
 import io.micronaut.configuration.kafka.annotation.OffsetStrategy;
 import io.micronaut.context.annotation.Value;
+import lombok.extern.slf4j.Slf4j;
+
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.inject.Singleton;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Singleton
 @KafkaListener(
         offsetReset = OffsetReset.EARLIEST,
@@ -23,7 +24,6 @@ import java.util.stream.Collectors;
         offsetStrategy = OffsetStrategy.DISABLED
 )
 public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepository {
-    private static final Logger LOG = LoggerFactory.getLogger(KafkaTopicRepository.class);
 
     public KafkaTopicRepository(@Value("${ns4kafka.store.kafka.topics.prefix}.topics") String kafkaTopic,
                                       @KafkaClient("topics-producer") Producer<String, Topic> kafkaProducer) {
