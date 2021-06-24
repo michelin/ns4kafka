@@ -1,3 +1,18 @@
+# Resources Type
+
+This table show every resources supported.
+
+You can get this table with ``kafkactl api-resources``
+
+| Resource name | Short name | Namespaced | Kind               |
+| -----         | -----      | -----      | ------             |
+| acl           | ac         | true       | AccessControlEntry |
+| connect       | co         | true       | Connector          |
+| rolebinding   | rb         | true       | RoleBinding        |
+| topic         | to         | true       | Topic              |
+| namespace     | ns         | false      | Namespace          |
+
+
 # Table of Contents
 
   * [Access Control Entries](#access-control-entries)
