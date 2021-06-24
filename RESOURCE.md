@@ -213,7 +213,7 @@ In the *spec* section, additional information must be given:
 - ``get`` to list all namespace or describe a specific namespace
 - ``delete`` to delete a namespace
 
-### Role binding (Admin only)
+### Role bindings (Admin only)
 For an existing **namespace** and a given Gitlab group, the **role binding** resource defines authorized functions for a list of resources.
 
 List of resource types in the *resourceTypes* section:
