@@ -5,7 +5,8 @@ ns4kafka
 [![GitHub issues](https://img.shields.io/github/issues/michelin/ns4kafka)](https://github.com/michelin/ns4kafka/issues)
 [![SonarCloud Coverage](https://sonarcloud.io/api/project_badges/measure?project=michelin_ns4kafka&metric=coverage)](https://sonarcloud.io/component_measures/metric/coverage/list?id=michelin_ns4kafka)
 [![SonarCloud Bugs](https://sonarcloud.io/api/project_badges/measure?project=michelin_ns4kafka&metric=bugs)](https://sonarcloud.io/component_measures/metric/reliability_rating/list?id=michelin_ns4kafka)
-
+![Docker Pulls](https://img.shields.io/docker/pulls/twobeeb/ns4kafka?label=ns4kafka%20pulls&logo=Docker)
+![Docker Pulls](https://img.shields.io/docker/pulls/twobeeb/kafkactl?label=kafkactl%20pulls&logo=Docker)
 
 # Table of Contents
 * [About the project](#about-the-project)
