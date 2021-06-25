@@ -1,18 +1,15 @@
 package com.michelin.ns4kafka.validation;
 
 import com.michelin.ns4kafka.models.Connector;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 @NoArgsConstructor
-@Getter
-@Setter
+@Data
+@EqualsAndHashCode(callSuper=true)
 public class ConnectValidator extends ResourceValidator{
 
     //constraints applies to all connectors
@@ -58,7 +55,7 @@ public class ConnectValidator extends ResourceValidator{
         //validate constraints
         validationConstraints.entrySet().stream().forEach(entry -> {
             try {
-                entry.getValue().ensureValid(entry.getKey(), connector.getSpec().get(entry.getKey()));
+                entry.getValue().ensureValid(entry.getKey(), connector.getSpec().getConfig().get(entry.getKey()));
             } catch (FieldValidationException e){
                 validationErrors.add(e.getMessage());
             }
@@ -66,7 +63,7 @@ public class ConnectValidator extends ResourceValidator{
         if(connectorType.equals("sink")){
             sinkValidationConstraints.entrySet().stream().forEach(entry -> {
                 try {
-                    entry.getValue().ensureValid(entry.getKey(), connector.getSpec().get(entry.getKey()));
+                    entry.getValue().ensureValid(entry.getKey(), connector.getSpec().getConfig().get(entry.getKey()));
                 } catch (FieldValidationException e){
                     validationErrors.add(e.getMessage());
                 }
@@ -75,15 +72,15 @@ public class ConnectValidator extends ResourceValidator{
         if(connectorType.equals("source"))
             sourceValidationConstraints.entrySet().stream().forEach(entry -> {
                 try {
-                    entry.getValue().ensureValid(entry.getKey(), connector.getSpec().get(entry.getKey()));
+                    entry.getValue().ensureValid(entry.getKey(), connector.getSpec().getConfig().get(entry.getKey()));
                 } catch (FieldValidationException e){
                     validationErrors.add(e.getMessage());
                 }
             });
-        if(classValidationConstraints.containsKey(connector.getSpec().get("connector.class"))){
-            classValidationConstraints.get(connector.getSpec().get("connector.class")).entrySet().stream().forEach(entry -> {
+        if(classValidationConstraints.containsKey(connector.getSpec().getConfig().get("connector.class"))){
+            classValidationConstraints.get(connector.getSpec().getConfig().get("connector.class")).entrySet().stream().forEach(entry -> {
                 try {
-                    entry.getValue().ensureValid(entry.getKey(), connector.getSpec().get(entry.getKey()));
+                    entry.getValue().ensureValid(entry.getKey(), connector.getSpec().getConfig().get(entry.getKey()));
                 } catch (FieldValidationException e){
                     validationErrors.add(e.getMessage());
                 }

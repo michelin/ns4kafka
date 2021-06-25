@@ -14,7 +14,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.time.Instant;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -73,12 +75,11 @@ public class AccessControlListController extends NamespacedResourceController {
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
         boolean isAdmin = roles.contains(ResourceBasedSecurityRule.IS_ADMIN);
-        // self assigned ACL (spec.grantedTo == metadata.namespace) with permission OWNER
-        boolean isSelfAssignedOwnerACL = namespace.equals(accessControlEntry.getSpec().getGrantedTo())
-                && accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER;
+        // self assigned ACL (spec.grantedTo == metadata.namespace)
+        boolean isSelfAssignedACL = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
 
         List<String> validationErrors;
-        if (isAdmin && isSelfAssignedOwnerACL) {
+        if (isAdmin && isSelfAssignedACL) {
             // validate overlapping OWNER
             validationErrors = accessControlEntryService.validateAsAdmin(accessControlEntry, ns);
         } else {
@@ -88,12 +89,20 @@ public class AccessControlListController extends NamespacedResourceController {
             throw new ResourceValidationException(validationErrors);
         }
         //augment
+        accessControlEntry.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
         accessControlEntry.getMetadata().setCluster(ns.getMetadata().getCluster());
         accessControlEntry.getMetadata().setNamespace(ns.getMetadata().getName());
+
+        Optional<AccessControlEntry> existingACL = accessControlEntryService.findByName(namespace, accessControlEntry.getMetadata().getName());
+        if(existingACL.isPresent() && existingACL.get().equals(accessControlEntry)){
+            return existingACL.get();
+        }
+
         //dryrun checks
         if (dryrun) {
             return accessControlEntry;
         }
+
         //store
         return accessControlEntryService.create(accessControlEntry);
     }
@@ -110,7 +119,7 @@ public class AccessControlListController extends NamespacedResourceController {
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
         boolean isAdmin = roles.contains(ResourceBasedSecurityRule.IS_ADMIN);
-        // self assigned ACL (spec.grantedTo == metadata.namespace) with permission OWNER
+        // self assigned ACL (spec.grantedTo == metadata.namespace)
         boolean isSelfAssignedACL = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
         if (isSelfAssignedACL && !isAdmin) {
             // prevent delete

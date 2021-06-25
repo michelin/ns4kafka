@@ -2,10 +2,10 @@ package com.michelin.ns4kafka.models;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.micronaut.core.annotation.Introspected;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.util.Date;
 import java.util.List;
@@ -15,8 +15,7 @@ import java.util.Map;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter
-@Setter
+@Data
 public class Connector {
     private final String apiVersion = "v1";
     private final String kind = "Connector";
@@ -24,11 +23,23 @@ public class Connector {
     @NotNull
     private ObjectMeta metadata;
 
+    @Valid
     @NotNull
-    private Map<String,String> spec;
+    private ConnectorSpec spec;
 
-    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+    @EqualsAndHashCode.Exclude
     private ConnectorStatus status;
+
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    public static class ConnectorSpec {
+        @NotBlank
+        private String connectCluster;
+        @NotNull
+        private Map<String, String> config;
+    }
 
     @Builder
     @AllArgsConstructor
@@ -50,7 +61,7 @@ public class Connector {
     @NoArgsConstructor
     @Getter
     @Setter
-    public static class TaskStatus{
+    public static class TaskStatus {
         String id;
         TaskState state;
         String trace;

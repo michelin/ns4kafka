@@ -24,7 +24,6 @@ public interface NamespacedResourceClient {
             @Header("Authorization") String token,
             @Body Resource json,
             @QueryValue boolean dryrun);
-;
 
     @Get("{namespace}/{kind}")
     List<Resource> list(
@@ -38,4 +37,26 @@ public interface NamespacedResourceClient {
             String kind,
             String resourcename,
             @Header("Authorization") String token);
+
+    @Post("{namespace}/{kind}/_/import{?dryrun}")
+    List<Resource> importResources(
+            String namespace,
+            String kind,
+            @Header("Authorization") String token,
+            @QueryValue boolean dryrun);
+
+    @Post("{namespace}/topics/{topic}/delete-records{?dryrun}")
+    Resource deleteRecords(
+            @Header("Authorization") String token,
+            String namespace,
+            String topic,
+            @QueryValue boolean dryrun);
+
+    @Post("{namespace}/consumer-groups/{consumerGroupName}/reset{?dryrun}")
+    Resource resetOffsets(
+            @Header("Authorization") String token,
+            String namespace,
+            String consumerGroupName,
+            @Body Resource json,
+            @QueryValue boolean dryrun);
 }

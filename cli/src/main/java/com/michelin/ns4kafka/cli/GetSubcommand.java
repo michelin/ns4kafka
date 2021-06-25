@@ -14,6 +14,7 @@ import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import javax.inject.Inject;
@@ -33,25 +34,27 @@ import java.util.stream.Collectors;
 public class GetSubcommand implements Callable<Integer> {
 
     @Inject
-    NamespacedResourceClient namespacedClient;
+    public NamespacedResourceClient namespacedClient;
     @Inject
-    ClusterResourceClient nonNamespacedClient;
+    public ClusterResourceClient nonNamespacedClient;
 
     @Inject
-    LoginService loginService;
+    public LoginService loginService;
     @Inject
-    ApiResourcesService apiResourcesService;
+    public ApiResourcesService apiResourcesService;
     @Inject
-    ResourceService resourceService;
+    public ResourceService resourceService;
     @Inject
-    KafkactlConfig kafkactlConfig;
+    public KafkactlConfig kafkactlConfig;
 
     @CommandLine.ParentCommand
-    KafkactlCommand kafkactlCommand;
+    public KafkactlCommand kafkactlCommand;
     @Parameters(index = "0", description = "Resource type or 'all' to display resources for all types", arity = "1")
-    String resourceType;
+    public String resourceType;
     @Parameters(index = "1", description = "Resource name", arity = "0..1")
-    Optional<String> resourceName;
+    public Optional<String> resourceName;
+    @Option(names = {"-o", "--output"}, description = "Output format. One of: yaml|table", defaultValue = "table")
+    public String output;
 
     @CommandLine.Spec
     CommandLine.Model.CommandSpec commandSpec;
@@ -62,11 +65,13 @@ public class GetSubcommand implements Callable<Integer> {
         // 1. Authent
         boolean authenticated = loginService.doAuthenticate();
         if (!authenticated) {
-            return 1;
+            throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
         }
 
         // 2. validate resourceType + custom type ALL
         List<ApiResource> apiResources = validateResourceType();
+
+        validateOutput();
 
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
         // 3. list resources based on parameters
@@ -75,12 +80,19 @@ public class GetSubcommand implements Callable<Integer> {
             List<Resource> resources = resourceService.listAll(apiResources, namespace);
 
             // 5.a display all resources by type
-            apiResources.forEach(apiResource ->
-                    displayAsTable(apiResource,
+            apiResources.forEach(apiResource -> {
+                        if (output.equals("yaml")) {
                             resources.stream()
                                     .filter(resource -> resource.getKind().equals(apiResource.getKind()))
-                                    .collect(Collectors.toList())
-                    )
+                                    .forEach(this::displayIndividual);
+                        } else {
+                            displayAsTable(apiResource,
+                                    resources.stream()
+                                            .filter(resource -> resource.getKind().equals(apiResource.getKind()))
+                                            .collect(Collectors.toList())
+                            );
+                        }
+                    }
             );
         } else {
             // 4.b get individual resources for given types (k get topic topic1)
@@ -92,6 +104,12 @@ public class GetSubcommand implements Callable<Integer> {
         }
 
         return 0;
+    }
+
+    private void validateOutput() {
+        if (!List.of("table", "yaml").contains(output)) {
+            throw new CommandLine.ParameterException(commandSpec.commandLine(), "Invalid value " + output + " for option -o");
+        }
     }
 
     private List<ApiResource> validateResourceType() {

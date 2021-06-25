@@ -1,18 +1,19 @@
 ns4kafka
 =======================
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/michelin/ns4kafka)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/michelin/ns4kafka/Snapshot)
+[![GitHub issues](https://img.shields.io/github/issues/michelin/ns4kafka)](https://github.com/michelin/ns4kafka/issues)
+[![SonarCloud Coverage](https://sonarcloud.io/api/project_badges/measure?project=michelin_ns4kafka&metric=coverage)](https://sonarcloud.io/component_measures/metric/coverage/list?id=michelin_ns4kafka)
+[![SonarCloud Bugs](https://sonarcloud.io/api/project_badges/measure?project=michelin_ns4kafka&metric=bugs)](https://sonarcloud.io/component_measures/metric/reliability_rating/list?id=michelin_ns4kafka)
+![Docker Pulls](https://img.shields.io/docker/pulls/twobeeb/ns4kafka?label=ns4kafka%20pulls&logo=Docker)
+![Docker Pulls](https://img.shields.io/docker/pulls/twobeeb/kafkactl?label=kafkactl%20pulls&logo=Docker)
 
 # Table of Contents
-  * [About the project](#about-the-project)
-  * [Key features](#key-features)
-  * [Quick Start](#quick-start-cli)
-  * [Install kafkactl CLI](#install-kafkactl-cli)
-  * [Install ns4kafka API](/CONFIGURATION.md)
-  * [Resources and Operations](#resources-and-operations)
-  * Deep Dive into the Inner Workings of ns4kafka
-    * How Isolation Works
-    * How Security Works
-    * How Resources Synchronization Works
-  * Build / Contribute to ns4kafka
+* [About the project](#about-the-project)
+* [Key features](#key-features)
+* [Quick Start](#quick-start-cli)
+* [Install kafkactl CLI](#install-kafkactl-cli)
+
 
 # About the Project
 **ns4kafka** brings to Apache Kafka a new deployment model for your different Kafka resources following the best practices from Kubernetes :
@@ -51,7 +52,7 @@ ns4kafka is built on top of 2 components : an **API** and a **CLI**.
 - [x] Multi cluster
 - [x] Security
   - [ ] Authentication / Authorization
-      - [x] Gitlab Access Token
+    - [x] Gitlab Access Token
     - [ ] LDAP
     - [ ] OIDC
   - [x] Role Bindings (Fine-Grained ACLs : User / Resource / Operation)
@@ -263,7 +264,7 @@ Kafka Admins, we didn't forget you ! On the contrary, it is your role who will g
       connectClusters: 
         - local # Authorize this namespace to deploy Connectors on this Connect cluster
     ````
-   
+
     ````console
     user@local:/home/user$ kafkactl apply -f namespace.yml
     Success Namespace/test (created)
@@ -284,7 +285,7 @@ Kafka Admins, we didn't forget you ! On the contrary, it is your role who will g
       permission: OWNER
       grantedTo: test
     ````
-   
+
     ````console
     # Since you're admin, you must override the namespace scope with -n
     user@local:/home/user$ kafkactl apply -f acl.yml -n test
@@ -355,7 +356,7 @@ Kafka Admins, we didn't forget you ! On the contrary, it is your role who will g
             - delete
             - compact
     ````
-   
+
     ````console
     user@local:/home/user$ kafkactl apply -f namespace.yml
     Success Namespace/test (changed)
@@ -368,7 +369,7 @@ By now you should understand how ns4kafka can help project teams manage their Ka
 
 From this point forward, documentation is split in dedicated pages depending on your role :
 - **Kafka Cluster Admin**. You need to Install and Configure `ns4kafka` API for your project teams :
-  [Take me to ns4kafka Installation and Configuration page](/CONFIGURATION.md)  
+  [Take me to ns4kafka Installation and Configuration page](/CONFIGURATION.md)
 - **Project DevOps** You need to Install and Configure `kafkactl` CLI : Keep reading.
 
 ## Install kafkactl CLI
@@ -378,7 +379,7 @@ Download the latest available version from the [Releases](https://github.com/mic
 - ``kafkactl.exe`` binary for Windows
 - ``kafkactl.jar`` java package
 - Docker image from DockerHub [twobeeb/kafkactl](https://hub.docker.com/repository/docker/twobeeb/kafkactl)
-  
+
 Windows and Linux binaries are generated using GraalVM and native-image.  
 Java package requires at least Java 11.  
 If you wish to build the package from source : [Take me to the Build page](#todo)
@@ -390,25 +391,25 @@ If you wish to build the package from source : [Take me to the Build page](#todo
   - Technically, LDAP or OIDC is also supported, but it is untested yet.
 
 Setup of these variables can be done in two different ways :
-  1. Environments variables
-     ````shell
-     export KAFKACTL_API=http://ns4kafka.api
-     export KAFKACTL_USER_TOKEN=<authentication>
-     export KAFKACTL_CURRENT_NAMESPACE=test
-     ````
-  1. A configuration file and an environment variable
-     ````yaml
-        # config.yml
-        kafkactl:
-          api: http://ns4kafka.api
-          user-token: <authentication>
-          current-namespace: test
-     ````
-     For ``kafkactl`` to use this config file, simply declare the following environment variable :
-     ````shell
-     export MICRONAUT_CONFIG_FILES=/path/to/config.yml
-     ````
-     
+1. Environments variables
+   ````shell
+   export KAFKACTL_API=http://ns4kafka.api
+   export KAFKACTL_USER_TOKEN=<authentication>
+   export KAFKACTL_CURRENT_NAMESPACE=test
+   ````
+1. A configuration file and an environment variable
+   ````yaml
+      # config.yml
+      kafkactl:
+        api: http://ns4kafka.api
+        user-token: <authentication>
+        current-namespace: test
+   ````
+   For ``kafkactl`` to use this config file, simply declare the following environment variable :
+   ````shell
+   export MICRONAUT_CONFIG_FILES=/path/to/config.yml
+   ````
+
 Once this is done, you can verify connectivity with ns4kafka using the following command :
 ````console
 user@local:/home/user$ kafkactl api-resources

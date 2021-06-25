@@ -50,7 +50,7 @@ public class ResourceService {
             if (apiResource.isNamespaced()) {
                 return namespacedClient.get(namespace, apiResource.getPath(), resourceName, loginService.getAuthorization());
             } else {
-                return nonNamespacedClient.get(loginService.getAuthorization(), apiResource.getKind(), resourceName);
+                return nonNamespacedClient.get(loginService.getAuthorization(), apiResource.getPath(), resourceName);
             }
         } catch (Exception e) {
             System.out.println("Error during get for resource type " + apiResource.getKind() + "/" + resourceName + ": " + e.getMessage());
@@ -71,5 +71,50 @@ public class ResourceService {
             System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red FAILED |@") + apiResource.getKind() + "/" + resource.getMetadata().getName() + CommandLine.Help.Ansi.AUTO.string("@|bold,red failed with message : |@") + e.getMessage());
         }
         return null;
+    }
+    public boolean delete(ApiResource apiResource, String namespace, String resource, boolean dryRun) {
+        try {
+            if (apiResource.isNamespaced()) {
+                namespacedClient.delete(namespace, apiResource.getPath(), resource, loginService.getAuthorization(), dryRun);
+                return true;
+            } else {
+                nonNamespacedClient.delete(loginService.getAuthorization(), apiResource.getPath(), resource, dryRun);
+                return true;
+            }
+        } catch (HttpClientResponseException e) {
+            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red FAILED |@") + apiResource.getKind() + "/" + resource + CommandLine.Help.Ansi.AUTO.string("@|bold,red failed with message : |@") + e.getMessage());
+        }
+        return false;
+    }
+    public List<Resource> importAll(List<ApiResource> apiResources, String namespace, boolean dryRun) {
+        return apiResources
+                .stream()
+                .flatMap(apiResource -> importResourcesWithType(apiResource, namespace, dryRun).stream())
+                .collect(Collectors.toList());
+    }
+
+    private List<Resource> importResourcesWithType(ApiResource apiResource, String namespace, boolean dryRun) {
+        List<Resource> resources;
+
+        try {
+            resources = namespacedClient.importResources(namespace, apiResource.getPath(), loginService.getAuthorization(), dryRun);
+        } catch (HttpClientResponseException e) {
+            System.out.println("Error during synchronize for resource type " + apiResource.getKind() + ": " + e.getMessage());
+            resources = List.of();
+        }
+
+        return resources;
+    }
+    public Resource deleteRecords(String namespace, String topic, boolean dryrun) {
+        try {
+            return namespacedClient.deleteRecords(loginService.getAuthorization(),namespace, topic, dryrun);
+        } catch (HttpClientResponseException e) {
+            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red FAILED |@") + topic + CommandLine.Help.Ansi.AUTO.string("@|bold,red failed with message : |@") + e.getMessage());
+        }
+        return null;
+    }
+
+    public Resource resetOffsets(String namespace, String group, Resource resource, boolean dryRun) {
+        return namespacedClient.resetOffsets(loginService.getAuthorization(), namespace, group, resource, dryRun);
     }
 }

@@ -9,7 +9,7 @@ import java.util.concurrent.Callable;
 @CommandLine.Command(name = "api-resources", description = "Print the supported API resources on the server")
 public class ApiResourcesSubcommand implements Callable<Integer> {
     @Inject
-    ApiResourcesService apiResourcesService;
+    public ApiResourcesService apiResourcesService;
 
     @Override
     public Integer call() {

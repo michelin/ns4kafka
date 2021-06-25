@@ -11,10 +11,12 @@ jobs:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-    - name: Set up JDK 11
-      uses: actions/setup-java@v1
+    - uses: DeLaGuardo/setup-graalvm@4.0
       with:
-        java-version: 11
+        graalvm: '21.1.0'
+        java: 'java11'
+    - name: Install Native Image
+      run: gu install native-image
     - name: Cache SonarCloud packages
       uses: actions/cache@v1
       with:
@@ -27,11 +29,23 @@ jobs:
         path: ~/.gradle/caches
         key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
         restore-keys: ${{ runner.os }}-gradle
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
     - name: Build and analyze
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: ./gradlew jacocoTestReport sonarqube --info
-
+    - name: Publish Test Report
+      if: always()
+      uses: mikepenz/action-junit-report@v2
+      with:
+        report_paths: '**/build/test-results/test/TEST-*.xml'
+    - name: Native Image for CLI
+      run: ./gradlew :cli:shadowJar :cli:nativeImage
+    - uses: actions/upload-artifact@v2
+      with:
+        name: native-image
+        path: ${{ github.workspace }}/cli/build/native-image/kafkactl-*
+    - uses: actions/upload-artifact@v2
+      with:
+        name: jar
+        path: ${{ github.workspace }}/cli/build/libs/kafkactl-*.jar

@@ -12,24 +12,17 @@ import java.util.Map;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter
-@Setter
+@Data
 public class ObjectMeta {
     @NotBlank
     private String name;
     private String namespace;
     private String cluster;
     private Map<String,String> labels;
+    @EqualsAndHashCode.Exclude
     private int generation;
+    @EqualsAndHashCode.Exclude
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Date creationTimestamp;
 
-    @Override
-    public String toString() {
-        return "ObjectMeta{" +
-                "name='" + name + '\'' +
-                ", namespace='" + namespace + '\'' +
-                ", cluster='" + cluster + '\'' +
-                '}';
-    }
 }

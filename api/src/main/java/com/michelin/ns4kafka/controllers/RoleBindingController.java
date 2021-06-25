@@ -4,7 +4,6 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.services.RoleBindingService;
-
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
@@ -14,6 +13,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,8 +47,16 @@ public class RoleBindingController extends NamespacedResourceController {
 
         // fill with cluster name
         Namespace ns = getNamespace(namespace);
+        // augment
+        rolebinding.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
         rolebinding.getMetadata().setCluster(ns.getMetadata().getCluster());
         rolebinding.getMetadata().setNamespace(namespace);
+
+        Optional<RoleBinding> existingRoleBinding = roleBindingService.findByName(namespace, rolebinding.getMetadata().getName());
+
+        if(existingRoleBinding.isPresent() && existingRoleBinding.get().equals(rolebinding)){
+            return existingRoleBinding.get();
+        }
 
         if (dryrun) {
             return rolebinding;

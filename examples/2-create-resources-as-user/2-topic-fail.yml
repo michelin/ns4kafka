@@ -1,9 +1,8 @@
 ---
 apiVersion: v1
-kind: Topic
+kind: Topics
 metadata:
-  name: f4m.demo2
-  namespace: f4m
+  name: f4m2.demo2
 spec:
   replicationFactor: 2
   partitions: 30

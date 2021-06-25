@@ -6,17 +6,21 @@ import com.michelin.ns4kafka.services.NamespaceService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import io.micronaut.http.HttpResponse;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 public class NamespaceControllerTest {
@@ -140,6 +144,33 @@ public class NamespaceControllerTest {
         Assertions.assertEquals("label", actual.getMetadata().getLabels().get("new"));
     }
     @Test
+    void applyUpdateSuccess_AlreadyExists(){
+        Namespace existing = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user")
+                        .build())
+                .build();
+        Namespace toUpdate = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("namespace"))
+                .thenReturn(Optional.of(existing));
+
+        Namespace actual = namespaceController.apply(toUpdate, false);
+        Assertions.assertEquals(existing, actual);
+        verify(namespaceService,never()).createOrUpdate(ArgumentMatchers.any());
+    }
+    @Test
     void applyUpdateDryRun(){
         Namespace existing = Namespace.builder()
                 .metadata(ObjectMeta.builder()
@@ -169,7 +200,6 @@ public class NamespaceControllerTest {
 
     @Test
     void deleteSucess() {
-        //TODO change when implemented
         Namespace existing = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -179,12 +209,17 @@ public class NamespaceControllerTest {
                         .kafkaUser("user")
                         .build())
                 .build();
-        namespaceController.delete("namespace", false);
+        Mockito.when(namespaceService.findByName("namespace"))
+                .thenReturn(Optional.of(existing));
+        Mockito.when(namespaceService.listAllNamespaceResources(existing))
+                .thenReturn(List.of());
+        var result = namespaceController.delete("namespace", false);
+        Assertions.assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
+
     }
 
     @Test
     void deleteSucessDryRun() {
-        //TODO change when implemented
         Namespace existing = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -194,8 +229,47 @@ public class NamespaceControllerTest {
                         .kafkaUser("user")
                         .build())
                 .build();
-        namespaceController.delete("namespace", true);
-        // verify(namespaceService, never()).delete(any());
+
+        Mockito.when(namespaceService.findByName("namespace"))
+                .thenReturn(Optional.of(existing));
+        Mockito.when(namespaceService.listAllNamespaceResources(existing))
+                .thenReturn(List.of());
+
+        var result = namespaceController.delete("namespace", true);
+
+        verify(namespaceService, never()).delete(any());
+        Assertions.assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
+
+    }
+
+    @Test
+    void deleteFailNoNamespace() {
+        Mockito.when(namespaceService.findByName("namespace"))
+                .thenReturn(Optional.empty());
+        var result = namespaceController.delete("namespace", false);
+        verify(namespaceService, never()).delete(any());
+        Assertions.assertEquals(HttpResponse.notFound().getStatus(), result.getStatus());
+
+    }
+
+    @Test
+    void deleteFailNamespaceNotEmpty() {
+        Namespace existing = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("namespace"))
+                .thenReturn(Optional.of(existing));
+        Mockito.when(namespaceService.listAllNamespaceResources(existing))
+                .thenReturn(List.of("Topic/topic1"));
+        Assertions.assertThrows(ResourceValidationException.class,() -> namespaceController.delete("namespace", false));
+        verify(namespaceService, never()).delete(any());
+
     }
 
 }

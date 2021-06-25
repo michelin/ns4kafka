@@ -2,10 +2,7 @@ package com.michelin.ns4kafka.validation;
 
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +13,7 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 @Getter
 @Setter
+@EqualsAndHashCode(callSuper = true)
 public class TopicValidator extends ResourceValidator {
 
     @Builder
@@ -82,6 +80,18 @@ public class TopicValidator extends ResourceValidator {
                                 "partitions", ResourceValidator.Range.between(3,6),
                                 "cleanup.policy", ResourceValidator.ValidList.in("delete","compact"),
                                 "min.insync.replicas", ResourceValidator.Range.between(2,2),
+                                "retention.ms", ResourceValidator.Range.between(60000,604800000)
+                        )
+                )
+                .build();
+    }
+    public static TopicValidator makeDefaultOneBroker(){
+        return TopicValidator.builder()
+                .validationConstraints(
+                        Map.of( "replication.factor", ResourceValidator.Range.between(1,1),
+                                "partitions", ResourceValidator.Range.between(3,6),
+                                "cleanup.policy", ResourceValidator.ValidList.in("delete","compact"),
+                                "min.insync.replicas", ResourceValidator.Range.between(1,1),
                                 "retention.ms", ResourceValidator.Range.between(60000,604800000)
                         )
                 )

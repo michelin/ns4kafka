@@ -6,14 +6,15 @@ import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.util.List;
 
 @Introspected
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter
-@Setter
+@Data
 public class Namespace {
 
     private final String apiVersion = "v1";
@@ -29,10 +30,12 @@ public class Namespace {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @Getter
-    @Setter
+    @Data
     public static class NamespaceSpec {
+        @NotBlank
         private String kafkaUser;
+        @NotNull
+        private List<String> connectClusters;
         private TopicValidator topicValidator;
         private ConnectValidator connectValidator;
         //private ResourceQuota quota;

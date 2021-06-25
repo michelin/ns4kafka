@@ -1,4 +1,4 @@
-package com.michelin.ns4kafka.services;
+package com.michelin.ns4kafka.services.executors;
 
 import io.micronaut.runtime.event.ApplicationStartupEvent;
 import io.micronaut.runtime.event.annotation.EventListener;
@@ -17,7 +17,11 @@ public class KafkaAsyncExecutorScheduler {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaAsyncExecutorScheduler.class);
 
     @Inject
-    List<KafkaAsyncExecutor> kafkaAsyncExecutors;
+    List<TopicAsyncExecutor> topicAsyncExecutors;
+    @Inject
+    List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutors;
+    @Inject
+    List<ConnectorAsyncExecutor> connectorAsyncExecutors;
 
     private final AtomicBoolean ready = new AtomicBoolean(false);
 
@@ -33,7 +37,9 @@ public class KafkaAsyncExecutorScheduler {
 
         if(ready.get()) {
             //TODO sequential forEach with exception handling (to let next clusters sync)
-            kafkaAsyncExecutors.forEach(KafkaAsyncExecutor::run);
+            topicAsyncExecutors.forEach(TopicAsyncExecutor::run);
+            accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
+            connectorAsyncExecutors.forEach(ConnectorAsyncExecutor::run);
         }else {
             LOG.warn("Scheduled job did not start because micronaut is not ready yet");
         }

@@ -1,0 +1,19 @@
+{
+  "categories": [
+    {
+      "title": "## :rocket: New",
+      "labels": ["feature"]
+    },
+    {
+      "title": "## :bug: Bugfixes",
+      "labels": ["fix"]
+    },
+    {
+      "title": "## :hammer: Other",
+      "labels": ["refactor", "test", "documentation"]
+    }
+  ],
+  "template": "${{CHANGELOG}}\n\n<details>\n<summary>Uncategorized</summary>\n\n${{UNCATEGORIZED}}\n</details>",
+  "pr_template": "- ${{TITLE}} #${{NUMBER}}"
+
+}

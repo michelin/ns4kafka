@@ -1,11 +1,9 @@
 package com.michelin.ns4kafka.cli;
 
-import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
-import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.LoginService;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import com.michelin.ns4kafka.cli.services.ResourceService;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Help.Ansi;
@@ -20,26 +18,26 @@ import java.util.concurrent.Callable;
 public class DeleteSubcommand implements Callable<Integer> {
 
     @Inject
-    NamespacedResourceClient namespacedClient;
-    @Inject
-    ClusterResourceClient nonNamespacedClient;
+    public KafkactlConfig kafkactlConfig;
 
     @Inject
-    KafkactlConfig kafkactlConfig;
-
+    public ResourceService resourceService;
     @Inject
-    LoginService loginService;
+    public LoginService loginService;
     @Inject
-    ApiResourcesService apiResourcesService;
+    public ApiResourcesService apiResourcesService;
 
     @CommandLine.ParentCommand
-    KafkactlCommand kafkactlCommand;
+    public KafkactlCommand kafkactlCommand;
     @Parameters(index = "0", description = "Resource type", arity = "1")
-    String resourceType;
+    public String resourceType;
     @Parameters(index = "1", description = "Resource name", arity = "1")
-    String name;
+    public String name;
     @Option(names = {"--dry-run"}, description = "Does not persist operation. Validate only")
-    boolean dryRun;
+    public boolean dryRun;
+
+    @CommandLine.Spec
+    public CommandLine.Model.CommandSpec commandSpec;
 
     @Override
     public Integer call() {
@@ -50,30 +48,24 @@ public class DeleteSubcommand implements Callable<Integer> {
 
         boolean authenticated = loginService.doAuthenticate();
         if (!authenticated) {
-            return 1;
+            throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
         }
 
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
 
         Optional<ApiResource> optionalApiResource = apiResourcesService.getResourceDefinitionFromCommandName(resourceType);
         if (optionalApiResource.isEmpty()) {
-            System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + resourceType + "/" + name + ": The server doesn't have resource type");
-            return 1;
+            throw new CommandLine.ParameterException(commandSpec.commandLine(), "The server doesn't have resource type [" + resourceType + "]");
         }
 
         ApiResource apiResource = optionalApiResource.get();
-        try {
-            if (apiResource.isNamespaced()) {
-                namespacedClient.delete(namespace, apiResource.getPath(), name, loginService.getAuthorization(), dryRun);
-            } else {
-                System.out.println(Ansi.AUTO.string("@|bold,red FAILED: |@") + apiResource.getKind() + "/" + name + ": The server doesn't have implemented this");
-                return 1;
-            }
-            System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS |@"));
-        } catch (HttpClientResponseException e) {
-            System.err.println(Ansi.AUTO.string("@|bold,red Delete command failed with message : |@") + e.getMessage());
+
+        boolean deleted = resourceService.delete(apiResource, namespace, name, dryRun);
+        if (!deleted) {
+            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red FAILED |@"));
             return 1;
         }
+        System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS |@"));
         return 0;
     }
 

@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 @Singleton
 public class ApiResourcesService {
     @Inject
-    private ClusterResourceClient resourceClient;
+    public ClusterResourceClient resourceClient;
 
     public List<ApiResource> getListResourceDefinition() {
         //TODO Add Cache to reduce the number of http requests

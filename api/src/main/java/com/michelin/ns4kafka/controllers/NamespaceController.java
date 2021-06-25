@@ -4,19 +4,18 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.annotation.Body;
-import io.micronaut.http.annotation.Controller;
-import io.micronaut.http.annotation.Delete;
-import io.micronaut.http.annotation.Post;
-import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 @Tag(name = "Namespaces")
@@ -25,6 +24,16 @@ public class NamespaceController extends NonNamespacedResourceController {
 
     @Inject
     NamespaceService namespaceService;
+
+    @Get("/")
+    public List<Namespace> list() {
+        return namespaceService.listAll();
+    }
+
+    @Get("/{namespace}")
+    public Optional<Namespace> get(String namespace) {
+        return namespaceService.findByName(namespace);
+    }
 
     @Post("{?dryrun}")
     public Namespace apply(@Valid @Body Namespace namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
@@ -35,7 +44,7 @@ public class NamespaceController extends NonNamespacedResourceController {
 
         if (existingNamespace.isEmpty()) {
             // New Namespace checks
-            validationErrors = namespaceService.validateCreation(namespace);
+            validationErrors.addAll(namespaceService.validateCreation(namespace));
         } else {
             // Update checks
             //Immutable data
@@ -50,10 +59,18 @@ public class NamespaceController extends NonNamespacedResourceController {
                         + existingNamespace.get().getSpec().getKafkaUser() + ")");
             }
         }
+        // connect cluster check
+        validationErrors.addAll(namespaceService.validate(namespace));
+
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors);
         }
+        //augment
+        namespace.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
 
+        if (existingNamespace.isPresent() && existingNamespace.get().equals(namespace)) {
+            return existingNamespace.get();
+        }
         //dryrun checks
         if (dryrun) {
             return namespace;
@@ -63,12 +80,23 @@ public class NamespaceController extends NonNamespacedResourceController {
     }
 
     @Delete("/{namespace}{?dryrun}")
-    public HttpResponse<Void> delete(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<?> delete(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
+        // exists ?
+        Optional<Namespace> optionalNamespace = namespaceService.findByName(namespace);
+        if (optionalNamespace.isEmpty())
+            return HttpResponse.notFound();
+        // check existing resources
+        List<String> namespaceResources = namespaceService.listAllNamespaceResources(optionalNamespace.get());
+        if (!namespaceResources.isEmpty()) {
+            throw new ResourceValidationException(namespaceResources.stream()
+                    .map(s -> "Namespace resource must be deleted first :" + s)
+                    .collect(Collectors.toList()));
+        }
 
         if (dryrun) {
             return HttpResponse.noContent();
         }
-
+        namespaceService.delete(optionalNamespace.get());
         return HttpResponse.noContent();
     }
 

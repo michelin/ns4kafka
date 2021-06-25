@@ -1,26 +1,23 @@
 package com.michelin.ns4kafka.controllers;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.Optional;
-
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.RoleBindingService;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class RoleBindingControllerTest {
@@ -34,7 +31,7 @@ public class RoleBindingControllerTest {
     RoleBindingController roleBindingController;
 
     @Test
-    void create() {
+    void applySuccess() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -51,6 +48,29 @@ public class RoleBindingControllerTest {
 
         RoleBinding actual = roleBindingController.apply("test", rolebinding, false);
         assertEquals(actual.getMetadata().getName(), rolebinding.getMetadata().getName());
+    }
+
+    @Test
+    void applySuccess_AlreadyExists() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        RoleBinding rolebinding = RoleBinding.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.rolebinding")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
+        when(roleBindingService.findByName("test","test.rolebinding"))
+                .thenReturn(Optional.of(rolebinding));
+
+        RoleBinding actual = roleBindingController.apply("test", rolebinding, false);
+        assertEquals(actual.getMetadata().getName(), rolebinding.getMetadata().getName());
+        verify(roleBindingService,never()).create(ArgumentMatchers.any());
     }
 
     @Test

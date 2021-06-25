@@ -29,41 +29,40 @@ import java.util.stream.Collectors;
 public class DiffSubcommand implements Callable<Integer> {
 
     @Inject
-    LoginService loginService;
+    public LoginService loginService;
     @Inject
-    ApiResourcesService apiResourcesService;
+    public ApiResourcesService apiResourcesService;
     @Inject
-    FileService fileService;
+    public FileService fileService;
     @Inject
-    ResourceService resourceService;
+    public ResourceService resourceService;
 
     @Inject
-    KafkactlConfig kafkactlConfig;
+    public KafkactlConfig kafkactlConfig;
+
+    @CommandLine.ParentCommand
+    public KafkactlCommand kafkactlCommand;
+    @Option(names = {"-f", "--file"}, description = "YAML File or Directory containing YAML resources")
+    public Optional<File> file;
+    @Option(names = {"-R", "--recursive"}, description = "Enable recursive search of file")
+    public boolean recursive;
 
     @CommandLine.Spec
-    CommandLine.Model.CommandSpec commandSpec;
-    @CommandLine.ParentCommand
-    KafkactlCommand kafkactlCommand;
-    @Option(names = {"-f", "--file"}, description = "YAML File or Directory containing YAML resources")
-    Optional<File> file;
-    @Option(names = {"-R", "--recursive"}, description = "Enable recursive search of file")
-    boolean recursive;
+    public CommandLine.Model.CommandSpec commandSpec;
 
     @Override
     public Integer call() throws Exception {
 
         boolean authenticated = loginService.doAuthenticate();
         if (!authenticated) {
-            // Autentication failed, stopping
-            return 1;
+            throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
         }
 
         // 0. Check STDIN and -f
         boolean hasStdin = System.in.available() > 0;
         // If we have none or both stdin and File set, we stop
         if (hasStdin == file.isPresent()) {
-            System.out.println("Required one of -f or stdin");
-            return 1;
+            throw new CommandLine.ParameterException(commandSpec.commandLine(), "Required one of -f or stdin");
         }
 
         List<Resource> resources;
@@ -72,8 +71,7 @@ public class DiffSubcommand implements Callable<Integer> {
             // 1. list all files to process
             List<File> yamlFiles = fileService.computeYamlFileList(file.get(), recursive);
             if (yamlFiles.isEmpty()) {
-                System.out.println("Could not find yaml/yml files in " + file.get().getName());
-                return 1;
+                throw new CommandLine.ParameterException(commandSpec.commandLine(), "Could not find yaml/yml files in " + file.get().getName());
             }
             // 2 load each files
             resources = fileService.parseResourceListFromFiles(yamlFiles);
