@@ -26,13 +26,13 @@ public class LoginService {
 
     @Inject
     ClusterResourceClient clusterResourceClient;
-
-    private final String jwtFilePath = System.getProperty("user.home") + "/.kafkactl/jwt";
+    private final String kafkaCtlPath = System.getProperty("user.home") + "/.kafkactl";
+    private final String jwtFilePath = kafkaCtlPath + "/jwt";
 
     private String accessToken = null;
 
     public LoginService() {
-        File directory = new File(System.getProperty("user.home") + "/.kafkactl");
+        File directory = new File(kafkaCtlPath);
         if (!directory.exists()) {
             directory.mkdir();
         }
