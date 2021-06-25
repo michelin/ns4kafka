@@ -9,6 +9,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.TopicPartition;
 
 import javax.inject.Inject;
@@ -22,6 +23,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Tag(name = "Topics")
 @Controller(value = "/api/namespaces/{namespace}/topics")
 public class TopicController extends NamespacedResourceController {
@@ -34,6 +36,7 @@ public class TopicController extends NamespacedResourceController {
      */
     @Get
     public List<Topic> list(String namespace) {
+        log.info("List Topic received for Namespace {}",namespace);
         //TODO ?labelSelector=environment%3Dproduction,tier%3Dfrontend
 
         Namespace ns = getNamespace(namespace);
@@ -43,6 +46,7 @@ public class TopicController extends NamespacedResourceController {
 
     @Get("/{topic}")
     public Optional<Topic> getTopic(String namespace, String topic) {
+        log.info("Get Topic received for Namespace {} and for Topic {}", namespace, topic);
 
         Namespace ns = getNamespace(namespace);
         Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
@@ -52,6 +56,7 @@ public class TopicController extends NamespacedResourceController {
 
     @Post("{?dryrun}")
     public Topic apply(String namespace, @Valid @Body Topic topic, @QueryValue(defaultValue = "false") boolean dryrun) {
+        log.info("Apply Topic received for Namespace {} and for Topic {}", namespace, topic.getMetadata().getName());
 
         //TODO
         // 1. (Done) User Allowed ?
@@ -124,7 +129,8 @@ public class TopicController extends NamespacedResourceController {
 
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{topic}{?dryrun}")
-    public HttpResponse deleteTopic(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<?> deleteTopic(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun) {
+        log.info("Delete Topic received for Namespace {} and for Topic {}", namespace, topic);
 
         Namespace ns = getNamespace(namespace);
 
@@ -153,6 +159,7 @@ public class TopicController extends NamespacedResourceController {
     @Post("/_/import{?dryrun}")
     public List<Topic> importResources(String namespace, @QueryValue(defaultValue = "false") boolean dryrun)
             throws ExecutionException, InterruptedException, TimeoutException {
+        log.info("Import Topic received for Namespace {}", namespace);
 
         Namespace ns = getNamespace(namespace);
 
@@ -178,6 +185,7 @@ public class TopicController extends NamespacedResourceController {
 
     @Post("{topic}/delete-records{?dryrun}")
     public DeleteRecords deleteRecords(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun) {
+        log.info("Delete records received for Namespace {} and for Topic {}", namespace, topic);
 
         Namespace ns = getNamespace(namespace);
         // allowed ?
