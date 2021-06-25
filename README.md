@@ -1,12 +1,12 @@
 ns4kafka
 =======================
-![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/michelin/ns4kafka)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/michelin/ns4kafka/Snapshot)
+[![GitHub release](https://img.shields.io/github/v/release/michelin/ns4kafka)](https://github.com/michelin/ns4kafka/releases)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/michelin/ns4kafka/Snapshot)](https://github.com/michelin/ns4kafka/actions/workflows/on_push_master.yml/)
 [![GitHub issues](https://img.shields.io/github/issues/michelin/ns4kafka)](https://github.com/michelin/ns4kafka/issues)
 [![SonarCloud Coverage](https://sonarcloud.io/api/project_badges/measure?project=michelin_ns4kafka&metric=coverage)](https://sonarcloud.io/component_measures/metric/coverage/list?id=michelin_ns4kafka)
 [![SonarCloud Bugs](https://sonarcloud.io/api/project_badges/measure?project=michelin_ns4kafka&metric=bugs)](https://sonarcloud.io/component_measures/metric/reliability_rating/list?id=michelin_ns4kafka)
-![Docker Pulls](https://img.shields.io/docker/pulls/twobeeb/ns4kafka?label=ns4kafka%20pulls&logo=Docker)
-![Docker Pulls](https://img.shields.io/docker/pulls/twobeeb/kafkactl?label=kafkactl%20pulls&logo=Docker)
+[![Docker Pulls](https://img.shields.io/docker/pulls/twobeeb/ns4kafka?label=ns4kafka%20pulls&logo=Docker)](https://hub.docker.com/r/twobeeb/ns4kafka/tags)
+[![Docker Pulls](https://img.shields.io/docker/pulls/twobeeb/kafkactl?label=kafkactl%20pulls&logo=Docker)](https://hub.docker.com/r/twobeeb/kafkactl/tags)
 
 # Table of Contents
 * [About the project](#about-the-project)
