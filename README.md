@@ -6,7 +6,8 @@ ns4kafka
   * [Key features](#key-features)
   * [Quick Start](#quick-start-cli)
   * [Install kafkactl CLI](#install-kafkactl-cli)
-  * [Install ns4kafka API](https://github.com/michelin/ns4kafka/blob/master/CONFIGURATION.md)
+  * [Install ns4kafka API](/CONFIGURATION.md)
+  * [Resources and Operations](#resources-and-operations)
   * Deep Dive into the Inner Workings of ns4kafka
     * How Isolation Works
     * How Security Works
@@ -367,7 +368,7 @@ By now you should understand how ns4kafka can help project teams manage their Ka
 
 From this point forward, documentation is split in dedicated pages depending on your role :
 - **Kafka Cluster Admin**. You need to Install and Configure `ns4kafka` API for your project teams :
-  [Take me to ns4kafka Installation and Configuration page](https://github.com/michelin/ns4kafka/blob/master/CONFIGURATION.md)  
+  [Take me to ns4kafka Installation and Configuration page](/CONFIGURATION.md)  
 - **Project DevOps** You need to Install and Configure `kafkactl` CLI : Keep reading.
 
 ## Install kafkactl CLI
@@ -414,13 +415,6 @@ user@local:/home/user$ kafkactl api-resources
 [Success or Failed response here]
 ````
 
-That's it ! You're now ready to deploy your first resource !
+# Resources and Operations
 
-## Operation
-
-You can have the description of each operation here: https://github.com/michelin/ns4kafka/blob/master/OPERATION.md
-
-# Examples
-
-There is examples of Resources here: https://github.com/michelin/ns4kafka/blob/master/RESOURCE.md
-
+To get the complete list of Resources and associated Operations : [Take me to the Resources page](/RESOURCES.md)

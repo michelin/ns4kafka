@@ -7,7 +7,7 @@ kafkactl OPERATION KIND NAME [flags]
 with:
 * OPERATION the function descibed below.
 
-* KIND the kind of the resource described [here](https://github.com/michelin/ns4kafka/blob/master/RESOURCE.md) 
+* KIND the kind of the resource described [here](RESOURCES.md) 
 
 * NAME the name of the resource deployed.
 
