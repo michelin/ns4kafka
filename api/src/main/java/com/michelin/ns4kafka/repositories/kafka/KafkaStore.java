@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.repositories.kafka;
 
 import io.micronaut.context.ApplicationContext;
+import io.micronaut.context.annotation.Property;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.TaskScheduler;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -51,7 +52,8 @@ public abstract class KafkaStore<T> {
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final ReentrantLock offsetUpdateLock;
     private final Condition offsetReachedThreshold;
-    int initTimeout = 10000;
+    @Property(name = "ns4kafka.store.kafka.timeout")
+    int initTimeout;
 
     public KafkaStore(String kafkaTopic, Producer<String,T> kafkaProducer){
         this.kafkaTopic = kafkaTopic;
