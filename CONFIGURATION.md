@@ -82,6 +82,13 @@ It's the same thing for each connect in ``connects``.
 ## Admin Account
 This is where you configured the Admin
 ```yaml
+micronaut:
+  security:
+    enabled: true
+    authentication: bearer
+    gitlab:
+      enabled: true
+      url: https://gitlab.com
 ns4kafka:
   security:
     admin-group: test-ns4kafka
@@ -92,17 +99,17 @@ ns4kafka:
         groups:
           - "test-ns4kafka"
 ```
-```yaml
-micronaut:
-  application:
-    name: ns4kafka
-  security:
-    enabled: true
-    authentication: bearer
-    gitlab:
-      enabled: true
-      url: https://gitlab.com
-```
+
+| Property                               | type            | description                                       |
+| -----                                  | -----           | -----                                             |
+| micronaut.security.enabled             | boolean         | Enabled the security of the API                   |
+| micronaut.security.authentication      | string (Bearer) | Type of security, for now Bearer only             |
+| micronaut.security.gitlab.enabled      | boolean         | Enabled the security of the API via Gitlab groups |
+| micronaut.security.gitlab.url          | string          | url of the instance gitlab                        |
+| ns4kafka.security.admin-group          | string          | Name of the Gitlab group of the admin             |
+| ns4kafka.security.local-users.username | string          | Username of the localusers                        |
+| ns4kafka.security.local-users.password | string          | Password of the localusers encrypted in SHA-256   |
+| ns4kafka.security.local-users.groups   | list<string>    | Names of the groups of this local user            |
 
 ## Ns4kafka's storage
 ```yaml
@@ -121,6 +128,13 @@ ns4kafka:
           max.compaction.lag.ms: "604800000"
           segment.ms: "600000"
 ```
+| Property                               | type         | description                                     |
+| -----                                  | -----        | -----                                           |
+| ns4kafka.store.kafka.enabled           | boolean      | Enabled ns4kafka storage by kafka               |
+| ns4kafka.store.kafka.group-id          | string       | Group-id used by kafka                          |
+| ns4kafka.store.kafka.topics.prefix     | string       | Prefix used for topics that store ns4kafka info |
+
+The other information in topics are used to change the parameters of the topics used for storage
 
 # Example
 
