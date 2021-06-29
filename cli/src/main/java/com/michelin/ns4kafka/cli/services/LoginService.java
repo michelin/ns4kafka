@@ -14,8 +14,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -26,13 +24,13 @@ public class LoginService {
 
     @Inject
     ClusterResourceClient clusterResourceClient;
-    private final String kafkaCtlPath = System.getProperty("user.home") + "/.kafkactl";
-    private final String jwtFilePath = kafkaCtlPath + "/jwt";
+    private final String configPath = System.getProperty("user.home") + "/.kafkactl";
+    private final File jwtFile = new File(configPath + "/jwt");
 
     private String accessToken = null;
 
     public LoginService() {
-        File directory = new File(kafkaCtlPath);
+        File directory = new File(configPath);
         if (!directory.exists()) {
             directory.mkdir();
         }
@@ -49,17 +47,14 @@ public class LoginService {
     public boolean isAuthenticated() {
         try {
             // 0. JWT token file exists
-            if(!Files.exists(Path.of(jwtFilePath)))
+            if (!jwtFile.exists())
                 return false;
             // 1. Open local JWT token file
             ObjectMapper objectMapper = new ObjectMapper();
-            BearerAccessRefreshToken token = objectMapper.readValue(
-                    new File(jwtFilePath),
-                    BearerAccessRefreshToken.class);
+            BearerAccessRefreshToken token = objectMapper.readValue(jwtFile, BearerAccessRefreshToken.class);
             // 2. Verify token against ns4kafka /user_info endpoint
             UserInfoResponse userInfo = clusterResourceClient.tokenInfo("Bearer " + token.getAccessToken());
             // 3. Display token result
-
             if (KafkactlCommand.VERBOSE) {
                 Date expiry = new Date(userInfo.getExp() * 1000);
                 System.out.println("Authentication reused, welcome " + userInfo.getUsername() + "!");
@@ -102,8 +97,8 @@ public class LoginService {
             // 4. Store token result locally
             try {
                 ObjectMapper objectMapper = new ObjectMapper();
-                objectMapper.writeValue(new File(jwtFilePath), tokenResponse);
-            }catch(IOException e){
+                objectMapper.writeValue(jwtFile, tokenResponse);
+            } catch (IOException e) {
                 System.out.println("WARNING : Unexpected error occurred: " + e.getMessage());
             }
 

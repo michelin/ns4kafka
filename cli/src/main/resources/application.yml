@@ -1,8 +1,6 @@
 micronaut:
   application:
     name: kafkactl
-
-
   http:
     client:
       read-timeout: 30s
