@@ -111,6 +111,8 @@ ns4kafka:
 | ns4kafka.security.local-users.password | string          | Password of the localusers encrypted in SHA-256   |
 | ns4kafka.security.local-users.groups   | list<string>    | Names of the groups of this local user            |
 
+The group as to be setted up on Gitlab. So if the admin group is "admin", ns4kafka will look for the group of the user and search for the Gitlab group "admin".
+
 ## Ns4kafka's storage
 ```yaml
 ns4kafka:

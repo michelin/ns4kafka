@@ -92,6 +92,16 @@ or the specification of a ressource:
 kafkactl get topic prefix_topic-name
 ````
 
+## Import
+Get is used to import either all resources :
+````console
+kafkactl import ALL
+````
+or one kind of ressource:
+````console
+kafkactl import topics
+````
+
 ## Reset offsets
 Option: "--dry-run"
 
