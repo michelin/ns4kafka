@@ -141,7 +141,7 @@ public class TopicControllerTest {
 
 
         //When
-        HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete", false);
+        HttpResponse<?> actual = topicController.deleteTopic("test", "topic.delete", false);
 
         //Then
         Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
@@ -166,7 +166,7 @@ public class TopicControllerTest {
                 .thenReturn(true);
 
         //When
-        HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete", true);
+        HttpResponse<?> actual = topicController.deleteTopic("test", "topic.delete", true);
 
         //Then
         verify(topicService, never()).delete(any());
@@ -187,7 +187,7 @@ public class TopicControllerTest {
                 .thenReturn(false);
 
         //When
-        HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete", false);
+        HttpResponse<?> actual = topicController.deleteTopic("test", "topic.delete", false);
 
         //Then
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, actual.getStatus());
