@@ -44,7 +44,7 @@ public class ResourceBasedSecurityRule implements SecurityRule {
     public SecurityRuleResult check(HttpRequest<?> request, @Nullable RouteMatch<?> routeMatch, @Nullable Map<String, Object> claims) {
         //Unauthenticated request
         if (claims == null || !claims.keySet().containsAll( List.of("groups", "sub", "roles"))) {
-            log.debug("No Authentication available for path [{}]. Returning UNKNOWN.", request.getPath());
+            log.debug("No Authentication available for path [{} {}]. Returning UNKNOWN.",request.getMethodName(), request.getPath());
             return SecurityRuleResult.UNKNOWN;
         }
 
@@ -55,7 +55,7 @@ public class ResourceBasedSecurityRule implements SecurityRule {
         //Request to a URL that is not in the scope of this SecurityRule
         Matcher matcher = namespacedResourcePattern.matcher(request.getPath());
         if (!matcher.find()) {
-            log.debug("Invalid Namespaced Resource for path [{}]. Returning UNKNOWN.",request.getPath());
+            log.debug("Invalid Namespaced Resource for path [{} {}]. Returning UNKNOWN.",request.getMethodName(),request.getPath());
             return SecurityRuleResult.UNKNOWN;
         }
 
@@ -71,12 +71,12 @@ public class ResourceBasedSecurityRule implements SecurityRule {
 
         //Namespace doesn't exist
         if (namespaceRepository.findByName(namespace).isEmpty()) {
-            log.debug("Namespace not found for user [{}] on path [{}]. Returning UNKNOWN.", sub , request.getPath());
+            log.debug("Namespace not found for user [{}] on path [{} {}]. Returning UNKNOWN.", sub ,request.getMethodName(), request.getPath());
             return SecurityRuleResult.UNKNOWN;
         }
         //Admin are allowed everything (provided that the namespace exists)
         if(roles.contains(IS_ADMIN)){
-            log.debug("Authorized admin user [{}] on path [{}]. Returning ALLOWED.", sub, request.getPath());
+            log.info("Authorized admin user [{}] on path [{} {}]. Returning ALLOWED.", sub,request.getMethodName(), request.getPath());
             return SecurityRuleResult.ALLOWED;
         }
 
@@ -90,14 +90,14 @@ public class ResourceBasedSecurityRule implements SecurityRule {
 
         //User not authorized to access requested resource
         if (authorizedRoleBindings.isEmpty()) {
-            log.debug("No matching RoleBinding for user [{}] on path [{}]. Returning UNKNOWN.", sub, request.getPath());
+            log.debug("No matching RoleBinding for user [{}] on path [{} {}]. Returning UNKNOWN.", sub,request.getMethodName(), request.getPath());
             return SecurityRuleResult.UNKNOWN;
         }
 
         if (log.isDebugEnabled()) {
             authorizedRoleBindings.forEach(roleBinding -> log.debug("Found matching RoleBinding : {}", roleBinding.toString()));
-            log.debug("Authorized user [{}] on path [{}]", sub, request.getPath());
         }
+        log.info("Authorized user [{}] on path [{} {}]", sub, request.getMethodName(), request.getPath());
 
 
         return SecurityRuleResult.ALLOWED;
