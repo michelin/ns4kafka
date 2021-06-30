@@ -6,6 +6,7 @@ import com.michelin.ns4kafka.services.NamespaceService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 @Tag(name = "Namespaces")
 @Controller("/api/namespaces")
@@ -27,16 +29,19 @@ public class NamespaceController extends NonNamespacedResourceController {
 
     @Get("/")
     public List<Namespace> list() {
+        log.info("list Namespace received");
         return namespaceService.listAll();
     }
 
     @Get("/{namespace}")
     public Optional<Namespace> get(String namespace) {
+        log.info("Get Namespace {} received", namespace);
         return namespaceService.findByName(namespace);
     }
 
     @Post("{?dryrun}")
     public Namespace apply(@Valid @Body Namespace namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
+        log.info("Apply Namespace {} received", namespace.getMetadata().getName());
 
         Optional<Namespace> existingNamespace = namespaceService.findByName(namespace.getMetadata().getName());
 
@@ -81,6 +86,7 @@ public class NamespaceController extends NonNamespacedResourceController {
 
     @Delete("/{namespace}{?dryrun}")
     public HttpResponse<?> delete(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
+        log.info("Delete Namespace {} received", namespace);
         // exists ?
         Optional<Namespace> optionalNamespace = namespaceService.findByName(namespace);
         if (optionalNamespace.isEmpty())
