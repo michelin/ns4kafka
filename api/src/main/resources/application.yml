@@ -66,6 +66,15 @@ jackson:
   serialization:
     indent-output: true # Pretty-print JSON
 
+logger:
+  levels:
+    io.micronaut.security: DEBUG
+    io.micronaut.configuration.security.ldap: DEBUG
+    io.micronaut: INFO
+    io.micronaut.http: INFO
+    com.michelin: DEBUG
+    org.apache: ERROR
+
 kafka:
   health:
     enabled: false
