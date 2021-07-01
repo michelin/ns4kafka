@@ -29,7 +29,7 @@ public class GitlabAuthenticationProvider implements AuthenticationProvider {
     public Publisher<AuthenticationResponse> authenticate(@Nullable HttpRequest<?> httpRequest, AuthenticationRequest<?,?> authenticationRequest) {
         Flowable<AuthenticationResponse> responseFlowable = Flowable.create(emitter -> {
             String token = authenticationRequest.getSecret().toString();
-            log.debug("Checking authentication with token : "+token);
+            log.debug("Checking authentication with token : {}",token);
             try {
                 String username = gitlabAuthenticationService.findUsername(token).blockingGet();
                 List<String> groups = gitlabAuthenticationService.findAllGroups(token).toList().blockingGet();
@@ -39,7 +39,7 @@ public class GitlabAuthenticationProvider implements AuthenticationProvider {
                 emitter.onNext(user);
                 emitter.onComplete();
             }catch (Exception e){
-                log.debug("Exception during authenticate : "+e.getMessage());
+                log.debug("Exception during authenticate : {}",e.getMessage());
                 emitter.onError(new AuthenticationException(new AuthenticationFailed(AuthenticationFailureReason.CREDENTIALS_DO_NOT_MATCH)));
             }
 

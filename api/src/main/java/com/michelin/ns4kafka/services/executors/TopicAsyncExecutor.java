@@ -59,7 +59,7 @@ public class TopicAsyncExecutor {
     }
     /**** TOPICS MANAGEMENT ***/
     public void synchronizeTopics(){
-        log.debug("Starting topic collection for cluster "+kafkaAsyncExecutorConfig.getName());
+        log.debug("Starting topic collection for cluster {}",kafkaAsyncExecutorConfig.getName());
         try {
             // List topics from broker
             Map<String, Topic> brokerTopicList = collectBrokerTopics();
@@ -94,14 +94,14 @@ public class TopicAsyncExecutor {
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
             if(log.isDebugEnabled()){
-                log.debug("Topics to create : "+ toCreate.stream().map(t -> t.getMetadata().getName()).collect(Collectors.joining(", ")));
+                log.debug("Topics to create : {}", toCreate.stream().map(t -> t.getMetadata().getName()).collect(Collectors.joining(", ")));
                 //TODO reenable
                 // log.debug("Topics to delete : "+String.join(", ", toDelete.stream().map(t -> t.getMetadata().getName()).collect(Collectors.toList())));
-                log.debug("Topics to delete : "+toDelete.size());
-                log.debug("Topic configs to update : "+toUpdate.size());
+                log.debug("Topics to delete : {}",toDelete.size());
+                log.debug("Topic configs to update : {}",toUpdate.size());
                 for (Map.Entry<ConfigResource,Collection<AlterConfigOp>> e : toUpdate.entrySet()) {
                     for (AlterConfigOp op : e.getValue()) {
-                        log.debug(e.getKey().name()+" "+op.opType().toString()+" " +op.configEntry().name()+"("+op.configEntry().value()+")");
+                        log.debug("{} {} {}({})", e.getKey().name(), op.opType().toString(), op.configEntry().name(), op.configEntry().value());
                     }
                 }
             }
@@ -207,10 +207,10 @@ public class TopicAsyncExecutor {
                         updatedTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                         updatedTopic.getMetadata().setGeneration(updatedTopic.getMetadata().getGeneration()+1);
                         updatedTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic configs updated"));
-                        log.info(String.format("Success updating topic configs %s on %s : [%s]",
+                        log.info("Success updating topic configs {} on {} : [{}]",
                                 mapEntry.getKey().name(),
                                 this.kafkaAsyncExecutorConfig.getName(),
-                                ops.stream().map(alterConfigOp -> alterConfigOp.toString()).collect(Collectors.joining(","))));
+                                ops.stream().map(alterConfigOp -> alterConfigOp.toString()).collect(Collectors.joining(",")));
                     } catch (InterruptedException e) {
                         log.error("Error", e);
                         Thread.currentThread().interrupt();
@@ -224,7 +224,7 @@ public class TopicAsyncExecutor {
     private void createTopics(List<Topic> topics) {
         List<NewTopic> newTopics = topics.stream()
                 .map(topic -> {
-                    log.debug(String.format("Creating topic %s on %s",topic.getMetadata().getName(),topic.getMetadata().getCluster()));
+                    log.debug("Creating topic {} on {}",topic.getMetadata().getName(),topic.getMetadata().getCluster());
                     NewTopic newTopic = new NewTopic(topic.getMetadata().getName(),topic.getSpec().getPartitions(), (short) topic.getSpec().getReplicationFactor());
                     newTopic.configs(topic.getSpec().getConfigs());
                     log.debug(newTopic.toString());
@@ -241,7 +241,7 @@ public class TopicAsyncExecutor {
                         createdTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                         createdTopic.getMetadata().setGeneration(1);
                         createdTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic created"));
-                        log.info(String.format("Success creating topic %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()));
+                        log.info("Success creating topic {} on {}", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName());
                     } catch (InterruptedException e) {
                         log.error("Error", e);
                         Thread.currentThread().interrupt();

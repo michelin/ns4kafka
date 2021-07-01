@@ -22,7 +22,7 @@ public class LocalUser {
     List<String> groups;
 
     public boolean isValidPassword(String input_password) {
-        log.debug("Verifying password for user " + username);
+        log.debug("Verifying password for user {}", username);
         MessageDigest digest = null;
         try {
             digest = MessageDigest.getInstance("SHA-256");
@@ -37,8 +37,8 @@ public class LocalUser {
                 }
                 hexString.append(hex);
             }
-            log.debug("Provided password hash : " + hexString);
-            log.debug("Expected password hash : " + password);
+            log.debug("Provided password hash : {}", hexString);
+            log.debug("Expected password hash : {}", password);
             return hexString.toString().equals(password);
 
         } catch (NoSuchAlgorithmException e) {

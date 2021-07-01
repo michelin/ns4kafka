@@ -69,9 +69,9 @@ public class ConnectorAsyncExecutor {
                     .collect(Collectors.toList());
 
             if (log.isDebugEnabled()) {
-                toCreate.forEach(connector -> log.debug("to create : " + connector.getMetadata().getName()));
-                toUpdate.forEach(connector -> log.debug("to update : " + connector.getMetadata().getName()));
-                log.debug("not in ns4kafka : " + toDelete.size());
+                toCreate.forEach(connector -> log.debug("to create : {}",connector.getMetadata().getName()));
+                toUpdate.forEach(connector -> log.debug("to update : {}",connector.getMetadata().getName()));
+                log.debug("not in ns4kafka : {}", toDelete.size());
             }
 
             toCreate.forEach(this::deployConnector);

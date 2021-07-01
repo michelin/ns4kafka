@@ -95,7 +95,7 @@ public class ResourceBasedSecurityRule implements SecurityRule {
         }
 
         if (log.isDebugEnabled()) {
-            authorizedRoleBindings.forEach(roleBinding -> log.debug("Found matching RoleBinding : {}", roleBinding.toString()));
+            authorizedRoleBindings.forEach(roleBinding -> log.debug("Found matching RoleBinding : {}", roleBinding));
         }
         log.info("Authorized user [{}] on path [{} {}]", sub, request.getMethodName(), request.getPath());
 

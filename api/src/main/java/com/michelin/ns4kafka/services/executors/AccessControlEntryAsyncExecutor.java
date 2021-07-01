@@ -51,7 +51,7 @@ public class AccessControlEntryAsyncExecutor {
 
     private void synchronizeACLs() {
 
-        log.debug("Starting ACL collection for cluster " + kafkaAsyncExecutorConfig.getName());
+        log.debug("Starting ACL collection for cluster {}", kafkaAsyncExecutorConfig.getName());
         try {
             // List ACLs from broker
             List<AclBinding> brokerACLs = collectBrokerACLs(true);
@@ -67,9 +67,9 @@ public class AccessControlEntryAsyncExecutor {
             if (log.isDebugEnabled()) {
                 brokerACLs.stream()
                         .filter(aclBinding -> ns4kafkaACLs.contains(aclBinding))
-                        .forEach(aclBinding -> log.debug("Found in both : " + aclBinding.toString()));
-                toCreate.forEach(aclBinding -> log.debug("to create : " + aclBinding.toString()));
-                toDelete.forEach(aclBinding -> log.debug("to delete : " + aclBinding.toString()));
+                        .forEach(aclBinding -> log.debug("Found in both : {}", aclBinding.toString()));
+                toCreate.forEach(aclBinding -> log.debug("to create : {}", aclBinding.toString()));
+                toDelete.forEach(aclBinding -> log.debug("to delete : {}", aclBinding.toString()));
             }
 
             // Execute toAdd list BEFORE toDelete list to avoid breaking ACL on connected user
@@ -106,7 +106,7 @@ public class AccessControlEntryAsyncExecutor {
                 .collect(Collectors.toList());
 
         if (log.isDebugEnabled()) {
-            log.debug("ACLs found on ns4kafka : " + ns4kafkaACLs.size());
+            log.debug("ACLs found on ns4kafka : {}", ns4kafkaACLs.size());
             ns4kafkaACLs.forEach(aclBinding -> log.debug(aclBinding.toString()));
         }
         return ns4kafkaACLs;
@@ -128,7 +128,7 @@ public class AccessControlEntryAsyncExecutor {
                 .filter(aclBinding -> validResourceTypes.contains(aclBinding.pattern().resourceType()))
                 .collect(Collectors.toList());
 
-        log.debug("ACLs found on Broker (total) : " + userACLs.size());
+        log.debug("ACLs found on Broker (total) : {}", userACLs.size());
         if (log.isTraceEnabled()) {
 
             userACLs.forEach(aclBinding -> {
@@ -149,7 +149,7 @@ public class AccessControlEntryAsyncExecutor {
             userACLs = userACLs.stream()
                     .filter(aclBinding -> managedUsers.contains(aclBinding.entry().principal()))
                     .collect(Collectors.toList());
-            log.debug("ACLs found on Broker (managed scope) : " + userACLs.size());
+            log.debug("ACLs found on Broker (managed scope) : {}", userACLs.size());
         }
 
         if (log.isDebugEnabled()) {
@@ -206,7 +206,7 @@ public class AccessControlEntryAsyncExecutor {
                 .forEach(mapEntry -> {
                     try {
                         mapEntry.getValue().get(10, TimeUnit.SECONDS);
-                        log.info(String.format("Success deleting ACL %s on %s", mapEntry.getKey(), this.kafkaAsyncExecutorConfig.getName()));
+                        log.info("Success deleting ACL {} on {}", mapEntry.getKey(), this.kafkaAsyncExecutorConfig.getName());
                     } catch (InterruptedException e) {
                         log.error("Error", e);
                         Thread.currentThread().interrupt();
@@ -224,7 +224,7 @@ public class AccessControlEntryAsyncExecutor {
                 .forEach(mapEntry -> {
                     try {
                         mapEntry.getValue().get(10, TimeUnit.SECONDS);
-                        log.info(String.format("Success creating ACL %s on %s", mapEntry.getKey(), this.kafkaAsyncExecutorConfig.getName()));
+                        log.info("Success creating ACL {} on {}", mapEntry.getKey(), this.kafkaAsyncExecutorConfig.getName());
                     } catch (InterruptedException e) {
                         log.error("Error", e);
                         Thread.currentThread().interrupt();

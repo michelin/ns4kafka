@@ -42,7 +42,7 @@ public class GitlabAuthenticationService {
     private Flowable<HttpResponse<List<Map<String, Object>>>> getPageAndNext(String token, int page){
         return gitlabApiClient.getGroupsPage(token, page)
                 .concatMap(response -> {
-                    log.debug("Called gitlab.com groups page "+page+"/"+response.header("X-Total-Pages"));
+                    log.debug("Called gitlab.com groups page {}/{}",page,response.header("X-Total-Pages"));
                     if(StringUtils.isEmpty(response.header("X-Next-Page"))){
                         return Flowable.just(response);
                     }else{
