@@ -42,6 +42,7 @@ public class NamespaceController extends NonNamespacedResourceController {
     @Post("{?dryrun}")
     public Namespace apply(@Valid @Body Namespace namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
         log.info("Apply Namespace {} received", namespace.getMetadata().getName());
+        log.debug("Apply Namespace received: {}", namespace);
 
         Optional<Namespace> existingNamespace = namespaceService.findByName(namespace.getMetadata().getName());
 

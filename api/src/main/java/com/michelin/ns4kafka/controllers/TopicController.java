@@ -57,6 +57,7 @@ public class TopicController extends NamespacedResourceController {
     @Post("{?dryrun}")
     public Topic apply(String namespace, @Valid @Body Topic topic, @QueryValue(defaultValue = "false") boolean dryrun) {
         log.info("Apply Topic received for Namespace {} and for Topic {}", namespace, topic.getMetadata().getName());
+        log.debug("Apply Topic received: {}", topic);
 
         //TODO
         // 1. (Done) User Allowed ?
