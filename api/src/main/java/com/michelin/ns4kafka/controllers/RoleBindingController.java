@@ -10,6 +10,7 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -18,6 +19,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Tag(name = "Role Bindings")
 @Controller(value = "/api/namespaces/{namespace}/role-bindings")
 @ExecuteOn(TaskExecutors.IO)
@@ -29,6 +31,7 @@ public class RoleBindingController extends NamespacedResourceController {
 
     @Get
     public List<RoleBinding> list(String namespace) {
+        log.info("List RoleBinding received for Namespace {}",namespace);
 
         // ToDo Custom error message for non existing namespace
         return roleBindingService.list(namespace);
@@ -36,7 +39,7 @@ public class RoleBindingController extends NamespacedResourceController {
 
     @Get("/{name}")
     public Optional<RoleBinding> get(String namespace, String name) {
-
+        log.info("Get RoleBinding received for Namespace {} and for RoleBinding {}", namespace, name);
 
         // ToDo Custom error for non existing namespace
         return roleBindingService.findByName(namespace, name);
@@ -44,6 +47,8 @@ public class RoleBindingController extends NamespacedResourceController {
 
     @Post("{?dryrun}")
     public RoleBinding apply(String namespace, @Valid @Body RoleBinding rolebinding, @QueryValue(defaultValue = "false") boolean dryrun) {
+        log.info("Apply RoleBinding received for Namespace {} and for RoleBinding {}", namespace, rolebinding.getMetadata().getName());
+        log.debug("Apply RoleBinding received: {}", rolebinding);
 
         // fill with cluster name
         Namespace ns = getNamespace(namespace);
@@ -68,6 +73,7 @@ public class RoleBindingController extends NamespacedResourceController {
     @Delete("/{name}{?dryrun}")
     @Status(HttpStatus.NO_CONTENT)
     public HttpResponse<Void> delete(String namespace, String name, @QueryValue(defaultValue = "false") boolean dryrun) {
+        log.info("Delete RoleBinding received for Namespace {} and for RoleBinding {}", namespace, name);
 
         // ToDo duplicated with Access Control
         Optional<RoleBinding> roleBinding = roleBindingService.findByName(namespace, name);

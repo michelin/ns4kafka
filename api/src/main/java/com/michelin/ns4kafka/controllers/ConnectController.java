@@ -34,17 +34,20 @@ public class ConnectController extends NamespacedResourceController {
 
     @Get
     public List<Connector> list(String namespace) {
+        log.info("List Connector received for Namespace {}", namespace);
         return kafkaConnectService.findAllForNamespace(getNamespace(namespace));
     }
 
     @Get("/{connector}")
     public Optional<Connector> getConnector(String namespace, String connector) {
+        log.info("Get Connector received for Namespace {} and for Connector {}",namespace, connector);
         return kafkaConnectService.findByName(getNamespace(namespace), connector);
     }
 
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{connector}{?dryrun}")
     public HttpResponse<Void> deleteConnector(String namespace, String connector, @QueryValue(defaultValue = "false") boolean dryrun) {
+        log.info("Apply Connector received for Namespace {} and for Connector {}",namespace, connector);
         Namespace ns = getNamespace(namespace);
         //check ownership
         if (!kafkaConnectService.isNamespaceOwnerOfConnect(ns, connector)) {
@@ -70,6 +73,8 @@ public class ConnectController extends NamespacedResourceController {
 
     @Post("{?dryrun}")
     public Connector apply(String namespace, @Valid @Body Connector connector, @QueryValue(defaultValue = "false") boolean dryrun) {
+        log.info("Apply Connector received for Namespace {} and for Connector {}",namespace, connector.getMetadata().getName());
+        log.debug("Apply Connector received for Connector {}", connector);
 
         Namespace ns = getNamespace(namespace);
 
@@ -114,6 +119,7 @@ public class ConnectController extends NamespacedResourceController {
 
     @Post("/_/import{?dryrun}")
     public List<Connector> importResources(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
+        log.info("Import Connectors received for Namespace {}", namespace);
 
         Namespace ns = getNamespace(namespace);
 

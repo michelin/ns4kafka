@@ -9,6 +9,8 @@ import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
+
 import org.apache.kafka.common.TopicPartition;
 
 import javax.inject.Inject;
@@ -17,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Tag(name = "Consumer Groups")
 @Controller("/api/namespaces/{namespace}/consumer-groups")
 public class ConsumerGroupController extends NamespacedResourceController {
@@ -28,7 +31,8 @@ public class ConsumerGroupController extends NamespacedResourceController {
     public ConsumerGroupResetOffsets resetOffsets(String namespace, String consumerGroup,
                                                   @Valid @Body ConsumerGroupResetOffsets consumerGroupResetOffsets,
                                                   @QueryValue(defaultValue = "false") boolean dryrun) {
-
+        log.info("Reset Offset received for Namespace {} and for Consumergroup {}", namespace, consumerGroup);
+        log.debug("Reset Offset for Consumergroup {} with Method {}", consumerGroup, consumerGroupResetOffsets);
         Namespace ns = getNamespace(namespace);
 
         // validate spec
