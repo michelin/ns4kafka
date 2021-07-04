@@ -5,6 +5,7 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
+import javax.inject.Inject;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -20,8 +21,8 @@ import java.util.concurrent.Callable;
                         DeleteRecordsSubcommand.class,
                         ImportSubcommand.class
                 },
-                versionProvider = KafkactlCommand.ManifestVersionProvider.class,
-                mixinStandardHelpOptions=true)
+        versionProvider = KafkactlCommand.ConfigVersionProvider.class,
+        mixinStandardHelpOptions = true)
 public class KafkactlCommand implements Callable<Integer> {
 
     public static boolean VERBOSE = false;
@@ -36,6 +37,18 @@ public class KafkactlCommand implements Callable<Integer> {
 
 
     public static void main(String[] args) throws Exception {
+        // There are 3 ways to configure kafkactl :
+        // 1. Setup config file in $HOME/.kafkactl/config.yml
+        // 2. Setup config file anywhere and set KAFKACTL_CONFIG=/path/to/config.yml
+        // 3. No file but environment variables instead
+        boolean hasConfig = System.getenv().keySet().stream().anyMatch(s -> s.startsWith("KAFKACTL_"));
+        if (!hasConfig) {
+            System.setProperty("micronaut.config.files", System.getProperty("user.home") + "/.kafkactl/config.yml");
+        }
+        if (System.getenv("KAFKACTL_CONFIG") != null) {
+            System.setProperty("micronaut.config.files", System.getenv("KAFKACTL_CONFIG"));
+        }
+
         int exitCode = PicocliRunner.execute(KafkactlCommand.class, args);
         System.exit(exitCode);
     }
@@ -50,12 +63,14 @@ public class KafkactlCommand implements Callable<Integer> {
 
     }
 
-    public static class ManifestVersionProvider implements CommandLine.IVersionProvider {
+    public static class ConfigVersionProvider implements CommandLine.IVersionProvider {
 
+        @Inject
+        public KafkactlConfig kafkactlConfig;
         @Override
         public String[] getVersion() {
-            return new String[] {
-                    "v" + getClass().getPackage().getImplementationVersion()
+            return new String[]{
+                    "v" + kafkactlConfig.getVersion()
             };
         }
     }

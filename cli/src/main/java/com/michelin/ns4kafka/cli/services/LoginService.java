@@ -10,49 +10,50 @@ import com.michelin.ns4kafka.cli.client.UsernameAndPasswordRequest;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 
-import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Calendar;
 import java.util.Date;
 
 @Singleton
 public class LoginService {
-    @Inject
-    KafkactlConfig kafkactlConfiguration;
-
-    @Inject
-    ClusterResourceClient clusterResourceClient;
-
-    private final String jwtFilePath = System.getProperty("user.home") + "/.kafkactl/jwt";
+    private final KafkactlConfig kafkactlConfig;
+    private final ClusterResourceClient clusterResourceClient;
+    private final File jwtFile;
 
     private String accessToken = null;
+
+    public LoginService(KafkactlConfig kafkactlConfig, ClusterResourceClient clusterResourceClient) {
+        this.kafkactlConfig = kafkactlConfig;
+        this.clusterResourceClient = clusterResourceClient;
+        this.jwtFile = new File(kafkactlConfig.getConfigPath() + "/jwt");
+        // Create base kafkactl dir if not exists
+        File kafkactlDir = new File(kafkactlConfig.getConfigPath());
+        if (!kafkactlDir.exists()) {
+            kafkactlDir.mkdir();
+        }
+    }
 
     public String getAuthorization() {
         return "Bearer " + accessToken;
     }
 
     public boolean doAuthenticate() {
-        return isAuthenticated() || login("gitlab", kafkactlConfiguration.getUserToken());
+        return isAuthenticated() || login("gitlab", kafkactlConfig.getUserToken());
     }
 
     public boolean isAuthenticated() {
         try {
             // 0. JWT token file exists
-            if(!Files.exists(Path.of(jwtFilePath)))
+            if (!jwtFile.exists())
                 return false;
             // 1. Open local JWT token file
             ObjectMapper objectMapper = new ObjectMapper();
-            BearerAccessRefreshToken token = objectMapper.readValue(
-                    new File(jwtFilePath),
-                    BearerAccessRefreshToken.class);
+            BearerAccessRefreshToken token = objectMapper.readValue(jwtFile, BearerAccessRefreshToken.class);
             // 2. Verify token against ns4kafka /user_info endpoint
             UserInfoResponse userInfo = clusterResourceClient.tokenInfo("Bearer " + token.getAccessToken());
             // 3. Display token result
-
             if (KafkactlCommand.VERBOSE) {
                 Date expiry = new Date(userInfo.getExp() * 1000);
                 System.out.println("Authentication reused, welcome " + userInfo.getUsername() + "!");
@@ -95,8 +96,8 @@ public class LoginService {
             // 4. Store token result locally
             try {
                 ObjectMapper objectMapper = new ObjectMapper();
-                objectMapper.writeValue(new File(jwtFilePath), tokenResponse);
-            }catch(IOException e){
+                objectMapper.writeValue(jwtFile, tokenResponse);
+            } catch (IOException e) {
                 System.out.println("WARNING : Unexpected error occurred: " + e.getMessage());
             }
 

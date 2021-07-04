@@ -8,7 +8,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class KafkactlConfig {
-
+    public String version;
+    public String configPath;
     public String api;
     public String userToken;
     public String currentNamespace;

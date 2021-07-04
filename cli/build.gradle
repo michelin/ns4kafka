@@ -49,14 +49,6 @@ java {
 
 shadowJar {
     archiveFileName = "kafkactl-${version}.jar"
-    manifest {
-        attributes 'Implementation-Version': rootProject.version
-    }
-}
-jar{
-    manifest {
-        attributes 'Implementation-Version': rootProject.version
-    }
 }
 
 nativeImage {
@@ -75,5 +67,11 @@ jacocoTestReport {
     reports {
         html.enabled true
         xml.enabled true
+    }
+}
+import org.apache.tools.ant.filters.ReplaceTokens
+processResources {
+    filesMatching("application.yml"){
+        filter(ReplaceTokens, tokens: [version: project.version])
     }
 }
