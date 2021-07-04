@@ -391,29 +391,30 @@ If you wish to build the package from source : [Take me to the Build page](#todo
   - Technically, LDAP or OIDC is also supported, but it is untested yet.
 
 Setup of these variables can be done in two different ways :
-1. Environments variables
-   ````shell
-   export KAFKACTL_API=http://ns4kafka.api
-   export KAFKACTL_USER_TOKEN=<authentication>
-   export KAFKACTL_CURRENT_NAMESPACE=test
-   ````
-1. A configuration file and an environment variable
+1. A configuration file
    ````yaml
       # config.yml
       kafkactl:
         api: http://ns4kafka.api
-        user-token: <authentication>
-        current-namespace: test
+        user-token: <authentication-token>
+        current-namespace: <your-namespace>
    ````
-   For ``kafkactl`` to use this config file, simply declare the following environment variable :
+   ``kafkactl`` will look for the configuration in `~/.ns4kafka/config.yml` automatically.  
+   If you need to store the file somewhere else, you can define the environement variable ``KAFKACTL_CONFIG`` :
    ````shell
-   export MICRONAUT_CONFIG_FILES=/path/to/config.yml
+   export KAFKACTL_CONFIG=/path/to/config.yml
+   ````
+1. Environments variables
+   ````shell
+   export KAFKACTL_API=http://ns4kafka.api
+   export KAFKACTL_USER_TOKEN=*******
+   export KAFKACTL_CURRENT_NAMESPACE=test
    ````
 
 Once this is done, you can verify connectivity with ns4kafka using the following command :
 ````console
-user@local:/home/user$ kafkactl api-resources
-[Success or Failed response here]
+user@local:/home/user$ kafkactl get all
+[Success or Failure response here]
 ````
 
 # Resources and Operations
