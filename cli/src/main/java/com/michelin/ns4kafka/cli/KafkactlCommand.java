@@ -5,6 +5,7 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
+import javax.inject.Inject;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -20,7 +21,7 @@ import java.util.concurrent.Callable;
                         DeleteRecordsSubcommand.class,
                         ImportSubcommand.class
                 },
-        versionProvider = KafkactlCommand.ManifestVersionProvider.class,
+        versionProvider = KafkactlCommand.ConfigVersionProvider.class,
         mixinStandardHelpOptions = true)
 public class KafkactlCommand implements Callable<Integer> {
 
@@ -62,12 +63,14 @@ public class KafkactlCommand implements Callable<Integer> {
 
     }
 
-    public static class ManifestVersionProvider implements CommandLine.IVersionProvider {
+    public static class ConfigVersionProvider implements CommandLine.IVersionProvider {
 
+        @Inject
+        public KafkactlConfig kafkactlConfig;
         @Override
         public String[] getVersion() {
             return new String[]{
-                    "v" + getClass().getPackage().getImplementationVersion()
+                    "v" + kafkactlConfig.getVersion()
             };
         }
     }

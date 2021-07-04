@@ -24,10 +24,7 @@ micronaut:
       url: https://gitlab.com
     ldap:
       enabled: false
-    endpoints:
-      introspection:
-        enabled: true
-    #      default:
+#      default:
 #        context:
 #          server: 'ldap://ldap.forumsys.com:389'
 #          managerDn: 'cn=read-only-admin,dc=example,dc=com'
@@ -37,6 +34,9 @@ micronaut:
 #        groups:
 #          enabled: true
 #          base: "dc=example,dc=com"
+    endpoints:
+      introspection:
+        enabled: true
     token:
       jwt:
         signatures:

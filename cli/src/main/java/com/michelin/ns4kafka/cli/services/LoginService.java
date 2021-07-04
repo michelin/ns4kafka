@@ -10,7 +10,6 @@ import com.michelin.ns4kafka.cli.client.UsernameAndPasswordRequest;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 
-import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
@@ -19,20 +18,20 @@ import java.util.Date;
 
 @Singleton
 public class LoginService {
-    @Inject
-    KafkactlConfig kafkactlConfiguration;
-
-    @Inject
-    ClusterResourceClient clusterResourceClient;
-    private final String configPath = System.getProperty("user.home") + "/.kafkactl";
-    private final File jwtFile = new File(configPath + "/jwt");
+    private final KafkactlConfig kafkactlConfig;
+    private final ClusterResourceClient clusterResourceClient;
+    private final File jwtFile;
 
     private String accessToken = null;
 
-    public LoginService() {
-        File directory = new File(configPath);
-        if (!directory.exists()) {
-            directory.mkdir();
+    public LoginService(KafkactlConfig kafkactlConfig, ClusterResourceClient clusterResourceClient) {
+        this.kafkactlConfig = kafkactlConfig;
+        this.clusterResourceClient = clusterResourceClient;
+        this.jwtFile = new File(kafkactlConfig.getConfigPath() + "/jwt");
+        // Create base kafkactl dir if not exists
+        File kafkactlDir = new File(kafkactlConfig.getConfigPath());
+        if (!kafkactlDir.exists()) {
+            kafkactlDir.mkdir();
         }
     }
 
@@ -41,7 +40,7 @@ public class LoginService {
     }
 
     public boolean doAuthenticate() {
-        return isAuthenticated() || login("gitlab", kafkactlConfiguration.getUserToken());
+        return isAuthenticated() || login("gitlab", kafkactlConfig.getUserToken());
     }
 
     public boolean isAuthenticated() {
