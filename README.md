@@ -65,7 +65,7 @@ ns4kafka is built on top of 2 components : an **API** and a **CLI**.
 
 # Quick start CLI
 
-*The following examples demonstrates ns4kafka for a namespace which is owner of <b>test-\*</b> resources.*
+*The following examples demonstrates ns4kafka for a namespace which is owner of <b>test.\*</b> resources.*
 
 ### Create a Topic
 ```yaml
