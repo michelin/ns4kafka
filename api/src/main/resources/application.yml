@@ -96,6 +96,7 @@ ns4kafka:
     kafka:
       enabled: true
       group-id: ns4kafka.group
+      init-timeout: 60000
       topics:
         prefix: ns4kafka
         replication-factor: 1

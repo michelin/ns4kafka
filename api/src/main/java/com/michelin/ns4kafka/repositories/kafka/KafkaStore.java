@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.repositories.kafka;
 
 import io.micronaut.context.ApplicationContext;
+import io.micronaut.context.annotation.Property;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.TaskScheduler;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -51,7 +52,8 @@ public abstract class KafkaStore<T> {
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final ReentrantLock offsetUpdateLock;
     private final Condition offsetReachedThreshold;
-    int initTimeout = 10000;
+    @Property(name = "ns4kafka.store.kafka.init-timeout")
+    int initTimeout;
 
     public KafkaStore(String kafkaTopic, Producer<String,T> kafkaProducer){
         this.kafkaTopic = kafkaTopic;
@@ -153,11 +155,15 @@ public abstract class KafkaStore<T> {
         taskScheduler.schedule(Duration.ZERO, this::waitUntilKafkaReaderReachesLastOffsetInit);
     }
     public void waitUntilKafkaReaderReachesLastOffsetInit(){
-        waitUntilKafkaReaderReachesLastOffset(initTimeout);
-        boolean isInitialized = initialized.compareAndSet(false, true);
-        if (!isInitialized) {
-            throw new KafkaStoreException("Illegal state while initializing store. Store "
-                    + "was already initialized");
+        try {
+            waitUntilKafkaReaderReachesLastOffset(initTimeout);
+            boolean isInitialized = initialized.compareAndSet(false, true);
+            if (!isInitialized) {
+                throw new KafkaStoreException("Illegal state while initializing store. Store "
+                        + "was already initialized");
+            }
+        } catch (Exception e){
+            LOG.error("Unrecoverable error during initialization", e);
         }
     }
 
@@ -347,4 +353,11 @@ public abstract class KafkaStore<T> {
         return originalString;
     }
 
+    public void reportInitProgress(){
+        if (isInitialized()) {
+            LOG.info("Catchup Progess for {} : READY (Store size : {})", kafkaTopic, kafkaStore.size());
+        } else {
+            LOG.info("Catchup Progess for {} : {}/{}", kafkaTopic, offsetInSchemasTopic, lastWrittenOffset);
+        }
+    }
 }

@@ -27,6 +27,7 @@ public class DelayStartupListener implements ApplicationEventListener<StartupEve
                 LOG.error("Exception ",e);
                 Thread.currentThread().interrupt();
             }
+            kafkaStores.forEach(KafkaStore::reportInitProgress);
         }
 
 
