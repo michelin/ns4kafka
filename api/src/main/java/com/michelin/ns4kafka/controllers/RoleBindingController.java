@@ -43,7 +43,7 @@ public class RoleBindingController extends NamespacedResourceController {
     }
 
     @Post("{?dryrun}")
-    public RoleBinding apply(String namespace, @Valid @Body RoleBinding rolebinding, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<RoleBinding> apply(String namespace, @Valid @Body RoleBinding rolebinding, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         // fill with cluster name
         Namespace ns = getNamespace(namespace);
@@ -55,14 +55,18 @@ public class RoleBindingController extends NamespacedResourceController {
         Optional<RoleBinding> existingRoleBinding = roleBindingService.findByName(namespace, rolebinding.getMetadata().getName());
 
         if(existingRoleBinding.isPresent() && existingRoleBinding.get().equals(rolebinding)){
-            return existingRoleBinding.get();
+            return formatHttpResponse(existingRoleBinding.get(), ApplyStatus.unchanged);
+        }
+        ApplyStatus status = ApplyStatus.created;
+        if(existingRoleBinding.isPresent()) {
+            status = ApplyStatus.changed;
         }
 
         if (dryrun) {
-            return rolebinding;
+            return formatHttpResponse(rolebinding, status);
         }
         roleBindingService.create(rolebinding);
-        return rolebinding;
+        return formatHttpResponse(rolebinding, status);
     }
 
     @Delete("/{name}{?dryrun}")

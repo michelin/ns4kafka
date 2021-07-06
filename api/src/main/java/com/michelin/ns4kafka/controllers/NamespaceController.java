@@ -36,7 +36,7 @@ public class NamespaceController extends NonNamespacedResourceController {
     }
 
     @Post("{?dryrun}")
-    public Namespace apply(@Valid @Body Namespace namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<Namespace> apply(@Valid @Body Namespace namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         Optional<Namespace> existingNamespace = namespaceService.findByName(namespace.getMetadata().getName());
 
@@ -69,13 +69,19 @@ public class NamespaceController extends NonNamespacedResourceController {
         namespace.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
 
         if (existingNamespace.isPresent() && existingNamespace.get().equals(namespace)) {
-            return existingNamespace.get();
+            return formatHttpResponse(existingNamespace.get(), ApplyStatus.unchanged);
         }
+
+        ApplyStatus status = ApplyStatus.created;
+        if (existingNamespace.isPresent()) {
+            status = ApplyStatus.changed;
+        }
+
         //dryrun checks
         if (dryrun) {
-            return namespace;
+            return formatHttpResponse(namespace, status);
         }
-        return namespaceService.createOrUpdate(namespace);
+        return formatHttpResponse(namespaceService.createOrUpdate(namespace), status);
 
     }
 

@@ -51,7 +51,7 @@ public class TopicController extends NamespacedResourceController {
     }
 
     @Post("{?dryrun}")
-    public Topic apply(String namespace, @Valid @Body Topic topic, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<Topic> apply(String namespace, @Valid @Body Topic topic, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         //TODO
         // 1. (Done) User Allowed ?
@@ -112,14 +112,18 @@ public class TopicController extends NamespacedResourceController {
         topic.setStatus(Topic.TopicStatus.ofPending());
 
         if (existingTopic.isPresent() && existingTopic.get().equals(topic)) {
-            return existingTopic.get();
+            return formatHttpResponse(existingTopic.get(), ApplyStatus.unchanged);
+        }
+        ApplyStatus status = ApplyStatus.created;
+        if (existingTopic.isPresent()) {
+            status = ApplyStatus.changed;
         }
 
         if (dryrun) {
-            return topic;
+            return formatHttpResponse(topic, status);
         }
 
-        return topicService.create(topic);
+        return formatHttpResponse(topicService.create(topic), status);
     }
 
     @Status(HttpStatus.NO_CONTENT)

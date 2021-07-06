@@ -70,7 +70,7 @@ public class ConnectController extends NamespacedResourceController {
     }
 
     @Post("{?dryrun}")
-    public Connector apply(String namespace, @Valid @Body Connector connector, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<Connector> apply(String namespace, @Valid @Body Connector connector, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         Namespace ns = getNamespace(namespace);
 
@@ -103,14 +103,18 @@ public class ConnectController extends NamespacedResourceController {
 
         Optional<Connector> existingConnector = kafkaConnectService.findByName(ns, connector.getMetadata().getName());
         if (existingConnector.isPresent() && existingConnector.get().equals(connector)) {
-            return existingConnector.get();
+            return formatHttpResponse(existingConnector.get(), ApplyStatus.unchanged);
+        }
+        ApplyStatus status = ApplyStatus.created;
+        if (existingConnector.isPresent()) {
+            status = ApplyStatus.changed;
         }
         //dryrun checks
         if (dryrun) {
-            return connector;
+            return formatHttpResponse(connector, status);
         }
         //Create resource
-        return kafkaConnectService.createOrUpdate(ns, connector);
+        return formatHttpResponse(kafkaConnectService.createOrUpdate(ns, connector), status);
     }
 
     @Post("/_/import{?dryrun}")
