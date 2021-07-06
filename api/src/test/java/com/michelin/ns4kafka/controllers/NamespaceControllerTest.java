@@ -61,7 +61,7 @@ public class NamespaceControllerTest {
         Mockito.when(namespaceService.createOrUpdate(toCreate))
                 .thenReturn(toCreate);
 
-        Namespace actual = namespaceController.apply(toCreate, false);
+        Namespace actual = namespaceController.apply(toCreate, false).body();
         Assertions.assertEquals("new-namespace", actual.getMetadata().getName());
         Assertions.assertEquals("local", actual.getMetadata().getCluster());
     }
@@ -78,7 +78,7 @@ public class NamespaceControllerTest {
         Mockito.when(namespaceService.validateCreation(toCreate))
                 .thenReturn(List.of());
 
-        Namespace actual = namespaceController.apply(toCreate, true);
+        Namespace actual = namespaceController.apply(toCreate, true).body();
         verify(namespaceService, never()).createOrUpdate(toCreate);
     }
     @Test
@@ -138,7 +138,7 @@ public class NamespaceControllerTest {
         Mockito.when(namespaceService.createOrUpdate(toUpdate))
                 .thenReturn(toUpdate);
 
-        Namespace actual = namespaceController.apply(toUpdate, false);
+        Namespace actual = namespaceController.apply(toUpdate, false).body();
         Assertions.assertEquals("namespace", actual.getMetadata().getName());
         Assertions.assertEquals("local", actual.getMetadata().getCluster());
         Assertions.assertEquals("label", actual.getMetadata().getLabels().get("new"));
@@ -166,7 +166,7 @@ public class NamespaceControllerTest {
         Mockito.when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
 
-        Namespace actual = namespaceController.apply(toUpdate, false);
+        Namespace actual = namespaceController.apply(toUpdate, false).body();
         Assertions.assertEquals(existing, actual);
         verify(namespaceService,never()).createOrUpdate(ArgumentMatchers.any());
     }
@@ -194,7 +194,7 @@ public class NamespaceControllerTest {
         Mockito.when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
 
-        Namespace actual = namespaceController.apply(toUpdate, true);
+        Namespace actual = namespaceController.apply(toUpdate, true).body();
         verify(namespaceService, never()).createOrUpdate(toUpdate);
     }
 

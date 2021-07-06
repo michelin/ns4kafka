@@ -46,7 +46,7 @@ public class RoleBindingControllerTest {
 
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
 
-        RoleBinding actual = roleBindingController.apply("test", rolebinding, false);
+        RoleBinding actual = roleBindingController.apply("test", rolebinding, false).body();
         assertEquals(actual.getMetadata().getName(), rolebinding.getMetadata().getName());
     }
 
@@ -68,7 +68,7 @@ public class RoleBindingControllerTest {
         when(roleBindingService.findByName("test","test.rolebinding"))
                 .thenReturn(Optional.of(rolebinding));
 
-        RoleBinding actual = roleBindingController.apply("test", rolebinding, false);
+        RoleBinding actual = roleBindingController.apply("test", rolebinding, false).body();
         assertEquals(actual.getMetadata().getName(), rolebinding.getMetadata().getName());
         verify(roleBindingService,never()).create(ArgumentMatchers.any());
     }
@@ -89,7 +89,7 @@ public class RoleBindingControllerTest {
 
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
 
-        RoleBinding actual = roleBindingController.apply("test", rolebinding, true);
+        RoleBinding actual = roleBindingController.apply("test", rolebinding, true).body();
         verify(roleBindingService, never()).create(rolebinding);
     }
 

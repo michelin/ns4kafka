@@ -179,7 +179,7 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
-        AccessControlEntry actual = accessControlListController.apply(auth,"test", ace1, false);
+        AccessControlEntry actual = accessControlListController.apply(auth,"test", ace1, false).body();
         Assertions.assertEquals("test", actual.getMetadata().getNamespace());
         Assertions.assertEquals("local", actual.getMetadata().getCluster());
     }
@@ -237,7 +237,7 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
-        AccessControlEntry actual = accessControlListController.apply(auth, "test", ace1, false);
+        AccessControlEntry actual = accessControlListController.apply(auth, "test", ace1, false).body();
         Assertions.assertEquals("test", actual.getMetadata().getNamespace());
         Assertions.assertEquals("local", actual.getMetadata().getCluster());
     }
@@ -266,7 +266,7 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.findByName("test","ace1"))
                 .thenReturn(Optional.of(ace1));
 
-        AccessControlEntry actual = accessControlListController.apply(auth, "test", ace1, false);
+        AccessControlEntry actual = accessControlListController.apply(auth, "test", ace1, false).body();
         Assertions.assertEquals("test", actual.getMetadata().getNamespace());
         Assertions.assertEquals("local", actual.getMetadata().getCluster());
         verify(accessControlEntryService,never()).create(ArgumentMatchers.any());
@@ -295,7 +295,7 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.validateAsAdmin(ace1, ns))
                 .thenReturn(List.of());
 
-        AccessControlEntry actual = accessControlListController.apply(auth, "test", ace1, true);
+        AccessControlEntry actual = accessControlListController.apply(auth, "test", ace1, true).body();
         verify(accessControlEntryService, never()).create(ArgumentMatchers.any());
     }
 
@@ -322,7 +322,7 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.validate(ace1, ns))
                 .thenReturn(List.of());
 
-        AccessControlEntry actual = accessControlListController.apply(auth, "test", ace1, true);
+        AccessControlEntry actual = accessControlListController.apply(auth, "test", ace1, true).body();
         verify(accessControlEntryService, never()).create(ace1);
     }
 

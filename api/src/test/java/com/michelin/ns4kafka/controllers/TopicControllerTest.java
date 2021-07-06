@@ -223,7 +223,7 @@ public class TopicControllerTest {
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
         when(topicService.create(topic)).thenReturn(topic);
 
-        Topic actual = topicController.apply("test", topic, false);
+        Topic actual = topicController.apply("test", topic, false).body();
         assertEquals(actual.getMetadata().getName(), "test.topic");
     }
 
@@ -267,7 +267,7 @@ public class TopicControllerTest {
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
         when(topicService.create(topic)).thenReturn(topic);
 
-        Topic actual = topicController.apply("test", topic, false);
+        Topic actual = topicController.apply("test", topic, false).body();
         assertEquals(actual.getMetadata().getName(), "test.topic");
     }
 
@@ -312,7 +312,7 @@ public class TopicControllerTest {
                 .thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
 
-        Topic actual = topicController.apply("test", topic, false);
+        Topic actual = topicController.apply("test", topic, false).body();
         verify(topicService, never()).create(ArgumentMatchers.any());
         assertEquals(existing, actual);
 
@@ -346,7 +346,7 @@ public class TopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
 
-        Topic actual = topicController.apply("test", topic, true);
+        Topic actual = topicController.apply("test", topic, true).body();
         verify(topicService, never()).create(topic);
     }
 

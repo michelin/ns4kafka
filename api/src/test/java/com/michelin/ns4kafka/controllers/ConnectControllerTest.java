@@ -243,7 +243,7 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.createOrUpdate(ns, connector))
                 .thenReturn(expected);
 
-        Connector actual = connectController.apply("test", connector, false);
+        Connector actual = connectController.apply("test", connector, false).body();
 
         Assertions.assertEquals(expected.getStatus().getState(), actual.getStatus().getState());
 
@@ -278,7 +278,7 @@ public class ConnectControllerTest {
                 .thenReturn(Optional.of(connector));
 
 
-        Connector actual = connectController.apply("test", connector, false);
+        Connector actual = connectController.apply("test", connector, false).body();
 
         Assertions.assertEquals(expected, actual);
         verify(kafkaConnectService,never()).createOrUpdate(ArgumentMatchers.any(), ArgumentMatchers.any());
@@ -307,7 +307,7 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.validateRemotely(ns, connector))
                 .thenReturn(List.of());
 
-        Connector actual = connectController.apply("test", connector, true);
+        Connector actual = connectController.apply("test", connector, true).body();
         verify(kafkaConnectService, never()).createOrUpdate(ns, connector);
 
     }
