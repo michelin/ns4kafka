@@ -6,6 +6,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -26,6 +27,8 @@ import java.util.concurrent.Callable;
 public class KafkactlCommand implements Callable<Integer> {
 
     public static boolean VERBOSE = false;
+    @Inject
+    public ConfigVersionProvider versionProvider;
 
     @Option(names = {"-v", "--verbose"}, description = "...", scope = CommandLine.ScopeType.INHERIT)
     public void setVerbose(final boolean verbose) {
@@ -56,13 +59,14 @@ public class KafkactlCommand implements Callable<Integer> {
     public Integer call() throws Exception {
         CommandLine cmd = new CommandLine(new KafkactlCommand());
         // Display help
-        cmd.printVersionHelp(System.out);
+        System.out.println(versionProvider.getVersion()[0]);
         cmd.usage(System.out);
 
         return 0;
 
     }
 
+    @Singleton
     public static class ConfigVersionProvider implements CommandLine.IVersionProvider {
 
         @Inject
