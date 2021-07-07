@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import picocli.CommandLine;
 
@@ -59,7 +60,7 @@ public class ResourceService {
         return null;
     }
 
-    public Resource apply(ApiResource apiResource, String namespace, Resource resource, boolean dryRun) {
+    public HttpResponse<Resource> apply(ApiResource apiResource, String namespace, Resource resource, boolean dryRun) {
         try {
             Resource merged;
             if (apiResource.isNamespaced()) {

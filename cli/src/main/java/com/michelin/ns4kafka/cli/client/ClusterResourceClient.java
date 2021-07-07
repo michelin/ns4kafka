@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.cli.client;
 
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.client.annotation.Client;
 
@@ -23,7 +24,7 @@ public interface ClusterResourceClient {
     void delete(@Header("Authorization") String token, String kind, String resource, @QueryValue boolean dryrun);
 
     @Post("/api/{kind}{?dryrun}")
-    Resource apply(@Header("Authorization") String token, String kind, @Body Resource json, @QueryValue boolean dryrun);
+    HttpResponse<Resource> apply(@Header("Authorization") String token, String kind, @Body Resource json, @QueryValue boolean dryrun);
 
     @Get("/api/{kind}")
     List<Resource> list(@Header("Authorization") String token, String kind);

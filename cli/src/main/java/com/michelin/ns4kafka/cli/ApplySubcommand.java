@@ -6,6 +6,7 @@ import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.FileService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
+import io.micronaut.http.HttpResponse;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -105,9 +106,10 @@ public class ApplySubcommand implements Callable<Integer> {
                             .filter(apiRes -> apiRes.getKind().equals(resource.getKind()))
                             .findFirst()
                             .orElseThrow(); // already validated
-                    Resource merged = resourceService.apply(apiResource, namespace, resource, dryRun);
+                    HttpResponse<Resource> response = resourceService.apply(apiResource, namespace, resource, dryRun);
+                    Resource merged = response.body();
                     if(merged != null) {
-                        System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,green SUCCESS: |@") + merged.getKind() + "/" + merged.getMetadata().getName());
+                        System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,green SUCCESS: |@") + merged.getKind() + "/" + merged.getMetadata().getName() +" ("+ response.header("X-Ns4kafka-Result") + ")" );
                     }
                     return merged;
                 })
