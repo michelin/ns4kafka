@@ -174,6 +174,29 @@ public class ResourceBasedSecurityRuleTest {
         SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/role-bindings"),null, claims);
         Assertions.assertEquals(SecurityRuleResult.ALLOWED, actual);
     }
+    @Test
+    void CheckReturnsAllowed_ResourceNameWithDot(){
+        List<String> groups = List.of("group1");
+        Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
+        Mockito.when(roleBindingRepository.findAllForGroups(groups))
+                .thenReturn(List.of(RoleBinding.builder()
+                        .metadata(ObjectMeta.builder().namespace("test")
+                                .build())
+                        .spec(RoleBinding.RoleBindingSpec.builder()
+                                .role(RoleBinding.Role.builder()
+                                        .resourceTypes(List.of("topics"))
+                                        .verbs(List.of(RoleBinding.Verb.GET))
+                                        .build())
+                                .subject(RoleBinding.Subject.builder().subjectName("group1")
+                                        .build())
+                                .build())
+                        .build()));
+        Mockito.when(namespaceRepository.findByName("test"))
+                .thenReturn(Optional.of(Namespace.builder().build()));
+
+        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/topics/topic.with.dots"),null, claims);
+        Assertions.assertEquals(SecurityRuleResult.ALLOWED, actual);
+    }
 
   @Test
     void CheckReturnsUnknown_SubResource(){
