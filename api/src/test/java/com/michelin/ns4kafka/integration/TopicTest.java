@@ -198,6 +198,31 @@ public class TopicTest extends AbstractIntegrationTest {
         });
     }
 
+    @Test
+    void invalidTopicName() throws InterruptedException, ExecutionException {
+
+        Topic topicFirstCreate = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-invalid-é")
+                        .namespace("ns1")
+                        .build())
+                .spec(TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(Map.of("cleanup.policy", "delete",
+                                "min.insync.replicas", "1",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,
+                () -> client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(topicFirstCreate))
+                        .blockingFirst());
+
+        Assertions.assertEquals("topic.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"", exception.getMessage());
+
+    }
 
     @Test
     void unauthorizedModifications() throws InterruptedException {
