@@ -11,6 +11,7 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.security.authentication.Authentication;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Tag(name = "Cross Namespace Topic Grants",
         description = "APIs to handle cross namespace ACL")
 @Controller("/api/namespaces/{namespace}/acls")
@@ -33,6 +35,7 @@ public class AccessControlListController extends NamespacedResourceController {
     @Operation(summary = "Returns the Access Control Entry List")
     @Get("{?limit}")
     public List<AccessControlEntry> list(String namespace, Optional<AclLimit> limit) {
+        log.info("List ACL received for Namespace {}",namespace);
         if (limit.isEmpty())
             limit = Optional.of(AclLimit.ALL);
 
@@ -71,6 +74,8 @@ public class AccessControlListController extends NamespacedResourceController {
 
     @Post("{?dryrun}")
     public AccessControlEntry apply(Authentication authentication, String namespace, @Valid @Body AccessControlEntry accessControlEntry, @QueryValue(defaultValue = "false") boolean dryrun) {
+        log.info("Apply ACL received for Namespace {} and for ACL {}",namespace, accessControlEntry.getMetadata().getName());
+        log.debug("Apply ACL received for ACL {}", accessControlEntry);
         Namespace ns = getNamespace(namespace);
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
@@ -110,6 +115,7 @@ public class AccessControlListController extends NamespacedResourceController {
     @Delete("/{name}{?dryrun}")
     @Status(HttpStatus.NO_CONTENT)
     public HttpResponse<Void> delete(Authentication authentication, String namespace, String name, @QueryValue(defaultValue = "false") boolean dryrun) {
+        log.info("Delete ACL received for Namespace {} and for ACL {}",namespace, name);
 
         AccessControlEntry accessControlEntry = accessControlEntryService
                 .findByName(namespace, name)
