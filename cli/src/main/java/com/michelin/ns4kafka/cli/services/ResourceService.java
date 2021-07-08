@@ -69,7 +69,7 @@ public class ResourceService {
                 return nonNamespacedClient.apply(loginService.getAuthorization(), apiResource.getPath(), resource, dryRun);
             }
         } catch (HttpClientResponseException e) {
-            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red FAILED |@") + apiResource.getKind() + "/" + resource.getMetadata().getName() + CommandLine.Help.Ansi.AUTO.string("@|bold,red failed with message : |@") + e.getMessage());
+            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red Failed |@") + apiResource.getKind() + "/" + resource.getMetadata().getName() + CommandLine.Help.Ansi.AUTO.string("@|bold,red failed with message : |@") + e.getMessage());
         }
         return null;
     }
@@ -83,7 +83,7 @@ public class ResourceService {
                 return true;
             }
         } catch (HttpClientResponseException e) {
-            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red FAILED |@") + apiResource.getKind() + "/" + resource + CommandLine.Help.Ansi.AUTO.string("@|bold,red failed with message : |@") + e.getMessage());
+            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red Failed |@") + apiResource.getKind() + "/" + resource + CommandLine.Help.Ansi.AUTO.string("@|bold,red failed with message : |@") + e.getMessage());
         }
         return false;
     }
@@ -110,7 +110,7 @@ public class ResourceService {
         try {
             return namespacedClient.deleteRecords(loginService.getAuthorization(),namespace, topic, dryrun);
         } catch (HttpClientResponseException e) {
-            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red FAILED |@") + topic + CommandLine.Help.Ansi.AUTO.string("@|bold,red failed with message : |@") + e.getMessage());
+            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red Failed |@") + topic + CommandLine.Help.Ansi.AUTO.string("@|bold,red failed with message : |@") + e.getMessage());
         }
         return null;
     }

@@ -109,7 +109,7 @@ public class ApplySubcommand implements Callable<Integer> {
                     HttpResponse<Resource> response = resourceService.apply(apiResource, namespace, resource, dryRun);
                     Resource merged = response.body();
                     if(merged != null) {
-                        System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,green SUCCESS: |@") + merged.getKind() + "/" + merged.getMetadata().getName() +" ("+ response.header("X-Ns4kafka-Result") + ")" );
+                        System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,green Success |@") + merged.getKind() + "/" + merged.getMetadata().getName() +" ("+ response.header("X-Ns4kafka-Result") + ")" );
                     }
                     return merged;
                 })
