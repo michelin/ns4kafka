@@ -223,7 +223,9 @@ public class TopicControllerTest {
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
         when(topicService.create(topic)).thenReturn(topic);
 
-        Topic actual = topicController.apply("test", topic, false).body();
+        var response = topicController.apply("test", topic, false);
+        Topic actual = response.body();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals(actual.getMetadata().getName(), "test.topic");
     }
 
@@ -267,7 +269,9 @@ public class TopicControllerTest {
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
         when(topicService.create(topic)).thenReturn(topic);
 
-        Topic actual = topicController.apply("test", topic, false).body();
+        var response = topicController.apply("test", topic, false);
+        Topic actual = response.body();
+        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertEquals(actual.getMetadata().getName(), "test.topic");
     }
 
@@ -312,7 +316,9 @@ public class TopicControllerTest {
                 .thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
 
-        Topic actual = topicController.apply("test", topic, false).body();
+        var response = topicController.apply("test", topic, false);
+        Topic actual = response.body();
+        Assertions.assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         verify(topicService, never()).create(ArgumentMatchers.any());
         assertEquals(existing, actual);
 
@@ -346,7 +352,9 @@ public class TopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
 
-        Topic actual = topicController.apply("test", topic, true).body();
+        var response = topicController.apply("test", topic, true);
+        Topic actual = response.body();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(topicService, never()).create(topic);
     }
 

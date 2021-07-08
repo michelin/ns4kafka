@@ -179,7 +179,9 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
-        AccessControlEntry actual = accessControlListController.apply(auth,"test", ace1, false).body();
+        var response = accessControlListController.apply(auth,"test", ace1, false);
+        AccessControlEntry actual = response.body();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         Assertions.assertEquals("test", actual.getMetadata().getNamespace());
         Assertions.assertEquals("local", actual.getMetadata().getCluster());
     }
@@ -237,7 +239,9 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
-        AccessControlEntry actual = accessControlListController.apply(auth, "test", ace1, false).body();
+        var response = accessControlListController.apply(auth, "test", ace1, false);
+        AccessControlEntry actual = response.body();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         Assertions.assertEquals("test", actual.getMetadata().getNamespace());
         Assertions.assertEquals("local", actual.getMetadata().getCluster());
     }
@@ -266,10 +270,57 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.findByName("test","ace1"))
                 .thenReturn(Optional.of(ace1));
 
-        AccessControlEntry actual = accessControlListController.apply(auth, "test", ace1, false).body();
+        var response = accessControlListController.apply(auth, "test", ace1, false);
+        AccessControlEntry actual = response.body();
+        Assertions.assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         Assertions.assertEquals("test", actual.getMetadata().getNamespace());
         Assertions.assertEquals("local", actual.getMetadata().getCluster());
         verify(accessControlEntryService,never()).create(ArgumentMatchers.any());
+    }
+
+    @Test
+    void applySuccess_ChangedResource() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder().name("test").cluster("local").build())
+                .build();
+        AccessControlEntry ace1 = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder().name("ace1").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build()
+                )
+                .build();
+        AccessControlEntry ace1Old = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder().name("ace1").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.CONNECT) //This line was changed
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build()
+                )
+                .build();
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
+
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(accessControlEntryService.validate(ace1, ns))
+                .thenReturn(List.of());
+        Mockito.when(accessControlEntryService.findByName("test","ace1"))
+                .thenReturn(Optional.of(ace1Old));
+        Mockito.when(accessControlEntryService.create(ace1))
+                .thenReturn(ace1);
+
+        var response = accessControlListController.apply(auth, "test", ace1, false);
+        AccessControlEntry actual = response.body();
+        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
+        Assertions.assertEquals("test", actual.getMetadata().getNamespace());
+        Assertions.assertEquals("local", actual.getMetadata().getCluster());
     }
 
     @Test
@@ -295,7 +346,9 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.validateAsAdmin(ace1, ns))
                 .thenReturn(List.of());
 
-        AccessControlEntry actual = accessControlListController.apply(auth, "test", ace1, true).body();
+        var response = accessControlListController.apply(auth, "test", ace1, true);
+        AccessControlEntry actual = response.body();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(accessControlEntryService, never()).create(ArgumentMatchers.any());
     }
 
@@ -322,7 +375,9 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.validate(ace1, ns))
                 .thenReturn(List.of());
 
-        AccessControlEntry actual = accessControlListController.apply(auth, "test", ace1, true).body();
+        var response = accessControlListController.apply(auth, "test", ace1, true);
+        AccessControlEntry actual = response.body();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(accessControlEntryService, never()).create(ace1);
     }
 

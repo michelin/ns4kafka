@@ -15,6 +15,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -243,8 +244,10 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.createOrUpdate(ns, connector))
                 .thenReturn(expected);
 
-        Connector actual = connectController.apply("test", connector, false).body();
+        var response = connectController.apply("test", connector, false);
+        Connector actual = response.body();
 
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         Assertions.assertEquals(expected.getStatus().getState(), actual.getStatus().getState());
 
     }
@@ -278,10 +281,48 @@ public class ConnectControllerTest {
                 .thenReturn(Optional.of(connector));
 
 
-        Connector actual = connectController.apply("test", connector, false).body();
+        var response = connectController.apply("test", connector, false);
+        Connector actual = response.body();
 
+        Assertions.assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         Assertions.assertEquals(expected, actual);
         verify(kafkaConnectService,never()).createOrUpdate(ArgumentMatchers.any(), ArgumentMatchers.any());
+    }
+
+    @Test
+    void createConnectorSuccess_Changed() {
+        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Connector connectorOld = Connector.builder().metadata(ObjectMeta.builder().name("connect1").labels(Map.of("label", "labelValue")).build()).build();
+        Connector expected = Connector.builder()
+                .metadata(ObjectMeta.builder().name("connect1").build())
+                .status(Connector.ConnectorStatus.builder().state(Connector.TaskState.UNASSIGNED).build())
+                .build();
+
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
+                .thenReturn(true);
+        Mockito.when(kafkaConnectService.validateLocally(ns, connector))
+                .thenReturn(List.of());
+        Mockito.when(kafkaConnectService.validateRemotely(ns, connector))
+                .thenReturn(List.of());
+        Mockito.when(kafkaConnectService.findByName(ns, "connect1"))
+                .thenReturn(Optional.of(connectorOld));
+        Mockito.when(kafkaConnectService.createOrUpdate(ns, connector))
+                .thenReturn(expected);
+
+        var response = connectController.apply("test", connector, false);
+        Connector actual = response.body();
+
+        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
+        Assertions.assertEquals(expected.getStatus().getState(), actual.getStatus().getState());
+
     }
 
     @Test
@@ -307,7 +348,9 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.validateRemotely(ns, connector))
                 .thenReturn(List.of());
 
-        Connector actual = connectController.apply("test", connector, true).body();
+        var response = connectController.apply("test", connector, true);
+        Connector actual = response.body();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(kafkaConnectService, never()).createOrUpdate(ns, connector);
 
     }
