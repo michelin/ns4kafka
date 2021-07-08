@@ -8,7 +8,7 @@ import javax.inject.Inject;
 /**
  * Base Controller for all Namespaced resources
  */
-public abstract class NamespacedResourceController extends RessourceController {
+public abstract class NamespacedResourceController extends ResourceController {
     @Inject
     private NamespaceService namespaceService;
 

@@ -2,7 +2,7 @@ package com.michelin.ns4kafka.controllers;
 
 import io.micronaut.http.HttpResponse;
 
-public abstract class RessourceController {
+public abstract class ResourceController {
 
     public final String statusHeaderName = "X-Ns4kafka-Result";
 
