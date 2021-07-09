@@ -2,7 +2,6 @@ package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.Status.StatusCauses;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import io.micronaut.context.ApplicationContext;
 import org.slf4j.LoggerFactory;
@@ -22,8 +21,8 @@ public class AccessControlEntryService {
     @Inject
     ApplicationContext applicationContext;
 
-    public List<StatusCauses> validate(AccessControlEntry accessControlEntry, Namespace namespace) {
-        List<StatusCauses> validationErrors = new ArrayList<>();
+    public List<String> validate(AccessControlEntry accessControlEntry, Namespace namespace) {
+        List<String> validationErrors = new ArrayList<>();
         // Which resource can be granted cross namespaces ? TOPIC
         List<AccessControlEntry.ResourceType> allowedResourceTypes =
                 List.of(AccessControlEntry.ResourceType.TOPIC);
@@ -38,26 +37,23 @@ public class AccessControlEntryService {
                         AccessControlEntry.ResourcePatternType.PREFIXED);
 
         if (!allowedResourceTypes.contains(accessControlEntry.getSpec().getResourceType())) {
-            validationErrors.add(StatusCauses.builder()
-                    .field("resourceType")
-                    .reason("Invalid")
-                    .message("Value must be one of [" + allowedResourceTypes.stream().map(Object::toString).collect(Collectors.joining(", ")) + "]")
-                    .build());
+            validationErrors.add("Invalid value " + accessControlEntry.getSpec().getResourceType() +
+                    " for resourceType: Value must be one of [" +
+                    allowedResourceTypes.stream().map(Object::toString).collect(Collectors.joining(", ")) +
+                    "]");
         }
         if (!allowedPermissions.contains(accessControlEntry.getSpec().getPermission())) {
 
-            validationErrors.add(StatusCauses.builder()
-                    .field("permission")
-                    .reason("Invalid")
-                    .message("Value must be one of [" + allowedPermissions.stream().map(Object::toString).collect(Collectors.joining(", ")) + "]")
-                    .build());
+            validationErrors.add("Invalid value " + accessControlEntry.getSpec().getPermission() +
+                    " for permission: Value must be one of [" +
+                    allowedPermissions.stream().map(Object::toString).collect(Collectors.joining(", ")) +
+                    "]");
         }
         if (!allowedPatternTypes.contains(accessControlEntry.getSpec().getResourcePatternType())) {
-            validationErrors.add(StatusCauses.builder()
-                    .field("patternType")
-                    .reason("Invalid")
-                    .message("Value must be one of [" + allowedPatternTypes.stream().map(Object::toString).collect(Collectors.joining(", ")) + "]")
-                    .build());
+            validationErrors.add("Invalid value " + accessControlEntry.getSpec().getResourcePatternType() +
+                    " for patternType: Value must be one of [" +
+                    allowedPatternTypes.stream().map(Object::toString).collect(Collectors.joining(", ")) +
+                    "]");
         }
 
 
@@ -65,33 +61,23 @@ public class AccessControlEntryService {
         NamespaceService namespaceService = applicationContext.getBean(NamespaceService.class);
         Optional<Namespace> grantedToNamespace = namespaceService.findByName(accessControlEntry.getSpec().getGrantedTo());
         if (grantedToNamespace.isEmpty()) {
-            validationErrors.add(StatusCauses.builder()
-                    .field("grantedTo")
-                    .reason("Invalid")
-                    .message("Namespace doesn't exist")
-                    .build());
+            validationErrors.add("Invalid value " + accessControlEntry.getSpec().getGrantedTo() + " for grantedTo: Namespace doesn't exist");
         }
 
         // Are you dumb ?
         if (namespace.getMetadata().getName().equals(accessControlEntry.getSpec().getGrantedTo())) {
-            validationErrors.add(StatusCauses.builder()
-                    .field("grantedTo")
-                    .reason("Invalid")
-                    .message("Why would you grant to yourself ?!")
-                    .build());
+            validationErrors.add("Invalid value " + accessControlEntry.getSpec().getGrantedTo() + " for grantedTo: Why would you grant to yourself ?!");
         }
 
         if (!isOwnerOfTopLevelAcl(accessControlEntry, namespace)) {
-            validationErrors.add(StatusCauses.builder()
-                    .field("ressourcePatternType")
-                    .reason("Invalid")
-                    .message("Namespace is neither OWNER of LITERAL:resource nor top-level PREFIXED:resource")
-                    .build());
+            validationErrors.add("Invalid grant " + accessControlEntry.getSpec().getResourcePatternType() + ":" +
+                    accessControlEntry.getSpec().getResource() +
+                    " : Namespace is neither OWNER of LITERAL:resource nor top-level PREFIXED:resource");
         }
         return validationErrors;
     }
 
-    public List<StatusCauses> validateAsAdmin(AccessControlEntry accessControlEntry, Namespace namespace) {
+    public List<String> validateAsAdmin(AccessControlEntry accessControlEntry, Namespace namespace) {
         // another namespace is already OWNER of PREFIXED or LITERAL resource
         // exemple :
         // if already exists:
@@ -132,11 +118,7 @@ public class AccessControlEntryService {
                     return same || parentOverlap || childOverlap;
 
                 })
-                .map(ace -> StatusCauses.builder()
-                    .field("resource")
-                    .reason("Invalid")
-                    .message(String.format("AccessControlEntry overlaps with existing one: %s", ace))
-                    .build())
+                .map(ace -> String.format("AccessControlEntry overlaps with existing one: %s", ace))
                 .collect(Collectors.toList());
     }
 

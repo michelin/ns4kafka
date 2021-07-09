@@ -2,7 +2,6 @@ package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.Status.StatusCauses;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.NamespaceService;
@@ -79,7 +78,7 @@ public class AccessControlListController extends NamespacedResourceController {
         // self assigned ACL (spec.grantedTo == metadata.namespace)
         boolean isSelfAssignedACL = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
 
-        List<StatusCauses> validationErrors;
+        List<String> validationErrors;
         if (isAdmin && isSelfAssignedACL) {
             // validate overlapping OWNER
             validationErrors = accessControlEntryService.validateAsAdmin(accessControlEntry, ns);
@@ -87,7 +86,7 @@ public class AccessControlListController extends NamespacedResourceController {
             validationErrors = accessControlEntryService.validate(accessControlEntry, ns);
         }
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors, "AccessControlEntry", accessControlEntry.getMetadata().getName());
+            throw new ResourceValidationException(validationErrors);
         }
         //augment
         accessControlEntry.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
@@ -118,7 +117,9 @@ public class AccessControlListController extends NamespacedResourceController {
 
         AccessControlEntry accessControlEntry = accessControlEntryService
                 .findByName(namespace, name)
-                .orElseThrow(() -> new ResourceNotFoundException());
+                .orElseThrow(() -> new ResourceValidationException(
+                        List.of("Invalid value " + name + " for name : AccessControlEntry doesn't exist in this namespace"))
+                );
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
         boolean isAdmin = roles.contains(ResourceBasedSecurityRule.IS_ADMIN);
@@ -126,7 +127,7 @@ public class AccessControlListController extends NamespacedResourceController {
         boolean isSelfAssignedACL = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
         if (isSelfAssignedACL && !isAdmin) {
             // prevent delete
-            throw new ResourceForbiddenException();
+            throw new ResourceValidationException(List.of("Only admins can delete this AccessControlEntry"));
         }
 
         if (dryrun) {
