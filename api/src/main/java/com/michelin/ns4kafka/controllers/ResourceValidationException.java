@@ -4,18 +4,22 @@ import lombok.Getter;
 
 import java.util.List;
 
-import com.michelin.ns4kafka.models.Status.StatusCauses;
 
 public class ResourceValidationException extends RuntimeException {
     private static final long serialVersionUID = 32400191899153204L;
     @Getter
-    private final List<StatusCauses> validationErrors;
+    private final List<String> validationErrors;
+
     @Getter
     private final String kind;
     @Getter
     private final String name;
 
-    public ResourceValidationException(List<StatusCauses> validationErrors, String kind, String name) {
+    public ResourceValidationException(List<String> validationErrors) {
+        this.validationErrors = validationErrors;
+    }
+
+    public ResourceValidationException(List<String> validationErrors, String kind, String name) {
         this.validationErrors = validationErrors;
         this.kind = kind;
         this.name = name;

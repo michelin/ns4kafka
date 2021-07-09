@@ -35,14 +35,14 @@ public class Status {
     public static class StatusDetails {
         private String name;
         private String kind;
-        private List<StatusCauses> causes;
+        private List<StatusCause> causes;
     }
 
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
     @Data
-    public static class StatusCauses {
+    public static class StatusCause {
         private String message;
         private String reason;
         private String field;

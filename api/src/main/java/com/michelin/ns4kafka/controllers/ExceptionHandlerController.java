@@ -1,6 +1,9 @@
 package com.michelin.ns4kafka.controllers;
 
+import java.util.stream.Collectors;
+
 import com.michelin.ns4kafka.models.Status;
+import com.michelin.ns4kafka.models.Status.StatusCause;
 import com.michelin.ns4kafka.models.Status.StatusDetails;
 import com.michelin.ns4kafka.models.Status.StatusPhase;
 
@@ -15,6 +18,12 @@ public class ExceptionHandlerController {
 
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, ResourceValidationException exception) {
+        var causes = exception.getValidationErrors().stream()
+            .map(validationError -> (StatusCause.builder()
+                .message(validationError)
+                .build()))
+            .collect(Collectors.toList());
+
         var status = Status.builder()
             .status(StatusPhase.Failed)
             .message(String.format("Invalid %s %s", exception.getKind(), exception.getName()))
@@ -22,7 +31,7 @@ public class ExceptionHandlerController {
             .details(StatusDetails.builder()
                 .kind(exception.getKind())
                 .name(exception.getName())
-                .causes(exception.getValidationErrors())
+                .causes(causes)
                 .build())
             .code(HttpResponse.unprocessableEntity().code())
             .build();
