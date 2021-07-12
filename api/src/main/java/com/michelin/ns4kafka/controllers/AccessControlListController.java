@@ -119,7 +119,7 @@ public class AccessControlListController extends NamespacedResourceController {
 
         AccessControlEntry accessControlEntry = accessControlEntryService
                 .findByName(namespace, name)
-                .orElseThrow(() -> new ResourceNotFoundException()
+                .orElseThrow(() -> new ResourceNotFoundException(kind, name)
                 );
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
@@ -128,7 +128,7 @@ public class AccessControlListController extends NamespacedResourceController {
         boolean isSelfAssignedACL = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
         if (isSelfAssignedACL && !isAdmin) {
             // prevent delete
-            throw new ResourceForbiddenException();
+            throw new ResourceForbiddenException(kind, name);
         }
 
         if (dryrun) {

@@ -78,7 +78,7 @@ public class RoleBindingController extends NamespacedResourceController {
         Optional<RoleBinding> roleBinding = roleBindingService.findByName(namespace, name);
 
         if (roleBinding.isEmpty()) {
-            throw new ResourceNotFoundException();
+            throw new ResourceNotFoundException(kind, name);
         }
 
         if (dryrun) {

@@ -51,7 +51,7 @@ public class ConnectController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
         //check ownership
         if (!kafkaConnectService.isNamespaceOwnerOfConnect(ns, connector)) {
-            throw new ResourceForbiddenException();
+            throw new ResourceForbiddenException(kind, connector);
             // throw new ResourceValidationException(List.of("Invalid value " + connector +
             //         " for name: Namespace not OWNER of this connector"));
         }
@@ -59,7 +59,7 @@ public class ConnectController extends NamespacedResourceController {
         // exists ?
         Optional<Connector> optionalConnector = kafkaConnectService.findByName(ns, connector);
         if (optionalConnector.isEmpty())
-            throw new ResourceNotFoundException();
+            throw new ResourceNotFoundException(kind, connector);
 
         if (dryrun) {
             return HttpResponse.noContent();
@@ -79,7 +79,7 @@ public class ConnectController extends NamespacedResourceController {
 
         //check ownership
         if (!kafkaConnectService.isNamespaceOwnerOfConnect(ns, connector.getMetadata().getName())) {
-            throw new ResourceForbiddenException();
+            throw new ResourceForbiddenException(kind,connector.getMetadata().getName());
             // throw new ResourceValidationException(List.of("Invalid value " + connector.getMetadata().getName() +
             //         " for name: Namespace not OWNER of this connector"));
         }

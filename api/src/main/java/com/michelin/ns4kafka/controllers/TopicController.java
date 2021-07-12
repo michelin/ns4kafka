@@ -76,7 +76,7 @@ public class TopicController extends NamespacedResourceController {
             //Creation
             //Topic namespace ownership validation
             if (!topicService.isNamespaceOwnerOfTopic(namespace, topic.getMetadata().getName())) {
-                throw new ResourceForbiddenException();
+                throw new ResourceForbiddenException(kind, topic.getMetadata().getName());
                 // validationErrors.add("Invalid value " + topic.getMetadata().getName()
                 //         + " for name: Namespace not OWNER of this topic");
             }
@@ -137,13 +137,13 @@ public class TopicController extends NamespacedResourceController {
         String cluster = ns.getMetadata().getCluster();
         // allowed ?
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic))
-            throw new ResourceForbiddenException();
+            throw new ResourceForbiddenException(kind, topic);
 
         // exists ?
         Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
 
         if (optionalTopic.isEmpty())
-            throw new ResourceNotFoundException();
+            throw new ResourceNotFoundException(kind, topic);
 
         if (dryrun) {
             return HttpResponse.noContent();
@@ -188,13 +188,13 @@ public class TopicController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
         // allowed ?
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic)) {
-            throw new ResourceForbiddenException();
+            throw new ResourceForbiddenException(kind, topic);
         }
 
         // exists ?
         Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
         if (optionalTopic.isEmpty()) {
-            throw new ResourceNotFoundException();
+            throw new ResourceNotFoundException(kind, topic);
         }
         Map<TopicPartition, Long> recordsToDelete = topicService.prepareRecordsToDelete(optionalTopic.get());
 

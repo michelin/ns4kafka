@@ -96,10 +96,10 @@ public class NamespaceController extends NonNamespacedResourceController {
         // check existing resources
         List<String> namespaceResources = namespaceService.listAllNamespaceResources(optionalNamespace.get());
         if (!namespaceResources.isEmpty()) {
-            var conflict = namespaceResources.stream()
+            var validationErrors = namespaceResources.stream()
                     .map(s -> "Namespace resource must be deleted first :" + s)
                     .collect(Collectors.toList());
-            throw new ResourceConflictException(conflict, kind, namespace);
+            throw new ResourceValidationException(validationErrors, kind, namespace);
         }
 
         if (dryrun) {
