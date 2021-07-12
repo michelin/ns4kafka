@@ -30,6 +30,8 @@ public class AccessControlListController extends NamespacedResourceController {
     @Inject
     AccessControlEntryService accessControlEntryService;
 
+    public final String kind = "AccessControlEntry";
+
     @Operation(summary = "Returns the Access Control Entry List")
     @Get("{?limit}")
     public List<AccessControlEntry> list(String namespace, Optional<AclLimit> limit) {
@@ -86,7 +88,7 @@ public class AccessControlListController extends NamespacedResourceController {
             validationErrors = accessControlEntryService.validate(accessControlEntry, ns);
         }
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors);
+            throw new ResourceValidationException(validationErrors, kind, accessControlEntry.getMetadata().getName());
         }
         //augment
         accessControlEntry.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
@@ -117,8 +119,7 @@ public class AccessControlListController extends NamespacedResourceController {
 
         AccessControlEntry accessControlEntry = accessControlEntryService
                 .findByName(namespace, name)
-                .orElseThrow(() -> new ResourceValidationException(
-                        List.of("Invalid value " + name + " for name : AccessControlEntry doesn't exist in this namespace"))
+                .orElseThrow(() -> new ResourceNotFoundException()
                 );
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
@@ -127,7 +128,7 @@ public class AccessControlListController extends NamespacedResourceController {
         boolean isSelfAssignedACL = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
         if (isSelfAssignedACL && !isAdmin) {
             // prevent delete
-            throw new ResourceValidationException(List.of("Only admins can delete this AccessControlEntry"));
+            throw new ResourceForbiddenException();
         }
 
         if (dryrun) {

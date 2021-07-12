@@ -120,7 +120,7 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(false);
 
-        Assertions.assertThrows(ResourceValidationException.class, () -> connectController.deleteConnector("test", "connect1", false));
+        Assertions.assertThrows(ResourceForbiddenException.class, () -> connectController.deleteConnector("test", "connect1", false));
     }
 
     @Test
@@ -131,10 +131,13 @@ public class ConnectControllerTest {
                         .cluster("local")
                         .build())
                 .build();
+        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
+        Mockito.when(kafkaConnectService.findByName(ns,"connect1"))
+                .thenReturn(Optional.of(connector));
 
         Assertions.assertDoesNotThrow(() -> connectController.deleteConnector("test", "connect1", false));
     }
@@ -152,7 +155,7 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
 
-        connectController.deleteConnector("test", "connect1", true);
+        var actual = Assertions.assertThrows(ResourceNotFoundException.class, () -> connectController.deleteConnector("test", "connect1", true));
         verify(kafkaConnectService, never()).delete(any(), any());
     }
 
@@ -171,8 +174,8 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(false);
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> connectController.apply("test", connector, false));
-        Assertions.assertLinesMatch(List.of("Invalid value connect1 for name: Namespace not OWNER of this connector"), actual.getValidationErrors());
+        ResourceForbiddenException actual = Assertions.assertThrows(ResourceForbiddenException.class, () -> connectController.apply("test", connector, false));
+        // Assertions.assertLinesMatch(List.of("Invalid value connect1 for name: Namespace not OWNER of this connector"), actual.getValidationErrors());
     }
 
     @Test

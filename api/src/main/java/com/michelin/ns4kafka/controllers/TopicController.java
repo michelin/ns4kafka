@@ -28,6 +28,8 @@ public class TopicController extends NamespacedResourceController {
     @Inject
     TopicService topicService;
 
+    public final String kind = "Topic";
+
     /**
      * @param namespace The namespace to query
      * @return The list of all Topics names available for that namespace (owned and accessible)
@@ -74,18 +76,18 @@ public class TopicController extends NamespacedResourceController {
             //Creation
             //Topic namespace ownership validation
             if (!topicService.isNamespaceOwnerOfTopic(namespace, topic.getMetadata().getName())) {
-                validationErrors.add("Invalid value " + topic.getMetadata().getName()
-                        + " for name: Namespace not OWNER of this topic");
+                throw new ResourceForbiddenException();
+                // validationErrors.add("Invalid value " + topic.getMetadata().getName()
+                //         + " for name: Namespace not OWNER of this topic");
             }
             //Topic names with a period ('.') or underscore ('_') could collide
             List<String> collidingTopics = topicService.findCollidingTopics(ns, topic);
             if (!collidingTopics.isEmpty()) {
-                validationErrors.addAll(collidingTopics
-                        .stream()
+                throw new ResourceConflictException(collidingTopics.stream()
                         .map(collidingTopic -> "Topic " + topic.getMetadata().getName()
                                 + " collides with existing topics: "
                                 + collidingTopic)
-                        .collect(Collectors.toList()));
+                        .collect(Collectors.toList()),kind,topic.getMetadata().getName());
             }
 
         } else {
@@ -102,7 +104,7 @@ public class TopicController extends NamespacedResourceController {
             }
         }
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors);
+            throw new ResourceValidationException(validationErrors, kind, topic.getMetadata().getName());
         }
 
         //3. Fill server-side fields (server side metadata + status)
@@ -135,13 +137,13 @@ public class TopicController extends NamespacedResourceController {
         String cluster = ns.getMetadata().getCluster();
         // allowed ?
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic))
-            return HttpResponse.unauthorized();
+            throw new ResourceForbiddenException();
 
         // exists ?
         Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
 
         if (optionalTopic.isEmpty())
-            return HttpResponse.notFound();
+            throw new ResourceNotFoundException();
 
         if (dryrun) {
             return HttpResponse.noContent();
@@ -186,15 +188,13 @@ public class TopicController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
         // allowed ?
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic)) {
-            throw new ResourceValidationException(List.of("Invalid value " + topic +
-                    " for name: Namespace not OWNER of this topic"));
+            throw new ResourceForbiddenException();
         }
 
         // exists ?
         Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
         if (optionalTopic.isEmpty()) {
-            throw new ResourceValidationException(List.of("Invalid value " + topic +
-                    " for name: Topic doesn't exist"));
+            throw new ResourceNotFoundException();
         }
         Map<TopicPartition, Long> recordsToDelete = topicService.prepareRecordsToDelete(optionalTopic.get());
 

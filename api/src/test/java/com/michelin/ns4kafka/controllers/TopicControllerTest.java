@@ -187,10 +187,11 @@ public class TopicControllerTest {
                 .thenReturn(false);
 
         //When
-        HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete", false);
+        var actual = Assertions.assertThrows(ResourceForbiddenException.class,
+        () -> topicController.deleteTopic("test", "topic.delete", false));
 
         //Then
-        Assertions.assertEquals(HttpStatus.UNAUTHORIZED, actual.getStatus());
+        // Assertions.assertEquals(HttpStatus.UNAUTHORIZED, actual.getStatus());
 
     }
 
@@ -621,12 +622,12 @@ public class TopicControllerTest {
                 .thenReturn(false);
 
         //When
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceForbiddenException actual = Assertions.assertThrows(ResourceForbiddenException.class,
                 () -> topicController.deleteRecords("test", "topic.empty", false));
 
-        Assertions.assertEquals(1, actual.getValidationErrors().size());
-        Assertions.assertLinesMatch(List.of(".*Namespace not OWNER of this topic.*"),
-                actual.getValidationErrors());
+        // Assertions.assertEquals(1, actual.getValidationErrors().size());
+        // Assertions.assertLinesMatch(List.of(".*Namespace not OWNER of this topic.*"),
+        //         actual.getValidationErrors());
     }
 
     @Test
@@ -645,12 +646,12 @@ public class TopicControllerTest {
         when(topicService.findByName(ns, "topic.empty"))
                 .thenReturn(Optional.empty());
         //When
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceNotFoundException actual = Assertions.assertThrows(ResourceNotFoundException.class,
                 () -> topicController.deleteRecords("test", "topic.empty", false));
 
-        Assertions.assertEquals(1, actual.getValidationErrors().size());
-        Assertions.assertLinesMatch(List.of(".*Topic doesn't exist.*"),
-                actual.getValidationErrors());
+        // Assertions.assertEquals(1, actual.getValidationErrors().size());
+        // Assertions.assertLinesMatch(List.of(".*Topic doesn't exist.*"),
+        //         actual.getValidationErrors());
     }
 
     @Test
@@ -683,10 +684,10 @@ public class TopicControllerTest {
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
         when(topicService.findCollidingTopics(ns, topic)).thenReturn(List.of("test_topic"));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> topicController.apply("test", topic, false));
-        Assertions.assertEquals(1, actual.getValidationErrors().size());
+        ResourceConflictException actual = Assertions.assertThrows(ResourceConflictException.class, () -> topicController.apply("test", topic, false));
+        Assertions.assertEquals(1, actual.getConflicts().size());
         Assertions.assertLinesMatch(
                 List.of("Topic test.topic collides with existing topics: test_topic"),
-                actual.getValidationErrors());
+                actual.getConflicts());
     }
 }

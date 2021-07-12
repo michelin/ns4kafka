@@ -33,6 +33,8 @@ public class ConnectController extends NamespacedResourceController {
     @Inject
     AccessControlEntryService accessControlEntryService;
 
+    public final String kind = "Connector";
+
     @Get
     public List<Connector> list(String namespace) {
         return kafkaConnectService.findAllForNamespace(getNamespace(namespace));
@@ -49,14 +51,15 @@ public class ConnectController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
         //check ownership
         if (!kafkaConnectService.isNamespaceOwnerOfConnect(ns, connector)) {
-            throw new ResourceValidationException(List.of("Invalid value " + connector +
-                    " for name: Namespace not OWNER of this connector"));
+            throw new ResourceForbiddenException();
+            // throw new ResourceValidationException(List.of("Invalid value " + connector +
+            //         " for name: Namespace not OWNER of this connector"));
         }
 
         // exists ?
         Optional<Connector> optionalConnector = kafkaConnectService.findByName(ns, connector);
         if (optionalConnector.isEmpty())
-            return HttpResponse.notFound();
+            throw new ResourceNotFoundException();
 
         if (dryrun) {
             return HttpResponse.noContent();
@@ -76,20 +79,21 @@ public class ConnectController extends NamespacedResourceController {
 
         //check ownership
         if (!kafkaConnectService.isNamespaceOwnerOfConnect(ns, connector.getMetadata().getName())) {
-            throw new ResourceValidationException(List.of("Invalid value " + connector.getMetadata().getName() +
-                    " for name: Namespace not OWNER of this connector"));
+            throw new ResourceForbiddenException();
+            // throw new ResourceValidationException(List.of("Invalid value " + connector.getMetadata().getName() +
+            //         " for name: Namespace not OWNER of this connector"));
         }
 
         // Validate locally
         List<String> validationErrors = kafkaConnectService.validateLocally(ns, connector);
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors);
+            throw new ResourceValidationException(validationErrors, kind, connector.getMetadata().getName());
         }
 
         // Validate against connect rest API /validate
         validationErrors = kafkaConnectService.validateRemotely(ns, connector);
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors);
+            throw new ResourceValidationException(validationErrors, kind, connector.getMetadata().getName());
         }
 
         // Augment with server side fields

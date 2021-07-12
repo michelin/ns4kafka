@@ -23,9 +23,10 @@ import java.util.Optional;
 @ExecuteOn(TaskExecutors.IO)
 public class RoleBindingController extends NamespacedResourceController {
 
-
     @Inject
     RoleBindingService roleBindingService;
+
+    public final String kind = "RoleBinding";
 
     @Get
     public List<RoleBinding> list(String namespace) {
@@ -77,7 +78,7 @@ public class RoleBindingController extends NamespacedResourceController {
         Optional<RoleBinding> roleBinding = roleBindingService.findByName(namespace, name);
 
         if (roleBinding.isEmpty()) {
-            throw new ResourceValidationException(List.of("Invalid value " + name + " for name : Role Binding doesn't exist in this namespace"));
+            throw new ResourceNotFoundException();
         }
 
         if (dryrun) {

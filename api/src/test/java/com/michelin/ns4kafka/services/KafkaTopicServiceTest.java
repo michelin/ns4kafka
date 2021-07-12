@@ -575,11 +575,11 @@ public class KafkaTopicServiceTest {
         Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
                 .thenThrow(new InterruptedException());
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceInternalErrorException actual = Assertions.assertThrows(ResourceInternalErrorException.class,
                 () -> topicService.findCollidingTopics(ns, topic));
 
         Assertions.assertTrue(Thread.interrupted());
-        Assertions.assertEquals(1, actual.getValidationErrors().size());
+        //Assertions.assertEquals(1, actual.getValidationErrors().size());
     }
 
     @Test
@@ -600,10 +600,10 @@ public class KafkaTopicServiceTest {
         Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
                 .thenThrow(new RuntimeException("Unknown Error"));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceInternalErrorException actual = Assertions.assertThrows(ResourceInternalErrorException.class,
                 () -> topicService.findCollidingTopics(ns, topic));
 
-        Assertions.assertEquals(1, actual.getValidationErrors().size());
+        //Assertions.assertEquals(1, actual.getValidationErrors().size());
     }
 
 }

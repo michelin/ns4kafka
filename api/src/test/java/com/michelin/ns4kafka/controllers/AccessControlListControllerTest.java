@@ -398,10 +398,10 @@ public class AccessControlListControllerTest {
 
         Mockito.when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.empty());
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceNotFoundException actual = Assertions.assertThrows(ResourceNotFoundException.class,
                 () -> accessControlListController.delete(auth,"test", "ace1", false));
 
-        Assertions.assertLinesMatch(List.of("Invalid value ace1 for name : AccessControlEntry doesn't exist in this namespace"), actual.getValidationErrors());
+        //Assertions.assertLinesMatch(List.of("Invalid value ace1 for name : AccessControlEntry doesn't exist in this namespace"), actual.getValidationErrors());
     }
     @Test
     void deleteFailSelfAssigned() {
@@ -421,11 +421,12 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.of(ace1));
         //Mockito.doNothing().when(accessControlEntryService.delete(ace1));
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceForbiddenException actual = Assertions.assertThrows(ResourceForbiddenException.class,
                 () -> accessControlListController.delete(auth,"test", "ace1", false));
-        Assertions.assertLinesMatch(
-                List.of("Only admins.*"),
-                actual.getValidationErrors());
+        verify(accessControlEntryService, never()).delete(any());
+        // Assertions.assertLinesMatch(
+        //         List.of("Only admins.*"),
+        //         actual.getValidationErrors());
     }
     @Test
     void deleteSuccessSelfAssigned_AsAdmin() {

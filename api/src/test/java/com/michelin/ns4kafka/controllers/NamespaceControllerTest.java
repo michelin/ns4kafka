@@ -277,7 +277,7 @@ public class NamespaceControllerTest {
                 .thenReturn(Optional.of(existing));
         Mockito.when(namespaceService.listAllNamespaceResources(existing))
                 .thenReturn(List.of("Topic/topic1"));
-        Assertions.assertThrows(ResourceValidationException.class,() -> namespaceController.delete("namespace", false));
+        Assertions.assertThrows(ResourceConflictException.class,() -> namespaceController.delete("namespace", false));
         verify(namespaceService, never()).delete(any());
 
     }

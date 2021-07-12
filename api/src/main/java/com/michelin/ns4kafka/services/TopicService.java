@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.controllers.ResourceValidationException;
 import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
@@ -68,9 +67,9 @@ public class TopicService {
                    .collect(Collectors.toList());
         } catch (InterruptedException e){
             Thread.currentThread().interrupt();
-            throw new ResourceValidationException(List.of("InterruptedException"));
+            throw new ResourceInternalErrorException();//add message : e.getMessage()
         } catch (Exception e) {
-            throw new ResourceValidationException(List.of(e.getMessage()));
+            throw new ResourceInternalErrorException();//add message : e.getMessage()
         }
     }
 
@@ -94,7 +93,7 @@ public class TopicService {
             topicAsyncExecutor.deleteTopic(topic);
         } catch (Exception e) {
             //TODO refactor global error handling model
-            throw new ResourceValidationException(List.of(e.getMessage()));
+            throw new ResourceInternalErrorException();//add message : e.getMessage()
         }
         topicRepository.delete(topic);
     }
@@ -135,11 +134,11 @@ public class TopicService {
                     .collect(Collectors.toMap(Map.Entry::getKey, kv -> kv.getValue().beforeOffset()));
         } catch (ExecutionException e) {
             //TODO refactor global error handling model
-            throw new ResourceValidationException(List.of(e.getMessage()));
+            throw new ResourceInternalErrorException();//add message : e.getMessage()
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        throw new ResourceValidationException(List.of("Unknown error"));
+        throw new ResourceInternalErrorException();//add message : e.getMessage()
     }
 
     public Map<TopicPartition, Long> deleteRecords(Topic topic, Map<TopicPartition, Long> recordsToDelete) {
@@ -155,9 +154,9 @@ public class TopicService {
             Thread.currentThread().interrupt();
         } catch (Exception e) {
             //TODO refactor global error handling model
-            throw new ResourceValidationException(List.of(e.getMessage()));
+            throw new ResourceInternalErrorException();//add message : e.getMessage()
         }
-        throw new ResourceValidationException(List.of("Unknown error"));
+        throw new ResourceInternalErrorException();//add message : e.getMessage()
     }
 
 }

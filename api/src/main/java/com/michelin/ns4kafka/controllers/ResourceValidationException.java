@@ -15,10 +15,6 @@ public class ResourceValidationException extends RuntimeException {
     @Getter
     private final String name;
 
-    public ResourceValidationException(List<String> validationErrors) {
-        this.validationErrors = validationErrors;
-    }
-
     public ResourceValidationException(List<String> validationErrors, String kind, String name) {
         this.validationErrors = validationErrors;
         this.kind = kind;

@@ -38,7 +38,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
             validationErrors.add("Invalid value " + consumerGroup + " for name: Namespace not OWNER of this consumer group");
         }
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors);
+            throw new ResourceValidationException(validationErrors, "ConsumerGroup", consumerGroup);
         }
 
         ConsumerGroupResetOffsetStatus status = null;
