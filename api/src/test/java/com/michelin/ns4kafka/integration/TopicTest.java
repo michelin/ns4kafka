@@ -339,7 +339,7 @@ public class TopicTest extends AbstractIntegrationTest {
             .build();
 
         HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,() -> client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns2/topics").bearerAuth(token).body(topicToModifyBis)).blockingFirst());
-        Assertions.assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
         //Assertions.assertEquals("Validation failed: [Invalid value ns1-topicToModify for name: Namespace not OWNER of this topic]", exception.getMessage());
 
         // Compare spec of the topics and assure there is no change

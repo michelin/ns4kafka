@@ -120,7 +120,7 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(false);
 
-        Assertions.assertThrows(ResourceForbiddenException.class, () -> connectController.deleteConnector("test", "connect1", false));
+        Assertions.assertThrows(ResourceValidationException.class, () -> connectController.deleteConnector("test", "connect1", false));
     }
 
     @Test
@@ -174,8 +174,8 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(false);
 
-        ResourceForbiddenException actual = Assertions.assertThrows(ResourceForbiddenException.class, () -> connectController.apply("test", connector, false));
-        // Assertions.assertLinesMatch(List.of("Invalid value connect1 for name: Namespace not OWNER of this connector"), actual.getValidationErrors());
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> connectController.apply("test", connector, false));
+        Assertions.assertLinesMatch(List.of("Invalid value connect1 for name: Namespace not OWNER of this connector"), actual.getValidationErrors());
     }
 
     @Test

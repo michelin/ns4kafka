@@ -76,18 +76,17 @@ public class TopicController extends NamespacedResourceController {
             //Creation
             //Topic namespace ownership validation
             if (!topicService.isNamespaceOwnerOfTopic(namespace, topic.getMetadata().getName())) {
-                throw new ResourceForbiddenException(kind, topic.getMetadata().getName());
-                // validationErrors.add("Invalid value " + topic.getMetadata().getName()
-                //         + " for name: Namespace not OWNER of this topic");
+                validationErrors.add("Invalid value " + topic.getMetadata().getName()
+                         + " for name: Namespace not OWNER of this topic");
             }
             //Topic names with a period ('.') or underscore ('_') could collide
             List<String> collidingTopics = topicService.findCollidingTopics(ns, topic);
             if (!collidingTopics.isEmpty()) {
-                throw new ResourceConflictException(collidingTopics.stream()
+                validationErrors.addAll(collidingTopics.stream()
                         .map(collidingTopic -> "Topic " + topic.getMetadata().getName()
                                 + " collides with existing topics: "
                                 + collidingTopic)
-                        .collect(Collectors.toList()),kind,topic.getMetadata().getName());
+                        .collect(Collectors.toList()));
             }
 
         } else {
@@ -137,7 +136,8 @@ public class TopicController extends NamespacedResourceController {
         String cluster = ns.getMetadata().getCluster();
         // allowed ?
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic))
-            throw new ResourceForbiddenException(kind, topic);
+            throw new ResourceValidationException(List.of("Invalid value " + topic
+                         + " for name: Namespace not OWNER of this topic"),kind, topic);
 
         // exists ?
         Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
@@ -188,7 +188,8 @@ public class TopicController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
         // allowed ?
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic)) {
-            throw new ResourceForbiddenException(kind, topic);
+            throw new ResourceValidationException(List.of("Invalid value " + topic
+                    + " for name: Namespace not OWNER of this topic"),kind, topic);
         }
 
         // exists ?

@@ -187,7 +187,7 @@ public class TopicControllerTest {
                 .thenReturn(false);
 
         //When
-        var actual = Assertions.assertThrows(ResourceForbiddenException.class,
+        var actual = Assertions.assertThrows(ResourceValidationException.class,
         () -> topicController.deleteTopic("test", "topic.delete", false));
 
         //Then
@@ -622,12 +622,12 @@ public class TopicControllerTest {
                 .thenReturn(false);
 
         //When
-        ResourceForbiddenException actual = Assertions.assertThrows(ResourceForbiddenException.class,
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
                 () -> topicController.deleteRecords("test", "topic.empty", false));
 
-        // Assertions.assertEquals(1, actual.getValidationErrors().size());
-        // Assertions.assertLinesMatch(List.of(".*Namespace not OWNER of this topic.*"),
-        //         actual.getValidationErrors());
+        Assertions.assertEquals(1, actual.getValidationErrors().size());
+        Assertions.assertLinesMatch(List.of(".*Namespace not OWNER of this topic.*"),
+                actual.getValidationErrors());
     }
 
     @Test
@@ -684,10 +684,10 @@ public class TopicControllerTest {
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
         when(topicService.findCollidingTopics(ns, topic)).thenReturn(List.of("test_topic"));
 
-        ResourceConflictException actual = Assertions.assertThrows(ResourceConflictException.class, () -> topicController.apply("test", topic, false));
-        Assertions.assertEquals(1, actual.getConflicts().size());
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> topicController.apply("test", topic, false));
+        Assertions.assertEquals(1, actual.getValidationErrors().size());
         Assertions.assertLinesMatch(
                 List.of("Topic test.topic collides with existing topics: test_topic"),
-                actual.getConflicts());
+                actual.getValidationErrors());
     }
 }
