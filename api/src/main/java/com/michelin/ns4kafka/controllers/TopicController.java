@@ -53,7 +53,7 @@ public class TopicController extends NamespacedResourceController {
     }
 
     @Post("{?dryrun}")
-    public HttpResponse<Topic> apply(String namespace, @Valid @Body Topic topic, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<Topic> apply(String namespace, @Valid @Body Topic topic, @QueryValue(defaultValue = "false") boolean dryrun) throws InterruptedException, ExecutionException, TimeoutException {
 
         //TODO
         // 1. (Done) User Allowed ?
@@ -129,7 +129,7 @@ public class TopicController extends NamespacedResourceController {
 
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{topic}{?dryrun}")
-    public HttpResponse deleteTopic(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse deleteTopic(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun) throws InterruptedException, ExecutionException, TimeoutException {
 
         Namespace ns = getNamespace(namespace);
 
@@ -183,7 +183,7 @@ public class TopicController extends NamespacedResourceController {
     }
 
     @Post("{topic}/delete-records{?dryrun}")
-    public DeleteRecords deleteRecords(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public DeleteRecords deleteRecords(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun) throws InterruptedException, ExecutionException {
 
         Namespace ns = getNamespace(namespace);
         // allowed ?

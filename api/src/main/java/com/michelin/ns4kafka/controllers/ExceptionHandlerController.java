@@ -3,18 +3,20 @@ package com.michelin.ns4kafka.controllers;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.validation.ConstraintViolationException;
+import javax.validation.ValidationException;
+
 import com.michelin.ns4kafka.models.Status;
 import com.michelin.ns4kafka.models.Status.StatusCause;
 import com.michelin.ns4kafka.models.Status.StatusDetails;
 import com.michelin.ns4kafka.models.Status.StatusPhase;
-import com.michelin.ns4kafka.services.ResourceInternalErrorException;
 
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Error;
-import io.micronaut.http.hateoas.JsonError;
+import io.micronaut.validation.exceptions.ValidationExceptionHandler;
 
 @Controller("/errors")
 public class ExceptionHandlerController {
@@ -42,6 +44,26 @@ public class ExceptionHandlerController {
         return HttpResponse.unprocessableEntity()
                 .body(status);
     }
+
+    @Error(global = true)
+    public HttpResponse<Status> error(HttpRequest<?> request, ValidationException exception) {
+        var status = Status.builder()
+            .status(StatusPhase.Failed)
+            .message("Invalid Resource")
+            .reason("Invalid")
+            .details(StatusDetails.builder()
+                .causes(List.of(StatusCause.builder()
+                        .message(exception.getMessage())
+                        .build()))
+                .build())
+            .code(HttpStatus.UNPROCESSABLE_ENTITY.getCode())
+            .build();
+
+        return HttpResponse.unprocessableEntity()
+                .body(status);
+
+    }
+
 
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, ResourceConflictException exception) {
@@ -101,8 +123,9 @@ public class ExceptionHandlerController {
                 .body(status);
     }
 
+    // if we don't know the exception
     @Error(global = true)
-    public HttpResponse<Status> error(HttpRequest<?> request, ResourceInternalErrorException exception) {
+    public HttpResponse<Status> error(HttpRequest<?> request, Exception exception) {
         var causes = exception.getMessage();
 
         var status = Status.builder()
@@ -116,7 +139,6 @@ public class ExceptionHandlerController {
                 .build())
             .code(HttpStatus.INTERNAL_SERVER_ERROR.getCode())
             .build();
-
         return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(status);
     }

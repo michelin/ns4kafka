@@ -196,7 +196,7 @@ public class TopicControllerTest {
     }
 
     @Test
-    public void CreateNewTopic() {
+    public void CreateNewTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -231,7 +231,7 @@ public class TopicControllerTest {
     }
 
     @Test
-    public void UpdateTopic() {
+    public void UpdateTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -277,7 +277,7 @@ public class TopicControllerTest {
     }
 
     @Test
-    public void UpdateTopic_AlreadyExists() {
+    public void UpdateTopic_AlreadyExists() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -326,7 +326,7 @@ public class TopicControllerTest {
     }
 
     @Test
-    public void CreateNewTopicDryRun() {
+    public void CreateNewTopicDryRun() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -539,7 +539,7 @@ public class TopicControllerTest {
 
 
     @Test
-    public void deleteRecords_Success() {
+    public void deleteRecords_Success() throws ExecutionException, InterruptedException {
         //Given
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
@@ -575,7 +575,7 @@ public class TopicControllerTest {
     }
 
     @Test
-    public void deleteRecords_DryRun() {
+    public void deleteRecords_DryRun() throws InterruptedException, ExecutionException {
         //Given
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
@@ -655,7 +655,7 @@ public class TopicControllerTest {
     }
 
     @Test
-    public void CreateCollidingTopic() {
+    public void CreateCollidingTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
