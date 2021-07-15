@@ -8,6 +8,7 @@ import com.michelin.ns4kafka.services.NamespaceService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.authentication.Authentication;
+import io.micronaut.security.authentication.AuthorizationException;
 import io.micronaut.security.authentication.DefaultAuthentication;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -421,8 +422,9 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.of(ace1));
         //Mockito.doNothing().when(accessControlEntryService.delete(ace1));
-        ResourceForbiddenException actual = Assertions.assertThrows(ResourceForbiddenException.class,
+        var actual = Assertions.assertThrows(AuthorizationException.class,
                 () -> accessControlListController.delete(auth,"test", "ace1", false));
+        //Assertions.assertTrue(actual.isForbidden());
         verify(accessControlEntryService, never()).delete(any());
         // Assertions.assertLinesMatch(
         //         List.of("Only admins.*"),

@@ -19,6 +19,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Error;
+import io.micronaut.security.authentication.AuthorizationException;
 
 @Controller("/errors")
 public class ExceptionHandlerController {
@@ -116,36 +117,27 @@ public class ExceptionHandlerController {
 
 
     @Error(global = true)
-    public HttpResponse<Status> error(HttpRequest<?> request, ResourceNotFoundException exception) {
+    public HttpResponse<Status> error(HttpRequest<?> request, AuthorizationException exception) {
+        if (exception.isForbidden()) {
+            var status = Status.builder()
+                .status(StatusPhase.Failed)
+                .message("Resource forbidden")
+                .reason("Forbidden")
+                .code(HttpStatus.FORBIDDEN.getCode())
+                .build();
+            return HttpResponse.status(HttpStatus.FORBIDDEN)
+                    .body(status);
+
+        }
+
         var status = Status.builder()
             .status(StatusPhase.Failed)
-            .message(String.format("Resource %s %s not found", exception.getKind(), exception.getName()))
+            .message("Resource not found")
             .reason("NotFound")
-            .details(StatusDetails.builder()
-                .kind(exception.getKind())
-                .name(exception.getName())
-                .build())
             .code(HttpStatus.NOT_FOUND.getCode())
             .build();
-
         return HttpResponse.notFound(status);
-    }
 
-    @Error(global = true)
-    public HttpResponse<Status> error(HttpRequest<?> request, ResourceForbiddenException exception) {
-        var status = Status.builder()
-            .status(StatusPhase.Failed)
-            .message(String.format("Resource %s %s forbidden", exception.getKind(), exception.getName()))
-            .reason("Forbidden")
-            .details(StatusDetails.builder()
-                .kind(exception.getKind())
-                .name(exception.getName())
-                .build())
-            .code(HttpStatus.FORBIDDEN.getCode())
-            .build();
-
-        return HttpResponse.status(HttpStatus.FORBIDDEN)
-                .body(status);
     }
 
     // if we don't know the exception
