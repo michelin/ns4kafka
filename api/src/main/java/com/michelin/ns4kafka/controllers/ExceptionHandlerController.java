@@ -1,10 +1,13 @@
 package com.michelin.ns4kafka.controllers;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.validation.ConstraintViolationException;
-import javax.validation.ValidationException;
+import javax.validation.ElementKind;
+import javax.validation.Path;
 
 import com.michelin.ns4kafka.models.Status;
 import com.michelin.ns4kafka.models.Status.StatusCause;
@@ -16,7 +19,6 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Error;
-import io.micronaut.validation.exceptions.ValidationExceptionHandler;
 
 @Controller("/errors")
 public class ExceptionHandlerController {
@@ -46,15 +48,38 @@ public class ExceptionHandlerController {
     }
 
     @Error(global = true)
-    public HttpResponse<Status> error(HttpRequest<?> request, ValidationException exception) {
+    public HttpResponse<Status> error(HttpRequest<?> request,ConstraintViolationException exception) {
+
+        List<StatusCause> causes = new ArrayList<>();
+
+        // as the function buildMessage in ConstraintExceptionHandler
+        exception.getConstraintViolations().forEach(violation -> {
+            Path propertyPath = violation.getPropertyPath();
+            StringBuilder message = new StringBuilder();
+            Iterator<Path.Node> i = propertyPath.iterator();
+            while (i.hasNext()) {
+                Path.Node node = i.next();
+                if (node.getKind() == ElementKind.METHOD || node.getKind() == ElementKind.CONSTRUCTOR) {
+                    continue;
+                }
+                message.append(node.getName());
+                if (i.hasNext()) {
+                    message.append('.');
+                }
+            }
+            message.append(": ").append(violation.getMessage());
+            causes.add(StatusCause.builder()
+                       .message(message.toString())
+                       .build());
+
+        });
+
         var status = Status.builder()
             .status(StatusPhase.Failed)
             .message("Invalid Resource")
             .reason("Invalid")
             .details(StatusDetails.builder()
-                .causes(List.of(StatusCause.builder()
-                        .message(exception.getMessage())
-                        .build()))
+                .causes(causes)
                 .build())
             .code(HttpStatus.UNPROCESSABLE_ENTITY.getCode())
             .build();
