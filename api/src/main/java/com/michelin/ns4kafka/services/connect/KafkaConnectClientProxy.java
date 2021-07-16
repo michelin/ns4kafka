@@ -63,15 +63,13 @@ public class KafkaConnectClientProxy extends OncePerRequestHttpServerFilter {
                 .filter(kafkaAsyncExecutorConfig -> kafkaAsyncExecutorConfig.getName().equals(kafkaCluster))
                 .findFirst();
         if (config.isEmpty()) {
-            //return Publishers.just(new ResourceValidationException(List.of("Kafka Cluster [" + kafkaCluster + "] not found")));
-            return Publishers.just(new ResourceNotFoundException("KafkaCluster", kafkaCluster));
+            return Publishers.just(new ResourceValidationException(List.of("Kafka Cluster [" + kafkaCluster + "] not found"),null,null));
         }
 
         // get the good connect config
         ConnectConfig connectConfig = config.get().getConnects().get(connectCluster);
         if (connectConfig == null) {
-            //return Publishers.just(new ResourceValidationException(List.of("Connect Cluster [" + connectCluster + "] not found")));
-            return Publishers.just(new ResourceNotFoundException("ConnectCluster", connectCluster));
+            return Publishers.just(new ResourceValidationException(List.of("Connect Cluster [" + connectCluster + "] not found"), null, null));
         }
 
         // mutate the request with proper URL and Authent
