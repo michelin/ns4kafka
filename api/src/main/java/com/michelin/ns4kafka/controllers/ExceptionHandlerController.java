@@ -19,6 +19,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Error;
+import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthorizationException;
 
 @Controller("/errors")
@@ -117,6 +118,19 @@ public class ExceptionHandlerController {
 
 
     @Error(global = true)
+    public HttpResponse<Status> error(HttpRequest<?> request, AuthenticationException exception) {
+
+        var status = Status.builder()
+            .status(StatusPhase.Failed)
+            .message(exception.getMessage())
+            .reason("Unauthorized")
+            .code(HttpStatus.UNAUTHORIZED.getCode())
+            .build();
+        return HttpResponse.unauthorized().body(status);
+
+    }
+
+    @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, AuthorizationException exception) {
         if (exception.isForbidden()) {
             var status = Status.builder()
@@ -132,11 +146,11 @@ public class ExceptionHandlerController {
 
         var status = Status.builder()
             .status(StatusPhase.Failed)
-            .message("Resource not found")
-            .reason("NotFound")
-            .code(HttpStatus.NOT_FOUND.getCode())
+            .message(exception.getMessage())
+            .reason("Unauthorized")
+            .code(HttpStatus.UNAUTHORIZED.getCode())
             .build();
-        return HttpResponse.notFound(status);
+        return HttpResponse.unauthorized().body(status);
 
     }
 
