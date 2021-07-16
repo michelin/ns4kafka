@@ -116,6 +116,23 @@ public class ExceptionHandlerController {
                 .body(status);
     }
 
+    @Error(global = true)
+    public HttpResponse<Status> error(HttpRequest<?> request, ResourceNotFoundException exception) {
+
+        var status = Status.builder()
+            .status(StatusPhase.Failed)
+            .message(String.format("Resource %s %s not found", exception.getKind(), exception.getName()))
+            .reason("NotFound")
+            .code(HttpStatus.NOT_FOUND.getCode())
+            .details(StatusDetails.builder()
+                .kind(exception.getKind())
+                .name(exception.getName())
+                .build())
+            .build();
+
+        return HttpResponse.status(HttpStatus.NOT_FOUND)
+                .body(status);
+    }
 
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, AuthenticationException exception) {
