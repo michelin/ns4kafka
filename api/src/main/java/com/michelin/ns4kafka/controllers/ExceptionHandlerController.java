@@ -134,6 +134,19 @@ public class ExceptionHandlerController {
                 .body(status);
     }
 
+    @Error(global = true, status = HttpStatus.NOT_FOUND)
+    public HttpResponse<Status> error(HttpRequest<?> request) {
+        var status = Status.builder()
+            .status(StatusPhase.Failed)
+            .message("Not Found")
+            .reason("NotFound")
+            .code(HttpStatus.NOT_FOUND.getCode())
+            .build();
+
+        return HttpResponse.status(HttpStatus.NOT_FOUND)
+                .body(status);
+    }
+
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, AuthenticationException exception) {
 
