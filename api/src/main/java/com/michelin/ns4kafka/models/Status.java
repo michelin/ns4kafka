@@ -35,22 +35,26 @@ public class Status {
     public static class StatusDetails {
         private String name;
         private String kind;
-        private List<StatusCause> causes;
-    }
-
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Data
-    public static class StatusCause {
-        private String message;
-        private String reason;
-        private String field;
+        private List<String> causes;
     }
 
     public enum StatusPhase {
         Success,
         Failed
+    }
+
+    public enum StatusReason {
+        BadRequest,
+        Unauthorized,
+        Forbidden,
+        NotFound,
+        AlreadyExists,
+        Conflict,
+        Invalid,
+        Timeout,
+        ServerTimeout,
+        MethodNotAllowed,
+        InternalError
     }
 
 }

@@ -291,7 +291,7 @@ public class TopicTest extends AbstractIntegrationTest {
                         .blockingFirst());
 
         Assertions.assertEquals("Invalid Resource", exception.getMessage());
-        Assertions.assertEquals("topic.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"", exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0).getMessage());
+        Assertions.assertEquals("topic.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"", exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
 
     }
 

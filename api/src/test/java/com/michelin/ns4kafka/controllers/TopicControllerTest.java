@@ -189,10 +189,6 @@ public class TopicControllerTest {
         //When
         var actual = Assertions.assertThrows(ResourceValidationException.class,
         () -> topicController.deleteTopic("test", "topic.delete", false));
-
-        //Then
-        // Assertions.assertEquals(HttpStatus.UNAUTHORIZED, actual.getStatus());
-
     }
 
     @Test
@@ -646,12 +642,12 @@ public class TopicControllerTest {
         when(topicService.findByName(ns, "topic.empty"))
                 .thenReturn(Optional.empty());
         //When
-        ResourceNotFoundException actual = Assertions.assertThrows(ResourceNotFoundException.class,
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
                 () -> topicController.deleteRecords("test", "topic.empty", false));
 
-        // Assertions.assertEquals(1, actual.getValidationErrors().size());
-        // Assertions.assertLinesMatch(List.of(".*Topic doesn't exist.*"),
-        //         actual.getValidationErrors());
+        Assertions.assertEquals(1, actual.getValidationErrors().size());
+        Assertions.assertLinesMatch(List.of(".*Topic doesn't exist.*"),
+                actual.getValidationErrors());
     }
 
     @Test

@@ -155,7 +155,7 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
 
-        var actual = Assertions.assertThrows(ResourceNotFoundException.class, () -> connectController.deleteConnector("test", "connect1", true));
+        connectController.deleteConnector("test", "connect1", true);
         verify(kafkaConnectService, never()).delete(any(), any());
     }
 

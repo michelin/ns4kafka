@@ -8,7 +8,6 @@ import com.michelin.ns4kafka.services.NamespaceService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.authentication.Authentication;
-import io.micronaut.security.authentication.AuthorizationException;
 import io.micronaut.security.authentication.DefaultAuthentication;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -399,10 +398,10 @@ public class AccessControlListControllerTest {
 
         Mockito.when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.empty());
-        ResourceNotFoundException actual = Assertions.assertThrows(ResourceNotFoundException.class,
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
                 () -> accessControlListController.delete(auth,"test", "ace1", false));
 
-        //Assertions.assertLinesMatch(List.of("Invalid value ace1 for name : AccessControlEntry doesn't exist in this namespace"), actual.getValidationErrors());
+        Assertions.assertLinesMatch(List.of("Invalid value ace1 for name : AccessControlEntry doesn't exist in this namespace"), actual.getValidationErrors());
     }
     @Test
     void deleteFailSelfAssigned() {
@@ -422,13 +421,11 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.of(ace1));
         //Mockito.doNothing().when(accessControlEntryService.delete(ace1));
-        var actual = Assertions.assertThrows(AuthorizationException.class,
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
                 () -> accessControlListController.delete(auth,"test", "ace1", false));
-        //Assertions.assertTrue(actual.isForbidden());
-        verify(accessControlEntryService, never()).delete(any());
-        // Assertions.assertLinesMatch(
-        //         List.of("Only admins.*"),
-        //         actual.getValidationErrors());
+        Assertions.assertLinesMatch(
+                List.of("Only admins.*"),
+                actual.getValidationErrors());
     }
     @Test
     void deleteSuccessSelfAssigned_AsAdmin() {

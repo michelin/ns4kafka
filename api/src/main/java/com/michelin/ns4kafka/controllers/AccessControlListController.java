@@ -5,13 +5,10 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.NamespaceService;
-
-import io.micronaut.context.ApplicationContext;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
 import io.micronaut.security.authentication.Authentication;
-import io.micronaut.security.authentication.AuthorizationException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -122,7 +119,11 @@ public class AccessControlListController extends NamespacedResourceController {
 
         AccessControlEntry accessControlEntry = accessControlEntryService
                 .findByName(namespace, name)
-                .orElseThrow(() -> new ResourceNotFoundException(kind, name)
+                .orElseThrow(() -> new ResourceValidationException(
+                        List.of("Invalid value " + name + " for name : AccessControlEntry doesn't exist in this namespace"),
+                        "AccessControlEntry",
+                        name
+                        )
                 );
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
@@ -131,7 +132,11 @@ public class AccessControlListController extends NamespacedResourceController {
         boolean isSelfAssignedACL = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
         if (isSelfAssignedACL && !isAdmin) {
             // prevent delete
-            throw new AuthorizationException(null);//TODO Get authentication of the user
+            throw new ResourceValidationException(
+                    List.of("Only admins can delete this AccessControlEntry"),
+                    "AccessControlEntry",
+                    name
+            );
         }
 
         if (dryrun) {
