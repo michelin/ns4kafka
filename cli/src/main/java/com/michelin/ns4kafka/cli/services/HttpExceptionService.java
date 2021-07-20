@@ -6,7 +6,6 @@ import java.util.Optional;
 import javax.inject.Singleton;
 
 import com.michelin.ns4kafka.cli.models.Status;
-import com.michelin.ns4kafka.cli.models.Status.StatusCause;
 
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import picocli.CommandLine;
@@ -20,23 +19,23 @@ public class HttpExceptionService {
         if (statusOptional.isPresent()) {
             var status = statusOptional.get();
             var details = status.getDetails();
-            System.out.println(status.getMessage());
+            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red Error |@") + status.getMessage());
 
             if (details != null) {
 
-                List<StatusCause> causes = details.getCauses();
+                List<String> causes = details.getCauses();
                 if (causes != null && !causes.isEmpty()) {
                     displayAsTable(causes);
                 }
             }
 
         } else {
-            System.out.println("Error");
+            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red Error |@") + e.getMessage());
 
         }
     }
 
-    private void displayAsTable(List<StatusCause> causes) {
+    private void displayAsTable(List<String> causes) {
         CommandLine.Help.TextTable tt = CommandLine.Help.TextTable.forColumns(
                 CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.AUTO),
                 new CommandLine.Help.Column[]
@@ -44,7 +43,7 @@ public class HttpExceptionService {
                                 new CommandLine.Help.Column(125, 2, CommandLine.Help.Column.Overflow.SPAN),
                         });
         //tt.addRowValues("MESSAGES");
-        causes.forEach(cause -> tt.addRowValues(cause.getMessage()));
+        causes.forEach(cause -> tt.addRowValues(cause));
         System.out.println(tt);
     }
 }
