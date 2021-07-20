@@ -1,9 +1,11 @@
 package com.michelin.ns4kafka.models;
 
 import io.micronaut.core.annotation.Introspected;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import javax.validation.Valid;
 import java.util.List;
 
 @Introspected
@@ -15,9 +17,6 @@ public class Status {
     private final String apiVersion = "v1";
     private final String kind = "Status";
 
-    @Valid
-    private ObjectMeta metadata;
-
     private StatusPhase status;
 
     private String message;
@@ -26,7 +25,6 @@ public class Status {
     private StatusDetails details;
 
     private int code;
-
 
     @Builder
     @AllArgsConstructor

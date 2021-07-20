@@ -30,8 +30,6 @@ public class AccessControlListController extends NamespacedResourceController {
     @Inject
     AccessControlEntryService accessControlEntryService;
 
-    public final String kind = "AccessControlEntry";
-
     @Operation(summary = "Returns the Access Control Entry List")
     @Get("{?limit}")
     public List<AccessControlEntry> list(String namespace, Optional<AclLimit> limit) {
@@ -88,7 +86,7 @@ public class AccessControlListController extends NamespacedResourceController {
             validationErrors = accessControlEntryService.validate(accessControlEntry, ns);
         }
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors, kind, accessControlEntry.getMetadata().getName());
+            throw new ResourceValidationException(validationErrors, accessControlEntry.getKind(), accessControlEntry.getMetadata().getName());
         }
         //augment
         accessControlEntry.getMetadata().setCreationTimestamp(Date.from(Instant.now()));

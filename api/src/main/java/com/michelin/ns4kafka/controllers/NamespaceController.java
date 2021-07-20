@@ -25,8 +25,6 @@ public class NamespaceController extends NonNamespacedResourceController {
     @Inject
     NamespaceService namespaceService;
 
-    public final String kind = "Namespace";
-
     @Get("/")
     public List<Namespace> list() {
         return namespaceService.listAll();
@@ -65,7 +63,7 @@ public class NamespaceController extends NonNamespacedResourceController {
         validationErrors.addAll(namespaceService.validate(namespace));
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors, kind, namespace.getMetadata().getName());
+            throw new ResourceValidationException(validationErrors, namespace.getKind(), namespace.getMetadata().getName());
         }
         //augment
         namespace.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
@@ -99,7 +97,7 @@ public class NamespaceController extends NonNamespacedResourceController {
             var validationErrors = namespaceResources.stream()
                     .map(s -> "Namespace resource must be deleted first :" + s)
                     .collect(Collectors.toList());
-            throw new ResourceValidationException(validationErrors, kind, namespace);
+            throw new ResourceValidationException(validationErrors, "Namespace", namespace);
         }
 
         if (dryrun) {

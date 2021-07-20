@@ -42,7 +42,7 @@ public class ConnectController extends NamespacedResourceController {
         //check ownership
         if (!kafkaConnectService.isNamespaceOwnerOfConnect(ns, connector)) {
             throw new ResourceValidationException(List.of("Invalid value " + connector +
-                     " for name: Namespace not OWNER of this connector"), "AccessControlEntry",connector);
+                     " for name: Namespace not OWNER of this connector"), "Connector",connector);
         }
 
         // exists ?

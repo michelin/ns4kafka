@@ -1,15 +1,15 @@
 package com.michelin.ns4kafka.cli.services;
 
-import java.util.List;
-import java.util.Optional;
+import com.michelin.ns4kafka.cli.models.Resource;
+import com.michelin.ns4kafka.cli.models.Status;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.nodes.Tag;
+import org.yaml.snakeyaml.representer.Representer;
 
 import javax.inject.Singleton;
-
-import com.michelin.ns4kafka.cli.models.Status;
-import com.michelin.ns4kafka.cli.models.Status.StatusCause;
-
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import picocli.CommandLine;
+import java.util.Optional;
 
 @Singleton
 public class HttpExceptionService {
@@ -18,33 +18,19 @@ public class HttpExceptionService {
 
         Optional<Status> statusOptional = e.getResponse().getBody(Status.class);
         if (statusOptional.isPresent()) {
-            var status = statusOptional.get();
-            var details = status.getDetails();
-            System.out.println(status.getMessage());
-
-            if (details != null) {
-
-                List<StatusCause> causes = details.getCauses();
-                if (causes != null && !causes.isEmpty()) {
-                    displayAsTable(causes);
-                }
-            }
+            displayIndividual(statusOptional.get());
 
         } else {
-            System.out.println("Error");
-
+            System.out.println(e.getMessage());
         }
     }
 
-    private void displayAsTable(List<StatusCause> causes) {
-        CommandLine.Help.TextTable tt = CommandLine.Help.TextTable.forColumns(
-                CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.AUTO),
-                new CommandLine.Help.Column[]
-                        {
-                                new CommandLine.Help.Column(125, 2, CommandLine.Help.Column.Overflow.SPAN),
-                        });
-        //tt.addRowValues("MESSAGES");
-        causes.forEach(cause -> tt.addRowValues(cause.getMessage()));
-        System.out.println(tt);
+    private void displayIndividual(Status status) {
+        DumperOptions options = new DumperOptions();
+        options.setExplicitStart(true);
+        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        Representer representer = new Representer();
+        representer.addClassTag(Resource.class, Tag.MAP);
+        System.out.println(new Yaml(representer, options).dump(status));
     }
 }
