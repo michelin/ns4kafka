@@ -112,7 +112,12 @@ public class ApplySubcommand implements Callable<Integer> {
                     }
                     Resource merged = response.body();
                     if(merged != null) {
-                        System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,green Success |@") + merged.getKind() + "/" + merged.getMetadata().getName() +" ("+ response.header("X-Ns4kafka-Result") + ")" );
+                        String resourceState = "";
+                        if (response.header("X-Ns4kafka-Result") != null) {
+                            resourceState = " (" +response.header("X-Ns4kafka-Result") + ")";
+                        }
+
+                        System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,green Success |@") + merged.getKind() + "/" + merged.getMetadata().getName() + resourceState);
                     }
                     return merged;
                 })
