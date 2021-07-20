@@ -35,7 +35,7 @@ public class Namespace {
         @NotBlank
         private String kafkaUser;
         @NotNull
-        private List<String> connectClusters;
+        private List<String> connectClusters = List.of();
         private TopicValidator topicValidator;
         private ConnectValidator connectValidator;
         //private ResourceQuota quota;
