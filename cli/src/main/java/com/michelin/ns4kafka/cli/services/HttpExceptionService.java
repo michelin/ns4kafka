@@ -41,9 +41,9 @@ public class HttpExceptionService {
                 CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.AUTO),
                 new CommandLine.Help.Column[]
                         {
-                                new CommandLine.Help.Column(50, 2, CommandLine.Help.Column.Overflow.SPAN),
+                                new CommandLine.Help.Column(125, 2, CommandLine.Help.Column.Overflow.SPAN),
                         });
-        tt.addRowValues("MESSAGES");
+        //tt.addRowValues("MESSAGES");
         causes.forEach(cause -> tt.addRowValues(cause.getMessage()));
         System.out.println(tt);
     }
