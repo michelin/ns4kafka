@@ -20,7 +20,7 @@ public class Status {
     private StatusPhase status;
 
     private String message;
-    private String reason;
+    private StatusReason reason;
 
     private StatusDetails details;
 

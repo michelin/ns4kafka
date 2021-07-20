@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.Status;
 import com.michelin.ns4kafka.models.Status.StatusDetails;
 import com.michelin.ns4kafka.models.Status.StatusPhase;
+import com.michelin.ns4kafka.models.Status.StatusReason;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -27,7 +28,7 @@ public class ExceptionHandlerController {
         var status = Status.builder()
                 .status(StatusPhase.Failed)
                 .message(String.format("Invalid %s %s", exception.getKind(), exception.getName()))
-                .reason("Invalid")
+                .reason(StatusReason.Invalid)
                 .details(StatusDetails.builder()
                         .kind(exception.getKind())
                         .name(exception.getName())
@@ -45,7 +46,7 @@ public class ExceptionHandlerController {
         var status = Status.builder()
                 .status(StatusPhase.Failed)
                 .message("Invalid Resource")
-                .reason("Invalid")
+                .reason(StatusReason.Invalid)
                 .details(StatusDetails.builder()
                         .causes(exception.getConstraintViolations().stream().map(this::formatViolation).collect(Collectors.toList()))
                         .build())
@@ -79,7 +80,7 @@ public class ExceptionHandlerController {
         var status = Status.builder()
                 .status(StatusPhase.Failed)
                 .message("Not Found")
-                .reason("NotFound")
+                .reason(StatusReason.NotFound)
                 .code(HttpStatus.NOT_FOUND.getCode())
                 .build();
 
@@ -93,7 +94,7 @@ public class ExceptionHandlerController {
         var status = Status.builder()
                 .status(StatusPhase.Failed)
                 .message(exception.getMessage())
-                .reason("Unauthorized")
+                .reason(StatusReason.Unauthorized)
                 .code(HttpStatus.UNAUTHORIZED.getCode())
                 .build();
         return HttpResponse.unauthorized().body(status);
@@ -106,7 +107,7 @@ public class ExceptionHandlerController {
             var status = Status.builder()
                     .status(StatusPhase.Failed)
                     .message("Resource forbidden")
-                    .reason("Forbidden")
+                    .reason(StatusReason.Forbidden)
                     .code(HttpStatus.FORBIDDEN.getCode())
                     .build();
             return HttpResponse.status(HttpStatus.FORBIDDEN)
@@ -117,7 +118,7 @@ public class ExceptionHandlerController {
         var status = Status.builder()
                 .status(StatusPhase.Failed)
                 .message(exception.getMessage())
-                .reason("Unauthorized")
+                .reason(StatusReason.Unauthorized)
                 .code(HttpStatus.UNAUTHORIZED.getCode())
                 .build();
         return HttpResponse.unauthorized().body(status);
@@ -130,7 +131,7 @@ public class ExceptionHandlerController {
         var status = Status.builder()
                 .status(StatusPhase.Failed)
                 .message("Internal server error")
-                .reason("InternalError")
+                .reason(StatusReason.InternalError)
                 .details(StatusDetails.builder()
                         .causes(List.of(exception.toString()))
                         .build())
