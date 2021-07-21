@@ -70,7 +70,7 @@ public class AccessControlListController extends NamespacedResourceController {
     }
 
     @Post("{?dryrun}")
-    public AccessControlEntry apply(Authentication authentication, String namespace, @Valid @Body AccessControlEntry accessControlEntry, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<AccessControlEntry> apply(Authentication authentication, String namespace, @Valid @Body AccessControlEntry accessControlEntry, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
@@ -86,7 +86,7 @@ public class AccessControlListController extends NamespacedResourceController {
             validationErrors = accessControlEntryService.validate(accessControlEntry, ns);
         }
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors);
+            throw new ResourceValidationException(validationErrors, accessControlEntry.getKind(), accessControlEntry.getMetadata().getName());
         }
         //augment
         accessControlEntry.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
@@ -95,16 +95,20 @@ public class AccessControlListController extends NamespacedResourceController {
 
         Optional<AccessControlEntry> existingACL = accessControlEntryService.findByName(namespace, accessControlEntry.getMetadata().getName());
         if(existingACL.isPresent() && existingACL.get().equals(accessControlEntry)){
-            return existingACL.get();
+            return formatHttpResponse(existingACL.get(), ApplyStatus.unchanged);
+        }
+        ApplyStatus status = ApplyStatus.created;
+        if (existingACL.isPresent()) {
+            status = ApplyStatus.changed;
         }
 
         //dryrun checks
         if (dryrun) {
-            return accessControlEntry;
+            return formatHttpResponse(accessControlEntry, status);
         }
 
         //store
-        return accessControlEntryService.create(accessControlEntry);
+        return formatHttpResponse(accessControlEntryService.create(accessControlEntry), status);
     }
 
     @Delete("/{name}{?dryrun}")
@@ -114,7 +118,10 @@ public class AccessControlListController extends NamespacedResourceController {
         AccessControlEntry accessControlEntry = accessControlEntryService
                 .findByName(namespace, name)
                 .orElseThrow(() -> new ResourceValidationException(
-                        List.of("Invalid value " + name + " for name : AccessControlEntry doesn't exist in this namespace"))
+                        List.of("Invalid value " + name + " for name : AccessControlEntry doesn't exist in this namespace"),
+                        "AccessControlEntry",
+                        name
+                        )
                 );
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
@@ -123,7 +130,11 @@ public class AccessControlListController extends NamespacedResourceController {
         boolean isSelfAssignedACL = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
         if (isSelfAssignedACL && !isAdmin) {
             // prevent delete
-            throw new ResourceValidationException(List.of("Only admins can delete this AccessControlEntry"));
+            throw new ResourceValidationException(
+                    List.of("Only admins can delete this AccessControlEntry"),
+                    "AccessControlEntry",
+                    name
+            );
         }
 
         if (dryrun) {

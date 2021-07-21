@@ -23,27 +23,21 @@ import java.util.Optional;
 @ExecuteOn(TaskExecutors.IO)
 public class RoleBindingController extends NamespacedResourceController {
 
-
     @Inject
     RoleBindingService roleBindingService;
 
     @Get
     public List<RoleBinding> list(String namespace) {
-
-        // ToDo Custom error message for non existing namespace
         return roleBindingService.list(namespace);
     }
 
     @Get("/{name}")
     public Optional<RoleBinding> get(String namespace, String name) {
-
-
-        // ToDo Custom error for non existing namespace
         return roleBindingService.findByName(namespace, name);
     }
 
     @Post("{?dryrun}")
-    public RoleBinding apply(String namespace, @Valid @Body RoleBinding rolebinding, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<RoleBinding> apply(String namespace, @Valid @Body RoleBinding rolebinding, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         // fill with cluster name
         Namespace ns = getNamespace(namespace);
@@ -55,14 +49,18 @@ public class RoleBindingController extends NamespacedResourceController {
         Optional<RoleBinding> existingRoleBinding = roleBindingService.findByName(namespace, rolebinding.getMetadata().getName());
 
         if(existingRoleBinding.isPresent() && existingRoleBinding.get().equals(rolebinding)){
-            return existingRoleBinding.get();
+            return formatHttpResponse(existingRoleBinding.get(), ApplyStatus.unchanged);
+        }
+        ApplyStatus status = ApplyStatus.created;
+        if(existingRoleBinding.isPresent()) {
+            status = ApplyStatus.changed;
         }
 
         if (dryrun) {
-            return rolebinding;
+            return formatHttpResponse(rolebinding, status);
         }
         roleBindingService.create(rolebinding);
-        return rolebinding;
+        return formatHttpResponse(rolebinding, status);
     }
 
     @Delete("/{name}{?dryrun}")
@@ -73,7 +71,11 @@ public class RoleBindingController extends NamespacedResourceController {
         Optional<RoleBinding> roleBinding = roleBindingService.findByName(namespace, name);
 
         if (roleBinding.isEmpty()) {
-            throw new ResourceValidationException(List.of("Invalid value " + name + " for name : Role Binding doesn't exist in this namespace"));
+            throw new ResourceValidationException(
+                    List.of("Invalid value " + name + " for name : Role Binding doesn't exist in this namespace"),
+                    "RoleBinding",
+                    name
+            );
         }
 
         if (dryrun) {

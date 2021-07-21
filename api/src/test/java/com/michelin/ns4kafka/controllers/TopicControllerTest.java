@@ -187,15 +187,12 @@ public class TopicControllerTest {
                 .thenReturn(false);
 
         //When
-        HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete", false);
-
-        //Then
-        Assertions.assertEquals(HttpStatus.UNAUTHORIZED, actual.getStatus());
-
+        var actual = Assertions.assertThrows(ResourceValidationException.class,
+        () -> topicController.deleteTopic("test", "topic.delete", false));
     }
 
     @Test
-    public void CreateNewTopic() {
+    public void CreateNewTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -223,12 +220,14 @@ public class TopicControllerTest {
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
         when(topicService.create(topic)).thenReturn(topic);
 
-        Topic actual = topicController.apply("test", topic, false);
+        var response = topicController.apply("test", topic, false);
+        Topic actual = response.body();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals(actual.getMetadata().getName(), "test.topic");
     }
 
     @Test
-    public void UpdateTopic() {
+    public void UpdateTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -267,12 +266,14 @@ public class TopicControllerTest {
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
         when(topicService.create(topic)).thenReturn(topic);
 
-        Topic actual = topicController.apply("test", topic, false);
+        var response = topicController.apply("test", topic, false);
+        Topic actual = response.body();
+        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertEquals(actual.getMetadata().getName(), "test.topic");
     }
 
     @Test
-    public void UpdateTopic_AlreadyExists() {
+    public void UpdateTopic_AlreadyExists() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -312,14 +313,16 @@ public class TopicControllerTest {
                 .thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
 
-        Topic actual = topicController.apply("test", topic, false);
+        var response = topicController.apply("test", topic, false);
+        Topic actual = response.body();
+        Assertions.assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         verify(topicService, never()).create(ArgumentMatchers.any());
         assertEquals(existing, actual);
 
     }
 
     @Test
-    public void CreateNewTopicDryRun() {
+    public void CreateNewTopicDryRun() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -346,7 +349,9 @@ public class TopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
 
-        Topic actual = topicController.apply("test", topic, true);
+        var response = topicController.apply("test", topic, true);
+        Topic actual = response.body();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(topicService, never()).create(topic);
     }
 
@@ -530,7 +535,7 @@ public class TopicControllerTest {
 
 
     @Test
-    public void deleteRecords_Success() {
+    public void deleteRecords_Success() throws ExecutionException, InterruptedException {
         //Given
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
@@ -566,7 +571,7 @@ public class TopicControllerTest {
     }
 
     @Test
-    public void deleteRecords_DryRun() {
+    public void deleteRecords_DryRun() throws InterruptedException, ExecutionException {
         //Given
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
@@ -646,7 +651,7 @@ public class TopicControllerTest {
     }
 
     @Test
-    public void CreateCollidingTopic() {
+    public void CreateCollidingTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")

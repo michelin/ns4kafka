@@ -62,10 +62,10 @@ public class DeleteSubcommand implements Callable<Integer> {
 
         boolean deleted = resourceService.delete(apiResource, namespace, name, dryRun);
         if (!deleted) {
-            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red FAILED |@"));
+            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red Failed |@"));
             return 1;
         }
-        System.out.println(Ansi.AUTO.string("@|bold,green SUCCESS |@"));
+        System.out.println(Ansi.AUTO.string("@|bold,green Success |@"));
         return 0;
     }
 

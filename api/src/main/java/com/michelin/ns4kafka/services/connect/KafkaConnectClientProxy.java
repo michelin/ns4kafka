@@ -40,18 +40,18 @@ public class KafkaConnectClientProxy extends OncePerRequestHttpServerFilter {
     public Publisher<MutableHttpResponse<?>> doFilterOnce(HttpRequest<?> request, ServerFilterChain chain) {
         // check call is initiated from micronaut and not from outisde
         if (!request.getHeaders().contains(KafkaConnectClientProxy.PROXY_HEADER_SECRET)) {
-            return Publishers.just(new ResourceValidationException(List.of("Missing required Header " + KafkaConnectClientProxy.PROXY_HEADER_SECRET)));
+            return Publishers.just(new ResourceValidationException(List.of("Missing required Header " + KafkaConnectClientProxy.PROXY_HEADER_SECRET), null, null));
         }
         String secret = request.getHeaders().get(KafkaConnectClientProxy.PROXY_HEADER_SECRET);
         if (!PROXY_SECRET.equals(secret)) {
-            return Publishers.just(new ResourceValidationException(List.of("Invalid value " + secret + " for Header " + KafkaConnectClientProxy.PROXY_HEADER_SECRET)));
+            return Publishers.just(new ResourceValidationException(List.of("Invalid value " + secret + " for Header " + KafkaConnectClientProxy.PROXY_HEADER_SECRET), null, null));
         }
         // retrieve the connectConfig based on Header
         if (!request.getHeaders().contains(KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER)) {
-            return Publishers.just(new ResourceValidationException(List.of("Missing required Header " + KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER)));
+            return Publishers.just(new ResourceValidationException(List.of("Missing required Header " + KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER), null, null));
         }
         if (!request.getHeaders().contains(KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER)) {
-            return Publishers.just(new ResourceValidationException(List.of("Missing required Header " + KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER)));
+            return Publishers.just(new ResourceValidationException(List.of("Missing required Header " + KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER), null, null));
         }
 
         String kafkaCluster = request.getHeaders().get(KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER);
@@ -62,13 +62,13 @@ public class KafkaConnectClientProxy extends OncePerRequestHttpServerFilter {
                 .filter(kafkaAsyncExecutorConfig -> kafkaAsyncExecutorConfig.getName().equals(kafkaCluster))
                 .findFirst();
         if (config.isEmpty()) {
-            return Publishers.just(new ResourceValidationException(List.of("Kafka Cluster [" + kafkaCluster + "] not found")));
+            return Publishers.just(new ResourceValidationException(List.of("Kafka Cluster [" + kafkaCluster + "] not found"),null,null));
         }
 
         // get the good connect config
         ConnectConfig connectConfig = config.get().getConnects().get(connectCluster);
         if (connectConfig == null) {
-            return Publishers.just(new ResourceValidationException(List.of("Connect Cluster [" + connectCluster + "] not found")));
+            return Publishers.just(new ResourceValidationException(List.of("Connect Cluster [" + connectCluster + "] not found"), null, null));
         }
 
         // mutate the request with proper URL and Authent

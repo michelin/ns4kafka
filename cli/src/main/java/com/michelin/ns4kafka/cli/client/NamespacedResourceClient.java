@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.cli.client;
 
 import com.michelin.ns4kafka.cli.models.Resource;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.client.annotation.Client;
 
@@ -18,7 +19,7 @@ public interface NamespacedResourceClient {
             @QueryValue boolean dryrun);
 
     @Post("{namespace}/{kind}{?dryrun}")
-    Resource apply(
+    HttpResponse<Resource> apply(
             String namespace,
             String kind,
             @Header("Authorization") String token,

@@ -8,6 +8,7 @@ import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.RoleBinding.*;
+import com.michelin.ns4kafka.models.Status;
 import com.michelin.ns4kafka.models.Topic.TopicSpec;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
@@ -173,7 +174,8 @@ public class TopicTest extends AbstractIntegrationTest {
                   .build())
             .build();
 
-        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics").bearerAuth(token).body(topicFirstCreate)).blockingFirst();
+        var response = client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics").bearerAuth(token).body(topicFirstCreate)).blockingFirst();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
 
         //force Topic Sync
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
@@ -188,6 +190,74 @@ public class TopicTest extends AbstractIntegrationTest {
         Set<String> configKey = config.keySet();
 
         ConfigResource configResource = new ConfigResource(ConfigResource.Type.TOPIC,"ns1-topicFirstCreate");
+        List<ConfigEntry> valueToVerify = kafkaClient.describeConfigs(List.of(configResource)).all().get().get(configResource).entries().stream()
+            .filter(e -> configKey.contains(e.name()))
+            .collect(Collectors.toList());
+
+        Assertions.assertEquals(config.size(), valueToVerify.size());
+        valueToVerify.forEach(entry -> {
+            Assertions.assertEquals(config.get(entry.name()), entry.value());
+        });
+    }
+
+    @Test
+    void updateTopic() throws InterruptedException, ExecutionException {
+
+        Topic topic2Create = Topic.builder()
+            .metadata(ObjectMeta.builder()
+                      .name("ns1-topic2Create")
+                      .namespace("ns1")
+                      .build())
+            .spec(TopicSpec.builder()
+                  .partitions(3)
+                  .replicationFactor(1)
+                  .configs(Map.of("cleanup.policy", "delete",
+                                  "min.insync.replicas", "1",
+                                  "retention.ms", "60000"))
+                  .build())
+            .build();
+
+        var response = client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics").bearerAuth(token).body(topic2Create)).blockingFirst();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+
+        //force Topic Sync
+        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+
+        response = client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics").bearerAuth(token).body(topic2Create)).blockingFirst();
+        Assertions.assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
+
+        Topic topic2Update = Topic.builder()
+            .metadata(ObjectMeta.builder()
+                      .name("ns1-topic2Create")
+                      .namespace("ns1")
+                      .build())
+            .spec(TopicSpec.builder()
+                  .partitions(3)
+                  .replicationFactor(1)
+                  .configs(Map.of("cleanup.policy", "delete",
+                                  "min.insync.replicas", "1",
+                                  "retention.ms", "70000"))//This line was changed
+                  .build())
+            .build();
+
+        response = client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics").bearerAuth(token).body(topic2Update)).blockingFirst();
+        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
+
+        //force Topic Sync
+        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+
+        Admin kafkaClient = getAdminClient();
+        System.out.println(kafkaClient.describeTopics(List.of("ns1-topic2Create")).all().get());
+        List<TopicPartitionInfo> topicPartitionInfos = kafkaClient.describeTopics(List.of("ns1-topic2Create")).all().get()
+            .get("ns1-topic2Create").partitions();
+        // verify partition of the updated topic
+        Assertions.assertEquals(topic2Update.getSpec().getPartitions(), topicPartitionInfos.size());
+
+        // verify config of the updated topic
+        Map<String, String> config = topic2Update.getSpec().getConfigs();
+        Set<String> configKey = config.keySet();
+
+        ConfigResource configResource = new ConfigResource(ConfigResource.Type.TOPIC,"ns1-topic2Create");
         List<ConfigEntry> valueToVerify = kafkaClient.describeConfigs(List.of(configResource)).all().get().get(configResource).entries().stream()
             .filter(e -> configKey.contains(e.name()))
             .collect(Collectors.toList());
@@ -220,7 +290,8 @@ public class TopicTest extends AbstractIntegrationTest {
                         .body(topicFirstCreate))
                         .blockingFirst());
 
-        Assertions.assertEquals("topic.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"", exception.getMessage());
+        Assertions.assertEquals("Invalid Resource", exception.getMessage());
+        Assertions.assertEquals("topic.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"", exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
 
     }
 
@@ -270,7 +341,8 @@ public class TopicTest extends AbstractIntegrationTest {
             .build();
 
         HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,() -> client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns2/topics").bearerAuth(token).body(topicToModifyBis)).blockingFirst());
-        Assertions.assertEquals("Validation failed: [Invalid value ns1-topicToModify for name: Namespace not OWNER of this topic]", exception.getMessage());
+        Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
+        //Assertions.assertEquals("Validation failed: [Invalid value ns1-topicToModify for name: Namespace not OWNER of this topic]", exception.getMessage());
 
         // Compare spec of the topics and assure there is no change
         Assertions.assertEquals(topicToModify.getSpec(),client.retrieve(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/topics/ns1-topicToModify").bearerAuth(token), Topic.class ).blockingFirst().getSpec());

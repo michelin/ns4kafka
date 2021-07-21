@@ -51,7 +51,7 @@ public class TopicController extends NamespacedResourceController {
     }
 
     @Post("{?dryrun}")
-    public Topic apply(String namespace, @Valid @Body Topic topic, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<Topic> apply(String namespace, @Valid @Body Topic topic, @QueryValue(defaultValue = "false") boolean dryrun) throws InterruptedException, ExecutionException, TimeoutException {
 
         //TODO
         // 1. (Done) User Allowed ?
@@ -80,8 +80,7 @@ public class TopicController extends NamespacedResourceController {
             //Topic names with a period ('.') or underscore ('_') could collide
             List<String> collidingTopics = topicService.findCollidingTopics(ns, topic);
             if (!collidingTopics.isEmpty()) {
-                validationErrors.addAll(collidingTopics
-                        .stream()
+                validationErrors.addAll(collidingTopics.stream()
                         .map(collidingTopic -> "Topic " + topic.getMetadata().getName()
                                 + " collides with existing topics: "
                                 + collidingTopic)
@@ -102,7 +101,7 @@ public class TopicController extends NamespacedResourceController {
             }
         }
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors);
+            throw new ResourceValidationException(validationErrors, topic.getKind(), topic.getMetadata().getName());
         }
 
         //3. Fill server-side fields (server side metadata + status)
@@ -112,26 +111,30 @@ public class TopicController extends NamespacedResourceController {
         topic.setStatus(Topic.TopicStatus.ofPending());
 
         if (existingTopic.isPresent() && existingTopic.get().equals(topic)) {
-            return existingTopic.get();
+            return formatHttpResponse(existingTopic.get(), ApplyStatus.unchanged);
+        }
+        ApplyStatus status = ApplyStatus.created;
+        if (existingTopic.isPresent()) {
+            status = ApplyStatus.changed;
         }
 
         if (dryrun) {
-            return topic;
+            return formatHttpResponse(topic, status);
         }
 
-        return topicService.create(topic);
+        return formatHttpResponse(topicService.create(topic), status);
     }
 
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{topic}{?dryrun}")
-    public HttpResponse deleteTopic(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse deleteTopic(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun) throws InterruptedException, ExecutionException, TimeoutException {
 
         Namespace ns = getNamespace(namespace);
 
-        String cluster = ns.getMetadata().getCluster();
         // allowed ?
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic))
-            return HttpResponse.unauthorized();
+            throw new ResourceValidationException(List.of("Invalid value " + topic
+                    + " for name: Namespace not OWNER of this topic"), "Topic", topic);
 
         // exists ?
         Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
@@ -177,20 +180,24 @@ public class TopicController extends NamespacedResourceController {
     }
 
     @Post("{topic}/delete-records{?dryrun}")
-    public DeleteRecords deleteRecords(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public DeleteRecords deleteRecords(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun) throws InterruptedException, ExecutionException {
 
         Namespace ns = getNamespace(namespace);
         // allowed ?
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic)) {
-            throw new ResourceValidationException(List.of("Invalid value " + topic +
-                    " for name: Namespace not OWNER of this topic"));
+            throw new ResourceValidationException(List.of("Invalid value " + topic
+                    + " for name: Namespace not OWNER of this topic"), "Topic", topic);
         }
 
         // exists ?
         Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
         if (optionalTopic.isEmpty()) {
-            throw new ResourceValidationException(List.of("Invalid value " + topic +
-                    " for name: Topic doesn't exist"));
+            throw new ResourceValidationException(
+                    List.of("Invalid value " + topic +
+                    " for name: Topic doesn't exist"),
+                    "Topic",
+                    topic
+            );
         }
         Map<TopicPartition, Long> recordsToDelete = topicService.prepareRecordsToDelete(optionalTopic.get());
 

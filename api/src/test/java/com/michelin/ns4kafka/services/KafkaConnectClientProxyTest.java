@@ -127,7 +127,6 @@ public class KafkaConnectClientProxyTest {
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
 
-        subscriber.assertError(ResourceValidationException.class);
         subscriber.assertError(throwable ->
                 ((ResourceValidationException)throwable)
                         .getValidationErrors()
@@ -154,7 +153,6 @@ public class KafkaConnectClientProxyTest {
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
 
-        subscriber.assertError(ResourceValidationException.class);
         subscriber.assertError(throwable ->
              ((ResourceValidationException)throwable)
                      .getValidationErrors()

@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -46,7 +47,9 @@ public class RoleBindingControllerTest {
 
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
 
-        RoleBinding actual = roleBindingController.apply("test", rolebinding, false);
+        var response = roleBindingController.apply("test", rolebinding, false);
+        RoleBinding actual = response.body();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals(actual.getMetadata().getName(), rolebinding.getMetadata().getName());
     }
 
@@ -68,9 +71,41 @@ public class RoleBindingControllerTest {
         when(roleBindingService.findByName("test","test.rolebinding"))
                 .thenReturn(Optional.of(rolebinding));
 
-        RoleBinding actual = roleBindingController.apply("test", rolebinding, false);
+        var response = roleBindingController.apply("test", rolebinding, false);
+        RoleBinding actual = response.body();
+        Assertions.assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         assertEquals(actual.getMetadata().getName(), rolebinding.getMetadata().getName());
         verify(roleBindingService,never()).create(ArgumentMatchers.any());
+    }
+
+    @Test
+    void applySuccess_Changed() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        RoleBinding rolebinding = RoleBinding.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.rolebinding")
+                        .build())
+                .build();
+        RoleBinding rolebindingOld = RoleBinding.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.rolebinding")
+                        .labels(Map.of("old", "label"))
+                        .build())
+                .build();
+
+        when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
+        when(roleBindingService.findByName("test","test.rolebinding"))
+                .thenReturn(Optional.of(rolebindingOld));
+
+        var response = roleBindingController.apply("test", rolebinding, false);
+        RoleBinding actual = response.body();
+        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
+        assertEquals(actual.getMetadata().getName(), rolebinding.getMetadata().getName());
     }
 
     @Test
@@ -89,7 +124,9 @@ public class RoleBindingControllerTest {
 
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
 
-        RoleBinding actual = roleBindingController.apply("test", rolebinding, true);
+        var response = roleBindingController.apply("test", rolebinding, true);
+        RoleBinding actual = response.body();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(roleBindingService, never()).create(rolebinding);
     }
 

@@ -107,7 +107,7 @@ public class DiffSubcommand implements Callable<Integer> {
                             .findFirst()
                             .orElseThrow(); // already validated
                     Resource live = resourceService.getSingleResourceWithType(apiResource, namespace, resource.getMetadata().getName());
-                    Resource merged = resourceService.apply(apiResource, namespace, resource, true);
+                    Resource merged = resourceService.apply(apiResource, namespace, resource, true).body();
                     List<String> uDiff = unifiedDiff(live, merged);
                     uDiff.forEach(System.out::println);
                     return 0;

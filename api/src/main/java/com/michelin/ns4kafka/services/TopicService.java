@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.controllers.ResourceValidationException;
 import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
@@ -55,7 +54,7 @@ public class TopicService {
                 .collect(Collectors.toList());
     }
 
-    public List<String> findCollidingTopics(Namespace namespace, Topic topic)  {
+    public List<String> findCollidingTopics(Namespace namespace, Topic topic) throws InterruptedException, ExecutionException, TimeoutException  {
         TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
                 Qualifiers.byName(namespace.getMetadata().getCluster()));
         try {
@@ -66,11 +65,9 @@ public class TopicService {
                     .filter(clusterTopic -> !topic.getMetadata().getName().equals(clusterTopic))
                     .filter(clusterTopic -> hasCollision(clusterTopic, topic.getMetadata().getName()))
                    .collect(Collectors.toList());
-        } catch (InterruptedException e){
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new ResourceValidationException(List.of("InterruptedException"));
-        } catch (Exception e) {
-            throw new ResourceValidationException(List.of(e.getMessage()));
+            throw new InterruptedException(e.getMessage());
         }
     }
 
@@ -86,16 +83,11 @@ public class TopicService {
         return topicRepository.create(topic);
     }
 
-    public void delete(Topic topic) {
+    public void delete(Topic topic) throws InterruptedException, ExecutionException, TimeoutException {
         //TODO cleaner delete implementation, to be discussed
         TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
                 Qualifiers.byName(topic.getMetadata().getCluster()));
-        try {
-            topicAsyncExecutor.deleteTopic(topic);
-        } catch (Exception e) {
-            //TODO refactor global error handling model
-            throw new ResourceValidationException(List.of(e.getMessage()));
-        }
+        topicAsyncExecutor.deleteTopic(topic);
         topicRepository.delete(topic);
     }
 
@@ -126,23 +118,20 @@ public class TopicService {
         return unsynchronizedTopicNames;
     }
 
-    public Map<TopicPartition, Long> prepareRecordsToDelete(Topic topic) {
+    public Map<TopicPartition, Long> prepareRecordsToDelete(Topic topic) throws ExecutionException, InterruptedException {
         TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
                 Qualifiers.byName(topic.getMetadata().getCluster()));
         try {
             return topicAsyncExecutor.prepareRecordsToDelete(topic.getMetadata().getName())
                     .entrySet().stream()
                     .collect(Collectors.toMap(Map.Entry::getKey, kv -> kv.getValue().beforeOffset()));
-        } catch (ExecutionException e) {
-            //TODO refactor global error handling model
-            throw new ResourceValidationException(List.of(e.getMessage()));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            throw new InterruptedException(e.getMessage());
         }
-        throw new ResourceValidationException(List.of("Unknown error"));
     }
 
-    public Map<TopicPartition, Long> deleteRecords(Topic topic, Map<TopicPartition, Long> recordsToDelete) {
+    public Map<TopicPartition, Long> deleteRecords(Topic topic, Map<TopicPartition, Long> recordsToDelete) throws InterruptedException, ExecutionException {
 
         TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
                 Qualifiers.byName(topic.getMetadata().getCluster()));
@@ -153,11 +142,8 @@ public class TopicService {
             return topicAsyncExecutor.deleteRecords(recordsToDeleteMap);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-        } catch (Exception e) {
-            //TODO refactor global error handling model
-            throw new ResourceValidationException(List.of(e.getMessage()));
+            throw new InterruptedException(e.getMessage());
         }
-        throw new ResourceValidationException(List.of("Unknown error"));
     }
 
 }

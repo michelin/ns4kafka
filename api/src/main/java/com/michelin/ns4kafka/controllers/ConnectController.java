@@ -2,7 +2,6 @@ package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.KafkaConnectService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -10,8 +9,6 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -25,13 +22,8 @@ import java.util.stream.Collectors;
 @Controller(value = "/api/namespaces/{namespace}/connects")
 @ExecuteOn(TaskExecutors.IO)
 public class ConnectController extends NamespacedResourceController {
-    private static final Logger LOG = LoggerFactory.getLogger(ConnectController.class);
-    //TODO validate calls and forward to Connect REST API (sync ???)
     @Inject
     KafkaConnectService kafkaConnectService;
-
-    @Inject
-    AccessControlEntryService accessControlEntryService;
 
     @Get
     public List<Connector> list(String namespace) {
@@ -50,7 +42,7 @@ public class ConnectController extends NamespacedResourceController {
         //check ownership
         if (!kafkaConnectService.isNamespaceOwnerOfConnect(ns, connector)) {
             throw new ResourceValidationException(List.of("Invalid value " + connector +
-                    " for name: Namespace not OWNER of this connector"));
+                     " for name: Namespace not OWNER of this connector"), "Connector",connector);
         }
 
         // exists ?
@@ -70,26 +62,26 @@ public class ConnectController extends NamespacedResourceController {
     }
 
     @Post("{?dryrun}")
-    public Connector apply(String namespace, @Valid @Body Connector connector, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<Connector> apply(String namespace, @Valid @Body Connector connector, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         Namespace ns = getNamespace(namespace);
 
         //check ownership
         if (!kafkaConnectService.isNamespaceOwnerOfConnect(ns, connector.getMetadata().getName())) {
             throw new ResourceValidationException(List.of("Invalid value " + connector.getMetadata().getName() +
-                    " for name: Namespace not OWNER of this connector"));
+                     " for name: Namespace not OWNER of this connector"), connector.getKind(), connector.getMetadata().getName());
         }
 
         // Validate locally
         List<String> validationErrors = kafkaConnectService.validateLocally(ns, connector);
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors);
+            throw new ResourceValidationException(validationErrors, connector.getKind(), connector.getMetadata().getName());
         }
 
         // Validate against connect rest API /validate
         validationErrors = kafkaConnectService.validateRemotely(ns, connector);
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors);
+            throw new ResourceValidationException(validationErrors, connector.getKind(), connector.getMetadata().getName());
         }
 
         // Augment with server side fields
@@ -103,14 +95,18 @@ public class ConnectController extends NamespacedResourceController {
 
         Optional<Connector> existingConnector = kafkaConnectService.findByName(ns, connector.getMetadata().getName());
         if (existingConnector.isPresent() && existingConnector.get().equals(connector)) {
-            return existingConnector.get();
+            return formatHttpResponse(existingConnector.get(), ApplyStatus.unchanged);
+        }
+        ApplyStatus status = ApplyStatus.created;
+        if (existingConnector.isPresent()) {
+            status = ApplyStatus.changed;
         }
         //dryrun checks
         if (dryrun) {
-            return connector;
+            return formatHttpResponse(connector, status);
         }
         //Create resource
-        return kafkaConnectService.createOrUpdate(ns, connector);
+        return formatHttpResponse(kafkaConnectService.createOrUpdate(ns, connector), status);
     }
 
     @Post("/_/import{?dryrun}")

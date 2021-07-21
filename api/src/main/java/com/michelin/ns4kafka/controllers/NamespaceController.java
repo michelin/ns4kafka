@@ -36,7 +36,7 @@ public class NamespaceController extends NonNamespacedResourceController {
     }
 
     @Post("{?dryrun}")
-    public Namespace apply(@Valid @Body Namespace namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<Namespace> apply(@Valid @Body Namespace namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         Optional<Namespace> existingNamespace = namespaceService.findByName(namespace.getMetadata().getName());
 
@@ -63,19 +63,25 @@ public class NamespaceController extends NonNamespacedResourceController {
         validationErrors.addAll(namespaceService.validate(namespace));
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors);
+            throw new ResourceValidationException(validationErrors, namespace.getKind(), namespace.getMetadata().getName());
         }
         //augment
         namespace.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
 
         if (existingNamespace.isPresent() && existingNamespace.get().equals(namespace)) {
-            return existingNamespace.get();
+            return formatHttpResponse(existingNamespace.get(), ApplyStatus.unchanged);
         }
+
+        ApplyStatus status = ApplyStatus.created;
+        if (existingNamespace.isPresent()) {
+            status = ApplyStatus.changed;
+        }
+
         //dryrun checks
         if (dryrun) {
-            return namespace;
+            return formatHttpResponse(namespace, status);
         }
-        return namespaceService.createOrUpdate(namespace);
+        return formatHttpResponse(namespaceService.createOrUpdate(namespace), status);
 
     }
 
@@ -88,9 +94,10 @@ public class NamespaceController extends NonNamespacedResourceController {
         // check existing resources
         List<String> namespaceResources = namespaceService.listAllNamespaceResources(optionalNamespace.get());
         if (!namespaceResources.isEmpty()) {
-            throw new ResourceValidationException(namespaceResources.stream()
+            var validationErrors = namespaceResources.stream()
                     .map(s -> "Namespace resource must be deleted first :" + s)
-                    .collect(Collectors.toList()));
+                    .collect(Collectors.toList());
+            throw new ResourceValidationException(validationErrors, "Namespace", namespace);
         }
 
         if (dryrun) {

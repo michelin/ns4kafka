@@ -61,7 +61,9 @@ public class NamespaceControllerTest {
         Mockito.when(namespaceService.createOrUpdate(toCreate))
                 .thenReturn(toCreate);
 
-        Namespace actual = namespaceController.apply(toCreate, false);
+        var response = namespaceController.apply(toCreate, false);
+        Namespace actual = response.body();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         Assertions.assertEquals("new-namespace", actual.getMetadata().getName());
         Assertions.assertEquals("local", actual.getMetadata().getCluster());
     }
@@ -78,7 +80,9 @@ public class NamespaceControllerTest {
         Mockito.when(namespaceService.validateCreation(toCreate))
                 .thenReturn(List.of());
 
-        Namespace actual = namespaceController.apply(toCreate, true);
+        var response = namespaceController.apply(toCreate, true);
+        Namespace actual = response.body();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(namespaceService, never()).createOrUpdate(toCreate);
     }
     @Test
@@ -138,7 +142,9 @@ public class NamespaceControllerTest {
         Mockito.when(namespaceService.createOrUpdate(toUpdate))
                 .thenReturn(toUpdate);
 
-        Namespace actual = namespaceController.apply(toUpdate, false);
+        var response = namespaceController.apply(toUpdate, false);
+        Namespace actual = response.body();
+        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
         Assertions.assertEquals("namespace", actual.getMetadata().getName());
         Assertions.assertEquals("local", actual.getMetadata().getCluster());
         Assertions.assertEquals("label", actual.getMetadata().getLabels().get("new"));
@@ -166,7 +172,9 @@ public class NamespaceControllerTest {
         Mockito.when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
 
-        Namespace actual = namespaceController.apply(toUpdate, false);
+        var response = namespaceController.apply(toUpdate, false);
+        Namespace actual = response.body();
+        Assertions.assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         Assertions.assertEquals(existing, actual);
         verify(namespaceService,never()).createOrUpdate(ArgumentMatchers.any());
     }
@@ -194,7 +202,9 @@ public class NamespaceControllerTest {
         Mockito.when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
 
-        Namespace actual = namespaceController.apply(toUpdate, true);
+        var response = namespaceController.apply(toUpdate, true);
+        Namespace actual = response.body();
+        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
         verify(namespaceService, never()).createOrUpdate(toUpdate);
     }
 
