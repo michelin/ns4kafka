@@ -3,10 +3,6 @@ package com.michelin.ns4kafka.cli;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
-import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.nodes.Tag;
-import org.yaml.snakeyaml.representer.Representer;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -50,17 +46,9 @@ public class DeleteRecordsSubcommand implements Callable<Integer> {
 
         Resource resource = resourceService.deleteRecords(namespace, topic, dryRun);
 
-        displayIndividual(resource);
+        FormatUtils.displayIndividual(resource, "yaml");
 
         return 0;
-    }
-    private void displayIndividual(Resource resource) {
-        DumperOptions options = new DumperOptions();
-        options.setExplicitStart(true);
-        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        Representer representer = new Representer();
-        representer.addClassTag(Resource.class, Tag.MAP);
-        System.out.println(new Yaml(representer, options).dump(resource));
     }
 
 }

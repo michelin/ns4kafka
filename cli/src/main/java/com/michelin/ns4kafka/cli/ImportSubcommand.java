@@ -59,10 +59,11 @@ public class ImportSubcommand implements Callable<Integer> {
 
         // 5.a display all resources by type
         apiResources.forEach(apiResource ->
-                displayAsTable(apiResource,
+                FormatUtils.displayList(apiResource,
                         resources.stream()
                                 .filter(resource -> resource.getKind().equals(apiResource.getKind()))
-                                .collect(Collectors.toList())
+                                .collect(Collectors.toList()),
+                        "yaml"
                 )
         );
         return 0;
@@ -87,18 +88,5 @@ public class ImportSubcommand implements Callable<Integer> {
         }
 
         return List.of(optionalApiResource.get());
-    }
-
-    private void displayAsTable(ApiResource apiResource, List<Resource> resources) {
-        CommandLine.Help.TextTable tt = CommandLine.Help.TextTable.forColumns(
-                CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.AUTO),
-                new CommandLine.Help.Column[]
-                        {
-                                new CommandLine.Help.Column(50, 2, CommandLine.Help.Column.Overflow.SPAN),
-                                new CommandLine.Help.Column(30, 2, CommandLine.Help.Column.Overflow.SPAN)
-                        });
-        tt.addRowValues(apiResource.getKind(), "AGE");
-        resources.forEach(resource -> tt.addRowValues(resource.getMetadata().getName(), new PrettyTime().format(resource.getMetadata().getCreationTimestamp())));
-        System.out.println(tt);
     }
 }

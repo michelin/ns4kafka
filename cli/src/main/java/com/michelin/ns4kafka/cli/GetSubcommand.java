@@ -81,18 +81,13 @@ public class GetSubcommand implements Callable<Integer> {
 
             // 5.a display all resources by type
             apiResources.forEach(apiResource -> {
-                        if (output.equals("yaml")) {
-                            resources.stream()
-                                    .filter(resource -> resource.getKind().equals(apiResource.getKind()))
-                                    .forEach(this::displayIndividual);
-                        } else {
-                            displayAsTable(apiResource,
-                                    resources.stream()
-                                            .filter(resource -> resource.getKind().equals(apiResource.getKind()))
-                                            .collect(Collectors.toList())
-                            );
-                        }
-                    }
+                        FormatUtils.displayList(apiResource,
+                                resources.stream()
+                                        .filter(resource -> resource.getKind().equals(apiResource.getKind()))
+                                        .collect(Collectors.toList()),
+                                output
+                        );
+                }
             );
         } else {
             // 4.b get individual resources for given types (k get topic topic1)
@@ -100,7 +95,7 @@ public class GetSubcommand implements Callable<Integer> {
 
             // 5.b display individual resource
             //displayAsTable(apiResources.get(0),resources);
-            displayIndividual(singleResource);
+            FormatUtils.displayIndividual(singleResource, "yaml");
         }
 
         return 0;
@@ -140,15 +135,6 @@ public class GetSubcommand implements Callable<Integer> {
         tt.addRowValues(apiResource.getKind(), "AGE");
         resources.forEach(resource -> tt.addRowValues(resource.getMetadata().getName(), new PrettyTime().format(resource.getMetadata().getCreationTimestamp())));
         System.out.println(tt);
-    }
-
-    private void displayIndividual(Resource resource) {
-        DumperOptions options = new DumperOptions();
-        options.setExplicitStart(true);
-        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        Representer representer = new Representer();
-        representer.addClassTag(Resource.class, Tag.MAP);
-        System.out.println(new Yaml(representer, options).dump(resource));
     }
 
 

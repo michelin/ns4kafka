@@ -121,17 +121,8 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
             System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red ERROR: |@" + e.getMessage()));
             return 1;
         }
-        displayIndividual(resource);
+        FormatUtils.displayIndividual(resource, "yaml");
 
         return 0;
-    }
-
-    private void displayIndividual(Resource resource) {
-        DumperOptions options = new DumperOptions();
-        options.setExplicitStart(true);
-        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        Representer representer = new Representer();
-        representer.addClassTag(Resource.class, Tag.MAP);
-        System.out.println(new Yaml(representer, options).dump(resource));
     }
 }
