@@ -3,7 +3,10 @@ package com.michelin.ns4kafka.models;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.core.annotation.Introspected;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
@@ -34,8 +37,7 @@ public class Namespace {
     public static class NamespaceSpec {
         @NotBlank
         private String kafkaUser;
-        @NotNull
-        private List<String> connectClusters;
+        private List<String> connectClusters = List.of();
         private TopicValidator topicValidator;
         private ConnectValidator connectValidator;
         //private ResourceQuota quota;

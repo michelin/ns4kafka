@@ -24,7 +24,6 @@ import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
@@ -33,7 +32,6 @@ import java.net.URL;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-@Disabled("Test Class doesn't contain tests yet")
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 public class ConnectTest extends AbstractIntegrationConnectTest {
@@ -109,4 +107,23 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
         ServerInfo actual = connectCli.retrieve(HttpRequest.GET("/"), ServerInfo.class).blockingFirst();
         Assertions.assertEquals("6.2.0-ccs", actual.version());
     }
+
+    @Test
+    void createNamespaceWithoutConnect() throws InterruptedException, ExecutionException, MalformedURLException {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns-without-connect")
+                        .cluster("test-cluster")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .kafkaUser("user-without-connect")
+                        //.connectClusters(List.of("test-connect"))
+                        .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .build())
+                .build();
+
+        Assertions.assertDoesNotThrow(() -> client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns)).blockingFirst());
+
+    }
+
 }
