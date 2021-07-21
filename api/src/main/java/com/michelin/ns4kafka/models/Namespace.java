@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
+import lombok.Builder.Default;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
@@ -35,6 +36,7 @@ public class Namespace {
         @NotBlank
         private String kafkaUser;
         @NotNull
+        @Default
         private List<String> connectClusters = List.of();
         private TopicValidator topicValidator;
         private ConnectValidator connectValidator;
