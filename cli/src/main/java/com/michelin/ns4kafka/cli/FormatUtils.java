@@ -39,7 +39,7 @@ public class FormatUtils {
             resources.forEach(resource -> tt.addRowValues(resource.getMetadata().getName(), new PrettyTime().format(resource.getMetadata().getCreationTimestamp())));
             System.out.println(tt);
         } else if (output.equals(YAML)) {
-            //TODO
+            displayListYaml(resources);
         }
     }
 
@@ -60,15 +60,29 @@ public class FormatUtils {
         }
     }
 
+    private static void displayListYaml(List<? extends Object> elementsToDisplay) {
+        DumperOptions options = defaultDumperOptions();
+        Representer representer = defaultRepresenter(elementsToDisplay.get(0));
+        System.out.println(new Yaml(representer, options).dumpAll(elementsToDisplay.iterator()));
+
+    }
 
     private static <T> void displayIndividualYaml(T elementToDisplay) {
+        DumperOptions options = defaultDumperOptions();
+        Representer representer = defaultRepresenter(elementToDisplay);
+        System.out.println(new Yaml(representer, options).dump(elementToDisplay));
+
+    }
+    private static DumperOptions defaultDumperOptions() {
         DumperOptions options = new DumperOptions();
         options.setExplicitStart(true);
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        return options;
+    }
+    private static <T> Representer defaultRepresenter(T elementToDisplay) {
         Representer representer = new Representer();
         representer.addClassTag(elementToDisplay.getClass(), Tag.MAP);
-        System.out.println(new Yaml(representer, options).dump(elementToDisplay));
-
+        return representer;
     }
 
 }
