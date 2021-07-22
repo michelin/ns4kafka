@@ -7,11 +7,6 @@ import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
-import org.ocpsoft.prettytime.PrettyTime;
-import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.nodes.Tag;
-import org.yaml.snakeyaml.representer.Representer;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -123,19 +118,5 @@ public class GetSubcommand implements Callable<Integer> {
         throw new CommandLine.ParameterException(commandSpec.commandLine(), "The server doesn't have resource type " + resourceType);
 
     }
-
-    private void displayAsTable(ApiResource apiResource, List<Resource> resources) {
-        CommandLine.Help.TextTable tt = CommandLine.Help.TextTable.forColumns(
-                CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.AUTO),
-                new CommandLine.Help.Column[]
-                        {
-                                new CommandLine.Help.Column(50, 2, CommandLine.Help.Column.Overflow.SPAN),
-                                new CommandLine.Help.Column(30, 2, CommandLine.Help.Column.Overflow.SPAN)
-                        });
-        tt.addRowValues(apiResource.getKind(), "AGE");
-        resources.forEach(resource -> tt.addRowValues(resource.getMetadata().getName(), new PrettyTime().format(resource.getMetadata().getCreationTimestamp())));
-        System.out.println(tt);
-    }
-
 
 }

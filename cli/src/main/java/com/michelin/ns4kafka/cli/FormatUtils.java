@@ -19,11 +19,15 @@ import picocli.CommandLine;
 
 public class FormatUtils {
 
-    private static final String yaml = "yaml";
-    private static final String table = "table";
+    private FormatUtils() {
+        throw new IllegalStateException("Utility class");
+    }
+
+    private static final String YAML = "yaml";
+    private static final String TABLE = "table";
 
     public static void displayList(ApiResource apiResource, List<Resource> resources, String output) {
-        if (output.equals(table)) {
+        if (output.equals(TABLE)) {
             CommandLine.Help.TextTable tt = CommandLine.Help.TextTable.forColumns(
                     CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.AUTO),
                     new CommandLine.Help.Column[]
@@ -34,13 +38,13 @@ public class FormatUtils {
             tt.addRowValues(apiResource.getKind(), "AGE");
             resources.forEach(resource -> tt.addRowValues(resource.getMetadata().getName(), new PrettyTime().format(resource.getMetadata().getCreationTimestamp())));
             System.out.println(tt);
-        } else if (output.equals(yaml)) {
+        } else if (output.equals(YAML)) {
             //TODO
         }
     }
 
     public static void displayIndividual(Resource resource, String output) {
-        if (output.equals(yaml)){
+        if (output.equals(YAML)){
             displayIndividualYaml(resource);
         }
     }
