@@ -39,13 +39,17 @@ public class FormatUtils {
             resources.forEach(resource -> tt.addRowValues(resource.getMetadata().getName(), new PrettyTime().format(resource.getMetadata().getCreationTimestamp())));
             System.out.println(tt);
         } else if (output.equals(YAML)) {
-            displayListYaml(resources);
+            DumperOptions options = defaultDumperOptions();
+            Representer representer = defaultRepresenter(Resource.class);
+            System.out.println(new Yaml(representer, options).dumpAll(resources.iterator()));
         }
     }
 
     public static void displayIndividual(Resource resource, String output) {
         if (output.equals(YAML)){
-            displayIndividualYaml(resource);
+            DumperOptions options = defaultDumperOptions();
+            Representer representer = defaultRepresenter(Resource.class);
+            System.out.println(new Yaml(representer, options).dump(resource));
         }
     }
 
@@ -68,29 +72,15 @@ public class FormatUtils {
             System.out.println(e.getMessage());
         }
     }
-
-    private static void displayListYaml(List<? extends Object> elementsToDisplay) {
-        DumperOptions options = defaultDumperOptions();
-        Representer representer = defaultRepresenter(elementsToDisplay.get(0));
-        System.out.println(new Yaml(representer, options).dumpAll(elementsToDisplay.iterator()));
-
-    }
-
-    private static <T> void displayIndividualYaml(T elementToDisplay) {
-        DumperOptions options = defaultDumperOptions();
-        Representer representer = defaultRepresenter(elementToDisplay);
-        System.out.println(new Yaml(representer, options).dump(elementToDisplay));
-
-    }
     private static DumperOptions defaultDumperOptions() {
         DumperOptions options = new DumperOptions();
         options.setExplicitStart(true);
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         return options;
     }
-    private static <T> Representer defaultRepresenter(T elementToDisplay) {
+    private static <T> Representer defaultRepresenter(Class<T> classToFormat) {
         Representer representer = new Representer();
-        representer.addClassTag(elementToDisplay.getClass(), Tag.MAP);
+        representer.addClassTag(classToFormat, Tag.MAP);
         return representer;
     }
 }
