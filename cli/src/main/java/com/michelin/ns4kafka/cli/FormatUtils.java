@@ -49,12 +49,21 @@ public class FormatUtils {
         }
     }
 
-    public static void displayError(HttpClientResponseException e) {
+    public static void displayError(HttpClientResponseException e, String kind, String name) {
 
         Optional<Status> statusOptional = e.getResponse().getBody(Status.class);
         if (statusOptional.isPresent()) {
-            displayIndividualYaml(statusOptional.get());
-
+            Status status = statusOptional.get();
+            String causes = "";
+            if ((status.getDetails() != null) && (!status.getDetails().getCauses().isEmpty())) {
+                causes = status.getDetails().getCauses().toString();
+            }
+            String nameToPrint = "/" + name;
+            if (name == null) {
+                nameToPrint = "";
+            }
+            System.out.println(String.format("Failed : %s%s %s ",kind, nameToPrint, status.getMessage())
+                               + causes);
         } else {
             System.out.println(e.getMessage());
         }
@@ -84,5 +93,4 @@ public class FormatUtils {
         representer.addClassTag(elementToDisplay.getClass(), Tag.MAP);
         return representer;
     }
-
 }

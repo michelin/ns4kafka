@@ -39,7 +39,7 @@ public class ResourceService {
             try {
                 resources = namespacedClient.list(namespace, apiResource.getPath(), loginService.getAuthorization());
             } catch (HttpClientResponseException e) {
-                FormatUtils.displayError(e);
+                FormatUtils.displayError(e, apiResource.getKind(), null);
                 //System.out.println("Error during list for resource type " + apiResource.getKind() + ": " + e.getMessage());
                 resources = List.of();
             }
@@ -57,7 +57,7 @@ public class ResourceService {
                 return nonNamespacedClient.get(loginService.getAuthorization(), apiResource.getPath(), resourceName);
             }
         } catch (HttpClientResponseException e) {
-            FormatUtils.displayError(e);
+            FormatUtils.displayError(e, apiResource.getKind(), resourceName);
         } catch (Exception e) {
             System.out.println("Error during get for resource type " + apiResource.getKind() + "/" + resourceName + ": " + e.getMessage());
         }
@@ -74,7 +74,7 @@ public class ResourceService {
                 return nonNamespacedClient.apply(loginService.getAuthorization(), apiResource.getPath(), resource, dryRun);
             }
         } catch (HttpClientResponseException e) {
-            FormatUtils.displayError(e);
+            FormatUtils.displayError(e, apiResource.getKind(), resource.getMetadata().getName());
             //System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red Failed |@") + apiResource.getKind() + "/" + resource.getMetadata().getName() + CommandLine.Help.Ansi.AUTO.string("@|bold,red failed with message : |@") + e.getMessage());
         }
         return null;
@@ -89,7 +89,7 @@ public class ResourceService {
                 return true;
             }
         } catch (HttpClientResponseException e) {
-            FormatUtils.displayError(e);
+            FormatUtils.displayError(e, apiResource.getKind(), resource);
             //System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red Failed |@") + apiResource.getKind() + "/" + resource + CommandLine.Help.Ansi.AUTO.string("@|bold,red failed with message : |@") + e.getMessage());
         }
         return false;
@@ -107,7 +107,7 @@ public class ResourceService {
         try {
             resources = namespacedClient.importResources(namespace, apiResource.getPath(), loginService.getAuthorization(), dryRun);
         } catch (HttpClientResponseException e) {
-            FormatUtils.displayError(e);
+            FormatUtils.displayError(e, apiResource.getKind(), null);
             //System.out.println("Error during synchronize for resource type " + apiResource.getKind() + ": " + e.getMessage());
             resources = List.of();
         }
@@ -118,7 +118,7 @@ public class ResourceService {
         try {
             return namespacedClient.deleteRecords(loginService.getAuthorization(),namespace, topic, dryrun);
         } catch (HttpClientResponseException e) {
-            FormatUtils.displayError(e);
+            FormatUtils.displayError(e, "Topic", topic);
             //System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red Failed |@") + topic + CommandLine.Help.Ansi.AUTO.string("@|bold,red failed with message : |@") + e.getMessage());
         }
         return null;
@@ -128,7 +128,7 @@ public class ResourceService {
         try {
             return namespacedClient.resetOffsets(loginService.getAuthorization(), namespace, group, resource, dryRun);
         } catch (HttpClientResponseException e) {
-            FormatUtils.displayError(e);
+            FormatUtils.displayError(e, "ConsumerGroup", group);
         }
         return null;
     }
