@@ -109,8 +109,8 @@ public class DiffSubcommand implements Callable<Integer> {
                             .orElseThrow(); // already validated
                     Resource live = resourceService.getSingleResourceWithType(apiResource, namespace, resource.getMetadata().getName(), false);
                     HttpResponse<Resource> merged = resourceService.apply(apiResource, namespace, resource, true);
-                    if (merged != null) {
-                        List<String> uDiff = unifiedDiff(live, merged.getBody().orElse(null));
+                    if (merged != null && merged.getBody().isPresent()) {
+                        List<String> uDiff = unifiedDiff(live, merged.body());
                         uDiff.forEach(System.out::println);
                         return 0;
                     }
@@ -127,10 +127,8 @@ public class DiffSubcommand implements Callable<Integer> {
             live.setStatus(null);
             live.getMetadata().setCreationTimestamp(null);
         }
-        if (merged != null) {
-            merged.setStatus(null);
-            merged.getMetadata().setCreationTimestamp(null);
-        }
+        merged.setStatus(null);
+        merged.getMetadata().setCreationTimestamp(null);
 
         DumperOptions options = new DumperOptions();
         options.setExplicitStart(true);
