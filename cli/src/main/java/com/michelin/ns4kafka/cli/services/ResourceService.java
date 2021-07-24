@@ -5,13 +5,14 @@ import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
+import com.michelin.ns4kafka.cli.models.Status;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import picocli.CommandLine;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -26,48 +27,48 @@ public class ResourceService {
     LoginService loginService;
 
 
-    public List<Resource> listAll(List<ApiResource> apiResources, String namespace) {
+    public Map<ApiResource, List<Resource>> listAll(List<ApiResource> apiResources, String namespace) {
         return apiResources
                 .stream()
-                .flatMap(apiResource -> listResourcesWithType(apiResource, namespace).stream())
-                .collect(Collectors.toList());
+                .map(apiResource -> Map.entry(apiResource, listResourcesWithType(apiResource, namespace)))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     public List<Resource> listResourcesWithType(ApiResource apiResource, String namespace) {
-        List<Resource> resources;
-        if (apiResource.isNamespaced()) {
-            try {
-                resources = namespacedClient.list(namespace, apiResource.getPath(), loginService.getAuthorization());
-            } catch (HttpClientResponseException e) {
-                FormatUtils.displayError(e, apiResource.getKind(), null);
-                //System.out.println("Error during list for resource type " + apiResource.getKind() + ": " + e.getMessage());
-                resources = List.of();
-            }
-        } else {
-            resources = nonNamespacedClient.list(loginService.getAuthorization(), apiResource.getPath());
-        }
-        return resources;
-    }
-
-    public Resource getSingleResourceWithType(ApiResource apiResource, String namespace, String resourceName) {
         try {
             if (apiResource.isNamespaced()) {
-                return namespacedClient.get(namespace, apiResource.getPath(), resourceName, loginService.getAuthorization());
+                return namespacedClient.list(namespace, apiResource.getPath(), loginService.getAuthorization());
             } else {
-                return nonNamespacedClient.get(loginService.getAuthorization(), apiResource.getPath(), resourceName);
+                return nonNamespacedClient.list(loginService.getAuthorization(), apiResource.getPath());
             }
         } catch (HttpClientResponseException e) {
-            FormatUtils.displayError(e, apiResource.getKind(), resourceName);
-        } catch (Exception e) {
-            System.out.println("Error during get for resource type " + apiResource.getKind() + "/" + resourceName + ": " + e.getMessage());
+            FormatUtils.displayError(e, apiResource.getKind(), null);
         }
+        return List.of();
+    }
 
-        return null;
+    public Resource getSingleResourceWithType(ApiResource apiResource, String namespace, String resourceName, boolean throwError) {
+        Resource resource = null;
+        if (apiResource.isNamespaced()) {
+            resource = namespacedClient.get(namespace, apiResource.getPath(), resourceName, loginService.getAuthorization());
+        } else {
+            resource = nonNamespacedClient.get(loginService.getAuthorization(), apiResource.getPath(), resourceName);
+        }
+        if (resource == null && throwError) {
+            // micronaut converts HTTP 404 into null
+            // produce a 404
+            Status notFoundStatus = Status.builder()
+                    .code(404)
+                    .message("Resource not found")
+                    .reason("NotFound")
+                    .build();
+            throw new HttpClientResponseException("Not Found", HttpResponse.notFound(notFoundStatus));
+        }
+        return resource;
     }
 
     public HttpResponse<Resource> apply(ApiResource apiResource, String namespace, Resource resource, boolean dryRun) {
         try {
-            Resource merged;
             if (apiResource.isNamespaced()) {
                 return namespacedClient.apply(namespace, apiResource.getPath(), loginService.getAuthorization(), resource, dryRun);
             } else {
@@ -75,10 +76,10 @@ public class ResourceService {
             }
         } catch (HttpClientResponseException e) {
             FormatUtils.displayError(e, apiResource.getKind(), resource.getMetadata().getName());
-            //System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red Failed |@") + apiResource.getKind() + "/" + resource.getMetadata().getName() + CommandLine.Help.Ansi.AUTO.string("@|bold,red failed with message : |@") + e.getMessage());
         }
         return null;
     }
+
     public boolean delete(ApiResource apiResource, String namespace, String resource, boolean dryRun) {
         try {
             if (apiResource.isNamespaced()) {
@@ -90,15 +91,15 @@ public class ResourceService {
             }
         } catch (HttpClientResponseException e) {
             FormatUtils.displayError(e, apiResource.getKind(), resource);
-            //System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red Failed |@") + apiResource.getKind() + "/" + resource + CommandLine.Help.Ansi.AUTO.string("@|bold,red failed with message : |@") + e.getMessage());
         }
         return false;
     }
-    public List<Resource> importAll(List<ApiResource> apiResources, String namespace, boolean dryRun) {
+
+    public Map<ApiResource, List<Resource>> importAll(List<ApiResource> apiResources, String namespace, boolean dryRun) {
         return apiResources
                 .stream()
-                .flatMap(apiResource -> importResourcesWithType(apiResource, namespace, dryRun).stream())
-                .collect(Collectors.toList());
+                .map(apiResource -> Map.entry(apiResource, importResourcesWithType(apiResource, namespace, dryRun)))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     private List<Resource> importResourcesWithType(ApiResource apiResource, String namespace, boolean dryRun) {
@@ -108,18 +109,17 @@ public class ResourceService {
             resources = namespacedClient.importResources(namespace, apiResource.getPath(), loginService.getAuthorization(), dryRun);
         } catch (HttpClientResponseException e) {
             FormatUtils.displayError(e, apiResource.getKind(), null);
-            //System.out.println("Error during synchronize for resource type " + apiResource.getKind() + ": " + e.getMessage());
             resources = List.of();
         }
 
         return resources;
     }
+
     public Resource deleteRecords(String namespace, String topic, boolean dryrun) {
         try {
-            return namespacedClient.deleteRecords(loginService.getAuthorization(),namespace, topic, dryrun);
+            return namespacedClient.deleteRecords(loginService.getAuthorization(), namespace, topic, dryrun);
         } catch (HttpClientResponseException e) {
             FormatUtils.displayError(e, "Topic", topic);
-            //System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red Failed |@") + topic + CommandLine.Help.Ansi.AUTO.string("@|bold,red failed with message : |@") + e.getMessage());
         }
         return null;
     }

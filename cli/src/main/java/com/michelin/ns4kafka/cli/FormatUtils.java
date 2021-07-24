@@ -1,20 +1,18 @@
 package com.michelin.ns4kafka.cli;
 
-import java.util.List;
-import java.util.Optional;
-
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.Status;
-
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import org.ocpsoft.prettytime.PrettyTime;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
-
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import picocli.CommandLine;
+
+import java.util.List;
+import java.util.Optional;
 
 
 public class FormatUtils {
@@ -28,29 +26,14 @@ public class FormatUtils {
 
     public static void displayList(ApiResource apiResource, List<Resource> resources, String output) {
         if (output.equals(TABLE)) {
-            CommandLine.Help.TextTable tt = CommandLine.Help.TextTable.forColumns(
-                    CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.AUTO),
-                    new CommandLine.Help.Column[]
-                            {
-                                    new CommandLine.Help.Column(50, 2, CommandLine.Help.Column.Overflow.SPAN),
-                                    new CommandLine.Help.Column(30, 2, CommandLine.Help.Column.Overflow.SPAN)
-                            });
-            tt.addRowValues(apiResource.getKind(), "AGE");
-            resources.forEach(resource -> tt.addRowValues(resource.getMetadata().getName(), new PrettyTime().format(resource.getMetadata().getCreationTimestamp())));
-            System.out.println(tt);
+            printTable(apiResource, resources);
         } else if (output.equals(YAML)) {
-            DumperOptions options = defaultDumperOptions();
-            Representer representer = defaultRepresenter(Resource.class);
-            System.out.println(new Yaml(representer, options).dumpAll(resources.iterator()));
+            printYaml(resources);
         }
     }
 
-    public static void displayIndividual(Resource resource, String output) {
-        if (output.equals(YAML)){
-            DumperOptions options = defaultDumperOptions();
-            Representer representer = defaultRepresenter(Resource.class);
-            System.out.println(new Yaml(representer, options).dump(resource));
-        }
+    public static void displaySingle(ApiResource apiResource, Resource resource, String output) {
+        displayList(apiResource, List.of(resource), output);
     }
 
     public static void displayError(HttpClientResponseException e, String kind, String name) {
@@ -62,25 +45,34 @@ public class FormatUtils {
             if ((status.getDetails() != null) && (!status.getDetails().getCauses().isEmpty())) {
                 causes = status.getDetails().getCauses().toString();
             }
-            String nameToPrint = "/" + name;
-            if (name == null) {
-                nameToPrint = "";
-            }
-            System.out.println(String.format("Failed : %s%s %s ",kind, nameToPrint, status.getMessage())
-                               + causes);
+
+            System.out.printf("Failed : %s/%s %s %s%n", kind, name, status.getMessage(), causes);
         } else {
-            System.out.println(e.getMessage());
+            System.out.printf("Failed : %s/%s %s%n", kind, name, e.getMessage());
         }
     }
-    private static DumperOptions defaultDumperOptions() {
+
+    private static void printTable(ApiResource apiResource, List<Resource> resources) {
+        CommandLine.Help.TextTable tt = CommandLine.Help.TextTable.forColumns(
+                CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.AUTO),
+                new CommandLine.Help.Column[]
+                        {
+                                new CommandLine.Help.Column(50, 2, CommandLine.Help.Column.Overflow.SPAN),
+                                new CommandLine.Help.Column(30, 2, CommandLine.Help.Column.Overflow.SPAN)
+                        });
+        tt.addRowValues(apiResource.getKind(), "AGE");
+        resources.forEach(resource -> tt.addRowValues(resource.getMetadata().getName(), new PrettyTime().format(resource.getMetadata().getCreationTimestamp())));
+        System.out.println(tt);
+    }
+
+    private static void printYaml(List<Resource> resources) {
         DumperOptions options = new DumperOptions();
         options.setExplicitStart(true);
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        return options;
-    }
-    private static <T> Representer defaultRepresenter(Class<T> classToFormat) {
         Representer representer = new Representer();
-        representer.addClassTag(classToFormat, Tag.MAP);
-        return representer;
+        representer.addClassTag(Resource.class, Tag.MAP);
+        Yaml yaml = new Yaml(representer, options);
+        System.out.println(yaml.dumpAll(resources.iterator()));
     }
+
 }

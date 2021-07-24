@@ -4,7 +4,6 @@ import com.michelin.ns4kafka.cli.models.ObjectMeta;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import picocli.CommandLine;
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
@@ -109,16 +108,12 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
                 .spec(consumerGroupResetOffsetSpec)
                 .build();
 
-        Resource resource;
-
-        try {
-            resource = resourceService.resetOffsets(namespace, group, consumerGroupResetOffset, dryRun);
-        } catch (HttpClientResponseException e) {
-            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red ERROR: |@" + e.getMessage()));
-            return 1;
+        Resource resource = resourceService.resetOffsets(namespace, group, consumerGroupResetOffset, dryRun);
+        if (resource != null) {
+            FormatUtils.displaySingle(null, resource, "yaml");
+            return 0;
         }
-        FormatUtils.displayIndividual(resource, "yaml");
 
-        return 0;
+        return 1;
     }
 }

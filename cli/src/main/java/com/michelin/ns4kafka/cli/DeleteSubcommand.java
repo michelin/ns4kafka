@@ -6,7 +6,6 @@ import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Help.Ansi;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
@@ -61,12 +60,13 @@ public class DeleteSubcommand implements Callable<Integer> {
         ApiResource apiResource = optionalApiResource.get();
 
         boolean deleted = resourceService.delete(apiResource, namespace, name, dryRun);
-        if (!deleted) {
-            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red Failed |@"));
-            return 1;
+        if (deleted) {
+            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,green Success |@") + resourceType + "/" + name + " (deleted)");
+
+            return 0;
         }
-        System.out.println(Ansi.AUTO.string("@|bold,green Success |@"));
-        return 0;
+
+        return 1;
     }
 
 }

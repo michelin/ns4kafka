@@ -12,6 +12,7 @@ import picocli.CommandLine.Parameters;
 
 import javax.inject.Inject;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
@@ -54,17 +55,10 @@ public class ImportSubcommand implements Callable<Integer> {
 
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
 
-        List<Resource> resources = resourceService.importAll(apiResources, namespace, dryRun);
+        Map<ApiResource, List<Resource>> resources = resourceService.importAll(apiResources, namespace, dryRun);
 
         // 5.a display all resources by type
-        apiResources.forEach(apiResource ->
-                FormatUtils.displayList(apiResource,
-                        resources.stream()
-                                .filter(resource -> resource.getKind().equals(apiResource.getKind()))
-                                .collect(Collectors.toList()),
-                        "yaml"
-                )
-        );
+        resources.forEach((k, v) -> FormatUtils.displayList(k, v, "table"));
         return 0;
 
     }

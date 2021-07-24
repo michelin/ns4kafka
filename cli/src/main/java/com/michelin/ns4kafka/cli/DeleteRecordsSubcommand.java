@@ -46,7 +46,7 @@ public class DeleteRecordsSubcommand implements Callable<Integer> {
 
         Resource resource = resourceService.deleteRecords(namespace, topic, dryRun);
 
-        FormatUtils.displayIndividual(resource, "yaml");
+        FormatUtils.displaySingle(null, resource, "yaml");
 
         return 0;
     }
