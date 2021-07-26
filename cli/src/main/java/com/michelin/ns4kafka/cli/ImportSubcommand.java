@@ -5,7 +5,6 @@ import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
-import org.ocpsoft.prettytime.PrettyTime;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -13,6 +12,7 @@ import picocli.CommandLine.Parameters;
 
 import javax.inject.Inject;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
@@ -55,16 +55,10 @@ public class ImportSubcommand implements Callable<Integer> {
 
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
 
-        List<Resource> resources = resourceService.importAll(apiResources, namespace, dryRun);
+        Map<ApiResource, List<Resource>> resources = resourceService.importAll(apiResources, namespace, dryRun);
 
         // 5.a display all resources by type
-        apiResources.forEach(apiResource ->
-                displayAsTable(apiResource,
-                        resources.stream()
-                                .filter(resource -> resource.getKind().equals(apiResource.getKind()))
-                                .collect(Collectors.toList())
-                )
-        );
+        resources.forEach((k, v) -> FormatUtils.displayList(k, v, "table"));
         return 0;
 
     }
@@ -87,18 +81,5 @@ public class ImportSubcommand implements Callable<Integer> {
         }
 
         return List.of(optionalApiResource.get());
-    }
-
-    private void displayAsTable(ApiResource apiResource, List<Resource> resources) {
-        CommandLine.Help.TextTable tt = CommandLine.Help.TextTable.forColumns(
-                CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.AUTO),
-                new CommandLine.Help.Column[]
-                        {
-                                new CommandLine.Help.Column(50, 2, CommandLine.Help.Column.Overflow.SPAN),
-                                new CommandLine.Help.Column(30, 2, CommandLine.Help.Column.Overflow.SPAN)
-                        });
-        tt.addRowValues(apiResource.getKind(), "AGE");
-        resources.forEach(resource -> tt.addRowValues(resource.getMetadata().getName(), new PrettyTime().format(resource.getMetadata().getCreationTimestamp())));
-        System.out.println(tt);
     }
 }
