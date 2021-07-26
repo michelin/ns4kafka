@@ -8,9 +8,7 @@ import com.michelin.ns4kafka.services.NamespaceService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -18,6 +16,27 @@ import java.util.Map;
 
 @ExtendWith(MockitoExtension.class)
 public class AkhqClaimProviderControllerTest {
+    @Spy
+    AkhqClaimProviderControllerConfig akhqClaimProviderControllerConfig = AkhqClaimProviderControllerConfig.builder()
+            .groupLabel("support-group")
+            .roles(List.of(
+                    "topic/read",
+                    "topic/data/read",
+                    "group/read",
+                    "registry/read",
+                    "connect/read",
+                    "connect/state/update"
+            ))
+            .adminGroup("GP-ADMIN")
+            .adminRoles(List.of(
+                    "topic/read",
+                    "topic/data/read",
+                    "group/read",
+                    "registry/read",
+                    "connect/read",
+                    "connect/state/update"
+            ))
+            .build();
     @Mock
     NamespaceService namespaceService;
     @Mock
@@ -143,6 +162,18 @@ public class AkhqClaimProviderControllerTest {
 
         Assertions.assertEquals(1, actual.getAttributes().get("topicsFilterRegexp").size());
         Assertions.assertEquals("^none$", actual.getAttributes().get("topicsFilterRegexp").get(0));
+
+        Assertions.assertLinesMatch(
+                List.of(
+                        "topic/read",
+                        "topic/data/read",
+                        "group/read",
+                        "registry/read",
+                        "connect/read",
+                        "connect/state/update"
+                ),
+                actual.getRoles()
+        );
     }
 
     @Test
@@ -238,7 +269,8 @@ public class AkhqClaimProviderControllerTest {
                         "topic/data/read",
                         "group/read",
                         "registry/read",
-                        "connect/read"
+                        "connect/read",
+                        "connect/state/update"
                 ),
                 actual.getRoles()
         );
@@ -252,5 +284,30 @@ public class AkhqClaimProviderControllerTest {
                 actual.getAttributes().get("topicsFilterRegexp")
         );
 
+    }
+    @Test
+    void generateClaim_TestSuccess_Admin() {
+
+        AkhqClaimProviderController.AKHQClaimRequest request = AkhqClaimProviderController.AKHQClaimRequest.builder()
+                .groups(List.of("GP-ADMIN"))
+                .build();
+
+        AkhqClaimProviderController.AKHQClaimResponse actual = akhqClaimProviderController.generateClaim(request);
+        // AdminRoles
+        Assertions.assertLinesMatch(
+                List.of(
+                        "topic/read",
+                        "topic/data/read",
+                        "group/read",
+                        "registry/read",
+                        "connect/read",
+                        "connect/state/update"
+                ),
+                actual.getRoles()
+        );
+        // Admin Regexp
+        Assertions.assertLinesMatch(List.of(".*$"), actual.getAttributes().get("topicsFilterRegexp"));
+        Assertions.assertLinesMatch(List.of(".*$"), actual.getAttributes().get("connectsFilterRegexp"));
+        Assertions.assertLinesMatch(List.of(".*$"), actual.getAttributes().get("consumerGroupsFilterRegexp"));
     }
 }

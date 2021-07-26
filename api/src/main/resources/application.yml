@@ -84,6 +84,37 @@ kafka:
       session.timeout.ms: 30000
 
 ns4kafka:
+  ## AKHQ
+  # This section lets ns4kafka be used as JWT Claim generator for AKHQ.
+  # This will generate the required payload for AKHQ during authentication in the form :
+  # {
+  #   "roles": ["topic/read", "topic/data/read", ...]
+  #   "attributes":
+  #   {
+  #   "topicsFilterRegexp": ["prefix1-.*", ...]
+  #   "connectFilterRegexp": ["prefix1-.*", ...]
+  #   "consumerGroupsFilterRegexp": ["prefix-1.*", "connect-prefix-1.*", ...]
+  #   }
+  akhq:
+    # Namespace label to use to find which namespace the authenticating user belongs to
+    group-label: support-group
+    roles:
+      - topic/read
+      - topic/data/read
+      - group/read
+      - registry/read
+      - connect/read
+      - connect/state/update
+    # Special group which will be granted ".*" on topics, connects, and groups
+    admin-group: _
+    # Roles to be granted to admin group
+    admin-roles:
+      - topic/read
+      - topic/data/read
+      - group/read
+      - registry/read
+      - connect/read
+      - connect/state/update
   security:
     admin-group: _
 #    local-users: # Not for production use.
