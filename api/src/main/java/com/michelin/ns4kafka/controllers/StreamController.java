@@ -44,14 +44,28 @@ public class StreamController extends NamespacedResourceController {
 
     }
 
-    @Post("/")
-    KafkaStream apply(String namespace,@Body KafkaStream stream){
-        return null;
+    @Post("/{?dryrun}")
+    HttpResponse<KafkaStream> apply(String namespace,@Body KafkaStream stream, @QueryValue(defaultValue = "false") boolean dryrun){
+        Namespace ns = getNamespace(namespace);
+
+        //Creation of the correct ACLs
+        if (!streamService.isNamespaceOwnerOfStream(namespace, stream.getMetadata().getName())) {
+            //TODO throw error
+        }
+        //Augment the Stream
+        stream.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+        stream.getMetadata().setCluster(ns.getMetadata().getCluster());
+        stream.getMetadata().setNamespace(ns.getMetadata().getName());
+
+        //Creation of the correct ACLs
+        ApplyStatus status = ApplyStatus.created;
+
+        return formatHttpResponse(stream, status);
 
     }
 
-    @Delete("/{stream}")
-    KafkaStream apply(String namespace,String stream){
+    @Delete("/{stream}{?dryrun}")
+    HttpResponse delete(String namespace,String stream, @QueryValue(defaultValue = "false") boolean dryrun){
         return null;
 
     }
