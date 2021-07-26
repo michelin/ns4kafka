@@ -17,4 +17,12 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class StreamService {
+
+    public List<KafkaStream> findAllForNamespace(Namespace namespace) {
+        return null;
+    }
+
+    public Optional<KafkaStream> findByName(Namespace namespace, String topic) {
+        return null;
+    }
 }

@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.models.DeleteRecords;
 import com.michelin.ns4kafka.models.KafkaStream;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
@@ -32,13 +31,16 @@ public class StreamController extends NamespacedResourceController {
 
     @Get("/")
     List<KafkaStream> list(String namespace){
-        return null;
+        Namespace ns = getNamespace(namespace);
+        return streamService.findAllForNamespace(ns);
 
     }
 
-    @Get("/{name}")
-    KafkaStream get(String namespace,String name){
-        return null;
+    @Get("/{stream}")
+    Optional<KafkaStream> get(String namespace,String stream){
+
+        Namespace ns = getNamespace(namespace);
+        return streamService.findByName(ns, stream);
 
     }
 
@@ -48,8 +50,8 @@ public class StreamController extends NamespacedResourceController {
 
     }
 
-    @Delete("/{name}")
-    KafkaStream apply(String namespace,String name){
+    @Delete("/{stream}")
+    KafkaStream apply(String namespace,String stream){
         return null;
 
     }
