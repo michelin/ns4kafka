@@ -17,26 +17,31 @@ import java.util.Map;
 @ExtendWith(MockitoExtension.class)
 public class AkhqClaimProviderControllerTest {
     @Spy
-    AkhqClaimProviderControllerConfig akhqClaimProviderControllerConfig = AkhqClaimProviderControllerConfig.builder()
-            .groupLabel("support-group")
-            .roles(List.of(
-                    "topic/read",
-                    "topic/data/read",
-                    "group/read",
-                    "registry/read",
-                    "connect/read",
-                    "connect/state/update"
-            ))
-            .adminGroup("GP-ADMIN")
-            .adminRoles(List.of(
-                    "topic/read",
-                    "topic/data/read",
-                    "group/read",
-                    "registry/read",
-                    "connect/read",
-                    "connect/state/update"
-            ))
-            .build();
+    AkhqClaimProviderControllerConfig akhqClaimProviderControllerConfig = getAkhqClaimProviderControllerConfig();
+
+    private AkhqClaimProviderControllerConfig getAkhqClaimProviderControllerConfig() {
+        AkhqClaimProviderControllerConfig config = new AkhqClaimProviderControllerConfig();
+        config.setGroupLabel("support-group");
+        config.setRoles(List.of(
+                "topic/read",
+                "topic/data/read",
+                "group/read",
+                "registry/read",
+                "connect/read",
+                "connect/state/update"
+        ));
+        config.setAdminGroup("GP-ADMIN");
+        config.setAdminRoles(List.of(
+                "topic/read",
+                "topic/data/read",
+                "group/read",
+                "registry/read",
+                "connect/read",
+                "connect/state/update"
+        ));
+        return config;
+    }
+
     @Mock
     NamespaceService namespaceService;
     @Mock
