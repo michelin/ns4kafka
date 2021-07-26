@@ -4,6 +4,11 @@ micronaut:
   http:
     client:
       read-timeout: 30s
+logger:
+  levels:
+    ROOT: OFF
+    io.micronaut.http.client.netty.DefaultHttpClient: OFF # TRACE to see http requests and responses
+
 kafkactl:
   version: @version@
   config-path: ${user.home}/.kafkactl
