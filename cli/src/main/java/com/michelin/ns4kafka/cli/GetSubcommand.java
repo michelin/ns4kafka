@@ -7,11 +7,7 @@ import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
-import org.ocpsoft.prettytime.PrettyTime;
-import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.nodes.Tag;
-import org.yaml.snakeyaml.representer.Representer;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -19,6 +15,7 @@ import picocli.CommandLine.Parameters;
 
 import javax.inject.Inject;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
@@ -76,31 +73,28 @@ public class GetSubcommand implements Callable<Integer> {
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
         // 3. list resources based on parameters
         if (resourceName.isEmpty() || apiResources.size() > 1) {
-            // 4.a list all resources for given types (k get all, k get topics)
-            List<Resource> resources = resourceService.listAll(apiResources, namespace);
-
-            // 5.a display all resources by type
-            apiResources.forEach(apiResource -> {
-                        if (output.equals("yaml")) {
-                            resources.stream()
-                                    .filter(resource -> resource.getKind().equals(apiResource.getKind()))
-                                    .forEach(this::displayIndividual);
-                        } else {
-                            displayAsTable(apiResource,
-                                    resources.stream()
-                                            .filter(resource -> resource.getKind().equals(apiResource.getKind()))
-                                            .collect(Collectors.toList())
-                            );
-                        }
-                    }
-            );
+            try {
+                // 4.a list all resources for given types (k get all, k get topics)
+                Map<ApiResource, List<Resource>> resources = resourceService.listAll(apiResources, namespace);
+                // 5.a display all resources by type
+                resources.forEach((k, v) -> FormatUtils.displayList(k, v, output));
+            } catch (HttpClientResponseException e) {
+                FormatUtils.displayError(e, apiResources.get(0).getKind(), null);
+            } catch (Exception e) {
+                System.out.println("Error during get for resource type " + resourceType + ": " + e.getMessage());
+            }
         } else {
-            // 4.b get individual resources for given types (k get topic topic1)
-            Resource singleResource = resourceService.getSingleResourceWithType(apiResources.get(0), namespace, resourceName.get());
 
-            // 5.b display individual resource
-            //displayAsTable(apiResources.get(0),resources);
-            displayIndividual(singleResource);
+            try {
+                // 4.b get individual resources for given types (k get topic topic1)
+                Resource singleResource = resourceService.getSingleResourceWithType(apiResources.get(0), namespace, resourceName.get(), true);
+                FormatUtils.displaySingle(apiResources.get(0), singleResource, output);
+            } catch (HttpClientResponseException e) {
+                FormatUtils.displayError(e, apiResources.get(0).getKind(), resourceName.get());
+            } catch (Exception e) {
+                System.out.println("Error during get for resource type " + apiResources.get(0).getKind() + "/" + resourceName.get() + ": " + e.getMessage());
+            }
+
         }
 
         return 0;
@@ -128,28 +122,5 @@ public class GetSubcommand implements Callable<Integer> {
         throw new CommandLine.ParameterException(commandSpec.commandLine(), "The server doesn't have resource type " + resourceType);
 
     }
-
-    private void displayAsTable(ApiResource apiResource, List<Resource> resources) {
-        CommandLine.Help.TextTable tt = CommandLine.Help.TextTable.forColumns(
-                CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.AUTO),
-                new CommandLine.Help.Column[]
-                        {
-                                new CommandLine.Help.Column(50, 2, CommandLine.Help.Column.Overflow.SPAN),
-                                new CommandLine.Help.Column(30, 2, CommandLine.Help.Column.Overflow.SPAN)
-                        });
-        tt.addRowValues(apiResource.getKind(), "AGE");
-        resources.forEach(resource -> tt.addRowValues(resource.getMetadata().getName(), new PrettyTime().format(resource.getMetadata().getCreationTimestamp())));
-        System.out.println(tt);
-    }
-
-    private void displayIndividual(Resource resource) {
-        DumperOptions options = new DumperOptions();
-        options.setExplicitStart(true);
-        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        Representer representer = new Representer();
-        representer.addClassTag(Resource.class, Tag.MAP);
-        System.out.println(new Yaml(representer, options).dump(resource));
-    }
-
 
 }

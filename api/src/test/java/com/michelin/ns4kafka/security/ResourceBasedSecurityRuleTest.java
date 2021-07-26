@@ -138,7 +138,7 @@ public class ResourceBasedSecurityRuleTest {
                                 .build())
                         .spec(RoleBinding.RoleBindingSpec.builder()
                                 .role(RoleBinding.Role.builder()
-                                        .resourceTypes(List.of("connects/restart"))
+                                        .resourceTypes(List.of("connects/restart","topics/delete-records"))
                                         .verbs(List.of(RoleBinding.Verb.GET))
                                         .build())
                                 .subject(RoleBinding.Subject.builder().subjectName("group1")
@@ -149,6 +149,9 @@ public class ResourceBasedSecurityRuleTest {
                 .thenReturn(Optional.of(Namespace.builder().build()));
 
         SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/connects/name/restart"),null, claims);
+        Assertions.assertEquals(SecurityRuleResult.ALLOWED, actual);
+
+        actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/topics/name/delete-records"),null, claims);
         Assertions.assertEquals(SecurityRuleResult.ALLOWED, actual);
     }
     @Test

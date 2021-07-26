@@ -9,6 +9,7 @@ import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.FileService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
+import io.micronaut.http.HttpResponse;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.nodes.Tag;
@@ -106,11 +107,14 @@ public class DiffSubcommand implements Callable<Integer> {
                             .filter(apiRes -> apiRes.getKind().equals(resource.getKind()))
                             .findFirst()
                             .orElseThrow(); // already validated
-                    Resource live = resourceService.getSingleResourceWithType(apiResource, namespace, resource.getMetadata().getName());
-                    Resource merged = resourceService.apply(apiResource, namespace, resource, true).body();
-                    List<String> uDiff = unifiedDiff(live, merged);
-                    uDiff.forEach(System.out::println);
-                    return 0;
+                    Resource live = resourceService.getSingleResourceWithType(apiResource, namespace, resource.getMetadata().getName(), false);
+                    HttpResponse<Resource> merged = resourceService.apply(apiResource, namespace, resource, true);
+                    if (merged != null && merged.getBody().isPresent()) {
+                        List<String> uDiff = unifiedDiff(live, merged.body());
+                        uDiff.forEach(System.out::println);
+                        return 0;
+                    }
+                    return 1;
                 })
                 .mapToInt(value -> value != null ? 0 : 1)
                 .sum();
@@ -118,6 +122,13 @@ public class DiffSubcommand implements Callable<Integer> {
     }
 
     private List<String> unifiedDiff(Resource live, Resource merged) {
+        // ignore status and timestamp for comparison
+        if (live != null) {
+            live.setStatus(null);
+            live.getMetadata().setCreationTimestamp(null);
+        }
+        merged.setStatus(null);
+        merged.getMetadata().setCreationTimestamp(null);
 
         DumperOptions options = new DumperOptions();
         options.setExplicitStart(true);

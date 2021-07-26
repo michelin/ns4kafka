@@ -4,11 +4,6 @@ import com.michelin.ns4kafka.cli.models.ObjectMeta;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.nodes.Tag;
-import org.yaml.snakeyaml.representer.Representer;
 import picocli.CommandLine;
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
@@ -113,25 +108,12 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
                 .spec(consumerGroupResetOffsetSpec)
                 .build();
 
-        Resource resource;
-
-        try {
-            resource = resourceService.resetOffsets(namespace, group, consumerGroupResetOffset, dryRun);
-        } catch (HttpClientResponseException e) {
-            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,red ERROR: |@" + e.getMessage()));
-            return 1;
+        Resource resource = resourceService.resetOffsets(namespace, group, consumerGroupResetOffset, dryRun);
+        if (resource != null) {
+            FormatUtils.displaySingle(null, resource, "yaml");
+            return 0;
         }
-        displayIndividual(resource);
 
-        return 0;
-    }
-
-    private void displayIndividual(Resource resource) {
-        DumperOptions options = new DumperOptions();
-        options.setExplicitStart(true);
-        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        Representer representer = new Representer();
-        representer.addClassTag(Resource.class, Tag.MAP);
-        System.out.println(new Yaml(representer, options).dump(resource));
+        return 1;
     }
 }
