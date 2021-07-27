@@ -45,7 +45,7 @@ public class StreamController extends NamespacedResourceController {
     }
 
     @Post("/{?dryrun}")
-    HttpResponse<KafkaStream> apply(String namespace,@Body KafkaStream stream, @QueryValue(defaultValue = "false") boolean dryrun){
+    HttpResponse<KafkaStream> apply(String namespace,@Body @Valid KafkaStream stream, @QueryValue(defaultValue = "false") boolean dryrun){
         Namespace ns = getNamespace(namespace);
 
         //Creation of the correct ACLs
