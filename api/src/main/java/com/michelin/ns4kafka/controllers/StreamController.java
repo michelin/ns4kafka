@@ -2,25 +2,18 @@ package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.models.KafkaStream;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.services.StreamService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.apache.kafka.common.TopicPartition;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 @Tag(name = "Stream")
 @Controller(value = "/api/namespaces/{namespace}/streams")
@@ -58,18 +51,42 @@ public class StreamController extends NamespacedResourceController {
         stream.getMetadata().setNamespace(ns.getMetadata().getName());
 
         //Creation of the correct ACLs
-        ApplyStatus status = ApplyStatus.created;
+        Optional<KafkaStream> existingStream = streamService.findByName(ns, stream.getMetadata().getName());
+        if (existingStream.isPresent() && existingStream.get().equals(stream)){
+            return formatHttpResponse(stream, ApplyStatus.unchanged);
+        }
 
-        return formatHttpResponse(stream, status);
+        ApplyStatus status = ApplyStatus.created;
+        if (existingStream.isPresent()){
+            status = ApplyStatus.changed;
+        }
+
+        if (dryrun) {
+            return formatHttpResponse(stream, status);
+        }
+
+        return formatHttpResponse(streamService.create(stream), status);
 
     }
 
+    @Status(HttpStatus.NO_CONTENT)
     @Delete("/{stream}{?dryrun}")
     HttpResponse delete(String namespace,String stream, @QueryValue(defaultValue = "false") boolean dryrun){
-        return null;
 
+        Namespace ns = getNamespace(namespace);
+        if (!streamService.isNamespaceOwnerOfStream(namespace, stream)) {
+            //TODO throw error
+        }
+        // exists ?
+        Optional<KafkaStream> optionalStream = streamService.findByName(ns, stream);
+
+        if (optionalStream.isEmpty())
+            return HttpResponse.notFound();
+
+        if (dryrun) {
+            return HttpResponse.noContent();
+        }
+        streamService.delete(optionalStream.get());
+        return HttpResponse.noContent();
     }
-
-
-
 }
