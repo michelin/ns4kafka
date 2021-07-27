@@ -14,7 +14,7 @@ public interface StreamRepository {
      */
     List<KafkaStream> findAllForCluster(String cluster);
 
-    KafkaStream create(KafkaStream topic);
+    KafkaStream create(KafkaStream stream);
 
-    void delete(KafkaStream topic);
+    void delete(KafkaStream stream);
 }
