@@ -25,7 +25,6 @@ public class KafkaAsyncExecutorConfig {
     boolean manageAcls;
     boolean manageUsers;
     boolean manageConnectors;
-    boolean manageStreams;
     boolean readOnly = true;
     
     Properties config;
