@@ -33,6 +33,6 @@ public class StreamService {
     }
 
     public boolean isNamespaceOwnerOfStream(String namespace, String stream) {
-        return accessControlEntryService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.STREAM, stream);
+        return accessControlEntryService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.TOPIC, stream);
     }
 }

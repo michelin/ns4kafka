@@ -22,8 +22,6 @@ public class KafkaAsyncExecutorScheduler {
     List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutors;
     @Inject
     List<ConnectorAsyncExecutor> connectorAsyncExecutors;
-    @Inject
-    List<StreamAsyncExecutor> streamAsyncExecutors;
 
     private final AtomicBoolean ready = new AtomicBoolean(false);
 
@@ -42,7 +40,6 @@ public class KafkaAsyncExecutorScheduler {
             topicAsyncExecutors.forEach(TopicAsyncExecutor::run);
             accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
             connectorAsyncExecutors.forEach(ConnectorAsyncExecutor::run);
-            streamAsyncExecutors.forEach(StreamAsyncExecutor::run);
         }else {
             LOG.warn("Scheduled job did not start because micronaut is not ready yet");
         }
