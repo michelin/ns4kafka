@@ -9,7 +9,6 @@ import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.StreamService;
 
 import io.micronaut.context.annotation.EachBean;
-import sun.java2d.pipe.hw.AccelTypedVolatileImage;
 
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.acl.AclBinding;
