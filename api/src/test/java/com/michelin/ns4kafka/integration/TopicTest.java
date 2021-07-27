@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.integration;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.michelin.ns4kafka.controllers.AkhqClaimProviderController;
 import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
@@ -8,7 +9,6 @@ import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.RoleBinding.*;
-import com.michelin.ns4kafka.models.Status;
 import com.michelin.ns4kafka.models.Topic.TopicSpec;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
@@ -61,6 +61,7 @@ public class TopicTest extends AbstractIntegrationTest {
             .metadata(ObjectMeta.builder()
                       .name("ns1")
                       .cluster("test-cluster")
+                    .labels(Map.of("support-group", "LDAP-GROUP-1"))
                       .build())
             .spec(NamespaceSpec.builder()
                   .kafkaUser("user1")
@@ -157,6 +158,37 @@ public class TopicTest extends AbstractIntegrationTest {
         client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns2/acls").bearerAuth(token).body(ns2acl)).blockingFirst();
     }
 
+    @Test
+    void akhqClaim(){
+        AkhqClaimProviderController.AKHQClaimRequest akhqClaimRequest = AkhqClaimProviderController.AKHQClaimRequest.builder()
+                .username("test")
+                .groups(List.of("LDAP-GROUP-1"))
+                .providerName("LDAP")
+                .build();
+        AkhqClaimProviderController.AKHQClaimResponse response =  client.retrieve(
+                HttpRequest.POST("/akhq-claim", akhqClaimRequest),
+                AkhqClaimProviderController.AKHQClaimResponse.class
+        ).blockingFirst();
+
+        Assertions.assertLinesMatch(
+                List.of(
+                        "topic/read",
+                        "topic/data/read",
+                        "group/read",
+                        "registry/read",
+                        "connect/read",
+                        "connect/state/update"
+                ),
+                response.getRoles());
+        Assertions.assertEquals(1, response.getAttributes().get("topicsFilterRegexp").size());
+        Assertions.assertLinesMatch(
+                List.of(
+                        "^\\Qns1-\\E.*$"
+                ),
+                response.getAttributes().get("topicsFilterRegexp")
+        );
+
+    }
     @Test
     void createTopic() throws InterruptedException, ExecutionException {
 

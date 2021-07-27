@@ -51,7 +51,7 @@ ns4kafka is built on top of 2 components : an **API** and a **CLI**.
   - [ ] Schemas
 - [x] Multi cluster
 - [x] Security
-  - [ ] Authentication / Authorization
+  - [x] Authentication / Authorization
     - [x] Gitlab Access Token
     - [ ] LDAP
     - [ ] OIDC
@@ -62,6 +62,7 @@ ns4kafka is built on top of 2 components : an **API** and a **CLI**.
   - [ ] Topic count
   - [ ] Connectors count
 - [ ] Detailed audit log
+- [x] ACLs linked with [AKHQ](https://github.com/tchiotludo/akhq)
 
 # Quick start CLI
 
