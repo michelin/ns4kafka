@@ -43,7 +43,8 @@ public class StreamController extends NamespacedResourceController {
 
         //Creation of the correct ACLs
         if (!streamService.isNamespaceOwnerOfStream(namespace, stream.getMetadata().getName())) {
-            //TODO throw error
+            throw new ResourceValidationException(List.of("Invalid value " + stream.getMetadata().getName()
+                    + " for name: Namespace not OWNER of this stream"), "Stream", stream.getMetadata().getName());
         }
         //Augment the Stream
         stream.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
@@ -75,7 +76,8 @@ public class StreamController extends NamespacedResourceController {
 
         Namespace ns = getNamespace(namespace);
         if (!streamService.isNamespaceOwnerOfStream(namespace, stream)) {
-            //TODO throw error
+            throw new ResourceValidationException(List.of("Invalid value " + stream.getMetadata().getName()
+                    + " for name: Namespace not OWNER of this stream"), "Stream", stream.getMetadata().getName());
         }
         // exists ?
         Optional<KafkaStream> optionalStream = streamService.findByName(ns, stream);
