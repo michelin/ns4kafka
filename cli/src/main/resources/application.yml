@@ -12,6 +12,31 @@ logger:
 kafkactl:
   version: @version@
   config-path: ${user.home}/.kafkactl
+  table-format:
+    Topic:
+      - "TOPIC:/metadata/name"
+      - "RETENTION:/spec/configs/retention.ms%PERIOD"
+      - "POLICY:/spec/configs/cleanup.policy"
+      - "AGE:/metadata/creationTimestamp%AGO"
+    AccessControlEntry:
+      - "ACL:/metadata/name"
+      - "GRANTED_BY:/metadata/namespace"
+      - "GRANTED_TO:/spec/grantedTo"
+      - "TYPE:/spec/resourceType"
+      - "RESOURCE:/spec/resource"
+      - "PATTERN:/spec/resourcePatternType"
+      - "PERMISSION:/spec/permission"
+      - "AGE:/metadata/creationTimestamp%AGO"
+    Connector:
+      - "CONNECTOR:/metadata/name"
+      - "WORKERS:/spec/connectCluster"
+      - "CLASS:/spec/config/connector.class"
+      - "TOPICS:/spec/config/topics"
+      - "AGE:/metadata/creationTimestamp%AGO"
+    RoleBinding:
+      - "NAME:/metadata/name"
+      - "RESOURCES:/spec/roles/resourceTypes"
+      - "GROUP:/spec/subject/subjectName"
 #  api: http://localhost:8080
 #  user-token: token
 #  current-namespace: namespace_name

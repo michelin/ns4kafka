@@ -1,10 +1,12 @@
-package com.michelin.ns4kafka.cli;
+package com.michelin.ns4kafka.cli.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.michelin.ns4kafka.cli.KafkactlConfig;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.Status;
+import io.micronaut.core.naming.conventions.StringConvention;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import org.ocpsoft.prettytime.PrettyTime;
 import org.yaml.snakeyaml.DumperOptions;
@@ -13,6 +15,8 @@ import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 import picocli.CommandLine;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -21,17 +25,21 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+@Singleton
+public class FormatService {
 
-public class FormatUtils {
-
-    private FormatUtils() {
-        throw new IllegalStateException("Utility class");
-    }
+    @Inject
+    public KafkactlConfig kafkactlConfig;
 
     private static final String YAML = "yaml";
     private static final String TABLE = "table";
+    private final List<String> defaults = List.of(
+            "KIND:/kind",
+            "NAME:/metadata/name",
+            "AGE:/metadata/creationTimestamp%AGO"
+            );
 
-    public static void displayList(ApiResource apiResource, List<Resource> resources, String output) {
+    public void displayList(ApiResource apiResource, List<Resource> resources, String output) {
         if (output.equals(TABLE)) {
             printTable(apiResource, resources);
         } else if (output.equals(YAML)) {
@@ -39,11 +47,11 @@ public class FormatUtils {
         }
     }
 
-    public static void displaySingle(ApiResource apiResource, Resource resource, String output) {
+    public void displaySingle(ApiResource apiResource, Resource resource, String output) {
         displayList(apiResource, List.of(resource), output);
     }
 
-    public static void displayError(HttpClientResponseException e, String kind, String name) {
+    public void displayError(HttpClientResponseException e, String kind, String name) {
 
         Optional<Status> statusOptional = e.getResponse().getBody(Status.class);
         if (statusOptional.isPresent()) {
@@ -59,20 +67,15 @@ public class FormatUtils {
         }
     }
 
-    private static void printTable(ApiResource apiResource, List<Resource> resources) {
-        // TODO get formats from config.yml
-        List<String> formats = List.of(
-                "TOPIC:/metadata/name",
-                "RETENTION:/spec/configs/retention.ms%PERIOD",
-                "AGE:/metadata/creationTimestamp%AGO",
-                "CLUSTER:/metadata/cluster",
-                "LABELS:/metadata/labels"
-        );
+    private void printTable(ApiResource apiResource, List<Resource> resources) {
+        String hyphenatedKind = StringConvention.HYPHENATED.format(apiResource.getKind());
+        List<String> formats = kafkactlConfig.tableFormat.getOrDefault(hyphenatedKind, defaults);
+
         PrettyTextTable ptt = new PrettyTextTable(formats, resources);
         System.out.println(ptt);
     }
 
-    private static void printYaml(List<Resource> resources) {
+    private void printYaml(List<Resource> resources) {
         DumperOptions options = new DumperOptions();
         options.setExplicitStart(true);
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
@@ -162,8 +165,8 @@ public class FormatUtils {
                         try {
                             long ms = Long.parseLong(cell);
                             long days = TimeUnit.MILLISECONDS.toDays(ms);
-                            long hours = TimeUnit.MILLISECONDS.toHours(ms) - (days * 24);
-                            long minutes = TimeUnit.MILLISECONDS.toMinutes(ms) - (days * 24) - (hours * 60);
+                            long hours = TimeUnit.MILLISECONDS.toHours(ms - TimeUnit.DAYS.toMillis(days)) ;
+                            long minutes = TimeUnit.MILLISECONDS.toMinutes(ms - TimeUnit.DAYS.toMillis(days) - TimeUnit.HOURS.toMillis(hours));
                             output = days > 0 ? (days + "d") : "";
                             output += hours > 0 ? (hours + "h") : "";
                             output += minutes > 0 ? (minutes + "m") : "";

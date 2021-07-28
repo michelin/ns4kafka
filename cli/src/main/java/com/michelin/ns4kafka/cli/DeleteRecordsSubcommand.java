@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.cli;
 
 import com.michelin.ns4kafka.cli.models.Resource;
+import com.michelin.ns4kafka.cli.services.FormatService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
 import picocli.CommandLine;
@@ -21,6 +22,8 @@ public class DeleteRecordsSubcommand implements Callable<Integer> {
     public LoginService loginService;
     @Inject
     public ResourceService resourceService;
+    @Inject
+    public FormatService formatService;
 
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
@@ -46,7 +49,7 @@ public class DeleteRecordsSubcommand implements Callable<Integer> {
 
         Resource resource = resourceService.deleteRecords(namespace, topic, dryRun);
 
-        FormatUtils.displaySingle(null, resource, "yaml");
+        formatService.displaySingle(null, resource, "yaml");
 
         return 0;
     }
