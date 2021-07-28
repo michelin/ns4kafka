@@ -198,27 +198,22 @@ public class AccessControlEntryAsyncExecutor {
     }
 
     private List<AclBinding> buildAclBindingsFromKafkaStream(KafkaStream stream, String kafkaUser) {
-        //convert pattern, convert resource type from NS4Kafka to org.apache.kafka.common types
-        PatternType patternType = PatternType.PREFIXED;
-        // Topics ACLS
-        ResourceType resourceTypeTopic = ResourceType.TOPIC;
-        ResourcePattern resourcePatternTopic = new ResourcePattern(resourceTypeTopic,
-                stream.getMetadata().getName(),
-                patternType);
-        List<AclOperation> targetAclOperationsList = List.of(AclOperation.CREATE, AclOperation.DELETE);
-        // Group ACL
-        ResourceType resourceTypeGroup = ResourceType.GROUP;
-        ResourcePattern resourcePatternGroup = new ResourcePattern(resourceTypeGroup,
-                stream.getMetadata().getName(),
-                patternType);
-        List<AclOperation> targetAclOperationsGroup = List.of(AclOperation.READ);
-        //Concat both
-        return Stream.concat(
-            targetAclOperationsList.stream().map(aclOperation ->
-                new AclBinding(resourcePatternTopic, new org.apache.kafka.common.acl.AccessControlEntry("User:" + kafkaUser, "*", aclOperation, AclPermissionType.ALLOW)))
-            ,targetAclOperationsGroup.stream().map(aclOperation ->
-                new AclBinding(resourcePatternGroup, new org.apache.kafka.common.acl.AccessControlEntry("User:" + kafkaUser, "*", aclOperation, AclPermissionType.ALLOW)))
-            ).collect(Collectors.toList());
+        return List.of(
+                // CREATE and DELETE on Stream Topics
+                new AclBinding(
+                        new ResourcePattern(ResourceType.TOPIC, stream.getMetadata().getName(), PatternType.PREFIXED),
+                        new org.apache.kafka.common.acl.AccessControlEntry("User:" + kafkaUser, "*", AclOperation.CREATE, AclPermissionType.ALLOW)
+                ),
+                new AclBinding(
+                        new ResourcePattern(ResourceType.TOPIC, stream.getMetadata().getName(), PatternType.PREFIXED),
+                        new org.apache.kafka.common.acl.AccessControlEntry("User:" + kafkaUser, "*", AclOperation.DELETE, AclPermissionType.ALLOW)
+                ),
+                // READ on application.id group
+                new AclBinding(
+                        new ResourcePattern(ResourceType.GROUP, stream.getMetadata().getName(), PatternType.PREFIXED),
+                        new org.apache.kafka.common.acl.AccessControlEntry("User:" + kafkaUser, "*", AclOperation.READ, AclPermissionType.ALLOW)
+                )
+        );
     }
 
     private List<AclOperation> computeAclOperationForOwner(ResourceType resourceType) {
