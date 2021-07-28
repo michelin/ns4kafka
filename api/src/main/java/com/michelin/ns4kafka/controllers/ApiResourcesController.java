@@ -48,6 +48,13 @@ public class ApiResourcesController {
                         .path("topics")
                         .names(List.of("topics", "topic", "to"))
                         .build(),
+                ResourceDefinition.builder()
+                        .kind("KafkaStream")
+                        .namespaced(true)
+                        .synchronizable(true)
+                        .path("streams")
+                        .names(List.of("streams", "stream", "st"))
+                        .build(),
                 // Non-Namespaced Resources
                 ResourceDefinition.builder()
                         .kind("Namespace")
