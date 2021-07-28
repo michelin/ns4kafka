@@ -76,8 +76,8 @@ public class StreamController extends NamespacedResourceController {
 
         Namespace ns = getNamespace(namespace);
         if (!streamService.isNamespaceOwnerOfStream(namespace, stream)) {
-            throw new ResourceValidationException(List.of("Invalid value " + stream.getMetadata().getName()
-                    + " for name: Namespace not OWNER of this stream"), "Stream", stream.getMetadata().getName());
+            throw new ResourceValidationException(List.of("Invalid value " + stream
+                    + " for name: Namespace not OWNER of this stream"), "Stream", stream);
         }
         // exists ?
         Optional<KafkaStream> optionalStream = streamService.findByName(ns, stream);
