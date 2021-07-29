@@ -93,6 +93,7 @@ public class KafkaConnectClientProxy extends OncePerRequestHttpServerFilter {
                                 request.getPath().substring(KafkaConnectClientProxy.PROXY_PREFIX.length())
                         ))
                 )
+                .header("Host", newURI.getHost())
                 .basicAuth(connectConfig.getBasicAuthUsername(), connectConfig.getBasicAuthPassword());
     }
 }
