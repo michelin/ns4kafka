@@ -5,6 +5,7 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.NamespaceService;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.authentication.Authentication;
@@ -23,8 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class AccessControlListControllerTest {
@@ -32,6 +32,8 @@ public class AccessControlListControllerTest {
     AccessControlEntryService accessControlEntryService;
     @Mock
     NamespaceService namespaceService;
+    @Mock
+    ApplicationEventPublisher applicationEventPublisher;
 
     @InjectMocks
     AccessControlListController accessControlListController;
@@ -236,6 +238,7 @@ public class AccessControlListControllerTest {
                 .thenReturn(Optional.of(ns));
         Mockito.when(accessControlEntryService.validate(ace1, ns))
                 .thenReturn(List.of());
+        doNothing().when(applicationEventPublisher).publishEvent(any());
         Mockito.when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
@@ -313,6 +316,7 @@ public class AccessControlListControllerTest {
                 .thenReturn(List.of());
         Mockito.when(accessControlEntryService.findByName("test","ace1"))
                 .thenReturn(Optional.of(ace1Old));
+        doNothing().when(applicationEventPublisher).publishEvent(any());
         Mockito.when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
@@ -468,6 +472,7 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.of(ace1));
         //Mockito.doNothing().when(accessControlEntryService.delete(ace1));
+        doNothing().when(applicationEventPublisher).publishEvent(any());
         HttpResponse actual = accessControlListController.delete(auth,"test", "ace1", false);
 
         Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.status());

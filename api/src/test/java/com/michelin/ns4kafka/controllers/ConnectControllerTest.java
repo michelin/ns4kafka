@@ -5,6 +5,7 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.services.KafkaConnectService;
 import com.michelin.ns4kafka.services.NamespaceService;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +30,8 @@ public class ConnectControllerTest {
 
     @Mock
     NamespaceService namespaceService;
+    @Mock
+    ApplicationEventPublisher applicationEventPublisher;
 
     @InjectMocks
     ConnectController connectController;
@@ -138,6 +141,7 @@ public class ConnectControllerTest {
                 .thenReturn(true);
         Mockito.when(kafkaConnectService.findByName(ns,"connect1"))
                 .thenReturn(Optional.of(connector));
+        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         Assertions.assertDoesNotThrow(() -> connectController.deleteConnector("test", "connect1", false));
     }
@@ -244,6 +248,7 @@ public class ConnectControllerTest {
                 .thenReturn(List.of());
         Mockito.when(kafkaConnectService.validateRemotely(ns, connector))
                 .thenReturn(List.of());
+        doNothing().when(applicationEventPublisher).publishEvent(any());
         Mockito.when(kafkaConnectService.createOrUpdate(ns, connector))
                 .thenReturn(expected);
 
@@ -317,6 +322,7 @@ public class ConnectControllerTest {
                 .thenReturn(List.of());
         Mockito.when(kafkaConnectService.findByName(ns, "connect1"))
                 .thenReturn(Optional.of(connectorOld));
+        doNothing().when(applicationEventPublisher).publishEvent(any());
         Mockito.when(kafkaConnectService.createOrUpdate(ns, connector))
                 .thenReturn(expected);
 

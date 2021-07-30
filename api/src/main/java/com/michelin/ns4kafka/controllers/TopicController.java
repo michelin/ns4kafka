@@ -114,13 +114,20 @@ public class TopicController extends NamespacedResourceController {
             return formatHttpResponse(existingTopic.get(), ApplyStatus.unchanged);
         }
         ApplyStatus status = ApplyStatus.created;
+        String oldSpec = null;
         if (existingTopic.isPresent()) {
             status = ApplyStatus.changed;
+            oldSpec = returnStringOfSpec(existingTopic.get().getSpec());
         }
 
         if (dryrun) {
             return formatHttpResponse(topic, status);
         }
+        sendEventLog(topic.getKind(),
+                topic.getMetadata(),
+                status.toString(),
+                oldSpec,
+                returnStringOfSpec(topic.getSpec()));
 
         return formatHttpResponse(topicService.create(topic), status);
     }
@@ -145,9 +152,13 @@ public class TopicController extends NamespacedResourceController {
         if (dryrun) {
             return HttpResponse.noContent();
         }
-
-        //1. delete from ns4kafka
-        //2. delete from cluster
+        Topic topicToDelete = optionalTopic.get();
+        sendEventLog(topicToDelete.getKind(),
+                topicToDelete.getMetadata(),
+                "delete",
+                returnStringOfSpec(topicToDelete.getSpec()),
+                null);
+        // delete from cluster
         topicService.delete(optionalTopic.get());
 
         return HttpResponse.noContent();
@@ -172,6 +183,7 @@ public class TopicController extends NamespacedResourceController {
         if (dryrun) {
             return unsynchronizedTopics;
         }
+        //TODO import log
 
         List<Topic> synchronizedTopics = unsynchronizedTopics.stream()
                 .map(topic -> topicService.create(topic))
@@ -209,6 +221,7 @@ public class TopicController extends NamespacedResourceController {
             deletedRecords = topicService.deleteRecords(optionalTopic.get(), recordsToDelete);
         }
 
+        //TODO delete record log
         return DeleteRecords.builder()
                 .metadata(ObjectMeta.builder()
                         .cluster(ns.getMetadata().getCluster())

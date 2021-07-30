@@ -30,6 +30,13 @@ public abstract class ResourceController {
         applicationEventPublisher.publishEvent(auditLog);
     }
 
+    public String returnStringOfSpec(Object spec) {
+        if (spec == null) {
+            return null;
+        }
+        return spec.toString();
+    }
+
     @Builder
     @Data
     public static class AuditLog {

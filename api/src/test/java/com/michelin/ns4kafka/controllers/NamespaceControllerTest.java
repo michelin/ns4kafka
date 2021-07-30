@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.services.NamespaceService;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,13 +20,14 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class NamespaceControllerTest {
     @Mock
     NamespaceService namespaceService;
+    @Mock
+    ApplicationEventPublisher applicationEventPublisher;
 
     @InjectMocks
     NamespaceController namespaceController;
@@ -58,6 +60,7 @@ public class NamespaceControllerTest {
                 .thenReturn(Optional.empty());
         Mockito.when(namespaceService.validateCreation(toCreate))
                 .thenReturn(List.of());
+        doNothing().when(applicationEventPublisher).publishEvent(any());
         Mockito.when(namespaceService.createOrUpdate(toCreate))
                 .thenReturn(toCreate);
 
@@ -139,6 +142,7 @@ public class NamespaceControllerTest {
                 .build();
         Mockito.when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
+        doNothing().when(applicationEventPublisher).publishEvent(any());
         Mockito.when(namespaceService.createOrUpdate(toUpdate))
                 .thenReturn(toUpdate);
 
@@ -223,6 +227,7 @@ public class NamespaceControllerTest {
                 .thenReturn(Optional.of(existing));
         Mockito.when(namespaceService.listAllNamespaceResources(existing))
                 .thenReturn(List.of());
+        doNothing().when(applicationEventPublisher).publishEvent(any());
         var result = namespaceController.delete("namespace", false);
         Assertions.assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
 

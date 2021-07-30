@@ -10,6 +10,7 @@ import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.StreamService;
 import com.michelin.ns4kafka.services.TopicService;
 import com.michelin.ns4kafka.validation.TopicValidator;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import org.apache.kafka.common.TopicPartition;
@@ -39,6 +40,8 @@ public class StreamControllerTest {
     NamespaceService namespaceService;
     @Mock
     StreamService streamService;
+    @Mock
+    ApplicationEventPublisher applicationEventPublisher;
     @InjectMocks
     StreamController streamController;
 
@@ -156,6 +159,7 @@ public class StreamControllerTest {
 
         when(streamService.findByName(ns, "test_stream1"))
                 .thenReturn(Optional.empty());
+        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         Mockito.when(streamService.create(stream1))
                 .thenReturn(stream1);
@@ -276,6 +280,7 @@ public class StreamControllerTest {
         when(streamService.findByName(ns, "test_stream1"))
                 .thenReturn(Optional.of(stream1));
 
+        doNothing().when(applicationEventPublisher).publishEvent(any());
         doNothing().when(streamService).delete(stream1);
         var response = streamController.delete("test", "test_stream1", false);
         Assertions.assertEquals(HttpStatus.NO_CONTENT, response.getStatus());

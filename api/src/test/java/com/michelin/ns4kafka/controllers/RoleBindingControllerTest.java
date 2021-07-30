@@ -5,6 +5,7 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.RoleBindingService;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +28,8 @@ public class RoleBindingControllerTest {
     NamespaceService namespaceService;
     @Mock
     RoleBindingService roleBindingService;
+    @Mock
+    ApplicationEventPublisher applicationEventPublisher;
 
     @InjectMocks
     RoleBindingController roleBindingController;
@@ -46,6 +49,7 @@ public class RoleBindingControllerTest {
                 .build();
 
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
+        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         var response = roleBindingController.apply("test", rolebinding, false);
         RoleBinding actual = response.body();
@@ -101,6 +105,7 @@ public class RoleBindingControllerTest {
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
         when(roleBindingService.findByName("test","test.rolebinding"))
                 .thenReturn(Optional.of(rolebindingOld));
+        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         var response = roleBindingController.apply("test", rolebinding, false);
         RoleBinding actual = response.body();
@@ -147,6 +152,7 @@ public class RoleBindingControllerTest {
 
         //when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
         when(roleBindingService.findByName(any(), any())).thenReturn(Optional.of(rolebinding));
+        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         Assertions.assertDoesNotThrow(
                 () -> roleBindingController.delete("test", "test.rolebinding", false)
