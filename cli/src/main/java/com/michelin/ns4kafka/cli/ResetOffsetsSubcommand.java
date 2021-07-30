@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.cli;
 
 import com.michelin.ns4kafka.cli.models.ObjectMeta;
 import com.michelin.ns4kafka.cli.models.Resource;
+import com.michelin.ns4kafka.cli.services.FormatService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
 import picocli.CommandLine;
@@ -24,6 +25,8 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
     public LoginService loginService;
     @Inject
     public ResourceService resourceService;
+    @Inject
+    public FormatService formatService;
 
     @Inject
     public KafkactlConfig kafkactlConfig;
@@ -110,7 +113,7 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
 
         Resource resource = resourceService.resetOffsets(namespace, group, consumerGroupResetOffset, dryRun);
         if (resource != null) {
-            FormatUtils.displaySingle(null, resource, "yaml");
+            formatService.displaySingle(null, resource, "yaml");
             return 0;
         }
 
