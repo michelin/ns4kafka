@@ -25,7 +25,7 @@ public abstract class ResourceController {
         return HttpResponse.ok(body).header(statusHeaderName, status.toString());
     }
 
-    public void sendEventLog(String kind, ObjectMeta metadata, Object operation, String before, String after) {
+    public void sendEventLog(String kind, ObjectMeta metadata, String operation, String before, String after) {
         var auditLog = new AuditLog(securityService, Date.from(Instant.now()), kind, metadata, operation, before, after);
         applicationEventPublisher.publishEvent(auditLog);
     }
@@ -45,7 +45,7 @@ public abstract class ResourceController {
         private Date date;
         private String kind;
         private ObjectMeta metadata;
-        private Object operation;
+        private String operation;
         private String before;
         private String after;
 

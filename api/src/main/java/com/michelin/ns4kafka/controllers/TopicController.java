@@ -155,7 +155,7 @@ public class TopicController extends NamespacedResourceController {
         Topic topicToDelete = optionalTopic.get();
         sendEventLog(topicToDelete.getKind(),
                 topicToDelete.getMetadata(),
-                "delete",
+                "deleted",
                 returnStringOfSpec(topicToDelete.getSpec()),
                 null);
         // delete from cluster

@@ -96,7 +96,7 @@ public class StreamController extends NamespacedResourceController {
         var streamToDelete = optionalStream.get();
         sendEventLog(streamToDelete.getKind(),
                 streamToDelete.getMetadata(),
-                "delete",
+                "deleted",
                 null,
                 null);
         streamService.delete(optionalStream.get());
