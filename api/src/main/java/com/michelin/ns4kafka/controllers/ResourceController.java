@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Data;
 
 import javax.inject.Inject;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Date;
 
@@ -26,7 +28,8 @@ public abstract class ResourceController {
     }
 
     public void sendEventLog(String kind, ObjectMeta metadata, String operation, String before, String after) {
-        var auditLog = new AuditLog(securityService, Date.from(Instant.now()), kind, metadata, operation, before, after);
+        SimpleDateFormat sdf = new SimpleDateFormat("ss:mm:HH dd/MM/yyyy");
+        var auditLog = new AuditLog(securityService, sdf.format(Date.from(Instant.now())), kind, metadata, operation, before, after);
         applicationEventPublisher.publishEvent(auditLog);
     }
 
@@ -42,7 +45,7 @@ public abstract class ResourceController {
     public static class AuditLog {
 
         private SecurityService user;
-        private Date date;
+        private String date;
         private String kind;
         private ObjectMeta metadata;
         private String operation;
