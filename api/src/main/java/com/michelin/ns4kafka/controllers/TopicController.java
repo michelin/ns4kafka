@@ -183,10 +183,11 @@ public class TopicController extends NamespacedResourceController {
         if (dryrun) {
             return unsynchronizedTopics;
         }
-        //TODO import log
-
         List<Topic> synchronizedTopics = unsynchronizedTopics.stream()
-                .map(topic -> topicService.create(topic))
+                .map(topic -> {
+                    sendEventLog("Topic", topic.getMetadata(), "created", null, topic.getSpec().toString());
+                    return topicService.create(topic);
+                })
                 .collect(Collectors.toList());
         return synchronizedTopics;
     }
@@ -218,10 +219,10 @@ public class TopicController extends NamespacedResourceController {
         if (dryrun) {
             deletedRecords = recordsToDelete;
         } else {
+            sendEventLog("Topic", optionalTopic.get().getMetadata(), "delete-record", null, null);
             deletedRecords = topicService.deleteRecords(optionalTopic.get(), recordsToDelete);
         }
 
-        //TODO delete record log
         return DeleteRecords.builder()
                 .metadata(ObjectMeta.builder()
                         .cluster(ns.getMetadata().getCluster())
