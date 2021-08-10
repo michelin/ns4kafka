@@ -41,6 +41,10 @@ public class ConsumerGroupAsyncExecutor {
                         .stream()
                         .collect(Collectors.toMap(Map.Entry::getKey, e -> new OffsetAndMetadata(e.getValue())))
         ).all().get();
+        log.info("Consumer Group {} changed offset", consumerGroupId);
+        if (log.isDebugEnabled()) {
+            preparedOffsets.forEach((topicPartition, offset)-> log.debug("TopicPartition {} has the new offset {}", topicPartition, offset));
+        }
     }
 
     public Map<TopicPartition, Long> listOffsets(Map<TopicPartition, OffsetSpec> offsetsForTheSpec)

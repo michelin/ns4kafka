@@ -144,6 +144,7 @@ public class TopicAsyncExecutor {
     }
     public void deleteTopic(Topic topic) throws InterruptedException, ExecutionException, TimeoutException {
         getAdminClient().deleteTopics(List.of(topic.getMetadata().getName())).all().get(30, TimeUnit.SECONDS);
+        log.info("Success deleting topic {} on {}", topic.getMetadata().getName(), this.kafkaAsyncExecutorConfig.getName());
     }
 
     public Map<String, Topic> collectBrokerTopics() throws ExecutionException, InterruptedException, TimeoutException {
