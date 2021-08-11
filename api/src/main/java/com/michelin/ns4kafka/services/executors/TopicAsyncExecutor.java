@@ -306,8 +306,11 @@ public class TopicAsyncExecutor {
         return getAdminClient().deleteRecords(recordsToDelete).lowWatermarks().entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, kv-> {
                     try {
-                        return kv.getValue().get().lowWatermark();
+                        var newValue = kv.getValue().get().lowWatermark();
+                        log.info("Deleting Record {} of TopicPartition {}",newValue,kv.getKey());
+                        return newValue;
                     } catch (Exception e) {
+                        log.error(String.format("Error deleting records of TopicPartition %s", kv.getKey()), e);
                         return 0L;
                     }
                 }));
