@@ -12,7 +12,7 @@ import javax.validation.constraints.NotNull;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class AccessControlEntry {
+public class AccessControlEntry extends Resource{
 
     private final String apiVersion = "v1";
     private final String kind = "AccessControlEntry";

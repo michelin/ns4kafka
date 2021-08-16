@@ -12,7 +12,7 @@ import java.util.Map;
 @NoArgsConstructor
 @Getter
 @Setter
-public class DeleteRecords {
+public class DeleteRecords extends Resource{
     private final String apiVersion = "v1";
     private final String kind = "DeleteRecords";
 

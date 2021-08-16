@@ -18,7 +18,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class Namespace {
+public class Namespace extends Resource{
 
     private final String apiVersion = "v1";
     private final String kind = "Namespace";

@@ -16,7 +16,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class Topic {
+public class Topic extends Resource{
     private final String apiVersion = "v1";
     private final String kind = "Topic";
 

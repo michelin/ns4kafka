@@ -16,7 +16,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class Connector {
+public class Connector extends Resource {
     private final String apiVersion = "v1";
     private final String kind = "Connector";
     @Valid

@@ -11,7 +11,7 @@ import javax.validation.constraints.NotNull;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class KafkaStream {
+public class KafkaStream extends Resource{
 
     private final String apiVersion = "v1";
     private final String kind = "KafkaStream";

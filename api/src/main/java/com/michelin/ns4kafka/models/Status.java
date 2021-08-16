@@ -13,7 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class Status {
+public class Status extends Resource{
     private final String apiVersion = "v1";
     private final String kind = "Status";
 

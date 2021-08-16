@@ -13,7 +13,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class ConsumerGroupResetOffsets {
+public class ConsumerGroupResetOffsets extends Resource {
 
     private final String apiVersion = "v1";
     private final String kind = "ConsumerGroupResetOffsets";
