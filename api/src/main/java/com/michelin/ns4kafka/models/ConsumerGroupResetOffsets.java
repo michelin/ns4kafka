@@ -9,17 +9,15 @@ import javax.validation.constraints.NotNull;
 import java.util.Map;
 
 @Introspected
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @Data
+@EqualsAndHashCode(callSuper=false)
 public class ConsumerGroupResetOffsets extends Resource {
 
-    private final String apiVersion = "v1";
-    private final String kind = "ConsumerGroupResetOffsets";
-    @Valid
-    @NotNull
-    private ObjectMeta metadata;
+    @Builder
+    public ConsumerGroupResetOffsets(@NotNull ObjectMeta metadata, ConsumerGroupResetOffsetsSpec spec) {
+        super("v1","ConsumerGroupResetOffsets", metadata);
+        this.spec = spec;
+    }
     @Valid
     @NotNull
     private ConsumerGroupResetOffsetsSpec spec;

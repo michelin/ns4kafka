@@ -1,10 +1,7 @@
 package com.michelin.ns4kafka.models;
 
 import io.micronaut.core.annotation.Introspected;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
@@ -14,18 +11,15 @@ import java.util.Collection;
 
 
 @Introspected(classes = {RoleBinding.class, RoleBinding.RoleBindingSpec.class, RoleBinding.Role.class, RoleBinding.Subject.class})
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
 @Data
+@EqualsAndHashCode(callSuper=false)
 public class RoleBinding extends Resource{
 
-    private final String apiVersion = "v1";
-    private final String kind = "RoleBinding";
-
-    @Valid
-    @NotNull
-    private ObjectMeta metadata;
+    @Builder
+    public RoleBinding(@NotNull ObjectMeta metadata, RoleBindingSpec spec) {
+        super("v1","RoleBinding", metadata);
+        this.spec = spec;
+    }
 
     @Valid
     @NotNull

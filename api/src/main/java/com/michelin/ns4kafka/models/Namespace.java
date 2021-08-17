@@ -3,10 +3,7 @@ package com.michelin.ns4kafka.models;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.core.annotation.Introspected;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
@@ -14,17 +11,15 @@ import javax.validation.constraints.NotNull;
 import java.util.List;
 
 @Introspected
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
 @Data
+@EqualsAndHashCode(callSuper=false)
 public class Namespace extends Resource{
 
-    private final String apiVersion = "v1";
-    private final String kind = "Namespace";
-    @Valid
-    @NotNull
-    private ObjectMeta metadata;
+    @Builder
+    public Namespace(@NotNull ObjectMeta metadata, NamespaceSpec spec) {
+        super("v1","Namespace", metadata);
+        this.spec = spec;
+    }
 
     @Valid
     @NotNull

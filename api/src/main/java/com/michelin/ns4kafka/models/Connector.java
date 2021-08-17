@@ -12,16 +12,15 @@ import java.util.List;
 import java.util.Map;
 
 @Introspected
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @Data
 public class Connector extends Resource {
-    private final String apiVersion = "v1";
-    private final String kind = "Connector";
-    @Valid
-    @NotNull
-    private ObjectMeta metadata;
+
+    @Builder
+    public Connector(@NotNull ObjectMeta metadata, ConnectorSpec spec, ConnectorStatus status) {
+        super("v1","Connector", metadata);
+        this.spec = spec;
+        this.status = status;
+    }
 
     @Valid
     @NotNull

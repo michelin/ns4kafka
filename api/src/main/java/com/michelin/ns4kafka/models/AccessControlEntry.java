@@ -8,17 +8,15 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 @Introspected
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @Data
 public class AccessControlEntry extends Resource{
 
-    private final String apiVersion = "v1";
-    private final String kind = "AccessControlEntry";
-    @Valid
-    @NotNull
-    private ObjectMeta metadata;
+    @Builder
+    public AccessControlEntry(@NotNull ObjectMeta metadata, AccessControlEntrySpec spec) {
+        super("v1","AccessControlEntry", metadata);
+        this.spec = spec;
+    }
+
     @Valid
     @NotNull
     private AccessControlEntrySpec spec;

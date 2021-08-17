@@ -7,15 +7,12 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
 @Introspected
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @Data
+@EqualsAndHashCode(callSuper=false)
 public class KafkaStream extends Resource{
 
-    private final String apiVersion = "v1";
-    private final String kind = "KafkaStream";
-    @Valid
-    @NotNull
-    private ObjectMeta metadata;
+    @Builder
+    public KafkaStream(@NotNull ObjectMeta metadata) {
+        super("v1","KafkaStream", metadata);
+    }
 }
