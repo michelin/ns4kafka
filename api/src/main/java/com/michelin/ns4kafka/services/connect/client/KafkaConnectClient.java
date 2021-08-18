@@ -50,4 +50,11 @@ public interface KafkaConnectClient {
             @Header(value = KafkaConnectClientProxy.PROXY_HEADER_SECRET) String secret,
             @Header(value = KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
             @Header(value = KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER) String connectCluster);
+
+    @Post("/connectors/{connector}/restart")
+    HttpResponse restart(
+            @Header(value = KafkaConnectClientProxy.PROXY_HEADER_SECRET) String secret,
+            @Header(value = KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
+            @Header(value = KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER) String connectCluster,
+            String connector);
 }
