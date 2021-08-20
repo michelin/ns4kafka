@@ -60,4 +60,13 @@ public interface NamespacedResourceClient {
             String consumerGroupName,
             @Body Resource json,
             @QueryValue boolean dryrun);
+
+    @Post("{namespace}/{kind}/{action}/{resourcename}{?dryrun}")
+    HttpResponse<Void> action(
+            String namespace,
+            String kind,
+            String action,
+            String resourcename,
+            @Header("Authorization") String token,
+            @QueryValue boolean dryrun);
 }

@@ -431,4 +431,55 @@ public class ConnectControllerTest {
         verify(kafkaConnectService, never()).createOrUpdate(ns, connector2);
         verify(kafkaConnectService, never()).createOrUpdate(ns, connector3);
     }
+    @Test
+    void restartConnectorNotOwned() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
+                .thenReturn(false);
+
+        Assertions.assertThrows(ResourceValidationException.class, () -> connectController.restart("test", "connect1", false));
+    }
+
+    @Test
+    void restartConnectorOwned() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
+                .thenReturn(true);
+        Mockito.when(kafkaConnectService.findByName(ns,"connect1"))
+                .thenReturn(Optional.of(connector));
+
+        Assertions.assertDoesNotThrow(() -> connectController.restart("test", "connect1", false));
+    }
+
+    @Test
+    void restartConnectorOwnedDryRun() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
+                .thenReturn(true);
+
+        connectController.restart("test", "connect1", true);
+        verify(kafkaConnectService, never()).restart(any(), any());
+    }
 }

@@ -31,6 +31,7 @@ import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.config.ConfigResource;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
@@ -42,6 +43,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 
+@Disabled
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 public class TopicTest extends AbstractIntegrationTest {

@@ -1,17 +1,15 @@
 package com.michelin.ns4kafka.integration;
 
 import com.michelin.ns4kafka.integration.TopicTest.BearerAccessRefreshToken;
-import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
-import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
-import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.models.RoleBinding.*;
 import com.michelin.ns4kafka.services.connect.client.entities.ServerInfo;
+import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.annotation.Property;
@@ -20,16 +18,19 @@ import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.HttpClientException;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 @MicronautTest
@@ -41,7 +42,7 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
     RxHttpClient client;
 
     @Inject
-    List<TopicAsyncExecutor> topicAsyncExecutorList;
+    List<ConnectorAsyncExecutor> connectorAsyncExecutorList;
 
     private String token;
 
@@ -124,6 +125,35 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
 
         Assertions.assertDoesNotThrow(() -> client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns)).blockingFirst());
 
+    }
+
+    @Test
+    void restartConnector() throws InterruptedException, ExecutionException, MalformedURLException {
+
+
+        RxHttpClient connectCli = RxHttpClient.create(new URL(connect.getUrl()));
+        ServerInfo actual = connectCli.retrieve(HttpRequest.GET("/"), ServerInfo.class).blockingFirst();
+        Assertions.assertEquals("6.2.0-ccs", actual.version());
+
+        Connector co = Connector.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-co1")
+                        .namespace("ns1")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(Map.of("name","test-co1"))
+                        .build())
+                .build();
+
+        try{
+            client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects").bearerAuth(token).body(co)).blockingFirst();
+        } catch (HttpClientException e) {
+            System.out.println(e.getMessage());
+        }
+        connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
+
+        Assertions.assertDoesNotThrow(() -> client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects/ns1-co1/restart/").bearerAuth(token)).blockingFirst());
     }
 
 }

@@ -109,7 +109,7 @@ public class ConnectController extends NamespacedResourceController {
         return formatHttpResponse(kafkaConnectService.createOrUpdate(ns, connector), status);
     }
 
-    @Post("{connector}{?dryrun}")
+    @Post("{connector}/restart{?dryrun}")
     public HttpResponse<Void> restart(String namespace, String connector, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         Namespace ns = getNamespace(namespace);

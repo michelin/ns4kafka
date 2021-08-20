@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.cli.client;
 
+import com.michelin.ns4kafka.cli.models.ActionDefinition;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 import io.micronaut.http.HttpResponse;
@@ -19,6 +20,9 @@ public interface ClusterResourceClient {
 
     @Get("/api-resources")
     List<ApiResource> listResourceDefinitions();
+
+    @Get("/api-resources/{resourceType}")
+    List<ActionDefinition> listActionDefinitions(String resourceType);
 
     @Delete("/api/{kind}/{resource}{?dryrun}")
     void delete(@Header("Authorization") String token, String kind, String resource, @QueryValue boolean dryrun);

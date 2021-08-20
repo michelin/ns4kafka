@@ -24,6 +24,7 @@ import com.michelin.ns4kafka.validation.TopicValidator;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.micronaut.context.annotation.Property;
@@ -41,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+@Disabled
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 public class ExceptionHandlerTest extends AbstractIntegrationTest {

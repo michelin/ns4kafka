@@ -16,7 +16,7 @@ ns4kafka:
       manage-users: false
       manage-acls: true
       manage-topics: true
-      manage-connect: false
+      manage-connect: true
       manage-role-bindings: false
       connects:
         test-connect:

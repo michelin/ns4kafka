@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.cli.services;
 import com.michelin.ns4kafka.cli.FormatUtils;
 import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
+import com.michelin.ns4kafka.cli.models.ActionDefinition;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.Status;
@@ -122,6 +123,14 @@ public class ResourceService {
             FormatUtils.displayError(e, "Topic", topic);
         }
         return null;
+    }
+
+    public void action(String namespace, ApiResource apiResource, ActionDefinition actionDefinition, String resourceName, boolean dryRun) {
+        try {
+            namespacedClient.action(namespace, apiResource.getPath(), actionDefinition.getPath(),resourceName, loginService.getAuthorization(), dryRun);
+        } catch (HttpClientResponseException e) {
+            FormatUtils.displayError(e, apiResource.getKind(), resourceName);
+        }
     }
 
     public Resource resetOffsets(String namespace, String group, Resource resource, boolean dryRun) {
