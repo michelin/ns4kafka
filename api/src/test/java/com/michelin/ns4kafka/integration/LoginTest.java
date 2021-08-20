@@ -9,12 +9,10 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
 
-@Disabled
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 public class LoginTest extends AbstractIntegrationTest {
