@@ -3,7 +3,6 @@ package com.michelin.ns4kafka.cli.services;
 import com.michelin.ns4kafka.cli.FormatUtils;
 import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
-import com.michelin.ns4kafka.cli.models.ActionDefinition;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.Status;
@@ -125,11 +124,11 @@ public class ResourceService {
         return null;
     }
 
-    public void action(String namespace, ApiResource apiResource, ActionDefinition actionDefinition, String resourceName, boolean dryRun) {
+    public void restartConnect(String namespace, String resourceName, boolean dryRun) {
         try {
-            namespacedClient.action(namespace, apiResource.getPath(), actionDefinition.getPath(),resourceName, loginService.getAuthorization(), dryRun);
+            namespacedClient.restartConnect(namespace, resourceName, loginService.getAuthorization(), dryRun);
         } catch (HttpClientResponseException e) {
-            FormatUtils.displayError(e, apiResource.getKind(), resourceName);
+            FormatUtils.displayError(e, "Connector", resourceName);
         }
     }
 

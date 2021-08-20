@@ -1,7 +1,5 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.models.ActionDefinition;
-import com.michelin.ns4kafka.services.ApiResourcesService;
 import io.micronaut.core.annotation.Introspected;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
@@ -11,15 +9,11 @@ import lombok.Getter;
 import lombok.Setter;
 
 import javax.annotation.security.RolesAllowed;
-import javax.inject.Inject;
 import java.util.List;
 
 @RolesAllowed(SecurityRule.IS_ANONYMOUS)
 @Controller("/api-resources")
 public class ApiResourcesController {
-
-    @Inject
-    ApiResourcesService apiResourcesService;
 
     @Get
     public List<ResourceDefinition> list() {
@@ -70,11 +64,6 @@ public class ApiResourcesController {
                         .names(List.of("namespaces", "namespace", "ns"))
                         .build()
                 );
-    }
-
-    @Get("{resourceType}")
-    public List<ActionDefinition> getActions(String resourceType) {
-        return apiResourcesService.getActionsOfResource(resourceType);
     }
 
     @Introspected

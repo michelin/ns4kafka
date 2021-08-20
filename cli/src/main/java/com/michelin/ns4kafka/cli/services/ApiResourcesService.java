@@ -1,7 +1,6 @@
 package com.michelin.ns4kafka.cli.services;
 
 import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
-import com.michelin.ns4kafka.cli.models.ActionDefinition;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 
@@ -19,11 +18,6 @@ public class ApiResourcesService {
     public List<ApiResource> getListResourceDefinition() {
         //TODO Add Cache to reduce the number of http requests
         return resourceClient.listResourceDefinitions();
-    }
-
-    public List<ActionDefinition> getListActionDefinition(String resourceType) {
-        //TODO Add Cache to reduce the number of http requests
-        return resourceClient.listActionDefinitions(resourceType);
     }
 
     public Optional<ApiResource> getResourceDefinitionFromKind(String kind) {
