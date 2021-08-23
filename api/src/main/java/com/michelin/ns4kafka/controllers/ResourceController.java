@@ -11,6 +11,7 @@ import javax.inject.Inject;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.Date;
 
 public abstract class ResourceController {
@@ -29,7 +30,8 @@ public abstract class ResourceController {
 
     public void sendEventLog(String kind, ObjectMeta metadata, String operation, String before, String after) {
         SimpleDateFormat sdf = new SimpleDateFormat("ss:mm:HH dd/MM/yyyy");
-        var auditLog = new AuditLog(securityService, sdf.format(Date.from(Instant.now())), kind, metadata, operation, before, after);
+        var instant = Instant.now();
+        var auditLog = new AuditLog(securityService, sdf.format(Date.from(instant)), instant.getEpochSecond(), kind, metadata, operation, before, after);
         applicationEventPublisher.publishEvent(auditLog);
     }
 
@@ -46,12 +48,12 @@ public abstract class ResourceController {
 
         private SecurityService user;
         private String date;
+        private Long timestamp;
         private String kind;
         private ObjectMeta metadata;
         private String operation;
         private String before;
         private String after;
-
 
     }
 
