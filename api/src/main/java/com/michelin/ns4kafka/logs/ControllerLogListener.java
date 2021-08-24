@@ -28,18 +28,14 @@ public class ControllerLogListener implements ApplicationEventListener<ResourceC
     @Get("/")
     public Collection<ResourceController.AuditLog> getLogsFromLastHour() {
         // Default way to get logs
-        return getLogsFromHours(1);
+        return getLogsFromHours(1,0);
     }
 
-    @Get("/from-hours{?hours}")
-    public Collection<ResourceController.AuditLog> getLogsFromHours(@QueryValue(defaultValue = "1") int hours) {
+    @Get("/from-time{?hours}{?minutes}")
+    public Collection<ResourceController.AuditLog> getLogsFromHours(@QueryValue(defaultValue = "1") int hours,
+                                                                    @QueryValue(defaultValue = "0") int minutes) {
         long hoursInSecond = Long.parseLong(String.valueOf(hours * 3600));
-        return inMemoryDatastore.tailMap(Instant.now().getEpochSecond() - hoursInSecond).values();
-    }
-
-    @Get("/from-minutes{?minutes}")
-    public Collection<ResourceController.AuditLog> getLogsFromMinutes(@QueryValue(defaultValue = "10") int minutes) {
         long minutesInSecond = Long.parseLong(String.valueOf(minutes * 60));
-        return inMemoryDatastore.tailMap(Instant.now().getEpochSecond() - minutesInSecond).values();
+        return inMemoryDatastore.tailMap(Instant.now().getEpochSecond() - hoursInSecond - minutesInSecond).values();
     }
 }
