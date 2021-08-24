@@ -9,6 +9,7 @@ import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.scheduling.annotation.Async;
 
 import javax.annotation.security.RolesAllowed;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.TreeMap;
@@ -28,14 +29,11 @@ public class ControllerLogListener implements ApplicationEventListener<ResourceC
     @Get("/")
     public Collection<ResourceController.AuditLog> getLogsFromLastHour() {
         // Default way to get logs
-        return getLogsFromHours(1,0);
+        return getLogsFromDuration(Duration.ofHours(1));
     }
 
-    @Get("/from-time{?hours}{?minutes}")
-    public Collection<ResourceController.AuditLog> getLogsFromHours(@QueryValue(defaultValue = "1") int hours,
-                                                                    @QueryValue(defaultValue = "0") int minutes) {
-        long hoursInSecond = Long.parseLong(String.valueOf(hours * 3600));
-        long minutesInSecond = Long.parseLong(String.valueOf(minutes * 60));
-        return inMemoryDatastore.tailMap(Instant.now().getEpochSecond() - hoursInSecond - minutesInSecond).values();
+    @Get("/from-duration{?duration}")
+    public Collection<ResourceController.AuditLog> getLogsFromDuration(@QueryValue(defaultValue = "1H") Duration duration){
+        return inMemoryDatastore.tailMap(Instant.now().getEpochSecond() - duration.getSeconds()).values();
     }
 }
