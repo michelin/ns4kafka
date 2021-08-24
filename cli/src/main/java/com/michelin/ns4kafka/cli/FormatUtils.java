@@ -31,6 +31,27 @@ public class FormatUtils {
             printYaml(resources);
         }
     }
+    public static void displayLogs(List<LogSubcommand.AuditLog> auditLogs) {
+        //TODO optimize with dynamic columns
+        CommandLine.Help.TextTable tt = CommandLine.Help.TextTable.forColumns(
+                CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.AUTO),
+                new CommandLine.Help.Column(50, 2, CommandLine.Help.Column.Overflow.SPAN),
+                new CommandLine.Help.Column(30, 2, CommandLine.Help.Column.Overflow.SPAN),
+                new CommandLine.Help.Column(30, 2, CommandLine.Help.Column.Overflow.SPAN),
+                new CommandLine.Help.Column(30, 2, CommandLine.Help.Column.Overflow.SPAN),
+                new CommandLine.Help.Column(30, 2, CommandLine.Help.Column.Overflow.SPAN));
+        tt.addRowValues("USER", "DATE", "OPERATION", "RESOURCE_KIND", "RESOURCE_NAME");
+
+
+        auditLogs.forEach(auditLog -> tt.addRowValues(
+                auditLog.getUser().getUsername(),
+                auditLog.getDate(),
+                auditLog.getOperation(),
+                auditLog.getKind(),
+                auditLog.getMetadata().getName()));
+        System.out.println(tt);
+
+    }
 
     public static void displaySingle(ApiResource apiResource, Resource resource, String output) {
         displayList(apiResource, List.of(resource), output);

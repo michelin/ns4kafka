@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.cli;
 import com.michelin.ns4kafka.cli.models.ObjectMeta;
 import com.michelin.ns4kafka.cli.services.AdminService;
 import com.michelin.ns4kafka.cli.services.LoginService;
+import io.micronaut.core.annotation.Introspected;
 import lombok.Builder;
 import lombok.Data;
 import picocli.CommandLine;
@@ -35,18 +36,20 @@ public class LogSubcommand implements Callable<Integer> {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
         }
         if (duration.isPresent()) {
-            adminService.retrievesLogsFromDuration(duration.get());
+            FormatUtils.displayLogs(adminService.retrievesLogsFromDuration(duration.get()));
             return 0;
         }
-        adminService.defaultRetrievesLogs();
+        FormatUtils.displayLogs(adminService.defaultRetrievesLogs());
         return 0;
     }
 
+
     @Builder
     @Data
+    @Introspected
     public static class AuditLog {
 
-        private Object user;
+        private User user;
         private String date;
         private Long timestamp;
         private String kind;
@@ -55,5 +58,10 @@ public class LogSubcommand implements Callable<Integer> {
         private String before;
         private String after;
 
+        @Data
+        @Introspected
+        public static class User {
+            private String username;
+        }
     }
 }
