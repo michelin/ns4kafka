@@ -34,6 +34,6 @@ public class ControllerLogListener implements ApplicationEventListener<ResourceC
 
     @Get("/from-duration{?duration}")
     public Collection<ResourceController.AuditLog> getLogsFromDuration(@QueryValue(defaultValue = "1H") Duration duration){
-        return inMemoryDatastore.tailMap(Instant.now().getEpochSecond() - duration.getSeconds()).values();
+        return inMemoryDatastore.tailMap(Instant.now().toEpochMilli() - duration.toMillis()).values();
     }
 }
