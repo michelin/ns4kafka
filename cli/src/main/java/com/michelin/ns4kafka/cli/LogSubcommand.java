@@ -49,7 +49,7 @@ public class LogSubcommand implements Callable<Integer> {
     @Introspected
     public static class AuditLog {
 
-        private User user;
+        private String user;
         private String date;
         private Long timestamp;
         private String kind;
@@ -57,11 +57,5 @@ public class LogSubcommand implements Callable<Integer> {
         private String operation;
         private String before;
         private String after;
-
-        @Data
-        @Introspected
-        public static class User {
-            private String username;
-        }
     }
 }

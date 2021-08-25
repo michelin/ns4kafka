@@ -44,7 +44,7 @@ public class FormatUtils {
 
 
         auditLogs.forEach(auditLog -> tt.addRowValues(
-                auditLog.getUser().getUsername(),
+                auditLog.getUser(),
                 auditLog.getDate(),
                 auditLog.getOperation(),
                 auditLog.getKind(),
