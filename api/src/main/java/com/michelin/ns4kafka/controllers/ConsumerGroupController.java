@@ -55,6 +55,11 @@ public class ConsumerGroupController extends NamespacedResourceController {
             // prepare offsets
             Map<TopicPartition, Long> preparedOffsets = consumerGroupService.prepareOffsetsToReset(ns, consumerGroup, consumerGroupResetOffsets.getSpec().getOptions(), partitionsToReset, consumerGroupResetOffsets.getSpec().getMethod());
             if (!dryrun) {
+                sendEventLog("ConsumerGroupResetOffsets",
+                        consumerGroupResetOffsets.getMetadata(),
+                        consumerGroupResetOffsets.getSpec().getMethod().toString(),
+                        null,
+                        consumerGroupResetOffsets.getSpec().toString());
                 consumerGroupService.alterConsumerGroupOffsets(ns, consumerGroup, preparedOffsets);
             }
             status = ConsumerGroupResetOffsetStatus.ofSuccess(

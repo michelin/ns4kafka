@@ -7,8 +7,7 @@ import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
 import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStatus;
 import io.micronaut.context.annotation.EachBean;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -16,10 +15,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @EachBean(KafkaAsyncExecutorConfig.class)
 @Singleton
 public class ConnectorAsyncExecutor {
-    private static final Logger LOG = LoggerFactory.getLogger(ConnectorAsyncExecutor.class);
 
     private KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
     @Inject
@@ -43,7 +42,7 @@ public class ConnectorAsyncExecutor {
     }
 
     private void synchronizeConnectCluster(String connectCluster) {
-        LOG.debug("Starting Connector synchronization for Kafka cluster {} and Connect cluster {}",
+        log.debug("Starting Connector synchronization for Kafka cluster {} and Connect cluster {}",
                 kafkaAsyncExecutorConfig.getName(),
                 connectCluster);
         try {
@@ -69,10 +68,10 @@ public class ConnectorAsyncExecutor {
                     .filter(connector -> ns4kafkaConnectors.stream().noneMatch(connector1 -> connector1.getMetadata().getName().equals(connector.getMetadata().getName())))
                     .collect(Collectors.toList());
 
-            if (LOG.isDebugEnabled()) {
-                toCreate.forEach(connector -> LOG.debug("to create : " + connector.getMetadata().getName()));
-                toUpdate.forEach(connector -> LOG.debug("to update : " + connector.getMetadata().getName()));
-                LOG.debug("not in ns4kafka : " + toDelete.size());
+            if (log.isDebugEnabled()) {
+                toCreate.forEach(connector -> log.debug("to create : " + connector.getMetadata().getName()));
+                toUpdate.forEach(connector -> log.debug("to update : " + connector.getMetadata().getName()));
+                log.debug("not in ns4kafka : " + toDelete.size());
             }
 
             toCreate.forEach(this::deployConnector);
@@ -80,7 +79,7 @@ public class ConnectorAsyncExecutor {
 
 
         } catch (Exception e) {
-            LOG.error("Exception during Connectors synchronization", e);
+            log.error("Exception during Connectors synchronization", e);
         }
     }
 
@@ -90,7 +89,7 @@ public class ConnectorAsyncExecutor {
                 .stream()
                 .map(connectorStatus -> buildConnectorFromConnectorStatus(connectorStatus, connectCluster))
                 .collect(Collectors.toList());
-        LOG.debug("Connectors found on Connect Cluster {} : {}", connectCluster, connectorList.size());
+        log.debug("Connectors found on Connect Cluster {} : {}", connectCluster, connectorList.size());
         return connectorList;
     }
 
@@ -112,7 +111,7 @@ public class ConnectorAsyncExecutor {
                 .stream()
                 .filter(connector -> connector.getSpec().getConnectCluster().equals(connectCluster))
                 .collect(Collectors.toList());
-        LOG.debug("Connectors found on ns4kafka for Connect Cluster {} : {}", connectCluster, connectorList.size());
+        log.debug("Connectors found on ns4kafka for Connect Cluster {} : {}", connectCluster, connectorList.size());
         return connectorList;
     }
 
@@ -134,12 +133,12 @@ public class ConnectorAsyncExecutor {
                     connector.getSpec().getConnectCluster(),
                     connector.getMetadata().getName(),
                     connector.getSpec().getConfig());
-            LOG.info("Success deploying Connector [{}] on Kafka [{}] Connect [{}]",
+            log.info("Success deploying Connector [{}] on Kafka [{}] Connect [{}]",
                     connector.getMetadata().getName(),
                     this.kafkaAsyncExecutorConfig.getName(),
                     connector.getSpec().getConnectCluster());
         } catch (Exception e) {
-            LOG.error(String.format("Error deploying Connector [%s] on Kafka [%s] Connect [%s]",
+            log.error(String.format("Error deploying Connector [%s] on Kafka [%s] Connect [%s]",
                     connector.getMetadata().getName(),
                     this.kafkaAsyncExecutorConfig.getName(),
                     connector.getSpec().getConnectCluster()), e);

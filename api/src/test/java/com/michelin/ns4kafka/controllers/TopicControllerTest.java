@@ -8,6 +8,8 @@ import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.TopicService;
 import com.michelin.ns4kafka.validation.TopicValidator;
+import io.micronaut.context.event.ApplicationEvent;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import org.apache.kafka.common.TopicPartition;
@@ -18,8 +20,10 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.internal.matchers.Any;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import javax.inject.Inject;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -37,6 +41,8 @@ public class TopicControllerTest {
     NamespaceService namespaceService;
     @Mock
     TopicService topicService;
+    @Mock
+    ApplicationEventPublisher applicationEventPublisher;
 
     @InjectMocks
     TopicController topicController;
@@ -138,7 +144,7 @@ public class TopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic("test","topic.delete"))
                 .thenReturn(true);
         doNothing().when(topicService).delete(toDelete.get());
-
+        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         //When
         HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete", false);
@@ -173,7 +179,7 @@ public class TopicControllerTest {
     }
 
     @Test
-    public void DeleteTopicUnauthorized() throws InterruptedException, ExecutionException, TimeoutException {
+    public void DeleteTopicUnauthorized()  {
         //Given
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
@@ -218,6 +224,8 @@ public class TopicControllerTest {
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
         when(topicService.create(topic)).thenReturn(topic);
 
         var response = topicController.apply("test", topic, false);
@@ -265,6 +273,7 @@ public class TopicControllerTest {
                 .thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
         when(topicService.create(topic)).thenReturn(topic);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         var response = topicController.apply("test", topic, false);
         Topic actual = response.body();

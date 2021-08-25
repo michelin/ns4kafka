@@ -1,11 +1,13 @@
 package com.michelin.ns4kafka.cli.client;
 
+import com.michelin.ns4kafka.cli.LogSubcommand;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.client.annotation.Client;
 
+import java.time.Duration;
 import java.util.List;
 
 @Client("${kafkactl.api}")
@@ -19,6 +21,12 @@ public interface ClusterResourceClient {
 
     @Get("/api-resources")
     List<ApiResource> listResourceDefinitions();
+
+    @Get("/audit-logs")
+    List<LogSubcommand.AuditLog> defaultRetrievesLogs(@Header("Authorization") String token);
+
+    @Get("/audit-logs/from-duration{?duration}")
+    List<LogSubcommand.AuditLog> retrievesLogsFromDuration(@Header("Authorization") String token, @QueryValue Duration duration);
 
     @Delete("/api/{kind}/{resource}{?dryrun}")
     void delete(@Header("Authorization") String token, String kind, String resource, @QueryValue boolean dryrun);

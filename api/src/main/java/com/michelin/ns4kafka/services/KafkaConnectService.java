@@ -13,8 +13,7 @@ import io.micronaut.context.ApplicationContext;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.inject.qualifiers.Qualifiers;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -24,9 +23,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 
+@Slf4j
 @Singleton
 public class KafkaConnectService {
-    private static final Logger LOG = LoggerFactory.getLogger(KafkaConnectService.class);
 
     @Inject
     AccessControlEntryService accessControlEntryService;
@@ -126,9 +125,11 @@ public class KafkaConnectService {
                 namespace.getMetadata().getCluster(),
                 connector.getSpec().getConnectCluster(),
                 connector.getMetadata().getName());
-        LOG.info("Success removing Connector [" + connector.getMetadata().getName() +
-                "] on Kafka [" + namespace.getMetadata().getName() +
-                "] Connect [" + connector.getSpec().getConnectCluster() + "]");
+        if (log.isInfoEnabled()) {
+            log.info("Success removing Connector [" + connector.getMetadata().getName() +
+                    "] on Kafka [" + namespace.getMetadata().getName() +
+                    "] Connect [" + connector.getSpec().getConnectCluster() + "]");
+        }
         return HttpResponse.noContent();
     }
 

@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.services.executors;
 import io.micronaut.runtime.event.ApplicationStartupEvent;
 import io.micronaut.runtime.event.annotation.EventListener;
 import io.micronaut.scheduling.annotation.Scheduled;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,9 +13,9 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
+@Slf4j
 @Singleton
 public class KafkaAsyncExecutorScheduler {
-    private static final Logger LOG = LoggerFactory.getLogger(KafkaAsyncExecutorScheduler.class);
 
     @Inject
     List<TopicAsyncExecutor> topicAsyncExecutors;
@@ -41,7 +42,7 @@ public class KafkaAsyncExecutorScheduler {
             accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
             connectorAsyncExecutors.forEach(ConnectorAsyncExecutor::run);
         }else {
-            LOG.warn("Scheduled job did not start because micronaut is not ready yet");
+            log.warn("Scheduled job did not start because micronaut is not ready yet");
         }
     }
 }

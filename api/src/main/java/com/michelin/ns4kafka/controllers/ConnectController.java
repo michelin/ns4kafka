@@ -53,7 +53,9 @@ public class ConnectController extends NamespacedResourceController {
         if (dryrun) {
             return HttpResponse.noContent();
         }
+        Connector connectorToDelete = optionalConnector.get();
 
+        sendEventLog(connectorToDelete.getKind(), connectorToDelete.getMetadata(), "deleted",returnStringOfSpec(connectorToDelete.getSpec()), null);
         //delete resource
         kafkaConnectService.delete(ns, optionalConnector.get());
         return HttpResponse.noContent();
@@ -98,13 +100,17 @@ public class ConnectController extends NamespacedResourceController {
             return formatHttpResponse(existingConnector.get(), ApplyStatus.unchanged);
         }
         ApplyStatus status = ApplyStatus.created;
+        String oldSpec = null;
         if (existingConnector.isPresent()) {
+            oldSpec = returnStringOfSpec(existingConnector.get().getSpec());
             status = ApplyStatus.changed;
         }
         //dryrun checks
         if (dryrun) {
             return formatHttpResponse(connector, status);
         }
+
+        sendEventLog(connector.getKind(), connector.getMetadata(), status.toString(), oldSpec,returnStringOfSpec(connector.getSpec()));
         //Create resource
         return formatHttpResponse(kafkaConnectService.createOrUpdate(ns, connector), status);
     }

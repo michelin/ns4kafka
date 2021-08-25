@@ -5,11 +5,10 @@ import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
 import io.micronaut.context.annotation.EachBean;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.ConfigResource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -23,10 +22,10 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @EachBean(KafkaAsyncExecutorConfig.class)
 @Singleton
 public class TopicAsyncExecutor {
-    private static final Logger LOG = LoggerFactory.getLogger(KafkaAsyncExecutorScheduler.class);
     private final KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
 
     @Inject
@@ -60,7 +59,7 @@ public class TopicAsyncExecutor {
     }
     /**** TOPICS MANAGEMENT ***/
     public void synchronizeTopics(){
-        LOG.debug("Starting topic collection for cluster "+kafkaAsyncExecutorConfig.getName());
+        log.debug("Starting topic collection for cluster {}",kafkaAsyncExecutorConfig.getName());
         try {
             // List topics from broker
             Map<String, Topic> brokerTopicList = collectBrokerTopics();
@@ -94,15 +93,15 @@ public class TopicAsyncExecutor {
                     .filter(Objects::nonNull) //TODO can we avoid this filter ?
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-            if(LOG.isDebugEnabled()){
-                LOG.debug("Topics to create : "+ toCreate.stream().map(t -> t.getMetadata().getName()).collect(Collectors.joining(", ")));
+            if(log.isDebugEnabled()){
+                log.debug("Topics to create : "+ toCreate.stream().map(t -> t.getMetadata().getName()).collect(Collectors.joining(", ")));
                 //TODO reenable
                 // LOG.debug("Topics to delete : "+String.join(", ", toDelete.stream().map(t -> t.getMetadata().getName()).collect(Collectors.toList())));
-                LOG.debug("Topics to delete : "+toDelete.size());
-                LOG.debug("Topic configs to update : "+toUpdate.size());
+                log.debug("Topics to delete : "+toDelete.size());
+                log.debug("Topic configs to update : "+toUpdate.size());
                 for (Map.Entry<ConfigResource,Collection<AlterConfigOp>> e : toUpdate.entrySet()) {
                     for (AlterConfigOp op : e.getValue()) {
-                        LOG.debug(e.getKey().name()+" "+op.opType().toString()+" " +op.configEntry().name()+"("+op.configEntry().value()+")");
+                        log.debug(e.getKey().name()+" "+op.opType().toString()+" " +op.configEntry().name()+"("+op.configEntry().value()+")");
                     }
                 }
             }
@@ -114,9 +113,9 @@ public class TopicAsyncExecutor {
             alterTopics(toUpdate, toCheckConf);
 
         } catch (ExecutionException | TimeoutException | CancellationException | KafkaStoreException e) {
-            LOG.error("Error", e);
+            log.error("Error", e);
         } catch (InterruptedException e) {
-            LOG.error("Error", e);
+            log.error("Error", e);
             Thread.currentThread().interrupt();
         }
 
@@ -145,6 +144,7 @@ public class TopicAsyncExecutor {
     }
     public void deleteTopic(Topic topic) throws InterruptedException, ExecutionException, TimeoutException {
         getAdminClient().deleteTopics(List.of(topic.getMetadata().getName())).all().get(30, TimeUnit.SECONDS);
+        log.info("Success deleting topic {} on {}", topic.getMetadata().getName(), this.kafkaAsyncExecutorConfig.getName());
     }
 
     public Map<String, Topic> collectBrokerTopics() throws ExecutionException, InterruptedException, TimeoutException {
@@ -208,16 +208,16 @@ public class TopicAsyncExecutor {
                         updatedTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                         updatedTopic.getMetadata().setGeneration(updatedTopic.getMetadata().getGeneration()+1);
                         updatedTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic configs updated"));
-                        LOG.info(String.format("Success updating topic configs %s on %s : [%s]",
+                        log.info("Success updating topic configs {} on {} : [{}]",
                                 mapEntry.getKey().name(),
                                 this.kafkaAsyncExecutorConfig.getName(),
-                                ops.stream().map(alterConfigOp -> alterConfigOp.toString()).collect(Collectors.joining(","))));
+                                ops.stream().map(alterConfigOp -> alterConfigOp.toString()).collect(Collectors.joining(",")));
                     } catch (InterruptedException e) {
-                        LOG.error("Error", e);
+                        log.error("Error", e);
                         Thread.currentThread().interrupt();
                     } catch (Exception e){
                         updatedTopic.setStatus(Topic.TopicStatus.ofFailed("Error while updating topic configs: "+e.getMessage()));
-                        LOG.error(String.format("Error while updating topic configs %s on %s", mapEntry.getKey().name(),this.kafkaAsyncExecutorConfig.getName()), e);
+                        log.error(String.format("Error while updating topic configs %s on %s", mapEntry.getKey().name(),this.kafkaAsyncExecutorConfig.getName()), e);
                     }
                     topicRepository.create(updatedTopic);
                 });
@@ -225,10 +225,10 @@ public class TopicAsyncExecutor {
     private void createTopics(List<Topic> topics) {
         List<NewTopic> newTopics = topics.stream()
                 .map(topic -> {
-                    LOG.debug(String.format("Creating topic %s on %s",topic.getMetadata().getName(),topic.getMetadata().getCluster()));
+                    log.debug("Creating topic {} on {}",topic.getMetadata().getName(),topic.getMetadata().getCluster());
                     NewTopic newTopic = new NewTopic(topic.getMetadata().getName(),topic.getSpec().getPartitions(), (short) topic.getSpec().getReplicationFactor());
                     newTopic.configs(topic.getSpec().getConfigs());
-                    LOG.debug(newTopic.toString());
+                    log.debug("{}",newTopic);
                     return newTopic;
                 })
                 .collect(Collectors.toList());
@@ -242,13 +242,13 @@ public class TopicAsyncExecutor {
                         createdTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                         createdTopic.getMetadata().setGeneration(1);
                         createdTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic created"));
-                        LOG.info(String.format("Success creating topic %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()));
+                        log.info("Success creating topic {} on {}", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName());
                     } catch (InterruptedException e) {
-                        LOG.error("Error", e);
+                        log.error("Error", e);
                         Thread.currentThread().interrupt();
                     } catch (Exception e) {
                         createdTopic.setStatus(Topic.TopicStatus.ofFailed("Error while creating topic: "+e.getMessage()));
-                        LOG.error(String.format("Error while creating topic %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()), e);
+                        log.error(String.format("Error while creating topic %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()), e);
                     }
                     topicRepository.create(createdTopic);
                 });
@@ -306,8 +306,11 @@ public class TopicAsyncExecutor {
         return getAdminClient().deleteRecords(recordsToDelete).lowWatermarks().entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, kv-> {
                     try {
-                        return kv.getValue().get().lowWatermark();
+                        var newValue = kv.getValue().get().lowWatermark();
+                        log.info("Deleting Record {} of TopicPartition {}",newValue,kv.getKey());
+                        return newValue;
                     } catch (Exception e) {
+                        log.error(String.format("Error deleting records of TopicPartition %s", kv.getKey()), e);
                         return 0L;
                     }
                 }));

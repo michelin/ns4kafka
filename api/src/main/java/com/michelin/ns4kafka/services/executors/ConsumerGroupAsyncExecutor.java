@@ -1,13 +1,12 @@
 package com.michelin.ns4kafka.services.executors;
 
 import io.micronaut.context.annotation.EachBean;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.inject.Singleton;
 import java.util.ArrayList;
@@ -17,10 +16,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @EachBean(KafkaAsyncExecutorConfig.class)
 @Singleton
 public class ConsumerGroupAsyncExecutor {
-    private static final Logger LOG = LoggerFactory.getLogger(KafkaAsyncExecutorScheduler.class);
     private final KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
 
     public ConsumerGroupAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
@@ -42,6 +41,10 @@ public class ConsumerGroupAsyncExecutor {
                         .stream()
                         .collect(Collectors.toMap(Map.Entry::getKey, e -> new OffsetAndMetadata(e.getValue())))
         ).all().get();
+        log.info("Consumer Group {} changed offset", consumerGroupId);
+        if (log.isDebugEnabled()) {
+            preparedOffsets.forEach((topicPartition, offset)-> log.debug("TopicPartition {} has the new offset {}", topicPartition, offset));
+        }
     }
 
     public Map<TopicPartition, Long> listOffsets(Map<TopicPartition, OffsetSpec> offsetsForTheSpec)

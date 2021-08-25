@@ -4,7 +4,6 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import io.micronaut.context.ApplicationContext;
-import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -15,7 +14,6 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class AccessControlEntryService {
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(AccessControlEntryService.class);
     @Inject
     AccessControlEntryRepository accessControlEntryRepository;
     @Inject
