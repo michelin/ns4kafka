@@ -12,17 +12,16 @@ import java.util.Date;
 import java.util.Map;
 
 @Introspected
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @Data
-public class Topic {
-    private final String apiVersion = "v1";
-    private final String kind = "Topic";
+@EqualsAndHashCode(callSuper = true)
+public class Topic extends Resource{
 
-    @Valid
-    @NotNull
-    private ObjectMeta metadata;
+    @Builder
+    public Topic(@NotNull ObjectMeta metadata, TopicSpec spec, TopicStatus status) {
+        super("v1","Topic", metadata);
+        this.spec = spec;
+        this.status =status;
+    }
 
     @NotNull
     private TopicSpec spec;
