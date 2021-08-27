@@ -11,6 +11,7 @@ import com.michelin.ns4kafka.models.RoleBinding.*;
 import com.michelin.ns4kafka.services.connect.client.entities.ServerInfo;
 import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
+import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
@@ -19,6 +20,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientException;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import org.junit.jupiter.api.Assertions;
@@ -42,6 +44,8 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
     RxHttpClient client;
 
     @Inject
+    List<TopicAsyncExecutor> topicAsyncExecutorList;
+    @Inject
     List<ConnectorAsyncExecutor> connectorAsyncExecutorList;
 
     private String token;
@@ -57,6 +61,11 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
                         .kafkaUser("user1")
                         .connectClusters(List.of("test-connect"))
                         .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .connectValidator(ConnectValidator.builder()
+                                .validationConstraints(Map.of())
+                                .sinkValidationConstraints(Map.of())
+                                .classValidationConstraints(Map.of())
+                                .build())
                         .build())
                 .build();
 
@@ -91,6 +100,20 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
                         .build())
                 .build();
 
+        AccessControlEntry aclTopic = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-acl-topic")
+                        .namespace("ns1")
+                        .build())
+                .spec(AccessControlEntrySpec.builder()
+                        .resourceType(ResourceType.TOPIC)
+                        .resource("ns1-")
+                        .resourcePatternType(ResourcePatternType.PREFIXED)
+                        .permission(Permission.OWNER)
+                        .grantedTo("ns1")
+                        .build())
+                .build();
+
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
         HttpResponse<BearerAccessRefreshToken> response = client.exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class).blockingFirst();
 
@@ -99,6 +122,7 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
         client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1)).blockingFirst();
         client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1)).blockingFirst();
         client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclConnect)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic)).blockingFirst();
     }
 
     @Test
@@ -135,6 +159,20 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
         ServerInfo actual = connectCli.retrieve(HttpRequest.GET("/"), ServerInfo.class).blockingFirst();
         Assertions.assertEquals("6.2.0-ccs", actual.version());
 
+        Topic to = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-to1")
+                        .namespace("ns1")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(Map.of("cleanup.policy", "delete",
+                                "min.insync.replicas", "1",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
         Connector co = Connector.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-co1")
@@ -142,18 +180,24 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("test-connect")
-                        .config(Map.of("name","test-co1"))
+                        .config(Map.of(
+                                "connector.class", "com.github.c0urante.kafka.connect.sound.SpeakersSinkConnector",
+                                "name", "ns1-co1",
+                                "tasks.max", "1",
+                                "encoding","wav",
+                                "print.stdout","false",
+                                "print.stderr","false",
+                                "topics", "ns1-to1"
+                        ))
                         .build())
                 .build();
 
-        try{
-            client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects").bearerAuth(token).body(co)).blockingFirst();
-        } catch (HttpClientException e) {
-            System.out.println(e.getMessage());
-        }
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to)).blockingFirst();
+        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects").bearerAuth(token).body(co)).blockingFirst();
         connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
 
-        Assertions.assertDoesNotThrow(() -> client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects/ns1-co1/restart/").bearerAuth(token)).blockingFirst());
+        Assertions.assertDoesNotThrow(() -> client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects/ns1-co1/restart").bearerAuth(token)).blockingFirst());
     }
 
 }
