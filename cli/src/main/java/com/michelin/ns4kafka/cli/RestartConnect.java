@@ -29,6 +29,9 @@ public class RestartConnect implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
+        if (dryRun) {
+            System.out.println("Dry run execution");
+        }
 
         boolean authenticated = loginService.doAuthenticate();
         if (!authenticated) {
@@ -36,8 +39,11 @@ public class RestartConnect implements Callable<Integer> {
         }
 
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
-        resourceService.restartConnect(namespace,resourceName,dryRun);
+        if (resourceService.restartConnect(namespace,resourceName,dryRun)){
+            System.out.println("Success");
+            return 0;
+        };
+        return 1;
 
-        return 0;
     }
 }
