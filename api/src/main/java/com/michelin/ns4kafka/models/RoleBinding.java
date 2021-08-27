@@ -12,7 +12,7 @@ import java.util.Collection;
 
 @Introspected(classes = {RoleBinding.class, RoleBinding.RoleBindingSpec.class, RoleBinding.Role.class, RoleBinding.Subject.class})
 @Data
-@EqualsAndHashCode(callSuper=false)
+@EqualsAndHashCode(callSuper = true)
 public class RoleBinding extends Resource{
 
     @Builder

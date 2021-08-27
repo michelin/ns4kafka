@@ -13,7 +13,7 @@ import java.util.Map;
 
 @Introspected
 @Data
-@EqualsAndHashCode(callSuper=false)
+@EqualsAndHashCode(callSuper = true)
 public class Topic extends Resource{
 
     @Builder

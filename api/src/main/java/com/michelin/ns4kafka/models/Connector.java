@@ -13,6 +13,7 @@ import java.util.Map;
 
 @Introspected
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class Connector extends Resource {
 
     @Builder

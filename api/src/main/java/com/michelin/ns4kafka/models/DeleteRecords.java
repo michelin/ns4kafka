@@ -10,7 +10,7 @@ import java.util.Map;
 @Introspected
 @Getter
 @Setter
-@EqualsAndHashCode(callSuper=false)
+@EqualsAndHashCode(callSuper = true)
 public class DeleteRecords extends Resource{
 
     @Builder

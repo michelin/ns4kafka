@@ -12,7 +12,7 @@ import java.util.List;
 
 @Introspected
 @Data
-@EqualsAndHashCode(callSuper=false)
+@EqualsAndHashCode(callSuper = true)
 public class Namespace extends Resource{
 
     @Builder

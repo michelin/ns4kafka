@@ -8,7 +8,7 @@ import javax.validation.constraints.NotNull;
 
 @Introspected
 @Data
-@EqualsAndHashCode(callSuper=false)
+@EqualsAndHashCode(callSuper = true)
 public class KafkaStream extends Resource{
 
     @Builder

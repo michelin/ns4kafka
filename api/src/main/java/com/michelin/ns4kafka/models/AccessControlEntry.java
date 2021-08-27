@@ -9,6 +9,7 @@ import javax.validation.constraints.NotNull;
 
 @Introspected
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class AccessControlEntry extends Resource{
 
     @Builder
