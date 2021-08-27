@@ -144,4 +144,15 @@ public class KafkaConnectService {
                 .filter(connector -> findByName(namespace, connector.getMetadata().getName()).isEmpty())
                 .collect(Collectors.toList());
     }
+    public HttpResponse restart(Namespace namespace, Connector connector) {
+        kafkaConnectClient.restart(
+                KafkaConnectClientProxy.PROXY_SECRET,
+                namespace.getMetadata().getCluster(),
+                connector.getSpec().getConnectCluster(),
+                connector.getMetadata().getName());
+        LOG.info("Success restarting Connector [" + connector.getMetadata().getName() +
+                "] on Kafka [" + namespace.getMetadata().getName() +
+                "] Connect [" + connector.getSpec().getConnectCluster() + "]");
+        return HttpResponse.noContent();
+    }
 }

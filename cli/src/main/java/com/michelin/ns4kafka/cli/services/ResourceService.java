@@ -124,6 +124,16 @@ public class ResourceService {
         return null;
     }
 
+    public boolean restartConnect(String namespace, String resourceName, boolean dryRun) {
+        try {
+            namespacedClient.restartConnect(namespace, resourceName, loginService.getAuthorization(), dryRun);
+            return true;
+        } catch (HttpClientResponseException e) {
+            FormatUtils.displayError(e, "Connector", resourceName);
+        }
+        return false;
+    }
+
     public Resource resetOffsets(String namespace, String group, Resource resource, boolean dryRun) {
         try {
             return namespacedClient.resetOffsets(loginService.getAuthorization(), namespace, group, resource, dryRun);

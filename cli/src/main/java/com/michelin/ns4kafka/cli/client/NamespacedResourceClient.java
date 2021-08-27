@@ -60,4 +60,11 @@ public interface NamespacedResourceClient {
             String consumerGroupName,
             @Body Resource json,
             @QueryValue boolean dryrun);
+
+    @Post("{namespace}/connects/{resourcename}/restart{?dryrun}")
+    HttpResponse<Void> restartConnect(
+            String namespace,
+            String resourcename,
+            @Header("Authorization") String token,
+            @QueryValue boolean dryrun);
 }
