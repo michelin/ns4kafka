@@ -20,9 +20,8 @@ micronaut {
 }
 
 dependencies {
-    compileOnly 'org.projectlombok:lombok:1.18.16'
-
-    annotationProcessor 'org.projectlombok:lombok:1.18.16'
+    compileOnly 'org.projectlombok:lombok:1.18.20'
+    annotationProcessor 'org.projectlombok:lombok:1.18.20'
     annotationProcessor("io.micronaut.openapi:micronaut-openapi")
     annotationProcessor("io.micronaut:micronaut-management")
     annotationProcessor("io.micronaut.security:micronaut-security-annotations")
@@ -41,12 +40,12 @@ dependencies {
 
     runtimeOnly("ch.qos.logback:logback-classic")
 
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.20'
     testCompileOnly 'org.projectlombok:lombok:1.18.16'
 
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.16'
+
     testImplementation 'org.testcontainers:kafka:1.15.3'
     testImplementation "org.testcontainers:junit-jupiter"
-    testImplementation 'org.apache.kafka:kafka-clients:2.6.0:test'
     testImplementation 'org.mockito:mockito-inline:3.7.7'
     testImplementation 'org.mockito:mockito-junit-jupiter:3.7.7'
 }
@@ -57,7 +56,7 @@ java {
 }
 tasks.withType(JavaCompile) {
     options.fork = true
-    options.forkOptions.jvmArgs << '-Dmicronaut.openapi.views.spec=rapidoc.enabled=true,swagger-ui.enabled=true'
+    options.forkOptions.jvmArgs << '-Dmicronaut.openapi.views.spec=rapidoc.enabled=true'
 
 }
 

@@ -28,6 +28,13 @@ public class ApiResourcesController {
             .path("connects")
             .names(List.of("connects", "connect", "co"))
             .build();
+    public static final ResourceDefinition KSTREAM = ResourceDefinition.builder()
+            .kind("KafkaStream")
+            .namespaced(true)
+            .synchronizable(true)
+            .path("streams")
+            .names(List.of("streams", "stream", "st"))
+            .build();
     public static final ResourceDefinition ROLE_BINDING = ResourceDefinition.builder()
             .kind("RoleBinding")
             .namespaced(true)
@@ -55,6 +62,7 @@ public class ApiResourcesController {
         return List.of(
                 ACL,
                 CONNECTOR,
+                KSTREAM,
                 ROLE_BINDING,
                 TOPIC,
                 NAMESPACE
