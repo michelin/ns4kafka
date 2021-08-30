@@ -34,7 +34,7 @@ kafkactl:
       - "TOPICS:/spec/config/topics"
       - "AGE:/metadata/creationTimestamp%AGO"
     RoleBinding:
-      - "NAME:/metadata/name"
+      - "ROLEBINDING:/metadata/name"
       - "RESOURCES:/spec/roles/resourceTypes"
       - "GROUP:/spec/subject/subjectName"
 #  api: http://localhost:8080
