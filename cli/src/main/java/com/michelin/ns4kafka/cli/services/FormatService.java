@@ -112,14 +112,14 @@ public class FormatService {
 
         @Override
         public String toString() {
-            CommandLine.Help.Column[] columns = this.columns
+            CommandLine.Help.Column[] sizedColumns = this.columns
                     .stream()
                     .map(column -> new CommandLine.Help.Column(column.size, 2, CommandLine.Help.Column.Overflow.SPAN))
                     .toArray(CommandLine.Help.Column[]::new);
 
             CommandLine.Help.TextTable tt = CommandLine.Help.TextTable.forColumns(
                     CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.AUTO),
-                    columns
+                    sizedColumns
             );
 
             // Create Header Row
