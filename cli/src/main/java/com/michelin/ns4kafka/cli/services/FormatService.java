@@ -151,11 +151,11 @@ public class FormatService {
 
             public String transform(JsonNode node) {
                 String output = null;
-                String cell = node.at(this.jsonPointer).asText();
+                JsonNode cell = node.at(this.jsonPointer);
                 switch (this.transform) {
                     case "AGO":
                         try {
-                            Date d = Date.from(Instant.parse(cell));
+                            Date d = Date.from(Instant.parse(cell.asText()));
                             output = new PrettyTime().format(d);
                         } catch (DateTimeParseException e) {
                             output = "err:" + cell;
@@ -163,7 +163,7 @@ public class FormatService {
                         break;
                     case "PERIOD":
                         try {
-                            long ms = Long.parseLong(cell);
+                            long ms = Long.parseLong(cell.asText());
                             long days = TimeUnit.MILLISECONDS.toDays(ms);
                             long hours = TimeUnit.MILLISECONDS.toHours(ms - TimeUnit.DAYS.toMillis(days)) ;
                             long minutes = TimeUnit.MILLISECONDS.toMinutes(ms - TimeUnit.DAYS.toMillis(days) - TimeUnit.HOURS.toMillis(hours));
@@ -176,7 +176,13 @@ public class FormatService {
                         break;
                     case "NONE":
                     default:
-                        output = cell;
+                        if(cell.isArray()){
+                            List<String> childs = new ArrayList<>();
+                            cell.elements().forEachRemaining(jsonNode -> childs.add(jsonNode.asText()));
+                            output = "["+String.join(",", childs)+"]";
+                        } else {
+                            output = cell.asText();
+                        }
                         break;
                 }
                 // Check size for later

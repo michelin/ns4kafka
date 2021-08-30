@@ -35,8 +35,9 @@ kafkactl:
       - "AGE:/metadata/creationTimestamp%AGO"
     RoleBinding:
       - "ROLEBINDING:/metadata/name"
-      - "RESOURCES:/spec/roles/resourceTypes"
       - "GROUP:/spec/subject/subjectName"
+      - "VERBS:/spec/role/verbs"
+      - "RESOURCES:/spec/role/resourceTypes"
 #  api: http://localhost:8080
 #  user-token: token
 #  current-namespace: namespace_name
