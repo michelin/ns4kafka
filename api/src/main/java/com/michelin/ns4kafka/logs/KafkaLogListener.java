@@ -4,13 +4,16 @@ import com.michelin.ns4kafka.models.AuditLog;
 import io.micronaut.configuration.kafka.annotation.KafkaClient;
 import io.micronaut.configuration.kafka.annotation.KafkaKey;
 import io.micronaut.configuration.kafka.annotation.Topic;
+import io.micronaut.context.annotation.Requires;
 import io.micronaut.context.event.ApplicationEventListener;
+import io.micronaut.core.util.StringUtils;
 import io.micronaut.scheduling.annotation.Async;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 @Singleton
+@Requires(property = "ns4kafka.log.kafka.enabled")
 public class KafkaLogListener implements ApplicationEventListener<AuditLog> {
 
     @Inject
@@ -28,6 +31,6 @@ public class KafkaLogListener implements ApplicationEventListener<AuditLog> {
 @KafkaClient
 interface KafkaLogProducer {
 
-    @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.audit-logs")
+    @Topic(value = "${ns4kafka.log.kafka.topic}")
     void sendAuditLog(@KafkaKey String key, AuditLog log);
 }

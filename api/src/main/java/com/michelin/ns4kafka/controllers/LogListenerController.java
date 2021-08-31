@@ -1,10 +1,12 @@
-package com.michelin.ns4kafka.logs;
+package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.controllers.ApplyStatus;
 import com.michelin.ns4kafka.models.AuditLog;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
+import io.micronaut.context.annotation.Requires;
 import io.micronaut.context.event.ApplicationEventListener;
+import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.QueryValue;
@@ -21,7 +23,8 @@ import java.util.TreeMap;
 
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 @Controller("audit-logs")
-public class ControllerLogListener implements ApplicationEventListener<AuditLog> {
+@Requires(property = "ns4kafka.log.controller.enabled", notEquals = StringUtils.FALSE)
+public class LogListenerController implements ApplicationEventListener<AuditLog> {
 
     TreeMap<Long, AuditLogControllerModel> inMemoryDatastore = new TreeMap<>();
 
