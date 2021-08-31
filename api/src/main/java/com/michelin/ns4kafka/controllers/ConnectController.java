@@ -55,7 +55,11 @@ public class ConnectController extends NamespacedResourceController {
         }
         Connector connectorToDelete = optionalConnector.get();
 
-        sendEventLog(connectorToDelete.getKind(), connectorToDelete.getMetadata(), "deleted",returnStringOfSpec(connectorToDelete.getSpec()), null);
+        sendEventLog(connectorToDelete.getKind(),
+                connectorToDelete.getMetadata(),
+                ApplyStatus.deleted,
+                connectorToDelete.getSpec(),
+                null);
         //delete resource
         kafkaConnectService.delete(ns, optionalConnector.get());
         return HttpResponse.noContent();
@@ -99,18 +103,17 @@ public class ConnectController extends NamespacedResourceController {
         if (existingConnector.isPresent() && existingConnector.get().equals(connector)) {
             return formatHttpResponse(existingConnector.get(), ApplyStatus.unchanged);
         }
-        ApplyStatus status = ApplyStatus.created;
-        String oldSpec = null;
-        if (existingConnector.isPresent()) {
-            oldSpec = returnStringOfSpec(existingConnector.get().getSpec());
-            status = ApplyStatus.changed;
-        }
+        ApplyStatus status = existingConnector.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
         //dryrun checks
         if (dryrun) {
             return formatHttpResponse(connector, status);
         }
 
-        sendEventLog(connector.getKind(), connector.getMetadata(), status.toString(), oldSpec,returnStringOfSpec(connector.getSpec()));
+        sendEventLog(connector.getKind(),
+                connector.getMetadata(),
+                status,
+                existingConnector.isPresent() ? existingConnector.get().getSpec() : null,
+                connector.getSpec());
         //Create resource
         return formatHttpResponse(kafkaConnectService.createOrUpdate(ns, connector), status);
     }
@@ -134,7 +137,14 @@ public class ConnectController extends NamespacedResourceController {
         }
 
         List<Connector> synchronizedConnectors = unsynchronizedConnectors.stream()
-                .map(connector -> kafkaConnectService.createOrUpdate(ns, connector))
+                .map(connector -> {
+                    sendEventLog(connector.getKind(),
+                            connector.getMetadata(),
+                            ApplyStatus.created,
+                             null,
+                            connector.getSpec());
+                    return kafkaConnectService.createOrUpdate(ns, connector);
+                })
                 .collect(Collectors.toList());
         return synchronizedConnectors;
     }

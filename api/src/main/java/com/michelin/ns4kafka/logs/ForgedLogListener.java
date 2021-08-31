@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.logs;
 
-import com.michelin.ns4kafka.controllers.ResourceController;
+import com.michelin.ns4kafka.models.AuditLog;
 import io.micronaut.context.event.ApplicationEventListener;
 import lombok.extern.slf4j.Slf4j;
 
@@ -8,10 +8,10 @@ import javax.inject.Singleton;
 
 @Slf4j
 @Singleton
-public class ForgedLogListener implements ApplicationEventListener<ResourceController.AuditLog> {
+public class ForgedLogListener implements ApplicationEventListener<AuditLog> {
 
     @Override
-    public void onApplicationEvent(ResourceController.AuditLog event) {
+    public void onApplicationEvent(AuditLog event) {
         String role = "User";
         if (event.getUser().hasRole("isAdmin()")) {
             role = "Admin";

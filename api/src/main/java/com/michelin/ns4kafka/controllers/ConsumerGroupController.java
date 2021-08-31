@@ -57,9 +57,9 @@ public class ConsumerGroupController extends NamespacedResourceController {
             if (!dryrun) {
                 sendEventLog("ConsumerGroupResetOffsets",
                         consumerGroupResetOffsets.getMetadata(),
-                        consumerGroupResetOffsets.getSpec().getMethod().toString(),
+                        ApplyStatus.changed,
                         null,
-                        consumerGroupResetOffsets.getSpec().toString());
+                        consumerGroupResetOffsets.getSpec());
                 consumerGroupService.alterConsumerGroupOffsets(ns, consumerGroup, preparedOffsets);
             }
             status = ConsumerGroupResetOffsetStatus.ofSuccess(

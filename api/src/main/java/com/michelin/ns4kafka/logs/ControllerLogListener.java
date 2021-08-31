@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.logs;
 
-import com.michelin.ns4kafka.controllers.ResourceController;
+import com.michelin.ns4kafka.controllers.ApplyStatus;
+import com.michelin.ns4kafka.models.AuditLog;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import io.micronaut.context.event.ApplicationEventListener;
@@ -8,7 +9,6 @@ import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.scheduling.annotation.Async;
-import io.micronaut.security.utils.SecurityService;
 import lombok.Builder;
 import lombok.Data;
 
@@ -21,19 +21,18 @@ import java.util.TreeMap;
 
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 @Controller("audit-logs")
-public class ControllerLogListener implements ApplicationEventListener<ResourceController.AuditLog> {
+public class ControllerLogListener implements ApplicationEventListener<AuditLog> {
 
     TreeMap<Long, AuditLogControllerModel> inMemoryDatastore = new TreeMap<>();
 
     @Override
     @Async
-    public void onApplicationEvent(ResourceController.AuditLog event) {
+    public void onApplicationEvent(AuditLog event) {
 
-        inMemoryDatastore.put(event.getTimestamp(),
+        inMemoryDatastore.put(Instant.now().toEpochMilli(),
                 new AuditLogControllerModel(
                         event.getUser().username(),
                         event.getDate(),
-                        event.getTimestamp(),
                         event.getKind(),
                         event.getMetadata(),
                         event.getOperation(),
@@ -58,12 +57,11 @@ public class ControllerLogListener implements ApplicationEventListener<ResourceC
 
         private Optional<String> user;
         private String date;
-        private Long timestamp;
         private String kind;
         private ObjectMeta metadata;
-        private String operation;
-        private String before;
-        private String after;
+        private ApplyStatus operation;
+        private Object before;
+        private Object after;
 
 
     }

@@ -113,21 +113,16 @@ public class TopicController extends NamespacedResourceController {
         if (existingTopic.isPresent() && existingTopic.get().equals(topic)) {
             return formatHttpResponse(existingTopic.get(), ApplyStatus.unchanged);
         }
-        ApplyStatus status = ApplyStatus.created;
-        String oldSpec = null;
-        if (existingTopic.isPresent()) {
-            status = ApplyStatus.changed;
-            oldSpec = returnStringOfSpec(existingTopic.get().getSpec());
-        }
+        ApplyStatus status = existingTopic.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
 
         if (dryrun) {
             return formatHttpResponse(topic, status);
         }
         sendEventLog(topic.getKind(),
                 topic.getMetadata(),
-                status.toString(),
-                oldSpec,
-                returnStringOfSpec(topic.getSpec()));
+                status,
+                existingTopic.isPresent() ? existingTopic.get().getSpec(): null,
+                topic.getSpec());
 
         return formatHttpResponse(topicService.create(topic), status);
     }
@@ -155,8 +150,8 @@ public class TopicController extends NamespacedResourceController {
         Topic topicToDelete = optionalTopic.get();
         sendEventLog(topicToDelete.getKind(),
                 topicToDelete.getMetadata(),
-                "deleted",
-                returnStringOfSpec(topicToDelete.getSpec()),
+                ApplyStatus.deleted,
+                topicToDelete.getSpec(),
                 null);
         // delete from cluster
         topicService.delete(optionalTopic.get());
@@ -185,7 +180,7 @@ public class TopicController extends NamespacedResourceController {
         }
         List<Topic> synchronizedTopics = unsynchronizedTopics.stream()
                 .map(topic -> {
-                    sendEventLog("Topic", topic.getMetadata(), "created", null, topic.getSpec().toString());
+                    sendEventLog("Topic", topic.getMetadata(), ApplyStatus.created, null, topic.getSpec());
                     return topicService.create(topic);
                 })
                 .collect(Collectors.toList());
@@ -219,7 +214,7 @@ public class TopicController extends NamespacedResourceController {
         if (dryrun) {
             deletedRecords = recordsToDelete;
         } else {
-            sendEventLog("Topic", optionalTopic.get().getMetadata(), "delete-record", null, null);
+            sendEventLog("Topic", optionalTopic.get().getMetadata(), ApplyStatus.deleted, null, null);
             deletedRecords = topicService.deleteRecords(optionalTopic.get(), recordsToDelete);
         }
 
