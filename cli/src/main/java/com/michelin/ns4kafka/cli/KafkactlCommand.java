@@ -21,7 +21,9 @@ import java.util.concurrent.Callable;
                         ResetOffsetsSubcommand.class,
                         DeleteRecordsSubcommand.class,
                         ImportSubcommand.class,
-                        RestartConnectorsSubcommand.class
+                        RestartConnectorsSubcommand.class,
+                        PauseConnectorsSubcommand.class,
+                        ResumeConnectorsSubcommand.class
                 },
         versionProvider = KafkactlCommand.ConfigVersionProvider.class,
         mixinStandardHelpOptions = true)

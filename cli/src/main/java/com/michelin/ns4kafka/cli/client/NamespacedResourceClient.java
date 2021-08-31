@@ -67,4 +67,18 @@ public interface NamespacedResourceClient {
             String resourcename,
             @Header("Authorization") String token,
             @QueryValue boolean dryrun);
+
+    @Post("{namespace}/connects/{resourcename}/pause{?dryrun}")
+    HttpResponse<Void> pauseConnect(
+            String namespace,
+            String resourcename,
+            @Header("Authorization") String token,
+            @QueryValue boolean dryrun);
+
+    @Post("{namespace}/connects/{resourcename}/resume{?dryrun}")
+    HttpResponse<Void> resumeConnect(
+            String namespace,
+            String resourcename,
+            @Header("Authorization") String token,
+            @QueryValue boolean dryrun);
 }

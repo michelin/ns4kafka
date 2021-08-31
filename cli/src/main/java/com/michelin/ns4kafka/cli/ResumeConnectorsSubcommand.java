@@ -7,14 +7,14 @@ import picocli.CommandLine;
 import javax.inject.Inject;
 import java.util.concurrent.Callable;
 
-@CommandLine.Command(name = "restart-connectors", description = "Restart connector deployed on the cluster")
-public class RestartConnectorsSubcommand implements Callable<Integer> {
+@CommandLine.Command(name = "resume-connectors", description = "Resume connector deployed on the cluster")
+public class ResumeConnectorsSubcommand implements Callable<Integer> {
 
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
     @CommandLine.Parameters(index = "0", description = "Resource name", arity = "1")
     public String resourceName;
-    @CommandLine.Option(names = {"--dry-run"}, description = "Does not restart connector. Validate only")
+    @CommandLine.Option(names = {"--dry-run"}, description = "Does not pause connector. Validate only")
     public boolean dryRun;
 
     @Inject
@@ -39,7 +39,7 @@ public class RestartConnectorsSubcommand implements Callable<Integer> {
         }
 
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
-        if (resourceService.restartConnect(namespace,resourceName,dryRun)){
+        if (resourceService.pauseConnect(namespace,resourceName,dryRun)){
             System.out.println("Success");
             return 0;
         };

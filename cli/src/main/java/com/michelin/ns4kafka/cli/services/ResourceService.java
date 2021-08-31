@@ -133,6 +133,24 @@ public class ResourceService {
         }
         return false;
     }
+    public boolean pauseConnect(String namespace, String resourceName, boolean dryRun) {
+        try {
+            namespacedClient.pauseConnect(namespace, resourceName, loginService.getAuthorization(), dryRun);
+            return true;
+        } catch (HttpClientResponseException e) {
+            FormatUtils.displayError(e, "Connector", resourceName);
+        }
+        return false;
+    }
+    public boolean resumeConnect(String namespace, String resourceName, boolean dryRun) {
+        try {
+            namespacedClient.resumeConnect(namespace, resourceName, loginService.getAuthorization(), dryRun);
+            return true;
+        } catch (HttpClientResponseException e) {
+            FormatUtils.displayError(e, "Connector", resourceName);
+        }
+        return false;
+    }
 
     public Resource resetOffsets(String namespace, String group, Resource resource, boolean dryRun) {
         try {
