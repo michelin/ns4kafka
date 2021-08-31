@@ -7,8 +7,8 @@ import picocli.CommandLine;
 import javax.inject.Inject;
 import java.util.concurrent.Callable;
 
-@CommandLine.Command(name = "restart-connect", description = "Restart connector deployed on the cluster")
-public class RestartConnect implements Callable<Integer> {
+@CommandLine.Command(name = "restart-connectors", description = "Restart connector deployed on the cluster")
+public class RestartConnectorsSubcommand implements Callable<Integer> {
 
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
