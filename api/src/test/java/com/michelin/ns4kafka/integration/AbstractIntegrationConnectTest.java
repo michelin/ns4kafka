@@ -23,7 +23,7 @@ public abstract class AbstractIntegrationConnectTest extends AbstractIntegration
             //registry = new SchemaRegistryContainer(DockerImageName.parse("confluentinc/cp-schema-registry:" + CONFLUENT_VERSION), "kafka:9092");
             //registry.start();
             connect = new KafkaConnectContainer(DockerImageName.parse("confluentinc/cp-kafka-connect:" + CONFLUENT_VERSION), "kafka:9092")
-                    .withNetwork(network).withPlugins("kafka-connect-sound-0.1.0.jar");
+                    .withNetwork(network);
             connect.start();
         }
         properties.putAll(brokerProps);

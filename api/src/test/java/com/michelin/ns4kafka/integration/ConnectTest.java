@@ -181,12 +181,9 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("test-connect")
                         .config(Map.of(
-                                "connector.class", "com.github.c0urante.kafka.connect.sound.SpeakersSinkConnector",
+                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
                                 "name", "ns1-co1",
                                 "tasks.max", "1",
-                                "encoding","wav",
-                                "print.stdout","false",
-                                "print.stderr","false",
                                 "topics", "ns1-to1"
                         ))
                         .build())
