@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.models.AuditLog;
 import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.security.utils.SecurityService;
@@ -28,7 +29,7 @@ public abstract class ResourceController {
     public void sendEventLog(String kind, ObjectMeta metadata, ApplyStatus operation, Object before, Object after) {
         SimpleDateFormat sdf = new SimpleDateFormat("ss:mm:HH dd/MM/yyyy");
         var instant = Instant.now();
-        var auditLog = new AuditLog(securityService.username(), securityService.hasRole("Admin"), sdf.format(Date.from(instant)), kind, metadata, operation, before, after);
+        var auditLog = new AuditLog(securityService.username(), securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN), sdf.format(Date.from(instant)), kind, metadata, operation, before, after);
         applicationEventPublisher.publishEvent(auditLog);
     }
 }
