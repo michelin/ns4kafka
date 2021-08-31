@@ -13,6 +13,7 @@ import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.security.utils.SecurityService;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -42,6 +43,8 @@ public class StreamControllerTest {
     StreamService streamService;
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
+    @Mock
+    SecurityService securityService;
     @InjectMocks
     StreamController streamController;
 
@@ -159,6 +162,8 @@ public class StreamControllerTest {
 
         when(streamService.findByName(ns, "test_stream1"))
                 .thenReturn(Optional.empty());
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole("Admin")).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         Mockito.when(streamService.create(stream1))
@@ -280,6 +285,8 @@ public class StreamControllerTest {
         when(streamService.findByName(ns, "test_stream1"))
                 .thenReturn(Optional.of(stream1));
 
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole("Admin")).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
         doNothing().when(streamService).delete(stream1);
         var response = streamController.delete("test", "test_stream1", false);

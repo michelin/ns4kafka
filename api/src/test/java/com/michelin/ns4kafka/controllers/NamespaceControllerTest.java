@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.services.NamespaceService;
 import io.micronaut.context.event.ApplicationEventPublisher;
+import io.micronaut.security.utils.SecurityService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +29,8 @@ public class NamespaceControllerTest {
     NamespaceService namespaceService;
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
+    @Mock
+    SecurityService securityService;
 
     @InjectMocks
     NamespaceController namespaceController;
@@ -60,6 +63,8 @@ public class NamespaceControllerTest {
                 .thenReturn(Optional.empty());
         Mockito.when(namespaceService.validateCreation(toCreate))
                 .thenReturn(List.of());
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole("Admin")).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
         Mockito.when(namespaceService.createOrUpdate(toCreate))
                 .thenReturn(toCreate);
@@ -142,6 +147,8 @@ public class NamespaceControllerTest {
                 .build();
         Mockito.when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole("Admin")).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
         Mockito.when(namespaceService.createOrUpdate(toUpdate))
                 .thenReturn(toUpdate);
@@ -227,6 +234,8 @@ public class NamespaceControllerTest {
                 .thenReturn(Optional.of(existing));
         Mockito.when(namespaceService.listAllNamespaceResources(existing))
                 .thenReturn(List.of());
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole("Admin")).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
         var result = namespaceController.delete("namespace", false);
         Assertions.assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());

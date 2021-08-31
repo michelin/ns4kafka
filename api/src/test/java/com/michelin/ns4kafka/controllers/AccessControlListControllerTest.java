@@ -10,6 +10,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.authentication.DefaultAuthentication;
+import io.micronaut.security.utils.SecurityService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +35,8 @@ public class AccessControlListControllerTest {
     NamespaceService namespaceService;
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
+    @Mock
+    SecurityService securityService;
 
     @InjectMocks
     AccessControlListController accessControlListController;
@@ -238,6 +241,8 @@ public class AccessControlListControllerTest {
                 .thenReturn(Optional.of(ns));
         Mockito.when(accessControlEntryService.validate(ace1, ns))
                 .thenReturn(List.of());
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole("Admin")).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
         Mockito.when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
@@ -316,6 +321,8 @@ public class AccessControlListControllerTest {
                 .thenReturn(List.of());
         Mockito.when(accessControlEntryService.findByName("test","ace1"))
                 .thenReturn(Optional.of(ace1Old));
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole("Admin")).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
         Mockito.when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
@@ -472,6 +479,8 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.of(ace1));
         //Mockito.doNothing().when(accessControlEntryService.delete(ace1));
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole("Admin")).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
         HttpResponse actual = accessControlListController.delete(auth,"test", "ace1", false);
 

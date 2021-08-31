@@ -15,14 +15,8 @@ public class ForgedLogListener implements ApplicationEventListener<AuditLog> {
 
     @Override
     public void onApplicationEvent(AuditLog event) {
-        String role = "User";
-        if (event.getUser().hasRole("isAdmin()")) {
-            role = "Admin";
-        }
-        String user = null;
-        if (event.getUser().username().isPresent()){
-            user = event.getUser().username().get();
-        }
+        String role = event.isAdmin() ? "Admin" : "User";
+        String user = event.getUser().isPresent() ? event.getUser().get() : null;
 
         log.info("{} {} {} at {} {} {}",
                 role,

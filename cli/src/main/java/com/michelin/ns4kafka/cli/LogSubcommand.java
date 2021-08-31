@@ -50,8 +50,8 @@ public class LogSubcommand implements Callable<Integer> {
     public static class AuditLog {
 
         private String user;
+        private boolean admin;
         private String date;
-        private Long timestamp;
         private String kind;
         private ObjectMeta metadata;
         private String operation;

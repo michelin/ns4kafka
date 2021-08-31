@@ -12,6 +12,7 @@ import io.micronaut.context.event.ApplicationEvent;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.security.utils.SecurityService;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,8 @@ public class TopicControllerTest {
     TopicService topicService;
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
+    @Mock
+    SecurityService securityService;
 
     @InjectMocks
     TopicController topicController;
@@ -143,6 +146,8 @@ public class TopicControllerTest {
                 .thenReturn(toDelete);
         when(topicService.isNamespaceOwnerOfTopic("test","topic.delete"))
                 .thenReturn(true);
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole("Admin")).thenReturn(false);
         doNothing().when(topicService).delete(toDelete.get());
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
@@ -224,6 +229,8 @@ public class TopicControllerTest {
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole("Admin")).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         when(topicService.create(topic)).thenReturn(topic);
@@ -273,6 +280,8 @@ public class TopicControllerTest {
                 .thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
         when(topicService.create(topic)).thenReturn(topic);
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole("Admin")).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         var response = topicController.apply("test", topic, false);

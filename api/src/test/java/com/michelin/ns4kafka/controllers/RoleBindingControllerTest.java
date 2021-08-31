@@ -6,6 +6,7 @@ import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.RoleBindingService;
 import io.micronaut.context.event.ApplicationEventPublisher;
+import io.micronaut.security.utils.SecurityService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +31,8 @@ public class RoleBindingControllerTest {
     RoleBindingService roleBindingService;
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
+    @Mock
+    SecurityService securityService;
 
     @InjectMocks
     RoleBindingController roleBindingController;
@@ -49,6 +52,8 @@ public class RoleBindingControllerTest {
                 .build();
 
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole("Admin")).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         var response = roleBindingController.apply("test", rolebinding, false);
@@ -105,6 +110,8 @@ public class RoleBindingControllerTest {
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
         when(roleBindingService.findByName("test","test.rolebinding"))
                 .thenReturn(Optional.of(rolebindingOld));
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole("Admin")).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         var response = roleBindingController.apply("test", rolebinding, false);
@@ -152,6 +159,8 @@ public class RoleBindingControllerTest {
 
         //when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
         when(roleBindingService.findByName(any(), any())).thenReturn(Optional.of(rolebinding));
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole("Admin")).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         Assertions.assertDoesNotThrow(
