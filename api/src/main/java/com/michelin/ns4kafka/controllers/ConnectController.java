@@ -128,7 +128,7 @@ public class ConnectController extends NamespacedResourceController {
             return HttpResponse.noContent();
         }
 
-        //delete resource
+        // restart connector
         kafkaConnectService.restart(ns, optionalConnector.get());
         return HttpResponse.noContent();
 
