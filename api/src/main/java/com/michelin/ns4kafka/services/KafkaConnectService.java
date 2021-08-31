@@ -161,9 +161,39 @@ public class KafkaConnectService {
                     task.task());
                 }
         );
-        LOG.info("Success restarting Connector [" + connector.getMetadata().getName() +
-                "] on Kafka [" + namespace.getMetadata().getName() +
-                "] Connect [" + connector.getSpec().getConnectCluster() + "]");
+        LOG.info("Success restarting Connector [{}] on Namespace [{}] Connect [{}]",
+                connector.getMetadata().getName(),
+                namespace.getMetadata().getName(),
+                connector.getSpec().getConnectCluster()
+                );
+        return HttpResponse.noContent();
+    }
+
+    public HttpResponse pause(Namespace namespace, Connector connector) {
+
+        kafkaConnectClient.pause(
+                KafkaConnectClientProxy.PROXY_SECRET,
+                namespace.getMetadata().getCluster(),
+                connector.getSpec().getConnectCluster(),
+                connector.getMetadata().getName());
+        LOG.info("Success pausing Connector [{}] on Namespace [{}] Connect [{}]",
+                connector.getMetadata().getName(),
+                namespace.getMetadata().getName(),
+                connector.getSpec().getConnectCluster()
+        );
+        return HttpResponse.noContent();
+    }
+    public HttpResponse resume(Namespace namespace, Connector connector) {
+        kafkaConnectClient.resume(
+                KafkaConnectClientProxy.PROXY_SECRET,
+                namespace.getMetadata().getCluster(),
+                connector.getSpec().getConnectCluster(),
+                connector.getMetadata().getName());
+        LOG.info("Success resuming Connector [{}] on Namespace [{}] Connect [{}]",
+                connector.getMetadata().getName(),
+                namespace.getMetadata().getName(),
+                connector.getSpec().getConnectCluster()
+        );
         return HttpResponse.noContent();
     }
 }

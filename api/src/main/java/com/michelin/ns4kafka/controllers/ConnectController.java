@@ -130,12 +130,64 @@ public class ConnectController extends NamespacedResourceController {
 
         // restart connector
         kafkaConnectService.restart(ns, optionalConnector.get());
+        //TODO add audit logs
         return HttpResponse.noContent();
 
     }
 
+    @Post("{connector}/pause{?dryrun}")
+    public HttpResponse<Void> pause(String namespace, String connector, @QueryValue(defaultValue = "false") boolean dryrun) {
 
-        @Post("/_/import{?dryrun}")
+        Namespace ns = getNamespace(namespace);
+        //check ownership
+        if (!kafkaConnectService.isNamespaceOwnerOfConnect(ns, connector)) {
+            throw new ResourceValidationException(List.of("Invalid value " + connector +
+                    " for name: Namespace not OWNER of this connector"), "Connector", connector);
+        }
+
+        // exists ?
+        Optional<Connector> optionalConnector = kafkaConnectService.findByName(ns, connector);
+        if (optionalConnector.isEmpty())
+            return HttpResponse.notFound();
+
+        if (dryrun) {
+            return HttpResponse.noContent();
+        }
+
+        // restart connector
+        kafkaConnectService.pause(ns, optionalConnector.get());
+        //TODO add audit logs
+        return HttpResponse.noContent();
+    }
+
+    @Post("{connector}/resume{?dryrun}")
+    public HttpResponse<Void> resume(String namespace, String connector, @QueryValue(defaultValue = "false") boolean dryrun) {
+
+        Namespace ns = getNamespace(namespace);
+        //check ownership
+        if (!kafkaConnectService.isNamespaceOwnerOfConnect(ns, connector)) {
+            throw new ResourceValidationException(List.of("Invalid value " + connector +
+                    " for name: Namespace not OWNER of this connector"), "Connector", connector);
+        }
+
+        // exists ?
+        Optional<Connector> optionalConnector = kafkaConnectService.findByName(ns, connector);
+        if (optionalConnector.isEmpty())
+            return HttpResponse.notFound();
+
+        if (dryrun) {
+            return HttpResponse.noContent();
+        }
+
+        // restart connector
+        kafkaConnectService.resume(ns, optionalConnector.get());
+        //TODO add audit logs
+        return HttpResponse.noContent();
+    }
+
+
+
+            @Post("/_/import{?dryrun}")
     public List<Connector> importResources(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
 
         Namespace ns = getNamespace(namespace);
