@@ -5,10 +5,10 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.TopicService;
 import com.michelin.ns4kafka.validation.TopicValidator;
-import io.micronaut.context.event.ApplicationEvent;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -21,10 +21,8 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.internal.matchers.Any;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import javax.inject.Inject;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -147,7 +145,7 @@ public class TopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic("test","topic.delete"))
                 .thenReturn(true);
         when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole("Admin")).thenReturn(false);
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(topicService).delete(toDelete.get());
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
@@ -230,7 +228,7 @@ public class TopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole("Admin")).thenReturn(false);
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         when(topicService.create(topic)).thenReturn(topic);
@@ -281,7 +279,7 @@ public class TopicControllerTest {
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
         when(topicService.create(topic)).thenReturn(topic);
         when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole("Admin")).thenReturn(false);
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         var response = topicController.apply("test", topic, false);

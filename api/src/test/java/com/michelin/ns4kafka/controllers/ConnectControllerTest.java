@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.KafkaConnectService;
 import com.michelin.ns4kafka.services.NamespaceService;
 import io.micronaut.context.event.ApplicationEventPublisher;
@@ -145,7 +146,7 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.findByName(ns,"connect1"))
                 .thenReturn(Optional.of(connector));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole("Admin")).thenReturn(false);
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         Assertions.assertDoesNotThrow(() -> connectController.deleteConnector("test", "connect1", false));
@@ -254,7 +255,7 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.validateRemotely(ns, connector))
                 .thenReturn(List.of());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole("Admin")).thenReturn(false);
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
         Mockito.when(kafkaConnectService.createOrUpdate(ns, connector))
                 .thenReturn(expected);
@@ -330,7 +331,7 @@ public class ConnectControllerTest {
         Mockito.when(kafkaConnectService.findByName(ns, "connect1"))
                 .thenReturn(Optional.of(connectorOld));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole("Admin")).thenReturn(false);
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
         Mockito.when(kafkaConnectService.createOrUpdate(ns, connector))
                 .thenReturn(expected);

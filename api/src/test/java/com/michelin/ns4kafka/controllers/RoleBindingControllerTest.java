@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
+import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.RoleBindingService;
 import io.micronaut.context.event.ApplicationEventPublisher;
@@ -53,7 +54,7 @@ public class RoleBindingControllerTest {
 
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole("Admin")).thenReturn(false);
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         var response = roleBindingController.apply("test", rolebinding, false);
@@ -111,7 +112,7 @@ public class RoleBindingControllerTest {
         when(roleBindingService.findByName("test","test.rolebinding"))
                 .thenReturn(Optional.of(rolebindingOld));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole("Admin")).thenReturn(false);
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         var response = roleBindingController.apply("test", rolebinding, false);
@@ -160,7 +161,7 @@ public class RoleBindingControllerTest {
         //when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
         when(roleBindingService.findByName(any(), any())).thenReturn(Optional.of(rolebinding));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole("Admin")).thenReturn(false);
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         Assertions.assertDoesNotThrow(

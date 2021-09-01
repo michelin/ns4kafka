@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.security.utils.SecurityService;
@@ -64,7 +65,7 @@ public class NamespaceControllerTest {
         Mockito.when(namespaceService.validateCreation(toCreate))
                 .thenReturn(List.of());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole("Admin")).thenReturn(false);
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
         Mockito.when(namespaceService.createOrUpdate(toCreate))
                 .thenReturn(toCreate);
@@ -148,7 +149,7 @@ public class NamespaceControllerTest {
         Mockito.when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole("Admin")).thenReturn(false);
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
         Mockito.when(namespaceService.createOrUpdate(toUpdate))
                 .thenReturn(toUpdate);
@@ -235,7 +236,7 @@ public class NamespaceControllerTest {
         Mockito.when(namespaceService.listAllNamespaceResources(existing))
                 .thenReturn(List.of());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole("Admin")).thenReturn(false);
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
         var result = namespaceController.delete("namespace", false);
         Assertions.assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());

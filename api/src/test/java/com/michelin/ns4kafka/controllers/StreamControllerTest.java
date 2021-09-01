@@ -1,36 +1,25 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.models.DeleteRecords;
 import com.michelin.ns4kafka.models.KafkaStream;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.StreamService;
-import com.michelin.ns4kafka.services.TopicService;
-import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.event.ApplicationEventPublisher;
-import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
-import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -163,7 +152,7 @@ public class StreamControllerTest {
         when(streamService.findByName(ns, "test_stream1"))
                 .thenReturn(Optional.empty());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole("Admin")).thenReturn(false);
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         Mockito.when(streamService.create(stream1))
@@ -286,7 +275,7 @@ public class StreamControllerTest {
                 .thenReturn(Optional.of(stream1));
 
         when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole("Admin")).thenReturn(false);
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
         doNothing().when(streamService).delete(stream1);
         var response = streamController.delete("test", "test_stream1", false);
