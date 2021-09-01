@@ -1,6 +1,7 @@
 ns4kafka
 =======================
 [![GitHub release](https://img.shields.io/github/v/release/michelin/ns4kafka)](https://github.com/michelin/ns4kafka/releases)
+![GitHub commits since latest release (by SemVer)](https://img.shields.io/github/commits-since/michelin/ns4kafka/latest)
 [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/michelin/ns4kafka/Snapshot)](https://github.com/michelin/ns4kafka/actions/workflows/on_push_master.yml/)
 [![GitHub issues](https://img.shields.io/github/issues/michelin/ns4kafka)](https://github.com/michelin/ns4kafka/issues)
 [![SonarCloud Coverage](https://sonarcloud.io/api/project_badges/measure?project=michelin_ns4kafka&metric=coverage)](https://sonarcloud.io/component_measures/metric/coverage/list?id=michelin_ns4kafka)
