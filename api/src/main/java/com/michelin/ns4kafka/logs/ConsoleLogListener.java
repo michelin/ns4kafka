@@ -15,12 +15,13 @@ public class ConsoleLogListener implements ApplicationEventListener<AuditLog> {
 
     @Override
     public void onApplicationEvent(AuditLog event) {
-        log.info("{} {} {} at {} {} {}",
+        log.info("{} {} {} {} {} on cluster {}",
                 event.isAdmin() ? "Admin" : "User",
                 event.getUser(),
                 event.getOperation(),
-                event.getDate().toString(),
                 event.getKind(),
-                event.getMetadata().toString());
+                event.getMetadata().getName(),
+                event.getMetadata().getCluster()
+        );
     }
 }
