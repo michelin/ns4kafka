@@ -5,11 +5,14 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.TopicService;
 import com.michelin.ns4kafka.validation.TopicValidator;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.security.utils.SecurityService;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -37,6 +40,10 @@ public class TopicControllerTest {
     NamespaceService namespaceService;
     @Mock
     TopicService topicService;
+    @Mock
+    ApplicationEventPublisher applicationEventPublisher;
+    @Mock
+    SecurityService securityService;
 
     @InjectMocks
     TopicController topicController;
@@ -137,8 +144,10 @@ public class TopicControllerTest {
                 .thenReturn(toDelete);
         when(topicService.isNamespaceOwnerOfTopic("test","topic.delete"))
                 .thenReturn(true);
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(topicService).delete(toDelete.get());
-
+        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         //When
         HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete", false);
@@ -173,7 +182,7 @@ public class TopicControllerTest {
     }
 
     @Test
-    public void DeleteTopicUnauthorized() throws InterruptedException, ExecutionException, TimeoutException {
+    public void DeleteTopicUnauthorized()  {
         //Given
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
@@ -218,6 +227,10 @@ public class TopicControllerTest {
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
         when(topicService.create(topic)).thenReturn(topic);
 
         var response = topicController.apply("test", topic, false);
@@ -265,6 +278,9 @@ public class TopicControllerTest {
                 .thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
         when(topicService.create(topic)).thenReturn(topic);
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         var response = topicController.apply("test", topic, false);
         Topic actual = response.body();

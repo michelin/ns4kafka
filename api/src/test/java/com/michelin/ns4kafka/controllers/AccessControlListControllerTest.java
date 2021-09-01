@@ -3,12 +3,15 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.NamespaceService;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.authentication.DefaultAuthentication;
+import io.micronaut.security.utils.SecurityService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,8 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class AccessControlListControllerTest {
@@ -32,6 +34,10 @@ public class AccessControlListControllerTest {
     AccessControlEntryService accessControlEntryService;
     @Mock
     NamespaceService namespaceService;
+    @Mock
+    ApplicationEventPublisher applicationEventPublisher;
+    @Mock
+    SecurityService securityService;
 
     @InjectMocks
     AccessControlListController accessControlListController;
@@ -236,6 +242,9 @@ public class AccessControlListControllerTest {
                 .thenReturn(Optional.of(ns));
         Mockito.when(accessControlEntryService.validate(ace1, ns))
                 .thenReturn(List.of());
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
         Mockito.when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
@@ -313,6 +322,9 @@ public class AccessControlListControllerTest {
                 .thenReturn(List.of());
         Mockito.when(accessControlEntryService.findByName("test","ace1"))
                 .thenReturn(Optional.of(ace1Old));
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
         Mockito.when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
@@ -468,6 +480,9 @@ public class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.of(ace1));
         //Mockito.doNothing().when(accessControlEntryService.delete(ace1));
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
         HttpResponse actual = accessControlListController.delete(auth,"test", "ace1", false);
 
         Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.status());

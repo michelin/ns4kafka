@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.cli.services;
 
-import com.michelin.ns4kafka.cli.FormatUtils;
 import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.ApiResource;
@@ -25,6 +24,8 @@ public class ResourceService {
 
     @Inject
     LoginService loginService;
+    @Inject
+    FormatService formatService;
 
 
     public Map<ApiResource, List<Resource>> listAll(List<ApiResource> apiResources, String namespace) {
@@ -42,7 +43,7 @@ public class ResourceService {
                 return nonNamespacedClient.list(loginService.getAuthorization(), apiResource.getPath());
             }
         } catch (HttpClientResponseException e) {
-            FormatUtils.displayError(e, apiResource.getKind(), null);
+            formatService.displayError(e, apiResource.getKind(), null);
         }
         return List.of();
     }
@@ -75,7 +76,7 @@ public class ResourceService {
                 return nonNamespacedClient.apply(loginService.getAuthorization(), apiResource.getPath(), resource, dryRun);
             }
         } catch (HttpClientResponseException e) {
-            FormatUtils.displayError(e, apiResource.getKind(), resource.getMetadata().getName());
+            formatService.displayError(e, apiResource.getKind(), resource.getMetadata().getName());
         }
         return null;
     }
@@ -90,7 +91,7 @@ public class ResourceService {
                 return true;
             }
         } catch (HttpClientResponseException e) {
-            FormatUtils.displayError(e, apiResource.getKind(), resource);
+            formatService.displayError(e, apiResource.getKind(), resource);
         }
         return false;
     }
@@ -108,7 +109,7 @@ public class ResourceService {
         try {
             resources = namespacedClient.importResources(namespace, apiResource.getPath(), loginService.getAuthorization(), dryRun);
         } catch (HttpClientResponseException e) {
-            FormatUtils.displayError(e, apiResource.getKind(), null);
+            formatService.displayError(e, apiResource.getKind(), null);
             resources = List.of();
         }
 
@@ -119,7 +120,7 @@ public class ResourceService {
         try {
             return namespacedClient.deleteRecords(loginService.getAuthorization(), namespace, topic, dryrun);
         } catch (HttpClientResponseException e) {
-            FormatUtils.displayError(e, "Topic", topic);
+            formatService.displayError(e, "Topic", topic);
         }
         return null;
     }
@@ -156,7 +157,7 @@ public class ResourceService {
         try {
             return namespacedClient.resetOffsets(loginService.getAuthorization(), namespace, group, resource, dryRun);
         } catch (HttpClientResponseException e) {
-            FormatUtils.displayError(e, "ConsumerGroup", group);
+            formatService.displayError(e, "ConsumerGroup", group);
         }
         return null;
     }

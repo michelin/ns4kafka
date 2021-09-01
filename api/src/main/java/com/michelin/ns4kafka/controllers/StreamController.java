@@ -57,14 +57,16 @@ public class StreamController extends NamespacedResourceController {
             return formatHttpResponse(stream, ApplyStatus.unchanged);
         }
 
-        ApplyStatus status = ApplyStatus.created;
-        if (existingStream.isPresent()){
-            status = ApplyStatus.changed;
-        }
+        ApplyStatus status = existingStream.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
 
         if (dryrun) {
             return formatHttpResponse(stream, status);
         }
+        sendEventLog(stream.getKind(),
+                stream.getMetadata(),
+                status,
+                null,
+                null);
 
         return formatHttpResponse(streamService.create(stream), status);
 
@@ -88,6 +90,12 @@ public class StreamController extends NamespacedResourceController {
         if (dryrun) {
             return HttpResponse.noContent();
         }
+        var streamToDelete = optionalStream.get();
+        sendEventLog(streamToDelete.getKind(),
+                streamToDelete.getMetadata(),
+                ApplyStatus.deleted,
+                null,
+                null);
         streamService.delete(optionalStream.get());
         return HttpResponse.noContent();
     }

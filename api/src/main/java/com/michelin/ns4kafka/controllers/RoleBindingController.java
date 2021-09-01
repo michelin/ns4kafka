@@ -51,14 +51,15 @@ public class RoleBindingController extends NamespacedResourceController {
         if(existingRoleBinding.isPresent() && existingRoleBinding.get().equals(rolebinding)){
             return formatHttpResponse(existingRoleBinding.get(), ApplyStatus.unchanged);
         }
-        ApplyStatus status = ApplyStatus.created;
-        if(existingRoleBinding.isPresent()) {
-            status = ApplyStatus.changed;
-        }
-
+        ApplyStatus status = existingRoleBinding.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
         if (dryrun) {
             return formatHttpResponse(rolebinding, status);
         }
+        sendEventLog(rolebinding.getKind(),
+                rolebinding.getMetadata(),
+                status,
+                existingRoleBinding.isPresent() ? existingRoleBinding.get().getSpec() : null,
+                rolebinding.getSpec());
         roleBindingService.create(rolebinding);
         return formatHttpResponse(rolebinding, status);
     }
@@ -82,6 +83,12 @@ public class RoleBindingController extends NamespacedResourceController {
             return HttpResponse.noContent();
         }
 
+        var roleBindingToDelete = roleBinding.get();
+        sendEventLog(roleBindingToDelete .getKind(),
+                roleBindingToDelete.getMetadata(),
+                ApplyStatus.deleted,
+                roleBindingToDelete.getSpec(),
+                null);
         roleBindingService.delete(roleBinding.get());
         return HttpResponse.noContent();
     }

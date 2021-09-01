@@ -400,7 +400,7 @@ Setup of these variables can be done in two different ways :
         user-token: <authentication-token>
         current-namespace: <your-namespace>
    ````
-   ``kafkactl`` will look for the configuration in `~/.ns4kafka/config.yml` automatically.  
+   ``kafkactl`` will look for the configuration in `~/.kafkactl/config.yml` automatically.  
    If you need to store the file somewhere else, you can define the environement variable ``KAFKACTL_CONFIG`` :
    ````shell
    export KAFKACTL_CONFIG=/path/to/config.yml
