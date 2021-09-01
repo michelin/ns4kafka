@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.cli;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
+import com.michelin.ns4kafka.cli.services.FormatService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
 import picocli.CommandLine;
@@ -26,6 +27,8 @@ public class ImportSubcommand implements Callable<Integer> {
     public ResourceService resourceService;
     @Inject
     public ApiResourcesService apiResourcesService;
+    @Inject
+    public FormatService formatService;
     @Inject
     public KafkactlConfig kafkactlConfig;
 
@@ -58,7 +61,7 @@ public class ImportSubcommand implements Callable<Integer> {
         Map<ApiResource, List<Resource>> resources = resourceService.importAll(apiResources, namespace, dryRun);
 
         // 5.a display all resources by type
-        resources.forEach((k, v) -> FormatUtils.displayList(k, v, "table"));
+        resources.forEach((k, v) -> formatService.displayList(k, v, "table"));
         return 0;
 
     }

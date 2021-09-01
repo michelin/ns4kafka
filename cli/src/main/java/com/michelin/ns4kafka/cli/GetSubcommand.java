@@ -5,6 +5,7 @@ import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
+import com.michelin.ns4kafka.cli.services.FormatService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
@@ -42,6 +43,8 @@ public class GetSubcommand implements Callable<Integer> {
     @Inject
     public ResourceService resourceService;
     @Inject
+    public FormatService formatService;
+    @Inject
     public KafkactlConfig kafkactlConfig;
 
     @CommandLine.ParentCommand
@@ -77,9 +80,9 @@ public class GetSubcommand implements Callable<Integer> {
                 // 4.a list all resources for given types (k get all, k get topics)
                 Map<ApiResource, List<Resource>> resources = resourceService.listAll(apiResources, namespace);
                 // 5.a display all resources by type
-                resources.forEach((k, v) -> FormatUtils.displayList(k, v, output));
+                resources.forEach((k, v) -> formatService.displayList(k, v, output));
             } catch (HttpClientResponseException e) {
-                FormatUtils.displayError(e, apiResources.get(0).getKind(), null);
+                formatService.displayError(e, apiResources.get(0).getKind(), null);
             } catch (Exception e) {
                 System.out.println("Error during get for resource type " + resourceType + ": " + e.getMessage());
             }
@@ -88,9 +91,9 @@ public class GetSubcommand implements Callable<Integer> {
             try {
                 // 4.b get individual resources for given types (k get topic topic1)
                 Resource singleResource = resourceService.getSingleResourceWithType(apiResources.get(0), namespace, resourceName.get(), true);
-                FormatUtils.displaySingle(apiResources.get(0), singleResource, output);
+                formatService.displaySingle(apiResources.get(0), singleResource, output);
             } catch (HttpClientResponseException e) {
-                FormatUtils.displayError(e, apiResources.get(0).getKind(), resourceName.get());
+                formatService.displayError(e, apiResources.get(0).getKind(), resourceName.get());
             } catch (Exception e) {
                 System.out.println("Error during get for resource type " + apiResources.get(0).getKind() + "/" + resourceName.get() + ": " + e.getMessage());
             }
