@@ -13,7 +13,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 @Singleton
-@Requires(property = "ns4kafka.log.kafka.enabled")
+@Requires(property = "ns4kafka.log.kafka.enabled", value = StringUtils.TRUE)
 public class KafkaLogListener implements ApplicationEventListener<AuditLog> {
 
     @Inject
@@ -22,15 +22,14 @@ public class KafkaLogListener implements ApplicationEventListener<AuditLog> {
     @Override
     @Async
     public void onApplicationEvent(AuditLog event) {
-        kafkaProducer.sendAuditLog(event.getKind()+"/"+event.getMetadata().getName() ,event);
+        kafkaProducer.sendAuditLog(event.getMetadata().getNamespace(), event);
     }
-
-
 }
 
 @KafkaClient
+@Requires(property = "ns4kafka.log.kafka.enabled", value = StringUtils.TRUE)
 interface KafkaLogProducer {
 
     @Topic(value = "${ns4kafka.log.kafka.topic}")
-    void sendAuditLog(@KafkaKey String key, AuditLog log);
+    void sendAuditLog(@KafkaKey String namespace, AuditLog log);
 }

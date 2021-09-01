@@ -11,16 +11,13 @@ import javax.inject.Singleton;
 @Slf4j
 @Singleton
 @Requires(property = "ns4kafka.log.console.enabled", notEquals = StringUtils.FALSE)
-public class ForgedLogListener implements ApplicationEventListener<AuditLog> {
+public class ConsoleLogListener implements ApplicationEventListener<AuditLog> {
 
     @Override
     public void onApplicationEvent(AuditLog event) {
-        String role = event.isAdmin() ? "Admin" : "User";
-        String user = event.getUser().isPresent() ? event.getUser().get() : null;
-
         log.info("{} {} {} at {} {} {}",
-                role,
-                user,
+                event.isAdmin() ? "Admin" : "User",
+                event.getUser(),
                 event.getOperation(),
                 event.getDate().toString(),
                 event.getKind(),

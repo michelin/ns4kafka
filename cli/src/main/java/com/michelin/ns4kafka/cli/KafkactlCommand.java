@@ -18,7 +18,6 @@ import java.util.concurrent.Callable;
                         DeleteSubcommand.class,
                         ApiResourcesSubcommand.class,
                         DiffSubcommand.class,
-                        LogSubcommand.class,
                         ResetOffsetsSubcommand.class,
                         DeleteRecordsSubcommand.class,
                         ImportSubcommand.class
