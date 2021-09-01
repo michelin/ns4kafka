@@ -162,7 +162,7 @@ public class KafkaConnectService {
                     task.task());
                 }
         );
-        LOG.info("Success restarting Connector [{}] on Namespace [{}] Connect [{}]",
+        log.info("Success restarting Connector [{}] on Namespace [{}] Connect [{}]",
                 connector.getMetadata().getName(),
                 namespace.getMetadata().getName(),
                 connector.getSpec().getConnectCluster()
@@ -177,7 +177,7 @@ public class KafkaConnectService {
                 namespace.getMetadata().getCluster(),
                 connector.getSpec().getConnectCluster(),
                 connector.getMetadata().getName());
-        LOG.info("Success pausing Connector [{}] on Namespace [{}] Connect [{}]",
+        log.info("Success pausing Connector [{}] on Namespace [{}] Connect [{}]",
                 connector.getMetadata().getName(),
                 namespace.getMetadata().getName(),
                 connector.getSpec().getConnectCluster()
@@ -190,7 +190,7 @@ public class KafkaConnectService {
                 namespace.getMetadata().getCluster(),
                 connector.getSpec().getConnectCluster(),
                 connector.getMetadata().getName());
-        LOG.info("Success resuming Connector [{}] on Namespace [{}] Connect [{}]",
+        log.info("Success resuming Connector [{}] on Namespace [{}] Connect [{}]",
                 connector.getMetadata().getName(),
                 namespace.getMetadata().getName(),
                 connector.getSpec().getConnectCluster()
