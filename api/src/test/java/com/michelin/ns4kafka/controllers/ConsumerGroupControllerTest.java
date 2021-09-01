@@ -5,8 +5,11 @@ import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets.ConsumerGroupReset
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets.ResetOffsetsMethod;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.ConsumerGroupService;
 import com.michelin.ns4kafka.services.NamespaceService;
+import io.micronaut.context.event.ApplicationEventPublisher;
+import io.micronaut.security.utils.SecurityService;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +35,10 @@ public class ConsumerGroupControllerTest {
     NamespaceService namespaceService;
     @Mock
     ConsumerGroupService consumerGroupService;
+    @Mock
+    ApplicationEventPublisher applicationEventPublisher;
+    @Mock
+    SecurityService securityService;
     @InjectMocks
     ConsumerGroupController consumerGroupController;
 
@@ -70,6 +77,9 @@ public class ConsumerGroupControllerTest {
                 .thenReturn(topicPartitions);
         when(consumerGroupService.prepareOffsetsToReset(ns, "groupID", null, topicPartitions, ResetOffsetsMethod.TO_EARLIEST))
                 .thenReturn(Map.of(topicPartition1, 5L, topicPartition2, 10L));
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         ConsumerGroupResetOffsets result = consumerGroupController.resetOffsets("test", "groupID", resetOffset, false);
 

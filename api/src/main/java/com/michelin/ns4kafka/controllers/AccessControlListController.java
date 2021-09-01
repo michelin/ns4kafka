@@ -97,15 +97,17 @@ public class AccessControlListController extends NamespacedResourceController {
         if(existingACL.isPresent() && existingACL.get().equals(accessControlEntry)){
             return formatHttpResponse(existingACL.get(), ApplyStatus.unchanged);
         }
-        ApplyStatus status = ApplyStatus.created;
-        if (existingACL.isPresent()) {
-            status = ApplyStatus.changed;
-        }
+        ApplyStatus status = existingACL.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
 
         //dryrun checks
         if (dryrun) {
             return formatHttpResponse(accessControlEntry, status);
         }
+        sendEventLog(accessControlEntry.getKind(),
+                accessControlEntry.getMetadata(),
+                status,
+                existingACL.isPresent() ? existingACL.get().getSpec() : null,
+                accessControlEntry.getSpec());
 
         //store
         return formatHttpResponse(accessControlEntryService.create(accessControlEntry), status);
@@ -141,6 +143,7 @@ public class AccessControlListController extends NamespacedResourceController {
             return HttpResponse.noContent();
         }
 
+        sendEventLog(accessControlEntry.getKind(), accessControlEntry.getMetadata(), ApplyStatus.deleted,accessControlEntry.getSpec(), null);
         accessControlEntryService.delete(accessControlEntry);
         return HttpResponse.noContent();
     }

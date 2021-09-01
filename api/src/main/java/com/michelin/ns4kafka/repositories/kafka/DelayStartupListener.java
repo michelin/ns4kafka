@@ -2,15 +2,15 @@ package com.michelin.ns4kafka.repositories.kafka;
 
 import io.micronaut.context.event.ApplicationEventListener;
 import io.micronaut.context.event.StartupEvent;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.util.List;
 
-
+@Slf4j
 public class DelayStartupListener implements ApplicationEventListener<StartupEvent> {
-    private static final Logger LOG = LoggerFactory.getLogger(DelayStartupListener.class);
     @Inject
     List<KafkaStore> kafkaStores;
 
@@ -22,9 +22,9 @@ public class DelayStartupListener implements ApplicationEventListener<StartupEve
         {
             try {
                 Thread.sleep(1000);
-                LOG.info("Waiting for Kafka Stores to catch up");
+                log.info("Waiting for Kafka Stores to catch up");
             } catch (InterruptedException e) {
-                LOG.error("Exception ",e);
+                log.error("Exception ",e);
                 Thread.currentThread().interrupt();
             }
             kafkaStores.forEach(KafkaStore::reportInitProgress);

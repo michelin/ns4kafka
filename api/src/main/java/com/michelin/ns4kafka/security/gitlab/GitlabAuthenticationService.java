@@ -4,8 +4,7 @@ import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
 import io.reactivex.Flowable;
 import io.reactivex.Maybe;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -15,10 +14,9 @@ import java.util.stream.Collectors;
 
 import static io.micronaut.http.HttpRequest.GET;
 
+@Slf4j
 @Singleton
 public class GitlabAuthenticationService {
-
-    private static final Logger LOG = LoggerFactory.getLogger(GitlabAuthenticationService.class);
 
     @Inject
     GitlabApiClient gitlabApiClient;
@@ -44,7 +42,7 @@ public class GitlabAuthenticationService {
     private Flowable<HttpResponse<List<Map<String, Object>>>> getPageAndNext(String token, int page){
         return gitlabApiClient.getGroupsPage(token, page)
                 .concatMap(response -> {
-                    LOG.debug("Called gitlab.com groups page "+page+"/"+response.header("X-Total-Pages"));
+                    log.debug("Called gitlab.com groups page {}/{}",page,response.header("X-Total-Pages"));
                     if(StringUtils.isEmpty(response.header("X-Next-Page"))){
                         return Flowable.just(response);
                     }else{

@@ -72,15 +72,18 @@ public class NamespaceController extends NonNamespacedResourceController {
             return formatHttpResponse(existingNamespace.get(), ApplyStatus.unchanged);
         }
 
-        ApplyStatus status = ApplyStatus.created;
-        if (existingNamespace.isPresent()) {
-            status = ApplyStatus.changed;
-        }
+        ApplyStatus status = existingNamespace.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
 
         //dryrun checks
         if (dryrun) {
             return formatHttpResponse(namespace, status);
         }
+
+        sendEventLog(namespace.getKind(),
+                namespace.getMetadata(),
+                status,
+                existingNamespace.isPresent() ? existingNamespace.get().getSpec() : null,
+                namespace.getSpec());
         return formatHttpResponse(namespaceService.createOrUpdate(namespace), status);
 
     }
@@ -103,6 +106,13 @@ public class NamespaceController extends NonNamespacedResourceController {
         if (dryrun) {
             return HttpResponse.noContent();
         }
+
+        var namespaceToDelete = optionalNamespace.get();
+        sendEventLog(namespaceToDelete.getKind(),
+                namespaceToDelete.getMetadata(),
+                ApplyStatus.deleted,
+                namespaceToDelete.getSpec(),
+                null);
         namespaceService.delete(optionalNamespace.get());
         return HttpResponse.noContent();
     }
