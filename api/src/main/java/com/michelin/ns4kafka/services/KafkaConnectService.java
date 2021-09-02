@@ -8,7 +8,7 @@ import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
 import com.michelin.ns4kafka.services.connect.client.entities.ConfigInfos;
-import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStatus;
+import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStateInfo;
 import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.core.util.StringUtils;
@@ -147,19 +147,19 @@ public class KafkaConnectService {
                 .collect(Collectors.toList());
     }
     public HttpResponse restart(Namespace namespace, Connector connector) {
-        ConnectorStatus status = kafkaConnectClient.getStatus(
+        ConnectorStateInfo status = kafkaConnectClient.status(
                 KafkaConnectClientProxy.PROXY_SECRET,
                 namespace.getMetadata().getCluster(),
                 connector.getSpec().getConnectCluster(),
                 connector.getMetadata().getName()
         );
-        status.getInfo().tasks().forEach( task -> {
+        status.tasks().forEach( task -> {
             kafkaConnectClient.restart(
                     KafkaConnectClientProxy.PROXY_SECRET,
                     namespace.getMetadata().getCluster(),
                     connector.getSpec().getConnectCluster(),
                     connector.getMetadata().getName(),
-                    task.task());
+                    task.id());
                 }
         );
         log.info("Success restarting Connector [{}] on Namespace [{}] Connect [{}]",
@@ -167,7 +167,7 @@ public class KafkaConnectService {
                 namespace.getMetadata().getName(),
                 connector.getSpec().getConnectCluster()
                 );
-        return HttpResponse.noContent();
+        return HttpResponse.ok();
     }
 
     public HttpResponse pause(Namespace namespace, Connector connector) {
@@ -182,7 +182,7 @@ public class KafkaConnectService {
                 namespace.getMetadata().getName(),
                 connector.getSpec().getConnectCluster()
         );
-        return HttpResponse.noContent();
+        return HttpResponse.accepted();
     }
     public HttpResponse resume(Namespace namespace, Connector connector) {
         kafkaConnectClient.resume(
@@ -195,6 +195,6 @@ public class KafkaConnectService {
                 namespace.getMetadata().getName(),
                 connector.getSpec().getConnectCluster()
         );
-        return HttpResponse.noContent();
+        return HttpResponse.accepted();
     }
 }

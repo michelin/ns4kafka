@@ -125,39 +125,31 @@ public class ResourceService {
         return null;
     }
 
-    public boolean restartConnect(String namespace, String resourceName, boolean dryRun) {
-        try {
-            namespacedClient.restartConnect(namespace, resourceName, loginService.getAuthorization(), dryRun);
-            return true;
-        } catch (HttpClientResponseException e) {
-            FormatUtils.displayError(e, "Connector", resourceName);
-        }
-        return false;
-    }
-    public boolean pauseConnect(String namespace, String resourceName, boolean dryRun) {
-        try {
-            namespacedClient.pauseConnect(namespace, resourceName, loginService.getAuthorization(), dryRun);
-            return true;
-        } catch (HttpClientResponseException e) {
-            FormatUtils.displayError(e, "Connector", resourceName);
-        }
-        return false;
-    }
-    public boolean resumeConnect(String namespace, String resourceName, boolean dryRun) {
-        try {
-            namespacedClient.resumeConnect(namespace, resourceName, loginService.getAuthorization(), dryRun);
-            return true;
-        } catch (HttpClientResponseException e) {
-            FormatUtils.displayError(e, "Connector", resourceName);
-        }
-        return false;
-    }
-
     public Resource resetOffsets(String namespace, String group, Resource resource, boolean dryRun) {
         try {
             return namespacedClient.resetOffsets(loginService.getAuthorization(), namespace, group, resource, dryRun);
         } catch (HttpClientResponseException e) {
             formatService.displayError(e, "ConsumerGroup", group);
+        }
+        return null;
+    }
+
+    public Resource changeConnectorState(String namespace, String connector, Resource changeConnectorState) {
+        try {
+            Resource resource = namespacedClient.changeConnectorState(namespace, connector, changeConnectorState, loginService.getAuthorization());
+            if (resource == null) {
+                // micronaut converts HTTP 404 into null
+                // produce a 404
+                Status notFoundStatus = Status.builder()
+                        .code(404)
+                        .message("Resource not found")
+                        .reason("NotFound")
+                        .build();
+                throw new HttpClientResponseException("Not Found", HttpResponse.notFound(notFoundStatus));
+            }
+            return resource;
+        } catch (HttpClientResponseException e) {
+            formatService.displayError(e, "ChangeConnectorState", connector);
         }
         return null;
     }

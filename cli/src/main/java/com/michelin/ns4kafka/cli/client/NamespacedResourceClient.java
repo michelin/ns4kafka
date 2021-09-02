@@ -61,24 +61,10 @@ public interface NamespacedResourceClient {
             @Body Resource json,
             @QueryValue boolean dryrun);
 
-    @Post("{namespace}/connects/{resourcename}/restart{?dryrun}")
-    HttpResponse<Void> restartConnect(
+    @Post("{namespace}/connects/{connector}/change-state")
+    Resource changeConnectorState(
             String namespace,
-            String resourcename,
-            @Header("Authorization") String token,
-            @QueryValue boolean dryrun);
-
-    @Post("{namespace}/connects/{resourcename}/pause{?dryrun}")
-    HttpResponse<Void> pauseConnect(
-            String namespace,
-            String resourcename,
-            @Header("Authorization") String token,
-            @QueryValue boolean dryrun);
-
-    @Post("{namespace}/connects/{resourcename}/resume{?dryrun}")
-    HttpResponse<Void> resumeConnect(
-            String namespace,
-            String resourcename,
-            @Header("Authorization") String token,
-            @QueryValue boolean dryrun);
+            String connector,
+            @Body Resource changeConnectorState,
+            @Header("Authorization") String token);
 }

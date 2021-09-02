@@ -113,7 +113,7 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
 
         Resource resource = resourceService.resetOffsets(namespace, group, consumerGroupResetOffset, dryRun);
         if (resource != null) {
-            formatService.displaySingle(null, resource, "yaml");
+            formatService.displaySingle(resource, "yaml");
             return 0;
         }
 

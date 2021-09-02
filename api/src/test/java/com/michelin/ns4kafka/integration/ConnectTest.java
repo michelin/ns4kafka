@@ -8,6 +8,7 @@ import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.RoleBinding.*;
+import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStateInfo;
 import com.michelin.ns4kafka.services.connect.client.entities.ServerInfo;
 import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
@@ -17,15 +18,13 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
-import io.micronaut.http.client.exceptions.HttpClientException;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
@@ -154,11 +153,6 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
     @Test
     void restartConnector() throws InterruptedException, ExecutionException, MalformedURLException {
 
-
-        RxHttpClient connectCli = RxHttpClient.create(new URL(connect.getUrl()));
-        ServerInfo actual = connectCli.retrieve(HttpRequest.GET("/"), ServerInfo.class).blockingFirst();
-        Assertions.assertEquals("6.2.0-ccs", actual.version());
-
         Topic to = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-to1")
@@ -193,8 +187,86 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
         client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects").bearerAuth(token).body(co)).blockingFirst();
         connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
+        Thread.sleep(2000);
 
-        Assertions.assertDoesNotThrow(() -> client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects/ns1-co1/restart").bearerAuth(token)).blockingFirst());
+        ChangeConnectorState restartState = ChangeConnectorState.builder()
+                .metadata(ObjectMeta.builder().name("ns1-co1").build())
+                .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.restart).build())
+                .build();
+
+        HttpResponse<ChangeConnectorState> actual = client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects/ns1-co1/change-state").bearerAuth(token).body(restartState), ChangeConnectorState.class).blockingFirst();
+        Assertions.assertEquals(HttpStatus.OK, actual.status());
+    }
+
+    @Test
+    void PauseAndResumeConnector() throws MalformedURLException, InterruptedException {
+
+        RxHttpClient connectCli = RxHttpClient.create(new URL(connect.getUrl()));
+        Topic to = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-to1")
+                        .namespace("ns1")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(Map.of("cleanup.policy", "delete",
+                                "min.insync.replicas", "1",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Connector co = Connector.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-co2")
+                        .namespace("ns1")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(Map.of(
+                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                                "name", "ns1-co2",
+                                "tasks.max", "3",
+                                "topics", "ns1-to1"
+                        ))
+                        .build())
+                .build();
+
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to)).blockingFirst();
+        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects").bearerAuth(token).body(co)).blockingFirst();
+        connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
+        Thread.sleep(2000);
+
+        // pause the connector
+        ChangeConnectorState pauseState = ChangeConnectorState.builder()
+                .metadata(ObjectMeta.builder().name("ns1-co2").build())
+                .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.pause).build())
+                .build();
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects/ns1-co2/change-state").bearerAuth(token).body(pauseState)).blockingFirst();
+        Thread.sleep(2000);
+
+        // verify paused directly on connect cluster
+        ConnectorStateInfo actual = connectCli.retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class).blockingFirst();
+        Assertions.assertEquals("PAUSED", actual.connector().state());
+        Assertions.assertEquals("PAUSED", actual.tasks().get(0).state());
+        Assertions.assertEquals("PAUSED", actual.tasks().get(1).state());
+        Assertions.assertEquals("PAUSED", actual.tasks().get(2).state());
+
+        // resume the connector
+        ChangeConnectorState resumeState = ChangeConnectorState.builder()
+                .metadata(ObjectMeta.builder().name("ns1-co2").build())
+                .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.resume).build())
+                .build();
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects/ns1-co2/change-state").bearerAuth(token).body(resumeState)).blockingFirst();
+        Thread.sleep(2000);
+
+        // verify resumed directly on connect cluster
+        actual = connectCli.retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class).blockingFirst();
+        Assertions.assertEquals("RUNNING", actual.connector().state());
+        Assertions.assertEquals("RUNNING", actual.tasks().get(0).state());
+        Assertions.assertEquals("RUNNING", actual.tasks().get(1).state());
+        Assertions.assertEquals("RUNNING", actual.tasks().get(2).state());
     }
 
 }

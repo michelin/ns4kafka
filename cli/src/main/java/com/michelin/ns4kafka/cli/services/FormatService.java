@@ -3,7 +3,6 @@ package com.michelin.ns4kafka.cli.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.michelin.ns4kafka.cli.KafkactlConfig;
-import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.Status;
 import io.micronaut.core.naming.conventions.StringConvention;
@@ -39,16 +38,16 @@ public class FormatService {
             "AGE:/metadata/creationTimestamp%AGO"
             );
 
-    public void displayList(ApiResource apiResource, List<Resource> resources, String output) {
+    public void displayList(String kind, List<Resource> resources, String output) {
         if (output.equals(TABLE)) {
-            printTable(apiResource, resources);
+            printTable(kind, resources);
         } else if (output.equals(YAML)) {
             printYaml(resources);
         }
     }
 
-    public void displaySingle(ApiResource apiResource, Resource resource, String output) {
-        displayList(apiResource, List.of(resource), output);
+    public void displaySingle(Resource resource, String output) {
+        displayList(resource.getKind(), List.of(resource), output);
     }
 
     public void displayError(HttpClientResponseException e, String kind, String name) {
@@ -67,8 +66,8 @@ public class FormatService {
         }
     }
 
-    private void printTable(ApiResource apiResource, List<Resource> resources) {
-        String hyphenatedKind = StringConvention.HYPHENATED.format(apiResource.getKind());
+    private void printTable(String kind, List<Resource> resources) {
+        String hyphenatedKind = StringConvention.HYPHENATED.format(kind);
         List<String> formats = kafkactlConfig.tableFormat.getOrDefault(hyphenatedKind, defaults);
 
         PrettyTextTable ptt = new PrettyTextTable(formats, resources);
