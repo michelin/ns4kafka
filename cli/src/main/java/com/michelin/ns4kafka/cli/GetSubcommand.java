@@ -80,7 +80,7 @@ public class GetSubcommand implements Callable<Integer> {
                 // 4.a list all resources for given types (k get all, k get topics)
                 Map<ApiResource, List<Resource>> resources = resourceService.listAll(apiResources, namespace);
                 // 5.a display all resources by type
-                resources.forEach((k, v) -> formatService.displayList(k, v, output));
+                resources.forEach((k, v) -> formatService.displayList(k.getKind(), v, output));
             } catch (HttpClientResponseException e) {
                 formatService.displayError(e, apiResources.get(0).getKind(), null);
             } catch (Exception e) {
@@ -91,7 +91,7 @@ public class GetSubcommand implements Callable<Integer> {
             try {
                 // 4.b get individual resources for given types (k get topic topic1)
                 Resource singleResource = resourceService.getSingleResourceWithType(apiResources.get(0), namespace, resourceName.get(), true);
-                formatService.displaySingle(apiResources.get(0), singleResource, output);
+                formatService.displaySingle(singleResource, output);
             } catch (HttpClientResponseException e) {
                 formatService.displayError(e, apiResources.get(0).getKind(), resourceName.get());
             } catch (Exception e) {

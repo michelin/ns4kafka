@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.models.ChangeConnectorState;
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.services.KafkaConnectService;
@@ -42,7 +43,7 @@ public class ConnectController extends NamespacedResourceController {
         //check ownership
         if (!kafkaConnectService.isNamespaceOwnerOfConnect(ns, connector)) {
             throw new ResourceValidationException(List.of("Invalid value " + connector +
-                     " for name: Namespace not OWNER of this connector"), "Connector",connector);
+                    " for name: Namespace not OWNER of this connector"), "Connector", connector);
         }
 
         // exists ?
@@ -75,7 +76,7 @@ public class ConnectController extends NamespacedResourceController {
         //check ownership
         if (!kafkaConnectService.isNamespaceOwnerOfConnect(ns, connector.getMetadata().getName())) {
             throw new ResourceValidationException(List.of("Invalid value " + connector.getMetadata().getName() +
-                     " for name: Namespace not OWNER of this connector"), connector.getKind(), connector.getMetadata().getName());
+                    " for name: Namespace not OWNER of this connector"), connector.getKind(), connector.getMetadata().getName());
         }
 
         // Validate locally
@@ -118,6 +119,54 @@ public class ConnectController extends NamespacedResourceController {
         return formatHttpResponse(kafkaConnectService.createOrUpdate(ns, connector), status);
     }
 
+    @Post("/{connector}/change-state")
+    public HttpResponse<ChangeConnectorState> changeState(String namespace, String connector, @Body @Valid ChangeConnectorState changeConnectorState) {
+
+        Namespace ns = getNamespace(namespace);
+
+        if (!kafkaConnectService.isNamespaceOwnerOfConnect(ns, connector)) {
+            throw new ResourceValidationException(List.of("Invalid value " + connector +
+                    " for name: Namespace not OWNER of this connector"), "Connector", connector);
+        }
+
+        // exists ?
+        Optional<Connector> optionalConnector = kafkaConnectService.findByName(ns, connector);
+        if (optionalConnector.isEmpty())
+            return HttpResponse.notFound();
+
+        HttpResponse response;
+        try {
+            switch (changeConnectorState.getSpec().getAction()) {
+                case restart:
+                    response = kafkaConnectService.restart(ns, optionalConnector.get());
+                    break;
+                case pause:
+                    response = kafkaConnectService.pause(ns, optionalConnector.get());
+                    break;
+                case resume:
+                    response = kafkaConnectService.resume(ns, optionalConnector.get());
+                    break;
+                default:
+                    throw new IllegalStateException("Unspecified Action "+changeConnectorState.getSpec().getAction());
+            }
+            changeConnectorState.setStatus(ChangeConnectorState.ChangeConnectorStateStatus.builder()
+                    .success(true)
+                    .code(response.status())
+                    .build());
+        } catch (Exception e) {
+            changeConnectorState.setStatus(ChangeConnectorState.ChangeConnectorStateStatus.builder()
+                    .success(false)
+                    .code(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .errorMessage(e.getMessage())
+                    .build());
+        }
+
+        // override metadata
+        changeConnectorState.setMetadata(optionalConnector.get().getMetadata());
+        changeConnectorState.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+        return HttpResponse.ok(changeConnectorState);
+    }
+
     @Post("/_/import{?dryrun}")
     public List<Connector> importResources(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
 
@@ -141,7 +190,7 @@ public class ConnectController extends NamespacedResourceController {
                     sendEventLog(connector.getKind(),
                             connector.getMetadata(),
                             ApplyStatus.created,
-                             null,
+                            null,
                             connector.getSpec());
                     return kafkaConnectService.createOrUpdate(ns, connector);
                 })

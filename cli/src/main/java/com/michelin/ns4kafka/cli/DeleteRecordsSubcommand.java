@@ -49,7 +49,7 @@ public class DeleteRecordsSubcommand implements Callable<Integer> {
 
         Resource resource = resourceService.deleteRecords(namespace, topic, dryRun);
 
-        formatService.displaySingle(null, resource, "yaml");
+        formatService.displaySingle(resource, "yaml");
 
         return 0;
     }

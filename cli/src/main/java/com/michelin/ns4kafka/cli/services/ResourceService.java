@@ -133,4 +133,24 @@ public class ResourceService {
         }
         return null;
     }
+
+    public Resource changeConnectorState(String namespace, String connector, Resource changeConnectorState) {
+        try {
+            Resource resource = namespacedClient.changeConnectorState(namespace, connector, changeConnectorState, loginService.getAuthorization());
+            if (resource == null) {
+                // micronaut converts HTTP 404 into null
+                // produce a 404
+                Status notFoundStatus = Status.builder()
+                        .code(404)
+                        .message("Resource not found")
+                        .reason("NotFound")
+                        .build();
+                throw new HttpClientResponseException("Not Found", HttpResponse.notFound(notFoundStatus));
+            }
+            return resource;
+        } catch (HttpClientResponseException e) {
+            formatService.displayError(e, "ChangeConnectorState", connector);
+        }
+        return null;
+    }
 }

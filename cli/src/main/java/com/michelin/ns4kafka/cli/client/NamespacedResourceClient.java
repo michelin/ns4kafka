@@ -60,4 +60,11 @@ public interface NamespacedResourceClient {
             String consumerGroupName,
             @Body Resource json,
             @QueryValue boolean dryrun);
+
+    @Post("{namespace}/connects/{connector}/change-state")
+    Resource changeConnectorState(
+            String namespace,
+            String connector,
+            @Body Resource changeConnectorState,
+            @Header("Authorization") String token);
 }

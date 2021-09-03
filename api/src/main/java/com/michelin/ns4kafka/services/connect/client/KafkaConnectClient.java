@@ -1,10 +1,7 @@
 package com.michelin.ns4kafka.services.connect.client;
 
 import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
-import com.michelin.ns4kafka.services.connect.client.entities.ConfigInfos;
-import com.michelin.ns4kafka.services.connect.client.entities.ConnectorInfo;
-import com.michelin.ns4kafka.services.connect.client.entities.ConnectorPluginInfo;
-import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStatus;
+import com.michelin.ns4kafka.services.connect.client.entities.*;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.client.annotation.Client;
@@ -50,4 +47,35 @@ public interface KafkaConnectClient {
             @Header(value = KafkaConnectClientProxy.PROXY_HEADER_SECRET) String secret,
             @Header(value = KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
             @Header(value = KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER) String connectCluster);
+
+    @Get("/connectors/{connector}/status")
+    ConnectorStateInfo status(
+            @Header(value = KafkaConnectClientProxy.PROXY_HEADER_SECRET) String secret,
+            @Header(value = KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
+            @Header(value = KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER) String connectCluster,
+            String connector);
+
+    @Post("/connectors/{connector}/tasks/{taskid}/restart")
+    HttpResponse restart(
+            @Header(value = KafkaConnectClientProxy.PROXY_HEADER_SECRET) String secret,
+            @Header(value = KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
+            @Header(value = KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER) String connectCluster,
+            String connector,
+            int taskid);
+
+    @Put("/connectors/{connector}/pause")
+    HttpResponse pause(
+            @Header(value = KafkaConnectClientProxy.PROXY_HEADER_SECRET) String secret,
+            @Header(value = KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
+            @Header(value = KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER) String connectCluster,
+            String connector
+    );
+
+    @Put("/connectors/{connector}/resume")
+    HttpResponse resume(
+            @Header(value = KafkaConnectClientProxy.PROXY_HEADER_SECRET) String secret,
+            @Header(value = KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
+            @Header(value = KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER) String connectCluster,
+            String connector
+    );
 }

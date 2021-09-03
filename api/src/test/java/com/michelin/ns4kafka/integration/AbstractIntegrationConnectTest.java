@@ -27,7 +27,7 @@ public abstract class AbstractIntegrationConnectTest extends AbstractIntegration
             connect.start();
         }
         properties.putAll(brokerProps);
-        properties.put("ns4kafka.managed-clusters.test-cluster.config.connects.test-connect.url", connect.getUrl());
+        properties.put("ns4kafka.managed-clusters.test-cluster.connects.test-connect.url", connect.getUrl());
         return properties;
     }
 }

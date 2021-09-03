@@ -16,12 +16,12 @@ ns4kafka:
       manage-users: false
       manage-acls: true
       manage-topics: true
-      manage-connect: false
+      manage-connectors: true
       manage-role-bindings: false
       connects:
         test-connect:
-          url: "http://localhost/kafka/connect/"
-          basicAuthUsername: "user"
-          basicAuthPassword: "password"
+          url: "" #"http://localhost/kafka/connect/"
+          #basicAuthUsername: "user"
+          #basicAuthPassword: "password"
       config:
         bootstrap.servers: "localhost:9092"

@@ -8,6 +8,7 @@ import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
 import com.michelin.ns4kafka.services.connect.client.entities.ConfigInfos;
+import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStateInfo;
 import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.core.util.StringUtils;
@@ -144,5 +145,56 @@ public class KafkaConnectService {
                 // ...and aren't in ns4kafka storage
                 .filter(connector -> findByName(namespace, connector.getMetadata().getName()).isEmpty())
                 .collect(Collectors.toList());
+    }
+    public HttpResponse restart(Namespace namespace, Connector connector) {
+        ConnectorStateInfo status = kafkaConnectClient.status(
+                KafkaConnectClientProxy.PROXY_SECRET,
+                namespace.getMetadata().getCluster(),
+                connector.getSpec().getConnectCluster(),
+                connector.getMetadata().getName()
+        );
+        status.tasks().forEach( task -> {
+            kafkaConnectClient.restart(
+                    KafkaConnectClientProxy.PROXY_SECRET,
+                    namespace.getMetadata().getCluster(),
+                    connector.getSpec().getConnectCluster(),
+                    connector.getMetadata().getName(),
+                    task.id());
+                }
+        );
+        log.info("Success restarting Connector [{}] on Namespace [{}] Connect [{}]",
+                connector.getMetadata().getName(),
+                namespace.getMetadata().getName(),
+                connector.getSpec().getConnectCluster()
+                );
+        return HttpResponse.ok();
+    }
+
+    public HttpResponse pause(Namespace namespace, Connector connector) {
+
+        kafkaConnectClient.pause(
+                KafkaConnectClientProxy.PROXY_SECRET,
+                namespace.getMetadata().getCluster(),
+                connector.getSpec().getConnectCluster(),
+                connector.getMetadata().getName());
+        log.info("Success pausing Connector [{}] on Namespace [{}] Connect [{}]",
+                connector.getMetadata().getName(),
+                namespace.getMetadata().getName(),
+                connector.getSpec().getConnectCluster()
+        );
+        return HttpResponse.accepted();
+    }
+    public HttpResponse resume(Namespace namespace, Connector connector) {
+        kafkaConnectClient.resume(
+                KafkaConnectClientProxy.PROXY_SECRET,
+                namespace.getMetadata().getCluster(),
+                connector.getSpec().getConnectCluster(),
+                connector.getMetadata().getName());
+        log.info("Success resuming Connector [{}] on Namespace [{}] Connect [{}]",
+                connector.getMetadata().getName(),
+                namespace.getMetadata().getName(),
+                connector.getSpec().getConnectCluster()
+        );
+        return HttpResponse.accepted();
     }
 }

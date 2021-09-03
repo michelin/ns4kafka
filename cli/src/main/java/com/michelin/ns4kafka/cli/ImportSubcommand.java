@@ -61,7 +61,7 @@ public class ImportSubcommand implements Callable<Integer> {
         Map<ApiResource, List<Resource>> resources = resourceService.importAll(apiResources, namespace, dryRun);
 
         // 5.a display all resources by type
-        resources.forEach((k, v) -> formatService.displayList(k, v, "table"));
+        resources.forEach((k, v) -> formatService.displayList(k.getKind(), v, "table"));
         return 0;
 
     }
