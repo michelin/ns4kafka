@@ -10,6 +10,7 @@ import com.michelin.ns4kafka.services.NamespaceService;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.utils.SecurityService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -472,6 +473,60 @@ public class ConnectControllerTest {
     }
 
     @Test
+    void restartConnectorNotExists() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
+                .thenReturn(true);
+        Mockito.when(kafkaConnectService.findByName(ns,"connect1"))
+                .thenReturn(Optional.empty());
+
+        ChangeConnectorState restart = ChangeConnectorState.builder()
+                .metadata(ObjectMeta.builder().name("connect1").build())
+                .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.restart).build())
+                .build();
+
+        HttpResponse<ChangeConnectorState> actual = connectController.changeState("test", "connect1", restart);
+
+        Assertions.assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
+        verify(kafkaConnectService,never()).restart(ArgumentMatchers.any(), ArgumentMatchers.any());
+    }
+    @Test
+    void restartConnectorException() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
+                .thenReturn(true);
+        Mockito.when(kafkaConnectService.findByName(ns,"connect1"))
+                .thenReturn(Optional.of(connector));
+        Mockito.when(kafkaConnectService.restart(ArgumentMatchers.any(),ArgumentMatchers.any()))
+                .thenThrow(new HttpClientResponseException("Rebalancing", HttpResponse.status(HttpStatus.CONFLICT)));
+
+        ChangeConnectorState restart = ChangeConnectorState.builder()
+                .metadata(ObjectMeta.builder().name("connect1").build())
+                .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.restart).build())
+                .build();
+
+        HttpResponse<ChangeConnectorState> actual = connectController.changeState("test", "connect1", restart);
+
+        Assertions.assertFalse(actual.body().getStatus().isSuccess());
+        Assertions.assertEquals("Rebalancing", actual.body().getStatus().getErrorMessage());
+    }
+
+    @Test
     void restartConnectorOwned() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
@@ -496,6 +551,7 @@ public class ConnectControllerTest {
 
         HttpResponse<ChangeConnectorState> actual = connectController.changeState("test", "connect1", changeConnectorState);
 
+        Assertions.assertTrue(actual.body().getStatus().isSuccess());
         Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.body().getStatus().getCode());
         Assertions.assertEquals("connect1", actual.body().getMetadata().getName());
     }
