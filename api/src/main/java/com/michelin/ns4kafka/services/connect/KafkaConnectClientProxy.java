@@ -5,6 +5,7 @@ import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig.ConnectConfig;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.core.util.StringUtils;
+import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.MutableHttpResponse;
@@ -83,7 +84,7 @@ public class KafkaConnectClientProxy extends OncePerRequestHttpServerFilter {
     public MutableHttpRequest<?> mutateKafkaConnectRequest(HttpRequest<?> request, KafkaAsyncExecutorConfig.ConnectConfig connectConfig) {
 
         URI newURI = URI.create(connectConfig.getUrl());
-        return request.mutate()
+        MutableHttpRequest<?> mutableHttpRequest = request.mutate()
                 .uri(b -> b
                         .scheme(newURI.getScheme())
                         .host(newURI.getHost())
@@ -93,7 +94,10 @@ public class KafkaConnectClientProxy extends OncePerRequestHttpServerFilter {
                                 request.getPath().substring(KafkaConnectClientProxy.PROXY_PREFIX.length())
                         ))
                 )
-                .header("Host", newURI.getHost())
                 .basicAuth(connectConfig.getBasicAuthUsername(), connectConfig.getBasicAuthPassword());
+
+        // Micronaut resets Host later on with proper value.
+        mutableHttpRequest.getHeaders().remove(HttpHeaders.HOST);
+        return mutableHttpRequest;
     }
 }
