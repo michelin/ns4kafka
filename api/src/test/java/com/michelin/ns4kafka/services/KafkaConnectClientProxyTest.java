@@ -1,9 +1,9 @@
 package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.controllers.ResourceValidationException;
+import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig.ConnectConfig;
-import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.http.*;
 import io.micronaut.http.client.ProxyHttpClient;
@@ -199,6 +199,20 @@ public class KafkaConnectClientProxyTest {
         MutableHttpRequest<?> actual = proxy.mutateKafkaConnectRequest(request, config);
 
         Assertions.assertEquals("http://target/connectors", actual.getUri().toString());
+    }
+
+    @Test
+    void testMutateKafkaConnectRequestEmptyHostHeader_fix107() {
+        // https://github.com/michelin/ns4kafka/issues/107
+        MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors");
+        request.header("Host","value");
+        KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig();
+        config.setUrl("http://target/");
+
+        MutableHttpRequest<?> actual = proxy.mutateKafkaConnectRequest(request, config);
+
+        Assertions.assertEquals("http://target/connectors", actual.getUri().toString());
+        Assertions.assertTrue(actual.getHeaders().getAll("Host").isEmpty(), "Host header should be unset");
     }
 
     @Test
