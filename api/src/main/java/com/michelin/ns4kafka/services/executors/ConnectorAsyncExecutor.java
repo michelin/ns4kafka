@@ -7,6 +7,8 @@ import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
 import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStatus;
 import io.micronaut.context.annotation.EachBean;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import io.micronaut.http.client.exceptions.ReadTimeoutException;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
@@ -78,8 +80,19 @@ public class ConnectorAsyncExecutor {
             toUpdate.forEach(this::deployConnector);
 
 
+        } catch(HttpClientResponseException e) {
+            log.error("Invalid Http response {} during Connectors synchronization for Kafka cluster {} and Connect cluster {}",
+                    e.getStatus(),
+                    kafkaAsyncExecutorConfig.getName(),
+                    connectCluster);
+        } catch (ReadTimeoutException e){
+            log.error("ReadTimeoutException during Connectors synchronization for Kafka cluster {} and Connect cluster {}",
+                    kafkaAsyncExecutorConfig.getName(),
+                    connectCluster);
         } catch (Exception e) {
-            log.error("Exception during Connectors synchronization", e);
+            log.error("Exception during Connectors synchronization for Kafka cluster {} and Connect cluster {} : {}",
+                    kafkaAsyncExecutorConfig.getName(),
+                    connectCluster, e);
         }
     }
 
