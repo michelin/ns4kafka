@@ -134,6 +134,96 @@ public class AccessControlListControllerTest {
     }
 
     @Test
+    void getAcl(){
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder().name("test").cluster("local").build())
+                .build();
+        // granted by tes to test
+        AccessControlEntry ace1 = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder().name("ace1").namespace("test").cluster("local").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build()
+                )
+                .build();
+        // granted by test to test
+        AccessControlEntry ace2 = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder().name("ace2").namespace("test").cluster("local").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build()
+                )
+                .build();
+        // granted by test to namespace-other
+        AccessControlEntry ace3 = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder().name("ace3").namespace("test").cluster("local").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("prefix")
+                        .grantedTo("namespace-other")
+                        .build()
+                )
+                .build();
+        // granted by admin to namespace-other
+        AccessControlEntry ace4 = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder().name("ace4").namespace("admin").cluster("local").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("other-prefix")
+                        .grantedTo("namespace-other")
+                        .build()
+                )
+                .build();
+        // granted by namespace-other to test
+        AccessControlEntry ace5 = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder().name("ace5").namespace("namespace-other").cluster("local").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("other-prefix")
+                        .grantedTo("test")
+                        .build()
+                )
+                .build();
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(accessControlEntryService.findAllForCluster("local"))
+                .thenReturn(List.of(ace1, ace2, ace3, ace4, ace5));
+
+        // name not in list
+        Optional<AccessControlEntry> result1 = accessControlListController.get("test", "ace6");
+        // not granted to or assigned by me
+        Optional<AccessControlEntry> result2 = accessControlListController.get("test", "ace4");
+        // assigned by me
+        Optional<AccessControlEntry> result3 = accessControlListController.get("test", "ace3");
+        // granted to me
+        Optional<AccessControlEntry> result4 = accessControlListController.get("test", "ace5");
+
+        Assertions.assertTrue(result1.isEmpty());
+        Assertions.assertTrue(result2.isEmpty());
+
+        Assertions.assertTrue(result3.isPresent());
+        Assertions.assertEquals(ace3, result3.get());
+
+        Assertions.assertTrue(result4.isPresent());
+        Assertions.assertEquals(ace5, result4.get());
+
+    }
+
+    @Test
     void applyAsAdmin_Failure() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder().name("test").cluster("local").build())

@@ -69,6 +69,14 @@ public class AccessControlListController extends NamespacedResourceController {
 
     }
 
+    @Get("/{acl}")
+    public Optional<AccessControlEntry> get(String namespace, String acl) {
+        return list(namespace, Optional.of(AclLimit.ALL))
+                .stream()
+                .filter(accessControlEntry -> accessControlEntry.getMetadata().getName().equals(acl))
+                .findFirst();
+    }
+
     @Post("{?dryrun}")
     public HttpResponse<AccessControlEntry> apply(Authentication authentication, String namespace, @Valid @Body AccessControlEntry accessControlEntry, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
