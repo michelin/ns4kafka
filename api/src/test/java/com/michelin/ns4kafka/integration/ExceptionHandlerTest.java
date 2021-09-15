@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.integration;
 
-import javax.inject.Inject;
+import io.micronaut.rxjava3.http.client.Rx3HttpClient;
+import jakarta.inject.Inject;
 
 import com.michelin.ns4kafka.integration.TopicTest.BearerAccessRefreshToken;
 import com.michelin.ns4kafka.models.AccessControlEntry;
@@ -31,7 +32,6 @@ import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
@@ -47,7 +47,7 @@ public class ExceptionHandlerTest extends AbstractIntegrationTest {
 
     @Inject
     @Client("/")
-    RxHttpClient client;
+    Rx3HttpClient client;
 
     private String token;
 

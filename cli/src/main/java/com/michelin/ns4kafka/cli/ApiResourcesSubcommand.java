@@ -3,7 +3,7 @@ package com.michelin.ns4kafka.cli;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import picocli.CommandLine;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(name = "api-resources", description = "Print the supported API resources on the server")

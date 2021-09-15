@@ -4,18 +4,20 @@ import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
 import io.micronaut.core.annotation.Nullable;
+import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
+import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.security.rules.SecurityRuleResult;
 import io.micronaut.web.router.RouteMatch;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
+import org.reactivestreams.Publisher;
 
-import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -39,18 +41,24 @@ public class ResourceBasedSecurityRule implements SecurityRule {
         this.roleBindingRepository = roleBindingRepository;
         this.namespaceRepository = namespaceRepository;
     }
-
     @Override
-    public SecurityRuleResult check(HttpRequest<?> request, @Nullable RouteMatch<?> routeMatch, @Nullable Map<String, Object> claims) {
+    public Publisher<SecurityRuleResult> check(HttpRequest<?> request, @Nullable RouteMatch<?> routeMatch, @Nullable Authentication authentication) {
+        return Publishers.just(check_security(request, routeMatch, authentication));
+    }
+
+    public SecurityRuleResult check_security(HttpRequest<?> request, @Nullable RouteMatch<?> routeMatch, @Nullable Authentication authentication) {
         //Unauthenticated request
-        if (claims == null || !claims.keySet().containsAll( List.of("groups", "sub", "roles"))) {
+        if(authentication == null){
+            return SecurityRuleResult.UNKNOWN;
+        }
+        if (!authentication.getAttributes().keySet().containsAll( List.of("groups", "sub", "roles"))) {
             log.debug("No Authentication available for path [{}]. Returning unknown.",request.getPath());
             return SecurityRuleResult.UNKNOWN;
         }
 
-        String sub = claims.get("sub").toString();
-        List<String> groups = (List<String>) claims.get("groups");
-        List<String> roles = (List<String>) claims.get("roles");
+        String sub = authentication.getName();
+        List<String> groups = (List<String>) authentication.getAttributes().get("groups");
+        Collection<String> roles = authentication.getRoles();
 
         //Request to a URL that is not in the scope of this SecurityRule
         Matcher matcher = namespacedResourcePattern.matcher(request.getPath());

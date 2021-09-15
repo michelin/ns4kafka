@@ -19,17 +19,16 @@ import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.rxjava3.http.client.Rx3HttpClient;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -40,7 +39,7 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
 
     @Inject
     @Client("/")
-    RxHttpClient client;
+    Rx3HttpClient client;
 
     @Inject
     List<TopicAsyncExecutor> topicAsyncExecutorList;
@@ -127,8 +126,8 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
     @Test
     void createConnect() throws InterruptedException, ExecutionException, MalformedURLException {
 
-        RxHttpClient connectCli = RxHttpClient.create(new URL(connect.getUrl()));
-        ServerInfo actual = connectCli.retrieve(HttpRequest.GET("/"), ServerInfo.class).blockingFirst();
+
+        ServerInfo actual = client.retrieve(HttpRequest.GET(connect.getUrl()), ServerInfo.class).blockingFirst();
         Assertions.assertEquals("6.2.0-ccs", actual.version());
     }
 
@@ -201,7 +200,6 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
     @Test
     void PauseAndResumeConnector() throws MalformedURLException, InterruptedException {
 
-        RxHttpClient connectCli = RxHttpClient.create(new URL(connect.getUrl()));
         Topic to = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-to1")
@@ -247,7 +245,7 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
         Thread.sleep(2000);
 
         // verify paused directly on connect cluster
-        ConnectorStateInfo actual = connectCli.retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class).blockingFirst();
+        ConnectorStateInfo actual = client.retrieve(HttpRequest.GET(connect.getUrl()+"/connectors/ns1-co2/status"), ConnectorStateInfo.class).blockingFirst();
         Assertions.assertEquals("PAUSED", actual.connector().state());
         Assertions.assertEquals("PAUSED", actual.tasks().get(0).state());
         Assertions.assertEquals("PAUSED", actual.tasks().get(1).state());
@@ -262,7 +260,7 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
         Thread.sleep(2000);
 
         // verify resumed directly on connect cluster
-        actual = connectCli.retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class).blockingFirst();
+        actual = client.retrieve(HttpRequest.GET(connect.getUrl()+"/connectors/ns1-co2/status"), ConnectorStateInfo.class).blockingFirst();
         Assertions.assertEquals("RUNNING", actual.connector().state());
         Assertions.assertEquals("RUNNING", actual.tasks().get(0).state());
         Assertions.assertEquals("RUNNING", actual.tasks().get(1).state());
