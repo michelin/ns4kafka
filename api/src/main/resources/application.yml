@@ -115,17 +115,6 @@ ns4kafka:
       - registry/read
       - connect/read
       - connect/state/update
-  #  Logs to audit the actions performed by users
-  log:
-    # Enabled by default
-    console:
-      enabled: true
-    # Enabled by default
-    controller:
-      enabled: true
-    kafka:
-      enabled: true
-      topic: ns4kafka.audit-log
   security:
     admin-group: _
 #    local-users: # Not for production use.
@@ -148,3 +137,10 @@ ns4kafka:
           min.compaction.lag.ms: "0"
           max.compaction.lag.ms: "604800000"
           segment.ms: "600000"
+  # Logs the the actions performed by users when changes are made (created/deleted/changed)
+  log:
+    console: # 
+      enabled: true
+    kafka: # 
+      enabled: false
+      #topic: ns4kafka.audit-log
