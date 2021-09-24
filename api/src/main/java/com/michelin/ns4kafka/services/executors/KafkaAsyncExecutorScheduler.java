@@ -16,13 +16,29 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j
 @Singleton
 public class KafkaAsyncExecutorScheduler {
-
+    /**
+     * Asynchronous executor for topics
+     */
     @Inject
     List<TopicAsyncExecutor> topicAsyncExecutors;
+
+    /**
+     * Asynchronous executor for ACLs
+     */
     @Inject
     List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutors;
+
+    /**
+     * Asynchronous executor for connectors
+     */
     @Inject
     List<ConnectorAsyncExecutor> connectorAsyncExecutors;
+
+    /**
+     * Asynchronous executor for schemas
+     */
+    @Inject
+    List<SchemaAsyncExecutor> schemaAsyncExecutors;
 
     private final AtomicBoolean ready = new AtomicBoolean(false);
 
@@ -41,6 +57,7 @@ public class KafkaAsyncExecutorScheduler {
             topicAsyncExecutors.forEach(TopicAsyncExecutor::run);
             accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
             connectorAsyncExecutors.forEach(ConnectorAsyncExecutor::run);
+            schemaAsyncExecutors.forEach(SchemaAsyncExecutor::run);
         }else {
             log.warn("Scheduled job did not start because micronaut is not ready yet");
         }
