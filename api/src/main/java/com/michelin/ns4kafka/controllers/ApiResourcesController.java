@@ -21,6 +21,7 @@ public class ApiResourcesController {
             .path("acls")
             .names(List.of("acls", "acl", "ac"))
             .build();
+
     public static final ResourceDefinition CONNECTOR = ResourceDefinition.builder()
             .kind("Connector")
             .namespaced(true)
@@ -28,6 +29,7 @@ public class ApiResourcesController {
             .path("connects")
             .names(List.of("connects", "connect", "co"))
             .build();
+
     public static final ResourceDefinition KSTREAM = ResourceDefinition.builder()
             .kind("KafkaStream")
             .namespaced(true)
@@ -35,6 +37,7 @@ public class ApiResourcesController {
             .path("streams")
             .names(List.of("streams", "stream", "st"))
             .build();
+
     public static final ResourceDefinition ROLE_BINDING = ResourceDefinition.builder()
             .kind("RoleBinding")
             .namespaced(true)
@@ -42,6 +45,7 @@ public class ApiResourcesController {
             .path("role-bindings")
             .names(List.of("rolebindings", "rolebinding", "rb"))
             .build();
+
     public static final ResourceDefinition TOPIC = ResourceDefinition.builder()
             .kind("Topic")
             .namespaced(true)
@@ -49,12 +53,21 @@ public class ApiResourcesController {
             .path("topics")
             .names(List.of("topics", "topic", "to"))
             .build();
+
     public static final ResourceDefinition NAMESPACE = ResourceDefinition.builder()
             .kind("Namespace")
                         .namespaced(false)
                         .synchronizable(false)
                         .path("namespaces")
                         .names(List.of("namespaces", "namespace", "ns"))
+            .build();
+
+    public static final ResourceDefinition SCHEMA = ResourceDefinition.builder()
+            .kind("Schema")
+            .namespaced(true)
+            .synchronizable(true)
+            .path("schemas")
+            .names(List.of("schemas", "schema", "sch"))
             .build();
 
     @Get
@@ -65,7 +78,8 @@ public class ApiResourcesController {
                 KSTREAM,
                 ROLE_BINDING,
                 TOPIC,
-                NAMESPACE
+                NAMESPACE,
+                SCHEMA
                 );
     }
 
