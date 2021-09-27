@@ -1,11 +1,7 @@
 package com.michelin.ns4kafka.services.executors;
 
-import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.Schema;
-import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import com.michelin.ns4kafka.repositories.SchemaRepository;
-import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
-import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
 import com.michelin.ns4kafka.services.schema.registry.KafkaSchemaRegistryClientProxy;
 import com.michelin.ns4kafka.services.schema.registry.client.KafkaSchemaRegistryClient;
 import io.micronaut.context.annotation.EachBean;
@@ -13,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.net.MalformedURLException;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
@@ -40,16 +35,6 @@ public class SchemaAsyncExecutor {
      */
     @Inject
     KafkaSchemaRegistryClient kafkaSchemaRegistryClient;
-
-    /**
-     * Constructor
-     *
-     * @param kafkaAsyncExecutorConfig The configuration
-     * @throws MalformedURLException
-     */
-    /*public SchemaAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) throws MalformedURLException {
-        this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
-    }*/
 
     /**
      * Run method

@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.models.Schema;
 import com.michelin.ns4kafka.repositories.SchemaRepository;
 import com.michelin.ns4kafka.services.schema.registry.KafkaSchemaRegistryClientProxy;
@@ -11,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Singleton
@@ -28,13 +30,23 @@ public class SchemaService {
     SchemaRepository schemaRepository;
 
     /**
-     * Publish a schema to the schema registry
+     * Publish a schema to the schemas technical topic
      *
      * @param schema The schema to publish
      * @return The created schema
      */
     public Schema create(Schema schema) {
         return this.schemaRepository.create(schema);
+    }
+
+    /**
+     * Find a schema by name
+     *
+     * @param name The name of the schema
+     * @return A schema matching the given name
+     */
+    public Optional<Schema> findByName(String name) {
+        return this.schemaRepository.findByName(name);
     }
 
     /**

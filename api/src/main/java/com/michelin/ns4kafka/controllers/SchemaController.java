@@ -17,6 +17,7 @@ import javax.validation.Valid;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Tag(name = "Schemas")
 @Controller(value = "/api/namespaces/{namespace}/schemas")
@@ -29,7 +30,7 @@ public class SchemaController extends NamespacedResourceController {
     SchemaService schemaService;
 
     /**
-     * Publish a schema to the schema registry
+     * Publish a schema to the schemas technical topic
      *
      * @param namespace The namespace
      * @param schema The schema to create
@@ -50,10 +51,21 @@ public class SchemaController extends NamespacedResourceController {
         schema.getMetadata().setNamespace(retrievedNamespace.getMetadata().getName());
         schema.setStatus(Schema.SchemaStatus.ofPending());
 
+        Optional<Schema> existingSchema = this.schemaService.findByName(schema.getMetadata().getName());
+
+        if (existingSchema.isPresent() && existingSchema.get().equals(schema)) {
+            return formatHttpResponse(existingSchema.get(), ApplyStatus.unchanged);
+        }
+
         if (dryrun) {
             return formatHttpResponse(schema, ApplyStatus.created);
         }
 
-        return formatHttpResponse(this.schemaService.create(schema), ApplyStatus.created);
+        ApplyStatus status = existingSchema.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
+
+        super.sendEventLog(schema.getKind(), schema.getMetadata(), status,
+                existingSchema.<Object>map(Schema::getSpec).orElse(null), schema.getSpec());
+
+        return formatHttpResponse(this.schemaService.create(schema), status);
     }
 }
