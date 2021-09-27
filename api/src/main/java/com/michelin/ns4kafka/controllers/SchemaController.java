@@ -51,7 +51,8 @@ public class SchemaController extends NamespacedResourceController {
         schema.getMetadata().setNamespace(retrievedNamespace.getMetadata().getName());
         schema.setStatus(Schema.SchemaStatus.ofPending());
 
-        Optional<Schema> existingSchema = this.schemaService.findByName(schema.getMetadata().getName());
+        Optional<Schema> existingSchema = this.schemaService.findByName(retrievedNamespace,
+                schema.getMetadata().getName());
 
         if (existingSchema.isPresent() && existingSchema.get().equals(schema)) {
             return formatHttpResponse(existingSchema.get(), ApplyStatus.unchanged);

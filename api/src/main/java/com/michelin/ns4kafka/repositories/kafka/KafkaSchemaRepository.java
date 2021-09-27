@@ -66,19 +66,6 @@ public class KafkaSchemaRepository extends KafkaStore<Schema> implements SchemaR
     }
 
     /**
-     * Find a schema by name
-     *
-     * @param name The name of the schema
-     * @return A schema matching the given name
-     */
-    @Override
-    public Optional<Schema> findByName(String name) {
-        return getKafkaStore().values().stream()
-                .filter(schema -> schema.getMetadata().getName().equals(name))
-                .findFirst();
-    }
-
-    /**
      * Build a key according to a given schema resource
      *
      * @param schema The schema resource
