@@ -5,6 +5,7 @@ import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.core.util.StringUtils;
+import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.MutableHttpResponse;
@@ -63,7 +64,7 @@ public class KafkaSchemaRegistryClientProxy extends OncePerRequestHttpServerFilt
      * @return A modified request
      */
     @Override
-    protected Publisher<MutableHttpResponse<?>> doFilterOnce(HttpRequest<?> request, ServerFilterChain chain) {
+    public Publisher<MutableHttpResponse<?>> doFilterOnce(HttpRequest<?> request, ServerFilterChain chain) {
         // Check call is initiated from Micronaut and not from outside
         if (!request.getHeaders().contains(KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET)) {
             return Publishers.just(new ResourceValidationException(List.of("Missing required header " + KafkaConnectClientProxy.PROXY_HEADER_SECRET), null, null));
@@ -89,7 +90,24 @@ public class KafkaSchemaRegistryClientProxy extends OncePerRequestHttpServerFilt
             return Publishers.just(new ResourceValidationException(List.of("Kafka Cluster [" + kafkaCluster + "] not found"),null,null));
         }
 
-        URI newURI = URI.create(config.get().getSchemaRegistry().getUrl());
+        if (config.get().getSchemaRegistry() == null) {
+            return Publishers.just(new ResourceValidationException(List.of("Kafka Cluster [" + kafkaCluster + "] has no schema registry"),null,null));
+        }
+
+        return this.client.proxy(mutateSchemaRegistryRequest(request, config.get()));
+    }
+
+    /**
+     * Mutate a request to the Schema Registry by modifying the base URI by the Schema Registry URI from the
+     * cluster config
+     *
+     * @param request The request to modify
+     * @param config The configuration used to modify the request
+     * @return The modified request
+     */
+    public MutableHttpRequest<?> mutateSchemaRegistryRequest(HttpRequest<?> request, KafkaAsyncExecutorConfig config) {
+        URI newURI = URI.create(config.getSchemaRegistry().getUrl());
+
         MutableHttpRequest<?> mutableHttpRequest = request.mutate()
                 .uri(mutableRequest -> mutableRequest
                         .scheme(newURI.getScheme())
@@ -98,10 +116,15 @@ public class KafkaSchemaRegistryClientProxy extends OncePerRequestHttpServerFilt
                         .replacePath(StringUtils.prependUri(newURI.getPath(),
                                 request.getPath().substring(KafkaSchemaRegistryClientProxy.SCHEMA_REGISTRY_PREFIX.length())
                         ))
-                )
-                .basicAuth(config.get().getSchemaRegistry().getBasicAuthUsername(),
-                        config.get().getSchemaRegistry().getBasicAuthPassword());
+                );
 
-        return this.client.proxy(mutableHttpRequest);
+        if (org.apache.commons.lang3.StringUtils.isNotBlank(config.getSchemaRegistry().getBasicAuthUsername()) &&
+                org.apache.commons.lang3.StringUtils.isNotBlank(config.getSchemaRegistry().getBasicAuthPassword())) {
+            mutableHttpRequest.basicAuth(config.getSchemaRegistry().getBasicAuthUsername(),
+                    config.getSchemaRegistry().getBasicAuthPassword());
+        }
+
+        mutableHttpRequest.getHeaders().remove(HttpHeaders.HOST);
+        return mutableHttpRequest;
     }
 }
