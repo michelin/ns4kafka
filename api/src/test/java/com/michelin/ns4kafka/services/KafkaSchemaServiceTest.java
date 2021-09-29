@@ -1,10 +1,13 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.models.*;
-import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
+import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.Schema;
 import com.michelin.ns4kafka.repositories.SchemaRepository;
-import com.michelin.ns4kafka.repositories.TopicRepository;
-import io.micronaut.context.ApplicationContext;
+import com.michelin.ns4kafka.services.schema.registry.client.KafkaSchemaRegistryClient;
+import com.michelin.ns4kafka.services.schema.registry.client.entities.SchemaCompatibility;
+import io.micronaut.http.HttpResponse;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,7 +16,12 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.any;
 
 @ExtendWith(MockitoExtension.class)
 class KafkaSchemaServiceTest {
@@ -34,6 +42,12 @@ class KafkaSchemaServiceTest {
      */
     @Mock
     SchemaRepository schemaRepository;
+
+    /**
+     * Kafka schema registry client
+     */
+    @Mock
+    KafkaSchemaRegistryClient kafkaSchemaRegistryClient;
 
     /**
      * Tests to find a schema by name
@@ -226,7 +240,7 @@ class KafkaSchemaServiceTest {
      */
     @Test
     void findAllForNamespaceNoACL() {
-// Create namespace
+        // Create namespace
         Namespace namespace = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -260,5 +274,50 @@ class KafkaSchemaServiceTest {
         // Should succeed, access granted by prefix
         List<Schema> schemas = this.schemaService.findAllForNamespace(namespace);
         Assertions.assertTrue(schemas.isEmpty());
+    }
+
+    /**
+     * Tests to create a schema
+     */
+    @Test
+    void create() {
+        // Create namespace
+        Namespace namespace = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        // Create schemas
+        Schema mockedSchema1 = Schema.builder()
+                .metadata(ObjectMeta.builder().name("prefix.schema-one").build())
+                .build();
+
+        Mockito.when(this.schemaRepository.create(mockedSchema1))
+                .thenReturn(mockedSchema1);
+
+        Schema retrievedSchema = this.schemaService.create(mockedSchema1);
+        Assertions.assertEquals(mockedSchema1, retrievedSchema);
+    }
+
+    /**
+     * Tests the response of the schema compatibility
+     */
+    @Test
+    void verifyCompatibility() {
+        // Create schemas
+        Schema mockedSchema1 = Schema.builder()
+                .metadata(ObjectMeta.builder().name("prefix.schema-one").build())
+                .build();
+
+        Mockito.when(this.kafkaSchemaRegistryClient.compatibility(any(), any(), any(), any()))
+                .thenReturn(HttpResponse.ok(SchemaCompatibility.builder().isCompatible(true).build()));
+
+        SchemaCompatibility schemaCompatibility = this.schemaService.validateSchemaCompatibility("local",mockedSchema1);
+        Assertions.assertTrue(schemaCompatibility.isCompatible());
     }
 }

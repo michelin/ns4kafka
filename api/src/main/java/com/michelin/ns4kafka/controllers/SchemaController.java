@@ -1,11 +1,9 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.models.Connector;
-import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.Schema;
-import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.services.KafkaConnectService;
 import com.michelin.ns4kafka.services.SchemaService;
+import com.michelin.ns4kafka.services.schema.registry.client.entities.SchemaCompatibility;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
@@ -30,6 +28,37 @@ public class SchemaController extends NamespacedResourceController {
     SchemaService schemaService;
 
     /**
+     * Get all the schemas within a given namespace
+     *
+     * @param namespace The namespace
+     * @return A list of schemas
+     */
+    @Get
+    public List<Schema> getAllByNamespace(String namespace) {
+        return this.schemaService.findAllForNamespace(getNamespace(namespace));
+    }
+
+    /**
+     * Get the last version of a schema by namespace and subject
+     *
+     * @param namespace The namespace
+     * @param subject The subject
+     * @return A schema
+     */
+    @Get("/{subject}")
+    public Optional<Schema> getByNamespaceAndSubject(String namespace, String subject) {
+        Namespace retrievedNamespace = super.getNamespace(namespace);
+
+        if (!this.schemaService.isNamespaceOwnerOfSchema(retrievedNamespace, subject)) {
+            throw new ResourceValidationException(List.of("Invalid prefix " + subject +
+                    " : namespace not owner of this schema"), AccessControlEntry.ResourceType.SCHEMA.toString(),
+                    subject);
+        }
+
+        return this.schemaService.findByName(getNamespace(namespace), subject);
+    }
+
+    /**
      * Publish a schema to the schemas technical topic
      *
      * @param namespace The namespace
@@ -44,6 +73,14 @@ public class SchemaController extends NamespacedResourceController {
         if (!this.schemaService.isNamespaceOwnerOfSchema(retrievedNamespace, schema.getMetadata().getName())) {
             throw new ResourceValidationException(List.of("Invalid prefix " + schema.getMetadata().getName() +
                     " : namespace not owner of this schema"), schema.getKind(), schema.getMetadata().getName());
+        }
+
+        SchemaCompatibility schemaCompatibility = this.schemaService.validateSchemaCompatibility(retrievedNamespace.getMetadata().getCluster(),
+                schema);
+
+        if (schemaCompatibility != null && !schemaCompatibility.isCompatible()) {
+            throw new ResourceValidationException(List.of("The schema registry rejected the given schema for compatibility reason"),
+                    schema.getKind(), schema.getMetadata().getName());
         }
 
         schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));

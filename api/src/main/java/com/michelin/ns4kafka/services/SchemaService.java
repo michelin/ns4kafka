@@ -4,6 +4,10 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Schema;
 import com.michelin.ns4kafka.repositories.SchemaRepository;
+import com.michelin.ns4kafka.services.schema.registry.KafkaSchemaRegistryClientProxy;
+import com.michelin.ns4kafka.services.schema.registry.client.KafkaSchemaRegistryClient;
+import com.michelin.ns4kafka.services.schema.registry.client.entities.SchemaCompatibility;
+import io.micronaut.http.HttpResponse;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
@@ -26,6 +30,12 @@ public class SchemaService {
      */
     @Inject
     SchemaRepository schemaRepository;
+
+    /**
+     * Schema Registry client
+     */
+    @Inject
+    KafkaSchemaRegistryClient kafkaSchemaRegistryClient;
 
     /**
      * Publish a schema to the schemas technical topic
@@ -80,6 +90,17 @@ public class SchemaService {
                     return false;
                 }))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Validate the schema compatibility against the Schema Registry
+     *
+     * @param schema The schema to validate
+     */
+    public SchemaCompatibility validateSchemaCompatibility(String cluster, Schema schema) {
+        return this.kafkaSchemaRegistryClient.compatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
+                cluster, schema.getMetadata().getName(),schema.getSpec())
+                .body();
     }
 
     /**

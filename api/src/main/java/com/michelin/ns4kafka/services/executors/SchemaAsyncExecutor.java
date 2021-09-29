@@ -69,7 +69,7 @@ public class SchemaAsyncExecutor {
     private void publishSchema(Schema schema) {
         try {
             this.kafkaSchemaRegistryClient.publish(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
-                    schema.getMetadata().getCluster(), schema.getMetadata().getName() + "-value",
+                    schema.getMetadata().getCluster(), schema.getMetadata().getName(),
                     schema.getSpec());
 
             log.info("Success deploying schema [{}] on schema registry [{}] of kafka cluster [{}]",
@@ -88,7 +88,7 @@ public class SchemaAsyncExecutor {
                     this.kafkaAsyncExecutorConfig.getName(), e);
 
             schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-            schema.setStatus(Schema.SchemaStatus.ofSuccess("Schema published"));
+            schema.setStatus(Schema.SchemaStatus.ofFailed("Schema failed"));
 
             this.schemaRepository.create(schema);
         }
