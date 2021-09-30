@@ -9,14 +9,14 @@ import java.util.List;
 
 @Client("${kafkactl.api}/api/namespaces/")
 public interface NamespacedResourceClient {
-
-    @Delete("{namespace}/{kind}/{resourcename}{?dryrun}")
+    @Delete("{namespace}/{kind}/{resourcename}{?dryrun,hard}")
     void delete(
             String namespace,
             String kind,
             String resourcename,
             @Header("Authorization") String token,
-            @QueryValue boolean dryrun);
+            @QueryValue boolean dryrun,
+            @QueryValue boolean hard);
 
     @Post("{namespace}/{kind}{?dryrun}")
     HttpResponse<Resource> apply(

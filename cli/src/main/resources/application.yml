@@ -44,6 +44,7 @@ kafkactl:
       - "ERROR_MSG:/status/errorMessage"
     Schema:
       - "SUBJECT:/metadata/name"
+      - "COMPATIBILITY:/spec/compatibility"
       - "STATUS:/status/phase"
       - "AGE:/metadata/creationTimestamp%AGO"
 #  api: http://localhost:8080

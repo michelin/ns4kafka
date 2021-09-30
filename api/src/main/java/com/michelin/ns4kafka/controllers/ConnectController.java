@@ -64,8 +64,6 @@ public class ConnectController extends NamespacedResourceController {
         //delete resource
         kafkaConnectService.delete(ns, optionalConnector.get());
         return HttpResponse.noContent();
-
-
     }
 
     @Post("{?dryrun}")

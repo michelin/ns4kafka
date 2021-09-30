@@ -15,32 +15,41 @@ import java.util.concurrent.Callable;
 
 @Command(name = "delete", description = "Delete a resource")
 public class DeleteSubcommand implements Callable<Integer> {
-
     @Inject
     public KafkactlConfig kafkactlConfig;
 
     @Inject
     public ResourceService resourceService;
+
     @Inject
     public LoginService loginService;
+
     @Inject
     public ApiResourcesService apiResourcesService;
 
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
-    @Parameters(index = "0", description = "Resource type", arity = "1")
-    public String resourceType;
-    @Parameters(index = "1", description = "Resource name", arity = "1")
-    public String name;
-    @Option(names = {"--dry-run"}, description = "Does not persist operation. Validate only")
-    public boolean dryRun;
 
     @CommandLine.Spec
     public CommandLine.Model.CommandSpec commandSpec;
 
+    @Parameters(index = "0", description = "Resource type", arity = "1")
+    public String resourceType;
+
+    @Parameters(index = "1", description = "Resource name", arity = "1")
+    public String name;
+
+    @Option(names = {"--dry-run"}, description = "Does not persist operation. Validate only")
+    public boolean dryRun;
+
+    /**
+     * Option to perform a hard delete
+     */
+    @Option(names = {"--hard"}, description = "Perform a hard delete of the resource")
+    public boolean hard;
+
     @Override
     public Integer call() {
-
         if (dryRun) {
             System.out.println("Dry run execution");
         }
@@ -59,7 +68,9 @@ public class DeleteSubcommand implements Callable<Integer> {
 
         ApiResource apiResource = optionalApiResource.get();
 
-        boolean deleted = resourceService.delete(apiResource, namespace, name, dryRun);
+        boolean deleted = resourceService.delete(apiResource, namespace,
+                name, dryRun, hard);
+
         if (deleted) {
             System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,green Success |@") + resourceType + "/" + name + " (deleted)");
 

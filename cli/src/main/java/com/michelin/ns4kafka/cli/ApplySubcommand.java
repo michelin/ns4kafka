@@ -21,13 +21,15 @@ import java.util.stream.Collectors;
 
 @Command(name = "apply", description = "Create or update a resource")
 public class ApplySubcommand implements Callable<Integer> {
-
     @Inject
     public LoginService loginService;
+
     @Inject
     public ApiResourcesService apiResourcesService;
+
     @Inject
     public FileService fileService;
+
     @Inject
     public ResourceService resourceService;
 
@@ -36,10 +38,13 @@ public class ApplySubcommand implements Callable<Integer> {
 
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
+
     @Option(names = {"-f", "--file"}, description = "YAML File or Directory containing YAML resources")
     public Optional<File> file;
+
     @Option(names = {"-R", "--recursive"}, description = "Enable recursive search of file")
     public boolean recursive;
+
     @Option(names = {"--dry-run"}, description = "Does not persist resources. Validate only")
     public boolean dryRun;
 
@@ -48,7 +53,6 @@ public class ApplySubcommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-
         if (dryRun) {
             System.out.println("Dry run execution");
         }

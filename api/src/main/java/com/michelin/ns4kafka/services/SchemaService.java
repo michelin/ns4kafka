@@ -6,12 +6,15 @@ import com.michelin.ns4kafka.models.Schema;
 import com.michelin.ns4kafka.repositories.SchemaRepository;
 import com.michelin.ns4kafka.services.schema.registry.KafkaSchemaRegistryClientProxy;
 import com.michelin.ns4kafka.services.schema.registry.client.KafkaSchemaRegistryClient;
-import com.michelin.ns4kafka.services.schema.registry.client.entities.SchemaCompatibility;
+import com.michelin.ns4kafka.services.schema.registry.client.entities.SchemaCompatibilityConfig;
+import com.michelin.ns4kafka.services.schema.registry.client.entities.SchemaCompatibilityCheck;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -95,12 +98,31 @@ public class SchemaService {
     /**
      * Validate the schema compatibility against the Schema Registry
      *
-     * @param schema The schema to validate
+     * @param cluster The cluster linked with the Schema Registry to call
+     * @param schema The schema to update the compatibility
+     * @param schemaCompatibilityConfig The compatibility to apply
      */
-    public SchemaCompatibility validateSchemaCompatibility(String cluster, Schema schema) {
-        return this.kafkaSchemaRegistryClient.compatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
-                cluster, schema.getMetadata().getName(),schema.getSpec())
-                .body();
+    public void updateSchemaCompatibility(String cluster, Schema schema, SchemaCompatibilityConfig schemaCompatibilityConfig) {
+        this.kafkaSchemaRegistryClient.updateSchemaCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
+                cluster, schema.getMetadata().getName(), schemaCompatibilityConfig);
+    }
+
+    /**
+     * Validate the schema compatibility against the Schema Registry
+     *
+     * @param cluster The cluster linked with the Schema Registry to call
+     * @param schema The schema to validate
+     * @return A list of errors
+     */
+    public List<String> validateSchemaCompatibility(String cluster, Schema schema) {
+        HttpResponse<SchemaCompatibilityCheck> response = this.kafkaSchemaRegistryClient.validateSchemaCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
+                cluster, schema.getMetadata().getName(),schema.getSpec().getContent());
+
+        if (response.getBody().isPresent() && !response.getBody().get().isCompatible()) {
+            return List.of("The schema registry rejected the given schema for compatibility reason");
+        }
+
+        return Collections.emptyList();
     }
 
     /**

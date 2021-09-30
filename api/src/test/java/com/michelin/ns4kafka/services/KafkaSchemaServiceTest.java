@@ -6,7 +6,7 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Schema;
 import com.michelin.ns4kafka.repositories.SchemaRepository;
 import com.michelin.ns4kafka.services.schema.registry.client.KafkaSchemaRegistryClient;
-import com.michelin.ns4kafka.services.schema.registry.client.entities.SchemaCompatibility;
+import com.michelin.ns4kafka.services.schema.registry.client.entities.SchemaCompatibilityCheck;
 import io.micronaut.http.HttpResponse;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -281,17 +281,6 @@ class KafkaSchemaServiceTest {
      */
     @Test
     void create() {
-        // Create namespace
-        Namespace namespace = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .spec(Namespace.NamespaceSpec.builder()
-                        .connectClusters(List.of("local-name"))
-                        .build())
-                .build();
-
         // Create schemas
         Schema mockedSchema1 = Schema.builder()
                 .metadata(ObjectMeta.builder().name("prefix.schema-one").build())
@@ -312,12 +301,50 @@ class KafkaSchemaServiceTest {
         // Create schemas
         Schema mockedSchema1 = Schema.builder()
                 .metadata(ObjectMeta.builder().name("prefix.schema-one").build())
+                .spec(Schema.SchemaSpec.builder()
+                        .content(Schema.SchemaSpec.Content.builder()
+                                .schema("schema")
+                                .build())
+                        .build())
                 .build();
 
-        Mockito.when(this.kafkaSchemaRegistryClient.compatibility(any(), any(), any(), any()))
-                .thenReturn(HttpResponse.ok(SchemaCompatibility.builder().isCompatible(true).build()));
+        SchemaCompatibilityCheck schemaCompatibilityCheck = SchemaCompatibilityCheck.builder()
+                .isCompatible(true)
+                .build();
 
-        SchemaCompatibility schemaCompatibility = this.schemaService.validateSchemaCompatibility("local",mockedSchema1);
-        Assertions.assertTrue(schemaCompatibility.isCompatible());
+        Mockito.when(this.kafkaSchemaRegistryClient.validateSchemaCompatibility(any(), any(), any(), any()))
+                .thenReturn(HttpResponse.ok(schemaCompatibilityCheck));
+
+        List<String> errors = this.schemaService.validateSchemaCompatibility("local",mockedSchema1);
+
+        Assertions.assertTrue(errors.isEmpty());
+    }
+
+    /**
+     * Tests the response of the schema compatibility when the schema is not compatible
+     */
+    @Test
+    void verifyCompatibilityNotCompatible() {
+        // Create schemas
+        Schema mockedSchema1 = Schema.builder()
+                .metadata(ObjectMeta.builder().name("prefix.schema-one").build())
+                .spec(Schema.SchemaSpec.builder()
+                        .content(Schema.SchemaSpec.Content.builder()
+                                .schema("schema")
+                                .build())
+                        .build())
+                .build();
+
+        SchemaCompatibilityCheck schemaCompatibilityCheck = SchemaCompatibilityCheck.builder()
+                .isCompatible(false)
+                .build();
+
+        Mockito.when(this.kafkaSchemaRegistryClient.validateSchemaCompatibility(any(), any(), any(), any()))
+                .thenReturn(HttpResponse.ok(schemaCompatibilityCheck));
+
+        List<String> errors = this.schemaService.validateSchemaCompatibility("local",mockedSchema1);
+
+        Assertions.assertEquals(1L, errors.size());
+        Assertions.assertEquals("The schema registry rejected the given schema for compatibility reason", errors.get(0));
     }
 }

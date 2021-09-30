@@ -14,26 +14,29 @@ import java.util.concurrent.Callable;
 
 @Command(name = "delete-records", description = "Deletes all records within a topic")
 public class DeleteRecordsSubcommand implements Callable<Integer> {
-
     @Inject
     public KafkactlConfig kafkactlConfig;
 
     @Inject
     public LoginService loginService;
+
     @Inject
     public ResourceService resourceService;
+
     @Inject
     public FormatService formatService;
 
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
-    @Parameters(description = "Name of the topic", arity = "1")
-    public String topic;
-    @Option(names = {"--dry-run"}, description = "Does not persist resources. Validate only")
-    public boolean dryRun;
 
     @CommandLine.Spec
     public CommandLine.Model.CommandSpec commandSpec;
+
+    @Parameters(description = "Name of the topic", arity = "1")
+    public String topic;
+
+    @Option(names = {"--dry-run"}, description = "Does not persist resources. Validate only")
+    public boolean dryRun;
 
     @Override
     public Integer call() throws Exception {

@@ -81,10 +81,11 @@ public class ResourceService {
         return null;
     }
 
-    public boolean delete(ApiResource apiResource, String namespace, String resource, boolean dryRun) {
+    public boolean delete(ApiResource apiResource, String namespace, String resource, boolean dryRun, boolean hard) {
         try {
             if (apiResource.isNamespaced()) {
-                namespacedClient.delete(namespace, apiResource.getPath(), resource, loginService.getAuthorization(), dryRun);
+                namespacedClient.delete(namespace, apiResource.getPath(), resource, loginService.getAuthorization(),
+                        dryRun, hard);
                 return true;
             } else {
                 nonNamespacedClient.delete(loginService.getAuthorization(), apiResource.getPath(), resource, dryRun);

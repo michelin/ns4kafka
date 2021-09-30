@@ -32,7 +32,7 @@ public class KafkaSchemaRepository extends KafkaStore<Schema> implements SchemaR
     }
 
     /**
-     * Register the schema to the schemas technical topic
+     * Produce a new schema message to the schemas technical topic
      *
      * @param schema The schema to register
      * @return The registered schema
@@ -50,6 +50,16 @@ public class KafkaSchemaRepository extends KafkaStore<Schema> implements SchemaR
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.schemas")
     void receive(ConsumerRecord<String, Schema> record) {
         super.receive(record);
+    }
+
+    /**
+     * "Delete" a schema from the schemas technical topic by pushing a new null message into it
+     *
+     * @param schema The schema to delete, used to compute the key
+     */
+    @Override
+    public void delete(Schema schema) {
+        this.produce(getMessageKey(schema),null);
     }
 
     /**

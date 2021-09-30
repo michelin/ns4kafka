@@ -8,7 +8,9 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 @Introspected
 @Builder
@@ -55,9 +57,29 @@ public class Schema {
     @Data
     public static class SchemaSpec {
         /**
-         * AVSC schema
+         * Schema compatibility
          */
-        private String schema;
+        private SchemaCompatibility compatibility;
+
+        /**
+         * Content of the schema
+         */
+        private Schema.SchemaSpec.Content content;
+
+        /**
+         * Schema specifications
+         */
+        @Builder
+        @AllArgsConstructor
+        @NoArgsConstructor
+        @Data
+        public static class Content {
+            /**
+             * AVSC schema
+             */
+            @NotNull
+            private String schema;
+        }
     }
 
     @Builder
@@ -95,6 +117,56 @@ public class Schema {
                     .message("Awaiting processing by executor")
                     .build();
         }
+
+        public static Schema.SchemaStatus ofSoftDeleted() {
+            return Schema.SchemaStatus.builder()
+                    .phase(Schema.SchemaPhase.SoftDeleted)
+                    .message("Soft deleted from Schema Registry")
+                    .lastUpdateTime(Date.from(Instant.now()))
+                    .build();
+        }
+
+        public static Schema.SchemaStatus ofFailedSoftDeletion() {
+            return Schema.SchemaStatus.builder()
+                    .phase(SchemaPhase.FailedSoftDeletion)
+                    .message("Soft deletion failed")
+                    .lastUpdateTime(Date.from(Instant.now()))
+                    .build();
+        }
+
+        public static Schema.SchemaStatus ofPendingSoftDeletion() {
+            return Schema.SchemaStatus.builder()
+                    .phase(SchemaPhase.PendingSoftDeletion)
+                    .message("Awaiting processing by executor for soft deletion")
+                    .build();
+        }
+
+        public static Schema.SchemaStatus ofFailedHardDeletion() {
+            return Schema.SchemaStatus.builder()
+                    .phase(SchemaPhase.FailedHardDeletion)
+                    .message("Hard deletion failed")
+                    .lastUpdateTime(Date.from(Instant.now()))
+                    .build();
+        }
+
+        public static Schema.SchemaStatus ofPendingHardDeletion() {
+            return Schema.SchemaStatus.builder()
+                    .phase(SchemaPhase.PendingHardDeletion)
+                    .message("Awaiting processing by executor for hard deletion")
+                    .build();
+        }
+
+        /**
+         * Is a schema in deletion or deleted ?
+         *
+         * @param status The status of the schema
+         * @return true if in deletion/deleted, false otherwise
+         */
+        public static boolean inDeletion(SchemaPhase status) {
+            return Arrays.asList(SchemaPhase.PendingSoftDeletion, SchemaPhase.FailedSoftDeletion, Schema.SchemaPhase.SoftDeleted,
+                    SchemaPhase.PendingHardDeletion, SchemaPhase.FailedHardDeletion)
+                    .contains(status);
+        }
     }
 
     /**
@@ -106,6 +178,29 @@ public class Schema {
         // Published to the schema registry
         Success,
         // Publishing failed
-        Failed
+        Failed,
+        // Pending when soft deletion is asked, but not deleted from schema registry
+        PendingSoftDeletion,
+        // When soft deletion has been applied to the schema registry
+        SoftDeleted,
+        // Soft deletion failed
+        FailedSoftDeletion,
+        // Pending when hard deletion is asked, but not deleted from schema registry
+        PendingHardDeletion,
+        // Hard deletion failed
+        FailedHardDeletion
+    }
+
+    /**
+     * Schema compatibility for Schema Registry
+     */
+    public enum SchemaCompatibility {
+        BACKWARD,
+        BACKWARD_TRANSITIVE,
+        FORWARD,
+        FORWARD_TRANSITIVE,
+        FULL,
+        FULL_TRANSITIVE,
+        NONE
     }
 }

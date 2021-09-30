@@ -6,7 +6,7 @@ import com.michelin.ns4kafka.models.Schema;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.SchemaService;
-import com.michelin.ns4kafka.services.schema.registry.client.entities.SchemaCompatibility;
+import com.michelin.ns4kafka.services.schema.registry.client.entities.SchemaCompatibilityCheck;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.security.utils.SecurityService;
@@ -17,6 +17,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -76,15 +78,13 @@ class SchemaControllerTest {
                         .name("prefix.schema")
                         .build())
                 .spec(Schema.SchemaSpec.builder()
-                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the personnn\"}]}")
+                        .content(Schema.SchemaSpec.Content.builder()
+                                .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the personnn\"}]}")
+                                .build())
                         .build())
                 .build();
 
-        SchemaCompatibility schemaCompatibility = SchemaCompatibility.builder()
-                .isCompatible(true)
-                .build();
-
-        when(this.schemaService.validateSchemaCompatibility("local", schema)).thenReturn(schemaCompatibility);
+        when(this.schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Collections.emptyList());
         when(this.namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(this.schemaService.isNamespaceOwnerOfSchema(any(), any())).thenReturn(true);
         when(this.schemaService.findByName(namespace, "prefix.schema")).thenReturn(Optional.empty());
@@ -121,15 +121,13 @@ class SchemaControllerTest {
                         .name("prefix.schema")
                         .build())
                 .spec(Schema.SchemaSpec.builder()
-                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the personnn\"}]}")
+                        .content(Schema.SchemaSpec.Content.builder()
+                                .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the personnn\"}]}")
+                                .build())
                         .build())
                 .build();
 
-        SchemaCompatibility schemaCompatibility = SchemaCompatibility.builder()
-                .isCompatible(true)
-                .build();
-
-        when(this.schemaService.validateSchemaCompatibility("local", schema)).thenReturn(schemaCompatibility);
+        when(this.schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Collections.emptyList());
         when(this.namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(this.schemaService.isNamespaceOwnerOfSchema(any(), any())).thenReturn(true);
         when(this.schemaService.findByName(namespace, "prefix.schema")).thenReturn(Optional.of(schema));
@@ -161,7 +159,9 @@ class SchemaControllerTest {
                         .name("prefix.schema")
                         .build())
                 .spec(Schema.SchemaSpec.builder()
-                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the personnn\"}]}")
+                        .content(Schema.SchemaSpec.Content.builder()
+                                .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the personnn\"}]}")
+                                .build())
                         .build())
                 .build();
 
@@ -195,17 +195,20 @@ class SchemaControllerTest {
                         .name("prefix.schema")
                         .build())
                 .spec(Schema.SchemaSpec.builder()
-                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the personnn\"}]}")
+                        .content(Schema.SchemaSpec.Content.builder()
+                                .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the personnn\"}]}")
+                                .build())
                         .build())
                 .build();
 
-        SchemaCompatibility schemaCompatibility = SchemaCompatibility.builder()
-                .isCompatible(false)
-                .build();
+        when(this.schemaService.validateSchemaCompatibility("local", schema))
+                .thenReturn(List.of("The schema registry rejected the given schema for compatibility reason"));
 
-        when(this.schemaService.validateSchemaCompatibility("local", schema)).thenReturn(schemaCompatibility);
-        when(this.namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
-        when(this.schemaService.isNamespaceOwnerOfSchema(any(), any())).thenReturn(true);
+        when(this.namespaceService.findByName("myNamespace"))
+                .thenReturn(Optional.of(namespace));
+
+        when(this.schemaService.isNamespaceOwnerOfSchema(any(), any()))
+                .thenReturn(true);
 
         ResourceValidationException exception = Assertions.assertThrows(ResourceValidationException.class, () ->
                 this.schemaController.apply("myNamespace", schema, false));
@@ -234,7 +237,9 @@ class SchemaControllerTest {
                         .name("prefix.schema")
                         .build())
                 .spec(Schema.SchemaSpec.builder()
-                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the personnn\"}]}")
+                        .content(Schema.SchemaSpec.Content.builder()
+                                .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the personnn\"}]}")
+                                .build())
                         .build())
                 .build();
 

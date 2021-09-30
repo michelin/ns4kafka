@@ -3,10 +3,9 @@ package com.michelin.ns4kafka.services.schema.registry.client.entities;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
-import lombok.Data;
 
 @Builder
-public class SchemaCompatibility {
+public class SchemaCompatibilityCheck {
     /**
      * Is the given schema compatible with the latest one
      */
@@ -19,7 +18,7 @@ public class SchemaCompatibility {
      * @param isCompatible Is the given schema compatible with the latest one
      */
     @JsonCreator
-    public SchemaCompatibility(@JsonProperty("is_compatible") boolean isCompatible) {
+    public SchemaCompatibilityCheck(@JsonProperty("is_compatible") boolean isCompatible) {
         this.isCompatible = isCompatible;
     }
 
