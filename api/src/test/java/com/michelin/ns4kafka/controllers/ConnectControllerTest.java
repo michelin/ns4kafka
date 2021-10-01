@@ -119,7 +119,7 @@ public class ConnectControllerTest {
     }
 
     @Test
-    void deleteConnecortNotOwned() {
+    void deleteConnectorNotOwned() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
