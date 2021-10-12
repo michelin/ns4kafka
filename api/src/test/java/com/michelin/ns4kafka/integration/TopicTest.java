@@ -10,6 +10,7 @@ import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.RoleBinding.*;
 import com.michelin.ns4kafka.models.Topic.TopicSpec;
+import com.michelin.ns4kafka.services.TopicService;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.annotation.Property;
@@ -52,6 +53,9 @@ public class TopicTest extends AbstractIntegrationTest {
 
     @Inject
     List<TopicAsyncExecutor> topicAsyncExecutorList;
+
+    @Inject
+    TopicService topicService;
 
     private String token;
 
@@ -379,6 +383,36 @@ public class TopicTest extends AbstractIntegrationTest {
         // Compare spec of the topics and assure there is no change
         Assertions.assertEquals(topicToModify.getSpec(),client.retrieve(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/topics/ns1-topicToModify").bearerAuth(token), Topic.class ).blockingFirst().getSpec());
     }
+
+    @Test
+    void testDeleteRecords() throws InterruptedException {
+
+        Topic topicToDelete = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-topicToDelete")
+                        .namespace("ns1")
+                        .build())
+                .spec(TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(Map.of("cleanup.policy", "delete",
+                                "min.insync.replicas", "1",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        var response = client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics").bearerAuth(token).body(topicToDelete)).blockingFirst();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+
+        //force Topic Sync
+        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+
+        var deleteRecordsResponse = client.retrieve(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics/ns1-topicToDelete/delete-records").bearerAuth(token), DeleteRecords.class).blockingFirst();
+
+        deleteRecordsResponse.getStatus().getLowWaterMarks().entrySet().stream().forEach(topicPartitionLongEntry -> {
+            Assertions.assertEquals(0L, topicPartitionLongEntry.getValue());
+        });
+   }
 
     @NoArgsConstructor
     @AllArgsConstructor
