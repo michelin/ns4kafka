@@ -227,7 +227,11 @@ public class TopicController extends NamespacedResourceController {
                         .build())
                 .status(DeleteRecords.DeleteRecordsStatus.builder()
                         .success(true)
-                        .lowWaterMarks(deletedRecords)
+                        .lowWaterMarks(
+                                deletedRecords.entrySet()
+                                        .stream()
+                                        .collect(Collectors.toMap(k -> k.getKey().toString(), Map.Entry::getValue))
+                        )
                         .build())
                 .build();
     }
