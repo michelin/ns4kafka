@@ -1,17 +1,31 @@
-# Resources Type
+# Resource Types
 
-This table show every resources supported.
+This page provides usage details about all resource types in ns4kafka.
 
-You can get this table with ``kafkactl api-resources``
+## User resources
 
 | Resource name | Short name | Namespaced | Kind               |
 | -----         | -----      | -----      | ------             |
-| acl           | ac         | true       | AccessControlEntry |
-| connect       | co         | true       | Connector          |
-| rolebinding   | rb         | true       | RoleBinding        |
 | topic         | to         | true       | Topic              |
-| namespace     | ns         | false      | Namespace          |
+| connect       | co         | true       | Connector          |
+| subject       | su         | true       | Subject            |
+| acl           | ac         | true       | AccessControlEntry |
+| stream        | st         | true       | KafkaStream        |
 
+## Admin resources
+
+| Resource name     | Short name | Namespaced | Kind               |
+| -----             | -----      | -----      | ------             |
+| namespace         | ns         | false      | Namespace          |
+| acl               | ac         | true       | AccessControlEntry |
+| rolebinding       | rb         | true       | RoleBinding        |
+| topicvalidator **(+)**   | tv         | false      | TopicValidator     |
+| connectvalidator **(+)**  | cv         | false      | ConnectValidator   |
+| subjectvalidator **(+)**  | sv         | false      | SubjectValidator   |
+| quota             | qu         | false      | ResourceQuota      |
+| kafkauser **(+)**        | ku         |            | KafkaUser          |
+
+**(+)** : Currently managed directly within ``Namespace`` resource. Subject to change.
 
 # Table of Contents
 
