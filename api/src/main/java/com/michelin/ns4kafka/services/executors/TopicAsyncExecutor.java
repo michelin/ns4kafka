@@ -263,7 +263,7 @@ public class TopicAsyncExecutor {
         List<AlterConfigOp> toDelete = actual.entrySet()
                 .stream()
                 .filter(actualEntry -> !expected.containsKey(actualEntry.getKey()))
-                .map(expectedEntry -> new AlterConfigOp(new ConfigEntry(expectedEntry.getKey(),null), AlterConfigOp.OpType.DELETE))
+                .map(expectedEntry -> new AlterConfigOp(new ConfigEntry(expectedEntry.getKey(),expectedEntry.getValue()), AlterConfigOp.OpType.DELETE))
                 .collect(Collectors.toList());
         List<AlterConfigOp> toChange = expected.entrySet()
                 .stream()
