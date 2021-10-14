@@ -1,20 +1,19 @@
 package com.michelin.ns4kafka.services;
 
-import static org.mockito.Mockito.when;
-
-import java.util.List;
-
 import com.michelin.ns4kafka.models.KafkaStream;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.StreamRepository;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class StreamServiceTest {
@@ -139,5 +138,10 @@ public class StreamServiceTest {
                 .thenReturn(List.of());
         var actual = streamService.findByName(ns, "test_stream2");
         Assertions.assertTrue(actual.isEmpty());
+    }
+
+    @Test
+    void isNamespaceOwnerOfKafkaStream() {
+
     }
 }
