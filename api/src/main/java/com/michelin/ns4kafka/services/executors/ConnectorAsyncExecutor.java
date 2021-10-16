@@ -5,7 +5,6 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
-import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStatus;
 import io.micronaut.context.annotation.EachBean;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
@@ -106,7 +105,7 @@ public class ConnectorAsyncExecutor {
         return connectorList;
     }
 
-    private Connector buildConnectorFromConnectorStatus(ConnectorStatus connectorStatus, String connectCluster) {
+    private Connector buildConnectorFromConnectorStatus(KafkaConnectClient.ConnectorStatus connectorStatus, String connectCluster) {
         return Connector.builder()
                 .metadata(ObjectMeta.builder()
                         // Any other metadata is not usefull for this process

@@ -1,10 +1,16 @@
 package com.michelin.ns4kafka.services.connect.client;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
-import com.michelin.ns4kafka.services.connect.client.entities.*;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.client.annotation.Client;
+import lombok.Getter;
+import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorPluginInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 
 import java.util.List;
 import java.util.Map;
@@ -78,4 +84,19 @@ public interface KafkaConnectClient {
             @Header(value = KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER) String connectCluster,
             String connector
     );
+
+    /**
+     * Object is not defined in org.apache.kafka.connect, as it is the result of a particular call
+     * kafka-connect:8083/connectors?expand=info&expand=status
+     */
+    @Getter
+    class ConnectorStatus {
+        private final ConnectorInfo info;
+        private final ConnectorStateInfo status;
+        @JsonCreator
+        public ConnectorStatus(@JsonProperty("info") ConnectorInfo info, @JsonProperty("status") ConnectorStateInfo status){
+            this.info=info;
+            this.status=status;
+        }
+    }
 }

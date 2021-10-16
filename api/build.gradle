@@ -36,7 +36,7 @@ dependencies {
     implementation("io.micronaut.security:micronaut-security-jwt")
     implementation("io.micronaut.security:micronaut-security-ldap")
     implementation("io.micronaut.kafka:micronaut-kafka")
-
+    implementation group: 'org.apache.kafka', name: 'connect-runtime', version: '2.8.1'
 
     runtimeOnly("ch.qos.logback:logback-classic")
 

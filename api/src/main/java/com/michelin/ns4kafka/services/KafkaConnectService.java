@@ -7,14 +7,14 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
-import com.michelin.ns4kafka.services.connect.client.entities.ConfigInfos;
-import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStateInfo;
 import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
