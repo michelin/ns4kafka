@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 
 @Builder
-public class SchemaCompatibilityCheck {
+public class SubjectCompatibilityCheckResponse {
     /**
      * Is the given schema compatible with the latest one
      */
@@ -18,7 +18,7 @@ public class SchemaCompatibilityCheck {
      * @param isCompatible Is the given schema compatible with the latest one
      */
     @JsonCreator
-    public SchemaCompatibilityCheck(@JsonProperty("is_compatible") boolean isCompatible) {
+    public SubjectCompatibilityCheckResponse(@JsonProperty("is_compatible") boolean isCompatible) {
         this.isCompatible = isCompatible;
     }
 

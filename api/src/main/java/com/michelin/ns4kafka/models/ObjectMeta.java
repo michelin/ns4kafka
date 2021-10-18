@@ -26,5 +26,6 @@ public class ObjectMeta {
     @EqualsAndHashCode.Exclude
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Date creationTimestamp;
-
+    @EqualsAndHashCode.Exclude
+    private String finalizer;
 }

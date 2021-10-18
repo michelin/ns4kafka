@@ -307,6 +307,7 @@ public class KafkaConnectServiceTest {
                 .metadata(ObjectMeta.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("local-name")
+
                         .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector"))
                         .build())
                 .build();

@@ -49,7 +49,7 @@ public class AccessControlEntry {
         TOPIC,
         GROUP,
         CONNECT,
-        SCHEMA
+        SUBJECT
     }
     /** It's important to follow the same naming as {@link org.apache.kafka.common.resource.ResourcePattern}
      */

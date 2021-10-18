@@ -2,24 +2,24 @@ package com.michelin.ns4kafka.services.schema.registry.client.entities;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.michelin.ns4kafka.models.Schema;
+import com.michelin.ns4kafka.models.Subject;
 import lombok.Builder;
 
 @Builder
-public class SchemaCompatibilityConfig {
+public class SubjectCompatibilityRequest {
     /**
      * Compatibility to set
      */
     @JsonProperty
-    private Schema.SchemaCompatibility compatibility;
+    private Subject.SubjectCompatibility compatibility;
 
     /**
      * Constructor
      *
-     * @param compatibilityLevel Compatibility to set
+     * @param compatibility Compatibility to set
      */
     @JsonCreator
-    public SchemaCompatibilityConfig(@JsonProperty Schema.SchemaCompatibility compatibility) {
+    public SubjectCompatibilityRequest(@JsonProperty Subject.SubjectCompatibility compatibility) {
         this.compatibility = compatibility;
     }
 }

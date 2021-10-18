@@ -3,10 +3,10 @@ package com.michelin.ns4kafka.services;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.Schema;
-import com.michelin.ns4kafka.repositories.SchemaRepository;
+import com.michelin.ns4kafka.models.Subject;
+import com.michelin.ns4kafka.repositories.SubjectRepository;
 import com.michelin.ns4kafka.services.schema.registry.client.KafkaSchemaRegistryClient;
-import com.michelin.ns4kafka.services.schema.registry.client.entities.SchemaCompatibilityCheck;
+import com.michelin.ns4kafka.services.schema.registry.client.entities.SubjectCompatibilityCheckResponse;
 import io.micronaut.http.HttpResponse;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -24,12 +24,12 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 
 @ExtendWith(MockitoExtension.class)
-class KafkaSchemaServiceTest {
+class KafkaSubjectServiceTest {
     /**
      * The schema service
      */
     @InjectMocks
-    SchemaService schemaService;
+    SubjectService subjectService;
 
     /**
      * The ACL service
@@ -41,7 +41,7 @@ class KafkaSchemaServiceTest {
      * The schema repository
      */
     @Mock
-    SchemaRepository schemaRepository;
+    SubjectRepository subjectRepository;
 
     /**
      * Kafka schema registry client
@@ -66,21 +66,21 @@ class KafkaSchemaServiceTest {
                 .build();
 
         // Create schemas
-        Schema mockedSchema1 = Schema.builder()
+        Subject mockedSubject1 = Subject.builder()
                 .metadata(ObjectMeta.builder().name("prefix.schema-one").build())
                 .build();
 
-        Schema mockedSchema2 = Schema.builder()
+        Subject mockedSubject2 = Subject.builder()
                 .metadata(ObjectMeta.builder().name("prefix2.schema-two").build())
                 .build();
 
-        Schema mockedSchema3 = Schema.builder()
+        Subject mockedSubject3 = Subject.builder()
                 .metadata(ObjectMeta.builder().name("prefix2.schema-three").build())
                 .build();
 
         // Set schemas to cluster
-        Mockito.when(this.schemaRepository.findAllForCluster("local"))
-                .thenReturn(List.of(mockedSchema1, mockedSchema2, mockedSchema3));
+        Mockito.when(this.subjectRepository.findAllForCluster("local"))
+                .thenReturn(List.of(mockedSubject1, mockedSubject2, mockedSubject3));
 
         Mockito.when(this.accessControlEntryService.findAllGrantedToNamespace(namespace))
                 .thenReturn(List.of(
@@ -90,7 +90,7 @@ class KafkaSchemaServiceTest {
                                         .permission(AccessControlEntry.Permission.OWNER)
                                         .grantedTo("namespace")
                                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                        .resourceType(AccessControlEntry.ResourceType.SCHEMA)
+                                        .resourceType(AccessControlEntry.ResourceType.SUBJECT)
                                         .resource("prefix.")
                                         .build())
                                 .build(),
@@ -100,22 +100,22 @@ class KafkaSchemaServiceTest {
                                         .permission(AccessControlEntry.Permission.OWNER)
                                         .grantedTo("namespace")
                                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                                        .resourceType(AccessControlEntry.ResourceType.SCHEMA)
+                                        .resourceType(AccessControlEntry.ResourceType.SUBJECT)
                                         .resource("prefix2.schema-two")
                                         .build())
                                 .build()
                 ));
 
         // Should succeed, access granted by prefix
-        Optional<Schema> schema = this.schemaService.findByName(namespace, "prefix.schema-one");
-        Assertions.assertEquals(mockedSchema1, schema.get());
+        Optional<Subject> schema = this.subjectService.findByName(namespace, "prefix.schema-one");
+        Assertions.assertEquals(mockedSubject1, schema.get());
 
         // Should succeed, access granted literally
-        Optional<Schema> schema2 = this.schemaService.findByName(namespace, "prefix2.schema-two");
-        Assertions.assertEquals(mockedSchema2, schema2.get());
+        Optional<Subject> schema2 = this.subjectService.findByName(namespace, "prefix2.schema-two");
+        Assertions.assertEquals(mockedSubject2, schema2.get());
 
         // Should fail, access not granted
-        Optional<Schema> schemaNotFound = this.schemaService.findByName(namespace, "prefix2.schema-three");
+        Optional<Subject> schemaNotFound = this.subjectService.findByName(namespace, "prefix2.schema-three");
         Assertions.assertThrows(NoSuchElementException.class, () ->
                 schemaNotFound.get(), "No value present");
     }
@@ -137,21 +137,21 @@ class KafkaSchemaServiceTest {
                 .build();
 
         // Create schemas
-        Schema mockedSchema1 = Schema.builder()
+        Subject mockedSubject1 = Subject.builder()
                 .metadata(ObjectMeta.builder().name("prefix.schema-one").build())
                 .build();
 
-        Schema mockedSchema2 = Schema.builder()
+        Subject mockedSubject2 = Subject.builder()
                 .metadata(ObjectMeta.builder().name("prefix2.schema-two").build())
                 .build();
 
-        Schema mockedSchema3 = Schema.builder()
+        Subject mockedSubject3 = Subject.builder()
                 .metadata(ObjectMeta.builder().name("prefix2.schema-three").build())
                 .build();
 
         // Set schemas to cluster
-        Mockito.when(this.schemaRepository.findAllForCluster("local"))
-                .thenReturn(List.of(mockedSchema1, mockedSchema2, mockedSchema3));
+        Mockito.when(this.subjectRepository.findAllForCluster("local"))
+                .thenReturn(List.of(mockedSubject1, mockedSubject2, mockedSubject3));
 
         Mockito.when(this.accessControlEntryService.findAllGrantedToNamespace(namespace))
                 .thenReturn(List.of(
@@ -161,7 +161,7 @@ class KafkaSchemaServiceTest {
                                         .permission(AccessControlEntry.Permission.OWNER)
                                         .grantedTo("namespace")
                                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                        .resourceType(AccessControlEntry.ResourceType.SCHEMA)
+                                        .resourceType(AccessControlEntry.ResourceType.SUBJECT)
                                         .resource("prefix.")
                                         .build())
                                 .build(),
@@ -171,19 +171,19 @@ class KafkaSchemaServiceTest {
                                         .permission(AccessControlEntry.Permission.OWNER)
                                         .grantedTo("namespace")
                                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                                        .resourceType(AccessControlEntry.ResourceType.SCHEMA)
+                                        .resourceType(AccessControlEntry.ResourceType.SUBJECT)
                                         .resource("prefix2.schema-two")
                                         .build())
                                 .build()
                 ));
 
         // Should succeed, access granted by prefix
-        List<Schema> schemas = this.schemaService.findAllForNamespace(namespace);
-        Assertions.assertEquals(2L, schemas.size());
+        List<Subject> subjects = this.subjectService.findAllForNamespace(namespace);
+        Assertions.assertEquals(2L, subjects.size());
 
-        Assertions.assertEquals(mockedSchema1, schemas.get(0));
+        Assertions.assertEquals(mockedSubject1, subjects.get(0));
 
-        Assertions.assertEquals(mockedSchema2, schemas.get(1));
+        Assertions.assertEquals(mockedSubject2, subjects.get(1));
     }
 
     /**
@@ -203,7 +203,7 @@ class KafkaSchemaServiceTest {
                 .build();
 
         // Set schemas to cluster
-        Mockito.when(this.schemaRepository.findAllForCluster("local"))
+        Mockito.when(this.subjectRepository.findAllForCluster("local"))
                 .thenReturn(Collections.emptyList());
 
         Mockito.when(this.accessControlEntryService.findAllGrantedToNamespace(namespace))
@@ -214,7 +214,7 @@ class KafkaSchemaServiceTest {
                                         .permission(AccessControlEntry.Permission.OWNER)
                                         .grantedTo("namespace")
                                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                        .resourceType(AccessControlEntry.ResourceType.SCHEMA)
+                                        .resourceType(AccessControlEntry.ResourceType.SUBJECT)
                                         .resource("prefix.")
                                         .build())
                                 .build(),
@@ -224,15 +224,15 @@ class KafkaSchemaServiceTest {
                                         .permission(AccessControlEntry.Permission.OWNER)
                                         .grantedTo("namespace")
                                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                                        .resourceType(AccessControlEntry.ResourceType.SCHEMA)
+                                        .resourceType(AccessControlEntry.ResourceType.SUBJECT)
                                         .resource("prefix2.schema-two")
                                         .build())
                                 .build()
                 ));
 
         // Should succeed, access granted by prefix
-        List<Schema> schemas = this.schemaService.findAllForNamespace(namespace);
-        Assertions.assertTrue(schemas.isEmpty());
+        List<Subject> subjects = this.subjectService.findAllForNamespace(namespace);
+        Assertions.assertTrue(subjects.isEmpty());
     }
 
     /**
@@ -252,28 +252,28 @@ class KafkaSchemaServiceTest {
                 .build();
 
         // Create schemas
-        Schema mockedSchema1 = Schema.builder()
+        Subject mockedSubject1 = Subject.builder()
                 .metadata(ObjectMeta.builder().name("prefix.schema-one").build())
                 .build();
 
-        Schema mockedSchema2 = Schema.builder()
+        Subject mockedSubject2 = Subject.builder()
                 .metadata(ObjectMeta.builder().name("prefix2.schema-two").build())
                 .build();
 
-        Schema mockedSchema3 = Schema.builder()
+        Subject mockedSubject3 = Subject.builder()
                 .metadata(ObjectMeta.builder().name("prefix2.schema-three").build())
                 .build();
 
         // Set schemas to cluster
-        Mockito.when(this.schemaRepository.findAllForCluster("local"))
-                .thenReturn(List.of(mockedSchema1, mockedSchema2, mockedSchema3));
+        Mockito.when(this.subjectRepository.findAllForCluster("local"))
+                .thenReturn(List.of(mockedSubject1, mockedSubject2, mockedSubject3));
 
         Mockito.when(this.accessControlEntryService.findAllGrantedToNamespace(namespace))
                 .thenReturn(Collections.emptyList());
 
         // Should succeed, access granted by prefix
-        List<Schema> schemas = this.schemaService.findAllForNamespace(namespace);
-        Assertions.assertTrue(schemas.isEmpty());
+        List<Subject> subjects = this.subjectService.findAllForNamespace(namespace);
+        Assertions.assertTrue(subjects.isEmpty());
     }
 
     /**
@@ -282,15 +282,15 @@ class KafkaSchemaServiceTest {
     @Test
     void create() {
         // Create schemas
-        Schema mockedSchema1 = Schema.builder()
+        Subject mockedSubject1 = Subject.builder()
                 .metadata(ObjectMeta.builder().name("prefix.schema-one").build())
                 .build();
 
-        Mockito.when(this.schemaRepository.create(mockedSchema1))
-                .thenReturn(mockedSchema1);
+        Mockito.when(this.subjectRepository.create(mockedSubject1))
+                .thenReturn(mockedSubject1);
 
-        Schema retrievedSchema = this.schemaService.create(mockedSchema1);
-        Assertions.assertEquals(mockedSchema1, retrievedSchema);
+        Subject retrievedSubject = this.subjectService.publish(mockedSubject1);
+        Assertions.assertEquals(mockedSubject1, retrievedSubject);
     }
 
     /**
@@ -299,23 +299,23 @@ class KafkaSchemaServiceTest {
     @Test
     void verifyCompatibility() {
         // Create schemas
-        Schema mockedSchema1 = Schema.builder()
+        Subject mockedSubject1 = Subject.builder()
                 .metadata(ObjectMeta.builder().name("prefix.schema-one").build())
-                .spec(Schema.SchemaSpec.builder()
-                        .content(Schema.SchemaSpec.Content.builder()
+                .spec(Subject.SubjectSpec.builder()
+                        .schemaContent(Subject.SubjectSpec.Content.builder()
                                 .schema("schema")
                                 .build())
                         .build())
                 .build();
 
-        SchemaCompatibilityCheck schemaCompatibilityCheck = SchemaCompatibilityCheck.builder()
+        SubjectCompatibilityCheckResponse subjectCompatibilityCheckResponse = SubjectCompatibilityCheckResponse.builder()
                 .isCompatible(true)
                 .build();
 
-        Mockito.when(this.kafkaSchemaRegistryClient.validateSchemaCompatibility(any(), any(), any(), any()))
-                .thenReturn(HttpResponse.ok(schemaCompatibilityCheck));
+        Mockito.when(this.kafkaSchemaRegistryClient.validateSubjectCompatibility(any(), any(), any(), any()))
+                .thenReturn(HttpResponse.ok(subjectCompatibilityCheckResponse));
 
-        List<String> errors = this.schemaService.validateSchemaCompatibility("local",mockedSchema1);
+        List<String> errors = this.subjectService.validateSubjectCompatibility("local", mockedSubject1);
 
         Assertions.assertTrue(errors.isEmpty());
     }
@@ -326,25 +326,25 @@ class KafkaSchemaServiceTest {
     @Test
     void verifyCompatibilityNotCompatible() {
         // Create schemas
-        Schema mockedSchema1 = Schema.builder()
+        Subject mockedSubject1 = Subject.builder()
                 .metadata(ObjectMeta.builder().name("prefix.schema-one").build())
-                .spec(Schema.SchemaSpec.builder()
-                        .content(Schema.SchemaSpec.Content.builder()
+                .spec(Subject.SubjectSpec.builder()
+                        .schemaContent(Subject.SubjectSpec.Content.builder()
                                 .schema("schema")
                                 .build())
                         .build())
                 .build();
 
-        SchemaCompatibilityCheck schemaCompatibilityCheck = SchemaCompatibilityCheck.builder()
+        SubjectCompatibilityCheckResponse subjectCompatibilityCheckResponse = SubjectCompatibilityCheckResponse.builder()
                 .isCompatible(false)
                 .build();
 
-        Mockito.when(this.kafkaSchemaRegistryClient.validateSchemaCompatibility(any(), any(), any(), any()))
-                .thenReturn(HttpResponse.ok(schemaCompatibilityCheck));
+        Mockito.when(this.kafkaSchemaRegistryClient.validateSubjectCompatibility(any(), any(), any(), any()))
+                .thenReturn(HttpResponse.ok(subjectCompatibilityCheckResponse));
 
-        List<String> errors = this.schemaService.validateSchemaCompatibility("local",mockedSchema1);
+        List<String> errors = this.subjectService.validateSubjectCompatibility("local", mockedSubject1);
 
         Assertions.assertEquals(1L, errors.size());
-        Assertions.assertEquals("The schema registry rejected the given schema for compatibility reason", errors.get(0));
+        Assertions.assertEquals("The schema registry rejected the given subject for compatibility reason", errors.get(0));
     }
 }

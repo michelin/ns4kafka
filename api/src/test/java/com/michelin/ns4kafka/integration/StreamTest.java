@@ -70,7 +70,7 @@ public class StreamTest extends AbstractIntegrationTest {
                         .resourceTypes(List.of("topics", "acls"))
                         .verbs(List.of(Verb.POST, Verb.GET))
                         .build())
-                .subject(Subject.builder()
+                .subject(RoleBinding.Subject.builder()
                         .subjectName("groupkafkastream")
                         .subjectType(SubjectType.GROUP)
                         .build())

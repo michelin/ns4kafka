@@ -6,16 +6,19 @@ import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.FileService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
+import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
+import org.graalvm.collections.Pair;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 import javax.inject.Inject;
 import java.io.File;
-import java.util.List;
-import java.util.Optional;
-import java.util.Scanner;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
@@ -85,6 +88,12 @@ public class ApplySubcommand implements Callable<Integer> {
             // 2 load STDIN
             resources = fileService.parseResourceListFromString(scanner.next());
         }
+
+        // If the resource is a subject, load the schema
+        resources
+                .stream()
+                .filter(resource -> resource.getKind().equals("Subject"))
+                .forEach(subject -> fileService.loadFileContent(subject, "schemaReference", "schemaContent", "schema"));
 
         // 3. validate resource types from resources
         List<Resource> invalidResources = apiResourcesService.validateResourceTypes(resources);

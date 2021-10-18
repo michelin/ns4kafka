@@ -62,12 +62,12 @@ public class ApiResourcesController {
                         .names(List.of("namespaces", "namespace", "ns"))
             .build();
 
-    public static final ResourceDefinition SCHEMA = ResourceDefinition.builder()
-            .kind("Schema")
+    public static final ResourceDefinition SUBJECT = ResourceDefinition.builder()
+            .kind("Subject")
             .namespaced(true)
             .synchronizable(true)
-            .path("schemas")
-            .names(List.of("schemas", "schema", "sch"))
+            .path("subjects")
+            .names(List.of("subjects", "subject", "sub"))
             .build();
 
     @Get
@@ -79,7 +79,7 @@ public class ApiResourcesController {
                 ROLE_BINDING,
                 TOPIC,
                 NAMESPACE,
-                SCHEMA
+                SUBJECT
                 );
     }
 

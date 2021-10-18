@@ -42,12 +42,6 @@ public class DeleteSubcommand implements Callable<Integer> {
     @Option(names = {"--dry-run"}, description = "Does not persist operation. Validate only")
     public boolean dryRun;
 
-    /**
-     * Option to perform a hard delete
-     */
-    @Option(names = {"--hard"}, description = "Perform a hard delete of the resource")
-    public boolean hard;
-
     @Override
     public Integer call() {
         if (dryRun) {
@@ -69,7 +63,7 @@ public class DeleteSubcommand implements Callable<Integer> {
         ApiResource apiResource = optionalApiResource.get();
 
         boolean deleted = resourceService.delete(apiResource, namespace,
-                name, dryRun, hard);
+                name, dryRun);
 
         if (deleted) {
             System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,green Success |@") + resourceType + "/" + name + " (deleted)");

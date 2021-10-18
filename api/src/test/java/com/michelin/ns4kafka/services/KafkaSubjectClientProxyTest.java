@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 @ExtendWith(MockitoExtension.class)
-class KafkaSchemaClientProxyTest {
+class KafkaSubjectClientProxyTest {
     /**
      * HTTP client
      */

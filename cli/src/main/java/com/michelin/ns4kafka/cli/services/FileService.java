@@ -9,7 +9,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -58,5 +60,25 @@ public class FileService {
                         return Stream.of(currentElement);
                     }
                 });
+    }
+
+    /**
+     * From a given file path in a resource, load the content of the matching file into a new map attribute
+     *
+     * @param resource The resource
+     * @param filePathAttributeName The name of the attribute containing the file path in the resource spec
+     * @param mapAttributeName The name of the map attribute, containing the file content
+     * @param fileContentAttributeName The key matching the file content
+     */
+    public void loadFileContent(Resource resource, String filePathAttributeName, String mapAttributeName, String fileContentAttributeName) {
+        Map<String, String> mapFileContent = new LinkedHashMap<>();
+
+        try {
+            mapFileContent.put(fileContentAttributeName, Files.readString(new File((String) resource.getSpec().get(filePathAttributeName)).toPath()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        resource.getSpec().put(mapAttributeName, mapFileContent);
     }
 }

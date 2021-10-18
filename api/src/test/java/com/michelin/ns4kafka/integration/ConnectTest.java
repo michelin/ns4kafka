@@ -78,7 +78,7 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
                                 .resourceTypes(List.of("topics", "acls"))
                                 .verbs(List.of(Verb.POST, Verb.GET))
                                 .build())
-                        .subject(Subject.builder()
+                        .subject(RoleBinding.Subject.builder()
                                 .subjectName("group1")
                                 .subjectType(SubjectType.GROUP)
                                 .build())

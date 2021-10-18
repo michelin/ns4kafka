@@ -42,10 +42,9 @@ kafkactl:
       - "CONNECTOR:/metadata/name"
       - "STATUS:/status/code"
       - "ERROR_MSG:/status/errorMessage"
-    Schema:
+    Subject:
       - "SUBJECT:/metadata/name"
-      - "COMPATIBILITY:/spec/compatibility"
-      - "STATUS:/status/phase"
+      - "FILE:/spec/schemaReference"
       - "AGE:/metadata/creationTimestamp%AGO"
 #  api: http://localhost:8080
 #  user-token: token
