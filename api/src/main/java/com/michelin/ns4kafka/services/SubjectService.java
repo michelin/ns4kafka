@@ -10,6 +10,7 @@ import com.michelin.ns4kafka.services.schema.registry.client.entities.SubjectCom
 import com.michelin.ns4kafka.services.schema.registry.client.entities.SubjectCompatibilityCheckResponse;
 import com.michelin.ns4kafka.services.schema.registry.client.entities.SubjectCompatibilityResponse;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
@@ -104,7 +105,7 @@ public class SubjectService {
      */
     public HttpResponse<SubjectCompatibilityResponse> getCurrentCompatibilityBySubject(String cluster, Subject subject) {
         return this.kafkaSchemaRegistryClient.getCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
-                cluster, subject.getMetadata().getName(), false);
+                cluster, subject.getMetadata().getName(), true);
     }
 
     /**

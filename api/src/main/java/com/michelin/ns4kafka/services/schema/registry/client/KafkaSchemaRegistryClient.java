@@ -9,6 +9,8 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.client.annotation.Client;
 
+import java.util.List;
+
 @Client(KafkaSchemaRegistryClientProxy.SCHEMA_REGISTRY_PREFIX)
 public interface KafkaSchemaRegistryClient {
     @Post("/subjects/{subject}/versions")
@@ -37,7 +39,11 @@ public interface KafkaSchemaRegistryClient {
 
     @Delete("/subjects/{subject}")
     void deleteBySubject(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
-                                   @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
-                                   @PathVariable String subject,
-                                   @QueryValue("permanent") boolean hardDelete);
+                         @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
+                         @PathVariable String subject,
+                         @QueryValue("permanent") boolean hardDelete);
+
+    @Get("/subjects")
+    HttpResponse<List<String>> getAllSubjects(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
+                                              @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster);
 }

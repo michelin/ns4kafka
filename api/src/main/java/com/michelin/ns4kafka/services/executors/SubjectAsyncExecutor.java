@@ -6,6 +6,7 @@ import com.michelin.ns4kafka.services.schema.registry.KafkaSchemaRegistryClientP
 import com.michelin.ns4kafka.services.schema.registry.client.KafkaSchemaRegistryClient;
 import io.micronaut.context.annotation.EachBean;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -42,25 +43,73 @@ public class SubjectAsyncExecutor {
         log.debug("Starting subject collection for cluster {} and schema registry {}", kafkaAsyncExecutorConfig.getName(),
                 kafkaAsyncExecutorConfig.getSchemaRegistry().getUrl());
 
-        List<Subject> subjectsToPublishes = this.subjectRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName())
+        this.collectSubjectsToPublish();
+        this.collectSubjectsToDelete();
+    }
+
+    /**
+     * Get all the subjects to publish
+     *
+     * Subjects in pending/failed state, subjects that are success but not in the
+     * schema registry anymore are flagged to be published again
+     */
+    private void collectSubjectsToPublish() {
+        List<String> subjectsFromSchemaRegistry = this.getAllSubjectsFromSchemaRegistry();
+
+        List<Subject> subjectsToPublish = this.subjectRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName())
                 .stream()
-                .filter(subject -> Arrays.asList(Subject.SubjectPhase.Pending, Subject.SubjectPhase.Failed).contains(subject.getStatus().getPhase()))
+                .filter(subject -> StringUtils.isBlank(subject.getMetadata().getFinalizer()))
+                .filter(subject ->
+                        (Arrays.asList(Subject.SubjectPhase.Pending, Subject.SubjectPhase.Failed).contains(subject.getStatus().getPhase())) ||
+                        (Subject.SubjectPhase.Success.equals(subject.getStatus().getPhase()) && !subjectsFromSchemaRegistry.contains(subject.getMetadata().getName())))
                 .collect(Collectors.toList());
 
-        log.debug("{} schemas found to publish ({} pending, {} failed)", subjectsToPublishes.size(),
-                subjectsToPublishes.stream().filter(schema -> schema.getStatus().getPhase().equals(Subject.SubjectPhase.Pending)).count(),
-                subjectsToPublishes.stream().filter(schema -> schema.getStatus().getPhase().equals(Subject.SubjectPhase.Failed)).count());
+        log.debug("Found {} subjects to publish", subjectsToPublish.size());
 
-        subjectsToPublishes.forEach(this::publishSubject);
+        subjectsToPublish.forEach(this::publishSubject);
+    }
 
-        List<Subject> subjectsToDelete = this.subjectRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName())
+    /**
+     * Get all the subjects to delete
+     *
+     * Subjects with a finalizer to "to_delete", subjects that are not in NS4Kafka
+     * are flagged to be deleted
+     */
+    private void collectSubjectsToDelete() {
+        List<Subject> subjectsFromNS4Kafka = this.subjectRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName());
+
+        List<Subject> subjectsToDelete = subjectsFromNS4Kafka
                 .stream()
                 .filter(schema -> "to_delete".equals(schema.getMetadata().getFinalizer()))
                 .collect(Collectors.toList());
 
-        log.debug("{} schemas found to delete", subjectsToDelete.size());
+        log.debug("Found {} subjects marked as to delete", subjectsToDelete.size());
 
         subjectsToDelete.forEach(this::deleteSubject);
+
+        List<String> subjectsNotInNs4Kafka = this.getAllSubjectsFromSchemaRegistry()
+                .stream()
+                .filter(subjectFromSchemaRegistry -> !subjectsFromNS4Kafka
+                        .stream()
+                        .map(subject -> subject.getMetadata().getName())
+                        .collect(Collectors.toList())
+                        .contains(subjectFromSchemaRegistry))
+                .collect(Collectors.toList());
+
+        log.debug("Found {} subjects in the schema registry missing in NS4Kafka", subjectsNotInNs4Kafka.size());
+
+        subjectsNotInNs4Kafka.forEach(subjectFromNS4Kafka -> this.deleteSubjectFromSchemaRegistry(this.kafkaAsyncExecutorConfig.getName(),
+                subjectFromNS4Kafka));
+    }
+
+    /**
+     * Get all the subjects currently in the schema registry
+     *
+     * @return The list of subjects in the schema registry
+     */
+    private List<String> getAllSubjectsFromSchemaRegistry() {
+        return this.kafkaSchemaRegistryClient.getAllSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
+                kafkaAsyncExecutorConfig.getName()).body();
     }
 
     /**
@@ -103,18 +152,7 @@ public class SubjectAsyncExecutor {
      */
     private void deleteSubject(Subject subject) {
         try {
-            this.kafkaSchemaRegistryClient.deleteBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
-                    subject.getMetadata().getCluster(), subject.getMetadata().getName(),
-                    false);
-
-            this.kafkaSchemaRegistryClient.deleteBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
-                    subject.getMetadata().getCluster(), subject.getMetadata().getName(),
-                    true);
-
-            log.info("Success deleting subject [{}] from schema registry [{}] of kafka cluster [{}]",
-                    subject.getMetadata().getName(),
-                    this.kafkaAsyncExecutorConfig.getSchemaRegistry().getUrl(),
-                    this.kafkaAsyncExecutorConfig.getName());
+            this.deleteSubjectFromSchemaRegistry(this.kafkaAsyncExecutorConfig.getName(), subject.getMetadata().getName());
 
             this.subjectRepository.delete(subject);
         } catch (Exception e) {
@@ -128,5 +166,23 @@ public class SubjectAsyncExecutor {
 
             this.subjectRepository.create(subject);
         }
+    }
+
+    /**
+     * Delete the subject from its schema registry
+     *
+     * @param cluster The cluster linked with the schema registry of the subject
+     * @param subject The subject to delete
+     */
+    private void deleteSubjectFromSchemaRegistry(String cluster, String subject) {
+        this.kafkaSchemaRegistryClient.deleteBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
+                cluster, subject, false);
+
+        this.kafkaSchemaRegistryClient.deleteBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
+                cluster, subject, true);
+
+        log.info("Success deleting subject [{}] from schema registry [{}] of kafka cluster [{}]",
+                subject, this.kafkaAsyncExecutorConfig.getSchemaRegistry().getUrl(), this.kafkaAsyncExecutorConfig.getName());
+
     }
 }
