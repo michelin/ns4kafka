@@ -2,7 +2,6 @@ package com.michelin.ns4kafka.models;
 
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
-import org.apache.kafka.common.TopicPartition;
 
 import java.util.Map;
 
@@ -28,7 +27,7 @@ public class DeleteRecords {
     public static class DeleteRecordsStatus {
         private boolean success;
         private String errorMessage;
-        private Map<TopicPartition, Long> lowWaterMarks;
+        private Map<String, Long> lowWaterMarks;
 
     }
 }

@@ -263,7 +263,7 @@ public class TopicAsyncExecutor {
         List<AlterConfigOp> toDelete = actual.entrySet()
                 .stream()
                 .filter(actualEntry -> !expected.containsKey(actualEntry.getKey()))
-                .map(expectedEntry -> new AlterConfigOp(new ConfigEntry(expectedEntry.getKey(),null), AlterConfigOp.OpType.DELETE))
+                .map(expectedEntry -> new AlterConfigOp(new ConfigEntry(expectedEntry.getKey(),expectedEntry.getValue()), AlterConfigOp.OpType.DELETE))
                 .collect(Collectors.toList());
         List<AlterConfigOp> toChange = expected.entrySet()
                 .stream()
@@ -299,7 +299,7 @@ public class TopicAsyncExecutor {
         return getAdminClient().listOffsets(topicsPartitionsToDelete).all().get()
                 .entrySet()
                 .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, kv -> RecordsToDelete.beforeOffset(kv.getValue().offset() + 1)));
+                .collect(Collectors.toMap(Map.Entry::getKey, kv -> RecordsToDelete.beforeOffset(kv.getValue().offset())));
     }
 
     public Map<TopicPartition, Long> deleteRecords(Map<TopicPartition, RecordsToDelete> recordsToDelete) throws ExecutionException, InterruptedException {
@@ -311,7 +311,7 @@ public class TopicAsyncExecutor {
                         return newValue;
                     } catch (Exception e) {
                         log.error(String.format("Error deleting records of TopicPartition %s", kv.getKey()), e);
-                        return 0L;
+                        return -1L;
                     }
                 }));
 

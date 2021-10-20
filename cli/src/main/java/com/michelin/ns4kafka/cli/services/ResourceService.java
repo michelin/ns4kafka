@@ -6,6 +6,7 @@ import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.Status;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 
 import javax.inject.Inject;
@@ -84,8 +85,10 @@ public class ResourceService {
     public boolean delete(ApiResource apiResource, String namespace, String resource, boolean dryRun) {
         try {
             if (apiResource.isNamespaced()) {
-                namespacedClient.delete(namespace, apiResource.getPath(), resource, loginService.getAuthorization(),
-                        dryRun, hard);
+                HttpResponse response = namespacedClient.delete(namespace, apiResource.getPath(), resource, loginService.getAuthorization(), dryRun);
+                if(response.getStatus() != HttpStatus.NO_CONTENT){
+                    throw new HttpClientResponseException("Resource not Found", response);
+                }
                 return true;
             } else {
                 nonNamespacedClient.delete(loginService.getAuthorization(), apiResource.getPath(), resource, dryRun);
