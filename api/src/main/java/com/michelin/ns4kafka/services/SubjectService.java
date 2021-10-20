@@ -4,11 +4,15 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Subject;
 import com.michelin.ns4kafka.repositories.SubjectRepository;
+import com.michelin.ns4kafka.services.listeners.events.subjects.ApplySubjectEvent;
+import com.michelin.ns4kafka.services.listeners.events.subjects.DeleteSubjectEvent;
 import com.michelin.ns4kafka.services.schema.registry.KafkaSchemaRegistryClientProxy;
 import com.michelin.ns4kafka.services.schema.registry.client.KafkaSchemaRegistryClient;
 import com.michelin.ns4kafka.services.schema.registry.client.entities.SubjectCompatibilityRequest;
 import com.michelin.ns4kafka.services.schema.registry.client.entities.SubjectCompatibilityCheckResponse;
 import com.michelin.ns4kafka.services.schema.registry.client.entities.SubjectCompatibilityResponse;
+import io.micronaut.context.ApplicationContext;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -42,13 +46,34 @@ public class SubjectService {
     KafkaSchemaRegistryClient kafkaSchemaRegistryClient;
 
     /**
+     * Application event publisher
+     */
+    @Inject
+    public ApplicationEventPublisher applicationEventPublisher;
+
+    /**
      * Publish a subject to the subjects technical topic
      *
      * @param subject The subject to publish
      * @return The created subject
      */
-    public Subject publish(Subject subject) {
-        return this.subjectRepository.create(subject);
+    public Subject create(Subject subject) {
+        Subject created = this.subjectRepository.create(subject);
+
+        this.applicationEventPublisher.publishEventAsync(new ApplySubjectEvent(subject));
+
+        return created;
+    }
+
+    /**
+     * Delete a subject from the subjects technical topic
+     *
+     * @param subject The subject to delete
+     */
+    public void delete(Subject subject) {
+        this.subjectRepository.delete(subject);
+
+        this.applicationEventPublisher.publishEventAsync(new DeleteSubjectEvent(subject));
     }
 
     /**

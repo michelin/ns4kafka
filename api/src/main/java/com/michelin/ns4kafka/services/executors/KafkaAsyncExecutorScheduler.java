@@ -49,15 +49,25 @@ public class KafkaAsyncExecutorScheduler {
     //TODO urgent : start the schedulder only when Application is started (ServerStartupEvent)
     @Scheduled(initialDelay = "12s", fixedDelay = "20s")
     void schedule(){
-
         if(ready.get()) {
             //TODO sequential forEach with exception handling (to let next clusters sync)
             topicAsyncExecutors.forEach(TopicAsyncExecutor::run);
             accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
             connectorAsyncExecutors.forEach(ConnectorAsyncExecutor::run);
-            subjectAsyncExecutors.forEach(SubjectAsyncExecutor::run);
-        }else {
+        } else {
             log.warn("Scheduled job did not start because micronaut is not ready yet");
+        }
+    }
+
+    /**
+     * Start the schemas synchronization
+     */
+    @Scheduled(initialDelay = "12s", fixedDelay = "3600s")
+    void scheduleSchemasSynchro() {
+        if (ready.get()) {
+            subjectAsyncExecutors.forEach(SubjectAsyncExecutor::run);
+        } else {
+            log.warn("Scheduled schemas synchro did not start because micronaut is not ready yet");
         }
     }
 }

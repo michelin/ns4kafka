@@ -7,6 +7,7 @@ import com.michelin.ns4kafka.models.Subject;
 import com.michelin.ns4kafka.repositories.SubjectRepository;
 import com.michelin.ns4kafka.services.schema.registry.client.KafkaSchemaRegistryClient;
 import com.michelin.ns4kafka.services.schema.registry.client.entities.SubjectCompatibilityCheckResponse;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 
 @ExtendWith(MockitoExtension.class)
 class KafkaSubjectServiceTest {
@@ -48,6 +50,12 @@ class KafkaSubjectServiceTest {
      */
     @Mock
     KafkaSchemaRegistryClient kafkaSchemaRegistryClient;
+
+    /**
+     * The application event publisher
+     */
+    @Mock
+    ApplicationEventPublisher applicationEventPublisher;
 
     /**
      * Tests to find a schema by name
@@ -288,8 +296,10 @@ class KafkaSubjectServiceTest {
 
         Mockito.when(this.subjectRepository.create(mockedSubject1))
                 .thenReturn(mockedSubject1);
+        Mockito.when(applicationEventPublisher.publishEventAsync(any()))
+                .thenReturn(any());
 
-        Subject retrievedSubject = this.subjectService.publish(mockedSubject1);
+        Subject retrievedSubject = this.subjectService.create(mockedSubject1);
         Assertions.assertEquals(mockedSubject1, retrievedSubject);
     }
 

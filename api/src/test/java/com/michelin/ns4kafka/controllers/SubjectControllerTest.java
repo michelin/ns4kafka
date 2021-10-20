@@ -94,7 +94,7 @@ class SubjectControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(this.applicationEventPublisher).publishEvent(any());
 
-        when(this.subjectService.publish(subject)).thenReturn(subject);
+        when(this.subjectService.create(subject)).thenReturn(subject);
 
         var response = this.subjectController.apply("myNamespace", subject, false);
 
@@ -187,7 +187,7 @@ class SubjectControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(this.applicationEventPublisher).publishEvent(any());
 
-        when(this.subjectService.publish(subject)).thenReturn(subject);
+        when(this.subjectService.create(subject)).thenReturn(subject);
 
         var response = this.subjectController.apply("myNamespace", subject, false);
 
@@ -310,7 +310,7 @@ class SubjectControllerTest {
         Subject actual = response.body();
         Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("prefix.subject", actual.getMetadata().getName());
-        verify(this.subjectService, never()).publish(subject);
+        verify(this.subjectService, never()).create(subject);
     }
 
     /**
@@ -501,6 +501,6 @@ class SubjectControllerTest {
 
         Assertions.assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
 
-        verify(this.subjectService, never()).publish(subject);
+        verify(this.subjectService, never()).delete(subject);
     }
 }

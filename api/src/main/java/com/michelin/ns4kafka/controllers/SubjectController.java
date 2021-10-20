@@ -135,7 +135,7 @@ public class SubjectController extends NamespacedResourceController {
         super.sendEventLog(subject.getKind(), subject.getMetadata(), status,
                 existingSubject.<Object>map(Subject::getSpec).orElse(null), subject.getSpec());
 
-        return formatHttpResponse(this.subjectService.publish(subject), status);
+        return formatHttpResponse(this.subjectService.create(subject), status);
     }
 
     /**
@@ -176,7 +176,7 @@ public class SubjectController extends NamespacedResourceController {
         super.sendEventLog(existingSubject.getKind(), existingSubject.getMetadata(), ApplyStatus.deleted,
                 existingSubjectOptional.<Object>map(Subject::getSpec).orElse(null), existingSubject.getSpec());
 
-        this.subjectService.publish(existingSubject);
+        this.subjectService.delete(existingSubject);
 
         return HttpResponse.noContent();
     }

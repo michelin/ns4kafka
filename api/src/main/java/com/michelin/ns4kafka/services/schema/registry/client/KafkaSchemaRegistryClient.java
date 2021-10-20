@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.services.schema.registry.client;
 
 import com.michelin.ns4kafka.models.Subject;
 import com.michelin.ns4kafka.services.schema.registry.KafkaSchemaRegistryClientProxy;
+import com.michelin.ns4kafka.services.schema.registry.client.entities.SchemaResponse;
 import com.michelin.ns4kafka.services.schema.registry.client.entities.SubjectCompatibilityRequest;
 import com.michelin.ns4kafka.services.schema.registry.client.entities.SubjectCompatibilityCheckResponse;
 import com.michelin.ns4kafka.services.schema.registry.client.entities.SubjectCompatibilityResponse;
@@ -46,4 +47,10 @@ public interface KafkaSchemaRegistryClient {
     @Get("/subjects")
     HttpResponse<List<String>> getAllSubjects(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
                                               @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster);
+
+    @Get("/subjects/{subject}/versions/{version}")
+    HttpResponse<SchemaResponse> getSchemaBySubjectAndVersion(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
+                                                                    @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
+                                                                    @PathVariable String subject,
+                                                                    @PathVariable String version);
 }
