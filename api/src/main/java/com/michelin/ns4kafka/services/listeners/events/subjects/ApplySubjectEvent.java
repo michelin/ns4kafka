@@ -15,6 +15,9 @@ import javax.inject.Inject;
 import java.time.Instant;
 import java.util.Date;
 
+/**
+ * Event for publishing a subject to the schema registry
+ */
 @Slf4j
 public class ApplySubjectEvent extends SubjectEvent {
     /**

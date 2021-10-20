@@ -18,7 +18,6 @@ import java.util.Optional;
 @Tag(name = "Stream")
 @Controller(value = "/api/namespaces/{namespace}/streams")
 public class StreamController extends NamespacedResourceController {
-
     @Inject
     StreamService streamService;
 
