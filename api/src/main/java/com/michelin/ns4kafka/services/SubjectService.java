@@ -130,7 +130,7 @@ public class SubjectService {
      */
     public HttpResponse<SubjectCompatibilityResponse> getCurrentCompatibilityBySubject(String cluster, Subject subject) {
         return this.kafkaSchemaRegistryClient.getCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
-                cluster, subject.getMetadata().getName(), true);
+                cluster, subject.getMetadata().getName());
     }
 
     /**
@@ -153,10 +153,10 @@ public class SubjectService {
      * @return A list of errors
      */
     public List<String> validateSubjectCompatibility(String cluster, Subject subject) {
-        HttpResponse<SubjectCompatibilityCheckResponse> response = this.kafkaSchemaRegistryClient.validateSubjectCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
-                cluster, subject.getMetadata().getName(), subject.getSpec().getSchemaContent());
+        Optional<SubjectCompatibilityCheckResponse> response = this.kafkaSchemaRegistryClient.validateSubjectCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
+                cluster, subject.getMetadata().getName(), subject.getSpec().getSchemaContent()).getBody();
 
-        if (response.getBody().isPresent() && !response.getBody().get().isCompatible()) {
+        if (response.isPresent() && !response.get().isCompatible()) {
             return List.of("The schema registry rejected the given subject for compatibility reason");
         }
 

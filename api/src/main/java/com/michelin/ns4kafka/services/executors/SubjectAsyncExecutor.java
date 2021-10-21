@@ -132,7 +132,7 @@ public class SubjectAsyncExecutor {
 
         SubjectCompatibilityResponse compatibility = this.kafkaSchemaRegistryClient
                 .getCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, kafkaAsyncExecutorConfig.getName(),
-                        stringSubject, true).body();
+                        stringSubject).body();
 
         if (schemaResponse == null || compatibility == null) {
             return Optional.empty();

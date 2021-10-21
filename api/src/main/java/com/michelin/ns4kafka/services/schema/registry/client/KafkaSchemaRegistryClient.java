@@ -20,11 +20,10 @@ public interface KafkaSchemaRegistryClient {
                  @PathVariable String subject,
                  @Body Subject.SubjectSpec.Content schema);
 
-    @Get("/config/{subject}")
+    @Get("/config/{subject}?defaultToGlobal=true")
     HttpResponse<SubjectCompatibilityResponse> getCurrentCompatibilityBySubject(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
                                                                                 @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
-                                                                                @PathVariable String subject,
-                                                                                @QueryValue("defaultToGlobal") boolean defaultToGlobal);
+                                                                                @PathVariable String subject);
 
     @Post("/compatibility/subjects/{subject}/versions/latest?verbose=true")
     HttpResponse<SubjectCompatibilityCheckResponse> validateSubjectCompatibility(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,

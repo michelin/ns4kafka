@@ -60,11 +60,6 @@ public class Subject {
         private SubjectCompatibility compatibility;
 
         /**
-         * Reference on the file containing the schema to load
-         */
-        private String schemaReference;
-
-        /**
          * Content of the schema
          */
         private Subject.SubjectSpec.Content schemaContent;

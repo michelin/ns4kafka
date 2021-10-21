@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.services.SubjectService;
 import com.michelin.ns4kafka.services.schema.registry.client.entities.SubjectCompatibilityRequest;
 import com.michelin.ns4kafka.services.schema.registry.client.entities.SubjectCompatibilityResponse;
+import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
@@ -11,7 +12,6 @@ import io.micronaut.http.annotation.Status;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -80,12 +80,12 @@ public class SubjectController extends NamespacedResourceController {
 
         // If a compatibility is specified in the yml, apply it if different from the current one
         boolean changeCompatibility = false;
-        HttpResponse<SubjectCompatibilityResponse> oldCompatibility = null;
-        if (subject.getSpec().getCompatibility() != null && StringUtils.isNotBlank(subject.getSpec().getCompatibility().toString())) {
-            oldCompatibility = this.subjectService.getCurrentCompatibilityBySubject(retrievedNamespace.getMetadata().getCluster(), subject);
+        Optional<SubjectCompatibilityResponse> oldCompatibilityOptional = null;
+        if (subject.getSpec().getCompatibility() != null && StringUtils.isNotEmpty(subject.getSpec().getCompatibility().toString())) {
+            oldCompatibilityOptional = this.subjectService.getCurrentCompatibilityBySubject(retrievedNamespace.getMetadata().getCluster(), subject)
+                .getBody();
 
-            changeCompatibility = oldCompatibility.getBody().isPresent() &&
-                    !oldCompatibility.getBody().get().compatibilityLevel().equals(subject.getSpec().getCompatibility());
+            changeCompatibility = oldCompatibilityOptional.isPresent() && !oldCompatibilityOptional.get().compatibilityLevel().equals(subject.getSpec().getCompatibility());
 
             if (changeCompatibility) {
                 this.subjectService.updateSubjectCompatibility(retrievedNamespace.getMetadata().getCluster(), subject,
@@ -123,7 +123,7 @@ public class SubjectController extends NamespacedResourceController {
             if (changeCompatibility) {
                 this.subjectService.updateSubjectCompatibility(retrievedNamespace.getMetadata().getCluster(), subject,
                         SubjectCompatibilityRequest.builder()
-                                .compatibility(oldCompatibility.getBody().get().compatibilityLevel())
+                                .compatibility(oldCompatibilityOptional.get().compatibilityLevel())
                                 .build());
             }
 
