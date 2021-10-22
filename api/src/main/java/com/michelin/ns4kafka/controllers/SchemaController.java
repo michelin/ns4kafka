@@ -86,4 +86,23 @@ public class SchemaController extends NamespacedResourceController {
 
         return this.formatHttpResponse(this.schemaService.register(retrievedNamespace, schema), ApplyStatus.created);
     }
+
+    /**
+     * Update the compatibility of a schema
+     *
+     * @param namespace The namespace
+     * @param schema The schema to create
+     * @return The updated subject
+     */
+    @Post("/{subject}/compatibility")
+    public HttpResponse<Optional<Schema>> compatibility(String namespace, @PathVariable String subject, @Valid @Body Schema schema) {
+        Namespace retrievedNamespace = super.getNamespace(namespace);
+
+        if (!this.schemaService.isNamespaceOwnerOfSubject(retrievedNamespace, schema.getMetadata().getName())) {
+            throw new ResourceValidationException(List.of("Invalid prefix " + subject +
+                    " : namespace not owner of this subject"), schema.getKind(), subject);
+        }
+
+        return this.formatHttpResponse(this.schemaService.updateSubjectCompatibility(retrievedNamespace, schema), ApplyStatus.changed);
+    }
 }

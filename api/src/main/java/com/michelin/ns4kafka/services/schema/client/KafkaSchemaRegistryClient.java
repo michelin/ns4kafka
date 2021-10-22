@@ -35,6 +35,12 @@ public interface KafkaSchemaRegistryClient {
                                                                                @PathVariable String subject,
                                                                                @Body Map<String, String> schema);
 
+    @Put("/config/{subject}")
+    void updateSubjectCompatibility(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
+                                    @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
+                                    @PathVariable String subject,
+                                    @Body Map<String, String> compatibility);
+
     @Get("/config/{subject}")
     HttpResponse<SchemaCompatibilityResponse> getCurrentCompatibilityBySubject(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
                                                                                @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,

@@ -67,4 +67,11 @@ public interface NamespacedResourceClient {
             String connector,
             @Body Resource changeConnectorState,
             @Header("Authorization") String token);
+
+    @Post("{namespace}/schemas/{subject}/compatibility")
+    Resource changeSchemaCompatibility(
+            String namespace,
+            String subject,
+            @Body Resource schema,
+            @Header("Authorization") String token);
 }

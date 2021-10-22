@@ -157,4 +157,24 @@ public class ResourceService {
         }
         return null;
     }
+
+    public Resource changeSchemaCompatibility(String namespace, String subject, Resource schema) {
+        try {
+            Resource resource = namespacedClient.changeSchemaCompatibility(namespace, subject, schema, loginService.getAuthorization());
+            if (resource == null) {
+                // micronaut converts HTTP 404 into null
+                // produce a 404
+                Status notFoundStatus = Status.builder()
+                        .code(404)
+                        .message("Resource not found")
+                        .reason("NotFound")
+                        .build();
+                throw new HttpClientResponseException("Not Found", HttpResponse.notFound(notFoundStatus));
+            }
+            return resource;
+        } catch (HttpClientResponseException e) {
+            formatService.displayError(e, "Schema", subject);
+        }
+        return null;
+    }
 }

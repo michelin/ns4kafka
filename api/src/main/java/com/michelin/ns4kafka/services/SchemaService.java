@@ -153,13 +153,30 @@ public class SchemaService {
         HttpResponse<SchemaCompatibilityCheckResponse> response = this.kafkaSchemaRegistryClient.validateSchemaCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
                 cluster, schema.getMetadata().getName(), Collections.singletonMap("schema", schema.getSpec().getSchema()));
 
-        // TODO: Get the reasons why the compat failed. For now, no reason is returned event with ?verbose=true
         Optional<SchemaCompatibilityCheckResponse> compatibilityOptional = response.getBody();
         if (compatibilityOptional.isPresent() && !compatibilityOptional.get().isCompatible()) {
-            return List.of("The schema registry rejected the given subject for compatibility reason");
+            return compatibilityOptional.get().messages();
         }
 
         return Collections.emptyList();
+    }
+
+    /**
+     * Update the schema compatibility against the Schema Registry
+     *
+     * @param namespace The namespace
+     * @param schema The schema
+     */
+    public Optional<Schema> updateSubjectCompatibility(Namespace namespace, Schema schema) {
+        if (schema.getSpec().getCompatibility().equals(Schema.Compatibility.GLOBAL)) {
+            // TODO: Back to the global compat mode, but endpoint seems not available with SR 6.2.1
+        } else {
+            this.kafkaSchemaRegistryClient.updateSubjectCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
+                    namespace.getMetadata().getCluster(), schema.getMetadata().getName(),
+                    Collections.singletonMap("compatibility", schema.getSpec().getCompatibility().toString()));
+        }
+
+        return this.getBySubjectAndVersion(namespace, schema.getMetadata().getName(), "latest");
     }
 
     /**
