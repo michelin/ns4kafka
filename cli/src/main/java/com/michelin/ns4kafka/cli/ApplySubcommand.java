@@ -48,7 +48,6 @@ public class ApplySubcommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-
         if (dryRun) {
             System.out.println("Dry run execution");
         }
@@ -81,6 +80,12 @@ public class ApplySubcommand implements Callable<Integer> {
             // 2 load STDIN
             resources = fileService.parseResourceListFromString(scanner.next());
         }
+
+        // If the resource is a subject, load the schema
+        resources
+                .stream()
+                .filter(resource -> resource.getKind().equals("Schema"))
+                .forEach(subject -> fileService.loadFileContent(subject, "schema"));
 
         // 3. validate resource types from resources
         List<Resource> invalidResources = apiResourcesService.validateResourceTypes(resources);

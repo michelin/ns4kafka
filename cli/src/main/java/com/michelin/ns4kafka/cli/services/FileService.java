@@ -7,6 +7,7 @@ import org.yaml.snakeyaml.constructor.Constructor;
 import javax.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
@@ -58,5 +59,19 @@ public class FileService {
                         return Stream.of(currentElement);
                     }
                 });
+    }
+
+    /**
+     * From a given file path in a resource, load the content of the matching file
+     *
+     * @param resource The resource
+     * @param filePathAttributeName The name of the attribute containing the file path in the resource spec
+     */
+    public void loadFileContent(Resource resource, String filePathAttributeName) {
+        try {
+            resource.getSpec().put(filePathAttributeName, Files.readString(new File((String) resource.getSpec().get(filePathAttributeName)).toPath()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
