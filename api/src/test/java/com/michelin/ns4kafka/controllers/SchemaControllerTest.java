@@ -44,7 +44,7 @@ class SchemaControllerTest {
      * Test the schema creation
      */
     @Test
-    void testApply() {
+    void apply() {
         Namespace namespace = this.buildNamespace();
         Schema schema = this.buildSchema();
 
@@ -66,7 +66,7 @@ class SchemaControllerTest {
      * Test the schema creation when the subject does not belong to the namespace
      */
     @Test
-    void testApplyNamespaceNotOwnerOfSubject() {
+    void applyNamespaceNotOwnerOfSubject() {
         Namespace namespace = this.buildNamespace();
         Schema schema = this.buildSchema();
 
@@ -86,7 +86,7 @@ class SchemaControllerTest {
      * Test the schema creation in dry mode
      */
     @Test
-    void testApplyDryRun() {
+    void applyDryRun() {
         Namespace namespace = this.buildNamespace();
         Schema schema = this.buildSchema();
 
@@ -109,7 +109,7 @@ class SchemaControllerTest {
      * Test the schema creation in dry mode when the schema is not compatible
      */
     @Test
-    void testApplyDryRunNotCompatible() {
+    void applyDryRunNotCompatible() {
         Namespace namespace = this.buildNamespace();
         Schema schema = this.buildSchema();
 
@@ -129,7 +129,7 @@ class SchemaControllerTest {
      * Test to get all schemas of namespace
      */
     @Test
-    void testGetAllByNamespace() {
+    void getAllByNamespace() {
         Namespace namespace = this.buildNamespace();
         Schema schema = this.buildSchema();
 
@@ -146,7 +146,7 @@ class SchemaControllerTest {
      * Test to get a subject by namespace and subject
      */
     @Test
-    void testGetByNamespaceAndSubject() {
+    void getByNamespaceAndSubject() {
         Namespace namespace = this.buildNamespace();
         Schema schema = this.buildSchema();
 
@@ -165,7 +165,7 @@ class SchemaControllerTest {
      * Test to get a subject by namespace and subject name when the required subject does not belong to the namespace
      */
     @Test
-    void testGetByNamespaceAndSubjectNamespaceNotOwnerOfSubject() {
+    void getByNamespaceAndSubjectNamespaceNotOwnerOfSubject() {
         Namespace namespace = this.buildNamespace();
         Schema schema = this.buildSchema();
 
@@ -184,7 +184,7 @@ class SchemaControllerTest {
      * Test the compatibility update
      */
     @Test
-    void testCompatibilityUpdate() {
+    void compatibilityUpdate() {
         Namespace namespace = this.buildNamespace();
         Schema schema = this.buildSchema();
         Schema updatedSchema = this.buildSchema();
@@ -209,7 +209,7 @@ class SchemaControllerTest {
      * Test the compatibility update when the namespace is not owner of the subject
      */
     @Test
-    void testCompatibilityUpdateNamespaceNotOwnerOfSubject() {
+    void compatibilityUpdateNamespaceNotOwnerOfSubject() {
         Namespace namespace = this.buildNamespace();
         Schema schema = this.buildSchema();
         Map<String, Schema.Compatibility> compatibilityMap = Collections.singletonMap("compatibility", Schema.Compatibility.BACKWARD);
@@ -229,7 +229,7 @@ class SchemaControllerTest {
      * Test the compatibility update in dry mode
      */
     @Test
-    void testCompatibilityUpdateDryRun() {
+    void compatibilityUpdateDryRun() {
         Namespace namespace = this.buildNamespace();
         Schema schema = this.buildSchema();
 
@@ -253,7 +253,7 @@ class SchemaControllerTest {
      * Test the subject deletion
      */
     @Test
-    void testDeleteSubject() {
+    void deleteSubject() {
         Namespace namespace = this.buildNamespace();
 
         when(this.namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
@@ -270,7 +270,7 @@ class SchemaControllerTest {
      * Test the subject deletion in dry mode
      */
     @Test
-    void testDeleteSubjectDryRun() {
+    void deleteSubjectDryRun() {
         Namespace namespace = this.buildNamespace();
 
         when(this.namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));

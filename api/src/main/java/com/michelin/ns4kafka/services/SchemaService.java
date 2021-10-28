@@ -6,17 +6,14 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Schema;
 import com.michelin.ns4kafka.services.schema.KafkaSchemaRegistryClientProxy;
 import com.michelin.ns4kafka.services.schema.client.KafkaSchemaRegistryClient;
+import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
-import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityCheckResponse;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
-import io.micronaut.http.annotation.Body;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.validation.Valid;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +22,11 @@ import java.util.stream.Collectors;
 @Slf4j
 @Singleton
 public class SchemaService {
+    /**
+     * Latest schema version identifier
+     */
+    private static final String LATEST_VERSION = "latest";
+
     /**
      * ACLs service
      */
@@ -44,8 +46,6 @@ public class SchemaService {
      * @return A list of schemas
      */
     public List<Schema> getAllByNamespace(Namespace namespace) {
-        List<AccessControlEntry> acls = this.accessControlEntryService.findAllGrantedToNamespace(namespace);
-
         HttpResponse<List<String>> subjectsResponse = this.kafkaSchemaRegistryClient.
                 getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster());
 
@@ -56,30 +56,12 @@ public class SchemaService {
 
         List<String> namespacedSubjects = subjectsOptional.get()
                 .stream()
-                .filter(subject -> acls
-                        .stream()
-                        .anyMatch(accessControlEntry -> {
-                            // need to check accessControlEntry.Permission, we want OWNER
-                            if (accessControlEntry.getSpec().getPermission() != AccessControlEntry.Permission.OWNER) {
-                                return false;
-                            }
-
-                        if (accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.SCHEMA) {
-                            switch (accessControlEntry.getSpec().getResourcePatternType()) {
-                                case PREFIXED:
-                                    return subject.startsWith(accessControlEntry.getSpec().getResource());
-                                case LITERAL:
-                                    return subject.equals(accessControlEntry.getSpec().getResource());
-                            }
-                        }
-
-                        return false;
-                    }))
+                .filter(subject -> this.isNamespaceOwnerOfSubject(namespace, subject))
                 .collect(Collectors.toList());
 
         return namespacedSubjects
                 .stream()
-                .map(namespacedSubject -> this.getBySubjectAndVersion(namespace, namespacedSubject, "latest"))
+                .map(namespacedSubject -> this.getBySubjectAndVersion(namespace, namespacedSubject, LATEST_VERSION))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toList());
@@ -142,7 +124,7 @@ public class SchemaService {
             return Optional.empty();
         }
 
-        return this.getBySubjectAndVersion(namespace, schema.getMetadata().getName(), "latest");
+        return this.getBySubjectAndVersion(namespace, schema.getMetadata().getName(), LATEST_VERSION);
     }
 
     /**
@@ -195,7 +177,7 @@ public class SchemaService {
                     Collections.singletonMap("compatibility", compatibility.toString()));
         }
 
-        return this.getBySubjectAndVersion(namespace, subject, "latest");
+        return this.getBySubjectAndVersion(namespace, subject, LATEST_VERSION);
     }
 
     /**

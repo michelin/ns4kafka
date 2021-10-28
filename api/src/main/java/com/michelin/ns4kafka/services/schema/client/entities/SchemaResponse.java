@@ -2,27 +2,29 @@ package com.michelin.ns4kafka.services.schema.client.entities;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
 
+@Builder
 public class SchemaResponse {
     /**
      * The schema ID
      */
-    private Integer id;
+    private final Integer id;
 
     /**
      * The schema version
      */
-    private Integer version;
+    private final Integer version;
 
     /**
      * The schema subject
      */
-    private String subject;
+    private final String subject;
 
     /**
      * The schema itself
      */
-    private String schema;
+    private final String schema;
 
     /**
      * Constructor
