@@ -102,6 +102,21 @@ class SchemaServiceTest {
     }
 
     /**
+     * Tests to find all schemas by namespace
+     */
+    @Test
+    void getBySubjectAndVersionEmptyResponse() {
+        Namespace namespace = this.buildNamespace();
+
+        when(kafkaSchemaRegistryClient.getSchemaBySubjectAndVersion(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), "prefix.schema-one", "latest")).thenReturn(HttpResponse.ok());
+
+        Optional<Schema> retrievedSchema = this.schemaService.getBySubjectAndVersion(namespace, "prefix.schema-one", "latest");
+
+        Assertions.assertTrue(retrievedSchema.isEmpty());
+    }
+
+
+    /**
      * Tests to register a new schema to the schema registry
      */
     @Test

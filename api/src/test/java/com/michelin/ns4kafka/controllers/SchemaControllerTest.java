@@ -250,6 +250,24 @@ class SchemaControllerTest {
     }
 
     /**
+     * Test the subject deletion when the namespace is not owner of the subject
+     */
+    @Test
+    void deleteSubjectNamespaceNotOwnerOfSubject() {
+        Namespace namespace = this.buildNamespace();
+
+        when(this.namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
+        when(this.schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject")).thenReturn(false);
+
+        ResourceValidationException exception = Assertions.assertThrows(ResourceValidationException.class, () ->
+                this.schemaController.deleteSubject("myNamespace", "prefix.subject", false));
+
+        Assertions.assertEquals(1L, exception.getValidationErrors().size());
+        Assertions.assertEquals("Invalid prefix prefix.subject : namespace not owner of this subject", exception.getValidationErrors().get(0));
+        verify(this.schemaService, never()).updateSubjectCompatibility(namespace, "prefix.subject", Schema.Compatibility.BACKWARD);
+    }
+
+    /**
      * Test the subject deletion
      */
     @Test
