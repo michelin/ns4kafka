@@ -72,6 +72,7 @@ public class Schema {
     /**
      * Schema compatibility
      */
+    @Introspected
     public enum Compatibility {
         GLOBAL,
         BACKWARD,

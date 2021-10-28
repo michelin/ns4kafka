@@ -5,6 +5,7 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Schema;
 import com.michelin.ns4kafka.services.SchemaService;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
@@ -13,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Tag(name = "Schemas")
@@ -53,7 +55,7 @@ public class SchemaController extends NamespacedResourceController {
                     subject);
         }
 
-        return this.schemaService.getBySubjectAndVersion(getNamespace(namespace), subject, "latest");
+        return this.schemaService.getBySubjectAndVersion(retrievedNamespace, subject, "latest");
     }
 
     /**
@@ -88,6 +90,34 @@ public class SchemaController extends NamespacedResourceController {
     }
 
     /**
+     * Delete all schemas under the given subject
+     *
+     * @param namespace The current namespace
+     * @param subject The current subject to delete
+     * @param dryrun Run in dry mode or not
+     * @return A HTTP response
+     */
+    @Status(HttpStatus.NO_CONTENT)
+    @Delete("/{subject}")
+    public HttpResponse<Void> deleteSubject(String namespace, @PathVariable String subject,
+                                              @QueryValue(defaultValue = "false") boolean dryrun) {
+        Namespace retrievedNamespace = super.getNamespace(namespace);
+
+        if (!this.schemaService.isNamespaceOwnerOfSubject(retrievedNamespace, subject)) {
+            throw new ResourceValidationException(List.of("Invalid prefix " + subject +
+                    " : namespace not owner of this subject"), AccessControlEntry.ResourceType.SCHEMA.toString(), subject);
+        }
+
+        if (dryrun) {
+            return HttpResponse.noContent();
+        }
+
+        this.schemaService.deleteSubject(retrievedNamespace, subject);
+
+        return HttpResponse.noContent();
+    }
+
+    /**
      * Update the compatibility of a schema
      *
      * @param namespace The namespace
@@ -95,14 +125,19 @@ public class SchemaController extends NamespacedResourceController {
      * @return The updated subject
      */
     @Post("/{subject}/compatibility")
-    public HttpResponse<Optional<Schema>> compatibility(String namespace, @PathVariable String subject, @Valid @Body Schema schema) {
+    public HttpResponse<Optional<Schema>> compatibility(String namespace, @PathVariable String subject, @Valid @Body Map<String, Schema.Compatibility> compatibility,
+                                                        @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace retrievedNamespace = super.getNamespace(namespace);
 
-        if (!this.schemaService.isNamespaceOwnerOfSubject(retrievedNamespace, schema.getMetadata().getName())) {
+        if (!this.schemaService.isNamespaceOwnerOfSubject(retrievedNamespace, subject)) {
             throw new ResourceValidationException(List.of("Invalid prefix " + subject +
-                    " : namespace not owner of this subject"), schema.getKind(), subject);
+                    " : namespace not owner of this subject"), AccessControlEntry.ResourceType.SCHEMA.toString(), subject);
         }
 
-        return this.formatHttpResponse(this.schemaService.updateSubjectCompatibility(retrievedNamespace, schema), ApplyStatus.changed);
+        if (dryrun) {
+            return this.formatHttpResponse(this.schemaService.getBySubjectAndVersion(retrievedNamespace, subject, "latest"), ApplyStatus.unchanged);
+        }
+
+        return this.formatHttpResponse(this.schemaService.updateSubjectCompatibility(retrievedNamespace, subject, compatibility.get("compatibility")), ApplyStatus.changed);
     }
 }

@@ -27,6 +27,9 @@ public class SchemaSubcommand implements Callable<Integer> {
     @CommandLine.Parameters(index="2..*", description = "Subject names separated by space", arity = "1..*")
     public List<String> subjects;
 
+    @CommandLine.Option(names = {"--dry-run"}, description = "Does not persist resources. Validate only")
+    public boolean dryRun;
+
     @Inject
     public LoginService loginService;
 
@@ -44,6 +47,10 @@ public class SchemaSubcommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
+        if (dryRun) {
+            System.out.println("Dry run execution");
+        }
+
         boolean authenticated = loginService.doAuthenticate();
         if (!authenticated) {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
@@ -63,15 +70,8 @@ public class SchemaSubcommand implements Callable<Integer> {
         if (action.equals(SchemaAction.compat)) {
             List<Resource> updatedSchemas = subjects
                     .stream()
-                    .map(subject -> Resource.builder()
-                            .metadata(ObjectMeta.builder()
-                                    .namespace(namespace)
-                                    .name(subject)
-                                    .build())
-                            .spec(Map.of("compatibility", compatibilityModeOptional.get()))
-                            .build())
-                    .map(schema -> this.resourceService.changeSchemaCompatibility(namespace, schema.getMetadata().getName(),
-                            schema))
+                    .map(subject -> this.resourceService.changeSchemaCompatibility(namespace, subject,
+                            compatibilityModeOptional.get().toString(), dryRun))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
@@ -104,6 +104,6 @@ enum CompatibilityMode {
 
     @Override
     public String toString() {
-        return labels.toString();
+        return name();
     }
 }

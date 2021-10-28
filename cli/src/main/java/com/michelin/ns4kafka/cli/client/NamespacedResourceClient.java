@@ -6,6 +6,7 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.http.client.annotation.Client;
 
 import java.util.List;
+import java.util.Map;
 
 @Client("${kafkactl.api}/api/namespaces/")
 public interface NamespacedResourceClient {
@@ -72,6 +73,7 @@ public interface NamespacedResourceClient {
     Resource changeSchemaCompatibility(
             String namespace,
             String subject,
-            @Body Resource schema,
-            @Header("Authorization") String token);
+            @Body Map<String, String> compatibility,
+            @Header("Authorization") String token,
+            @QueryValue boolean dryrun);
 }

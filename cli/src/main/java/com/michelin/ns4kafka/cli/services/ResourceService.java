@@ -7,10 +7,12 @@ import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.Status;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.annotation.Body;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -158,9 +160,11 @@ public class ResourceService {
         return null;
     }
 
-    public Resource changeSchemaCompatibility(String namespace, String subject, Resource schema) {
+    public Resource changeSchemaCompatibility(String namespace, String subject, String compatibility, boolean dryRun) {
         try {
-            Resource resource = namespacedClient.changeSchemaCompatibility(namespace, subject, schema, loginService.getAuthorization());
+            Resource resource = namespacedClient.changeSchemaCompatibility(namespace, subject,
+                    Collections.singletonMap("compatibility", compatibility), loginService.getAuthorization(), dryRun);
+
             if (resource == null) {
                 // micronaut converts HTTP 404 into null
                 // produce a 404

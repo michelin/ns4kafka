@@ -10,10 +10,13 @@ import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibility
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityCheckResponse;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.annotation.Body;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.validation.Valid;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -143,6 +146,22 @@ public class SchemaService {
     }
 
     /**
+     * Delete a subject
+     *
+     * @param namespace The namespace
+     * @param subject The subject to delete
+     */
+    public void deleteSubject(Namespace namespace, String subject) {
+        this.kafkaSchemaRegistryClient.
+                deleteSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
+                        subject, false);
+
+        this.kafkaSchemaRegistryClient.
+                deleteSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
+                        subject, true);
+    }
+
+    /**
      * Validate the schema compatibility against the Schema Registry
      *
      * @param cluster The cluster
@@ -167,16 +186,16 @@ public class SchemaService {
      * @param namespace The namespace
      * @param schema The schema
      */
-    public Optional<Schema> updateSubjectCompatibility(Namespace namespace, Schema schema) {
-        if (schema.getSpec().getCompatibility().equals(Schema.Compatibility.GLOBAL)) {
+    public Optional<Schema> updateSubjectCompatibility(Namespace namespace, String subject, Schema.Compatibility compatibility) {
+        if (compatibility.equals(Schema.Compatibility.GLOBAL)) {
             // TODO: Back to the global compat mode, but endpoint seems not available with SR 6.2.1
         } else {
             this.kafkaSchemaRegistryClient.updateSubjectCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
-                    namespace.getMetadata().getCluster(), schema.getMetadata().getName(),
-                    Collections.singletonMap("compatibility", schema.getSpec().getCompatibility().toString()));
+                    namespace.getMetadata().getCluster(), subject,
+                    Collections.singletonMap("compatibility", compatibility.toString()));
         }
 
-        return this.getBySubjectAndVersion(namespace, schema.getMetadata().getName(), "latest");
+        return this.getBySubjectAndVersion(namespace, subject, "latest");
     }
 
     /**

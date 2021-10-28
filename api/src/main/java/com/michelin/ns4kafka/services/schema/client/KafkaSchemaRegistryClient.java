@@ -29,6 +29,12 @@ public interface KafkaSchemaRegistryClient {
                                           @PathVariable String subject,
                                           @Body Map<String, String> schema);
 
+    @Delete("/subjects/{subject}")
+    void deleteSubject(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
+                         @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
+                         @PathVariable String subject,
+                         @QueryValue("permanent") boolean hardDelete);
+
     @Post("/compatibility/subjects/{subject}/versions/latest?verbose=true")
     HttpResponse<SchemaCompatibilityCheckResponse> validateSchemaCompatibility(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
                                                                                @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
