@@ -2,21 +2,21 @@ package com.michelin.ns4kafka.services.schema.client.entities;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
 
 import java.util.List;
 
+@Builder
 public class SchemaCompatibilityCheckResponse {
     /**
      * Is the given schema compatible with the latest one
      */
-    @JsonProperty("is_compatible")
-    private boolean isCompatible;
+    private final boolean isCompatible;
 
     /**
      * When compatibility fails, list of reasons why
      */
-    @JsonProperty("messages")
-    private List<String> messages;
+    private final List<String> messages;
 
     /**
      * Constructor

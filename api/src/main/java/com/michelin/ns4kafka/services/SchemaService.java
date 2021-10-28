@@ -166,7 +166,8 @@ public class SchemaService {
      * Update the schema compatibility against the Schema Registry
      *
      * @param namespace The namespace
-     * @param schema The schema
+     * @param subject The subject
+     * @param compatibility The compatibility
      */
     public Optional<Schema> updateSubjectCompatibility(Namespace namespace, String subject, Schema.Compatibility compatibility) {
         if (compatibility.equals(Schema.Compatibility.GLOBAL)) {
