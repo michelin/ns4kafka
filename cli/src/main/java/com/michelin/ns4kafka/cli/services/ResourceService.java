@@ -7,7 +7,6 @@ import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.Status;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.annotation.Body;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 
 import javax.inject.Inject;
