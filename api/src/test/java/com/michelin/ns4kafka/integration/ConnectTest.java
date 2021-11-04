@@ -129,7 +129,7 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
 
         RxHttpClient connectCli = RxHttpClient.create(new URL(connect.getUrl()));
         ServerInfo actual = connectCli.retrieve(HttpRequest.GET("/"), ServerInfo.class).blockingFirst();
-        Assertions.assertEquals("6.2.0-ccs", actual.version());
+        Assertions.assertEquals("6.2.1-ccs", actual.version());
     }
 
     @Test

@@ -11,7 +11,6 @@ import java.util.Map;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AbstractIntegrationConnectTest extends AbstractIntegrationTest {
 
-    public SchemaRegistryContainer registry;
     public KafkaConnectContainer connect;
 
     @Override
@@ -20,8 +19,6 @@ public abstract class AbstractIntegrationConnectTest extends AbstractIntegration
         Map<String, String> brokerProps = super.getProperties();
 
         if (connect == null || !connect.isRunning()) {
-            //registry = new SchemaRegistryContainer(DockerImageName.parse("confluentinc/cp-schema-registry:" + CONFLUENT_VERSION), "kafka:9092");
-            //registry.start();
             connect = new KafkaConnectContainer(DockerImageName.parse("confluentinc/cp-kafka-connect:" + CONFLUENT_VERSION), "kafka:9092")
                     .withNetwork(network);
             connect.start();
