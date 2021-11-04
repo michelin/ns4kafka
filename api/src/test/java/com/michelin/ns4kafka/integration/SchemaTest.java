@@ -198,7 +198,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         Assertions.assertEquals("changed", resetCompatibilityResponse.header("X-Ns4kafka-Result"));
         Assertions.assertTrue(resetCompatibilityResponse.getBody().isPresent());
-        Assertions.assertEquals(1, resetCompatibilityResponse.getBody().get().getSpec().getId());
+        Assertions.assertNotNull(resetCompatibilityResponse.getBody().get().getSpec().getId());
         Assertions.assertEquals(1, resetCompatibilityResponse.getBody().get().getSpec().getVersion());
         Assertions.assertEquals(Schema.Compatibility.GLOBAL, resetCompatibilityResponse.getBody().get().getSpec().getCompatibility());
     }
