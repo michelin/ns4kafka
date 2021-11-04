@@ -111,7 +111,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         Assertions.assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
         Assertions.assertTrue(createResponse.getBody().isPresent());
-        Assertions.assertEquals(1, createResponse.getBody().get().getSpec().getId());
+        Assertions.assertNotNull(createResponse.getBody().get().getSpec().getId());
         Assertions.assertEquals(1, createResponse.getBody().get().getSpec().getVersion());
 
         var getResponse = client
@@ -119,7 +119,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .bearerAuth(token), Schema.class).blockingFirst();
 
         Assertions.assertTrue(getResponse.getBody().isPresent());
-        Assertions.assertEquals(1, getResponse.getBody().get().getSpec().getId());
+        Assertions.assertNotNull(getResponse.getBody().get().getSpec().getId());
         Assertions.assertEquals(1, getResponse.getBody().get().getSpec().getVersion());
     }
 
@@ -176,7 +176,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         Assertions.assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
         Assertions.assertTrue(createResponse.getBody().isPresent());
-        Assertions.assertEquals(1, createResponse.getBody().get().getSpec().getId());
+        Assertions.assertNotNull(createResponse.getBody().get().getSpec().getId());
         Assertions.assertEquals(1, createResponse.getBody().get().getSpec().getVersion());
         Assertions.assertEquals(Schema.Compatibility.GLOBAL, createResponse.getBody().get().getSpec().getCompatibility());
 
@@ -187,11 +187,11 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         Assertions.assertEquals("changed", updateCompatibilityResponse.header("X-Ns4kafka-Result"));
         Assertions.assertTrue(updateCompatibilityResponse.getBody().isPresent());
-        Assertions.assertEquals(1, updateCompatibilityResponse.getBody().get().getSpec().getId());
+        Assertions.assertNotNull(updateCompatibilityResponse.getBody().get().getSpec().getId());
         Assertions.assertEquals(1, updateCompatibilityResponse.getBody().get().getSpec().getVersion());
         Assertions.assertEquals(Schema.Compatibility.NONE, updateCompatibilityResponse.getBody().get().getSpec().getCompatibility());
 
-        // Method that delete the specific compatibility for a subject does not exist yet on the Docker image
+        // Endpoint that deletes the specific compatibility of a subject does not exist yet on the Schema Registry Docker image 6.2.1
         /*var resetCompatibilityResponse = client
                 .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3/compatibility")
                         .bearerAuth(token)
@@ -202,5 +202,42 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         Assertions.assertEquals(1, resetCompatibilityResponse.getBody().get().getSpec().getId());
         Assertions.assertEquals(1, resetCompatibilityResponse.getBody().get().getSpec().getVersion());
         Assertions.assertEquals(Schema.Compatibility.GLOBAL, resetCompatibilityResponse.getBody().get().getSpec().getCompatibility());*/
+    }
+
+    /**
+     * Schema creation and deletion
+     */
+    @Test
+    void createAndDeleteSchema() {
+        Schema schema = Schema.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-subject4")
+                        .build())
+                .spec(Schema.SchemaSpec.builder()
+                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the personnn\"}]}")
+                        .build())
+                .build();
+
+        var createResponse = client
+                .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas")
+                        .bearerAuth(token)
+                        .body(schema), Schema.class).blockingFirst();
+
+        Assertions.assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
+        Assertions.assertTrue(createResponse.getBody().isPresent());
+        Assertions.assertNotNull(createResponse.getBody().get().getSpec().getId());
+        Assertions.assertEquals(1, createResponse.getBody().get().getSpec().getVersion());
+
+        var deleteResponse = client
+                .exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/schemas/ns1-subject4")
+                        .bearerAuth(token), Schema.class).blockingFirst();
+
+        Assertions.assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
+
+        HttpClientResponseException getException = Assertions.assertThrows(HttpClientResponseException.class,
+                () -> client.exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/schemas/ns1-subject4")
+                        .bearerAuth(token), Schema.class).blockingFirst());
+
+        Assertions.assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
     }
 }
