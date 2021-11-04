@@ -17,7 +17,7 @@ import java.util.UUID;
 import static java.lang.String.format;
 
 /**
- * This file is a slight adapatation of the KafkaConnectContainer code available on ydespreaux's Github account:
+ * This file is a slight adaptation of the KafkaConnectContainer code available on ydespreaux's Github account:
  *
  * @see <a href="https://github.com/ydespreaux/testcontainers/blob/master/testcontainers-kafka/src/main/java/com/github/ydespreaux/testcontainers/kafka/containers/KafkaConnectContainer.java">KafkaConnectContainer.java</a>
  */

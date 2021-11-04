@@ -1,10 +1,7 @@
 package com.michelin.ns4kafka.models;
 
 import io.micronaut.core.annotation.Introspected;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -45,7 +42,8 @@ public class Schema {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @Data
+    @Getter
+    @Setter
     public static class SchemaSpec {
         /**
          * Schema ID

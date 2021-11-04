@@ -171,7 +171,8 @@ public class SchemaService {
      */
     public Optional<Schema> updateSubjectCompatibility(Namespace namespace, String subject, Schema.Compatibility compatibility) {
         if (compatibility.equals(Schema.Compatibility.GLOBAL)) {
-            // TODO: Back to the global compat mode, but endpoint seems not available with SR 6.2.1
+            this.kafkaSchemaRegistryClient.deleteCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
+                    namespace.getMetadata().getCluster(), subject);
         } else {
             this.kafkaSchemaRegistryClient.updateSubjectCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
                     namespace.getMetadata().getCluster(), subject,

@@ -51,4 +51,9 @@ public interface KafkaSchemaRegistryClient {
     HttpResponse<SchemaCompatibilityResponse> getCurrentCompatibilityBySubject(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
                                                                                @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
                                                                                @PathVariable String subject);
+
+    @Delete("/config/{subject}")
+    HttpResponse<SchemaCompatibilityResponse> deleteCurrentCompatibilityBySubject(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
+                                                                                  @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
+                                                                                  @PathVariable String subject);
 }
