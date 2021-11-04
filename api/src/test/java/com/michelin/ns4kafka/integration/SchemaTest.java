@@ -191,8 +191,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         Assertions.assertEquals(1, updateCompatibilityResponse.getBody().get().getSpec().getVersion());
         Assertions.assertEquals(Schema.Compatibility.NONE, updateCompatibilityResponse.getBody().get().getSpec().getCompatibility());
 
-        // Endpoint that deletes the specific compatibility of a subject does not exist yet on the Schema Registry Docker image 6.2.1
-        /*var resetCompatibilityResponse = client
+        var resetCompatibilityResponse = client
                 .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3/compatibility")
                         .bearerAuth(token)
                         .body(Collections.singletonMap("compatibility", Schema.Compatibility.GLOBAL)), Schema.class).blockingFirst();
@@ -201,7 +200,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         Assertions.assertTrue(resetCompatibilityResponse.getBody().isPresent());
         Assertions.assertEquals(1, resetCompatibilityResponse.getBody().get().getSpec().getId());
         Assertions.assertEquals(1, resetCompatibilityResponse.getBody().get().getSpec().getVersion());
-        Assertions.assertEquals(Schema.Compatibility.GLOBAL, resetCompatibilityResponse.getBody().get().getSpec().getCompatibility());*/
+        Assertions.assertEquals(Schema.Compatibility.GLOBAL, resetCompatibilityResponse.getBody().get().getSpec().getCompatibility());
     }
 
     /**

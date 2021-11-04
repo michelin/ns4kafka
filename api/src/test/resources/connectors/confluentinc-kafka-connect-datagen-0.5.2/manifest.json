@@ -1,0 +1,35 @@
+{
+  "name" : "kafka-connect-datagen",
+  "version" : "0.5.2",
+  "title" : "Kafka Connect Datagen",
+  "description" : "For demos only: A Kafka Connect connector for generating mock data, not suitable for production",
+  "owner" : {
+    "username" : "confluentinc",
+    "type" : "organization",
+    "name" : "Confluent, Inc.",
+    "url" : "https://confluent.io/",
+    "logo" : "assets/confluent.png"
+  },
+  "support" : {
+    "summary" : "This connector is open source at https://github.com/confluentinc/kafka-connect-datagen and supported by community members.",
+    "url" : "https://github.com/confluentinc/kafka-connect-datagen",
+    "provider_name" : "Community Support"
+  },
+  "tags" : [ "datagen", "generator", "demo" ],
+  "requirements" : [ "Confluent Platform 4.x or later", "Apache Kafka 1.x or later" ],
+  "features" : {
+    "supported_encodings" : [ "any" ],
+    "single_message_transforms" : true,
+    "confluent_control_center_integration" : true,
+    "kafka_connect_api" : true
+  },
+  "documentation_url" : "https://github.com/confluentinc/kafka-connect-datagen/blob/master/README.md",
+  "source_url" : "https://github.com/confluentinc/kafka-connect-datagen",
+  "docker_image" : { },
+  "license" : [ {
+    "name" : "Apache License 2.0",
+    "url" : "https://www.apache.org/licenses/LICENSE-2.0"
+  } ],
+  "component_types" : [ "source" ],
+  "release_date" : "2021-10-13"
+}

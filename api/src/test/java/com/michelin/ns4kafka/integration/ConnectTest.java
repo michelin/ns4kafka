@@ -62,7 +62,7 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
                         .topicValidator(TopicValidator.makeDefaultOneBroker())
                         .connectValidator(ConnectValidator.builder()
                                 .validationConstraints(Map.of())
-                                .sinkValidationConstraints(Map.of())
+                                .sourceValidationConstraints(Map.of())
                                 .classValidationConstraints(Map.of())
                                 .build())
                         .build())
@@ -126,10 +126,9 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
 
     @Test
     void createConnect() throws InterruptedException, ExecutionException, MalformedURLException {
-
         RxHttpClient connectCli = RxHttpClient.create(new URL(connect.getUrl()));
         ServerInfo actual = connectCli.retrieve(HttpRequest.GET("/"), ServerInfo.class).blockingFirst();
-        Assertions.assertEquals("6.2.1-ccs", actual.version());
+        Assertions.assertEquals("7.0.0-ccs", actual.version());
     }
 
     @Test
@@ -152,7 +151,6 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
 
     @Test
     void restartConnector() throws InterruptedException, ExecutionException, MalformedURLException {
-
         Topic to = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-to1")
@@ -175,10 +173,11 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("test-connect")
                         .config(Map.of(
-                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                                "connector.class", "io.confluent.kafka.connect.datagen.DatagenConnector",
                                 "name", "ns1-co1",
                                 "tasks.max", "1",
-                                "topics", "ns1-to1"
+                                "kafka.topic", "ns1-to1",
+                                "quickstart", "product"
                         ))
                         .build())
                 .build();
@@ -224,10 +223,11 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("test-connect")
                         .config(Map.of(
-                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                                "connector.class", "io.confluent.kafka.connect.datagen.DatagenConnector",
                                 "name", "ns1-co2",
                                 "tasks.max", "3",
-                                "topics", "ns1-to1"
+                                "kafka.topic", "ns1-to1",
+                                "quickstart", "product"
                         ))
                         .build())
                 .build();
