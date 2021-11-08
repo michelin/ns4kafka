@@ -10,6 +10,7 @@ import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibility
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
@@ -45,23 +46,13 @@ public class SchemaService {
      * @param namespace The namespace used to research the schemas
      * @return A list of schemas
      */
-    public List<Schema> getAllByNamespace(Namespace namespace) {
-        HttpResponse<List<String>> subjectsResponse = this.kafkaSchemaRegistryClient.
-                getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster());
-
-        Optional<List<String>> subjectsOptional = subjectsResponse.getBody();
-        if (subjectsOptional.isEmpty()) {
-            return List.of();
-        }
-
-        List<String> namespacedSubjects = subjectsOptional.get()
+    public List<Schema> findAllForNamespace(Namespace namespace) {
+        return this.kafkaSchemaRegistryClient
+                .getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())
                 .stream()
+                //TODO Optimize with accessControlEntryService.findAllGrantedToNamespace
                 .filter(subject -> this.isNamespaceOwnerOfSubject(namespace, subject))
-                .collect(Collectors.toList());
-
-        return namespacedSubjects
-                .stream()
-                .map(namespacedSubject -> this.getBySubjectAndVersion(namespace, namespacedSubject, LATEST_VERSION))
+                .map(namespacedSubject -> this.getLatestSubject(namespace, namespacedSubject))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toList());
@@ -72,37 +63,32 @@ public class SchemaService {
      *
      * @param namespace The namespace
      * @param subject The subject
-     * @param version The version
      * @return The schema
      */
-    public Optional<Schema> getBySubjectAndVersion(Namespace namespace, String subject, String version) {
-        HttpResponse<SchemaResponse> response = this.kafkaSchemaRegistryClient.
-                getSchemaBySubjectAndVersion(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
-                        subject, version);
+    public Optional<Schema> getLatestSubject(Namespace namespace, String subject) {
+        Optional<SchemaResponse> response = this.kafkaSchemaRegistryClient.
+                getLatestSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), subject);
 
-        Schema.SchemaSpec.SchemaSpecBuilder schemaSpecBuilder = Schema.SchemaSpec.builder();
+        if(response.isEmpty())
+            return Optional.empty();
 
-        Optional<SchemaResponse> responseBody = response.getBody();
-        if (responseBody.isPresent()) {
-            HttpResponse<SchemaCompatibilityResponse> compatibilityResponse = this.kafkaSchemaRegistryClient.
-                    getCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
-                            subject);
 
-            Optional<SchemaCompatibilityResponse> compatibilityResponseBody = compatibilityResponse.getBody();
-            compatibilityResponseBody.ifPresent(schemaCompatibilityResponse -> schemaSpecBuilder
-                            .compatibility(schemaCompatibilityResponse.compatibilityLevel())
-                            .build());
-        }
+        Optional<SchemaCompatibilityResponse> compatibilityResponse = this.kafkaSchemaRegistryClient.
+                getCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), subject);
 
-        return responseBody
-                .map(schemaResponse -> Schema.builder()
+        Schema.Compatibility compatibility = compatibilityResponse.isPresent() ? compatibilityResponse.get().compatibilityLevel() : Schema.Compatibility.DEFAULT;
+
+
+        return Schema.builder()
                         .metadata(ObjectMeta.builder()
-                                .name(schemaResponse.subject())
+                                .name(response.get().subject())
                                 .build())
-                        .spec(schemaSpecBuilder
-                                .id(schemaResponse.id())
-                                .version(schemaResponse.version())
-                                .schema(schemaResponse.schema())
+                        .spec(Schema.SchemaSpec.builder()
+                                .id(response.get().id())
+                                .version(response.get().version())
+                                .compatibility(compatibility)
+                                .schema(response.get().schema())
+                                .schemaType(response.get().schemaType())
                                 .build())
                         .build());
     }
@@ -154,12 +140,20 @@ public class SchemaService {
         HttpResponse<SchemaCompatibilityCheckResponse> response = this.kafkaSchemaRegistryClient.validateSchemaCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
                 cluster, schema.getMetadata().getName(), Map.of("schema", schema.getSpec().getSchema()));
 
-        Optional<SchemaCompatibilityCheckResponse> compatibilityOptional = response.getBody();
-        if (compatibilityOptional.isPresent() && !compatibilityOptional.get().isCompatible()) {
-            return compatibilityOptional.get().messages();
+        // Schema registry return 404 for new subjects
+        //TODO I think we need to try/catch HttpClientResponseException instead
+        if(response.getStatus() == HttpStatus.NOT_FOUND)
+            return List.of();
+
+        // No compatibility issue
+        if(response.getStatus() == HttpStatus.OK)
+            return List.of();
+
+        if (!response.body().isCompatible()) {
+            return response.body().messages();
         }
 
-        return List.of();
+        return List.of("Unknown error occurred. HttpResponse " + response.code());
     }
     /**
      * Update the schema compatibility against the Schema Registry
@@ -169,7 +163,7 @@ public class SchemaService {
      * @param compatibility The compatibility
      */
     public Optional<Schema> updateSubjectCompatibility(Namespace namespace, String subject, Schema.Compatibility compatibility) {
-        if (compatibility.equals(Schema.Compatibility.GLOBAL)) {
+        if (compatibility.equals(Schema.Compatibility.DEFAULT)) {
             this.kafkaSchemaRegistryClient.deleteCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
                     namespace.getMetadata().getCluster(), subject);
         } else {
@@ -189,7 +183,8 @@ public class SchemaService {
      * @return true if it's owner, false otherwise
      */
     public boolean isNamespaceOwnerOfSubject(Namespace namespace, String subjectName) {
-        return this.accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(), AccessControlEntry.ResourceType.SCHEMA,
-                subjectName);
+        String underlyingTopicName = subjectName.replaceAll("(-key|-value)$","");
+        return this.accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(), AccessControlEntry.ResourceType.TOPIC,
+                underlyingTopicName);
     }
 }

@@ -21,15 +21,6 @@ import java.util.Optional;
 @Controller(value = "/api/namespaces/{namespace}/schemas")
 @ExecuteOn(TaskExecutors.IO)
 public class SchemaController extends NamespacedResourceController {
-    /**
-     * Label of the latest schema version
-     */
-    private static final String SCHEMA_LATEST_VERSION = "latest";
-
-    /**
-     * Key used for transmitting compatibility mode
-     */
-    private static final String COMPATIBILITY_KEY = "compatibility";
 
     /**
      * Subject service
@@ -44,8 +35,9 @@ public class SchemaController extends NamespacedResourceController {
      * @return A list of schemas
      */
     @Get
-    public List<Schema> getAllByNamespace(String namespace) {
-        return this.schemaService.getAllByNamespace(getNamespace(namespace));
+    public List<Schema> list(String namespace) {
+        Namespace ns = getNamespace(namespace);
+        return this.schemaService.findAllForNamespace(ns);
     }
 
     /**
@@ -56,16 +48,14 @@ public class SchemaController extends NamespacedResourceController {
      * @return A schema
      */
     @Get("/{subject}")
-    public Optional<Schema> getByNamespaceAndSubject(String namespace, @PathVariable String subject) {
-        Namespace retrievedNamespace = super.getNamespace(namespace);
+    public Optional<Schema> get(String namespace, String subject) {
+        Namespace ns = getNamespace(namespace);
 
-        if (!this.schemaService.isNamespaceOwnerOfSubject(retrievedNamespace, subject)) {
-            throw new ResourceValidationException(List.of("Invalid prefix " + subject +
-                    " : namespace not owner of this subject"), AccessControlEntry.ResourceType.SCHEMA.toString(),
-                    subject);
+        if (!this.schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
+            return Optional.empty();
         }
 
-        return this.schemaService.getBySubjectAndVersion(retrievedNamespace, subject, SchemaController.SCHEMA_LATEST_VERSION);
+        return this.schemaService.getLatestSubject(ns, subject);
     }
 
     /**
@@ -78,22 +68,29 @@ public class SchemaController extends NamespacedResourceController {
      */
     @Post
     public HttpResponse<Schema> apply(String namespace, @Valid @Body Schema schema, @QueryValue(defaultValue = "false") boolean dryrun) {
-        Namespace retrievedNamespace = super.getNamespace(namespace);
+        Namespace ns = getNamespace(namespace);
 
-        if (!this.schemaService.isNamespaceOwnerOfSubject(retrievedNamespace, schema.getMetadata().getName())) {
-            throw new ResourceValidationException(List.of("Invalid prefix " + schema.getMetadata().getName() +
-                    " : namespace not owner of this subject"), schema.getKind(), schema.getMetadata().getName());
+        // Validate TopicNameStrategy
+        // https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject/TopicNameStrategy.java
+        if(!schema.getMetadata().getName().endsWith("-key") && !schema.getMetadata().getName().endsWith("-value")){
+            throw new ResourceValidationException(List.of("Invalid value " + schema.getMetadata().getName() +
+                    " for name: : subject must end with -key or -value"), schema.getKind(), schema.getMetadata().getName());
         }
 
-        List<String> errorsValidateSubjectCompatibility = this.schemaService
-                .validateSchemaCompatibility(retrievedNamespace.getMetadata().getCluster(), schema);
-
-        if (!errorsValidateSubjectCompatibility.isEmpty()) {
-            throw new ResourceValidationException(errorsValidateSubjectCompatibility, schema.getKind(), schema.getMetadata().getName());
+        // Validate ownership
+        if (!this.schemaService.isNamespaceOwnerOfSubject(ns, schema.getMetadata().getName())) {
+            throw new ResourceValidationException(List.of("Invalid value " + schema.getMetadata().getName() +
+                    " for name: : namespace not OWNER of underlying topic"), schema.getKind(), schema.getMetadata().getName());
         }
 
-        Optional<Schema> existingSchemaOptional = this.schemaService
-                .getBySubjectAndVersion(retrievedNamespace, schema.getMetadata().getName(), SchemaController.SCHEMA_LATEST_VERSION);
+        // Validate compatibility
+        List<String> validationErrors = this.schemaService.validateSchemaCompatibility(ns.getMetadata().getCluster(), schema);
+
+        if (!validationErrors.isEmpty()) {
+            throw new ResourceValidationException(validationErrors, schema.getKind(), schema.getMetadata().getName());
+        }
+
+        Optional<Schema> existingSchemaOptional = this.schemaService.getLatestSubject(ns, schema.getMetadata().getName());
 
         ApplyStatus status = existingSchemaOptional.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
 
@@ -101,7 +98,7 @@ public class SchemaController extends NamespacedResourceController {
             return this.formatHttpResponse(schema, status);
         }
 
-        Optional<Schema> schemaOptional = this.schemaService.register(retrievedNamespace, schema);
+        Optional<Schema> schemaOptional = this.schemaService.register(ns, schema);
         status = schemaOptional.isPresent() ? status : ApplyStatus.unchanged;
         Schema appliedSchema = schemaOptional.orElse(null);
 
@@ -148,9 +145,9 @@ public class SchemaController extends NamespacedResourceController {
     @Post("/{subject}/compatibility")
     public HttpResponse<Optional<Schema>> compatibility(String namespace, @PathVariable String subject, @Valid @Body Map<String, Schema.Compatibility> compatibility,
                                                         @QueryValue(defaultValue = "false") boolean dryrun) {
-        Namespace retrievedNamespace = super.getNamespace(namespace);
+        Namespace ns = getNamespace(namespace);
 
-        if (!this.schemaService.isNamespaceOwnerOfSubject(retrievedNamespace, subject)) {
+        if (!this.schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
             throw new ResourceValidationException(List.of("Invalid prefix " + subject +
                     " : namespace not owner of this subject"), AccessControlEntry.ResourceType.SCHEMA.toString(), subject);
         }

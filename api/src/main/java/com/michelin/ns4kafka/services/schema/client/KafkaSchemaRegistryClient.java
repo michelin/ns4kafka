@@ -10,18 +10,18 @@ import io.micronaut.http.client.annotation.Client;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Client(value = KafkaSchemaRegistryClientProxy.SCHEMA_REGISTRY_PREFIX)
 public interface KafkaSchemaRegistryClient {
     @Get("/subjects")
-    HttpResponse<List<String>> getSubjects(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
+    List<String> getSubjects(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
                                            @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster);
 
-    @Get("/subjects/{subject}/versions/{version}")
-    HttpResponse<SchemaResponse> getSchemaBySubjectAndVersion(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
+    @Get("/subjects/{subject}/versions/latest")
+    Optional<SchemaResponse> getLatestSubject(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
                                                               @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
-                                                              @PathVariable String subject,
-                                                              @PathVariable String version);
+                                                              @PathVariable String subject);
 
     @Post("/subjects/{subject}/versions")
     HttpResponse<SchemaResponse> register(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
@@ -35,22 +35,31 @@ public interface KafkaSchemaRegistryClient {
                          @PathVariable String subject,
                          @QueryValue("permanent") boolean hardDelete);
 
-    @Post("/compatibility/subjects/{subject}/versions/latest?verbose=true")
+    /**
+     * Test against ALL previous verions if required
+     *
+     * @param secret
+     * @param cluster
+     * @param subject
+     * @param schema
+     * @return
+     */
+    @Post("/compatibility/subjects/{subject}/versions?verbose=true")
     HttpResponse<SchemaCompatibilityCheckResponse> validateSchemaCompatibility(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
                                                                                @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
                                                                                @PathVariable String subject,
                                                                                @Body Map<String, String> schema);
 
     @Put("/config/{subject}")
-    void updateSubjectCompatibility(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
+    HttpResponse<SchemaCompatibilityResponse> updateSubjectCompatibility(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
                                     @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
                                     @PathVariable String subject,
                                     @Body Map<String, String> compatibility);
 
     @Get("/config/{subject}")
-    HttpResponse<SchemaCompatibilityResponse> getCurrentCompatibilityBySubject(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
-                                                                               @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
-                                                                               @PathVariable String subject);
+    Optional<SchemaCompatibilityResponse> getCurrentCompatibilityBySubject(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
+                                                                           @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
+                                                                           @PathVariable String subject);
 
     @Delete("/config/{subject}")
     void deleteCurrentCompatibilityBySubject(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,

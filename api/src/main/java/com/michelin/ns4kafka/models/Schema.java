@@ -60,11 +60,14 @@ public class Schema {
          */
         private String schema;
 
+        @Builder.Default
+        private String schemaType = "AVRO";
+
         /**
          * Schema compatibility
          */
         @Builder.Default
-        private Compatibility compatibility = Compatibility.GLOBAL;
+        private Compatibility compatibility = Compatibility.DEFAULT;
     }
 
     /**
@@ -72,7 +75,7 @@ public class Schema {
      */
     @Introspected
     public enum Compatibility {
-        GLOBAL,
+        DEFAULT,
         BACKWARD,
         BACKWARD_TRANSITIVE,
         FORWARD,

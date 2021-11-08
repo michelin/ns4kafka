@@ -26,6 +26,7 @@ public class SchemaResponse {
      */
     private final String schema;
 
+    private final String schemaType;
     /**
      * Constructor
      *
@@ -36,11 +37,12 @@ public class SchemaResponse {
      */
     @JsonCreator
     public SchemaResponse(@JsonProperty("id") Integer id, @JsonProperty("version") Integer version, @JsonProperty("subject") String subject,
-                          @JsonProperty("schema") String schema) {
+                          @JsonProperty("schema") String schema, @JsonProperty("schemaType") String schemaType) {
         this.id = id;
         this.version = version;
         this.subject = subject;
         this.schema = schema;
+        this.schemaType = schemaType;
     }
 
     /**
@@ -77,5 +79,9 @@ public class SchemaResponse {
      */
     public String schema() {
         return schema;
+    }
+
+    public String schemaType() {
+        return schemaType;
     }
 }

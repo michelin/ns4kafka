@@ -16,7 +16,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -179,7 +178,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         Assertions.assertTrue(createResponse.getBody().isPresent());
         Assertions.assertNotNull(createResponse.getBody().get().getSpec().getId());
         Assertions.assertEquals(1, createResponse.getBody().get().getSpec().getVersion());
-        Assertions.assertEquals(Schema.Compatibility.GLOBAL, createResponse.getBody().get().getSpec().getCompatibility());
+        Assertions.assertEquals(Schema.Compatibility.DEFAULT, createResponse.getBody().get().getSpec().getCompatibility());
 
         var updateCompatibilityResponse = client
                 .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3/compatibility")
@@ -195,13 +194,13 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         var resetCompatibilityResponse = client
                 .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3/compatibility")
                         .bearerAuth(token)
-                        .body(Map.of("compatibility", Schema.Compatibility.GLOBAL)), Schema.class).blockingFirst();
+                        .body(Map.of("compatibility", Schema.Compatibility.DEFAULT)), Schema.class).blockingFirst();
 
         Assertions.assertEquals("changed", resetCompatibilityResponse.header("X-Ns4kafka-Result"));
         Assertions.assertTrue(resetCompatibilityResponse.getBody().isPresent());
         Assertions.assertNotNull(resetCompatibilityResponse.getBody().get().getSpec().getId());
         Assertions.assertEquals(1, resetCompatibilityResponse.getBody().get().getSpec().getVersion());
-        Assertions.assertEquals(Schema.Compatibility.GLOBAL, resetCompatibilityResponse.getBody().get().getSpec().getCompatibility());
+        Assertions.assertEquals(Schema.Compatibility.DEFAULT, resetCompatibilityResponse.getBody().get().getSpec().getCompatibility());
     }
 
     /**
