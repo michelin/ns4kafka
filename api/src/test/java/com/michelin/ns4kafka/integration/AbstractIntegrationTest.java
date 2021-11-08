@@ -13,7 +13,7 @@ import java.util.Map;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AbstractIntegrationTest implements TestPropertyProvider {
 
-    public static final String CONFLUENT_VERSION = "7.0.0";
+    public static final String CONFLUENT_VERSION = "6.2.0";
 
     public KafkaContainer kafka;
     public Network network;

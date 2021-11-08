@@ -204,7 +204,7 @@ class SchemaServiceTest {
         Schema schema = this.buildSchema();
         SchemaCompatibilityCheckResponse schemaCompatibilityCheckResponse = SchemaCompatibilityCheckResponse.builder()
                 .isCompatible(false)
-                .messages(Collections.singletonList("Incompatible schema"))
+                .messages(List.of("Incompatible schema"))
                 .build();
 
         when(kafkaSchemaRegistryClient.validateSchemaCompatibility(any(), any(), any(), any()))
@@ -226,7 +226,7 @@ class SchemaServiceTest {
         SchemaCompatibilityResponse compatibilityResponse = this.buildCompatibilityResponse();
 
         doNothing().when(kafkaSchemaRegistryClient).updateSubjectCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
-                "prefix.schema-one", Collections.singletonMap("compatibility", Schema.Compatibility.FORWARD.toString()));
+                "prefix.schema-one", Map.of("compatibility", Schema.Compatibility.FORWARD.toString()));
         when(kafkaSchemaRegistryClient.getSchemaBySubjectAndVersion(any(), any(), any(), any()))
                 .thenReturn(HttpResponse.ok(schemaResponse));
         when(kafkaSchemaRegistryClient.getCurrentCompatibilityBySubject(any(), any(), any())).thenReturn(HttpResponse.ok(compatibilityResponse));
@@ -237,7 +237,7 @@ class SchemaServiceTest {
         Assertions.assertTrue(updatedSchema.isPresent());
         Assertions.assertEquals("prefix.schema-one", updatedSchema.get().getMetadata().getName());
         verify(kafkaSchemaRegistryClient, times(1)).updateSubjectCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
-                "prefix.schema-one", Collections.singletonMap("compatibility", Schema.Compatibility.FORWARD.toString()));
+                "prefix.schema-one", Map.of("compatibility", Schema.Compatibility.FORWARD.toString()));
     }
 
     /**

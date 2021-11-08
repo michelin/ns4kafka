@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import javax.inject.Inject;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
@@ -183,7 +184,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         var updateCompatibilityResponse = client
                 .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3/compatibility")
                         .bearerAuth(token)
-                        .body(Collections.singletonMap("compatibility", Schema.Compatibility.NONE)), Schema.class).blockingFirst();
+                        .body(Map.of("compatibility", Schema.Compatibility.NONE)), Schema.class).blockingFirst();
 
         Assertions.assertEquals("changed", updateCompatibilityResponse.header("X-Ns4kafka-Result"));
         Assertions.assertTrue(updateCompatibilityResponse.getBody().isPresent());
@@ -194,7 +195,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         var resetCompatibilityResponse = client
                 .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3/compatibility")
                         .bearerAuth(token)
-                        .body(Collections.singletonMap("compatibility", Schema.Compatibility.GLOBAL)), Schema.class).blockingFirst();
+                        .body(Map.of("compatibility", Schema.Compatibility.GLOBAL)), Schema.class).blockingFirst();
 
         Assertions.assertEquals("changed", resetCompatibilityResponse.header("X-Ns4kafka-Result"));
         Assertions.assertTrue(resetCompatibilityResponse.getBody().isPresent());

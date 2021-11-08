@@ -11,6 +11,10 @@ import java.util.Map;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class AbstractIntegrationSchemaRegistryTest extends AbstractIntegrationTest {
+    /**
+     * Version of the Schema Registry Docker image
+     */
+    public static final String CONFLUENT_REGISTRY_VERSION = "7.0.0";
 
     /**
      * Schema registry container
@@ -28,7 +32,7 @@ public class AbstractIntegrationSchemaRegistryTest extends AbstractIntegrationTe
         Map<String, String> brokerProps = super.getProperties();
 
         if (schemaRegistryContainer == null || !schemaRegistryContainer.isRunning()) {
-            schemaRegistryContainer = new SchemaRegistryContainer(DockerImageName.parse("confluentinc/cp-schema-registry:" + CONFLUENT_VERSION),
+            schemaRegistryContainer = new SchemaRegistryContainer(DockerImageName.parse("confluentinc/cp-schema-registry:" + CONFLUENT_REGISTRY_VERSION),
                     "kafka:9092").withNetwork(network);
 
             schemaRegistryContainer.start();

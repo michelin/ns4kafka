@@ -16,6 +16,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -51,7 +52,7 @@ public class SchemaService {
 
         Optional<List<String>> subjectsOptional = subjectsResponse.getBody();
         if (subjectsOptional.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         List<String> namespacedSubjects = subjectsOptional.get()
@@ -117,7 +118,7 @@ public class SchemaService {
     public Optional<Schema> register(Namespace namespace, Schema schema) {
         HttpResponse<SchemaResponse> response = this.kafkaSchemaRegistryClient.
                 register(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
-                        schema.getMetadata().getName(), Collections.singletonMap("schema", schema.getSpec().getSchema()));
+                        schema.getMetadata().getName(), Map.of("schema", schema.getSpec().getSchema()));
 
         Optional<SchemaResponse> schemaSpecOptional = response.getBody();
         if (schemaSpecOptional.isEmpty()) {
@@ -152,16 +153,15 @@ public class SchemaService {
      */
     public List<String> validateSchemaCompatibility(String cluster, Schema schema) {
         HttpResponse<SchemaCompatibilityCheckResponse> response = this.kafkaSchemaRegistryClient.validateSchemaCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
-                cluster, schema.getMetadata().getName(), Collections.singletonMap("schema", schema.getSpec().getSchema()));
+                cluster, schema.getMetadata().getName(), Map.of("schema", schema.getSpec().getSchema()));
 
         Optional<SchemaCompatibilityCheckResponse> compatibilityOptional = response.getBody();
         if (compatibilityOptional.isPresent() && !compatibilityOptional.get().isCompatible()) {
             return compatibilityOptional.get().messages();
         }
 
-        return Collections.emptyList();
+        return List.of();
     }
-
     /**
      * Update the schema compatibility against the Schema Registry
      *
@@ -176,7 +176,7 @@ public class SchemaService {
         } else {
             this.kafkaSchemaRegistryClient.updateSubjectCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
                     namespace.getMetadata().getCluster(), subject,
-                    Collections.singletonMap("compatibility", compatibility.toString()));
+                    Map.of("compatibility", compatibility.toString()));
         }
 
         return this.getBySubjectAndVersion(namespace, subject, LATEST_VERSION);

@@ -92,8 +92,6 @@ public class KafkaConnectContainer extends GenericContainer<KafkaConnectContaine
             .withEnv(INTERNAL_KEY_CONVERTER_CONFIG, INTERNAL_KEY_CONVERTER_DEFAULT_VALUE)
             .withEnv(INTERNAL_VALUE_CONVERTER_CONFIG, INTERNAL_VALUE_CONVERTER_DEFAULT_VALUE);
 
-        this.withPlugins("connectors/confluentinc-kafka-connect-datagen-0.5.2");
-
         withExposedPorts(CONNECT_REST_PORT_INTERNAL);
         withNetworkAliases(networkAlias);
 
