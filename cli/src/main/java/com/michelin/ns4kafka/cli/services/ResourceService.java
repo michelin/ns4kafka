@@ -162,7 +162,7 @@ public class ResourceService {
     public Resource changeSchemaCompatibility(String namespace, String subject, String compatibility, boolean dryRun) {
         try {
             Resource resource = namespacedClient.changeSchemaCompatibility(namespace, subject,
-                    Collections.singletonMap("compatibility", compatibility), loginService.getAuthorization(), dryRun);
+                    Map.of("compatibility", compatibility), loginService.getAuthorization(), dryRun);
 
             if (resource == null) {
                 // micronaut converts HTTP 404 into null

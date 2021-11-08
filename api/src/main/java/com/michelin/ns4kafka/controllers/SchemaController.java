@@ -22,6 +22,11 @@ import java.util.Optional;
 @ExecuteOn(TaskExecutors.IO)
 public class SchemaController extends NamespacedResourceController {
     /**
+     * Label of the latest schema version
+     */
+    private static final String SCHEMA_LATEST_VERSION = "latest";
+
+    /**
      * Key used for transmitting compatibility mode
      */
     private static final String COMPATIBILITY_KEY = "compatibility";
@@ -60,7 +65,7 @@ public class SchemaController extends NamespacedResourceController {
                     subject);
         }
 
-        return this.schemaService.getBySubjectAndVersion(retrievedNamespace, subject, "latest");
+        return this.schemaService.getBySubjectAndVersion(retrievedNamespace, subject, SchemaController.SCHEMA_LATEST_VERSION);
     }
 
     /**
@@ -88,7 +93,7 @@ public class SchemaController extends NamespacedResourceController {
         }
 
         Optional<Schema> existingSchemaOptional = this.schemaService
-                .getBySubjectAndVersion(retrievedNamespace, schema.getMetadata().getName(), "latest");
+                .getBySubjectAndVersion(retrievedNamespace, schema.getMetadata().getName(), SchemaController.SCHEMA_LATEST_VERSION);
 
         ApplyStatus status = existingSchemaOptional.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
 
@@ -132,11 +137,13 @@ public class SchemaController extends NamespacedResourceController {
     }
 
     /**
-     * Update the compatibility of a schema
+     * Update the compatibility of a subject
      *
      * @param namespace The namespace
-     * @param schema The schema to create
-     * @return The updated subject
+     * @param subject The subject to update
+     * @param compatibility The compatibility to apply
+     * @param dryrun Dry run mode
+     * @return The last updated schema
      */
     @Post("/{subject}/compatibility")
     public HttpResponse<Optional<Schema>> compatibility(String namespace, @PathVariable String subject, @Valid @Body Map<String, Schema.Compatibility> compatibility,
@@ -149,7 +156,7 @@ public class SchemaController extends NamespacedResourceController {
         }
 
         Optional<Schema> existingSchemaOptional = this.schemaService
-                .getBySubjectAndVersion(retrievedNamespace, subject, "latest");
+                .getBySubjectAndVersion(retrievedNamespace, subject, SchemaController.SCHEMA_LATEST_VERSION);
 
         // Subject not existing, no compatibility to update
         if (existingSchemaOptional.isEmpty()) {
@@ -166,10 +173,10 @@ public class SchemaController extends NamespacedResourceController {
 
         // Subject existing, update the compatibility (dry mode)
         if (dryrun) {
-            return this.formatHttpResponse(this.schemaService.getBySubjectAndVersion(retrievedNamespace, subject, "latest"), status);
+            return this.formatHttpResponse(this.schemaService.getBySubjectAndVersion(retrievedNamespace, subject, SchemaController.SCHEMA_LATEST_VERSION), status);
         }
 
         // Subject existing, update the compatibility
-        return this.formatHttpResponse(this.schemaService.updateSubjectCompatibility(retrievedNamespace, subject, compatibility.get("compatibility")), ApplyStatus.changed);
+        return this.formatHttpResponse(this.schemaService.updateSubjectCompatibility(retrievedNamespace, subject, compatibility.get(SchemaController.COMPATIBILITY_KEY)), ApplyStatus.changed);
     }
 }

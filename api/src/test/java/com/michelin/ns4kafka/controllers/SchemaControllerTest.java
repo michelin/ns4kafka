@@ -13,7 +13,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -44,12 +43,14 @@ class SchemaControllerTest {
      * Test the schema creation
      */
     @Test
-    void apply() {
+    void applyCreated() {
         Namespace namespace = this.buildNamespace();
         Schema schema = this.buildSchema();
 
         when(this.namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(this.schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
+        when(this.schemaService.validateSchemaCompatibility("local", schema)).thenReturn(List.of());
+        when(this.schemaService.getBySubjectAndVersion(namespace, schema.getMetadata().getName(), "latest")).thenReturn(Optional.empty());
         when(this.schemaService.register(namespace, schema)).thenReturn(Optional.of(schema));
 
         HttpResponse<Schema> response = this.schemaController.apply("myNamespace", schema, false);
@@ -58,6 +59,29 @@ class SchemaControllerTest {
 
         Assertions.assertNotNull(actual);
         Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+        Assertions.assertEquals("prefix.subject", actual.getMetadata().getName());
+    }
+
+    /**
+     * Test the schema creation
+     */
+    @Test
+    void applyChanged() {
+        Namespace namespace = this.buildNamespace();
+        Schema schema = this.buildSchema();
+
+        when(this.namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
+        when(this.schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
+        when(this.schemaService.validateSchemaCompatibility("local", schema)).thenReturn(List.of());
+        when(this.schemaService.getBySubjectAndVersion(namespace, schema.getMetadata().getName(), "latest")).thenReturn(Optional.of(schema));
+        when(this.schemaService.register(namespace, schema)).thenReturn(Optional.of(schema));
+
+        HttpResponse<Schema> response = this.schemaController.apply("myNamespace", schema, false);
+
+        Schema actual = response.body();
+
+        Assertions.assertNotNull(actual);
+        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
         Assertions.assertEquals("prefix.subject", actual.getMetadata().getName());
     }
 
@@ -92,6 +116,7 @@ class SchemaControllerTest {
         when(this.namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(this.schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
         when(this.schemaService.validateSchemaCompatibility("local", schema)).thenReturn(List.of());
+        when(this.schemaService.getBySubjectAndVersion(namespace, schema.getMetadata().getName(), "latest")).thenReturn(Optional.empty());
 
         HttpResponse<Schema> response = this.schemaController.apply("myNamespace", schema, true);
 
