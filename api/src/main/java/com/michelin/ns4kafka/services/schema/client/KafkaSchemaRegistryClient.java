@@ -24,7 +24,7 @@ public interface KafkaSchemaRegistryClient {
                                                               @PathVariable String subject);
 
     @Post("/subjects/{subject}/versions")
-    HttpResponse<SchemaResponse> register(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
+    Optional<SchemaResponse> register(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
                                           @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
                                           @PathVariable String subject,
                                           @Body Map<String, String> schema);
@@ -45,13 +45,13 @@ public interface KafkaSchemaRegistryClient {
      * @return
      */
     @Post("/compatibility/subjects/{subject}/versions?verbose=true")
-    HttpResponse<SchemaCompatibilityCheckResponse> validateSchemaCompatibility(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
+    SchemaCompatibilityCheckResponse validateSchemaCompatibility(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
                                                                                @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
                                                                                @PathVariable String subject,
                                                                                @Body Map<String, String> schema);
 
     @Put("/config/{subject}")
-    HttpResponse<SchemaCompatibilityResponse> updateSubjectCompatibility(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
+    Optional<SchemaCompatibilityResponse> updateSubjectCompatibility(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
                                     @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
                                     @PathVariable String subject,
                                     @Body Map<String, String> compatibility);

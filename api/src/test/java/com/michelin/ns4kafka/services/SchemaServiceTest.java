@@ -9,12 +9,12 @@ import com.michelin.ns4kafka.services.schema.client.KafkaSchemaRegistryClient;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
-import io.micronaut.http.HttpResponse;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
@@ -54,18 +54,33 @@ class SchemaServiceTest {
         List<String> subjectsResponse = Arrays.asList("prefix.schema-one", "prefix2.schema-two", "prefix2.schema-three");
         SchemaCompatibilityResponse compatibilityResponse = this.buildCompatibilityResponse();
 
-        when(accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(),
-                AccessControlEntry.ResourceType.SCHEMA, "prefix.schema-one")).thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(),
-                AccessControlEntry.ResourceType.SCHEMA, "prefix2.schema-two")).thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(),
-                AccessControlEntry.ResourceType.SCHEMA, "prefix2.schema-three")).thenReturn(false);
-        when(kafkaSchemaRegistryClient.getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())).thenReturn(HttpResponse.ok(subjectsResponse));
-        when(kafkaSchemaRegistryClient.getSchemaBySubjectAndVersion(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), "prefix.schema-one", "latest")).thenReturn(HttpResponse.ok(this.buildSchemaResponse("prefix.schema-one")));
-        when(kafkaSchemaRegistryClient.getSchemaBySubjectAndVersion(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), "prefix2.schema-two", "latest")).thenReturn(HttpResponse.ok(this.buildSchemaResponse("prefix2.schema-two")));
-        when(kafkaSchemaRegistryClient.getCurrentCompatibilityBySubject(any(), any(), any())).thenReturn(HttpResponse.ok(compatibilityResponse));
+        when(kafkaSchemaRegistryClient.getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())).thenReturn(subjectsResponse);
+        when(kafkaSchemaRegistryClient.getLatestSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), "prefix.schema-one")).thenReturn(Optional.of(this.buildSchemaResponse("prefix.schema-one")));
+        when(kafkaSchemaRegistryClient.getLatestSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), "prefix2.schema-two")).thenReturn(Optional.of(this.buildSchemaResponse("prefix2.schema-two")));
+        when(kafkaSchemaRegistryClient.getCurrentCompatibilityBySubject(any(), any(), any())).thenReturn(Optional.of(compatibilityResponse));
+        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+                .thenReturn(List.of(
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                        .resource("prefix.")
+                                        .build())
+                                .build(),
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                        .resource("prefix2.schema-two")
+                                        .build())
+                                .build()
+                ));
 
-        List<Schema> retrievedSchemas = this.schemaService.getAllByNamespace(namespace);
+        List<Schema> retrievedSchemas = this.schemaService.findAllForNamespace(namespace);
         Assertions.assertEquals(2L, retrievedSchemas.size());
         Assertions.assertEquals("prefix.schema-one", retrievedSchemas.get(0).getMetadata().getName());
         Assertions.assertEquals("prefix2.schema-two", retrievedSchemas.get(1).getMetadata().getName());
@@ -79,9 +94,9 @@ class SchemaServiceTest {
     void getAllByNamespaceEmptyResponse() {
         Namespace namespace = this.buildNamespace();
 
-        when(kafkaSchemaRegistryClient.getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())).thenReturn(HttpResponse.ok());
+        when(kafkaSchemaRegistryClient.getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())).thenReturn(List.of());
 
-        List<Schema> retrievedSchemas = this.schemaService.getAllByNamespace(namespace);
+        List<Schema> retrievedSchemas = this.schemaService.findAllForNamespace(namespace);
         Assertions.assertTrue(retrievedSchemas.isEmpty());
     }
 
@@ -93,10 +108,10 @@ class SchemaServiceTest {
         Namespace namespace = this.buildNamespace();
         SchemaCompatibilityResponse compatibilityResponse = this.buildCompatibilityResponse();
 
-        when(kafkaSchemaRegistryClient.getSchemaBySubjectAndVersion(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), "prefix.schema-one", "latest")).thenReturn(HttpResponse.ok(this.buildSchemaResponse("prefix.schema-one")));
-        when(kafkaSchemaRegistryClient.getCurrentCompatibilityBySubject(any(), any(), any())).thenReturn(HttpResponse.ok(compatibilityResponse));
+        when(kafkaSchemaRegistryClient.getLatestSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), "prefix.schema-one")).thenReturn(Optional.of(this.buildSchemaResponse("prefix.schema-one")));
+        when(kafkaSchemaRegistryClient.getCurrentCompatibilityBySubject(any(), any(), any())).thenReturn(Optional.of(compatibilityResponse));
 
-        Optional<Schema> retrievedSchema = this.schemaService.getBySubjectAndVersion(namespace, "prefix.schema-one", "latest");
+        Optional<Schema> retrievedSchema = this.schemaService.getLatestSubject(namespace, "prefix.schema-one");
 
         Assertions.assertTrue(retrievedSchema.isPresent());
         Assertions.assertEquals("prefix.schema-one", retrievedSchema.get().getMetadata().getName());
@@ -109,9 +124,9 @@ class SchemaServiceTest {
     void getBySubjectAndVersionEmptyResponse() {
         Namespace namespace = this.buildNamespace();
 
-        when(kafkaSchemaRegistryClient.getSchemaBySubjectAndVersion(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), "prefix.schema-one", "latest")).thenReturn(HttpResponse.ok());
+        when(kafkaSchemaRegistryClient.getLatestSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), "prefix.schema-one")).thenReturn(Optional.empty());
 
-        Optional<Schema> retrievedSchema = this.schemaService.getBySubjectAndVersion(namespace, "prefix.schema-one", "latest");
+        Optional<Schema> retrievedSchema = this.schemaService.getLatestSubject(namespace, "prefix.schema-one");
 
         Assertions.assertTrue(retrievedSchema.isEmpty());
     }
@@ -128,10 +143,10 @@ class SchemaServiceTest {
         SchemaCompatibilityResponse compatibilityResponse = this.buildCompatibilityResponse();
 
         when(kafkaSchemaRegistryClient.register(any(), any(), any(), any()))
-                .thenReturn(HttpResponse.ok(schemaResponse));
-        when(kafkaSchemaRegistryClient.getSchemaBySubjectAndVersion(any(), any(), any(), any()))
-                .thenReturn(HttpResponse.ok(schemaResponse));
-        when(kafkaSchemaRegistryClient.getCurrentCompatibilityBySubject(any(), any(), any())).thenReturn(HttpResponse.ok(compatibilityResponse));
+                .thenReturn(Optional.of(schemaResponse));
+        when(kafkaSchemaRegistryClient.getLatestSubject(any(), any(), any()))
+                .thenReturn(Optional.of(schemaResponse));
+        when(kafkaSchemaRegistryClient.getCurrentCompatibilityBySubject(any(), any(), any())).thenReturn(Optional.of(compatibilityResponse));
 
         Optional<Schema> retrievedSchema = this.schemaService.register(namespace, schema);
 
@@ -148,7 +163,7 @@ class SchemaServiceTest {
         Schema schema = this.buildSchema();
 
         when(kafkaSchemaRegistryClient.register(any(), any(), any(), any()))
-                .thenReturn(HttpResponse.ok());
+                .thenReturn(Optional.empty());
 
         Optional<Schema> retrievedSchema = this.schemaService.register(namespace, schema);
 
@@ -189,7 +204,7 @@ class SchemaServiceTest {
                 .build();
 
         when(kafkaSchemaRegistryClient.validateSchemaCompatibility(any(), any(), any(), any()))
-                .thenReturn(HttpResponse.ok(schemaCompatibilityCheckResponse));
+                .thenReturn(schemaCompatibilityCheckResponse);
 
         List<String> validationResponse = this.schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema);
 
@@ -209,7 +224,7 @@ class SchemaServiceTest {
                 .build();
 
         when(kafkaSchemaRegistryClient.validateSchemaCompatibility(any(), any(), any(), any()))
-                .thenReturn(HttpResponse.ok(schemaCompatibilityCheckResponse));
+                .thenReturn(schemaCompatibilityCheckResponse);
 
         List<String> validationResponse = this.schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema);
 
@@ -226,11 +241,12 @@ class SchemaServiceTest {
         SchemaResponse schemaResponse = this.buildSchemaResponse("prefix.schema-one");
         SchemaCompatibilityResponse compatibilityResponse = this.buildCompatibilityResponse();
 
-        doNothing().when(kafkaSchemaRegistryClient).updateSubjectCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
-                "prefix.schema-one", Map.of("compatibility", Schema.Compatibility.FORWARD.toString()));
-        when(kafkaSchemaRegistryClient.getSchemaBySubjectAndVersion(any(), any(), any(), any()))
-                .thenReturn(HttpResponse.ok(schemaResponse));
-        when(kafkaSchemaRegistryClient.getCurrentCompatibilityBySubject(any(), any(), any())).thenReturn(HttpResponse.ok(compatibilityResponse));
+        when(kafkaSchemaRegistryClient.updateSubjectCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
+                "prefix.schema-one", Map.of("compatibility", Schema.Compatibility.FORWARD.toString())))
+                .thenReturn(Optional.of(compatibilityResponse));
+        when(kafkaSchemaRegistryClient.getLatestSubject(any(), any(), any()))
+                .thenReturn(Optional.of(schemaResponse));
+        when(kafkaSchemaRegistryClient.getCurrentCompatibilityBySubject(any(), any(), any())).thenReturn(Optional.of(compatibilityResponse));
 
         Optional<Schema> updatedSchema = this.schemaService
                 .updateSubjectCompatibility(namespace, "prefix.schema-one", Schema.Compatibility.FORWARD);
@@ -247,11 +263,9 @@ class SchemaServiceTest {
         when(accessControlEntryService.isNamespaceOwnerOfResource("myNamespace", AccessControlEntry.ResourceType.TOPIC, "prefix.schema-one"))
                 .thenReturn(true);
 
-
         Assertions.assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one-key"));
         Assertions.assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one-value"));
-        Assertions.assertFalse(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one"));
-
+        Assertions.assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one"));
     }
 
     /**
@@ -281,7 +295,7 @@ class SchemaServiceTest {
                         .name("prefix.schema-one")
                         .build())
                 .spec(Schema.SchemaSpec.builder()
-                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the personnn\"}]}")
+                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the person\"}]}")
                         .build())
                 .build();
     }
@@ -297,7 +311,7 @@ class SchemaServiceTest {
                 .id(1)
                 .version(1)
                 .subject(subject)
-                .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the personnn\"}]}")
+                .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the person\"}]}")
                 .build();
     }
 

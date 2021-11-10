@@ -117,18 +117,19 @@ public class SchemaController extends NamespacedResourceController {
     @Delete("/{subject}")
     public HttpResponse<Void> deleteSubject(String namespace, @PathVariable String subject,
                                               @QueryValue(defaultValue = "false") boolean dryrun) {
-        Namespace retrievedNamespace = super.getNamespace(namespace);
+        Namespace ns = getNamespace(namespace);
 
-        if (!this.schemaService.isNamespaceOwnerOfSubject(retrievedNamespace, subject)) {
-            throw new ResourceValidationException(List.of("Invalid prefix " + subject +
-                    " : namespace not owner of this subject"), AccessControlEntry.ResourceType.SCHEMA.toString(), subject);
+        // Validate ownership
+        if (!this.schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
+            throw new ResourceValidationException(List.of("Invalid value " + subject +
+                    " for name: : namespace not OWNER of underlying topic"), AccessControlEntry.ResourceType.SCHEMA.toString(), subject);
         }
 
         if (dryrun) {
             return HttpResponse.noContent();
         }
 
-        this.schemaService.deleteSubject(retrievedNamespace, subject);
+        this.schemaService.deleteSubject(ns, subject);
 
         return HttpResponse.noContent();
     }
@@ -153,15 +154,16 @@ public class SchemaController extends NamespacedResourceController {
         }
 
         Optional<Schema> existingSchemaOptional = this.schemaService
-                .getBySubjectAndVersion(retrievedNamespace, subject, SchemaController.SCHEMA_LATEST_VERSION);
+                .getLatestSubject(ns, subject);
 
         // Subject not existing, no compatibility to update
         if (existingSchemaOptional.isEmpty()) {
             return this.formatHttpResponse(Optional.empty(), ApplyStatus.unchanged);
         }
 
+        Schema.Compatibility compatToApply = compatibility.get("compatibility");
         ApplyStatus status = existingSchemaOptional.get().getSpec().getCompatibility()
-                .equals(compatibility.get(SchemaController.COMPATIBILITY_KEY)) ? ApplyStatus.unchanged : ApplyStatus.changed;
+                .equals(compatToApply) ? ApplyStatus.unchanged : ApplyStatus.changed;
 
         // Subject existing, but given compatibility equals the current one
         if (status.equals(ApplyStatus.unchanged)) {
@@ -170,10 +172,10 @@ public class SchemaController extends NamespacedResourceController {
 
         // Subject existing, update the compatibility (dry mode)
         if (dryrun) {
-            return this.formatHttpResponse(this.schemaService.getBySubjectAndVersion(retrievedNamespace, subject, SchemaController.SCHEMA_LATEST_VERSION), status);
+            return this.formatHttpResponse(this.schemaService.getLatestSubject(ns, subject), status);
         }
 
         // Subject existing, update the compatibility
-        return this.formatHttpResponse(this.schemaService.updateSubjectCompatibility(retrievedNamespace, subject, compatibility.get(SchemaController.COMPATIBILITY_KEY)), ApplyStatus.changed);
+        return this.formatHttpResponse(this.schemaService.updateSubjectCompatibility(ns, subject, compatToApply), ApplyStatus.changed);
     }
 }

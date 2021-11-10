@@ -24,11 +24,6 @@ import java.util.stream.Collectors;
 @Singleton
 public class SchemaService {
     /**
-     * Latest schema version identifier
-     */
-    private static final String LATEST_VERSION = "latest";
-
-    /**
      * ACLs service
      */
     @Inject
@@ -47,11 +42,30 @@ public class SchemaService {
      * @return A list of schemas
      */
     public List<Schema> findAllForNamespace(Namespace namespace) {
+        List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace);
+
         return this.kafkaSchemaRegistryClient
                 .getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())
                 .stream()
-                //TODO Optimize with accessControlEntryService.findAllGrantedToNamespace
-                .filter(subject -> this.isNamespaceOwnerOfSubject(namespace, subject))
+                .filter(subject -> {
+                    String underlyingTopicName = subject.replaceAll("(-key|-value)$","");
+
+                    return acls.stream().anyMatch(accessControlEntry -> {
+                        //need to check accessControlEntry.Permission, we want OWNER
+                        if (accessControlEntry.getSpec().getPermission() != AccessControlEntry.Permission.OWNER) {
+                            return false;
+                        }
+                        if (accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC) {
+                            switch (accessControlEntry.getSpec().getResourcePatternType()) {
+                                case PREFIXED:
+                                    return underlyingTopicName.startsWith(accessControlEntry.getSpec().getResource());
+                                case LITERAL:
+                                    return underlyingTopicName.equals(accessControlEntry.getSpec().getResource());
+                            }
+                        }
+                        return false;
+                    });
+                })
                 .map(namespacedSubject -> this.getLatestSubject(namespace, namespacedSubject))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
@@ -59,7 +73,7 @@ public class SchemaService {
     }
 
     /**
-     * Get a schema by subject and version
+     * Get a latest schema by subject
      *
      * @param namespace The namespace
      * @param subject The subject
@@ -79,7 +93,7 @@ public class SchemaService {
         Schema.Compatibility compatibility = compatibilityResponse.isPresent() ? compatibilityResponse.get().compatibilityLevel() : Schema.Compatibility.DEFAULT;
 
 
-        return Schema.builder()
+        return Optional.of(Schema.builder()
                         .metadata(ObjectMeta.builder()
                                 .name(response.get().subject())
                                 .build())
@@ -101,16 +115,14 @@ public class SchemaService {
      * @return The registered schema
      */
     public Optional<Schema> register(Namespace namespace, Schema schema) {
-        HttpResponse<SchemaResponse> response = this.kafkaSchemaRegistryClient.
+        Optional<SchemaResponse> response = this.kafkaSchemaRegistryClient.
                 register(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
                         schema.getMetadata().getName(), Map.of("schema", schema.getSpec().getSchema()));
 
-        Optional<SchemaResponse> schemaSpecOptional = response.getBody();
-        if (schemaSpecOptional.isEmpty()) {
+        if(response.isEmpty())
             return Optional.empty();
-        }
 
-        return this.getBySubjectAndVersion(namespace, schema.getMetadata().getName(), LATEST_VERSION);
+        return this.getLatestSubject(namespace, schema.getMetadata().getName());
     }
 
     /**
@@ -137,23 +149,14 @@ public class SchemaService {
      * @return A list of errors
      */
     public List<String> validateSchemaCompatibility(String cluster, Schema schema) {
-        HttpResponse<SchemaCompatibilityCheckResponse> response = this.kafkaSchemaRegistryClient.validateSchemaCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
+        SchemaCompatibilityCheckResponse response = this.kafkaSchemaRegistryClient.validateSchemaCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
                 cluster, schema.getMetadata().getName(), Map.of("schema", schema.getSpec().getSchema()));
 
-        // Schema registry return 404 for new subjects
-        //TODO I think we need to try/catch HttpClientResponseException instead
-        if(response.getStatus() == HttpStatus.NOT_FOUND)
-            return List.of();
-
-        // No compatibility issue
-        if(response.getStatus() == HttpStatus.OK)
-            return List.of();
-
-        if (!response.body().isCompatible()) {
-            return response.body().messages();
+        if (!response.isCompatible()) {
+            return response.messages();
         }
 
-        return List.of("Unknown error occurred. HttpResponse " + response.code());
+        return List.of();
     }
     /**
      * Update the schema compatibility against the Schema Registry
@@ -172,7 +175,7 @@ public class SchemaService {
                     Map.of("compatibility", compatibility.toString()));
         }
 
-        return this.getBySubjectAndVersion(namespace, subject, LATEST_VERSION);
+        return this.getLatestSubject(namespace, subject);
     }
 
     /**

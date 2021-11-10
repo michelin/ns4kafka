@@ -47,8 +47,6 @@ kafkactl:
       - "ID:/spec/id"
       - "VERSION:/spec/version"
       - "COMPAT:/spec/compatibility"
-      - "SCHEMA:/spec/schema"
 #  api: http://localhost:8080
 #  user-token: token
 #  current-namespace: namespace_name
-
