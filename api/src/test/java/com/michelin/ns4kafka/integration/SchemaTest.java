@@ -72,7 +72,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .namespace("ns1")
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.SCHEMA)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resource("ns1-")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                         .permission(AccessControlEntry.Permission.OWNER)
@@ -97,10 +97,10 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
     void createAndGetSchema() {
         Schema schema = Schema.builder()
                 .metadata(ObjectMeta.builder()
-                        .name("ns1-subject")
+                        .name("ns1-subject-value")
                         .build())
                 .spec(Schema.SchemaSpec.builder()
-                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the personnn\"}]}")
+                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the person\"}]}")
                         .build())
                 .build();
 
@@ -115,7 +115,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         Assertions.assertEquals(1, createResponse.getBody().get().getSpec().getVersion());
 
         var getResponse = client
-                .exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/schemas/ns1-subject")
+                .exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/schemas/ns1-subject-value")
                         .bearerAuth(token), Schema.class).blockingFirst();
 
         Assertions.assertTrue(getResponse.getBody().isPresent());
@@ -149,7 +149,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                 () -> client.exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/schemas/wrongprefix-subject")
                         .bearerAuth(token), Schema.class).blockingFirst());
 
-        Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, getException.getStatus());
+        Assertions.assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
     }
 
     /**
@@ -162,7 +162,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
     void updateCompatibility() {
         Schema schema = Schema.builder()
                 .metadata(ObjectMeta.builder()
-                        .name("ns1-subject3")
+                        .name("ns1-subject3-value")
                         .build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the personnn\"}]}")
@@ -181,7 +181,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         Assertions.assertEquals(Schema.Compatibility.DEFAULT, createResponse.getBody().get().getSpec().getCompatibility());
 
         var updateCompatibilityResponse = client
-                .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3/compatibility")
+                .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3-value/compatibility")
                         .bearerAuth(token)
                         .body(Map.of("compatibility", Schema.Compatibility.NONE)), Schema.class).blockingFirst();
 
@@ -192,7 +192,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         Assertions.assertEquals(Schema.Compatibility.NONE, updateCompatibilityResponse.getBody().get().getSpec().getCompatibility());
 
         var resetCompatibilityResponse = client
-                .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3/compatibility")
+                .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3-value/compatibility")
                         .bearerAuth(token)
                         .body(Map.of("compatibility", Schema.Compatibility.DEFAULT)), Schema.class).blockingFirst();
 
@@ -210,7 +210,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
     void createAndDeleteSchema() {
         Schema schema = Schema.builder()
                 .metadata(ObjectMeta.builder()
-                        .name("ns1-subject4")
+                        .name("ns1-subject4-value")
                         .build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the personnn\"}]}")
@@ -228,7 +228,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         Assertions.assertEquals(1, createResponse.getBody().get().getSpec().getVersion());
 
         var deleteResponse = client
-                .exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/schemas/ns1-subject4")
+                .exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/schemas/ns1-subject4-value")
                         .bearerAuth(token), Schema.class).blockingFirst();
 
         Assertions.assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
