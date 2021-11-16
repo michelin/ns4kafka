@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Schema;
+import com.michelin.ns4kafka.models.SchemaCompatibilityState;
 import com.michelin.ns4kafka.services.SchemaService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -14,14 +15,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Tag(name = "Schemas")
 @Controller(value = "/api/namespaces/{namespace}/schemas")
 @ExecuteOn(TaskExecutors.IO)
 public class SchemaController extends NamespacedResourceController {
-
     /**
      * Subject service
      */
@@ -29,7 +28,7 @@ public class SchemaController extends NamespacedResourceController {
     SchemaService schemaService;
 
     /**
-     * Get all the schemas within a given namespace
+     * Get all the schemas by namespace
      *
      * @param namespace The namespace
      * @return A list of schemas
@@ -64,7 +63,7 @@ public class SchemaController extends NamespacedResourceController {
      * @param namespace The namespace
      * @param schema The schema to create
      * @param dryrun Does the creation is a dry run
-     * @return The created subject
+     * @return The created schema
      */
     @Post
     public HttpResponse<Schema> apply(String namespace, @Valid @Body Schema schema, @QueryValue(defaultValue = "false") boolean dryrun) {
@@ -85,24 +84,22 @@ public class SchemaController extends NamespacedResourceController {
 
         // Validate compatibility
         List<String> validationErrors = this.schemaService.validateSchemaCompatibility(ns.getMetadata().getCluster(), schema);
-
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors, schema.getKind(), schema.getMetadata().getName());
         }
 
-        Optional<Schema> existingSchemaOptional = this.schemaService.getLatestSubject(ns, schema.getMetadata().getName());
-
-        ApplyStatus status = existingSchemaOptional.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
-
         if (dryrun) {
-            return this.formatHttpResponse(schema, status);
+            // Cannot compute the apply status before the registration
+            return HttpResponse.ok(schema);
         }
 
-        Optional<Schema> schemaOptional = this.schemaService.register(ns, schema);
-        status = schemaOptional.isPresent() ? status : ApplyStatus.unchanged;
-        Schema appliedSchema = schemaOptional.orElse(null);
+        Optional<Schema> existingSchemaOptional = this.schemaService.getLatestSubject(ns, schema.getMetadata().getName());
+        Integer registeredSchemaId = this.schemaService.register(ns, schema);
 
-        return this.formatHttpResponse(appliedSchema, status);
+        ApplyStatus status = existingSchemaOptional.isEmpty() ? ApplyStatus.created : registeredSchemaId > existingSchemaOptional
+                .get().getSpec().getId() ? ApplyStatus.changed : ApplyStatus.unchanged;
+
+        return this.formatHttpResponse(schema, status);
     }
 
     /**
@@ -140,12 +137,10 @@ public class SchemaController extends NamespacedResourceController {
      * @param namespace The namespace
      * @param subject The subject to update
      * @param compatibility The compatibility to apply
-     * @param dryrun Dry run mode
-     * @return The last updated schema
+     * @return A schema compatibility state
      */
-    @Post("/{subject}/compatibility")
-    public HttpResponse<Optional<Schema>> compatibility(String namespace, @PathVariable String subject, @Valid @Body Map<String, Schema.Compatibility> compatibility,
-                                                        @QueryValue(defaultValue = "false") boolean dryrun) {
+    @Post("/{subject}/config")
+    public HttpResponse<SchemaCompatibilityState> config(String namespace, @PathVariable String subject, Schema.Compatibility compatibility) {
         Namespace ns = getNamespace(namespace);
 
         if (!this.schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
@@ -156,26 +151,13 @@ public class SchemaController extends NamespacedResourceController {
         Optional<Schema> existingSchemaOptional = this.schemaService
                 .getLatestSubject(ns, subject);
 
-        // Subject not existing, no compatibility to update
         if (existingSchemaOptional.isEmpty()) {
-            return this.formatHttpResponse(Optional.empty(), ApplyStatus.unchanged);
+            return HttpResponse.notFound();
         }
 
-        Schema.Compatibility compatToApply = compatibility.get("compatibility");
-        ApplyStatus status = existingSchemaOptional.get().getSpec().getCompatibility()
-                .equals(compatToApply) ? ApplyStatus.unchanged : ApplyStatus.changed;
+        SchemaCompatibilityState state = this
+                .schemaService.updateSubjectCompatibility(ns, existingSchemaOptional.get(), compatibility);
 
-        // Subject existing, but given compatibility equals the current one
-        if (status.equals(ApplyStatus.unchanged)) {
-            return this.formatHttpResponse(existingSchemaOptional, status);
-        }
-
-        // Subject existing, update the compatibility (dry mode)
-        if (dryrun) {
-            return this.formatHttpResponse(this.schemaService.getLatestSubject(ns, subject), status);
-        }
-
-        // Subject existing, update the compatibility
-        return this.formatHttpResponse(this.schemaService.updateSubjectCompatibility(ns, subject, compatToApply), ApplyStatus.changed);
+        return HttpResponse.ok(state);
     }
 }

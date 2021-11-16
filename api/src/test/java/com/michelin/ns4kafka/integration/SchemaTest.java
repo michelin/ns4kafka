@@ -110,9 +110,6 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .body(schema), Schema.class).blockingFirst();
 
         Assertions.assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
-        Assertions.assertTrue(createResponse.getBody().isPresent());
-        Assertions.assertNotNull(createResponse.getBody().get().getSpec().getId());
-        Assertions.assertEquals(1, createResponse.getBody().get().getSpec().getVersion());
 
         var getResponse = client
                 .exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/schemas/ns1-subject-value")
@@ -175,31 +172,32 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .body(schema), Schema.class).blockingFirst();
 
         Assertions.assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
-        Assertions.assertTrue(createResponse.getBody().isPresent());
-        Assertions.assertNotNull(createResponse.getBody().get().getSpec().getId());
-        Assertions.assertEquals(1, createResponse.getBody().get().getSpec().getVersion());
-        Assertions.assertEquals(Schema.Compatibility.DEFAULT, createResponse.getBody().get().getSpec().getCompatibility());
+
+        var getResponse = client
+                .exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/schemas/ns1-subject3-value")
+                        .bearerAuth(token), Schema.class).blockingFirst();
+
+        Assertions.assertTrue(getResponse.getBody().isPresent());
+        Assertions.assertNotNull(getResponse.getBody().get().getSpec().getId());
+        Assertions.assertEquals(1, getResponse.getBody().get().getSpec().getVersion());
+        Assertions.assertEquals(Schema.Compatibility.DEFAULT, getResponse.getBody().get().getSpec().getCompatibility());
 
         var updateCompatibilityResponse = client
-                .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3-value/compatibility")
+                .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3-value/config")
                         .bearerAuth(token)
-                        .body(Map.of("compatibility", Schema.Compatibility.NONE)), Schema.class).blockingFirst();
+                        .body(Map.of("compatibility", Schema.Compatibility.NONE)), SchemaCompatibilityState.class).blockingFirst();
 
-        Assertions.assertEquals("changed", updateCompatibilityResponse.header("X-Ns4kafka-Result"));
         Assertions.assertTrue(updateCompatibilityResponse.getBody().isPresent());
-        Assertions.assertNotNull(updateCompatibilityResponse.getBody().get().getSpec().getId());
-        Assertions.assertEquals(1, updateCompatibilityResponse.getBody().get().getSpec().getVersion());
+        Assertions.assertEquals("ns1-subject3-value", updateCompatibilityResponse.getBody().get().getMetadata().getName());
         Assertions.assertEquals(Schema.Compatibility.NONE, updateCompatibilityResponse.getBody().get().getSpec().getCompatibility());
 
         var resetCompatibilityResponse = client
-                .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3-value/compatibility")
+                .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3-value/config")
                         .bearerAuth(token)
-                        .body(Map.of("compatibility", Schema.Compatibility.DEFAULT)), Schema.class).blockingFirst();
+                        .body(Map.of("compatibility", Schema.Compatibility.DEFAULT)), SchemaCompatibilityState.class).blockingFirst();
 
-        Assertions.assertEquals("changed", resetCompatibilityResponse.header("X-Ns4kafka-Result"));
         Assertions.assertTrue(resetCompatibilityResponse.getBody().isPresent());
-        Assertions.assertNotNull(resetCompatibilityResponse.getBody().get().getSpec().getId());
-        Assertions.assertEquals(1, resetCompatibilityResponse.getBody().get().getSpec().getVersion());
+        Assertions.assertEquals("ns1-subject3-value", resetCompatibilityResponse.getBody().get().getMetadata().getName());
         Assertions.assertEquals(Schema.Compatibility.DEFAULT, resetCompatibilityResponse.getBody().get().getSpec().getCompatibility());
     }
 
@@ -223,9 +221,6 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .body(schema), Schema.class).blockingFirst();
 
         Assertions.assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
-        Assertions.assertTrue(createResponse.getBody().isPresent());
-        Assertions.assertNotNull(createResponse.getBody().get().getSpec().getId());
-        Assertions.assertEquals(1, createResponse.getBody().get().getSpec().getVersion());
 
         var deleteResponse = client
                 .exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/schemas/ns1-subject4-value")

@@ -1,34 +1,31 @@
 package com.michelin.ns4kafka.cli;
 
-import com.michelin.ns4kafka.cli.models.ObjectMeta;
 import com.michelin.ns4kafka.cli.models.Resource;
+import com.michelin.ns4kafka.cli.models.SchemaCompatibility;
 import com.michelin.ns4kafka.cli.services.FormatService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
-import lombok.AllArgsConstructor;
 import picocli.CommandLine;
 
 import javax.inject.Inject;
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
-@CommandLine.Command(name = "schemas", description = "Interact with schemas (Compat)")
+@CommandLine.Command(name = "schemas", description = "Interact with schemas (Config)")
 public class SchemaSubcommand implements Callable<Integer> {
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
 
-    @CommandLine.Parameters(index = "0", description = "(compat)", arity = "1")
+    @CommandLine.Parameters(index = "0", description = "(config)", arity = "1")
     public SchemaAction action;
 
     @CommandLine.Parameters(index="1", description = "Compatibility mode to apply", arity = "1")
-    public String mode;
+    public SchemaCompatibility compatibility;
 
     @CommandLine.Parameters(index="2..*", description = "Subject names separated by space", arity = "1..*")
     public List<String> subjects;
-
-    @CommandLine.Option(names = {"--dry-run"}, description = "Does not persist resources. Validate only")
-    public boolean dryRun;
 
     @Inject
     public LoginService loginService;
@@ -47,10 +44,6 @@ public class SchemaSubcommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        if (dryRun) {
-            System.out.println("Dry run execution");
-        }
-
         boolean authenticated = loginService.doAuthenticate();
         if (!authenticated) {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
@@ -58,20 +51,11 @@ public class SchemaSubcommand implements Callable<Integer> {
 
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
 
-        Optional<CompatibilityMode> compatibilityModeOptional = Arrays.stream(CompatibilityMode.values())
-                .filter(compatibilityMode -> compatibilityMode.labels.contains(mode))
-                .findAny();
-
-        if (compatibilityModeOptional.isEmpty()) {
-            throw new CommandLine.ParameterException(commandSpec.commandLine(),
-                    "Wrong compatibility mode " + mode + ". Expected one of the values " + Arrays.toString(CompatibilityMode.values()));
-        }
-
-        if (action.equals(SchemaAction.compat)) {
+        if (action.equals(SchemaAction.config)) {
             List<Resource> updatedSchemas = subjects
                     .stream()
                     .map(subject -> this.resourceService.changeSchemaCompatibility(namespace, subject,
-                            compatibilityModeOptional.get().toString(), dryRun))
+                            compatibility))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
@@ -86,24 +70,5 @@ public class SchemaSubcommand implements Callable<Integer> {
 }
 
 enum SchemaAction {
-    compat
-}
-
-@AllArgsConstructor
-enum CompatibilityMode {
-    GLOBAL(Arrays.asList("global", "gl")),
-    BACKWARD(Arrays.asList("backward", "ba")),
-    BACKWARD_TRANSITIVE(Arrays.asList("backward-transitive", "bat")),
-    FORWARD(Arrays.asList("forward", "fo")),
-    FORWARD_TRANSITIVE(Arrays.asList("forward-transitive", "fot")),
-    FULL(Arrays.asList("full", "fu")),
-    FULL_TRANSITIVE(Arrays.asList("full-transitive", "fut")),
-    NONE(Arrays.asList("none", "no"));
-
-    List<String> labels;
-
-    @Override
-    public String toString() {
-        return name();
-    }
+    config
 }

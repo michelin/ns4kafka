@@ -27,6 +27,7 @@ public class SchemaResponse {
     private final String schema;
 
     private final String schemaType;
+
     /**
      * Constructor
      *

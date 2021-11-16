@@ -1,22 +1,15 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.models.AccessControlEntry;
-import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.Schema;
+import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.services.schema.KafkaSchemaRegistryClientProxy;
 import com.michelin.ns4kafka.services.schema.client.KafkaSchemaRegistryClient;
-import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityCheckResponse;
-import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
-import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
-import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
+import com.michelin.ns4kafka.services.schema.client.entities.*;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -36,9 +29,9 @@ public class SchemaService {
     KafkaSchemaRegistryClient kafkaSchemaRegistryClient;
 
     /**
-     * Find all schemas on a given namespace
+     * Get all the schemas by namespace
      *
-     * @param namespace The namespace used to research the schemas
+     * @param namespace The namespace
      * @return A list of schemas
      */
     public List<Schema> findAllForNamespace(Namespace namespace) {
@@ -73,11 +66,11 @@ public class SchemaService {
     }
 
     /**
-     * Get a latest schema by subject
+     * Get the last version of a schema by namespace and subject
      *
      * @param namespace The namespace
      * @param subject The subject
-     * @return The schema
+     * @return A schema
      */
     public Optional<Schema> getLatestSubject(Namespace namespace, String subject) {
         Optional<SchemaResponse> response = this.kafkaSchemaRegistryClient.
@@ -108,28 +101,26 @@ public class SchemaService {
     }
 
     /**
-     * Register a schema
+     * Publish a schema
      *
      * @param namespace The namespace
-     * @param schema The schema to register
-     * @return The registered schema
+     * @param schema The schema to create
+     * @return The ID of the created schema
      */
-    public Optional<Schema> register(Namespace namespace, Schema schema) {
-        Optional<SchemaResponse> response = this.kafkaSchemaRegistryClient.
+    public Integer register(Namespace namespace, Schema schema) {
+        SchemaResponse response = this.kafkaSchemaRegistryClient.
                 register(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
-                        schema.getMetadata().getName(), Map.of("schema", schema.getSpec().getSchema()));
+                        schema.getMetadata().getName(), SchemaRequest.builder()
+                                .schema(schema.getSpec().getSchema()).build());
 
-        if(response.isEmpty())
-            return Optional.empty();
-
-        return this.getLatestSubject(namespace, schema.getMetadata().getName());
+        return response.id();
     }
 
     /**
-     * Delete a subject
+     * Delete all schemas under the given subject
      *
-     * @param namespace The namespace
-     * @param subject The subject to delete
+     * @param namespace The current namespace
+     * @param subject The current subject to delete
      */
     public void deleteSubject(Namespace namespace, String subject) {
         this.kafkaSchemaRegistryClient.
@@ -142,40 +133,65 @@ public class SchemaService {
     }
 
     /**
-     * Validate the schema compatibility against the Schema Registry
+     * Validate the schema compatibility
      *
      * @param cluster The cluster
      * @param schema The schema to validate
      * @return A list of errors
      */
     public List<String> validateSchemaCompatibility(String cluster, Schema schema) {
-        SchemaCompatibilityCheckResponse response = this.kafkaSchemaRegistryClient.validateSchemaCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
-                cluster, schema.getMetadata().getName(), Map.of("schema", schema.getSpec().getSchema()));
+        try {
+            SchemaCompatibilityCheckResponse response = this.kafkaSchemaRegistryClient.validateSchemaCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
+                    cluster, schema.getMetadata().getName(), SchemaRequest.builder()
+                            .schema(schema.getSpec().getSchema()).build());
 
-        if (!response.isCompatible()) {
-            return response.messages();
+            if (!response.isCompatible()) {
+                return response.messages();
+            }
+
+            return List.of();
+        } catch (HttpClientResponseException e) {
+            return List.of("An error occurred during the schema validation (status code: " + e.getStatus() + ")");
         }
-
-        return List.of();
     }
+
     /**
-     * Update the schema compatibility against the Schema Registry
+     * Update the compatibility of a subject
      *
      * @param namespace The namespace
-     * @param subject The subject
-     * @param compatibility The compatibility
+     * @param schema The schema
+     * @param compatibility The compatibility to apply
+     * @return A schema compatibility state
      */
-    public Optional<Schema> updateSubjectCompatibility(Namespace namespace, String subject, Schema.Compatibility compatibility) {
-        if (compatibility.equals(Schema.Compatibility.DEFAULT)) {
-            this.kafkaSchemaRegistryClient.deleteCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
-                    namespace.getMetadata().getCluster(), subject);
-        } else {
-            this.kafkaSchemaRegistryClient.updateSubjectCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
-                    namespace.getMetadata().getCluster(), subject,
-                    Map.of("compatibility", compatibility.toString()));
+    public SchemaCompatibilityState updateSubjectCompatibility(Namespace namespace, Schema schema, Schema.Compatibility compatibility) {
+        SchemaCompatibilityState.SchemaCompatibilityStateBuilder state = SchemaCompatibilityState.builder()
+                .metadata(schema.getMetadata())
+                .spec(SchemaCompatibilityState.SchemaCompatibilityStateSpec.builder()
+                        .compatibility(schema.getSpec().getCompatibility())
+                        .build());
+
+        // Unchanged
+        if (schema.getSpec().getCompatibility().equals(compatibility)) {
+            return state.build();
         }
 
-        return this.getLatestSubject(namespace, subject);
+
+        // Reset to default
+        if (compatibility.equals(Schema.Compatibility.DEFAULT)) {
+            this.kafkaSchemaRegistryClient.deleteCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
+                    namespace.getMetadata().getCluster(), schema.getMetadata().getName());
+        } else {
+            // Update
+            this.kafkaSchemaRegistryClient.updateSubjectCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
+                    namespace.getMetadata().getCluster(), schema.getMetadata().getName(), SchemaCompatibilityRequest.builder()
+                            .compatibility(compatibility.toString()).build());
+        }
+
+        return state
+                .spec(SchemaCompatibilityState.SchemaCompatibilityStateSpec.builder()
+                        .compatibility(compatibility)
+                        .build())
+                .build();
     }
 
     /**

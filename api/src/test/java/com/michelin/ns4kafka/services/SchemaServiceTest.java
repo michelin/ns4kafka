@@ -1,12 +1,10 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.models.AccessControlEntry;
-import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.Schema;
+import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.services.schema.KafkaSchemaRegistryClientProxy;
 import com.michelin.ns4kafka.services.schema.client.KafkaSchemaRegistryClient;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityCheckResponse;
+import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityRequest;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
 import org.junit.jupiter.api.Assertions;
@@ -19,7 +17,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -139,35 +136,13 @@ class SchemaServiceTest {
     void register() {
         Namespace namespace = this.buildNamespace();
         Schema schema = this.buildSchema();
-        SchemaResponse schemaResponse = this.buildSchemaResponse("prefix.schema-one");
-        SchemaCompatibilityResponse compatibilityResponse = this.buildCompatibilityResponse();
 
         when(kafkaSchemaRegistryClient.register(any(), any(), any(), any()))
-                .thenReturn(Optional.of(schemaResponse));
-        when(kafkaSchemaRegistryClient.getLatestSubject(any(), any(), any()))
-                .thenReturn(Optional.of(schemaResponse));
-        when(kafkaSchemaRegistryClient.getCurrentCompatibilityBySubject(any(), any(), any())).thenReturn(Optional.of(compatibilityResponse));
+                .thenReturn(SchemaResponse.builder().id(1).build());
 
-        Optional<Schema> retrievedSchema = this.schemaService.register(namespace, schema);
+        Integer retrievedSchemaId = this.schemaService.register(namespace, schema);
 
-        Assertions.assertTrue(retrievedSchema.isPresent());
-        Assertions.assertEquals("prefix.schema-one", retrievedSchema.get().getMetadata().getName());
-    }
-
-    /**
-     * Tests to register a new schema to the schema registry, and the response is empty
-     */
-    @Test
-    void registerEmptyBody() {
-        Namespace namespace = this.buildNamespace();
-        Schema schema = this.buildSchema();
-
-        when(kafkaSchemaRegistryClient.register(any(), any(), any(), any()))
-                .thenReturn(Optional.empty());
-
-        Optional<Schema> retrievedSchema = this.schemaService.register(namespace, schema);
-
-        Assertions.assertTrue(retrievedSchema.isEmpty());
+        Assertions.assertEquals(1, retrievedSchemaId);
     }
 
     /**
@@ -238,27 +213,25 @@ class SchemaServiceTest {
     @Test
     void updateSubjectCompatibility() {
         Namespace namespace = this.buildNamespace();
-        SchemaResponse schemaResponse = this.buildSchemaResponse("prefix.schema-one");
+        Schema schema = this.buildSchema();
         SchemaCompatibilityResponse compatibilityResponse = this.buildCompatibilityResponse();
 
-        when(kafkaSchemaRegistryClient.updateSubjectCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
-                "prefix.schema-one", Map.of("compatibility", Schema.Compatibility.FORWARD.toString())))
-                .thenReturn(Optional.of(compatibilityResponse));
-        when(kafkaSchemaRegistryClient.getLatestSubject(any(), any(), any()))
-                .thenReturn(Optional.of(schemaResponse));
-        when(kafkaSchemaRegistryClient.getCurrentCompatibilityBySubject(any(), any(), any())).thenReturn(Optional.of(compatibilityResponse));
+        when(kafkaSchemaRegistryClient.updateSubjectCompatibility(any(), any(), any(), any()))
+                .thenReturn(compatibilityResponse);
 
-        Optional<Schema> updatedSchema = this.schemaService
-                .updateSubjectCompatibility(namespace, "prefix.schema-one", Schema.Compatibility.FORWARD);
+        SchemaCompatibilityState state = this.schemaService
+                .updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD);
 
-        Assertions.assertTrue(updatedSchema.isPresent());
-        Assertions.assertEquals("prefix.schema-one", updatedSchema.get().getMetadata().getName());
-        verify(kafkaSchemaRegistryClient, times(1)).updateSubjectCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
-                "prefix.schema-one", Map.of("compatibility", Schema.Compatibility.FORWARD.toString()));
+        Assertions.assertEquals("prefix.schema-one", state.getMetadata().getName());
+        verify(kafkaSchemaRegistryClient, times(1)).updateSubjectCompatibility(any(), any(), any(), any());
     }
 
+    /**
+     * Test subjects belong to a namespace
+     * Assert the "-key"/"-value" suffixes are not taken in account when comparing subjects against the topics ACLs
+     */
     @Test
-    void isNamespaceOwnerOfSubjectTest(){
+    void isNamespaceOwnerOfSubjectTest() {
         Namespace ns = buildNamespace();
         when(accessControlEntryService.isNamespaceOwnerOfResource("myNamespace", AccessControlEntry.ResourceType.TOPIC, "prefix.schema-one"))
                 .thenReturn(true);

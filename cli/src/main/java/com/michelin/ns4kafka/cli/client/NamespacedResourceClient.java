@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.cli.client;
 
 import com.michelin.ns4kafka.cli.models.Resource;
+import com.michelin.ns4kafka.cli.models.SchemaCompatibility;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.client.annotation.Client;
@@ -69,11 +70,10 @@ public interface NamespacedResourceClient {
             @Body Resource changeConnectorState,
             @Header("Authorization") String token);
 
-    @Post("{namespace}/schemas/{subject}/compatibility")
+    @Post("{namespace}/schemas/{subject}/config")
     Resource changeSchemaCompatibility(
             String namespace,
             String subject,
-            @Body Map<String, String> compatibility,
-            @Header("Authorization") String token,
-            @QueryValue boolean dryrun);
+            @Body Map<String, SchemaCompatibility> compatibility,
+            @Header("Authorization") String token);
 }
