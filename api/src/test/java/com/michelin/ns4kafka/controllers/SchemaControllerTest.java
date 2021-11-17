@@ -127,7 +127,7 @@ class SchemaControllerTest {
                 this.schemaController.apply("myNamespace", schema, false));
 
         Assertions.assertEquals(1L, exception.getValidationErrors().size());
-        Assertions.assertEquals("Invalid value wrongSubjectName for name: : subject must end with -key or -value", exception.getValidationErrors().get(0));
+        Assertions.assertEquals("Invalid value wrongSubjectName for name: subject must end with -key or -value", exception.getValidationErrors().get(0));
         verify(this.schemaService, never()).register(namespace, schema);
     }
 
@@ -147,7 +147,7 @@ class SchemaControllerTest {
                 this.schemaController.apply("myNamespace", schema, false));
 
         Assertions.assertEquals(1L, exception.getValidationErrors().size());
-        Assertions.assertEquals("Invalid value prefix.subject-value for name: : namespace not OWNER of underlying topic", exception.getValidationErrors().get(0));
+        Assertions.assertEquals("Invalid value prefix.subject-value for name: namespace not OWNER of underlying topic", exception.getValidationErrors().get(0));
         verify(this.schemaService, never()).register(namespace, schema);
     }
 
@@ -327,7 +327,7 @@ class SchemaControllerTest {
                 this.schemaController.deleteSubject("myNamespace", "prefix.subject-value", false));
 
         Assertions.assertEquals(1L, exception.getValidationErrors().size());
-        Assertions.assertEquals("Invalid value prefix.subject-value for name: : namespace not OWNER of underlying topic", exception.getValidationErrors().get(0));
+        Assertions.assertEquals("Invalid value prefix.subject-value for name: namespace not OWNER of underlying topic", exception.getValidationErrors().get(0));
         verify(this.schemaService, never()).updateSubjectCompatibility(any(), any(), any());
     }
 

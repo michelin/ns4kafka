@@ -73,13 +73,13 @@ public class SchemaController extends NamespacedResourceController {
         // https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject/TopicNameStrategy.java
         if(!schema.getMetadata().getName().endsWith("-key") && !schema.getMetadata().getName().endsWith("-value")){
             throw new ResourceValidationException(List.of("Invalid value " + schema.getMetadata().getName() +
-                    " for name: : subject must end with -key or -value"), schema.getKind(), schema.getMetadata().getName());
+                    " for name: subject must end with -key or -value"), schema.getKind(), schema.getMetadata().getName());
         }
 
         // Validate ownership
         if (!this.schemaService.isNamespaceOwnerOfSubject(ns, schema.getMetadata().getName())) {
             throw new ResourceValidationException(List.of("Invalid value " + schema.getMetadata().getName() +
-                    " for name: : namespace not OWNER of underlying topic"), schema.getKind(), schema.getMetadata().getName());
+                    " for name: namespace not OWNER of underlying topic"), schema.getKind(), schema.getMetadata().getName());
         }
 
         // Validate compatibility
