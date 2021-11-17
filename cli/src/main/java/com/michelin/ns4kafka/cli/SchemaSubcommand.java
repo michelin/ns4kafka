@@ -60,7 +60,7 @@ public class SchemaSubcommand implements Callable<Integer> {
                     .collect(Collectors.toList());
 
             if (!updatedSchemas.isEmpty()) {
-                formatService.displayList("Schema", updatedSchemas, "table");
+                formatService.displayList("SchemaCompatibilityState", updatedSchemas, "table");
                 return 0;
             }
         }
