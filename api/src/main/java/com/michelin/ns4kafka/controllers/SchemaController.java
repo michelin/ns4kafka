@@ -119,7 +119,7 @@ public class SchemaController extends NamespacedResourceController {
         // Validate ownership
         if (!this.schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
             throw new ResourceValidationException(List.of("Invalid value " + subject +
-                    " for name: : namespace not OWNER of underlying topic"), AccessControlEntry.ResourceType.SCHEMA.toString(), subject);
+                    " for name: namespace not OWNER of underlying topic"), AccessControlEntry.ResourceType.SCHEMA.toString(), subject);
         }
 
         if (dryrun) {
