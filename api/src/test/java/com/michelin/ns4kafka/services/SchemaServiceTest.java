@@ -4,9 +4,10 @@ import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.services.schema.KafkaSchemaRegistryClientProxy;
 import com.michelin.ns4kafka.services.schema.client.KafkaSchemaRegistryClient;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityCheckResponse;
-import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityRequest;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
+import io.micronaut.http.HttpResponse;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -187,6 +188,23 @@ class SchemaServiceTest {
     }
 
     /**
+     * Tests the schema compatibility validation when the Schema Registry throws an exception
+     */
+    @Test
+    void validateSchemaCompatibilityThrowsException() {
+        Namespace namespace = this.buildNamespace();
+        Schema schema = this.buildSchema();
+
+        when(kafkaSchemaRegistryClient.validateSchemaCompatibility(any(), any(), any(), any()))
+                .thenThrow(new HttpClientResponseException("Error", HttpResponse.notFound()));
+
+        List<String> validationResponse = this.schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema);
+
+        Assertions.assertEquals(1L, validationResponse.size());
+        Assertions.assertEquals("An error occurred during the schema validation (status code: NOT_FOUND)", validationResponse.get(0));
+    }
+
+    /**
      * Tests the schema compatibility invalidation
      */
     @Test
@@ -208,6 +226,41 @@ class SchemaServiceTest {
     }
 
     /**
+     * Tests the schema compatibility update when the config to apply does not changed from previous one
+     */
+    @Test
+    void updateSubjectCompatibilityUnchanged() {
+        Namespace namespace = this.buildNamespace();
+        Schema schema = this.buildSchema();
+
+        SchemaCompatibilityState state = this.schemaService
+                .updateSubjectCompatibility(namespace, schema, Schema.Compatibility.BACKWARD);
+
+        Assertions.assertEquals("prefix.schema-one", state.getMetadata().getName());
+        Assertions.assertEquals(Schema.Compatibility.BACKWARD, state.getSpec().getCompatibility());
+        verify(this.kafkaSchemaRegistryClient, never()).deleteCurrentCompatibilityBySubject(any(), any(), any());
+        verify(this.kafkaSchemaRegistryClient, never()).updateSubjectCompatibility(any(), any(), any(), any());
+    }
+
+    /**
+     * Tests the schema compatibility update when reset to default is asked
+     */
+    @Test
+    void updateSubjectCompatibilityResetToDefault() {
+        Namespace namespace = this.buildNamespace();
+        Schema schema = this.buildSchema();
+
+        doNothing().when(kafkaSchemaRegistryClient).deleteCurrentCompatibilityBySubject(any(), any(), any());
+
+        SchemaCompatibilityState state = this.schemaService
+                .updateSubjectCompatibility(namespace, schema, Schema.Compatibility.DEFAULT);
+
+        Assertions.assertEquals("prefix.schema-one", state.getMetadata().getName());
+        Assertions.assertEquals(Schema.Compatibility.DEFAULT, state.getSpec().getCompatibility());
+        verify(kafkaSchemaRegistryClient, times(1)).deleteCurrentCompatibilityBySubject(any(), any(), any());
+    }
+
+    /**
      * Tests the schema compatibility validation
      */
     @Test
@@ -223,6 +276,7 @@ class SchemaServiceTest {
                 .updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD);
 
         Assertions.assertEquals("prefix.schema-one", state.getMetadata().getName());
+        Assertions.assertEquals(Schema.Compatibility.FORWARD, state.getSpec().getCompatibility());
         verify(kafkaSchemaRegistryClient, times(1)).updateSubjectCompatibility(any(), any(), any(), any());
     }
 
@@ -268,6 +322,7 @@ class SchemaServiceTest {
                         .name("prefix.schema-one")
                         .build())
                 .spec(Schema.SchemaSpec.builder()
+                        .compatibility(Schema.Compatibility.BACKWARD)
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the person\"}]}")
                         .build())
                 .build();
