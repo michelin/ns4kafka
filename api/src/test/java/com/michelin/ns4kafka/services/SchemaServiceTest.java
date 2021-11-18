@@ -180,7 +180,7 @@ class SchemaServiceTest {
                 .build();
 
         when(kafkaSchemaRegistryClient.validateSchemaCompatibility(any(), any(), any(), any()))
-                .thenReturn(schemaCompatibilityCheckResponse);
+                .thenReturn(Optional.of(schemaCompatibilityCheckResponse));
 
         List<String> validationResponse = this.schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema);
 
@@ -217,7 +217,7 @@ class SchemaServiceTest {
                 .build();
 
         when(kafkaSchemaRegistryClient.validateSchemaCompatibility(any(), any(), any(), any()))
-                .thenReturn(schemaCompatibilityCheckResponse);
+                .thenReturn(Optional.of(schemaCompatibilityCheckResponse));
 
         List<String> validationResponse = this.schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema);
 

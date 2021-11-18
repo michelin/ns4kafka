@@ -141,14 +141,14 @@ public class SchemaService {
      */
     public List<String> validateSchemaCompatibility(String cluster, Schema schema) {
         try {
-            SchemaCompatibilityCheckResponse response = this.kafkaSchemaRegistryClient.validateSchemaCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
+            Optional<SchemaCompatibilityCheckResponse> response = this.kafkaSchemaRegistryClient.validateSchemaCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
                     cluster, schema.getMetadata().getName(), SchemaRequest.builder()
                             .schema(schema.getSpec().getSchema()).build());
 
-            if (!response.isCompatible()) {
-                return response.messages();
+            if(response.isPresent() && !response.get().isCompatible()){
+                return response.get().messages();
             }
-
+            // 200 is_compatible OR 404
             return List.of();
         } catch (HttpClientResponseException e) {
             return List.of("An error occurred during the schema validation (status code: " + e.getStatus() + ")");

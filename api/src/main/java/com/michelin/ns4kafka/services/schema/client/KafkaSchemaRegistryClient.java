@@ -32,7 +32,7 @@ public interface KafkaSchemaRegistryClient {
                          @QueryValue("permanent") boolean hardDelete);
 
     @Post("/compatibility/subjects/{subject}/versions?verbose=true")
-    SchemaCompatibilityCheckResponse validateSchemaCompatibility(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
+    Optional<SchemaCompatibilityCheckResponse> validateSchemaCompatibility(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
                                                                  @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
                                                                  @PathVariable String subject,
                                                                  @Body SchemaRequest request);
