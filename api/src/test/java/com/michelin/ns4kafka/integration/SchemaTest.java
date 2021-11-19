@@ -148,17 +148,12 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, createException.getStatus());
         Assertions.assertEquals("Invalid Schema wrongprefix-subject", createException.getMessage());
-
+        
         HttpClientResponseException getException = Assertions.assertThrows(HttpClientResponseException.class,
-                () -> client.exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/schemas/wrongprefix-subject")
-                        .bearerAuth(token), Schema.class).blockingFirst());
+                () -> schemaCli.retrieve(HttpRequest.GET("/subjects/wrongprefix-subject/versions/latest"),
+                        SchemaResponse.class).blockingFirst());
 
         Assertions.assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
-
-        SchemaResponse actual = schemaCli.retrieve(HttpRequest.GET("/subjects/wrongprefix-subject/versions/latest"),
-                SchemaResponse.class).blockingFirst();
-
-        Assertions.assertNull(actual);
     }
 
     /**
