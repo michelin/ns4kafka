@@ -99,6 +99,12 @@ public class SchemaController extends NamespacedResourceController {
         ApplyStatus status = existingSchemaOptional.isEmpty() ? ApplyStatus.created : registeredSchemaId > existingSchemaOptional
                 .get().getSpec().getId() ? ApplyStatus.changed : ApplyStatus.unchanged;
 
+        sendEventLog(schema.getKind(),
+                schema.getMetadata(),
+                status,
+                existingSchemaOptional.isPresent() ? existingSchemaOptional.get().getSpec(): null,
+                schema.getSpec());
+
         return this.formatHttpResponse(schema, status);
     }
 
@@ -122,9 +128,23 @@ public class SchemaController extends NamespacedResourceController {
                     " for name: namespace not OWNER of underlying topic"), AccessControlEntry.ResourceType.SCHEMA.toString(), subject);
         }
 
+        Optional<Schema> existingSchemaOptional = this.schemaService
+                .getLatestSubject(ns, subject);
+
+        if (existingSchemaOptional.isEmpty()) {
+            return HttpResponse.notFound();
+        }
+
         if (dryrun) {
             return HttpResponse.noContent();
         }
+
+        Schema schemaToDelete = existingSchemaOptional.get();
+        sendEventLog(schemaToDelete.getKind(),
+                schemaToDelete.getMetadata(),
+                ApplyStatus.deleted,
+                schemaToDelete.getSpec(),
+                null);
 
         this.schemaService.deleteSubject(ns, subject);
 

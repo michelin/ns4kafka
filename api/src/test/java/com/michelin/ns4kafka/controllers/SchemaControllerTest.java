@@ -6,6 +6,7 @@ import com.michelin.ns4kafka.models.Schema;
 import com.michelin.ns4kafka.models.SchemaCompatibilityState;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.SchemaService;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import org.junit.jupiter.api.Assertions;
@@ -41,6 +42,12 @@ class SchemaControllerTest {
     SchemaController schemaController;
 
     /**
+     * The app publisher
+     */
+    @Mock
+    ApplicationEventPublisher applicationEventPublisher;
+
+    /**
      * Test the schema creation
      * The response should contain a "created" header
      */
@@ -54,6 +61,7 @@ class SchemaControllerTest {
         when(this.schemaService.validateSchemaCompatibility("local", schema)).thenReturn(List.of());
         when(this.schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Optional.empty());
         when(this.schemaService.register(namespace, schema)).thenReturn(1);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         HttpResponse<Schema> response = this.schemaController.apply("myNamespace", schema, false);
 
@@ -78,6 +86,7 @@ class SchemaControllerTest {
         when(this.schemaService.validateSchemaCompatibility("local", schema)).thenReturn(List.of());
         when(this.schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Optional.of(schema));
         when(this.schemaService.register(namespace, schema)).thenReturn(2);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         HttpResponse<Schema> response = this.schemaController.apply("myNamespace", schema, false);
 
@@ -102,6 +111,7 @@ class SchemaControllerTest {
         when(this.schemaService.validateSchemaCompatibility("local", schema)).thenReturn(List.of());
         when(this.schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Optional.of(schema));
         when(this.schemaService.register(namespace, schema)).thenReturn(1);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         HttpResponse<Schema> response = this.schemaController.apply("myNamespace", schema, false);
 
@@ -341,6 +351,7 @@ class SchemaControllerTest {
         when(this.namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(this.schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value")).thenReturn(true);
         doNothing().when(this.schemaService).deleteSubject(namespace, "prefix.subject-value");
+        doNothing().when(applicationEventPublisher).publishEvent(any());
 
         HttpResponse<Void> response = this.schemaController.deleteSubject("myNamespace", "prefix.subject-value", false);
 

@@ -1,6 +1,9 @@
 package com.michelin.ns4kafka.integration;
 
 import com.michelin.ns4kafka.models.*;
+import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStateInfo;
+import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
+import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
@@ -16,6 +19,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
@@ -94,7 +99,8 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
      * Schema creation
      */
     @Test
-    void createAndGetSchema() {
+    void createAndGetSchema() throws MalformedURLException {
+        RxHttpClient schemaCli = RxHttpClient.create(new URL(schemaRegistryContainer.getUrl()));
         Schema schema = Schema.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-subject-value")
@@ -111,20 +117,21 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         Assertions.assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
 
-        var getResponse = client
-                .exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/schemas/ns1-subject-value")
-                        .bearerAuth(token), Schema.class).blockingFirst();
+        SchemaResponse actual = schemaCli.retrieve(HttpRequest.GET("/subjects/ns1-subject-value/versions/latest"),
+                SchemaResponse.class).blockingFirst();
 
-        Assertions.assertTrue(getResponse.getBody().isPresent());
-        Assertions.assertNotNull(getResponse.getBody().get().getSpec().getId());
-        Assertions.assertEquals(1, getResponse.getBody().get().getSpec().getVersion());
+        Assertions.assertNotNull(actual.id());
+        Assertions.assertEquals(1, actual.version());
+        Assertions.assertEquals("ns1-subject-value", actual.subject());
+        Assertions.assertEquals("AVRO", actual.schemaType());
     }
 
     /**
      * Schema creation with prefix that does not respect ACLs
      */
     @Test
-    void createAndGetSchemaWrongPrefix() {
+    void createAndGetSchemaWrongPrefix() throws MalformedURLException {
+        RxHttpClient schemaCli = RxHttpClient.create(new URL(schemaRegistryContainer.getUrl()));
         Schema wrongSchema = Schema.builder()
                 .metadata(ObjectMeta.builder()
                         .name("wrongprefix-subject")
@@ -147,6 +154,11 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .bearerAuth(token), Schema.class).blockingFirst());
 
         Assertions.assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
+
+        SchemaResponse actual = schemaCli.retrieve(HttpRequest.GET("/subjects/wrongprefix-subject/versions/latest"),
+                SchemaResponse.class).blockingFirst();
+
+        Assertions.assertNull(actual);
     }
 
     /**
@@ -156,7 +168,8 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
      * NONE, then reset the compatibility to the global one
      */
     @Test
-    void updateCompatibility() {
+    void updateCompatibility() throws MalformedURLException {
+        RxHttpClient schemaCli = RxHttpClient.create(new URL(schemaRegistryContainer.getUrl()));
         Schema schema = Schema.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-subject3-value")
@@ -173,32 +186,38 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         Assertions.assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
 
-        var getResponse = client
-                .exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/schemas/ns1-subject3-value")
-                        .bearerAuth(token), Schema.class).blockingFirst();
+        SchemaResponse actual = schemaCli.retrieve(HttpRequest.GET("/subjects/ns1-subject3-value/versions/latest"),
+                SchemaResponse.class).blockingFirst();
 
-        Assertions.assertTrue(getResponse.getBody().isPresent());
-        Assertions.assertNotNull(getResponse.getBody().get().getSpec().getId());
-        Assertions.assertEquals(1, getResponse.getBody().get().getSpec().getVersion());
-        Assertions.assertEquals(Schema.Compatibility.DEFAULT, getResponse.getBody().get().getSpec().getCompatibility());
+        Assertions.assertNotNull(actual.id());
+        Assertions.assertEquals(1, actual.version());
+        Assertions.assertEquals("ns1-subject-value", actual.subject());
+        Assertions.assertEquals("AVRO", actual.schemaType());
 
-        var updateCompatibilityResponse = client
+        SchemaCompatibilityResponse actualConfig = schemaCli.retrieve(HttpRequest.GET("/config/ns1-subject3-value"),
+                SchemaCompatibilityResponse.class).blockingFirst();
+
+        Assertions.assertNull(actualConfig);
+
+        client
                 .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3-value/config")
                         .bearerAuth(token)
                         .body(Map.of("compatibility", Schema.Compatibility.NONE)), SchemaCompatibilityState.class).blockingFirst();
 
-        Assertions.assertTrue(updateCompatibilityResponse.getBody().isPresent());
-        Assertions.assertEquals("ns1-subject3-value", updateCompatibilityResponse.getBody().get().getMetadata().getName());
-        Assertions.assertEquals(Schema.Compatibility.NONE, updateCompatibilityResponse.getBody().get().getSpec().getCompatibility());
+        SchemaCompatibilityResponse updatedConfig = schemaCli.retrieve(HttpRequest.GET("/config/ns1-subject3-value"),
+                SchemaCompatibilityResponse.class).blockingFirst();
 
-        var resetCompatibilityResponse = client
+        Assertions.assertEquals(Schema.Compatibility.NONE, updatedConfig.compatibilityLevel());
+
+         client
                 .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3-value/config")
                         .bearerAuth(token)
                         .body(Map.of("compatibility", Schema.Compatibility.DEFAULT)), SchemaCompatibilityState.class).blockingFirst();
 
-        Assertions.assertTrue(resetCompatibilityResponse.getBody().isPresent());
-        Assertions.assertEquals("ns1-subject3-value", resetCompatibilityResponse.getBody().get().getMetadata().getName());
-        Assertions.assertEquals(Schema.Compatibility.DEFAULT, resetCompatibilityResponse.getBody().get().getSpec().getCompatibility());
+        SchemaCompatibilityResponse resetConfig = schemaCli.retrieve(HttpRequest.GET("/config/ns1-subject3-value"),
+                SchemaCompatibilityResponse.class).blockingFirst();
+
+        Assertions.assertNull(resetConfig);
     }
 
     /**
