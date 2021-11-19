@@ -12,23 +12,27 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 @Singleton
 public class ResourceService {
-
     @Inject
     NamespacedResourceClient namespacedClient;
     @Inject
     ClusterResourceClient nonNamespacedClient;
-
     @Inject
     LoginService loginService;
     @Inject
     FormatService formatService;
-
+    @Inject
+    FileService fileService;
 
     public Map<ApiResource, List<Resource>> listAll(List<ApiResource> apiResources, String namespace) {
         return apiResources
@@ -72,6 +76,11 @@ public class ResourceService {
 
     public HttpResponse<Resource> apply(ApiResource apiResource, String namespace, Resource resource, boolean dryRun) {
         try {
+            // If the resource is a subject, load the schema
+            if (resource.getKind().equals("Schema")) {
+                fileService.loadSchemaFileContent(resource);
+            }
+
             if (apiResource.isNamespaced()) {
                 return namespacedClient.apply(namespace, apiResource.getPath(), loginService.getAuthorization(), resource, dryRun);
             } else {
@@ -79,7 +88,13 @@ public class ResourceService {
             }
         } catch (HttpClientResponseException e) {
             formatService.displayError(e, apiResource.getKind(), resource.getMetadata().getName());
+        } catch (NoSuchFileException e) {
+            System.out.printf("Failed : %s/%s %s%n", apiResource.getKind(), resource.getMetadata().getName(),
+                    "Cannot find schema. Schema path must be relative to the CLI, not to the resource file");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+
         return null;
     }
 

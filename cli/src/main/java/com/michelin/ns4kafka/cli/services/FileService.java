@@ -61,16 +61,12 @@ public class FileService {
     }
 
     /**
-     * From a given file path in a resource, load the content of the matching file
+     * Load the schema file content
      *
      * @param resource The resource
-     * @param filePathAttributeName The name of the attribute containing the file path in the resource spec
      */
-    public void loadFileContent(Resource resource, String filePathAttributeName) {
-        try {
-            resource.getSpec().put(filePathAttributeName, Files.readString(new File((String) resource.getSpec().get(filePathAttributeName)).toPath()));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public void loadSchemaFileContent(Resource resource) throws IOException {
+        resource.getSpec().put("schema",
+                Files.readString(new File((String) resource.getSpec().get("schema")).toPath()));
     }
 }

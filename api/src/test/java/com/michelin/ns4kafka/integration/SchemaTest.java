@@ -148,7 +148,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, createException.getStatus());
         Assertions.assertEquals("Invalid Schema wrongprefix-subject", createException.getMessage());
-        
+
         HttpClientResponseException getException = Assertions.assertThrows(HttpClientResponseException.class,
                 () -> schemaCli.retrieve(HttpRequest.GET("/subjects/wrongprefix-subject/versions/latest"),
                         SchemaResponse.class).blockingFirst());
@@ -220,7 +220,8 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
      * Schema creation and deletion
      */
     @Test
-    void createAndDeleteSchema() {
+    void createAndDeleteSchema() throws MalformedURLException {
+        RxHttpClient schemaCli = RxHttpClient.create(new URL(schemaRegistryContainer.getUrl()));
         Schema schema = Schema.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-subject4-value")
@@ -244,8 +245,8 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         Assertions.assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
 
         HttpClientResponseException getException = Assertions.assertThrows(HttpClientResponseException.class,
-                () -> client.exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/schemas/ns1-subject4")
-                        .bearerAuth(token), Schema.class).blockingFirst());
+                () -> schemaCli.retrieve(HttpRequest.GET("/subjects/ns1-subject4-value/versions/latest"),
+                        SchemaResponse.class).blockingFirst());
 
         Assertions.assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
     }
