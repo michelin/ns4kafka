@@ -4,11 +4,13 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Schema;
 import com.michelin.ns4kafka.models.SchemaCompatibilityState;
+import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.SchemaService;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.security.utils.SecurityService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +44,12 @@ class SchemaControllerTest {
     SchemaController schemaController;
 
     /**
+     * The security service
+     */
+    @Mock
+    SecurityService securityService;
+
+    /**
      * The app publisher
      */
     @Mock
@@ -61,6 +69,8 @@ class SchemaControllerTest {
         when(this.schemaService.validateSchemaCompatibility("local", schema)).thenReturn(List.of());
         when(this.schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Optional.empty());
         when(this.schemaService.register(namespace, schema)).thenReturn(1);
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         HttpResponse<Schema> response = this.schemaController.apply("myNamespace", schema, false);
@@ -86,6 +96,8 @@ class SchemaControllerTest {
         when(this.schemaService.validateSchemaCompatibility("local", schema)).thenReturn(List.of());
         when(this.schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Optional.of(schema));
         when(this.schemaService.register(namespace, schema)).thenReturn(2);
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         HttpResponse<Schema> response = this.schemaController.apply("myNamespace", schema, false);
@@ -111,6 +123,8 @@ class SchemaControllerTest {
         when(this.schemaService.validateSchemaCompatibility("local", schema)).thenReturn(List.of());
         when(this.schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Optional.of(schema));
         when(this.schemaService.register(namespace, schema)).thenReturn(1);
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         HttpResponse<Schema> response = this.schemaController.apply("myNamespace", schema, false);
@@ -347,10 +361,14 @@ class SchemaControllerTest {
     @Test
     void deleteSubject() {
         Namespace namespace = this.buildNamespace();
+        Schema schema = this.buildSchema();
 
         when(this.namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(this.schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value")).thenReturn(true);
+        when(this.schemaService.getLatestSubject(namespace, "prefix.subject-value")).thenReturn(Optional.of(schema));
         doNothing().when(this.schemaService).deleteSubject(namespace, "prefix.subject-value");
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         HttpResponse<Void> response = this.schemaController.deleteSubject("myNamespace", "prefix.subject-value", false);

@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.integration;
 
+import com.michelin.ns4kafka.controllers.ResourceValidationException;
 import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStateInfo;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
@@ -123,7 +124,6 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         Assertions.assertNotNull(actual.id());
         Assertions.assertEquals(1, actual.version());
         Assertions.assertEquals("ns1-subject-value", actual.subject());
-        Assertions.assertEquals("AVRO", actual.schemaType());
     }
 
     /**
@@ -191,13 +191,13 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         Assertions.assertNotNull(actual.id());
         Assertions.assertEquals(1, actual.version());
-        Assertions.assertEquals("ns1-subject-value", actual.subject());
-        Assertions.assertEquals("AVRO", actual.schemaType());
+        Assertions.assertEquals("ns1-subject3-value", actual.subject());
 
-        SchemaCompatibilityResponse actualConfig = schemaCli.retrieve(HttpRequest.GET("/config/ns1-subject3-value"),
-                SchemaCompatibilityResponse.class).blockingFirst();
+        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class, () ->
+                schemaCli.retrieve(HttpRequest.GET("/config/ns1-subject3-value"),
+                        SchemaCompatibilityResponse.class).blockingFirst());
 
-        Assertions.assertNull(actualConfig);
+        Assertions.assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
 
         client
                 .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3-value/config")
@@ -214,10 +214,11 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .bearerAuth(token)
                         .body(Map.of("compatibility", Schema.Compatibility.DEFAULT)), SchemaCompatibilityState.class).blockingFirst();
 
-        SchemaCompatibilityResponse resetConfig = schemaCli.retrieve(HttpRequest.GET("/config/ns1-subject3-value"),
-                SchemaCompatibilityResponse.class).blockingFirst();
+        HttpClientResponseException resetConfigException = Assertions.assertThrows(HttpClientResponseException.class, () ->
+                schemaCli.retrieve(HttpRequest.GET("/config/ns1-subject3-value"),
+                        SchemaCompatibilityResponse.class).blockingFirst());
 
-        Assertions.assertNull(resetConfig);
+        Assertions.assertEquals(HttpStatus.NOT_FOUND, resetConfigException.getStatus());
     }
 
     /**
