@@ -13,6 +13,8 @@ import org.apache.kafka.common.TopicPartition;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -40,6 +42,11 @@ public class ConsumerGroupController extends NamespacedResourceController {
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors, "ConsumerGroup", consumerGroup);
         }
+
+        // Augment
+        consumerGroupResetOffsets.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+        consumerGroupResetOffsets.getMetadata().setNamespace(ns.getMetadata().getName());
+        consumerGroupResetOffsets.getMetadata().setCluster(ns.getMetadata().getCluster());
 
         ConsumerGroupResetOffsetStatus status = null;
         try {
