@@ -214,7 +214,7 @@ public class TopicController extends NamespacedResourceController {
         if (dryrun) {
             deletedRecords = recordsToDelete;
         } else {
-            sendEventLog("Topic", optionalTopic.get().getMetadata(), ApplyStatus.deleted, null, null);
+            sendEventLog("DeleteRecords", optionalTopic.get().getMetadata(), ApplyStatus.deleted, null, null);
             deletedRecords = topicService.deleteRecords(optionalTopic.get(), recordsToDelete);
         }
 
