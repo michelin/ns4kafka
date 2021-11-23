@@ -206,11 +206,6 @@ public class AccessControlEntryAsyncExecutor {
                 new AclBinding(
                         new ResourcePattern(ResourceType.TOPIC, stream.getMetadata().getName(), PatternType.PREFIXED),
                         new org.apache.kafka.common.acl.AccessControlEntry("User:" + kafkaUser, "*", AclOperation.DELETE, AclPermissionType.ALLOW)
-                ),
-                // READ on application.id group
-                new AclBinding(
-                        new ResourcePattern(ResourceType.GROUP, stream.getMetadata().getName(), PatternType.PREFIXED),
-                        new org.apache.kafka.common.acl.AccessControlEntry("User:" + kafkaUser, "*", AclOperation.READ, AclPermissionType.ALLOW)
                 )
         );
     }

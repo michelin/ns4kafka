@@ -29,8 +29,17 @@ public class StreamService {
             .findFirst();
     }
 
-    public boolean isNamespaceOwnerOfStream(String namespace, String stream) {
-        return accessControlEntryService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.TOPIC, stream);
+    public boolean isNamespaceOwnerOfKafkaStream(Namespace namespace, String resource) {
+        // KafkaStream Ownership is determined by both Topic and Group ownership on PREFIXED resource,
+        // this is because KafkaStream application.id is a consumergroup but also a prefix for internal topic names
+        return accessControlEntryService.findAllGrantedToNamespace(namespace)
+                .stream()
+                .filter(accessControlEntry -> accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
+                .filter(accessControlEntry -> accessControlEntry.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.PREFIXED)
+                .filter(accessControlEntry -> resource.startsWith(accessControlEntry.getSpec().getResource()))
+                .map(accessControlEntry -> accessControlEntry.getSpec().getResourceType())
+                .collect(Collectors.toList())
+                .containsAll(List.of(AccessControlEntry.ResourceType.TOPIC, AccessControlEntry.ResourceType.GROUP));
     }
 
     public KafkaStream create(KafkaStream stream) {

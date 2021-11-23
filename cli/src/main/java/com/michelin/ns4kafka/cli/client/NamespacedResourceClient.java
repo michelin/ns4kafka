@@ -11,7 +11,7 @@ import java.util.List;
 public interface NamespacedResourceClient {
 
     @Delete("{namespace}/{kind}/{resourcename}{?dryrun}")
-    void delete(
+    HttpResponse delete(
             String namespace,
             String kind,
             String resourcename,

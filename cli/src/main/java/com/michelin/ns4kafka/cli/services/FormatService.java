@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.cli.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.util.StdDateFormat;
 import com.michelin.ns4kafka.cli.KafkactlConfig;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.Status;
@@ -16,8 +17,7 @@ import picocli.CommandLine;
 
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import java.time.Instant;
-import java.time.format.DateTimeParseException;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -36,7 +36,7 @@ public class FormatService {
             "KIND:/kind",
             "NAME:/metadata/name",
             "AGE:/metadata/creationTimestamp%AGO"
-            );
+    );
 
     public void displayList(String kind, List<Resource> resources, String output) {
         if (output.equals(TABLE)) {
@@ -154,31 +154,32 @@ public class FormatService {
                 switch (this.transform) {
                     case "AGO":
                         try {
-                            Date d = Date.from(Instant.parse(cell.asText()));
+                            StdDateFormat sdf = new StdDateFormat();
+                            Date d = sdf.parse(cell.asText());
                             output = new PrettyTime().format(d);
-                        } catch (DateTimeParseException e) {
-                            output = "err:" + cell;
+                        } catch ( ParseException e) {
+                            output = cell.asText();
                         }
                         break;
                     case "PERIOD":
                         try {
                             long ms = Long.parseLong(cell.asText());
                             long days = TimeUnit.MILLISECONDS.toDays(ms);
-                            long hours = TimeUnit.MILLISECONDS.toHours(ms - TimeUnit.DAYS.toMillis(days)) ;
+                            long hours = TimeUnit.MILLISECONDS.toHours(ms - TimeUnit.DAYS.toMillis(days));
                             long minutes = TimeUnit.MILLISECONDS.toMinutes(ms - TimeUnit.DAYS.toMillis(days) - TimeUnit.HOURS.toMillis(hours));
                             output = days > 0 ? (days + "d") : "";
                             output += hours > 0 ? (hours + "h") : "";
                             output += minutes > 0 ? (minutes + "m") : "";
-                        } catch (NumberFormatException e){
+                        } catch (NumberFormatException e) {
                             output = "err:" + cell;
                         }
                         break;
                     case "NONE":
                     default:
-                        if(cell.isArray()){
+                        if (cell.isArray()) {
                             List<String> childs = new ArrayList<>();
                             cell.elements().forEachRemaining(jsonNode -> childs.add(jsonNode.asText()));
-                            output = "["+String.join(",", childs)+"]";
+                            output = "[" + String.join(",", childs) + "]";
                         } else {
                             output = cell.asText();
                         }

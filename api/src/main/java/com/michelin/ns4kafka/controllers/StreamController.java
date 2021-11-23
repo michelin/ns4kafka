@@ -42,9 +42,9 @@ public class StreamController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         //Creation of the correct ACLs
-        if (!streamService.isNamespaceOwnerOfStream(namespace, stream.getMetadata().getName())) {
+        if (!streamService.isNamespaceOwnerOfKafkaStream(ns, stream.getMetadata().getName())) {
             throw new ResourceValidationException(List.of("Invalid value " + stream.getMetadata().getName()
-                    + " for name: Namespace not OWNER of this stream"), "Stream", stream.getMetadata().getName());
+                    + " for name: Namespace not OWNER of underlying Topic prefix and Group prefix"), "Stream", stream.getMetadata().getName());
         }
         //Augment the Stream
         stream.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
@@ -77,9 +77,9 @@ public class StreamController extends NamespacedResourceController {
     HttpResponse delete(String namespace,String stream, @QueryValue(defaultValue = "false") boolean dryrun){
 
         Namespace ns = getNamespace(namespace);
-        if (!streamService.isNamespaceOwnerOfStream(namespace, stream)) {
+        if (!streamService.isNamespaceOwnerOfKafkaStream(ns, stream)) {
             throw new ResourceValidationException(List.of("Invalid value " + stream
-                    + " for name: Namespace not OWNER of this stream"), "Stream", stream);
+                    + " for name: Namespace not OWNER of underlying Topic prefix and Group prefix"), "Stream", stream);
         }
         // exists ?
         Optional<KafkaStream> optionalStream = streamService.findByName(ns, stream);
