@@ -16,8 +16,8 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;

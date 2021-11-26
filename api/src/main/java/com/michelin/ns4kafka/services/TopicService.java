@@ -8,8 +8,8 @@ import io.micronaut.inject.qualifiers.Qualifiers;
 import org.apache.kafka.clients.admin.RecordsToDelete;
 import org.apache.kafka.common.TopicPartition;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;

@@ -10,7 +10,7 @@ import com.michelin.ns4kafka.cli.client.UsernameAndPasswordRequest;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
 import java.util.Calendar;

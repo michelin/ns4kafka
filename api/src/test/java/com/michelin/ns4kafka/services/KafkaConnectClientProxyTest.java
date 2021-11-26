@@ -8,7 +8,7 @@ import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.http.*;
 import io.micronaut.http.client.ProxyHttpClient;
 import io.micronaut.http.simple.SimpleHttpRequest;
-import io.reactivex.subscribers.TestSubscriber;
+import io.reactivex.rxjava3.subscribers.TestSubscriber;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +21,7 @@ import org.reactivestreams.Publisher;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,10 +41,10 @@ public class KafkaConnectClientProxyTest {
                 .header("X-Unused", "123");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertError(ResourceValidationException.class);
         subscriber.assertError(throwable ->
@@ -59,10 +60,10 @@ public class KafkaConnectClientProxyTest {
                 .header("X-Proxy-Secret", "123");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertError(ResourceValidationException.class);
         subscriber.assertError(throwable ->
@@ -79,10 +80,10 @@ public class KafkaConnectClientProxyTest {
                 .header("X-Unused", "123");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertError(ResourceValidationException.class);
         subscriber.assertError(throwable ->
@@ -99,10 +100,10 @@ public class KafkaConnectClientProxyTest {
                 .header(KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertError(ResourceValidationException.class);
         subscriber.assertError(throwable ->
@@ -122,10 +123,10 @@ public class KafkaConnectClientProxyTest {
         Mockito.when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.empty());
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertError(throwable ->
                 ((ResourceValidationException)throwable)
@@ -148,10 +149,10 @@ public class KafkaConnectClientProxyTest {
                 .thenReturn(Stream.of(config));
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertError(throwable ->
              ((ResourceValidationException)throwable)
@@ -181,10 +182,10 @@ public class KafkaConnectClientProxyTest {
                 .thenReturn(Publishers.just(HttpResponse.ok()));
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertValueCount(1);
         subscriber.assertValue(mutableHttpResponse -> mutableHttpResponse.status() == HttpStatus.OK);
