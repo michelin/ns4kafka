@@ -17,7 +17,6 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.rxjava3.http.client.Rx3HttpClient;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
