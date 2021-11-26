@@ -11,28 +11,30 @@ import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.models.RoleBinding.*;
-import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
+import com.michelin.ns4kafka.services.executors.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.common.acl.*;
+import org.apache.kafka.common.resource.PatternType;
+import org.apache.kafka.common.resource.ResourcePatternFilter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-@Disabled("Test Class doesn't contain tests yet")
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 public class AccessControlListTest extends AbstractIntegrationTest {
@@ -42,7 +44,7 @@ public class AccessControlListTest extends AbstractIntegrationTest {
     RxHttpClient client;
 
     @Inject
-    List<TopicAsyncExecutor> topicAsyncExecutorList;
+    List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutorList;
 
     private String token;
 
@@ -98,7 +100,7 @@ public class AccessControlListTest extends AbstractIntegrationTest {
                   .resourceType(ResourceType.TOPIC)
                   .resource("ns1-")
                   .resourcePatternType(ResourcePatternType.PREFIXED)
-                  .permission(Permission.OWNER)
+                  .permission(Permission.READ)
                   .grantedTo("ns1")
                   .build())
             .build();
@@ -107,9 +109,28 @@ public class AccessControlListTest extends AbstractIntegrationTest {
 
         List<Map<String, Object>> aclTopicSaved = client.retrieve(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/acls").bearerAuth(token), List.class).blockingFirst();
         System.out.println(aclTopicSaved);
-        AccessControlEntrySpec specExpected = aclTopic.getSpec();
-        Assertions.assertNotNull(aclTopicSaved.get(0));
 
-        Assertions.assertEquals(HttpStatus.NO_CONTENT , client.exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl").bearerAuth(token)).blockingFirst().getStatus());
+        //force ACL Sync
+        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+
+
+        Admin kafkaClient = getAdminClient();
+
+
+        AclBindingFilter user1Filter = new AclBindingFilter(
+                ResourcePatternFilter.ANY,
+                new AccessControlEntryFilter("User:user1", null, AclOperation.ANY, AclPermissionType.ANY));
+        Collection<AclBinding> results = kafkaClient.describeAcls(user1Filter).values().get();
+
+        Assertions.assertEquals(1, results.size());
+
+        AclBinding result = results.stream().findAny().get();
+
+        Assertions.assertEquals(AclOperation.READ, result.entry().operation());
+        Assertions.assertEquals(AclPermissionType.ALLOW, result.entry().permissionType());
+        Assertions.assertEquals("User:user1", result.entry().principal());
+        Assertions.assertEquals(org.apache.kafka.common.resource.ResourceType.TOPIC, result.pattern().resourceType());
+        Assertions.assertEquals(PatternType.PREFIXED, result.pattern().patternType());
+        Assertions.assertEquals("ns1-", result.pattern().name());
     }
 }
