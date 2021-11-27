@@ -12,7 +12,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import javax.annotation.security.RolesAllowed;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import javax.validation.Valid;
 import java.util.List;
 import java.util.Map;

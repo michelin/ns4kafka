@@ -6,7 +6,7 @@ import io.micronaut.context.event.ApplicationEventListener;
 import io.micronaut.core.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 
 @Slf4j
 @Singleton
@@ -15,12 +15,13 @@ public class ConsoleLogListener implements ApplicationEventListener<AuditLog> {
 
     @Override
     public void onApplicationEvent(AuditLog event) {
-        log.info("{} {} {} {} {} on cluster {}",
+        log.info("{} {} {} {} {} in namespace {} on cluster {}",
                 event.isAdmin() ? "Admin" : "User",
                 event.getUser(),
                 event.getOperation(),
                 event.getKind(),
                 event.getMetadata().getName(),
+                event.getMetadata().getNamespace(),
                 event.getMetadata().getCluster()
         );
     }
