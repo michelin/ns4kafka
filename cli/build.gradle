@@ -56,7 +56,9 @@ nativeImage {
     args = ['-H:Class=com.michelin.ns4kafka.cli.KafkactlCommand',
             '-H:IncludeResourceBundles=org.ocpsoft.prettytime.i18n.Resources',
             '-H:+ReportUnsupportedElementsAtRuntime',
-            '-H:+ReportExceptionStackTraces']
+            '-H:+ReportExceptionStackTraces',
+            '-H:+TraceNativeToolUsage',
+            '-H:Log=*ShimDLL:3,link:3,copy:3']
 }
 dockerBuild {
     images = ["twobeeb/kafkactl:"+version]
