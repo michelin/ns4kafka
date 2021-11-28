@@ -1,5 +1,8 @@
 package com.michelin.ns4kafka.cli;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.github.difflib.DiffUtils;
 import com.github.difflib.UnifiedDiffUtils;
 import com.github.difflib.patch.Patch;
@@ -10,15 +13,11 @@ import com.michelin.ns4kafka.cli.services.FileService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
 import io.micronaut.http.HttpResponse;
-import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.nodes.Tag;
-import org.yaml.snakeyaml.representer.Representer;
+import jakarta.inject.Inject;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
-import jakarta.inject.Inject;
 import java.io.File;
 import java.util.List;
 import java.util.Optional;
@@ -130,15 +129,20 @@ public class DiffSubcommand implements Callable<Integer> {
         merged.setStatus(null);
         merged.getMetadata().setCreationTimestamp(null);
 
-        DumperOptions options = new DumperOptions();
-        options.setExplicitStart(true);
-        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        Representer representer = new Representer();
-        representer.addClassTag(Resource.class, Tag.MAP);
-        Yaml yaml = new Yaml(representer, options);
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
-        List<String> oldResourceStr = live != null ? yaml.dump(live).lines().collect(Collectors.toList()) : List.of();
-        List<String> newResourceStr = yaml.dump(merged).lines().collect(Collectors.toList());
+        List<String> oldResourceStr = null;
+        List<String> newResourceStr = null;
+        try {
+            oldResourceStr = live != null ? mapper.writeValueAsString(live).lines().collect(Collectors.toList()) : List.of();
+            newResourceStr = mapper.writeValueAsString(merged).lines().collect(Collectors.toList());
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            oldResourceStr=List.of();
+            newResourceStr=List.of();
+        }
+
+
         Patch<String> diff = DiffUtils.diff(oldResourceStr, newResourceStr);
         return UnifiedDiffUtils.generateUnifiedDiff(
                 String.format("%s/%s-LIVE", merged.getKind(), merged.getMetadata().getName()),
