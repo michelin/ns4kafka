@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.integration;
 
+import com.michelin.ns4kafka.integration.TopicTest.BearerAccessRefreshToken;
 import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
@@ -8,6 +9,7 @@ import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.rxjava3.http.client.Rx3HttpClient;
@@ -34,6 +36,11 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
     Rx3HttpClient client;
 
     /**
+     * Schema Registry client
+     */
+    HttpClient schemaClient;
+
+    /**
      * Authentication token
      */
     private String token;
@@ -42,7 +49,9 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
      * Init all integration tests
      */
     @BeforeAll
-    void init() {
+    void init() throws MalformedURLException {
+        schemaClient = HttpClient.create(new URL(schemaRegistryContainer.getUrl()));
+
         Namespace namespace = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1")
@@ -85,7 +94,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                 .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<TopicTest.BearerAccessRefreshToken> response = client.exchange(HttpRequest.POST("/login", credentials), TopicTest.BearerAccessRefreshToken.class).blockingFirst();
+        HttpResponse<BearerAccessRefreshToken> response = client.exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class).blockingFirst();
 
         token = response.getBody().get().getAccessToken();
 
@@ -98,8 +107,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
      * Schema creation
      */
     @Test
-    void createAndGetSchema() throws MalformedURLException {
-        Rx3HttpClient schemaCli = RxHttpClient.create(new URL(schemaRegistryContainer.getUrl()));
+    void createAndGetSchema() {
         Schema schema = Schema.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-subject-value")
@@ -116,8 +124,8 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         Assertions.assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
 
-        SchemaResponse actual = schemaCli.retrieve(HttpRequest.GET("/subjects/ns1-subject-value/versions/latest"),
-                SchemaResponse.class).blockingFirst();
+        SchemaResponse actual = schemaClient.toBlocking().retrieve(HttpRequest.GET("/subjects/ns1-subject-value/versions/latest"),
+                SchemaResponse.class);
 
         Assertions.assertNotNull(actual.id());
         Assertions.assertEquals(1, actual.version());
@@ -128,8 +136,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
      * Schema creation with prefix that does not respect ACLs
      */
     @Test
-    void createAndGetSchemaWrongPrefix() throws MalformedURLException {
-        RxHttpClient schemaCli = RxHttpClient.create(new URL(schemaRegistryContainer.getUrl()));
+    void createAndGetSchemaWrongPrefix() {
         Schema wrongSchema = Schema.builder()
                 .metadata(ObjectMeta.builder()
                         .name("wrongprefix-subject")
@@ -141,15 +148,16 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         HttpClientResponseException createException = Assertions.assertThrows(HttpClientResponseException.class,
                 () -> client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas")
-                        .bearerAuth(token)
-                        .body(wrongSchema)).blockingFirst());
+                                .bearerAuth(token)
+                                .body(wrongSchema)).blockingFirst());
 
         Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, createException.getStatus());
         Assertions.assertEquals("Invalid Schema wrongprefix-subject", createException.getMessage());
 
         HttpClientResponseException getException = Assertions.assertThrows(HttpClientResponseException.class,
-                () -> schemaCli.retrieve(HttpRequest.GET("/subjects/wrongprefix-subject/versions/latest"),
-                        SchemaResponse.class).blockingFirst());
+                () -> schemaClient.toBlocking()
+                        .retrieve(HttpRequest.GET("/subjects/wrongprefix-subject/versions/latest"),
+                                SchemaResponse.class));
 
         Assertions.assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
     }
@@ -161,8 +169,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
      * NONE, then reset the compatibility to the global one
      */
     @Test
-    void updateCompatibility() throws MalformedURLException {
-        RxHttpClient schemaCli = RxHttpClient.create(new URL(schemaRegistryContainer.getUrl()));
+    void updateCompatibility() {
         Schema schema = Schema.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-subject3-value")
@@ -179,16 +186,17 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         Assertions.assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
 
-        SchemaResponse actual = schemaCli.retrieve(HttpRequest.GET("/subjects/ns1-subject3-value/versions/latest"),
-                SchemaResponse.class).blockingFirst();
+        SchemaResponse actual = schemaClient.toBlocking()
+                .retrieve(HttpRequest.GET("/subjects/ns1-subject3-value/versions/latest"),
+                SchemaResponse.class);
 
         Assertions.assertNotNull(actual.id());
         Assertions.assertEquals(1, actual.version());
         Assertions.assertEquals("ns1-subject3-value", actual.subject());
 
         HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class, () ->
-                schemaCli.retrieve(HttpRequest.GET("/config/ns1-subject3-value"),
-                        SchemaCompatibilityResponse.class).blockingFirst());
+                schemaClient.toBlocking().retrieve(HttpRequest.GET("/config/ns1-subject3-value"),
+                        SchemaCompatibilityResponse.class));
 
         Assertions.assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
 
@@ -197,8 +205,9 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .bearerAuth(token)
                         .body(Map.of("compatibility", Schema.Compatibility.NONE)), SchemaCompatibilityState.class).blockingFirst();
 
-        SchemaCompatibilityResponse updatedConfig = schemaCli.retrieve(HttpRequest.GET("/config/ns1-subject3-value"),
-                SchemaCompatibilityResponse.class).blockingFirst();
+        SchemaCompatibilityResponse updatedConfig = schemaClient.toBlocking()
+                .retrieve(HttpRequest.GET("/config/ns1-subject3-value"),
+                        SchemaCompatibilityResponse.class);
 
         Assertions.assertEquals(Schema.Compatibility.NONE, updatedConfig.compatibilityLevel());
 
@@ -208,8 +217,9 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .body(Map.of("compatibility", Schema.Compatibility.DEFAULT)), SchemaCompatibilityState.class).blockingFirst();
 
         HttpClientResponseException resetConfigException = Assertions.assertThrows(HttpClientResponseException.class, () ->
-                schemaCli.retrieve(HttpRequest.GET("/config/ns1-subject3-value"),
-                        SchemaCompatibilityResponse.class).blockingFirst());
+                schemaClient.toBlocking()
+                        .retrieve(HttpRequest.GET("/config/ns1-subject3-value"),
+                        SchemaCompatibilityResponse.class));
 
         Assertions.assertEquals(HttpStatus.NOT_FOUND, resetConfigException.getStatus());
     }
@@ -219,7 +229,6 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
      */
     @Test
     void createAndDeleteSchema() throws MalformedURLException {
-        RxHttpClient schemaCli = RxHttpClient.create(new URL(schemaRegistryContainer.getUrl()));
         Schema schema = Schema.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-subject4-value")
@@ -243,8 +252,9 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         Assertions.assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
 
         HttpClientResponseException getException = Assertions.assertThrows(HttpClientResponseException.class,
-                () -> schemaCli.retrieve(HttpRequest.GET("/subjects/ns1-subject4-value/versions/latest"),
-                        SchemaResponse.class).blockingFirst());
+                () -> schemaClient.toBlocking()
+                        .retrieve(HttpRequest.GET("/subjects/ns1-subject4-value/versions/latest"),
+                                SchemaResponse.class));
 
         Assertions.assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
     }

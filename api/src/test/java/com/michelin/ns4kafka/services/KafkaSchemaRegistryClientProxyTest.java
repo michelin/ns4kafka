@@ -6,7 +6,7 @@ import com.michelin.ns4kafka.services.schema.KafkaSchemaRegistryClientProxy;
 import io.micronaut.http.*;
 import io.micronaut.http.client.ProxyHttpClient;
 import io.micronaut.http.simple.SimpleHttpRequest;
-import io.reactivex.subscribers.TestSubscriber;
+import io.reactivex.rxjava3.subscribers.TestSubscriber;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Publisher;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static io.micronaut.core.async.publisher.Publishers.just;
@@ -54,7 +55,7 @@ class KafkaSchemaRegistryClientProxyTest {
         Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertError(ResourceValidationException.class);
         subscriber.assertError(throwable -> ((ResourceValidationException) throwable).getValidationErrors().contains("Missing required header X-Proxy-Secret"));
@@ -73,7 +74,7 @@ class KafkaSchemaRegistryClientProxyTest {
         Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertError(ResourceValidationException.class);
         subscriber.assertError(throwable -> ((ResourceValidationException) throwable).getValidationErrors().contains("Invalid value 123 for header X-Proxy-Secret"));
@@ -92,7 +93,7 @@ class KafkaSchemaRegistryClientProxyTest {
         Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertError(ResourceValidationException.class);
         subscriber.assertError(throwable -> ((ResourceValidationException) throwable).getValidationErrors().contains("Missing required header X-Kafka-Cluster"));
@@ -114,7 +115,7 @@ class KafkaSchemaRegistryClientProxyTest {
         Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertError(throwable -> ((ResourceValidationException) throwable).getValidationErrors().contains("Kafka Cluster [local] not found"));
     }
@@ -135,7 +136,7 @@ class KafkaSchemaRegistryClientProxyTest {
         Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertError(throwable -> ((ResourceValidationException) throwable).getValidationErrors().contains("Kafka Cluster [local] has no schema registry"));
     }
@@ -164,7 +165,7 @@ class KafkaSchemaRegistryClientProxyTest {
         Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertValueCount(1);
         subscriber.assertValue(mutableHttpResponse -> mutableHttpResponse.status() == HttpStatus.OK);

@@ -32,7 +32,11 @@ public class AbstractIntegrationSchemaRegistryTest extends AbstractIntegrationTe
 
         if (schemaRegistryContainer == null || !schemaRegistryContainer.isRunning()) {
             schemaRegistryContainer = new SchemaRegistryContainer(DockerImageName.parse("confluentinc/cp-schema-registry:" + CONFLUENT_REGISTRY_VERSION),
-                    "kafka:9092").withNetwork(network);
+                    "kafka:9092")
+                    .withEnv("SCHEMA_REGISTRY_KAFKASTORE_SASL_MECHANISM", "PLAIN")
+                    .withEnv("SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL", "SASL_PLAINTEXT")
+                    .withEnv("SCHEMA_REGISTRY_KAFKASTORE_SASL_JAAS_CONFIG", "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin\";")
+                    .withNetwork(network);
 
             schemaRegistryContainer.start();
         }
