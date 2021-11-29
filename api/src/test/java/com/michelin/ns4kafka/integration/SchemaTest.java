@@ -1,8 +1,6 @@
 package com.michelin.ns4kafka.integration;
 
-import com.michelin.ns4kafka.controllers.ResourceValidationException;
 import com.michelin.ns4kafka.models.*;
-import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStateInfo;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
 import io.micronaut.context.annotation.Property;
@@ -10,16 +8,16 @@ import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import io.micronaut.rxjava3.http.client.Rx3HttpClient;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
@@ -33,7 +31,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
      */
     @Inject
     @Client("/")
-    RxHttpClient client;
+    Rx3HttpClient client;
 
     /**
      * Authentication token
@@ -101,7 +99,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
      */
     @Test
     void createAndGetSchema() throws MalformedURLException {
-        RxHttpClient schemaCli = RxHttpClient.create(new URL(schemaRegistryContainer.getUrl()));
+        Rx3HttpClient schemaCli = RxHttpClient.create(new URL(schemaRegistryContainer.getUrl()));
         Schema schema = Schema.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-subject-value")

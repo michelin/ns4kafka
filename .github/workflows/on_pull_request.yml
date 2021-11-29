@@ -13,7 +13,7 @@ jobs:
         fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
     - uses: DeLaGuardo/setup-graalvm@4.0
       with:
-        graalvm: '21.1.0'
+        graalvm: '21.3.0'
         java: 'java11'
     - name: Install Native Image
       run: gu install native-image
@@ -49,3 +49,33 @@ jobs:
       with:
         name: jar
         path: ${{ github.workspace }}/cli/build/libs/kafkactl-*.jar
+  build-windows:
+    runs-on: windows-latest
+    environment: Build
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - uses: DeLaGuardo/setup-graalvm@4.0
+        with:
+          graalvm: '21.3.0'
+          java: 'java11'
+      - name: Install Native Image
+        run: ${{ env.JAVA_HOME }}\bin\gu.cmd install native-image
+      - name: Cache Gradle packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+          restore-keys: ${{ runner.os }}-gradle
+      - name: Configure Pagefile
+        uses: al-cheb/configure-pagefile-action@v1.2
+      - name: Native Image for CLI
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
+          gradlew.bat :cli:shadowJar :cli:nativeImage
+        shell: cmd
+      - uses: actions/upload-artifact@v2
+        with:
+          name: native-image-windows
+          path: ${{ github.workspace }}/cli/build/native-image/kafkactl-*.exe

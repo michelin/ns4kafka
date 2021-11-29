@@ -9,8 +9,8 @@ import io.micronaut.context.event.ApplicationEventListener;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.scheduling.annotation.Async;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 @Requires(property = "ns4kafka.log.kafka.enabled", value = StringUtils.TRUE)

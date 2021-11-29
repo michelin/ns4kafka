@@ -11,7 +11,7 @@ import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.apache.kafka.common.TopicPartition;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
 import java.util.Date;
@@ -214,7 +214,7 @@ public class TopicController extends NamespacedResourceController {
         if (dryrun) {
             deletedRecords = recordsToDelete;
         } else {
-            sendEventLog("Topic", optionalTopic.get().getMetadata(), ApplyStatus.deleted, null, null);
+            sendEventLog("DeleteRecords", optionalTopic.get().getMetadata(), ApplyStatus.deleted, null, null);
             deletedRecords = topicService.deleteRecords(optionalTopic.get(), recordsToDelete);
         }
 

@@ -3,7 +3,7 @@ package com.michelin.ns4kafka.repositories.kafka;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 
 import com.michelin.ns4kafka.models.KafkaStream;
 import com.michelin.ns4kafka.repositories.StreamRepository;
