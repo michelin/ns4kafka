@@ -10,7 +10,7 @@ logger:
     io.micronaut.http.client.netty.DefaultHttpClient: OFF # TRACE to see http requests and responses
 
 kafkactl:
-  version: @version@
+  version: 0.1
   config-path: ${user.home}/.kafkactl
   table-format:
     Topic:
