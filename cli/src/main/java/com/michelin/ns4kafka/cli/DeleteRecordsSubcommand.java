@@ -9,7 +9,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.concurrent.Callable;
 
 @Command(name = "delete-records", description = "Deletes all records within a topic")
