@@ -14,7 +14,7 @@ ns4kafka:
   managed-clusters:
     test-cluster:
       manage-users: false
-      manage-acls: false
+      manage-acls: true
       manage-topics: true
       manage-connectors: true
       manage-role-bindings: false
