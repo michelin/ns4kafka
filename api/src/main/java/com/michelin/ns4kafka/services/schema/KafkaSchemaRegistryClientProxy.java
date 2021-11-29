@@ -1,7 +1,6 @@
 package com.michelin.ns4kafka.services.schema;
 
 import com.michelin.ns4kafka.controllers.ResourceValidationException;
-import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.core.util.StringUtils;
@@ -11,18 +10,18 @@ import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.annotation.Filter;
 import io.micronaut.http.client.ProxyHttpClient;
-import io.micronaut.http.filter.OncePerRequestHttpServerFilter;
+import io.micronaut.http.filter.HttpServerFilter;
 import io.micronaut.http.filter.ServerFilterChain;
+import jakarta.inject.Inject;
 import org.reactivestreams.Publisher;
 
-import jakarta.inject.Inject;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Filter(KafkaSchemaRegistryClientProxy.SCHEMA_REGISTRY_PREFIX + "/**")
-public class KafkaSchemaRegistryClientProxy extends OncePerRequestHttpServerFilter {
+public class KafkaSchemaRegistryClientProxy implements HttpServerFilter {
     /**
      * Schema registry prefix used to filter request to schema registries. It'll be replace by
      * the schema registry URL of the
@@ -64,20 +63,20 @@ public class KafkaSchemaRegistryClientProxy extends OncePerRequestHttpServerFilt
      * @return A modified request
      */
     @Override
-    public Publisher<MutableHttpResponse<?>> doFilterOnce(HttpRequest<?> request, ServerFilterChain chain) {
+    public Publisher<MutableHttpResponse<?>> doFilter(HttpRequest<?> request, ServerFilterChain chain) {
         // Check call is initiated from Micronaut and not from outside
         if (!request.getHeaders().contains(KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET)) {
-            return Publishers.just(new ResourceValidationException(List.of("Missing required header " + KafkaConnectClientProxy.PROXY_HEADER_SECRET), null, null));
+            return Publishers.just(new ResourceValidationException(List.of("Missing required header " + KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET), null, null));
         }
 
         String secret = request.getHeaders().get(KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET);
         if (!PROXY_SECRET.equals(secret)) {
-            return Publishers.just(new ResourceValidationException(List.of("Invalid value " + secret + " for header " + KafkaConnectClientProxy.PROXY_HEADER_SECRET), null, null));
+            return Publishers.just(new ResourceValidationException(List.of("Invalid value " + secret + " for header " + KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET), null, null));
         }
 
         // Retrieve the connectConfig based on Header
         if (!request.getHeaders().contains(KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER)) {
-            return Publishers.just(new ResourceValidationException(List.of("Missing required header " + KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER), null, null));
+            return Publishers.just(new ResourceValidationException(List.of("Missing required header " + KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER), null, null));
         }
 
         String kafkaCluster = request.getHeaders().get(KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER);

@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.integration;
 
-import com.michelin.ns4kafka.testcontainers.KafkaConnectContainer;
 import com.michelin.ns4kafka.testcontainers.SchemaRegistryContainer;
 import io.micronaut.core.annotation.NonNull;
 import org.junit.jupiter.api.TestInstance;

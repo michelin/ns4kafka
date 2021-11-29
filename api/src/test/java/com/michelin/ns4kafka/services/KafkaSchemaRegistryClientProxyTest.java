@@ -1,7 +1,6 @@
 package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.controllers.ResourceValidationException;
-import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.schema.KafkaSchemaRegistryClientProxy;
 import io.micronaut.http.*;
@@ -52,7 +51,7 @@ class KafkaSchemaRegistryClientProxyTest {
                 .GET("http://localhost/schema-registry-proxy/noHeader");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
@@ -71,7 +70,7 @@ class KafkaSchemaRegistryClientProxyTest {
                 .header(KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET, "123");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
@@ -90,7 +89,7 @@ class KafkaSchemaRegistryClientProxyTest {
                 .header(KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET, KafkaSchemaRegistryClientProxy.PROXY_SECRET);
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
@@ -107,12 +106,12 @@ class KafkaSchemaRegistryClientProxyTest {
         MutableHttpRequest<?> request = HttpRequest
                 .GET("http://localhost/schema-registry-proxy/noKafkaClusterInConfig")
                 .header(KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET, KafkaSchemaRegistryClientProxy.PROXY_SECRET)
-                .header(KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local");
+                .header(KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local");
 
         when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.empty());
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
@@ -128,12 +127,12 @@ class KafkaSchemaRegistryClientProxyTest {
         MutableHttpRequest<?> request = HttpRequest
                 .GET("http://localhost/schema-registry-proxy/noSchemaRegistryInConfig")
                 .header(KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET, KafkaSchemaRegistryClientProxy.PROXY_SECRET)
-                .header(KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local");
+                .header(KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local");
 
         when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local")));
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
@@ -148,7 +147,7 @@ class KafkaSchemaRegistryClientProxyTest {
     void doFilterSuccess() {
         MutableHttpRequest<?> request = new MutableSimpleHttpRequest<>("http://localhost/schema-registry-proxy/success")
                 .header(KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET, KafkaSchemaRegistryClientProxy.PROXY_SECRET)
-                .header(KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local");
+                .header(KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local");
 
         KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig = new KafkaAsyncExecutorConfig("local");
         KafkaAsyncExecutorConfig.RegistryConfig registryConfig = new KafkaAsyncExecutorConfig.RegistryConfig();
@@ -162,7 +161,7 @@ class KafkaSchemaRegistryClientProxyTest {
                 .thenReturn(just(HttpResponse.ok()));
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
