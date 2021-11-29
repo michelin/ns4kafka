@@ -20,26 +20,21 @@ micronaut {
 }
 
 dependencies {
-    compileOnly 'org.projectlombok:lombok:1.18.16'
-    compileOnly "org.graalvm.nativeimage:svm"
-
+    annotationProcessor("info.picocli:picocli-codegen")
     annotationProcessor 'org.projectlombok:lombok:1.18.16'
-    annotationProcessor("info.picocli:picocli-codegen:4.6.1")
-    annotationProcessor "io.micronaut:micronaut-graal"
-
-    implementation("info.picocli:picocli:4.6.1")
-    implementation("io.micronaut.picocli:micronaut-picocli")
-    implementation("io.micronaut:micronaut-validation")
+    compileOnly 'org.projectlombok:lombok:1.18.16'
+    implementation("info.picocli:picocli")
     implementation("io.micronaut:micronaut-runtime")
+    implementation("io.micronaut.picocli:micronaut-picocli")
     implementation("javax.annotation:javax.annotation-api")
-    implementation("io.micronaut:micronaut-http-client")
+    runtimeOnly("ch.qos.logback:logback-classic")
+    implementation("io.micronaut:micronaut-validation")
 
-    //External libs
+    implementation("io.micronaut:micronaut-http-client")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml")
     implementation("org.ocpsoft.prettytime:prettytime:5.0.1.Final")
     implementation("io.github.java-diff-utils:java-diff-utils:4.9")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml")
 
-    runtimeOnly("ch.qos.logback:logback-classic")
     testImplementation("io.micronaut:micronaut-http-client")
 }
 
