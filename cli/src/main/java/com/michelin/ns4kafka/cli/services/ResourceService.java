@@ -19,14 +19,14 @@ import java.util.stream.Collectors;
 public class ResourceService {
 
     @Inject
-    NamespacedResourceClient namespacedClient;
+    public NamespacedResourceClient namespacedClient;
     @Inject
-    ClusterResourceClient nonNamespacedClient;
+    public ClusterResourceClient nonNamespacedClient;
 
     @Inject
-    LoginService loginService;
+    public LoginService loginService;
     @Inject
-    FormatService formatService;
+    public FormatService formatService;
 
 
     public Map<ApiResource, List<Resource>> listAll(List<ApiResource> apiResources, String namespace) {
