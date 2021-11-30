@@ -226,11 +226,14 @@ public class AccessControlEntryAsyncExecutor {
         );
     }
     private List<AclBinding> buildAclBindingsFromConnector(AccessControlEntry acl, String kafkaUser) {
+        // READ on Consumer Group connect-{prefix}
         PatternType patternType = PatternType.fromString(acl.getSpec().getResourcePatternType().toString());
+        ResourcePattern resourcePattern = new ResourcePattern(ResourceType.GROUP,
+                "connect-" + acl.getSpec().getResource(),
+                patternType);
         return List.of(
-                // READ on Consumer Group connect-{prefix}
                 new AclBinding(
-                        new ResourcePattern(ResourceType.GROUP, "connect-" + acl.getMetadata().getName(), patternType),
+                        resourcePattern,
                         new org.apache.kafka.common.acl.AccessControlEntry("User:" + kafkaUser, "*", AclOperation.READ, AclPermissionType.ALLOW)
                 )
         );
