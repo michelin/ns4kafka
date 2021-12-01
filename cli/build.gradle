@@ -47,9 +47,6 @@ shadowJar {
     archiveFileName = "kafkactl-${version}.jar"
 }
 
-nativeImage {
-    imageName('kafkactl-'+rootProject.version)
-}
 dockerBuild {
     images = ["twobeeb/kafkactl:"+version]
 }
