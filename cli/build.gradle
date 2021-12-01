@@ -46,6 +46,14 @@ java {
 shadowJar {
     archiveFileName = "kafkactl-${version}.jar"
 }
+graalvmNative {
+    binaries {
+        main {
+            imageName = 'kafkactl'
+            agent = true
+        }
+    }
+}
 
 dockerBuild {
     images = ["twobeeb/kafkactl:"+version]
