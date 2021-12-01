@@ -2,24 +2,20 @@ package com.michelin.ns4kafka.cli.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.util.StdDateFormat;
 import com.michelin.ns4kafka.cli.KafkactlConfig;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.Status;
 import io.micronaut.core.naming.conventions.StringConvention;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import org.ocpsoft.prettytime.PrettyTime;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 import picocli.CommandLine;
 
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
-import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -152,15 +148,15 @@ public class FormatService {
                 String output = null;
                 JsonNode cell = node.at(this.jsonPointer);
                 switch (this.transform) {
-                    case "AGO":
-                        try {
-                            StdDateFormat sdf = new StdDateFormat();
-                            Date d = sdf.parse(cell.asText());
-                            output = new PrettyTime().format(d);
-                        } catch ( ParseException e) {
-                            output = cell.asText();
-                        }
-                        break;
+//                    case "AGO":
+//                        try {
+//                            StdDateFormat sdf = new StdDateFormat();
+//                            Date d = sdf.parse(cell.asText());
+//                            output = new PrettyTime().format(d);
+//                        } catch ( ParseException e) {
+//                            output = cell.asText();
+//                        }
+//                        break;
                     case "PERIOD":
                         try {
                             long ms = Long.parseLong(cell.asText());

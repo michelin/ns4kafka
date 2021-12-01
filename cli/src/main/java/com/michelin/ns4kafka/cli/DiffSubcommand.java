@@ -1,11 +1,5 @@
 package com.michelin.ns4kafka.cli;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.github.difflib.DiffUtils;
-import com.github.difflib.UnifiedDiffUtils;
-import com.github.difflib.patch.Patch;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
@@ -14,6 +8,10 @@ import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
 import io.micronaut.http.HttpResponse;
 import jakarta.inject.Inject;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.nodes.Tag;
+import org.yaml.snakeyaml.representer.Representer;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -142,12 +140,14 @@ public class DiffSubcommand implements Callable<Integer> {
             newResourceStr=List.of();
         }
 
-
-        Patch<String> diff = DiffUtils.diff(oldResourceStr, newResourceStr);
-        return UnifiedDiffUtils.generateUnifiedDiff(
-                String.format("%s/%s-LIVE", merged.getKind(), merged.getMetadata().getName()),
-                String.format("%s/%s-MERGED", merged.getKind(), merged.getMetadata().getName()),
-                oldResourceStr, diff, 3);
+        List<String> oldResourceStr = live != null ? yaml.dump(live).lines().collect(Collectors.toList()) : List.of();
+        List<String> newResourceStr = yaml.dump(merged).lines().collect(Collectors.toList());
+//        Patch<String> diff = DiffUtils.diff(oldResourceStr, newResourceStr);
+//        return UnifiedDiffUtils.generateUnifiedDiff(
+//                String.format("%s/%s-LIVE", merged.getKind(), merged.getMetadata().getName()),
+//                String.format("%s/%s-MERGED", merged.getKind(), merged.getMetadata().getName()),
+//                oldResourceStr, diff, 3);
+        return List.of();
 
     }
 }
