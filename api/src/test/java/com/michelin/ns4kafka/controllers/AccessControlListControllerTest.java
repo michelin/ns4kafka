@@ -377,7 +377,7 @@ public class AccessControlListControllerTest {
     }
 
     @Test
-    void applySuccess_ChangedResource() {
+    void applyFailed_ChangedSpec() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder().name("test").cluster("local").build())
                 .build();
@@ -411,9 +411,52 @@ public class AccessControlListControllerTest {
                 .thenReturn(List.of());
         Mockito.when(accessControlEntryService.findByName("test","ace1"))
                 .thenReturn(Optional.of(ace1Old));
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+                () -> accessControlListController.apply(auth,"test", ace1, false));
+        Assertions.assertEquals(1, actual.getValidationErrors().size());
+        Assertions.assertEquals("Invalid modification: `spec` is immutable. You can still update `metadata`", actual.getValidationErrors().get(0));
+
+    }
+
+    @Test
+    void applySuccess_ChangedMetadata() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder().name("test").cluster("local").build())
+                .build();
+        AccessControlEntry ace1 = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ace1")
+                        .labels(Map.of("new-label", "label-value")) // This label is new
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build()
+                )
+                .build();
+        AccessControlEntry ace1Old = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder().name("ace1").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build()
+                )
+                .build();
+        Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
+
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(accessControlEntryService.validate(ace1, ns))
+                .thenReturn(List.of());
+        Mockito.when(accessControlEntryService.findByName("test","ace1"))
+                .thenReturn(Optional.of(ace1Old));
         Mockito.when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
@@ -422,6 +465,8 @@ public class AccessControlListControllerTest {
         Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
         Assertions.assertEquals("test", actual.getMetadata().getNamespace());
         Assertions.assertEquals("local", actual.getMetadata().getCluster());
+        Assertions.assertFalse(actual.getMetadata().getLabels().isEmpty());
+
     }
 
     @Test

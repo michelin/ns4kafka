@@ -96,12 +96,18 @@ public class AccessControlListController extends NamespacedResourceController {
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors, accessControlEntry.getKind(), accessControlEntry.getMetadata().getName());
         }
+        // AccessControlEntry spec is immutable
+        // This prevents accidental updates on ACL resources already declared with the same name (with differents rules)
+        Optional<AccessControlEntry> existingACL = accessControlEntryService.findByName(namespace, accessControlEntry.getMetadata().getName());
+        if(existingACL.isPresent() && !existingACL.get().getSpec().equals(accessControlEntry.getSpec())){
+            throw new ResourceValidationException(List.of("Invalid modification: `spec` is immutable. You can still update `metadata`"), accessControlEntry.getKind(), accessControlEntry.getMetadata().getName());
+        }
+
         //augment
         accessControlEntry.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
         accessControlEntry.getMetadata().setCluster(ns.getMetadata().getCluster());
         accessControlEntry.getMetadata().setNamespace(ns.getMetadata().getName());
 
-        Optional<AccessControlEntry> existingACL = accessControlEntryService.findByName(namespace, accessControlEntry.getMetadata().getName());
         if(existingACL.isPresent() && existingACL.get().equals(accessControlEntry)){
             return formatHttpResponse(existingACL.get(), ApplyStatus.unchanged);
         }
@@ -109,7 +115,7 @@ public class AccessControlListController extends NamespacedResourceController {
 
         //dryrun checks
         if (dryrun) {
-            return formatHttpResponse(accessControlEntry, status);
+            return formatHttpResponse(accessControlEntry, ApplyStatus.created);
         }
         sendEventLog(accessControlEntry.getKind(),
                 accessControlEntry.getMetadata(),
