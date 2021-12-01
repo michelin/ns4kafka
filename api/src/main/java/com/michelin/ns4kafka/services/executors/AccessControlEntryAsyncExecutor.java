@@ -6,10 +6,9 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
 import com.michelin.ns4kafka.services.AccessControlEntryService;
+import com.michelin.ns4kafka.services.KafkaConnectService;
 import com.michelin.ns4kafka.services.StreamService;
-
 import io.micronaut.context.annotation.EachBean;
-
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.acl.AclBinding;
@@ -26,6 +25,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -42,6 +42,8 @@ public class AccessControlEntryAsyncExecutor {
     AccessControlEntryService accessControlEntryService;
     @Inject
     StreamService streamService;
+    @Inject
+    KafkaConnectService kafkaConnectService;
 
     public AccessControlEntryAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
         this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
@@ -103,21 +105,35 @@ public class AccessControlEntryAsyncExecutor {
         //   at some point we want to manage multiple users within a namespace, each having their own ACLs.
 
         List<Namespace> namespaces = namespaceRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName());
-        List<AclBinding> ns4kafkaACLs = Stream.concat(
-            namespaces.stream()
+
+        // Converts Topic and Group ns4kafka ACL to Topic and Group Kafka AclBindings
+        Stream<AclBinding> aclBindingFromACLs = namespaces.stream()
                 .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace)
                         .stream()
                         .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC ||
                                 accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.GROUP)
                         //1-N ACE to List<AclBinding>
                         .flatMap(accessControlEntry ->
-                                buildAclBindingsFromAccessControlEntry(accessControlEntry, namespace.getSpec().getKafkaUser()).stream()))
-            , namespaces.stream()
+                                buildAclBindingsFromAccessControlEntry(accessControlEntry, namespace.getSpec().getKafkaUser()).stream()));
+        // Converts KafkaStream Resources to Topic (CREATE/DELETE) AclBindings
+        Stream<AclBinding> aclBindingFromKStream = namespaces.stream()
                 .flatMap(namespace -> streamService.findAllForNamespace(namespace)
                         .stream()
                         .flatMap(kafkaStream ->
-                                buildAclBindingsFromKafkaStream(kafkaStream, namespace.getSpec().getKafkaUser()).stream()))
-            ).collect(Collectors.toList());
+                                buildAclBindingsFromKafkaStream(kafkaStream, namespace.getSpec().getKafkaUser()).stream()));
+        // Converts Connect ACL  to Group AclBindings (connect-)
+        Stream<AclBinding> aclBindingFromConnect = namespaces.stream()
+                .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace)
+                        .stream()
+                        .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT)
+                        .filter(accessControlEntry -> accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
+                        //1-N ACE to List<AclBinding>
+                        .flatMap(accessControlEntry ->
+                                buildAclBindingsFromConnector(accessControlEntry, namespace.getSpec().getKafkaUser()).stream()));
+
+        List<AclBinding> ns4kafkaACLs = Stream.of(aclBindingFromACLs, aclBindingFromKStream, aclBindingFromConnect)
+                .flatMap(Function.identity())
+                .collect(Collectors.toList());
 
         if (log.isDebugEnabled()) {
             log.debug("ACLs found on ns4kafka : " + ns4kafkaACLs.size());
@@ -206,6 +222,19 @@ public class AccessControlEntryAsyncExecutor {
                 new AclBinding(
                         new ResourcePattern(ResourceType.TOPIC, stream.getMetadata().getName(), PatternType.PREFIXED),
                         new org.apache.kafka.common.acl.AccessControlEntry("User:" + kafkaUser, "*", AclOperation.DELETE, AclPermissionType.ALLOW)
+                )
+        );
+    }
+    private List<AclBinding> buildAclBindingsFromConnector(AccessControlEntry acl, String kafkaUser) {
+        // READ on Consumer Group connect-{prefix}
+        PatternType patternType = PatternType.fromString(acl.getSpec().getResourcePatternType().toString());
+        ResourcePattern resourcePattern = new ResourcePattern(ResourceType.GROUP,
+                "connect-" + acl.getSpec().getResource(),
+                patternType);
+        return List.of(
+                new AclBinding(
+                        resourcePattern,
+                        new org.apache.kafka.common.acl.AccessControlEntry("User:" + kafkaUser, "*", AclOperation.READ, AclPermissionType.ALLOW)
                 )
         );
     }
