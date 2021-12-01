@@ -50,7 +50,6 @@ graalvmNative {
     binaries {
         main {
             imageName = 'kafkactl'
-            agent = true
         }
     }
 }
