@@ -4,7 +4,7 @@ import com.michelin.ns4kafka.cli.models.Resource;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
-import jakarta.inject.Singleton;
+import javax.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;

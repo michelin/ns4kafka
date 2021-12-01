@@ -7,7 +7,7 @@ import io.micronaut.context.annotation.Value;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-import jakarta.inject.Singleton;
+import javax.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;

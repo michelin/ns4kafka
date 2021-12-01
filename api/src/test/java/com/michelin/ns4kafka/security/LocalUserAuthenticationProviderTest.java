@@ -2,10 +2,10 @@ package com.michelin.ns4kafka.security;
 
 import com.michelin.ns4kafka.security.local.LocalUser;
 import com.michelin.ns4kafka.security.local.LocalUserAuthenticationProvider;
-import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.authentication.AuthenticationResponse;
+import io.micronaut.security.authentication.UserDetails;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
-import io.reactivex.rxjava3.subscribers.TestSubscriber;
+import io.reactivex.subscribers.TestSubscriber;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,7 +17,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Publisher;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @ExtendWith(MockitoExtension.class)
 public class LocalUserAuthenticationProviderTest {
@@ -39,7 +38,7 @@ public class LocalUserAuthenticationProviderTest {
         Publisher<AuthenticationResponse> authenticationResponsePublisher = localUserAuthenticationProvider.authenticate(null, credentials);
 
         authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
+        subscriber.awaitTerminalEvent();
 
         //then
 
@@ -61,7 +60,7 @@ public class LocalUserAuthenticationProviderTest {
         Publisher<AuthenticationResponse> authenticationResponsePublisher = localUserAuthenticationProvider.authenticate(null, credentials);
 
         authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
+        subscriber.awaitTerminalEvent();
 
         //then
 
@@ -86,7 +85,7 @@ public class LocalUserAuthenticationProviderTest {
         Publisher<AuthenticationResponse> authenticationResponsePublisher = localUserAuthenticationProvider.authenticate(null, credentials);
 
         authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
+        subscriber.awaitTerminalEvent();
 
         //then
 
@@ -96,9 +95,9 @@ public class LocalUserAuthenticationProviderTest {
 
         AuthenticationResponse actual = subscriber.values().get(0);
         Assertions.assertTrue(actual.isAuthenticated());
-        Assertions.assertTrue(actual.getAuthentication().isPresent());
+        Assertions.assertTrue(actual.getUserDetails().isPresent());
 
-        Authentication actualUserDetails = actual.getAuthentication().get();
-        Assertions.assertEquals("admin", actualUserDetails.getName());
+        UserDetails actualUserDetails = actual.getUserDetails().get();
+        Assertions.assertEquals("admin", actualUserDetails.getUsername());
     }
 }

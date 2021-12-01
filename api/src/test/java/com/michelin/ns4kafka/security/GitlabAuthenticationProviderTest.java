@@ -5,9 +5,9 @@ import com.michelin.ns4kafka.security.gitlab.GitlabAuthenticationService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.*;
-import io.reactivex.rxjava3.core.Flowable;
-import io.reactivex.rxjava3.core.Maybe;
-import io.reactivex.rxjava3.subscribers.TestSubscriber;
+import io.reactivex.Flowable;
+import io.reactivex.Maybe;
+import io.reactivex.subscribers.TestSubscriber;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,7 +17,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Publisher;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.when;
 
@@ -46,7 +45,7 @@ public class GitlabAuthenticationProviderTest {
         Publisher<AuthenticationResponse> authenticationResponsePublisher = gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
 
         authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
+        subscriber.awaitTerminalEvent();
 
         //then
 
@@ -56,11 +55,11 @@ public class GitlabAuthenticationProviderTest {
 
         AuthenticationResponse actual = subscriber.values().get(0);
         Assertions.assertTrue(actual.isAuthenticated());
-        Assertions.assertTrue(actual.getAuthentication().isPresent());
+        Assertions.assertTrue(actual.getUserDetails().isPresent());
 
-        Authentication actualUserDetails = actual.getAuthentication().get();
-        Assertions.assertEquals("email", actualUserDetails.getName());
-        Assertions.assertIterableEquals(groups, (List<String>)actualUserDetails.getAttributes().get( "groups"));
+        UserDetails actualUserDetails = actual.getUserDetails().get();
+        Assertions.assertEquals("email", actualUserDetails.getUsername());
+        Assertions.assertIterableEquals(groups, (List<String>)actualUserDetails.getAttributes("roles","username").get( "groups"));
         Assertions.assertIterableEquals(List.of(), actualUserDetails.getRoles(),"User has no custom roles");
 
     }
@@ -81,7 +80,7 @@ public class GitlabAuthenticationProviderTest {
         Publisher<AuthenticationResponse> authenticationResponsePublisher = gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
 
         authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
+        subscriber.awaitTerminalEvent();
 
         //then
 
@@ -91,11 +90,11 @@ public class GitlabAuthenticationProviderTest {
 
         AuthenticationResponse actual = subscriber.values().get(0);
         Assertions.assertTrue(actual.isAuthenticated());
-        Assertions.assertTrue(actual.getAuthentication().isPresent());
+        Assertions.assertTrue(actual.getUserDetails().isPresent());
 
-        Authentication actualUserDetails = actual.getAuthentication().get();
-        Assertions.assertEquals("email", actualUserDetails.getName());
-        Assertions.assertIterableEquals(groups, (List<String>)actualUserDetails.getAttributes().get("groups"));
+        UserDetails actualUserDetails = actual.getUserDetails().get();
+        Assertions.assertEquals("email", actualUserDetails.getUsername());
+        Assertions.assertIterableEquals(groups, (List<String>)actualUserDetails.getAttributes("roles","username").get("groups"));
         Assertions.assertIterableEquals(List.of(ResourceBasedSecurityRule.IS_ADMIN), actualUserDetails.getRoles(),"User has custom roles");
 
     }
@@ -112,7 +111,7 @@ public class GitlabAuthenticationProviderTest {
         Publisher<AuthenticationResponse> authenticationResponsePublisher = gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
 
         authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
+        subscriber.awaitTerminalEvent();
 
         //then
         subscriber.assertError(AuthenticationException.class);

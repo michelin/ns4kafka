@@ -8,7 +8,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import jakarta.inject.Inject;
+import javax.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
 import java.util.Date;

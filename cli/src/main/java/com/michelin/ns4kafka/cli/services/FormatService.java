@@ -15,8 +15,8 @@ import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 import picocli.CommandLine;
 
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;

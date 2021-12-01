@@ -4,10 +4,12 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Header;
 import io.micronaut.http.client.annotation.Client;
-import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.Flowable;
 
 import java.util.List;
 import java.util.Map;
+
+import static io.micronaut.http.HttpRequest.GET;
 
 @Client("${micronaut.security.gitlab.url}")
 public interface GitlabApiClient {

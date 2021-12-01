@@ -11,7 +11,7 @@ import io.micronaut.http.annotation.QueryValue;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.apache.kafka.common.TopicPartition;
 
-import jakarta.inject.Inject;
+import javax.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
 import java.util.Date;
