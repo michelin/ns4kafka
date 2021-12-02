@@ -133,6 +133,83 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
     }
 
     /**
+     * Schema creation with references
+     */
+    @Test
+    void createAndGetSchemaWithReferences() {
+        Schema schemaHeader = Schema.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-header-subject-value")
+                        .build())
+                .spec(Schema.SchemaSpec.builder()
+                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"HeaderAvro\",\"fields\":[{\"name\":\"id\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"ID of the header\"}]}")
+                        .build())
+                .build();
+
+        Schema schemaPersonWithoutRefs = Schema.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-person-subject-value")
+                        .build())
+                .spec(Schema.SchemaSpec.builder()
+                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"header\",\"type\":[\"null\",\"com.michelin.kafka.producer.showcase.avro.HeaderAvro\"],\"default\":null,\"doc\":\"Header of the persone\"},{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the person\"}]}")
+                        .build())
+                .build();
+
+        Schema schemaPersonWithRefs = Schema.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-person-subject-value")
+                        .build())
+                .spec(Schema.SchemaSpec.builder()
+                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"header\",\"type\":[\"null\",\"com.michelin.kafka.producer.showcase.avro.HeaderAvro\"],\"default\":null,\"doc\":\"Header of the persone\"},{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the person\"}]}")
+                        .references(List.of(Schema.SchemaSpec.Reference.builder()
+                                .name("com.michelin.kafka.producer.showcase.avro.HeaderAvro")
+                                .subject("ns1-header-subject-value")
+                                .version(1)
+                                .build()))
+                        .build())
+                .build();
+
+        // Header created
+        var headerCreateResponse = client
+                .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas")
+                        .bearerAuth(token)
+                        .body(schemaHeader), Schema.class).blockingFirst();
+
+        Assertions.assertEquals("created", headerCreateResponse.header("X-Ns4kafka-Result"));
+
+        SchemaResponse actualHeader = schemaClient.toBlocking().retrieve(HttpRequest.GET("/subjects/ns1-header-subject-value/versions/latest"),
+                SchemaResponse.class);
+
+        Assertions.assertNotNull(actualHeader.id());
+        Assertions.assertEquals(1, actualHeader.version());
+        Assertions.assertEquals("ns1-header-subject-value", actualHeader.subject());
+
+        // Person without refs not created
+        HttpClientResponseException createException = Assertions.assertThrows(HttpClientResponseException.class,
+                () -> client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas")
+                        .bearerAuth(token)
+                        .body(schemaPersonWithoutRefs)).blockingFirst());
+
+        Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, createException.getStatus());
+        Assertions.assertEquals("Invalid Schema ns1-person-subject-value", createException.getMessage());
+
+        // Person with refs created
+        var personCreateResponse = client
+                .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas")
+                        .bearerAuth(token)
+                        .body(schemaPersonWithRefs), Schema.class).blockingFirst();
+
+        Assertions.assertEquals("created", personCreateResponse.header("X-Ns4kafka-Result"));
+
+        SchemaResponse actualPerson = schemaClient.toBlocking().retrieve(HttpRequest.GET("/subjects/ns1-person-subject-value/versions/latest"),
+                SchemaResponse.class);
+
+        Assertions.assertNotNull(actualPerson.id());
+        Assertions.assertEquals(1, actualPerson.version());
+        Assertions.assertEquals("ns1-person-subject-value", actualPerson.subject());
+    }
+
+    /**
      * Schema creation with prefix that does not respect ACLs
      */
     @Test

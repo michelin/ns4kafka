@@ -111,7 +111,9 @@ public class SchemaService {
         SchemaResponse response = this.kafkaSchemaRegistryClient.
                 register(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
                         schema.getMetadata().getName(), SchemaRequest.builder()
-                                .schema(schema.getSpec().getSchema()).build());
+                                .schema(schema.getSpec().getSchema())
+                                .references(schema.getSpec().getReferences())
+                                .build());
 
         return response.id();
     }
@@ -143,7 +145,9 @@ public class SchemaService {
         try {
             Optional<SchemaCompatibilityCheckResponse> response = this.kafkaSchemaRegistryClient.validateSchemaCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
                     cluster, schema.getMetadata().getName(), SchemaRequest.builder()
-                            .schema(schema.getSpec().getSchema()).build());
+                            .schema(schema.getSpec().getSchema())
+                            .references(schema.getSpec().getReferences())
+                            .build());
 
             if(response.isPresent() && !response.get().isCompatible()){
                 return response.get().messages();

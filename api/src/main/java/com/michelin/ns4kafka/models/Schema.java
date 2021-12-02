@@ -5,6 +5,7 @@ import lombok.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
+import java.util.List;
 
 @Introspected
 @Builder
@@ -60,6 +61,9 @@ public class Schema {
          */
         private String schema;
 
+        /**
+         * Schema type
+         */
         @Builder.Default
         private String schemaType = "AVRO";
 
@@ -68,6 +72,22 @@ public class Schema {
          */
         @Builder.Default
         private Compatibility compatibility = Compatibility.DEFAULT;
+
+        /**
+         * References list
+         */
+        private List<Reference> references;
+
+        @Builder
+        @AllArgsConstructor
+        @NoArgsConstructor
+        @Getter
+        @Setter
+        public static class Reference {
+            private String name;
+            private String subject;
+            private Integer version;
+        }
     }
 
     /**

@@ -178,6 +178,12 @@ public class SchemaController extends NamespacedResourceController {
         SchemaCompatibilityState state = this
                 .schemaService.updateSubjectCompatibility(ns, existingSchemaOptional.get(), compatibility);
 
+        sendEventLog("SchemaCompatibilityState",
+                existingSchemaOptional.get().getMetadata(),
+                ApplyStatus.changed,
+                existingSchemaOptional.get().getSpec().getCompatibility(),
+                compatibility);
+
         return HttpResponse.ok(state);
     }
 }
