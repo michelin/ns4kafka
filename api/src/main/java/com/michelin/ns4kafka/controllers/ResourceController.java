@@ -7,7 +7,7 @@ import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.security.utils.SecurityService;
 
-import jakarta.inject.Inject;
+import javax.inject.Inject;
 import java.time.Instant;
 import java.util.Date;
 

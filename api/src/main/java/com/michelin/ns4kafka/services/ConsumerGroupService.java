@@ -9,8 +9,8 @@ import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import org.apache.kafka.common.TopicPartition;
 
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;

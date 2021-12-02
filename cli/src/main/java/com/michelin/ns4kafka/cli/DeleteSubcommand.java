@@ -13,7 +13,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import jakarta.inject.Inject;
+import javax.inject.Inject;
 import java.io.File;
 import java.util.List;
 import java.util.Optional;

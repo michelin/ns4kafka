@@ -10,6 +10,7 @@ import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.authentication.Authentication;
+import io.micronaut.security.authentication.DefaultAuthentication;
 import io.micronaut.security.utils.SecurityService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -238,7 +239,7 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Authentication auth = Authentication.build("admin", Map.of("roles",List.of("isAdmin()")));
+        Authentication auth = new DefaultAuthentication("admin", Map.of("roles",List.of("isAdmin()")));
 
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
@@ -265,7 +266,7 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Authentication auth = Authentication.build("admin", Map.of("roles",List.of("isAdmin()")));
+        Authentication auth = new DefaultAuthentication("admin", Map.of("roles",List.of("isAdmin()")));
 
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
@@ -297,7 +298,7 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
 
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
@@ -325,7 +326,7 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
 
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
@@ -359,7 +360,7 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
 
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
@@ -403,7 +404,7 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
 
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
@@ -485,7 +486,7 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Authentication auth = Authentication.build("admin", Map.of("roles",List.of("isAdmin()")));
+        Authentication auth = new DefaultAuthentication("admin", Map.of("roles",List.of("isAdmin()")));
 
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
@@ -514,7 +515,7 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
 
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
@@ -540,7 +541,7 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
 
         Mockito.when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.empty());
@@ -562,7 +563,7 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
 
         Mockito.when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.of(ace1));
@@ -586,7 +587,7 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Authentication auth = Authentication.build("user", Map.of("roles",List.of("isAdmin()")));
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of("isAdmin()")));
 
         Mockito.when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.of(ace1));
@@ -609,7 +610,7 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
 
         Mockito.when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.of(ace1));
@@ -635,7 +636,7 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
 
         Mockito.when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.of(ace1));

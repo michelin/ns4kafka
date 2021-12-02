@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
       - uses: DeLaGuardo/setup-graalvm@4.0
         with:
-          graalvm: '21.3.0'
+          graalvm: '21.1.0'
           java: 'java11'
       - name: Install Native Image
         run: gu install native-image
@@ -62,7 +62,7 @@ jobs:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
       - uses: DeLaGuardo/setup-graalvm@4.0
         with:
-          graalvm: '21.3.0'
+          graalvm: '20.3.2'
           java: 'java11'
       - name: Install Native Image
         run: ${{ env.JAVA_HOME }}\bin\gu.cmd install native-image

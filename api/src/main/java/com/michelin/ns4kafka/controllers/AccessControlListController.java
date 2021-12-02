@@ -12,7 +12,7 @@ import io.micronaut.security.authentication.Authentication;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import jakarta.inject.Inject;
+import javax.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
 import java.util.Comparator;

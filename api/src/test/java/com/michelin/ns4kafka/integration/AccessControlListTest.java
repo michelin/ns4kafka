@@ -1,12 +1,12 @@
 package com.michelin.ns4kafka.integration;
 
 import com.michelin.ns4kafka.integration.TopicTest.BearerAccessRefreshToken;
-import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
+import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.RoleBinding.*;
 import com.michelin.ns4kafka.services.executors.AccessControlEntryAsyncExecutor;
@@ -15,11 +15,10 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
-import io.micronaut.rxjava3.http.client.Rx3HttpClient;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
-import jakarta.inject.Inject;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.acl.*;
 import org.apache.kafka.common.resource.PatternType;
@@ -29,6 +28,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import javax.inject.Inject;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -39,7 +39,7 @@ public class AccessControlListTest extends AbstractIntegrationTest {
 
     @Inject
     @Client("/")
-    Rx3HttpClient client;
+    RxHttpClient client;
 
     @Inject
     List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutorList;

@@ -2,16 +2,16 @@ package com.michelin.ns4kafka.security.local;
 
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.security.SecurityConfig;
-import io.micronaut.core.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.*;
-import io.reactivex.rxjava3.core.BackpressureStrategy;
-import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.BackpressureStrategy;
+import io.reactivex.Flowable;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.Map;
 import java.util.Optional;
 
@@ -35,7 +35,7 @@ public class LocalUserAuthenticationProvider implements AuthenticationProvider {
                     .filter(localUser -> localUser.isValidPassword(password))
                     .findFirst();
             if (authenticatedUser.isPresent()) {
-                AuthenticationResponse user = AuthenticationResponse.success(username,
+                UserDetails user = new UserDetails(username,
                         resourceBasedSecurityRule.computeRolesFromGroups(authenticatedUser.get().getGroups()),
                         Map.of("groups", authenticatedUser.get().getGroups()));
                 emitter.onNext(user);

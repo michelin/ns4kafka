@@ -3,8 +3,9 @@ package com.michelin.ns4kafka.security;
 import com.michelin.ns4kafka.security.gitlab.GitlabApiClient;
 import com.michelin.ns4kafka.security.gitlab.GitlabAuthenticationService;
 import io.micronaut.http.HttpResponse;
-import io.reactivex.rxjava3.core.Flowable;
-import io.reactivex.rxjava3.subscribers.TestSubscriber;
+import io.micronaut.security.authentication.AuthenticationResponse;
+import io.reactivex.Flowable;
+import io.reactivex.subscribers.TestSubscriber;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,7 +17,6 @@ import org.reactivestreams.Publisher;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 @ExtendWith(MockitoExtension.class)
 public class GitlabAuthenticationServiceTest {
@@ -37,7 +37,7 @@ public class GitlabAuthenticationServiceTest {
         Publisher<String> authenticationResponsePublisher = gitlabAuthenticationService.findUsername(token).toFlowable();
 
         authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
+        subscriber.awaitTerminalEvent();
 
         subscriber.assertComplete();
         subscriber.assertNoErrors();
@@ -62,7 +62,7 @@ public class GitlabAuthenticationServiceTest {
         Publisher<String> authenticationResponsePublisher = gitlabAuthenticationService.findAllGroups(token);
 
         authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
+        subscriber.awaitTerminalEvent();
 
         subscriber.assertComplete();
         subscriber.assertNoErrors();
@@ -102,7 +102,7 @@ public class GitlabAuthenticationServiceTest {
         Publisher<String> authenticationResponsePublisher = gitlabAuthenticationService.findAllGroups(token);
 
         authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
+        subscriber.awaitTerminalEvent();
 
         subscriber.assertComplete();
         subscriber.assertNoErrors();
