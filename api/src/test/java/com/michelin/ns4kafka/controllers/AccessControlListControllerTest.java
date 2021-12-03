@@ -471,6 +471,54 @@ public class AccessControlListControllerTest {
     }
 
     @Test
+    void applySuccess_ChangedMetadataDryRun() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder().name("test").cluster("local").build())
+                .build();
+        AccessControlEntry ace1 = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ace1")
+                        .labels(Map.of("new-label", "label-value")) // This label is new
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build()
+                )
+                .build();
+        AccessControlEntry ace1Old = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder().name("ace1").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build()
+                )
+                .build();
+        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
+
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(accessControlEntryService.validate(ace1, ns))
+                .thenReturn(List.of());
+        Mockito.when(accessControlEntryService.findByName("test","ace1"))
+                .thenReturn(Optional.of(ace1Old));
+
+        var response = accessControlListController.apply(auth, "test", ace1, true);
+        AccessControlEntry actual = response.body();
+        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
+        Assertions.assertEquals("test", actual.getMetadata().getNamespace());
+        Assertions.assertEquals("local", actual.getMetadata().getCluster());
+        Assertions.assertFalse(actual.getMetadata().getLabels().isEmpty());
+
+    }
+
+    @Test
     void applyDryRunAdmin() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder().name("test").cluster("local").build())

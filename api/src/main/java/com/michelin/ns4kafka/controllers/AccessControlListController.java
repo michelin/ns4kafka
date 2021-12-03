@@ -115,7 +115,7 @@ public class AccessControlListController extends NamespacedResourceController {
 
         //dryrun checks
         if (dryrun) {
-            return formatHttpResponse(accessControlEntry, ApplyStatus.created);
+            return formatHttpResponse(accessControlEntry, status);
         }
         sendEventLog(accessControlEntry.getKind(),
                 accessControlEntry.getMetadata(),
