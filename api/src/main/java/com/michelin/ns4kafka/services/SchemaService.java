@@ -149,7 +149,7 @@ public class SchemaService {
                             .references(schema.getSpec().getReferences())
                             .build());
 
-            if(response.isPresent() && !response.get().isCompatible()){
+            if (response.isPresent() && !response.get().isCompatible()){
                 return response.get().messages();
             }
             // 200 is_compatible OR 404

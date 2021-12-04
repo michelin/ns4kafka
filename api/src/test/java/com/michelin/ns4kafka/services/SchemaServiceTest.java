@@ -90,7 +90,7 @@ class SchemaServiceTest {
                                         .permission(AccessControlEntry.Permission.OWNER)
                                         .grantedTo("namespace")
                                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
                                         .resource("ns-")
                                         .build())
                                 .build()
@@ -206,23 +206,6 @@ class SchemaServiceTest {
     }
 
     /**
-     * Tests the schema compatibility validation when the Schema Registry throws an exception
-     */
-    @Test
-    void validateSchemaCompatibilityThrowsException() {
-        Namespace namespace = this.buildNamespace();
-        Schema schema = this.buildSchema();
-
-        when(kafkaSchemaRegistryClient.validateSchemaCompatibility(any(), any(), any(), any()))
-                .thenThrow(new HttpClientResponseException("Error", HttpResponse.notFound()));
-
-        List<String> validationResponse = this.schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema);
-
-        Assertions.assertEquals(1L, validationResponse.size());
-        Assertions.assertEquals("An error occurred during the schema validation (status code: NOT_FOUND)", validationResponse.get(0));
-    }
-
-    /**
      * Tests the schema compatibility invalidation
      */
     @Test
@@ -241,6 +224,39 @@ class SchemaServiceTest {
 
         Assertions.assertEquals(1L, validationResponse.size());
         Assertions.assertTrue(validationResponse.contains("Incompatible schema"));
+    }
+
+    /**
+     * Tests the schema compatibility validation when the Schema Registry returns 404 not found
+     */
+    @Test
+    void validateSchemaCompatibility404NotFound() {
+        Namespace namespace = this.buildNamespace();
+        Schema schema = this.buildSchema();
+
+        when(kafkaSchemaRegistryClient.validateSchemaCompatibility(any(), any(), any(), any()))
+                .thenReturn(Optional.empty());
+
+        List<String> validationResponse = this.schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema);
+
+        Assertions.assertTrue(validationResponse.isEmpty());
+    }
+
+    /**
+     * Tests the schema compatibility validation when the Schema Registry throws an exception
+     */
+    @Test
+    void validateSchemaCompatibilityThrowsException() {
+        Namespace namespace = this.buildNamespace();
+        Schema schema = this.buildSchema();
+
+        when(kafkaSchemaRegistryClient.validateSchemaCompatibility(any(), any(), any(), any()))
+                .thenThrow(new HttpClientResponseException("Error", HttpResponse.notFound()));
+
+        List<String> validationResponse = this.schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema);
+
+        Assertions.assertEquals(1L, validationResponse.size());
+        Assertions.assertEquals("An error occurred during the schema validation (status code: NOT_FOUND)", validationResponse.get(0));
     }
 
     /**
