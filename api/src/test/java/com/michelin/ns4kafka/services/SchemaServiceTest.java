@@ -84,6 +84,15 @@ class SchemaServiceTest {
                                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                                         .resource("prefix3.")
                                         .build())
+                                .build(),
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                        .resource("ns-")
+                                        .build())
                                 .build()
                 ));
 
