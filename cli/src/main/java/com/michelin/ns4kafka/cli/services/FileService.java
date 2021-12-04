@@ -67,6 +67,6 @@ public class FileService {
      */
     public void loadSchemaFileContent(Resource resource) throws IOException {
         resource.getSpec().put("schema",
-                Files.readString(new File((String) resource.getSpec().get("schema")).toPath()));
+                Files.readString(new File((String) resource.getSpec().get("schemaFile")).toPath()));
     }
 }
