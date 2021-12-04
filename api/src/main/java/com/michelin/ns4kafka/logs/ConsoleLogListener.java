@@ -6,7 +6,7 @@ import io.micronaut.context.event.ApplicationEventListener;
 import io.micronaut.core.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
-import jakarta.inject.Singleton;
+import javax.inject.Singleton;
 
 @Slf4j
 @Singleton

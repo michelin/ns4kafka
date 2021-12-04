@@ -7,7 +7,7 @@ import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
 import picocli.CommandLine;
 
-import jakarta.inject.Inject;
+import javax.inject.Inject;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Callable;

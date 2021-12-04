@@ -10,14 +10,10 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;

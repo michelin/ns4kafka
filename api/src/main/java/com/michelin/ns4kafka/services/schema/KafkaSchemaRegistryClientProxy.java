@@ -11,17 +11,18 @@ import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.annotation.Filter;
 import io.micronaut.http.client.ProxyHttpClient;
 import io.micronaut.http.filter.HttpServerFilter;
+import io.micronaut.http.filter.OncePerRequestHttpServerFilter;
 import io.micronaut.http.filter.ServerFilterChain;
-import jakarta.inject.Inject;
 import org.reactivestreams.Publisher;
 
+import javax.inject.Inject;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Filter(KafkaSchemaRegistryClientProxy.SCHEMA_REGISTRY_PREFIX + "/**")
-public class KafkaSchemaRegistryClientProxy implements HttpServerFilter {
+public class KafkaSchemaRegistryClientProxy extends OncePerRequestHttpServerFilter {
     /**
      * Schema registry prefix used to filter request to schema registries. It'll be replace by
      * the schema registry URL of the
@@ -63,7 +64,7 @@ public class KafkaSchemaRegistryClientProxy implements HttpServerFilter {
      * @return A modified request
      */
     @Override
-    public Publisher<MutableHttpResponse<?>> doFilter(HttpRequest<?> request, ServerFilterChain chain) {
+    public Publisher<MutableHttpResponse<?>> doFilterOnce(HttpRequest<?> request, ServerFilterChain chain) {
         // Check call is initiated from Micronaut and not from outside
         if (!request.getHeaders().contains(KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET)) {
             return Publishers.just(new ResourceValidationException(List.of("Missing required header " + KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET), null, null));

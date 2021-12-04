@@ -6,7 +6,7 @@ import com.michelin.ns4kafka.services.schema.KafkaSchemaRegistryClientProxy;
 import io.micronaut.http.*;
 import io.micronaut.http.client.ProxyHttpClient;
 import io.micronaut.http.simple.SimpleHttpRequest;
-import io.reactivex.rxjava3.subscribers.TestSubscriber;
+import io.reactivex.subscribers.TestSubscriber;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,7 +52,7 @@ class KafkaSchemaRegistryClientProxyTest {
                 .GET("http://localhost/schema-registry-proxy/noHeader");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitDone(1L, TimeUnit.SECONDS);
@@ -71,7 +71,7 @@ class KafkaSchemaRegistryClientProxyTest {
                 .header(KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET, "123");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitDone(1L, TimeUnit.SECONDS);
@@ -90,7 +90,7 @@ class KafkaSchemaRegistryClientProxyTest {
                 .header(KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET, KafkaSchemaRegistryClientProxy.PROXY_SECRET);
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitDone(1L, TimeUnit.SECONDS);
@@ -112,7 +112,7 @@ class KafkaSchemaRegistryClientProxyTest {
         when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.empty());
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitDone(1L, TimeUnit.SECONDS);
@@ -133,7 +133,7 @@ class KafkaSchemaRegistryClientProxyTest {
         when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local")));
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitDone(1L, TimeUnit.SECONDS);
@@ -162,7 +162,7 @@ class KafkaSchemaRegistryClientProxyTest {
                 .thenReturn(just(HttpResponse.ok()));
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitDone(1L, TimeUnit.SECONDS);

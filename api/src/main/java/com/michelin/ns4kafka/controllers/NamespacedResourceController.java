@@ -3,7 +3,7 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.services.NamespaceService;
 
-import jakarta.inject.Inject;
+import javax.inject.Inject;
 
 /**
  * Base Controller for all Namespaced resources

@@ -12,7 +12,7 @@ import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import jakarta.inject.Inject;
+import javax.inject.Inject;
 import javax.validation.Valid;
 import java.util.List;
 import java.util.Optional;
