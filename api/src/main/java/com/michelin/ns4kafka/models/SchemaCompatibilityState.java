@@ -8,9 +8,9 @@ import javax.validation.constraints.NotNull;
 
 @Introspected
 @Builder
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
 public class SchemaCompatibilityState {
     private final String apiVersion = "v1";
     private final String kind = "SchemaCompatibilityState";
@@ -28,10 +28,9 @@ public class SchemaCompatibilityState {
     @AllArgsConstructor
     @NoArgsConstructor
     @Getter
-    @Setter
     @ToString
     public static class SchemaCompatibilityStateSpec {
         @Builder.Default
-        private Schema.Compatibility compatibility = Schema.Compatibility.DEFAULT;
+        private final Schema.Compatibility compatibility = Schema.Compatibility.DEFAULT;
     }
 }
