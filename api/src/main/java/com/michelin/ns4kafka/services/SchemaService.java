@@ -37,7 +37,7 @@ public class SchemaService {
     public List<Schema> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace);
 
-        return this.kafkaSchemaRegistryClient
+        return kafkaSchemaRegistryClient
                 .getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())
                 .stream()
                 .filter(subject -> {
@@ -59,7 +59,7 @@ public class SchemaService {
                         return false;
                     });
                 })
-                .map(namespacedSubject -> this.getLatestSubject(namespace, namespacedSubject))
+                .map(namespacedSubject -> getLatestSubject(namespace, namespacedSubject))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toList());
@@ -73,14 +73,14 @@ public class SchemaService {
      * @return A schema
      */
     public Optional<Schema> getLatestSubject(Namespace namespace, String subject) {
-        Optional<SchemaResponse> response = this.kafkaSchemaRegistryClient.
+        Optional<SchemaResponse> response = kafkaSchemaRegistryClient.
                 getLatestSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), subject);
 
         if(response.isEmpty())
             return Optional.empty();
 
 
-        Optional<SchemaCompatibilityResponse> compatibilityResponse = this.kafkaSchemaRegistryClient.
+        Optional<SchemaCompatibilityResponse> compatibilityResponse = kafkaSchemaRegistryClient.
                 getCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), subject);
 
         Schema.Compatibility compatibility = compatibilityResponse.isPresent() ? compatibilityResponse.get().compatibilityLevel() : Schema.Compatibility.DEFAULT;
@@ -108,14 +108,14 @@ public class SchemaService {
      * @return The ID of the created schema
      */
     public Integer register(Namespace namespace, Schema schema) {
-        SchemaResponse response = this.kafkaSchemaRegistryClient.
+        SchemaResponse response = kafkaSchemaRegistryClient.
                 register(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
                         schema.getMetadata().getName(), SchemaRequest.builder()
                                 .schema(schema.getSpec().getSchema())
                                 .references(schema.getSpec().getReferences())
                                 .build());
 
-        return response.id();
+        return response.version();
     }
 
     /**
@@ -125,11 +125,11 @@ public class SchemaService {
      * @param subject The current subject to delete
      */
     public void deleteSubject(Namespace namespace, String subject) {
-        this.kafkaSchemaRegistryClient.
+        kafkaSchemaRegistryClient.
                 deleteSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
                         subject, false);
 
-        this.kafkaSchemaRegistryClient.
+        kafkaSchemaRegistryClient.
                 deleteSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
                         subject, true);
     }
@@ -143,7 +143,7 @@ public class SchemaService {
      */
     public List<String> validateSchemaCompatibility(String cluster, Schema schema) {
         try {
-            Optional<SchemaCompatibilityCheckResponse> response = this.kafkaSchemaRegistryClient.validateSchemaCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
+            Optional<SchemaCompatibilityCheckResponse> response = kafkaSchemaRegistryClient.validateSchemaCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
                     cluster, schema.getMetadata().getName(), SchemaRequest.builder()
                             .schema(schema.getSpec().getSchema())
                             .references(schema.getSpec().getReferences())
@@ -167,35 +167,17 @@ public class SchemaService {
      * @param compatibility The compatibility to apply
      * @return A schema compatibility state
      */
-    public SchemaCompatibilityState updateSubjectCompatibility(Namespace namespace, Schema schema, Schema.Compatibility compatibility) {
-        SchemaCompatibilityState.SchemaCompatibilityStateBuilder state = SchemaCompatibilityState.builder()
-                .metadata(schema.getMetadata())
-                .spec(SchemaCompatibilityState.SchemaCompatibilityStateSpec.builder()
-                        .compatibility(schema.getSpec().getCompatibility())
-                        .build());
-
-        // Unchanged
-        if (schema.getSpec().getCompatibility().equals(compatibility)) {
-            return state.build();
-        }
-
-
+    public void updateSubjectCompatibility(Namespace namespace, Schema schema, Schema.Compatibility compatibility) {
         // Reset to default
         if (compatibility.equals(Schema.Compatibility.DEFAULT)) {
-            this.kafkaSchemaRegistryClient.deleteCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
+            kafkaSchemaRegistryClient.deleteCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
                     namespace.getMetadata().getCluster(), schema.getMetadata().getName());
         } else {
             // Update
-            this.kafkaSchemaRegistryClient.updateSubjectCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
-                    namespace.getMetadata().getCluster(), schema.getMetadata().getName(), SchemaCompatibilityRequest.builder()
-                            .compatibility(compatibility.toString()).build());
+            kafkaSchemaRegistryClient.updateSubjectCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
+                    namespace.getMetadata().getCluster(), schema.getMetadata().getName(),
+                    compatibility.toString());
         }
-
-        return state
-                .spec(SchemaCompatibilityState.SchemaCompatibilityStateSpec.builder()
-                        .compatibility(compatibility)
-                        .build())
-                .build();
     }
 
     /**
@@ -207,7 +189,7 @@ public class SchemaService {
      */
     public boolean isNamespaceOwnerOfSubject(Namespace namespace, String subjectName) {
         String underlyingTopicName = subjectName.replaceAll("(-key|-value)$","");
-        return this.accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(), AccessControlEntry.ResourceType.TOPIC,
+        return accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(), AccessControlEntry.ResourceType.TOPIC,
                 underlyingTopicName);
     }
 }

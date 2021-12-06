@@ -59,14 +59,4 @@ public class FileService {
                     }
                 });
     }
-
-    /**
-     * Load the schema file content
-     *
-     * @param resource The resource
-     */
-    public void loadSchemaFileContent(Resource resource) throws IOException {
-        resource.getSpec().put("schema",
-                Files.readString(new File((String) resource.getSpec().get("schemaFile")).toPath()));
-    }
 }

@@ -36,7 +36,7 @@ public class SchemaController extends NamespacedResourceController {
     @Get
     public List<Schema> list(String namespace) {
         Namespace ns = getNamespace(namespace);
-        return this.schemaService.findAllForNamespace(ns);
+        return schemaService.findAllForNamespace(ns);
     }
 
     /**
@@ -50,11 +50,11 @@ public class SchemaController extends NamespacedResourceController {
     public Optional<Schema> get(String namespace, String subject) {
         Namespace ns = getNamespace(namespace);
 
-        if (!this.schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
+        if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
             return Optional.empty();
         }
 
-        return this.schemaService.getLatestSubject(ns, subject);
+        return schemaService.getLatestSubject(ns, subject);
     }
 
     /**
@@ -77,13 +77,13 @@ public class SchemaController extends NamespacedResourceController {
         }
 
         // Validate ownership
-        if (!this.schemaService.isNamespaceOwnerOfSubject(ns, schema.getMetadata().getName())) {
+        if (!schemaService.isNamespaceOwnerOfSubject(ns, schema.getMetadata().getName())) {
             throw new ResourceValidationException(List.of("Invalid value " + schema.getMetadata().getName() +
                     " for name: namespace not OWNER of underlying topic"), schema.getKind(), schema.getMetadata().getName());
         }
 
         // Validate compatibility
-        List<String> validationErrors = this.schemaService.validateSchemaCompatibility(ns.getMetadata().getCluster(), schema);
+        List<String> validationErrors = schemaService.validateSchemaCompatibility(ns.getMetadata().getCluster(), schema);
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors, schema.getKind(), schema.getMetadata().getName());
         }
@@ -93,19 +93,21 @@ public class SchemaController extends NamespacedResourceController {
             return HttpResponse.ok(schema);
         }
 
-        Optional<Schema> existingSchemaOptional = this.schemaService.getLatestSubject(ns, schema.getMetadata().getName());
-        Integer registeredSchemaId = this.schemaService.register(ns, schema);
+        Optional<Schema> existingSchemaOptional = schemaService.getLatestSubject(ns, schema.getMetadata().getName());
+        Integer registeredSchemaVersion = schemaService.register(ns, schema);
 
-        ApplyStatus status = existingSchemaOptional.isEmpty() ? ApplyStatus.created : registeredSchemaId > existingSchemaOptional
-                .get().getSpec().getId() ? ApplyStatus.changed : ApplyStatus.unchanged;
+        ApplyStatus status = existingSchemaOptional.isEmpty() ? ApplyStatus.created : registeredSchemaVersion > existingSchemaOptional
+                .get().getSpec().getVersion() ? ApplyStatus.changed : ApplyStatus.unchanged;
 
-        sendEventLog(schema.getKind(),
-                schema.getMetadata(),
-                status,
-                existingSchemaOptional.isPresent() ? existingSchemaOptional.get().getSpec(): null,
-                schema.getSpec());
+        if (!status.equals(ApplyStatus.unchanged)) {
+            sendEventLog(schema.getKind(),
+                    schema.getMetadata(),
+                    status,
+                    existingSchemaOptional.isPresent() ? existingSchemaOptional.get().getSpec(): null,
+                    schema.getSpec());
+        }
 
-        return this.formatHttpResponse(schema, status);
+        return formatHttpResponse(schema, status);
     }
 
     /**
@@ -123,12 +125,12 @@ public class SchemaController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         // Validate ownership
-        if (!this.schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
+        if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
             throw new ResourceValidationException(List.of("Invalid value " + subject +
                     " for name: namespace not OWNER of underlying topic"), AccessControlEntry.ResourceType.SCHEMA.toString(), subject);
         }
 
-        Optional<Schema> existingSchemaOptional = this.schemaService
+        Optional<Schema> existingSchemaOptional = schemaService
                 .getLatestSubject(ns, subject);
 
         if (existingSchemaOptional.isEmpty()) {
@@ -146,7 +148,7 @@ public class SchemaController extends NamespacedResourceController {
                 schemaToDelete.getSpec(),
                 null);
 
-        this.schemaService.deleteSubject(ns, subject);
+        schemaService.deleteSubject(ns, subject);
 
         return HttpResponse.noContent();
     }
@@ -163,20 +165,31 @@ public class SchemaController extends NamespacedResourceController {
     public HttpResponse<SchemaCompatibilityState> config(String namespace, @PathVariable String subject, Schema.Compatibility compatibility) {
         Namespace ns = getNamespace(namespace);
 
-        if (!this.schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
+        if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
             throw new ResourceValidationException(List.of("Invalid prefix " + subject +
                     " : namespace not owner of this subject"), AccessControlEntry.ResourceType.SCHEMA.toString(), subject);
         }
 
-        Optional<Schema> existingSchemaOptional = this.schemaService
+        Optional<Schema> existingSchemaOptional = schemaService
                 .getLatestSubject(ns, subject);
 
         if (existingSchemaOptional.isEmpty()) {
             return HttpResponse.notFound();
         }
 
-        SchemaCompatibilityState state = this
-                .schemaService.updateSubjectCompatibility(ns, existingSchemaOptional.get(), compatibility);
+        SchemaCompatibilityState state = SchemaCompatibilityState.builder()
+                .metadata(existingSchemaOptional.get().getMetadata())
+                .spec(SchemaCompatibilityState.SchemaCompatibilityStateSpec.builder()
+                        .compatibility(compatibility)
+                        .build())
+                .build();
+
+        // Compat did not changed
+        if (existingSchemaOptional.get().getSpec().getCompatibility().equals(compatibility)) {
+            return HttpResponse.ok(state);
+        }
+
+        schemaService.updateSubjectCompatibility(ns, existingSchemaOptional.get(), compatibility);
 
         sendEventLog("SchemaCompatibilityState",
                 existingSchemaOptional.get().getMetadata(),

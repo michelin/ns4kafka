@@ -73,11 +73,6 @@ public class ResourceService {
 
     public HttpResponse<Resource> apply(ApiResource apiResource, String namespace, Resource resource, boolean dryRun) {
         try {
-            // If the resource is a subject, load the schema
-            if (resource.getKind().equals("Schema")) {
-                fileService.loadSchemaFileContent(resource);
-            }
-
             if (apiResource.isNamespaced()) {
                 return namespacedClient.apply(namespace, apiResource.getPath(), loginService.getAuthorization(), resource, dryRun);
             } else {
@@ -85,11 +80,6 @@ public class ResourceService {
             }
         } catch (HttpClientResponseException e) {
             formatService.displayError(e, apiResource.getKind(), resource.getMetadata().getName());
-        } catch (NoSuchFileException e) {
-            System.out.printf("Failed : %s/%s %s%n", apiResource.getKind(), resource.getMetadata().getName(),
-                    "Cannot find schema. Schema path must be relative to the CLI, not to the resource file");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
 
         return null;

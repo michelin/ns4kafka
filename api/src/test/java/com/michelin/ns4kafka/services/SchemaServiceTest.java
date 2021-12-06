@@ -260,23 +260,6 @@ class SchemaServiceTest {
     }
 
     /**
-     * Tests the schema compatibility update when the config to apply does not changed from previous one
-     */
-    @Test
-    void updateSubjectCompatibilityUnchanged() {
-        Namespace namespace = this.buildNamespace();
-        Schema schema = this.buildSchema();
-
-        SchemaCompatibilityState state = this.schemaService
-                .updateSubjectCompatibility(namespace, schema, Schema.Compatibility.BACKWARD);
-
-        Assertions.assertEquals("prefix.schema-one", state.getMetadata().getName());
-        Assertions.assertEquals(Schema.Compatibility.BACKWARD, state.getSpec().getCompatibility());
-        verify(this.kafkaSchemaRegistryClient, never()).deleteCurrentCompatibilityBySubject(any(), any(), any());
-        verify(this.kafkaSchemaRegistryClient, never()).updateSubjectCompatibility(any(), any(), any(), any());
-    }
-
-    /**
      * Tests the schema compatibility update when reset to default is asked
      */
     @Test
@@ -286,11 +269,9 @@ class SchemaServiceTest {
 
         doNothing().when(kafkaSchemaRegistryClient).deleteCurrentCompatibilityBySubject(any(), any(), any());
 
-        SchemaCompatibilityState state = this.schemaService
+        this.schemaService
                 .updateSubjectCompatibility(namespace, schema, Schema.Compatibility.DEFAULT);
 
-        Assertions.assertEquals("prefix.schema-one", state.getMetadata().getName());
-        Assertions.assertEquals(Schema.Compatibility.DEFAULT, state.getSpec().getCompatibility());
         verify(kafkaSchemaRegistryClient, times(1)).deleteCurrentCompatibilityBySubject(any(), any(), any());
     }
 
@@ -299,18 +280,16 @@ class SchemaServiceTest {
      */
     @Test
     void updateSubjectCompatibility() {
-        Namespace namespace = this.buildNamespace();
-        Schema schema = this.buildSchema();
-        SchemaCompatibilityResponse compatibilityResponse = this.buildCompatibilityResponse();
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
 
         when(kafkaSchemaRegistryClient.updateSubjectCompatibility(any(), any(), any(), any()))
                 .thenReturn(compatibilityResponse);
 
-        SchemaCompatibilityState state = this.schemaService
+        schemaService
                 .updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD);
 
-        Assertions.assertEquals("prefix.schema-one", state.getMetadata().getName());
-        Assertions.assertEquals(Schema.Compatibility.FORWARD, state.getSpec().getCompatibility());
         verify(kafkaSchemaRegistryClient, times(1)).updateSubjectCompatibility(any(), any(), any(), any());
     }
 
