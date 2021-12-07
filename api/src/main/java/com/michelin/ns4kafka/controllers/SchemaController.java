@@ -94,9 +94,10 @@ public class SchemaController extends NamespacedResourceController {
         }
 
         Optional<Schema> existingSchemaOptional = schemaService.getLatestSubject(ns, schema.getMetadata().getName());
-        Integer registeredSchemaVersion = schemaService.register(ns, schema);
+        schemaService.register(ns, schema);
+        Optional<Schema> registeredSchema = schemaService.getLatestSubject(ns, schema.getMetadata().getName());
 
-        ApplyStatus status = existingSchemaOptional.isEmpty() ? ApplyStatus.created : registeredSchemaVersion > existingSchemaOptional
+        ApplyStatus status = existingSchemaOptional.isEmpty() ? ApplyStatus.created : registeredSchema.get().getSpec().getVersion() > existingSchemaOptional
                 .get().getSpec().getVersion() ? ApplyStatus.changed : ApplyStatus.unchanged;
 
         if (!status.equals(ApplyStatus.unchanged)) {

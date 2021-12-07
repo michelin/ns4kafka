@@ -35,7 +35,10 @@ public class SchemaService {
      * @return A list of schemas
      */
     public List<Schema> findAllForNamespace(Namespace namespace) {
-        List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace);
+        List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace).stream()
+                .filter(acl -> acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
+                .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC)
+                .collect(Collectors.toList());
 
         return kafkaSchemaRegistryClient
                 .getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())
@@ -44,18 +47,13 @@ public class SchemaService {
                     String underlyingTopicName = subject.replaceAll("(-key|-value)$","");
 
                     return acls.stream().anyMatch(accessControlEntry -> {
-                        //need to check accessControlEntry.Permission, we want OWNER
-                        if (accessControlEntry.getSpec().getPermission() != AccessControlEntry.Permission.OWNER) {
-                            return false;
+                        switch (accessControlEntry.getSpec().getResourcePatternType()) {
+                            case PREFIXED:
+                                return underlyingTopicName.startsWith(accessControlEntry.getSpec().getResource());
+                            case LITERAL:
+                                return underlyingTopicName.equals(accessControlEntry.getSpec().getResource());
                         }
-                        if (accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC) {
-                            switch (accessControlEntry.getSpec().getResourcePatternType()) {
-                                case PREFIXED:
-                                    return underlyingTopicName.startsWith(accessControlEntry.getSpec().getResource());
-                                case LITERAL:
-                                    return underlyingTopicName.equals(accessControlEntry.getSpec().getResource());
-                            }
-                        }
+
                         return false;
                     });
                 })
@@ -115,7 +113,7 @@ public class SchemaService {
                                 .references(schema.getSpec().getReferences())
                                 .build());
 
-        return response.version();
+        return response.id();
     }
 
     /**

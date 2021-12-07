@@ -104,13 +104,18 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
     }
 
     /**
-     * Schema creation
+     * Test the schema update with an compatible v2 schema
+     * - Register the schema v1
+     * - Update the compatibility to forward
+     * - Register the compatible schema v2
+     * - Assert success
      */
     @Test
-    void createAndGetSchema() {
+    void registerSchemaCompatibility() {
+        // Register schema, first name is optional
         Schema schema = Schema.builder()
                 .metadata(ObjectMeta.builder()
-                        .name("ns1-subject-value")
+                        .name("ns1-subject0-value")
                         .build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the person\"}]}")
@@ -124,19 +129,122 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         Assertions.assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
 
-        SchemaResponse actual = schemaClient.toBlocking().retrieve(HttpRequest.GET("/subjects/ns1-subject-value/versions/latest"),
-                SchemaResponse.class);
+        SchemaResponse actual = schemaClient.toBlocking()
+                .retrieve(HttpRequest.GET("/subjects/ns1-subject0-value/versions/latest"),
+                        SchemaResponse.class);
 
         Assertions.assertNotNull(actual.id());
         Assertions.assertEquals(1, actual.version());
-        Assertions.assertEquals("ns1-subject-value", actual.subject());
+        Assertions.assertEquals("ns1-subject0-value", actual.subject());
+
+        // Set compat to forward
+        client
+                .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject0-value/config")
+                        .bearerAuth(token)
+                        .body(Map.of("compatibility", Schema.Compatibility.FORWARD)), SchemaCompatibilityState.class).blockingFirst();
+
+        SchemaCompatibilityResponse updatedConfig = schemaClient.toBlocking()
+                .retrieve(HttpRequest.GET("/config/ns1-subject0-value"),
+                        SchemaCompatibilityResponse.class);
+
+        Assertions.assertEquals(Schema.Compatibility.FORWARD, updatedConfig.compatibilityLevel());
+
+        // Register incompatible schema v2, removing optional "first name" field
+        Schema incompatibleSchema = Schema.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-subject0-value")
+                        .build())
+                .spec(Schema.SchemaSpec.builder()
+                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the person\"}]}")
+                        .build())
+                .build();
+
+        var createV2Response = client
+                .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas")
+                        .bearerAuth(token)
+                        .body(incompatibleSchema), Schema.class).blockingFirst();
+
+        Assertions.assertEquals("changed", createV2Response.header("X-Ns4kafka-Result"));
+
+        SchemaResponse actualV2 = schemaClient.toBlocking()
+                .retrieve(HttpRequest.GET("/subjects/ns1-subject0-value/versions/latest"),
+                        SchemaResponse.class);
+
+        Assertions.assertNotNull(actualV2.id());
+        Assertions.assertEquals(2, actualV2.version());
+        Assertions.assertEquals("ns1-subject0-value", actualV2.subject());
+    }
+
+    /**
+     * Test the schema update with an incompatible v2 schema
+     * - Register the schema v1
+     * - Update the compatibility to forward
+     * - Register the incompatible schema v2
+     * - Assert errors
+     */
+    @Test
+    void registerSchemaIncompatibility() {
+        // Register schema, first name is non optional
+        Schema schema = Schema.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-subject1-value")
+                        .build())
+                .spec(Schema.SchemaSpec.builder()
+                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"string\"],\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the person\"}]}")
+                        .build())
+                .build();
+
+        var createResponse = client
+                .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas")
+                        .bearerAuth(token)
+                        .body(schema), Schema.class).blockingFirst();
+
+        Assertions.assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
+
+        SchemaResponse actual = schemaClient.toBlocking()
+                .retrieve(HttpRequest.GET("/subjects/ns1-subject1-value/versions/latest"),
+                        SchemaResponse.class);
+
+        Assertions.assertNotNull(actual.id());
+        Assertions.assertEquals(1, actual.version());
+        Assertions.assertEquals("ns1-subject1-value", actual.subject());
+
+        // Set compat to forward
+        client
+                .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject1-value/config")
+                        .bearerAuth(token)
+                        .body(Map.of("compatibility", Schema.Compatibility.FORWARD)), SchemaCompatibilityState.class).blockingFirst();
+
+        SchemaCompatibilityResponse updatedConfig = schemaClient.toBlocking()
+                .retrieve(HttpRequest.GET("/config/ns1-subject1-value"),
+                        SchemaCompatibilityResponse.class);
+
+        Assertions.assertEquals(Schema.Compatibility.FORWARD, updatedConfig.compatibilityLevel());
+
+        // Register incompatible schema v2, removing non optional "first name" field
+        Schema incompatibleSchema = Schema.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-subject1-value")
+                        .build())
+                .spec(Schema.SchemaSpec.builder()
+                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the person\"}]}")
+                        .build())
+                .build();
+
+        HttpClientResponseException incompatibleActual = Assertions.assertThrows(HttpClientResponseException.class,
+                () -> client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas")
+                        .bearerAuth(token)
+                        .body(incompatibleSchema)).blockingFirst());
+
+        Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, incompatibleActual.getStatus());
+        Assertions.assertEquals("Invalid Schema ns1-subject1-value", incompatibleActual.getMessage());
     }
 
     /**
      * Schema creation with references
      */
     @Test
-    void createAndGetSchemaWithReferences() {
+    void registerSchemaWithReferences() {
         Schema schemaHeader = Schema.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-header-subject-value")
@@ -213,7 +321,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
      * Schema creation with prefix that does not respect ACLs
      */
     @Test
-    void createAndGetSchemaWrongPrefix() {
+    void registerSchemaWrongPrefix() {
         Schema wrongSchema = Schema.builder()
                 .metadata(ObjectMeta.builder()
                         .name("wrongprefix-subject")
@@ -240,75 +348,13 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
     }
 
     /**
-     * Compatibility update
-     *
-     * Create a schema with no compatibility (global compatibility), set the compatibility to
-     * NONE, then reset the compatibility to the global one
-     */
-    @Test
-    void updateCompatibility() {
-        Schema schema = Schema.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("ns1-subject3-value")
-                        .build())
-                .spec(Schema.SchemaSpec.builder()
-                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the personnn\"}]}")
-                        .build())
-                .build();
-
-        var createResponse = client
-                .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas")
-                        .bearerAuth(token)
-                        .body(schema), Schema.class).blockingFirst();
-
-        Assertions.assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
-
-        SchemaResponse actual = schemaClient.toBlocking()
-                .retrieve(HttpRequest.GET("/subjects/ns1-subject3-value/versions/latest"),
-                SchemaResponse.class);
-
-        Assertions.assertNotNull(actual.id());
-        Assertions.assertEquals(1, actual.version());
-        Assertions.assertEquals("ns1-subject3-value", actual.subject());
-
-        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class, () ->
-                schemaClient.toBlocking().retrieve(HttpRequest.GET("/config/ns1-subject3-value"),
-                        SchemaCompatibilityResponse.class));
-
-        Assertions.assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
-
-        client
-                .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3-value/config")
-                        .bearerAuth(token)
-                        .body(Map.of("compatibility", Schema.Compatibility.NONE)), SchemaCompatibilityState.class).blockingFirst();
-
-        SchemaCompatibilityResponse updatedConfig = schemaClient.toBlocking()
-                .retrieve(HttpRequest.GET("/config/ns1-subject3-value"),
-                        SchemaCompatibilityResponse.class);
-
-        Assertions.assertEquals(Schema.Compatibility.NONE, updatedConfig.compatibilityLevel());
-
-         client
-                .exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject3-value/config")
-                        .bearerAuth(token)
-                        .body(Map.of("compatibility", Schema.Compatibility.DEFAULT)), SchemaCompatibilityState.class).blockingFirst();
-
-        HttpClientResponseException resetConfigException = Assertions.assertThrows(HttpClientResponseException.class, () ->
-                schemaClient.toBlocking()
-                        .retrieve(HttpRequest.GET("/config/ns1-subject3-value"),
-                        SchemaCompatibilityResponse.class));
-
-        Assertions.assertEquals(HttpStatus.NOT_FOUND, resetConfigException.getStatus());
-    }
-
-    /**
      * Schema creation and deletion
      */
     @Test
-    void createAndDeleteSchema() throws MalformedURLException {
+    void registerSchema() {
         Schema schema = Schema.builder()
                 .metadata(ObjectMeta.builder()
-                        .name("ns1-subject4-value")
+                        .name("ns1-subject2-value")
                         .build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the personnn\"}]}")
@@ -323,14 +369,14 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         Assertions.assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
 
         var deleteResponse = client
-                .exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/schemas/ns1-subject4-value")
+                .exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/schemas/ns1-subject2-value")
                         .bearerAuth(token), Schema.class).blockingFirst();
 
         Assertions.assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
 
         HttpClientResponseException getException = Assertions.assertThrows(HttpClientResponseException.class,
                 () -> schemaClient.toBlocking()
-                        .retrieve(HttpRequest.GET("/subjects/ns1-subject4-value/versions/latest"),
+                        .retrieve(HttpRequest.GET("/subjects/ns1-subject2-value/versions/latest"),
                                 SchemaResponse.class));
 
         Assertions.assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
