@@ -157,11 +157,11 @@ class SchemaServiceTest {
         Schema schema = this.buildSchema();
 
         when(kafkaSchemaRegistryClient.register(any(), any(), any(), any()))
-                .thenReturn(SchemaResponse.builder().id(1).build());
+                .thenReturn(SchemaResponse.builder().id(1).version(1).build());
 
-        Integer retrievedSchemaId = this.schemaService.register(namespace, schema);
+        Integer retrievedSchemaVersion = this.schemaService.register(namespace, schema);
 
-        Assertions.assertEquals(1, retrievedSchemaId);
+        Assertions.assertEquals(1, retrievedSchemaVersion);
     }
 
     /**
