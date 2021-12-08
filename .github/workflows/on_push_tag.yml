@@ -38,7 +38,7 @@ jobs:
         uses: mikepenz/release-changelog-builder-action@v2
         with:
           configuration: "changelog-builder.json"
-          outputFile: "RELEASE-CHANGELOG.yml"
+          outputFile: ${{ github.workspace }}-CHANGELOG.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Prepare Release
@@ -46,7 +46,7 @@ jobs:
         with:
           draft: true
           prerelease: true
-          body_path: "RELEASE-CHANGELOG.yml"
+          body_path: ${{ github.workspace }}-CHANGELOG.txt
           files: |
             cli/build/native-image/kafkactl-+([0-9]).+([0-9]).+([0-9])
             cli/build/libs/kafkactl-+([0-9]).+([0-9]).+([0-9]).jar
