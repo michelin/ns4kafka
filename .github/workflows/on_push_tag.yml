@@ -35,10 +35,10 @@ jobs:
       - name: Push ns4kafka and kafkactl
         run: ./gradlew dockerBuild api:dockerPush cli:dockerPush -Prelease
       - name: Generate Release Changelog
-        uses: mikepenz/release-changelog-builder-action@v2
+        uses: mikepenz/release-changelog-builder-action@v1
+        id: build_changelog
         with:
           configuration: "changelog-builder.json"
-          outputFile: ${{ github.workspace }}-CHANGELOG.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Prepare Release
@@ -46,12 +46,14 @@ jobs:
         with:
           draft: true
           prerelease: true
-          body_path: ${{ github.workspace }}-CHANGELOG.txt
+          body: ${{ steps.build_changelog.outputs.changelog }}
           files: |
             cli/build/native-image/kafkactl-+([0-9]).+([0-9]).+([0-9])
             cli/build/libs/kafkactl-+([0-9]).+([0-9]).+([0-9]).jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Display release note
+        run: echo "${{ steps.build_changelog.outputs.changelog }}"
   build-windows:
     runs-on: windows-latest
     environment: Build
