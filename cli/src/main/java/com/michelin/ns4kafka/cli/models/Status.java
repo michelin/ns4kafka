@@ -14,8 +14,8 @@ import java.util.List;
 @AllArgsConstructor
 @Data
 public class Status {
-    private final String apiVersion = "v1";
-    private final String kind = "Status";
+    private String apiVersion = "v1";
+    private String kind = "Status";
 
     private StatusPhase status;
 
