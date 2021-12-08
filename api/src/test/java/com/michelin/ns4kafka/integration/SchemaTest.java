@@ -149,7 +149,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         Assertions.assertEquals(Schema.Compatibility.FORWARD, updatedConfig.compatibilityLevel());
 
-        // Register incompatible schema v2, removing optional "first name" field
+        // Register compatible schema v2, removing optional "first name" field
         Schema incompatibleSchema = Schema.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-subject0-value")
