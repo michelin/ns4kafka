@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.cli.models;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micronaut.core.annotation.Introspected;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,13 +28,20 @@ public class Status {
 
     private int code;
 
-    @Introspected
     @Builder
+    @NoArgsConstructor
     @Data
     public static class StatusDetails {
         private String name;
         private String kind;
         private List<String> causes;
+        @JsonCreator
+        public StatusDetails(@JsonProperty("name") String name, @JsonProperty("kind") String kind, @JsonProperty("causes") List<String> causes)
+        {
+            this.name = name;
+            this.kind = kind;
+            this.causes = causes;
+        }
     }
 
     public enum StatusPhase {
