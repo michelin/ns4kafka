@@ -26,9 +26,8 @@ public class Status {
 
     private int code;
 
+    @Introspected
     @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Data
     public static class StatusDetails {
         private String name;
