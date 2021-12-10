@@ -6,6 +6,7 @@ import com.michelin.ns4kafka.cli.services.ApiResourcesService;
 import com.michelin.ns4kafka.cli.services.FileService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
+import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -13,6 +14,7 @@ import picocli.CommandLine.Option;
 
 import jakarta.inject.Inject;
 import java.io.File;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
@@ -48,7 +50,6 @@ public class ApplySubcommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-
         if (dryRun) {
             System.out.println("Dry run execution");
         }
@@ -99,7 +100,19 @@ public class ApplySubcommand implements Callable<Integer> {
         }
         List<ApiResource> apiResources = apiResourcesService.getListResourceDefinition();
 
-        // 5. process each document individually, return 0 when all succeed
+        // 5. load schema content
+        resources.stream()
+                .filter(resource -> resource.getKind().equals("Schema") && resource.getSpec().get("schemaFile") != null && StringUtils.isNotEmpty(resource.getSpec().get("schemaFile").toString()))
+                .forEach(resource -> {
+                    try {
+                        resource.getSpec().put("schema", Files.readString(new File(resource.getSpec().get("schemaFile").toString()).toPath()));
+                    } catch (Exception e) {
+                        throw new CommandLine.ParameterException(commandSpec.commandLine(), "Cannot open schema file " + resource.getSpec().get("schemaFile") +
+                                ". Schema path must be relative to the CLI. "+e.getClass().getName()+": " + e.getMessage());
+                    }
+                });
+
+        // 6. process each document individually, return 0 when all succeed
         int errors = resources.stream()
                 .map(resource -> {
                     ApiResource apiResource = apiResources.stream()

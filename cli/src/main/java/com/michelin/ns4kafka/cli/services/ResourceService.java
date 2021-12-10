@@ -27,7 +27,8 @@ public class ResourceService {
     LoginService loginService;
     @Inject
     FormatService formatService;
-
+    @Inject
+    FileService fileService;
 
     public Map<ApiResource, List<Resource>> listAll(List<ApiResource> apiResources, String namespace) {
         return apiResources
@@ -154,6 +155,28 @@ public class ResourceService {
             return resource;
         } catch (HttpClientResponseException e) {
             formatService.displayError(e, "ChangeConnectorState", connector);
+        }
+        return null;
+    }
+
+    public Resource changeSchemaCompatibility(String namespace, String subject, SchemaCompatibility compatibility) {
+        try {
+            Resource resource = namespacedClient.changeSchemaCompatibility(namespace, subject,
+                    Map.of("compatibility", compatibility), loginService.getAuthorization());
+
+            if (resource == null) {
+                // micronaut converts HTTP 404 into null
+                // produce a 404
+                Status notFoundStatus = Status.builder()
+                        .code(404)
+                        .message("Resource not found")
+                        .reason("NotFound")
+                        .build();
+                throw new HttpClientResponseException("Not Found", HttpResponse.notFound(notFoundStatus));
+            }
+            return resource;
+        } catch (HttpClientResponseException e) {
+            formatService.displayError(e, "Schema", subject);
         }
         return null;
     }

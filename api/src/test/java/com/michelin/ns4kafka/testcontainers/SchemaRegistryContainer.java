@@ -13,28 +13,39 @@ import static java.lang.String.format;
  * Docker container.
  */
 public class SchemaRegistryContainer extends GenericContainer<SchemaRegistryContainer> {
+    /**
+     * Schema Registry port
+     */
     private static final int SCHEMA_REGISTRY_INTERNAL_PORT = 8081;
 
-
+    /**
+     * Schema Registry network alias
+     */
     private final String networkAlias = "schema-registry";
 
-
+    /**
+     * Constructor
+     *
+     * @param dockerImageName The Docker image name of the Schema Registry
+     * @param bootstrapServers The bootstrap servers URL
+     */
     public SchemaRegistryContainer(DockerImageName dockerImageName, String bootstrapServers) {
         super(dockerImageName);
 
-        addEnv("CHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS", bootstrapServers);
-        addEnv("SCHEMA_REGISTRY_HOST_NAME", "localhost");
+        this
+                .withEnv("SCHEMA_REGISTRY_HOST_NAME", "localhost")
+                .withEnv("SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS", bootstrapServers);
+
         withExposedPorts(SCHEMA_REGISTRY_INTERNAL_PORT);
         withNetworkAliases(networkAlias);
 
         waitingFor(Wait.forHttp("/subjects"));
-
     }
 
     /**
-     * Get the url.
+     * Get the current URL of the schema registry
      *
-     * @return
+     * @return The current URL of the schema registry
      */
     public String getUrl() {
         return format("http://%s:%d", this.getContainerIpAddress(), this.getMappedPort(SCHEMA_REGISTRY_INTERNAL_PORT));

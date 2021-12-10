@@ -53,6 +53,7 @@ public class KafkaConnectClientProxyTest {
                         .contains("Missing required Header X-Proxy-Secret")
         );
     }
+
     @Test
     void doFilterWrongSecret() {
         MutableHttpRequest<?> request = HttpRequest

@@ -51,6 +51,7 @@ public class KafkaAsyncExecutorConfig {
     }
 
     @Getter
+    @Setter
     @ConfigurationProperties("schema-registry")
     public static class RegistryConfig {
         String url;
