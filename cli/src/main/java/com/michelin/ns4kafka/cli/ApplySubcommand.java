@@ -14,9 +14,7 @@ import picocli.CommandLine.Option;
 
 import javax.inject.Inject;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
@@ -109,7 +107,8 @@ public class ApplySubcommand implements Callable<Integer> {
                     try {
                         resource.getSpec().put("schema", Files.readString(new File(resource.getSpec().get("schemaFile").toString()).toPath()));
                     } catch (Exception e) {
-                        throw new CommandLine.ParameterException(commandSpec.commandLine(), "Cannot load schema. Schema path must be relative to the CLI, not to the resource file");
+                        throw new CommandLine.ParameterException(commandSpec.commandLine(), "Cannot open schema file " + resource.getSpec().get("schemaFile") +
+                                ". Schema path must be relative to the CLI. "+e.getClass().getName()+": " + e.getMessage());
                     }
                 });
 

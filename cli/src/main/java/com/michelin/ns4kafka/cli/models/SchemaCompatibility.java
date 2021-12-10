@@ -1,7 +1,7 @@
 package com.michelin.ns4kafka.cli.models;
 
 public enum SchemaCompatibility {
-    DEFAULT,
+    GLOBAL,
     BACKWARD,
     BACKWARD_TRANSITIVE,
     FORWARD,

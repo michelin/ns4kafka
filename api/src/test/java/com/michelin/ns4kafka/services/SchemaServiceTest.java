@@ -270,7 +270,7 @@ class SchemaServiceTest {
         doNothing().when(kafkaSchemaRegistryClient).deleteCurrentCompatibilityBySubject(any(), any(), any());
 
         this.schemaService
-                .updateSubjectCompatibility(namespace, schema, Schema.Compatibility.DEFAULT);
+                .updateSubjectCompatibility(namespace, schema, Schema.Compatibility.GLOBAL);
 
         verify(kafkaSchemaRegistryClient, times(1)).deleteCurrentCompatibilityBySubject(any(), any(), any());
     }

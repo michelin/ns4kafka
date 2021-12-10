@@ -81,7 +81,7 @@ public class SchemaService {
         Optional<SchemaCompatibilityResponse> compatibilityResponse = kafkaSchemaRegistryClient.
                 getCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), subject);
 
-        Schema.Compatibility compatibility = compatibilityResponse.isPresent() ? compatibilityResponse.get().compatibilityLevel() : Schema.Compatibility.DEFAULT;
+        Schema.Compatibility compatibility = compatibilityResponse.isPresent() ? compatibilityResponse.get().compatibilityLevel() : Schema.Compatibility.GLOBAL;
 
 
         return Optional.of(Schema.builder()
@@ -167,7 +167,7 @@ public class SchemaService {
      */
     public void updateSubjectCompatibility(Namespace namespace, Schema schema, Schema.Compatibility compatibility) {
         // Reset to default
-        if (compatibility.equals(Schema.Compatibility.DEFAULT)) {
+        if (compatibility.equals(Schema.Compatibility.GLOBAL)) {
             kafkaSchemaRegistryClient.deleteCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
                     namespace.getMetadata().getCluster(), schema.getMetadata().getName());
         } else {

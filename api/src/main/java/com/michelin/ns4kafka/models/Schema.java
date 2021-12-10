@@ -71,7 +71,7 @@ public class Schema {
          * Schema compatibility
          */
         @Builder.Default
-        private Compatibility compatibility = Compatibility.DEFAULT;
+        private Compatibility compatibility = Compatibility.GLOBAL;
 
         /**
          * References list
@@ -95,7 +95,7 @@ public class Schema {
      */
     @Introspected
     public enum Compatibility {
-        DEFAULT,
+        GLOBAL,
         BACKWARD,
         BACKWARD_TRANSITIVE,
         FORWARD,

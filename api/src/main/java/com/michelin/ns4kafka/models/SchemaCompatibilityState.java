@@ -31,6 +31,6 @@ public class SchemaCompatibilityState {
     @ToString
     public static class SchemaCompatibilityStateSpec {
         @Builder.Default
-        private final Schema.Compatibility compatibility = Schema.Compatibility.DEFAULT;
+        private final Schema.Compatibility compatibility = Schema.Compatibility.GLOBAL;
     }
 }
