@@ -17,7 +17,7 @@ import java.util.UUID;
 import static java.lang.String.format;
 
 /**
- * This file is a slight adapatation of the KafkaConnectContainer code available on ydespreaux's Github account:
+ * This file is a slight adaptation of the KafkaConnectContainer code available on ydespreaux's Github account:
  *
  * @see <a href="https://github.com/ydespreaux/testcontainers/blob/master/testcontainers-kafka/src/main/java/com/github/ydespreaux/testcontainers/kafka/containers/KafkaConnectContainer.java">KafkaConnectContainer.java</a>
  */
@@ -73,29 +73,27 @@ public class KafkaConnectContainer extends GenericContainer<KafkaConnectContaine
     private boolean hasValueAvroConverter = false;
 
 
-    public KafkaConnectContainer(DockerImageName dockerImageName,
-                                 String bootstrapServers) {
+    public KafkaConnectContainer(DockerImageName dockerImageName, String bootstrapServers) {
         super(dockerImageName);
         this.bootstrapServers = bootstrapServers;
         //this.withLogConsumer(containerLogsConsumer(logger()))
-                this.withEnv(GROUP_ID_CONFIG, GROUP_ID_DEFAULT_VALUE)
-                .withEnv(KEY_CONVERTER_CONFIG, KEY_CONVERTER_DEFAULT_VALUE)
-                .withEnv(VALUE_CONVERTER_CONFIG, VALUE_CONVERTER_DEFAULT_VALUE)
-                //.withEnv(OFFSET_STORAGE_FILE_FILENAME_CONFIG, OFFSET_STORAGE_FILE_FILENAME_DEFAULT_VALUE)
-                .withEnv(OFFSET_STORAGE_TOPIC_CONFIG, OFFSET_STORAGE_TOPIC_DEFAULT_VALUE)
-                .withEnv(OFFSET_STORAGE_PARTITIONS_CONFIG, String.valueOf(OFFSET_STORAGE_PARTITIONS_DEFAULT_VALUE))
-                .withEnv(OFFSET_STORAGE_REPLICATION_FACTOR_CONFIG, String.valueOf(OFFSET_STORAGE_REPLICATION_FACTOR_DEFAULT_VALUE))
-                .withEnv(CONFIG_STORAGE_TOPIC_CONFIG, CONFIG_STORAGE_TOPIC_DEFAULT_VALUE)
-                .withEnv(CONFIG_STORAGE_REPLICATION_FACTOR_CONFIG, String.valueOf(CONFIG_STORAGE_REPLICATION_FACTOR_DEFAULT_VALUE))
-                .withEnv(STATUS_STORAGE_TOPIC_CONFIG, STATUS_STORAGE_TOPIC_DEFAULT_VALUE)
-                .withEnv(STATUS_STORAGE_PARTITIONS_CONFIG, String.valueOf(STATUS_STORAGE_PARTITIONS_DEFAULT_VALUE))
-                .withEnv(STATUS_STORAGE_REPLICATION_FACTOR_CONFIG, String.valueOf(STATUS_STORAGE_REPLICATION_FACTOR_DEFAULT_VALUE))
-                .withEnv(INTERNAL_KEY_CONVERTER_CONFIG, INTERNAL_KEY_CONVERTER_DEFAULT_VALUE)
-                .withEnv(INTERNAL_VALUE_CONVERTER_CONFIG, INTERNAL_VALUE_CONVERTER_DEFAULT_VALUE);
+        this.withEnv(GROUP_ID_CONFIG, GROUP_ID_DEFAULT_VALUE)
+            .withEnv(KEY_CONVERTER_CONFIG, KEY_CONVERTER_DEFAULT_VALUE)
+            .withEnv(VALUE_CONVERTER_CONFIG, VALUE_CONVERTER_DEFAULT_VALUE)
+            //.withEnv(OFFSET_STORAGE_FILE_FILENAME_CONFIG, OFFSET_STORAGE_FILE_FILENAME_DEFAULT_VALUE)
+            .withEnv(OFFSET_STORAGE_TOPIC_CONFIG, OFFSET_STORAGE_TOPIC_DEFAULT_VALUE)
+            .withEnv(OFFSET_STORAGE_PARTITIONS_CONFIG, String.valueOf(OFFSET_STORAGE_PARTITIONS_DEFAULT_VALUE))
+            .withEnv(OFFSET_STORAGE_REPLICATION_FACTOR_CONFIG, String.valueOf(OFFSET_STORAGE_REPLICATION_FACTOR_DEFAULT_VALUE))
+            .withEnv(CONFIG_STORAGE_TOPIC_CONFIG, CONFIG_STORAGE_TOPIC_DEFAULT_VALUE)
+            .withEnv(CONFIG_STORAGE_REPLICATION_FACTOR_CONFIG, String.valueOf(CONFIG_STORAGE_REPLICATION_FACTOR_DEFAULT_VALUE))
+            .withEnv(STATUS_STORAGE_TOPIC_CONFIG, STATUS_STORAGE_TOPIC_DEFAULT_VALUE)
+            .withEnv(STATUS_STORAGE_PARTITIONS_CONFIG, String.valueOf(STATUS_STORAGE_PARTITIONS_DEFAULT_VALUE))
+            .withEnv(STATUS_STORAGE_REPLICATION_FACTOR_CONFIG, String.valueOf(STATUS_STORAGE_REPLICATION_FACTOR_DEFAULT_VALUE))
+            .withEnv(INTERNAL_KEY_CONVERTER_CONFIG, INTERNAL_KEY_CONVERTER_DEFAULT_VALUE)
+            .withEnv(INTERNAL_VALUE_CONVERTER_CONFIG, INTERNAL_VALUE_CONVERTER_DEFAULT_VALUE);
 
         withExposedPorts(CONNECT_REST_PORT_INTERNAL);
         withNetworkAliases(networkAlias);
-
 
         waitingFor(Wait.forHttp("/").withStartupTimeout(Duration.ofSeconds(120L)));
     }

@@ -1,11 +1,13 @@
 package com.michelin.ns4kafka.cli.client;
 
 import com.michelin.ns4kafka.cli.models.Resource;
+import com.michelin.ns4kafka.cli.models.SchemaCompatibility;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.client.annotation.Client;
 
 import java.util.List;
+import java.util.Map;
 
 @Client("${kafkactl.api}/api/namespaces/")
 public interface NamespacedResourceClient {
@@ -66,5 +68,12 @@ public interface NamespacedResourceClient {
             String namespace,
             String connector,
             @Body Resource changeConnectorState,
+            @Header("Authorization") String token);
+
+    @Post("{namespace}/schemas/{subject}/config")
+    Resource changeSchemaCompatibility(
+            String namespace,
+            String subject,
+            @Body Map<String, SchemaCompatibility> compatibility,
             @Header("Authorization") String token);
 }

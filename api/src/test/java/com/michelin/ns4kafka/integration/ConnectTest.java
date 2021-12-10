@@ -268,5 +268,4 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
         Assertions.assertEquals("RUNNING", actual.tasks().get(1).state());
         Assertions.assertEquals("RUNNING", actual.tasks().get(2).state());
     }
-
 }

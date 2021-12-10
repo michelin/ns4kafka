@@ -49,6 +49,13 @@ public class ApiResourcesController {
             .path("topics")
             .names(List.of("topics", "topic", "to"))
             .build();
+    public static final ResourceDefinition SCHEMA = ResourceDefinition.builder()
+            .kind("Schema")
+            .namespaced(true)
+            .synchronizable(false)
+            .path("schemas")
+            .names(List.of("schemas", "schemas", "sc"))
+            .build();
     public static final ResourceDefinition NAMESPACE = ResourceDefinition.builder()
             .kind("Namespace")
                         .namespaced(false)
@@ -65,7 +72,8 @@ public class ApiResourcesController {
                 KSTREAM,
                 ROLE_BINDING,
                 TOPIC,
-                NAMESPACE
+                NAMESPACE,
+                SCHEMA
                 );
     }
 

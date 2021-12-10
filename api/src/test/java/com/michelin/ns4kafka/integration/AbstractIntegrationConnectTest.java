@@ -11,7 +11,6 @@ import java.util.Map;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AbstractIntegrationConnectTest extends AbstractIntegrationTest {
 
-    public SchemaRegistryContainer registry;
     public KafkaConnectContainer connect;
 
     @Override
