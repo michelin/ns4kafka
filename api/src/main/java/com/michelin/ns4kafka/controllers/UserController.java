@@ -10,6 +10,8 @@ import io.micronaut.http.annotation.Post;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.inject.Inject;
+import java.time.Instant;
+import java.util.Date;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -20,20 +22,27 @@ public class UserController extends NamespacedResourceController {
     @Inject
     UserService userService;
 
-    @Post("/reset-password{?dryrun}")
+    @Post("/reset-password")
     public HttpResponse<KafkaUserResetPassword> resetPassword(String namespace) throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = getNamespace(namespace);
 
+        //TODO QuotaManagement + UserAsyncExecutor
+        userService.forceQuotas(ns);
+
         String password = userService.resetPassword(ns);
-        return HttpResponse.ok(KafkaUserResetPassword.builder()
+
+        KafkaUserResetPassword response = KafkaUserResetPassword.builder()
                 .metadata(ObjectMeta.builder()
                         .name(ns.getSpec().getKafkaUser())
                         .namespace(namespace)
                         .cluster(ns.getMetadata().getCluster())
+                        .creationTimestamp(Date.from(Instant.now()))
                         .build())
                 .spec(KafkaUserResetPassword.KafkaUserResetPasswordSpec.builder()
                         .newPassword(password)
                         .build())
-                .build());
+                .build();
+        sendEventLog("KafkaUserResetPassword", response.getMetadata(), ApplyStatus.changed, null, response.getSpec());
+        return HttpResponse.ok(response);
     }
 }
