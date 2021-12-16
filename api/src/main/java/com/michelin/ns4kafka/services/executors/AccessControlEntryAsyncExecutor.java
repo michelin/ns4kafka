@@ -148,7 +148,7 @@ public class AccessControlEntryAsyncExecutor {
         //TODO eventually : manage host ?
         //TODO never ever : manage CREATE and DELETE Topics (managed by ns4kafka !)
 
-        List<ResourceType> validResourceTypes = List.of(ResourceType.TOPIC, ResourceType.GROUP);
+        List<ResourceType> validResourceTypes = List.of(ResourceType.TOPIC, ResourceType.GROUP, ResourceType.TRANSACTIONAL_ID);
 
         // keep only TOPIC and GROUP Resource Types
         List<AclBinding> userACLs = getAdminClient()
@@ -213,6 +213,7 @@ public class AccessControlEntryAsyncExecutor {
     }
 
     private List<AclBinding> buildAclBindingsFromKafkaStream(KafkaStream stream, String kafkaUser) {
+        // As per https://docs.confluent.io/platform/current/streams/developer-guide/security.html#required-acl-setting-for-secure-ak-clusters
         return List.of(
                 // CREATE and DELETE on Stream Topics
                 new AclBinding(
@@ -222,6 +223,11 @@ public class AccessControlEntryAsyncExecutor {
                 new AclBinding(
                         new ResourcePattern(ResourceType.TOPIC, stream.getMetadata().getName(), PatternType.PREFIXED),
                         new org.apache.kafka.common.acl.AccessControlEntry("User:" + kafkaUser, "*", AclOperation.DELETE, AclPermissionType.ALLOW)
+                ),
+                // WRITE on TransactionalId
+                new AclBinding(
+                        new ResourcePattern(ResourceType.TRANSACTIONAL_ID, stream.getMetadata().getName(), PatternType.PREFIXED),
+                        new org.apache.kafka.common.acl.AccessControlEntry("User:" + kafkaUser, "*", AclOperation.WRITE, AclPermissionType.ALLOW)
                 )
         );
     }

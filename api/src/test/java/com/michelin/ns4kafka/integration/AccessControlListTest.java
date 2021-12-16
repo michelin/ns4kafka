@@ -263,9 +263,12 @@ public class AccessControlListTest extends AbstractIntegrationTest {
         AclBinding ac5 = new AclBinding(
                 new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, "ns1-stream1", PatternType.PREFIXED),
                 new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.DELETE, AclPermissionType.ALLOW));
+        AclBinding ac6 = new AclBinding(
+                new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID, "ns1-stream1", PatternType.PREFIXED),
+                new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.WRITE, AclPermissionType.ALLOW));
 
-        Assertions.assertEquals(5, results.size());
-        Assertions.assertTrue(results.containsAll(List.of(ac1, ac2, ac3, ac4, ac5)));
+        Assertions.assertEquals(6, results.size());
+        Assertions.assertTrue(results.containsAll(List.of(ac1, ac2, ac3, ac4, ac5, ac6)));
 
 
         // DELETE the Stream & ACL and verify
