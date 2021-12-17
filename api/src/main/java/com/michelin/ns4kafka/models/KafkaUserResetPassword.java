@@ -7,7 +7,8 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
+@Getter
+@Setter
 public class KafkaUserResetPassword {
     private final String apiVersion = "v1";
     private final String kind = "KafkaUserResetPassword";
