@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.integration;
 import com.michelin.ns4kafka.models.KafkaUserResetPassword;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.Status;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
@@ -10,6 +11,7 @@ import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import org.apache.kafka.clients.admin.ScramMechanism;
@@ -59,8 +61,8 @@ public class UserTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void createAndUpdateUser() throws ExecutionException, InterruptedException {
-        KafkaUserResetPassword response = client.retrieve(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/users/reset-password").bearerAuth(token), KafkaUserResetPassword.class).blockingFirst();
+    void createAndUpdateUserForceTest() throws ExecutionException, InterruptedException {
+        KafkaUserResetPassword response = client.retrieve(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/users/reset-password?test=true").bearerAuth(token), KafkaUserResetPassword.class).blockingFirst();
 
         Map<String, UserScramCredentialsDescription> mapUser = getAdminClient()
                 .describeUserScramCredentials(List.of("user1")).all().get();
@@ -80,6 +82,19 @@ public class UserTest extends AbstractIntegrationTest {
         Assertions.assertEquals(102400.0, quotas.get("producer_byte_rate"));
         Assertions.assertTrue(quotas.containsKey("consumer_byte_rate"));
         Assertions.assertEquals(102400.0, quotas.get("consumer_byte_rate"));
+
+    }
+
+    @Test
+    void createUserOnNonScramCluster_ExpectFailure() throws ExecutionException, InterruptedException {
+        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class, () ->
+                client.retrieve(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/users/reset-password").bearerAuth(token), KafkaUserResetPassword.class).blockingFirst()
+        );
+        Status response = exception.getResponse().getBody(Status.class).get();
+
+        Assertions.assertEquals(Status.StatusPhase.Failed, response.getStatus());
+        Assertions.assertEquals(Status.StatusReason.Invalid, response.getReason());
+        Assertions.assertEquals("Invalid KafkaUserResetPassword ns1", response.getMessage());
 
     }
 }

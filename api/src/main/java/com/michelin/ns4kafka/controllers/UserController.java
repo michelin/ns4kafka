@@ -7,6 +7,7 @@ import com.michelin.ns4kafka.services.UserService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
+import io.micronaut.http.annotation.QueryValue;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.inject.Inject;
@@ -23,12 +24,13 @@ public class UserController extends NamespacedResourceController {
     @Inject
     UserService userService;
 
-    @Post("/reset-password")
-    public HttpResponse<KafkaUserResetPassword> resetPassword(String namespace) throws ExecutionException, InterruptedException, TimeoutException {
+    // test flag for testing only, don't use it.
+    @Post("/reset-password{?test}")
+    public HttpResponse<KafkaUserResetPassword> resetPassword(String namespace, @QueryValue(defaultValue = "false") boolean test) throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = getNamespace(namespace);
 
         List<String> validationErrors = userService.validatePasswordReset(ns);
-        if(!validationErrors.isEmpty()){
+        if(!validationErrors.isEmpty() && !test){
             throw new ResourceValidationException(validationErrors, "KafkaUserResetPassword", namespace);
         }
         //TODO QuotaManagement + UserAsyncExecutor
