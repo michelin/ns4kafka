@@ -52,4 +52,14 @@ public class UserService {
         admin.alterClientQuotas(List.of(clientQuota)).all().get(10, TimeUnit.SECONDS);
 
     }
+
+    public List<String> validatePasswordReset(Namespace namespace) {
+        // 1. Cluster must be SCRAM-SHA-512
+        KafkaAsyncExecutorConfig config = applicationContext.getBean(KafkaAsyncExecutorConfig.class, Qualifiers.byName(namespace.getMetadata().getCluster()));
+        String saslMechanism = config.getConfig().getProperty("sasl.mechanism","EMPTY");
+        if(!saslMechanism.equals(ScramMechanism.SCRAM_SHA_512.mechanismName())){
+            return List.of("Cluster "+namespace.getMetadata().getCluster()+" doesn't support SCRAM-SHA-512. Contact your Kafka administrator to reset your password.");
+        }
+        return List.of();
+    }
 }

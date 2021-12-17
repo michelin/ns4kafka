@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import javax.inject.Inject;
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -26,6 +27,10 @@ public class UserController extends NamespacedResourceController {
     public HttpResponse<KafkaUserResetPassword> resetPassword(String namespace) throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = getNamespace(namespace);
 
+        List<String> validationErrors = userService.validatePasswordReset(ns);
+        if(!validationErrors.isEmpty()){
+            throw new ResourceValidationException(validationErrors, "KafkaUserResetPassword", namespace);
+        }
         //TODO QuotaManagement + UserAsyncExecutor
         userService.forceQuotas(ns);
 
