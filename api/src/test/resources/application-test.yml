@@ -13,11 +13,11 @@ ns4kafka:
           - "adminGroup"
   managed-clusters:
     test-cluster:
-      manage-users: false
+      provider: SELF_MANAGED
+      manage-users: true
       manage-acls: true
       manage-topics: true
       manage-connectors: true
-      manage-role-bindings: false
       connects:
         test-connect:
           url: "" #"http://localhost/kafka/connect/"

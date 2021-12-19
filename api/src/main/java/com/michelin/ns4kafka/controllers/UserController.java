@@ -3,40 +3,33 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.KafkaUserResetPassword;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.services.UserService;
+import com.michelin.ns4kafka.services.executors.UserAsyncExecutor;
+import io.micronaut.context.ApplicationContext;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
-import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.inject.qualifiers.Qualifiers;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.inject.Inject;
 import java.time.Instant;
 import java.util.Date;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
 @Tag(name = "Users")
 @Controller(value = "/api/namespaces/{namespace}/users")
 public class UserController extends NamespacedResourceController {
 
     @Inject
-    UserService userService;
+    ApplicationContext applicationContext;
 
     // test flag for testing only, don't use it.
-    @Post("/reset-password{?test}")
-    public HttpResponse<KafkaUserResetPassword> resetPassword(String namespace, @QueryValue(defaultValue = "false") boolean test) throws ExecutionException, InterruptedException, TimeoutException {
+    @Post("/reset-password")
+    public HttpResponse<KafkaUserResetPassword> resetPassword(String namespace) {
         Namespace ns = getNamespace(namespace);
 
-        List<String> validationErrors = userService.validatePasswordReset(ns);
-        if(!validationErrors.isEmpty() && !test){
-            throw new ResourceValidationException(validationErrors, "KafkaUserResetPassword", namespace);
-        }
-        //TODO QuotaManagement + UserAsyncExecutor
-        userService.forceQuotas(ns);
+        UserAsyncExecutor userAsyncExecutor = applicationContext.getBean(UserAsyncExecutor.class, Qualifiers.byName(ns.getMetadata().getCluster()));
 
-        String password = userService.resetPassword(ns);
+        String password = userAsyncExecutor.resetPassword(ns.getSpec().getKafkaUser());
 
         KafkaUserResetPassword response = KafkaUserResetPassword.builder()
                 .metadata(ObjectMeta.builder()

@@ -48,14 +48,6 @@ public class TopicAsyncExecutor {
         if(this.kafkaAsyncExecutorConfig.isManageTopics()) {
             synchronizeTopics();
         }
-
-        if(this.kafkaAsyncExecutorConfig.isManageUsers()) {
-            // TODO User + Password requires AdminClient and Brokers >= 2.7.0
-            //  https://cwiki.apache.org/confluence/display/KAFKA/KIP-554%3A+Add+Broker-side+SCRAM+Config+API
-            //  Until then create the user/password without ns4kafka
-            throw new UnsupportedOperationException("Not implemented, contributions welcome");
-        }
-
     }
     /**** TOPICS MANAGEMENT ***/
     public void synchronizeTopics(){
