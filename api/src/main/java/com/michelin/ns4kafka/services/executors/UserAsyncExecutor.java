@@ -160,6 +160,10 @@ public class UserAsyncExecutor {
             try {
                 admin.alterUserScramCredentials(List.of(update)).all().get(10, TimeUnit.SECONDS);
                 log.info("Success resetting password for user {}", user);
+            } catch (InterruptedException e) {
+                log.error("Error", e);
+                Thread.currentThread().interrupt();
+                return null;
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -175,9 +179,14 @@ public class UserAsyncExecutor {
                         .stream()
                         .map(entry -> Map.entry(entry.getKey().entries().get(ClientQuotaEntity.USER), entry.getValue()))
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            } catch (InterruptedException e) {
+                log.error("Error", e);
+                Thread.currentThread().interrupt();
+                return null;
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
+
         }
 
         @Override
@@ -189,6 +198,9 @@ public class UserAsyncExecutor {
             try {
                 admin.alterClientQuotas(List.of(clientQuota)).all().get(10, TimeUnit.SECONDS);
                 log.info("Success applying quotas {} for user {}", quotas, user);
+            } catch (InterruptedException e) {
+                log.error("Error", e);
+                Thread.currentThread().interrupt();
             } catch (Exception e) {
                 log.error(String.format("Error while applying quotas for user %s", user), e);
 
