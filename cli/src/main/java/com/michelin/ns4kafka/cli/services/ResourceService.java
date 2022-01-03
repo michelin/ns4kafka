@@ -180,9 +180,9 @@ public class ResourceService {
         }
         return null;
     }
-    public Resource resetPassword(String namespace) {
+    public Resource resetPassword(String namespace, String user) {
         try {
-            Resource resource = namespacedClient.resetPassword(namespace, loginService.getAuthorization());
+            Resource resource = namespacedClient.resetPassword(namespace, user, loginService.getAuthorization());
 
             if (resource == null) {
                 // micronaut converts HTTP 404 into null

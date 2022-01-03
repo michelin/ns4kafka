@@ -115,6 +115,7 @@ ns4kafka:
       - registry/read
       - connect/read
       - connect/state/update
+      - users/reset-password
   security:
     admin-group: _
 #    local-users: # Not for production use.

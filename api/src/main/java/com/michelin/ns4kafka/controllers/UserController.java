@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import javax.inject.Inject;
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 
 @Tag(name = "Users")
 @Controller(value = "/api/namespaces/{namespace}/users")
@@ -23,9 +24,13 @@ public class UserController extends NamespacedResourceController {
     ApplicationContext applicationContext;
 
     // test flag for testing only, don't use it.
-    @Post("/reset-password")
-    public HttpResponse<KafkaUserResetPassword> resetPassword(String namespace) {
+    @Post("/{user}/reset-password")
+    public HttpResponse<KafkaUserResetPassword> resetPassword(String namespace, String user) {
         Namespace ns = getNamespace(namespace);
+
+        if(!ns.getSpec().getKafkaUser().equals(user)){
+            throw new ResourceValidationException(List.of(String.format("Invalid user %s : Doesn't belong to namespace %s",user, namespace)), "KafkaUserResetPassword", user);
+        }
 
         UserAsyncExecutor userAsyncExecutor = applicationContext.getBean(UserAsyncExecutor.class, Qualifiers.byName(ns.getMetadata().getCluster()));
 

@@ -15,6 +15,9 @@ public class UsersSubcommand implements Callable<Integer> {
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
 
+    @CommandLine.Parameters(description = "The user to reset password", arity = "1")
+    public String user;
+
     @CommandLine.Option(names = {"--execute"}, description = "This option is mandatory to change the password")
     public boolean confirmed;
 
@@ -58,7 +61,7 @@ public class UsersSubcommand implements Callable<Integer> {
             );
         }
 
-        Resource res = resourceService.resetPassword(namespace);
+        Resource res = resourceService.resetPassword(namespace, user);
         if (res != null) {
             formatService.displaySingle(res, output);
         }
