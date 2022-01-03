@@ -76,4 +76,7 @@ public interface NamespacedResourceClient {
             String subject,
             @Body Map<String, SchemaCompatibility> compatibility,
             @Header("Authorization") String token);
+
+    @Post("{namespace}/users/{user}/reset-password")
+    Resource resetPassword(String namespace, String user, @Header("Authorization") String token);
 }

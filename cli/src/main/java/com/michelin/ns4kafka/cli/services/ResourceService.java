@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
+import com.michelin.ns4kafka.cli.models.SchemaCompatibility;
 import com.michelin.ns4kafka.cli.models.Status;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -17,12 +18,10 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class ResourceService {
-
     @Inject
     NamespacedResourceClient namespacedClient;
     @Inject
     ClusterResourceClient nonNamespacedClient;
-
     @Inject
     LoginService loginService;
     @Inject
@@ -80,6 +79,7 @@ public class ResourceService {
         } catch (HttpClientResponseException e) {
             formatService.displayError(e, apiResource.getKind(), resource.getMetadata().getName());
         }
+
         return null;
     }
 
@@ -177,6 +177,26 @@ public class ResourceService {
             return resource;
         } catch (HttpClientResponseException e) {
             formatService.displayError(e, "Schema", subject);
+        }
+        return null;
+    }
+    public Resource resetPassword(String namespace, String user) {
+        try {
+            Resource resource = namespacedClient.resetPassword(namespace, user, loginService.getAuthorization());
+
+            if (resource == null) {
+                // micronaut converts HTTP 404 into null
+                // produce a 404
+                Status notFoundStatus = Status.builder()
+                        .code(404)
+                        .message("Resource not found")
+                        .reason("NotFound")
+                        .build();
+                throw new HttpClientResponseException("Not Found", HttpResponse.notFound(notFoundStatus));
+            }
+            return resource;
+        } catch (HttpClientResponseException e) {
+            formatService.displayError(e, "KafkaUserResetPassword", namespace);
         }
         return null;
     }

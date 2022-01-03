@@ -4,8 +4,6 @@ import io.micronaut.runtime.event.ApplicationStartupEvent;
 import io.micronaut.runtime.event.annotation.EventListener;
 import io.micronaut.scheduling.annotation.Scheduled;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -23,6 +21,8 @@ public class KafkaAsyncExecutorScheduler {
     List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutors;
     @Inject
     List<ConnectorAsyncExecutor> connectorAsyncExecutors;
+    @Inject
+    List<UserAsyncExecutor> userAsyncExecutors;
 
     private final AtomicBoolean ready = new AtomicBoolean(false);
 
@@ -41,6 +41,7 @@ public class KafkaAsyncExecutorScheduler {
             topicAsyncExecutors.forEach(TopicAsyncExecutor::run);
             accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
             connectorAsyncExecutors.forEach(ConnectorAsyncExecutor::run);
+            userAsyncExecutors.forEach(UserAsyncExecutor::run);
         }else {
             log.warn("Scheduled job did not start because micronaut is not ready yet");
         }
