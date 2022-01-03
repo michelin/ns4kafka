@@ -12,8 +12,6 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.io.IOException;
-import java.nio.file.NoSuchFileException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -179,6 +177,26 @@ public class ResourceService {
             return resource;
         } catch (HttpClientResponseException e) {
             formatService.displayError(e, "Schema", subject);
+        }
+        return null;
+    }
+    public Resource resetPassword(String namespace, String user) {
+        try {
+            Resource resource = namespacedClient.resetPassword(namespace, user, loginService.getAuthorization());
+
+            if (resource == null) {
+                // micronaut converts HTTP 404 into null
+                // produce a 404
+                Status notFoundStatus = Status.builder()
+                        .code(404)
+                        .message("Resource not found")
+                        .reason("NotFound")
+                        .build();
+                throw new HttpClientResponseException("Not Found", HttpResponse.notFound(notFoundStatus));
+            }
+            return resource;
+        } catch (HttpClientResponseException e) {
+            formatService.displayError(e, "KafkaUserResetPassword", namespace);
         }
         return null;
     }

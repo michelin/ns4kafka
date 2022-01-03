@@ -22,7 +22,8 @@ import java.util.concurrent.Callable;
                         DeleteRecordsSubcommand.class,
                         ImportSubcommand.class,
                         ConnectorsSubcommand.class,
-                        SchemaSubcommand.class
+                        SchemaSubcommand.class,
+                        UsersSubcommand.class
                 },
         versionProvider = KafkactlCommand.ConfigVersionProvider.class,
         mixinStandardHelpOptions = true)

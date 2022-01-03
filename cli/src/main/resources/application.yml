@@ -50,6 +50,11 @@ kafkactl:
     SchemaCompatibilityState:
       - "SUBJECT:/metadata/name"
       - "CONFIG:/spec/compatibility"
+    KafkaUserResetPassword:
+      - "NAMESPACE:/metadata/namespace"
+      - "CLUSTER:/metadata/cluster"
+      - "USER:/metadata/name"
+      - "PASSWORD:/spec/newPassword"
 #  api: http://localhost:8080
 #  user-token: token
 #  current-namespace: namespace_name
