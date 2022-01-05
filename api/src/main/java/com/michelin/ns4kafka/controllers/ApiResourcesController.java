@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import io.micronaut.core.annotation.Introspected;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.security.authentication.Authentication;
@@ -18,7 +19,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@RolesAllowed(SecurityRule.IS_AUTHENTICATED)
+@RolesAllowed(SecurityRule.IS_ANONYMOUS)
 @Controller("/api-resources")
 public class ApiResourcesController {
     public static final ResourceDefinition ACL = ResourceDefinition.builder()
@@ -75,7 +76,7 @@ public class ApiResourcesController {
     RoleBindingRepository roleBindingRepository;
 
     @Get
-    public List<ResourceDefinition> list(Authentication authentication) {
+    public List<ResourceDefinition> list(@Nullable Authentication authentication) {
         List<ResourceDefinition> all = List.of(
                 ACL,
                 CONNECTOR,
@@ -85,6 +86,9 @@ public class ApiResourcesController {
                 NAMESPACE,
                 SCHEMA
         );
+        if(authentication==null){
+            return all; // Backward compatibility for cli <= 1.3.0
+        }
         List<String> roles = (List<String>)authentication.getAttributes().getOrDefault("roles", List.of());
         List<String> groups = (List<String>) authentication.getAttributes().getOrDefault("groups",List.of());
 
