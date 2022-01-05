@@ -18,7 +18,7 @@ public interface ClusterResourceClient {
     UserInfoResponse tokenInfo(@Header("Authorization") String token);
 
     @Get("/api-resources")
-    List<ApiResource> listResourceDefinitions();
+    List<ApiResource> listResourceDefinitions(@Header("Authorization") String token);
 
     @Delete("/api/{kind}/{resource}{?dryrun}")
     void delete(@Header("Authorization") String token, String kind, String resource, @QueryValue boolean dryrun);

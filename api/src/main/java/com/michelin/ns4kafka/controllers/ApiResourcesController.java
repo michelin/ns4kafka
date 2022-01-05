@@ -1,15 +1,23 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.models.RoleBinding;
+import com.michelin.ns4kafka.repositories.RoleBindingRepository;
+import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import io.micronaut.core.annotation.Introspected;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
+import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
 import javax.annotation.security.RolesAllowed;
+import javax.inject.Inject;
+import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RolesAllowed(SecurityRule.IS_ANONYMOUS)
 @Controller("/api-resources")
@@ -31,7 +39,7 @@ public class ApiResourcesController {
     public static final ResourceDefinition KSTREAM = ResourceDefinition.builder()
             .kind("KafkaStream")
             .namespaced(true)
-            .synchronizable(true)
+            .synchronizable(false)
             .path("streams")
             .names(List.of("streams", "stream", "st"))
             .build();
@@ -64,9 +72,12 @@ public class ApiResourcesController {
                         .names(List.of("namespaces", "namespace", "ns"))
             .build();
 
+    @Inject
+    RoleBindingRepository roleBindingRepository;
+
     @Get
-    public List<ResourceDefinition> list() {
-        return List.of(
+    public List<ResourceDefinition> list(@Nullable Authentication authentication) {
+        List<ResourceDefinition> all = List.of(
                 ACL,
                 CONNECTOR,
                 KSTREAM,
@@ -74,7 +85,25 @@ public class ApiResourcesController {
                 TOPIC,
                 NAMESPACE,
                 SCHEMA
-                );
+        );
+        if(authentication==null){
+            return all; // Backward compatibility for cli <= 1.3.0
+        }
+        List<String> roles = (List<String>)authentication.getAttributes().getOrDefault("roles", List.of());
+        List<String> groups = (List<String>) authentication.getAttributes().getOrDefault("groups",List.of());
+
+        if(roles.contains(ResourceBasedSecurityRule.IS_ADMIN)) {
+            return all;
+        }
+
+        Collection<RoleBinding> roleBindings = roleBindingRepository.findAllForGroups(groups);
+        List<String> authorizedResources = roleBindings.stream()
+                .flatMap(roleBinding -> roleBinding.getSpec().getRole().getResourceTypes().stream())
+                .distinct()
+                .collect(Collectors.toList());
+        return all.stream()
+                .filter(resourceDefinition -> authorizedResources.contains(resourceDefinition.getPath()))
+                .collect(Collectors.toList());
     }
 
     @Introspected

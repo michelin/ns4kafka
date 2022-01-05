@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.cli;
 
 import com.michelin.ns4kafka.cli.services.ApiResourcesService;
+import com.michelin.ns4kafka.cli.services.LoginService;
 import picocli.CommandLine;
 
 import jakarta.inject.Inject;
@@ -10,9 +11,20 @@ import java.util.concurrent.Callable;
 public class ApiResourcesSubcommand implements Callable<Integer> {
     @Inject
     public ApiResourcesService apiResourcesService;
+    @Inject
+    public LoginService loginService;
+
+    @CommandLine.Spec
+    CommandLine.Model.CommandSpec commandSpec;
 
     @Override
     public Integer call() {
+        // 1. Authent
+        boolean authenticated = loginService.doAuthenticate();
+        if (!authenticated) {
+            throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
+        }
+
         CommandLine.Help.TextTable tt = CommandLine.Help.TextTable.forColumns(
                 CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.AUTO),
                 new CommandLine.Help.Column[]

@@ -80,7 +80,10 @@ public class GetSubcommand implements Callable<Integer> {
                 // 4.a list all resources for given types (k get all, k get topics)
                 Map<ApiResource, List<Resource>> resources = resourceService.listAll(apiResources, namespace);
                 // 5.a display all resources by type
-                resources.forEach((k, v) -> formatService.displayList(k.getKind(), v, output));
+                resources.entrySet()
+                        .stream()
+                        .filter(kv -> !kv.getValue().isEmpty())
+                        .forEach(kv -> formatService.displayList(kv.getKey().getKind(), kv.getValue(), output));
             } catch (HttpClientResponseException e) {
                 formatService.displayError(e, apiResources.get(0).getKind(), null);
             } catch (Exception e) {
