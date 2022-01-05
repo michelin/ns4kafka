@@ -14,10 +14,12 @@ import java.util.stream.Collectors;
 public class ApiResourcesService {
     @Inject
     public ClusterResourceClient resourceClient;
+    @Inject
+    public LoginService loginService;
 
     public List<ApiResource> getListResourceDefinition() {
         //TODO Add Cache to reduce the number of http requests
-        return resourceClient.listResourceDefinitions();
+        return resourceClient.listResourceDefinitions(loginService.getAuthorization());
     }
 
     public Optional<ApiResource> getResourceDefinitionFromKind(String kind) {

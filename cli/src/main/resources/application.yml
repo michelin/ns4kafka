@@ -13,6 +13,13 @@ kafkactl:
   version: @version@
   config-path: ${user.home}/.kafkactl
   table-format:
+    Namespace:
+      - "NAMESPACE:/metadata/name"
+      - "CLUSTER:/metadata/cluster"
+      - "USER:/spec/kafkaUser"
+      - "CONNECTS:/spec/connectClusters"
+      - "LDAP:/metadata/labels/support-group"
+      - "CONTACTS:/metadata/labels/contacts"
     Topic:
       - "TOPIC:/metadata/name"
       - "RETENTION:/spec/configs/retention.ms%PERIOD"
