@@ -62,14 +62,14 @@ public class ApiResourcesController {
             .namespaced(true)
             .synchronizable(false)
             .path("schemas")
-            .names(List.of("schemas", "schemas", "sc"))
+            .names(List.of("schemas", "schema", "sc"))
             .build();
     public static final ResourceDefinition NAMESPACE = ResourceDefinition.builder()
             .kind("Namespace")
-                        .namespaced(false)
-                        .synchronizable(false)
-                        .path("namespaces")
-                        .names(List.of("namespaces", "namespace", "ns"))
+            .namespaced(false)
+            .synchronizable(false)
+            .path("namespaces")
+            .names(List.of("namespaces", "namespace", "ns"))
             .build();
 
     @Inject
