@@ -86,6 +86,8 @@ public class SchemaService {
 
         return Optional.of(Schema.builder()
                         .metadata(ObjectMeta.builder()
+                                .cluster(namespace.getMetadata().getCluster())
+                                .namespace(namespace.getMetadata().getName())
                                 .name(response.get().subject())
                                 .build())
                         .spec(Schema.SchemaSpec.builder()
