@@ -131,6 +131,8 @@ class SchemaServiceTest {
 
         Assertions.assertTrue(retrievedSchema.isPresent());
         Assertions.assertEquals("prefix.schema-one", retrievedSchema.get().getMetadata().getName());
+        Assertions.assertEquals("local", retrievedSchema.get().getMetadata().getCluster());
+        Assertions.assertEquals("myNamespace", retrievedSchema.get().getMetadata().getNamespace());
     }
 
     /**
