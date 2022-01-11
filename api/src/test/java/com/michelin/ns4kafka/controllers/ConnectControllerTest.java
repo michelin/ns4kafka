@@ -21,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -194,7 +195,10 @@ public class ConnectControllerTest {
 
     @Test
     void createConnectorLocalErrors() {
-        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Connector connector = Connector.builder()
+                .metadata(ObjectMeta.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
+                .build();
 
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
@@ -215,7 +219,10 @@ public class ConnectControllerTest {
 
     @Test
     void createConnectorRemoteErrors() {
-        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Connector connector = Connector.builder()
+                .metadata(ObjectMeta.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
+                .build();
 
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
@@ -238,9 +245,13 @@ public class ConnectControllerTest {
 
     @Test
     void createConnectorSuccess() {
-        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Connector connector = Connector.builder()
+                .metadata(ObjectMeta.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
+                .build();
         Connector expected = Connector.builder()
                 .metadata(ObjectMeta.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder().config(Map.of("name", "connect1")).build())
                 .status(Connector.ConnectorStatus.builder().state(Connector.TaskState.UNASSIGNED).build())
                 .build();
 
@@ -274,12 +285,16 @@ public class ConnectControllerTest {
 
     @Test
     void createConnectorSuccess_AlreadyExists() {
-        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Connector connector = Connector.builder()
+                .metadata(ObjectMeta.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
+                .build();
         Connector expected = Connector.builder()
                 .metadata(ObjectMeta.builder()
                         .namespace("test")
                         .cluster("local")
                         .name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder().config(Map.of("name", "connect1")).build())
                 .status(Connector.ConnectorStatus.builder().state(Connector.TaskState.UNASSIGNED).build())
                 .build();
 
@@ -311,10 +326,17 @@ public class ConnectControllerTest {
 
     @Test
     void createConnectorSuccess_Changed() {
-        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Connector connector = Connector.builder()
+                .metadata(ObjectMeta.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
+                .build();
         Connector connectorOld = Connector.builder().metadata(ObjectMeta.builder().name("connect1").labels(Map.of("label", "labelValue")).build()).build();
         Connector expected = Connector.builder()
-                .metadata(ObjectMeta.builder().name("connect1").build())
+                .metadata(ObjectMeta.builder()
+                        .name("connect1")
+                        .labels(Map.of("label", "labelValue"))
+                        .build())
+                .spec(Connector.ConnectorSpec.builder().config(Map.of("name", "connect1")).build())
                 .status(Connector.ConnectorStatus.builder().state(Connector.TaskState.UNASSIGNED).build())
                 .build();
 
@@ -344,15 +366,19 @@ public class ConnectControllerTest {
         Connector actual = response.body();
 
         Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
-        Assertions.assertEquals(expected.getStatus().getState(), actual.getStatus().getState());
+        Assertions.assertEquals(expected, actual);
 
     }
 
     @Test
     void createConnectorDryRun() {
-        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Connector connector = Connector.builder()
+                .metadata(ObjectMeta.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
+                .build();
         Connector expected = Connector.builder()
                 .metadata(ObjectMeta.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder().config(Map.of("name", "connect1")).build())
                 .status(Connector.ConnectorStatus.builder().state(Connector.TaskState.UNASSIGNED).build())
                 .build();
 
