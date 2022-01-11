@@ -43,7 +43,7 @@ public class SchemaController extends NamespacedResourceController {
      * Get the last version of a schema by namespace and subject
      *
      * @param namespace The namespace
-     * @param subject The subject
+     * @param subject   The subject
      * @return A schema
      */
     @Get("/{subject}")
@@ -61,8 +61,8 @@ public class SchemaController extends NamespacedResourceController {
      * Publish a schema
      *
      * @param namespace The namespace
-     * @param schema The schema to create
-     * @param dryrun Does the creation is a dry run
+     * @param schema    The schema to create
+     * @param dryrun    Does the creation is a dry run
      * @return The created schema
      */
     @Post
@@ -71,7 +71,7 @@ public class SchemaController extends NamespacedResourceController {
 
         // Validate TopicNameStrategy
         // https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject/TopicNameStrategy.java
-        if(!schema.getMetadata().getName().endsWith("-key") && !schema.getMetadata().getName().endsWith("-value")){
+        if (!schema.getMetadata().getName().endsWith("-key") && !schema.getMetadata().getName().endsWith("-value")) {
             throw new ResourceValidationException(List.of("Invalid value " + schema.getMetadata().getName() +
                     " for name: subject must end with -key or -value"), schema.getKind(), schema.getMetadata().getName());
         }
@@ -95,18 +95,19 @@ public class SchemaController extends NamespacedResourceController {
 
         Optional<Schema> existingSchemaOptional = schemaService.getLatestSubject(ns, schema.getMetadata().getName());
         schemaService.register(ns, schema);
-        Optional<Schema> registeredSchema = schemaService.getLatestSubject(ns, schema.getMetadata().getName());
+        Schema registeredSchema = schemaService.getLatestSubject(ns, schema.getMetadata().getName()).orElseThrow();
+        ApplyStatus status;
 
-        ApplyStatus status = existingSchemaOptional.isEmpty() ? ApplyStatus.created :
-                registeredSchema.isPresent() && registeredSchema.get().getSpec().getVersion() > existingSchemaOptional.get().getSpec().getVersion() ? ApplyStatus.changed
-                        : ApplyStatus.unchanged;
-
-        if (!status.equals(ApplyStatus.unchanged)) {
-            sendEventLog(schema.getKind(),
-                    schema.getMetadata(),
-                    status,
-                    existingSchemaOptional.isPresent() ? existingSchemaOptional.get().getSpec(): null,
-                    schema.getSpec());
+        if (existingSchemaOptional.isEmpty()) {
+            status = ApplyStatus.created;
+            sendEventLog(schema.getKind(), registeredSchema.getMetadata(), status,
+                    null, registeredSchema.getSpec());
+        } else if (registeredSchema.getSpec().getVersion() > existingSchemaOptional.get().getSpec().getVersion()) {
+            status = ApplyStatus.changed;
+            sendEventLog(schema.getKind(), registeredSchema.getMetadata(), status,
+                    existingSchemaOptional.get().getSpec(), registeredSchema.getSpec());
+        } else {
+            status = ApplyStatus.unchanged;
         }
 
         return formatHttpResponse(schema, status);
@@ -116,14 +117,14 @@ public class SchemaController extends NamespacedResourceController {
      * Delete all schemas under the given subject
      *
      * @param namespace The current namespace
-     * @param subject The current subject to delete
-     * @param dryrun Run in dry mode or not
+     * @param subject   The current subject to delete
+     * @param dryrun    Run in dry mode or not
      * @return A HTTP response
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{subject}")
     public HttpResponse<Void> deleteSubject(String namespace, @PathVariable String subject,
-                                              @QueryValue(defaultValue = "false") boolean dryrun) {
+                                            @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         // Validate ownership
@@ -158,8 +159,8 @@ public class SchemaController extends NamespacedResourceController {
     /**
      * Update the compatibility of a subject
      *
-     * @param namespace The namespace
-     * @param subject The subject to update
+     * @param namespace     The namespace
+     * @param subject       The subject to update
      * @param compatibility The compatibility to apply
      * @return A schema compatibility state
      */
