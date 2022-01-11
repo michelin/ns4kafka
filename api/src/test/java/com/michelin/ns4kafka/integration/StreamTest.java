@@ -1,13 +1,15 @@
 package com.michelin.ns4kafka.integration;
 
 import com.michelin.ns4kafka.integration.TopicTest.BearerAccessRefreshToken;
-import com.michelin.ns4kafka.models.*;
+import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
+import com.michelin.ns4kafka.models.KafkaStream;
+import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
-import com.michelin.ns4kafka.models.RoleBinding.*;
+import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.services.executors.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.annotation.Property;
@@ -22,17 +24,16 @@ import jakarta.inject.Inject;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.acl.AccessControlEntryFilter;
 import org.apache.kafka.common.acl.AclBindingFilter;
+import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourcePatternFilter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-@Disabled
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 public class StreamTest extends AbstractIntegrationTest {
@@ -60,36 +61,30 @@ public class StreamTest extends AbstractIntegrationTest {
                   .build())
             .build();
 
-        RoleBinding rb1 = RoleBinding.builder()
+        AccessControlEntry acl1 = AccessControlEntry.builder()
             .metadata(ObjectMeta.builder()
-                      .name("nskafkastream-rb")
-                      .namespace("nskafkastream")
-                      .build())
-            .spec(RoleBindingSpec.builder()
-                .role(Role.builder()
-                        .resourceTypes(List.of("topics", "acls"))
-                        .verbs(List.of(Verb.POST, Verb.GET))
-                        .build())
-                .subject(Subject.builder()
-                        .subjectName("groupkafkastream")
-                        .subjectType(SubjectType.GROUP)
-                        .build())
-                  .build())
-            .build();
-
-        AccessControlEntry acl = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
-                      .name("nskafkastream-acl")
-                      .namespace("ns1")
+                      .name("nskafkastream-acl-topic")
                       .build())
             .spec(AccessControlEntrySpec.builder()
                   .resourceType(ResourceType.TOPIC)
-                  .resource("nskafkastream-")
+                  .resource("kstream-")
                   .resourcePatternType(ResourcePatternType.PREFIXED)
                   .permission(Permission.OWNER)
                   .grantedTo("nskafkastream")
                   .build())
             .build();
+        AccessControlEntry acl2 = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("nskafkastream-acl-group")
+                        .build())
+                .spec(AccessControlEntrySpec.builder()
+                        .resourceType(ResourceType.GROUP)
+                        .resource("kstream-")
+                        .resourcePatternType(ResourcePatternType.PREFIXED)
+                        .permission(Permission.OWNER)
+                        .grantedTo("nskafkastream")
+                        .build())
+                .build();
 
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin","admin");
@@ -98,8 +93,8 @@ public class StreamTest extends AbstractIntegrationTest {
         token = response.getBody().get().getAccessToken();
 
         client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/nskafkastream/role-bindings").bearerAuth(token).body(rb1)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/nskafkastream/acls").bearerAuth(token).body(acl)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/nskafkastream/acls").bearerAuth(token).body(acl1)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/nskafkastream/acls").bearerAuth(token).body(acl2)).blockingFirst();
     }
 
     @Test
@@ -107,7 +102,7 @@ public class StreamTest extends AbstractIntegrationTest {
 
         KafkaStream stream = KafkaStream.builder()
                 .metadata(ObjectMeta.builder()
-                        .name("nskafkastream-streamToTest")
+                        .name("kstream-test")
                         .build())
                 .build();
         client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/nskafkastream/streams")
@@ -117,20 +112,23 @@ public class StreamTest extends AbstractIntegrationTest {
         //force ACL Sync
         aceAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
         Admin kafkaClient = getAdminClient();
-        //TODO SecurityDisabledException no authorizer configured
+
         var aclTopic = kafkaClient.describeAcls(new AclBindingFilter(
                 new ResourcePatternFilter(org.apache.kafka.common.resource.ResourceType.TOPIC,
                         stream.getMetadata().getName(),
                         PatternType.PREFIXED),
                 AccessControlEntryFilter.ANY)).values().get();
-
-        var aclGroup = kafkaClient.describeAcls(new AclBindingFilter(
-                new ResourcePatternFilter(org.apache.kafka.common.resource.ResourceType.GROUP,
+        var aclTransactionalId = kafkaClient.describeAcls(new AclBindingFilter(
+                new ResourcePatternFilter(org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
                         stream.getMetadata().getName(),
                         PatternType.PREFIXED),
                 AccessControlEntryFilter.ANY)).values().get();
 
         Assertions.assertEquals(2, aclTopic.size());
-        Assertions.assertEquals(1, aclGroup.size());
+        Assertions.assertTrue(aclTopic.stream()
+                .allMatch(aclBinding -> List.of(AclOperation.CREATE, AclOperation.DELETE).contains(aclBinding.entry().operation())));
+
+        Assertions.assertEquals(1, aclTransactionalId.size());
+        Assertions.assertEquals(AclOperation.WRITE, aclTransactionalId.stream().findFirst().get().entry().operation());
     }
 }
