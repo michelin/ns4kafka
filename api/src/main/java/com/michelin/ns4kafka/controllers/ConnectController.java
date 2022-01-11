@@ -79,6 +79,16 @@ public class ConnectController extends NamespacedResourceController {
                     " for name: Namespace not OWNER of this connector"), connector.getKind(), connector.getMetadata().getName());
         }
 
+        // Set / Override name in spec.config.name, required for several Kafka Connect API calls
+        // This is a response to projects setting a value A in metadata.name, and a value B in spec.config.name
+        // I have considered alternatives :
+        // - Make name in spec.config forbidden, and set it only when necessary (API calls)
+        // - Mask it in the resulting list connectors so that the synchronization process doesn't see changes
+        // I prefer to go this way for 2 reasons:
+        // - It is backward compatible with teams that already define name in spec.config.name
+        // - It doesn't impact the code as much (single line vs 10+ lines)
+        connector.getSpec().getConfig().put("name", connector.getMetadata().getName());
+
         // Validate locally
         List<String> validationErrors = kafkaConnectService.validateLocally(ns, connector);
         if (!validationErrors.isEmpty()) {

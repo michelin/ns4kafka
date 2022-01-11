@@ -176,7 +176,6 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
                         .connectCluster("test-connect")
                         .config(Map.of(
                                 "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
-                                "name", "ns1-co1",
                                 "tasks.max", "1",
                                 "topics", "ns1-to1"
                         ))
@@ -225,7 +224,6 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
                         .connectCluster("test-connect")
                         .config(Map.of(
                                 "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
-                                "name", "ns1-co2",
                                 "tasks.max", "3",
                                 "topics", "ns1-to1"
                         ))
