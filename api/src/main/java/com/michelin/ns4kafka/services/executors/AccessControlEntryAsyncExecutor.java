@@ -248,7 +248,7 @@ public class AccessControlEntryAsyncExecutor {
     private List<AclOperation> computeAclOperationForOwner(ResourceType resourceType) {
         switch (resourceType) {
             case TOPIC:
-                return List.of(AclOperation.WRITE, AclOperation.READ);
+                return List.of(AclOperation.WRITE, AclOperation.READ, AclOperation.DESCRIBE_CONFIGS);
             case GROUP:
                 return List.of(AclOperation.READ);
             case CLUSTER:
