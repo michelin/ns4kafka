@@ -57,9 +57,13 @@ public class SchemaService {
                         return false;
                     });
                 })
-                .map(namespacedSubject -> getLatestSubject(namespace, namespacedSubject))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
+                .map(namespacedSubject -> Schema.builder()
+                    .metadata(ObjectMeta.builder()
+                            .cluster(namespace.getMetadata().getCluster())
+                            .namespace(namespace.getMetadata().getName())
+                            .name(namespacedSubject)
+                            .build())
+                    .build())
                 .collect(Collectors.toList());
     }
 
