@@ -6,7 +6,7 @@ import com.michelin.ns4kafka.services.schema.KafkaSchemaRegistryClientProxy;
 import io.micronaut.http.*;
 import io.micronaut.http.client.ProxyHttpClient;
 import io.micronaut.http.simple.SimpleHttpRequest;
-import io.reactivex.subscribers.TestSubscriber;
+import io.reactivex.rxjava3.subscribers.TestSubscriber;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

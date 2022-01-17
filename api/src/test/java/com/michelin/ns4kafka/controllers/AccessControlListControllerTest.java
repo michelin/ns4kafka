@@ -449,7 +449,7 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
+        Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
 
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
@@ -499,7 +499,7 @@ public class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Authentication auth = new DefaultAuthentication("user", Map.of("roles",List.of()));
+        Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
 
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));

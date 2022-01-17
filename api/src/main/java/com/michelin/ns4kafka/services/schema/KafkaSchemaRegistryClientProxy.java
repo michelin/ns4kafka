@@ -10,12 +10,11 @@ import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.annotation.Filter;
 import io.micronaut.http.client.ProxyHttpClient;
-import io.micronaut.http.filter.HttpServerFilter;
 import io.micronaut.http.filter.OncePerRequestHttpServerFilter;
 import io.micronaut.http.filter.ServerFilterChain;
+import jakarta.inject.Inject;
 import org.reactivestreams.Publisher;
 
-import javax.inject.Inject;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;

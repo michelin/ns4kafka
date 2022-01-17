@@ -1,14 +1,20 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.models.*;
+import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.Schema;
 import com.michelin.ns4kafka.services.schema.KafkaSchemaRegistryClientProxy;
 import com.michelin.ns4kafka.services.schema.client.KafkaSchemaRegistryClient;
-import com.michelin.ns4kafka.services.schema.client.entities.*;
+import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityCheckResponse;
+import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
+import com.michelin.ns4kafka.services.schema.client.entities.SchemaRequest;
+import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;

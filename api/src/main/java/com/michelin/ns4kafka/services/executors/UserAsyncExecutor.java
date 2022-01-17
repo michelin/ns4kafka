@@ -3,6 +3,8 @@ package com.michelin.ns4kafka.services.executors;
 import com.michelin.ns4kafka.controllers.ResourceValidationException;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import io.micronaut.context.annotation.EachBean;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ScramCredentialInfo;
@@ -13,8 +15,6 @@ import org.apache.kafka.common.quota.ClientQuotaEntity;
 import org.apache.kafka.common.quota.ClientQuotaFilter;
 import org.apache.kafka.common.quota.ClientQuotaFilterComponent;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.List;
