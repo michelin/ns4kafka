@@ -23,13 +23,24 @@ public class ConfigService {
     }
 
     /**
-     * Get the current context if it exists, or null otherwise
+     * Get the current context infos if it exists, or null otherwise
      *
      * @return The current context
      */
-    public KafkactlConfig.Context getCurrentContext() {
+    public KafkactlConfig.Context getCurrentContextInfos() {
         return kafkactlConfig.getContexts().stream()
                 .filter(context -> context.getName().equals(kafkactlConfig.getCurrentContext()))
                 .findFirst().orElse(null);
+    }
+
+    /**
+     * Does the given context name exist
+     *
+     * @param name The name to check
+     * @return true if it is, false otherwise
+     */
+    public boolean contextExists(String name) {
+        return kafkactlConfig.getContexts().stream()
+                .anyMatch(context -> context.getName().equals(name));
     }
 }
