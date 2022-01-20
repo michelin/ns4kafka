@@ -3,10 +3,7 @@ package com.michelin.ns4kafka.cli;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.ObjectMeta;
 import com.michelin.ns4kafka.cli.models.Resource;
-import com.michelin.ns4kafka.cli.services.ApiResourcesService;
-import com.michelin.ns4kafka.cli.services.FileService;
-import com.michelin.ns4kafka.cli.services.LoginService;
-import com.michelin.ns4kafka.cli.services.ResourceService;
+import com.michelin.ns4kafka.cli.services.*;
 import picocli.CommandLine;
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
@@ -22,16 +19,21 @@ import java.util.stream.Collectors;
 
 @Command(name = "delete", description = "Delete a resource")
 public class DeleteSubcommand implements Callable<Integer> {
+    @Inject
+    public ConfigService configService;
 
     @Inject
     public KafkactlConfig kafkactlConfig;
 
     @Inject
     public ResourceService resourceService;
+
     @Inject
     public LoginService loginService;
+
     @Inject
     public ApiResourcesService apiResourcesService;
+
     @Inject
     public FileService fileService;
 
@@ -47,18 +49,21 @@ public class DeleteSubcommand implements Callable<Integer> {
         @ArgGroup(exclusive = false)
         public ByFile fileConfig;
     }
+
     static class ByName {
         @Parameters(index = "0", description = "Resource type", arity = "1")
         public String resourceType;
         @Parameters(index = "1", description = "Resource name", arity = "1")
         public String name;
     }
+
     static class ByFile {
         @Option(names = {"-f", "--file"}, description = "YAML File or Directory containing YAML resources")
         public Optional<File> file;
         @Option(names = {"-R", "--recursive"}, description = "Enable recursive search in Directory")
         public boolean recursive;
     }
+
     @Option(names = {"--dry-run"}, description = "Does not persist operation. Validate only")
     public boolean dryRun;
 
@@ -67,7 +72,6 @@ public class DeleteSubcommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
-
         if (dryRun) {
             System.out.println("Dry run execution");
         }
@@ -76,8 +80,9 @@ public class DeleteSubcommand implements Callable<Integer> {
         if (!authenticated) {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
         }
+        KafkactlConfig.Context currentContext = configService.getCurrentContext();
 
-        String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
+        String namespace = kafkactlCommand.optionalNamespace.orElse(currentContext.getContext().getCurrentNamespace());
 
         List<Resource> resources;
 

@@ -4,10 +4,7 @@ import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
-import com.michelin.ns4kafka.cli.services.ApiResourcesService;
-import com.michelin.ns4kafka.cli.services.FormatService;
-import com.michelin.ns4kafka.cli.services.LoginService;
-import com.michelin.ns4kafka.cli.services.ResourceService;
+import com.michelin.ns4kafka.cli.services.*;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -30,29 +27,39 @@ import java.util.stream.Collectors;
         "Parameters: "
 })
 public class GetSubcommand implements Callable<Integer> {
+    @Inject
+    public ConfigService configService;
 
     @Inject
     public NamespacedResourceClient namespacedClient;
+
     @Inject
     public ClusterResourceClient nonNamespacedClient;
 
     @Inject
     public LoginService loginService;
+
     @Inject
     public ApiResourcesService apiResourcesService;
+
     @Inject
     public ResourceService resourceService;
+
     @Inject
     public FormatService formatService;
+
     @Inject
     public KafkactlConfig kafkactlConfig;
 
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
+
     @Parameters(index = "0", description = "Resource type or 'all' to display resources for all types", arity = "1")
     public String resourceType;
+
     @Parameters(index = "1", description = "Resource name", arity = "0..1")
     public Optional<String> resourceName;
+
     @Option(names = {"-o", "--output"}, description = "Output format. One of: yaml|table", defaultValue = "table")
     public String output;
 
@@ -61,19 +68,19 @@ public class GetSubcommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-
         // 1. Authent
         boolean authenticated = loginService.doAuthenticate();
         if (!authenticated) {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
         }
+        KafkactlConfig.Context currentContext = configService.getCurrentContext();
 
         // 2. validate resourceType + custom type ALL
         List<ApiResource> apiResources = validateResourceType();
 
         validateOutput();
 
-        String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
+        String namespace = kafkactlCommand.optionalNamespace.orElse(currentContext.getContext().getCurrentNamespace());
         // 3. list resources based on parameters
         if (resourceName.isEmpty() || apiResources.size() > 1) {
             try {

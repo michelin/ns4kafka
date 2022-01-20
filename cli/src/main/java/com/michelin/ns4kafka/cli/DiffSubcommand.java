@@ -5,10 +5,7 @@ import com.github.difflib.UnifiedDiffUtils;
 import com.github.difflib.patch.Patch;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
-import com.michelin.ns4kafka.cli.services.ApiResourcesService;
-import com.michelin.ns4kafka.cli.services.FileService;
-import com.michelin.ns4kafka.cli.services.LoginService;
-import com.michelin.ns4kafka.cli.services.ResourceService;
+import com.michelin.ns4kafka.cli.services.*;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
 import org.yaml.snakeyaml.DumperOptions;
@@ -30,13 +27,18 @@ import java.util.stream.Collectors;
 
 @Command(name = "diff", description = "Get differences between the new resources and the old resource")
 public class DiffSubcommand implements Callable<Integer> {
+    @Inject
+    public ConfigService configService;
 
     @Inject
     public LoginService loginService;
+
     @Inject
     public ApiResourcesService apiResourcesService;
+
     @Inject
     public FileService fileService;
+
     @Inject
     public ResourceService resourceService;
 
@@ -45,8 +47,10 @@ public class DiffSubcommand implements Callable<Integer> {
 
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
+
     @Option(names = {"-f", "--file"}, description = "YAML File or Directory containing YAML resources")
     public Optional<File> file;
+
     @Option(names = {"-R", "--recursive"}, description = "Enable recursive search of file")
     public boolean recursive;
 
@@ -55,11 +59,11 @@ public class DiffSubcommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-
         boolean authenticated = loginService.doAuthenticate();
         if (!authenticated) {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
         }
+        KafkactlConfig.Context currentContext = configService.getCurrentContext();
 
         // 0. Check STDIN and -f
         boolean hasStdin = System.in.available() > 0;
@@ -92,7 +96,7 @@ public class DiffSubcommand implements Callable<Integer> {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "The server doesn't have resource type [" + invalid + "]");
         }
         // 4. validate namespace mismatch
-        String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
+        String namespace = kafkactlCommand.optionalNamespace.orElse(currentContext.getContext().getCurrentNamespace());
         List<Resource> nsMismatch = resources.stream()
                 .filter(resource -> resource.getMetadata().getNamespace() != null && !resource.getMetadata().getNamespace().equals(namespace))
                 .collect(Collectors.toList());

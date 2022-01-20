@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.cli;
 
 import com.michelin.ns4kafka.cli.models.Resource;
+import com.michelin.ns4kafka.cli.services.ConfigService;
 import com.michelin.ns4kafka.cli.services.FormatService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
@@ -12,6 +13,21 @@ import java.util.concurrent.Callable;
 
 @CommandLine.Command(name = "reset-password", description = "Reset your Kafka password")
 public class UsersSubcommand implements Callable<Integer> {
+    @Inject
+    public ConfigService configService;
+
+    @Inject
+    public LoginService loginService;
+
+    @Inject
+    public ResourceService resourceService;
+
+    @Inject
+    public KafkactlConfig kafkactlConfig;
+
+    @Inject
+    public FormatService formatService;
+
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
 
@@ -24,20 +40,8 @@ public class UsersSubcommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-o", "--output"}, description = "Output format. One of: yaml|table", defaultValue = "table")
     public String output;
 
-    @Inject
-    public LoginService loginService;
-
-    @Inject
-    public ResourceService resourceService;
-
     @CommandLine.Spec
     public CommandLine.Model.CommandSpec commandSpec;
-
-    @Inject
-    public KafkactlConfig kafkactlConfig;
-
-    @Inject
-    public FormatService formatService;
 
     @Override
     public Integer call() throws Exception {
@@ -45,8 +49,9 @@ public class UsersSubcommand implements Callable<Integer> {
         if (!authenticated) {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
         }
+        KafkactlConfig.Context currentContext = configService.getCurrentContext();
 
-        String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
+        String namespace = kafkactlCommand.optionalNamespace.orElse(currentContext.getContext().getCurrentNamespace());
 
         if (!List.of("table", "yaml").contains(output)) {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Invalid value " + output + " for option -o");

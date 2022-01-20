@@ -14,9 +14,23 @@ import java.util.Map;
 public class KafkactlConfig {
     public String version;
     public String configPath;
-    public String api;
-    public String userToken;
-    public String currentNamespace;
+    public List<Context> contexts;
+    public String currentContext;
     @MapFormat(transformation = MapFormat.MapTransformation.FLAT)
     public Map<String, List<String>> tableFormat;
+
+    @Getter
+    @Setter
+    public static class Context {
+        public String name;
+        public ApiContext context;
+
+        @Getter
+        @Setter
+        public static class ApiContext {
+            public String api;
+            public String userToken;
+            public String currentNamespace;
+        }
+    }
 }

@@ -18,16 +18,24 @@ import java.util.Date;
 
 @Singleton
 public class LoginService {
+    /**
+     * The configuration service
+     */
+    private final ConfigService configService;
     private final KafkactlConfig kafkactlConfig;
     private final ClusterResourceClient clusterResourceClient;
     private final File jwtFile;
 
     private String accessToken = null;
 
-    public LoginService(KafkactlConfig kafkactlConfig, ClusterResourceClient clusterResourceClient) {
+    public LoginService(KafkactlConfig kafkactlConfig,
+                        ClusterResourceClient clusterResourceClient,
+                        ConfigService configService) {
         this.kafkactlConfig = kafkactlConfig;
         this.clusterResourceClient = clusterResourceClient;
+        this.configService = configService;
         this.jwtFile = new File(kafkactlConfig.getConfigPath() + "/jwt");
+
         // Create base kafkactl dir if not exists
         File kafkactlDir = new File(kafkactlConfig.getConfigPath());
         if (!kafkactlDir.exists()) {
@@ -40,7 +48,7 @@ public class LoginService {
     }
 
     public boolean doAuthenticate() {
-        return isAuthenticated() || login("gitlab", kafkactlConfig.getUserToken());
+        return isAuthenticated() || login("gitlab");
     }
 
     public boolean isAuthenticated() {
@@ -73,15 +81,22 @@ public class LoginService {
         return false;
     }
 
-    public boolean login(String user, String password) {
+    public boolean login(String user) {
         try {
+            // 1. validate context
+            KafkactlConfig.Context currentContext = configService.getCurrentContext();
+            if (currentContext == null) {
+                System.out.println("Context " + kafkactlConfig.getCurrentContext() + " does not exist");
+                return false;
+            }
+
             // 1. Call ns4kafka /login
             BearerAccessRefreshToken tokenResponse =
                     clusterResourceClient.login(
                             UsernameAndPasswordRequest
                                     .builder()
                                     .username(user)
-                                    .password(password)
+                                    .password(currentContext.getContext().userToken)
                                     .build()
                     );
             // 2. Store token in memory;
