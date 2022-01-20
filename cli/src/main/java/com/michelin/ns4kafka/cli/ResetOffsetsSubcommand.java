@@ -84,7 +84,7 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
         if (!authenticated) {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
         }
-        KafkactlConfig.Context currentContext = configService.getCurrentContext();
+        KafkactlConfig.Context currentContext = configService.getCurrentContextInfos();
 
         String namespace = kafkactlCommand.optionalNamespace.orElse(currentContext.getContext().getCurrentNamespace());
 

@@ -84,9 +84,9 @@ public class LoginService {
     public boolean login(String user) {
         try {
             // 1. validate context
-            KafkactlConfig.Context currentContext = configService.getCurrentContext();
+            KafkactlConfig.Context currentContext = configService.getCurrentContextInfos();
             if (currentContext == null) {
-                System.out.println("Context " + kafkactlConfig.getCurrentContext() + " does not exist");
+                System.out.println("error: no context exists with the name: " + kafkactlConfig.getCurrentContext());
                 return false;
             }
 

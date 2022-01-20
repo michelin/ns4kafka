@@ -63,7 +63,7 @@ public class DiffSubcommand implements Callable<Integer> {
         if (!authenticated) {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
         }
-        KafkactlConfig.Context currentContext = configService.getCurrentContext();
+        KafkactlConfig.Context currentContext = configService.getCurrentContextInfos();
 
         // 0. Check STDIN and -f
         boolean hasStdin = System.in.available() > 0;

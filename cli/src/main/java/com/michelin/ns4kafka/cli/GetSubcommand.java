@@ -73,7 +73,7 @@ public class GetSubcommand implements Callable<Integer> {
         if (!authenticated) {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
         }
-        KafkactlConfig.Context currentContext = configService.getCurrentContext();
+        KafkactlConfig.Context currentContext = configService.getCurrentContextInfos();
 
         // 2. validate resourceType + custom type ALL
         List<ApiResource> apiResources = validateResourceType();
