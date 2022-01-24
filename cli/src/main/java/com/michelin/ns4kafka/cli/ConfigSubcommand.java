@@ -8,6 +8,7 @@ import com.michelin.ns4kafka.cli.models.ObjectMeta;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ConfigService;
 import com.michelin.ns4kafka.cli.services.FormatService;
+import lombok.Getter;
 import picocli.CommandLine;
 
 import javax.inject.Inject;
@@ -29,7 +30,7 @@ public class ConfigSubcommand implements Callable<Integer> {
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
 
-    @CommandLine.Parameters(index = "0", description = "(getcontexts | currentcontext | usecontext)", arity = "1")
+    @CommandLine.Parameters(index = "0", description = "(get-contexts | current-context | use-context)", arity = "1")
     public ConfigAction action;
 
     @CommandLine.Parameters(index="1", defaultValue = "", description = "Context", arity = "1")
@@ -37,12 +38,12 @@ public class ConfigSubcommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        if (action.equals(ConfigAction.currentcontext)) {
+        if (action.equals(ConfigAction.CURRENT_CONTEXT)) {
             System.out.println(kafkactlConfig.getCurrentContext());
             return 0;
         }
 
-        if (action.equals(ConfigAction.getcontexts)) {
+        if (action.equals(ConfigAction.GET_CONTEXTS)) {
             List<Resource> allContextsAsResources = new ArrayList<>();
             kafkactlConfig.getContexts().forEach(context -> {
                 Map<String,Object> specs = new HashMap<>();
@@ -68,7 +69,7 @@ public class ConfigSubcommand implements Callable<Integer> {
             return 1;
         }
 
-        if (action.equals(ConfigAction.usecontext)) {
+        if (action.equals(ConfigAction.USE_CONTEXT)) {
             kafkactlConfig.setCurrentContext(contextToSet);
             ObjectMapper mapper = new YAMLMapper();
             mapper.setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE);
@@ -82,7 +83,19 @@ public class ConfigSubcommand implements Callable<Integer> {
 }
 
 enum ConfigAction {
-    getcontexts,
-    currentcontext,
-    usecontext
+    GET_CONTEXTS("get-contexts"),
+    CURRENT_CONTEXT("current-context"),
+    USE_CONTEXT("use-context");
+
+    @Getter
+    private final String realName;
+
+    ConfigAction(String realName) {
+        this.realName = realName;
+    }
+
+    @Override
+    public String toString() {
+        return realName;
+    }
 }

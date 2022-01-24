@@ -31,5 +31,4 @@ public interface ClusterResourceClient {
 
     @Get("/api/{kind}/{resource}")
     Resource get(@Header("Authorization") String token, String kind, String resource);
-
 }

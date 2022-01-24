@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.cli.services;
 
 import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
+import com.michelin.ns4kafka.cli.client.ClusterResourceClientService;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 
@@ -14,12 +15,16 @@ import java.util.stream.Collectors;
 public class ApiResourcesService {
     @Inject
     public ClusterResourceClient resourceClient;
+
+    @Inject
+    public ClusterResourceClientService clusterResourceClientService;
+
     @Inject
     public LoginService loginService;
 
     public List<ApiResource> getListResourceDefinition() {
         //TODO Add Cache to reduce the number of http requests
-        return resourceClient.listResourceDefinitions(loginService.getAuthorization());
+        return clusterResourceClientService.listResourceDefinitions(loginService.getAuthorization());
     }
 
     public Optional<ApiResource> getResourceDefinitionFromKind(String kind) {
