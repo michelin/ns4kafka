@@ -29,7 +29,7 @@ public class NamespacedResourceClientService {
     }
 
     public HttpResponse<Resource> apply(String namespace, String kind, String token, Resource body, boolean dryRun) {
-        String uri = "/api/namespaces/" + namespace + "/" + kind + "/" + "?dryrun=" + dryRun;
+        String uri = "/api/namespaces/" + namespace + "/" + kind + "?dryrun=" + dryRun;
 
         return client.toBlocking().exchange(HttpRequest.POST(configService.getCurrentContextInfos().getContext().getApi() +
                 uri, body).header("Authorization", token), Resource.class);
