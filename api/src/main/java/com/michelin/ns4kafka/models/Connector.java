@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.models;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 
@@ -37,7 +38,9 @@ public class Connector {
     public static class ConnectorSpec {
         @NotBlank
         private String connectCluster;
+
         @NotNull
+        @JsonInclude(value = JsonInclude.Include.NON_ABSENT)
         private Map<String, String> config;
     }
 

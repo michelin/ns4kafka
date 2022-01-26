@@ -1,11 +1,14 @@
 package com.michelin.ns4kafka.services.connect.client;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import com.michelin.ns4kafka.services.connect.client.entities.*;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.client.annotation.Client;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +26,7 @@ public interface KafkaConnectClient {
             @Header(value = KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
             @Header(value = KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER) String connectCluster,
             String connectorClass,
-            @Body Map<String,String> connectorSpec);
+            @Body ConnectorSpecs connectorSpec);
 
     //@Retryable(predicate = ConnectRestService.RebalanceRetryPredicate.class)
     @Put("/connectors/{connector}/config")
@@ -32,7 +35,7 @@ public interface KafkaConnectClient {
             @Header(value = KafkaConnectClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
             @Header(value = KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER) String connectCluster,
             String connector,
-            @Body Map<String,String> ConnectorSpec);
+            @Body ConnectorSpecs connectorSpec);
 
     @Delete("/connectors/{connector}")
     HttpResponse delete(

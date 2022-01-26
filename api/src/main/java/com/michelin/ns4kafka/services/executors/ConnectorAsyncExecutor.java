@@ -1,10 +1,12 @@
 package com.michelin.ns4kafka.services.executors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
+import com.michelin.ns4kafka.services.connect.client.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStatus;
 import io.micronaut.context.annotation.EachBean;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
@@ -135,7 +137,8 @@ public class ConnectorAsyncExecutor {
             return false;
         }
         return expectedMap.entrySet().stream()
-                .allMatch(e -> e.getValue().equals(actualMap.get(e.getKey())));
+                .allMatch(e -> (e.getValue() == null && actualMap.get(e.getKey()) == null)
+                        || e.getValue().equals(actualMap.get(e.getKey())));
     }
 
     private void deployConnector(Connector connector) {
@@ -145,7 +148,9 @@ public class ConnectorAsyncExecutor {
                     kafkaAsyncExecutorConfig.getName(),
                     connector.getSpec().getConnectCluster(),
                     connector.getMetadata().getName(),
-                    connector.getSpec().getConfig());
+                    ConnectorSpecs.builder()
+                            .config(connector.getSpec().getConfig())
+                            .build());
             log.info("Success deploying Connector [{}] on Kafka [{}] Connect [{}]",
                     connector.getMetadata().getName(),
                     this.kafkaAsyncExecutorConfig.getName(),
