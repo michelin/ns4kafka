@@ -8,10 +8,10 @@ import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.RoleBinding.*;
-import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStateInfo;
-import com.michelin.ns4kafka.services.connect.client.entities.ServerInfo;
+import com.michelin.ns4kafka.services.connect.client.entities.*;
 import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
+import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.annotation.Property;
@@ -30,20 +30,22 @@ import org.junit.jupiter.api.Test;
 import javax.inject.Inject;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 public class ConnectTest extends AbstractIntegrationConnectTest {
-
     @Inject
     @Client("/")
     RxHttpClient client;
 
     @Inject
     List<TopicAsyncExecutor> topicAsyncExecutorList;
+
     @Inject
     List<ConnectorAsyncExecutor> connectorAsyncExecutorList;
 
@@ -147,6 +149,107 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
                 .build();
 
         Assertions.assertDoesNotThrow(() -> client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns)).blockingFirst());
+
+    }
+
+    /**
+     * Deploy connectors
+     *
+     * Deploy a topic and connectors and assert the deployments worked.
+     * The test asserts null/empty connector properties are deployed.
+     *
+     * @throws InterruptedException Any interrupted exception
+     * @throws MalformedURLException Any malformed URL exception
+     */
+    @Test
+    void deployConnectors() throws InterruptedException, MalformedURLException {
+        Topic to = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-to1")
+                        .namespace("ns1")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(Map.of("cleanup.policy", "delete",
+                                "min.insync.replicas", "1",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Map<String, String> connectorSpecs = new HashMap<>();
+        connectorSpecs.put("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector");
+        connectorSpecs.put("tasks.max", "1");
+        connectorSpecs.put("topics", "ns1-to1");
+        connectorSpecs.put("file", null);
+
+        Connector connectorWithNullParameter = Connector.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-connectorWithNullParameter")
+                        .namespace("ns1")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(connectorSpecs)
+                        .build())
+                .build();
+
+        Connector connectorWithEmptyParameter = Connector.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-connectorWithEmptyParameter")
+                        .namespace("ns1")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(Map.of(
+                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                                "tasks.max", "1",
+                                "topics", "ns1-to1",
+                                "file", ""
+                        ))
+                        .build())
+                .build();
+
+        Connector connectorWithFillParameter = Connector.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-connectorWithFillParameter")
+                        .namespace("ns1")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(Map.of(
+                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                                "tasks.max", "1",
+                                "topics", "ns1-to1",
+                                "file", "test"
+                        ))
+                        .build())
+                .build();
+
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to)).blockingFirst();
+        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects").bearerAuth(token).body(connectorWithNullParameter)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects").bearerAuth(token).body(connectorWithEmptyParameter)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects").bearerAuth(token).body(connectorWithFillParameter)).blockingFirst();
+        connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
+        Thread.sleep(2000);
+
+        RxHttpClient connectCli = RxHttpClient.create(new URL(connect.getUrl()));
+        ConnectorInfo actualConnectorWithNullParameter = connectCli.retrieve(HttpRequest.GET("/connectors/ns1-connectorWithNullParameter"), ConnectorInfo.class).blockingFirst();
+        ConnectorInfo actualConnectorWithEmptyParameter = connectCli.retrieve(HttpRequest.GET("/connectors/ns1-connectorWithEmptyParameter"), ConnectorInfo.class).blockingFirst();
+        ConnectorInfo actualConnectorWithFillParameter = connectCli.retrieve(HttpRequest.GET("/connectors/ns1-connectorWithFillParameter"), ConnectorInfo.class).blockingFirst();
+
+        // "File" property is present, but null
+        Assertions.assertTrue(actualConnectorWithNullParameter.config().containsKey("file"));
+        Assertions.assertNull(actualConnectorWithNullParameter.config().get("file"));
+
+        // "File" property is present, but empty
+        Assertions.assertTrue(actualConnectorWithEmptyParameter.config().containsKey("file"));
+        Assertions.assertTrue(actualConnectorWithEmptyParameter.config().get("file").isEmpty());
+
+        // "File" property is present
+        Assertions.assertTrue(actualConnectorWithFillParameter.config().containsKey("file"));
+        Assertions.assertEquals("test", actualConnectorWithFillParameter.config().get("file"));
 
     }
 
