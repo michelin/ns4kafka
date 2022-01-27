@@ -419,7 +419,7 @@ public class KafkaConnectServiceTest {
                 ArgumentMatchers.eq("local"),
                 ArgumentMatchers.eq("local-name"),
                 ArgumentMatchers.any(),
-                ArgumentMatchers.anyMap()))
+                ArgumentMatchers.any()))
                 .thenReturn(configInfos);
 
         List<String> actual = kafkaConnectService.validateRemotely(ns, connector);
@@ -451,7 +451,7 @@ public class KafkaConnectServiceTest {
                 ArgumentMatchers.eq("local"),
                 ArgumentMatchers.eq("local-name"),
                 ArgumentMatchers.any(),
-                ArgumentMatchers.anyMap()))
+                ArgumentMatchers.any()))
                 .thenReturn(configInfos);
 
         List<String> actual = kafkaConnectService.validateRemotely(ns, connector);
