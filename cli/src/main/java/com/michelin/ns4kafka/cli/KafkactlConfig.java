@@ -16,35 +16,73 @@ import java.util.Map;
 @Getter
 @Setter
 @ConfigurationProperties("kafkactl")
-@JsonRootName(value = "kafkactl")
-@JsonNaming(PropertyNamingStrategies.KebabCaseStrategy.class)
 public class KafkactlConfig {
-    @JsonIgnore
+    /**
+     * Configuration version
+     */
     public String version;
 
-    @JsonIgnore
+    /**
+     * Configuration file path
+     */
     public String configPath;
 
-    public List<Context> contexts;
+    /**
+     * Current API
+     */
+    String api;
 
-    public String currentContext;
+    /**
+     * Current user token
+     */
+    String userToken;
 
-    @JsonIgnore
+    /**
+     * Current namespace
+     */
+    String currentNamespace;
+
+    /**
+     * List of available contexts
+     */
+    List<Context> contexts;
+
+    /**
+     * All table formats
+     */
     @MapFormat(transformation = MapFormat.MapTransformation.FLAT)
     public Map<String, List<String>> tableFormat;
 
     @Getter
     @Setter
     public static class Context {
-        public String name;
-        public ApiContext context;
+        /**
+         * Context name
+         */
+        String name;
+
+        /**
+         * Context information
+         */
+        ApiContext context;
 
         @Getter
         @Setter
         public static class ApiContext {
-            public String api;
-            public String userToken;
-            public String currentNamespace;
+            /**
+             * Context API
+             */
+            String api;
+
+            /**
+             * Context user token
+             */
+            String userToken;
+
+            /**
+             * Context namespace
+             */
+            String namespace;
         }
     }
 }

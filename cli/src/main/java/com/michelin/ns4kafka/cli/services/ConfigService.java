@@ -1,9 +1,17 @@
 package com.michelin.ns4kafka.cli.services;
 
 import com.michelin.ns4kafka.cli.KafkactlConfig;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.nodes.Tag;
+import org.yaml.snakeyaml.representer.Representer;
 import picocli.CommandLine;
 
 import javax.inject.Singleton;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Singleton
@@ -23,24 +31,64 @@ public class ConfigService {
     }
 
     /**
-     * Get the current context infos if it exists, or null otherwise
+     * Return the name of the current context according to the current api, namespace
+     * and token properties
      *
-     * @return The current context
+     * @return The current context name
      */
-    public KafkactlConfig.Context getCurrentContextInfos() {
-        return kafkactlConfig.getContexts().stream()
-                .filter(context -> context.getName().equals(kafkactlConfig.getCurrentContext()))
-                .findFirst().orElse(null);
+    public String getCurrentContextName() {
+        Optional<KafkactlConfig.Context> currentContext = kafkactlConfig.getContexts()
+                .stream()
+                .filter(context -> context.getContext().getApi().equals(kafkactlConfig.getApi()) &&
+                        context.getContext().getNamespace().equals(kafkactlConfig.getCurrentNamespace()) &&
+                        context.getContext().getUserToken().equals(kafkactlConfig.getUserToken()))
+                .findFirst();
+
+        if (currentContext.isEmpty()) {
+            return null;
+        }
+
+        return currentContext.get().getName();
     }
 
     /**
-     * Does the given context name exist
+     * Get the current context infos if it exists
      *
-     * @param name The name to check
-     * @return true if it is, false otherwise
+     * @return The current context
      */
-    public boolean contextExists(String name) {
-        return kafkactlConfig.getContexts().stream()
-                .anyMatch(context -> context.getName().equals(name));
+    public Optional<KafkactlConfig.Context> getContextByName(String name) {
+        return kafkactlConfig.getContexts()
+                .stream()
+                .filter(context -> context.getName().equals(name))
+                .findFirst();
+    }
+
+    /**
+     * Update the current configuration context with the given new context
+     *
+     * @param contextToSet The context to set
+     * @throws IOException Any exception during file writing
+     */
+    public void updateConfigurationContext(KafkactlConfig.Context contextToSet) throws IOException {
+        Map<String, Object> currentContext = new LinkedHashMap<>();
+        currentContext.put("currentNamespace", contextToSet.getContext().getNamespace());
+        currentContext.put("api", contextToSet.getContext().getApi());
+        currentContext.put("userToken", contextToSet.getContext().getUserToken());
+        currentContext.put("contexts", kafkactlConfig.getContexts());
+
+        Map<String, Object> config = new LinkedHashMap<>();
+        config.put("kafkactl", currentContext);
+
+        Representer representer = new Representer();
+        representer.addClassTag(KafkactlConfig.Context.class, Tag.MAP);
+
+        DumperOptions options = new DumperOptions();
+        options.setIndent(2);
+        options.setPrettyFlow(true);
+        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+
+        Yaml yamlMapper = new Yaml(representer, options);
+        FileWriter writer = new FileWriter(kafkactlConfig.getConfigPath() + "/config.yml");
+        yamlMapper.dump(config, writer);
     }
 }

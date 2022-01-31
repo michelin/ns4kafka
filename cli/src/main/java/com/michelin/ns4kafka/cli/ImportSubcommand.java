@@ -2,7 +2,10 @@ package com.michelin.ns4kafka.cli;
 
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
-import com.michelin.ns4kafka.cli.services.*;
+import com.michelin.ns4kafka.cli.services.ApiResourcesService;
+import com.michelin.ns4kafka.cli.services.FormatService;
+import com.michelin.ns4kafka.cli.services.LoginService;
+import com.michelin.ns4kafka.cli.services.ResourceService;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -17,30 +20,22 @@ import java.util.stream.Collectors;
 
 @Command(name = "import", description = "Import resources already present on the Kafka Cluster in ns4kafka")
 public class ImportSubcommand implements Callable<Integer> {
-    @Inject
-    public ConfigService configService;
 
     @Inject
     public LoginService loginService;
-
     @Inject
     public ResourceService resourceService;
-
     @Inject
     public ApiResourcesService apiResourcesService;
-
     @Inject
     public FormatService formatService;
-
     @Inject
     public KafkactlConfig kafkactlConfig;
 
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
-
     @Parameters(index = "0", description = "Resource type", arity = "1")
     public String resourceType;
-
     @Option(names = {"--dry-run"}, description = "Does not persist resources. Validate only")
     public boolean dryRun;
 
@@ -48,6 +43,7 @@ public class ImportSubcommand implements Callable<Integer> {
     CommandLine.Model.CommandSpec commandSpec;
 
     public Integer call() {
+
         if (dryRun) {
             System.out.println("Dry run execution");
         }
@@ -56,12 +52,11 @@ public class ImportSubcommand implements Callable<Integer> {
         if (!authenticated) {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
         }
-        KafkactlConfig.Context currentContext = configService.getCurrentContextInfos();
 
         // 2. validate resourceType + custom type ALL
         List<ApiResource> apiResources = validateResourceType();
 
-        String namespace = kafkactlCommand.optionalNamespace.orElse(currentContext.getContext().getCurrentNamespace());
+        String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
 
         Map<ApiResource, List<Resource>> resources = resourceService.importAll(apiResources, namespace, dryRun);
 

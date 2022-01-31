@@ -1,9 +1,7 @@
 package com.michelin.ns4kafka.cli.services;
 
 import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
-import com.michelin.ns4kafka.cli.client.ClusterResourceClientService;
 import com.michelin.ns4kafka.cli.client.NamespacedResourceClient;
-import com.michelin.ns4kafka.cli.client.NamespacedResourceClientService;
 import com.michelin.ns4kafka.cli.models.ApiResource;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.SchemaCompatibility;
@@ -24,13 +22,7 @@ public class ResourceService {
     NamespacedResourceClient namespacedClient;
 
     @Inject
-    NamespacedResourceClientService namespacedClientService;
-
-    @Inject
     ClusterResourceClient nonNamespacedClient;
-
-    @Inject
-    ClusterResourceClientService nonNamespacedClientService;
 
     @Inject
     LoginService loginService;
@@ -51,9 +43,9 @@ public class ResourceService {
     public List<Resource> listResourcesWithType(ApiResource apiResource, String namespace) {
         try {
             if (apiResource.isNamespaced()) {
-                return namespacedClientService.list(namespace, apiResource.getPath(), loginService.getAuthorization());
+                return namespacedClient.list(namespace, apiResource.getPath(), loginService.getAuthorization());
             } else {
-                return nonNamespacedClientService.list(loginService.getAuthorization(), apiResource.getPath());
+                return nonNamespacedClient.list(loginService.getAuthorization(), apiResource.getPath());
             }
         } catch (HttpClientResponseException e) {
             formatService.displayError(e, apiResource.getKind(), null);
@@ -64,9 +56,9 @@ public class ResourceService {
     public Resource getSingleResourceWithType(ApiResource apiResource, String namespace, String resourceName, boolean throwError) {
         Resource resource;
         if (apiResource.isNamespaced()) {
-            resource = namespacedClientService.get(namespace, apiResource.getPath(), resourceName, loginService.getAuthorization());
+            resource = namespacedClient.get(namespace, apiResource.getPath(), resourceName, loginService.getAuthorization());
         } else {
-            resource = nonNamespacedClientService.get(loginService.getAuthorization(), apiResource.getPath(), resourceName);
+            resource = nonNamespacedClient.get(loginService.getAuthorization(), apiResource.getPath(), resourceName);
         }
         if (resource == null && throwError) {
             // micronaut converts HTTP 404 into null
@@ -84,9 +76,9 @@ public class ResourceService {
     public HttpResponse<Resource> apply(ApiResource apiResource, String namespace, Resource resource, boolean dryRun) {
         try {
             if (apiResource.isNamespaced()) {
-                return namespacedClientService.apply(namespace, apiResource.getPath(), loginService.getAuthorization(), resource, dryRun);
+                return namespacedClient.apply(namespace, apiResource.getPath(), loginService.getAuthorization(), resource, dryRun);
             } else {
-                return nonNamespacedClientService.apply(loginService.getAuthorization(), apiResource.getPath(), resource, dryRun);
+                return nonNamespacedClient.apply(loginService.getAuthorization(), apiResource.getPath(), resource, dryRun);
             }
         } catch (HttpClientResponseException e) {
             formatService.displayError(e, apiResource.getKind(), resource.getMetadata().getName());
@@ -98,13 +90,13 @@ public class ResourceService {
     public boolean delete(ApiResource apiResource, String namespace, String resource, boolean dryRun) {
         try {
             if (apiResource.isNamespaced()) {
-                HttpResponse response = namespacedClientService.delete(namespace, apiResource.getPath(), resource, loginService.getAuthorization(), dryRun);
+                HttpResponse response = namespacedClient.delete(namespace, apiResource.getPath(), resource, loginService.getAuthorization(), dryRun);
                 if(response.getStatus() != HttpStatus.NO_CONTENT){
                     throw new HttpClientResponseException("Resource not Found", response);
                 }
                 return true;
             } else {
-                nonNamespacedClientService.delete(loginService.getAuthorization(), apiResource.getPath(), resource, dryRun);
+                nonNamespacedClient.delete(loginService.getAuthorization(), apiResource.getPath(), resource, dryRun);
                 return true;
             }
         } catch (HttpClientResponseException e) {
@@ -124,7 +116,7 @@ public class ResourceService {
         List<Resource> resources;
 
         try {
-            resources = namespacedClientService.importResources(namespace, apiResource.getPath(), loginService.getAuthorization(), dryRun);
+            resources = namespacedClient.importResources(namespace, apiResource.getPath(), loginService.getAuthorization(), dryRun);
         } catch (HttpClientResponseException e) {
             formatService.displayError(e, apiResource.getKind(), null);
             resources = List.of();
@@ -135,7 +127,7 @@ public class ResourceService {
 
     public Resource deleteRecords(String namespace, String topic, boolean dryrun) {
         try {
-            return namespacedClientService.deleteRecords(loginService.getAuthorization(), namespace, topic, dryrun);
+            return namespacedClient.deleteRecords(loginService.getAuthorization(), namespace, topic, dryrun);
         } catch (HttpClientResponseException e) {
             formatService.displayError(e, "Topic", topic);
         }
@@ -144,7 +136,7 @@ public class ResourceService {
 
     public Resource resetOffsets(String namespace, String group, Resource resource, boolean dryRun) {
         try {
-            return namespacedClientService.resetOffsets(loginService.getAuthorization(), namespace, group, resource, dryRun);
+            return namespacedClient.resetOffsets(loginService.getAuthorization(), namespace, group, resource, dryRun);
         } catch (HttpClientResponseException e) {
             formatService.displayError(e, "ConsumerGroup", group);
         }
@@ -153,7 +145,7 @@ public class ResourceService {
 
     public Resource changeConnectorState(String namespace, String connector, Resource changeConnectorState) {
         try {
-            Resource resource = namespacedClientService.changeConnectorState(namespace, connector, changeConnectorState, loginService.getAuthorization());
+            Resource resource = namespacedClient.changeConnectorState(namespace, connector, changeConnectorState, loginService.getAuthorization());
             if (resource == null) {
                 // micronaut converts HTTP 404 into null
                 // produce a 404
@@ -173,7 +165,7 @@ public class ResourceService {
 
     public Resource changeSchemaCompatibility(String namespace, String subject, SchemaCompatibility compatibility) {
         try {
-            Resource resource = namespacedClientService.changeSchemaCompatibility(namespace, subject,
+            Resource resource = namespacedClient.changeSchemaCompatibility(namespace, subject,
                     Map.of("compatibility", compatibility), loginService.getAuthorization());
 
             if (resource == null) {
@@ -194,7 +186,7 @@ public class ResourceService {
     }
     public Resource resetPassword(String namespace, String user) {
         try {
-            Resource resource = namespacedClientService.resetPassword(namespace, user, loginService.getAuthorization());
+            Resource resource = namespacedClient.resetPassword(namespace, user, loginService.getAuthorization());
 
             if (resource == null) {
                 // micronaut converts HTTP 404 into null

@@ -3,11 +3,13 @@ package com.michelin.ns4kafka.cli.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.michelin.ns4kafka.cli.KafkactlCommand;
 import com.michelin.ns4kafka.cli.KafkactlConfig;
-import com.michelin.ns4kafka.cli.client.*;
+import com.michelin.ns4kafka.cli.client.BearerAccessRefreshToken;
+import com.michelin.ns4kafka.cli.client.ClusterResourceClient;
+import com.michelin.ns4kafka.cli.client.UserInfoResponse;
+import com.michelin.ns4kafka.cli.client.UsernameAndPasswordRequest;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 
-import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
@@ -16,27 +18,16 @@ import java.util.Date;
 
 @Singleton
 public class LoginService {
-    /**
-     * The configuration service
-     */
-    private final ConfigService configService;
     private final KafkactlConfig kafkactlConfig;
     private final ClusterResourceClient clusterResourceClient;
-    private final ClusterResourceClientService clusterResourceClientService;
     private final File jwtFile;
 
     private String accessToken = null;
 
-    public LoginService(KafkactlConfig kafkactlConfig,
-                        ClusterResourceClient clusterResourceClient,
-                        ClusterResourceClientService clusterResourceClientService,
-                        ConfigService configService) {
+    public LoginService(KafkactlConfig kafkactlConfig, ClusterResourceClient clusterResourceClient) {
         this.kafkactlConfig = kafkactlConfig;
         this.clusterResourceClient = clusterResourceClient;
-        this.clusterResourceClientService = clusterResourceClientService;
-        this.configService = configService;
         this.jwtFile = new File(kafkactlConfig.getConfigPath() + "/jwt");
-
         // Create base kafkactl dir if not exists
         File kafkactlDir = new File(kafkactlConfig.getConfigPath());
         if (!kafkactlDir.exists()) {
@@ -49,7 +40,7 @@ public class LoginService {
     }
 
     public boolean doAuthenticate() {
-        return isAuthenticated() || login("gitlab");
+        return isAuthenticated() || login("gitlab", kafkactlConfig.getUserToken());
     }
 
     public boolean isAuthenticated() {
@@ -61,7 +52,7 @@ public class LoginService {
             ObjectMapper objectMapper = new ObjectMapper();
             BearerAccessRefreshToken token = objectMapper.readValue(jwtFile, BearerAccessRefreshToken.class);
             // 2. Verify token against ns4kafka /user_info endpoint
-            UserInfoResponse userInfo = clusterResourceClientService.tokenInfo("Bearer " + token.getAccessToken());
+            UserInfoResponse userInfo = clusterResourceClient.tokenInfo("Bearer " + token.getAccessToken());
             // 3. Display token result
             if (KafkactlCommand.VERBOSE) {
                 Date expiry = new Date(userInfo.getExp() * 1000);
@@ -82,34 +73,27 @@ public class LoginService {
         return false;
     }
 
-    public boolean login(String user) {
+    public boolean login(String user, String password) {
         try {
-            // 1. validate context
-            KafkactlConfig.Context currentContext = configService.getCurrentContextInfos();
-            if (currentContext == null) {
-                System.out.println("error: no context exists with the name: " + kafkactlConfig.getCurrentContext());
-                return false;
-            }
-
-            // 2. Call ns4kafka /login
+            // 1. Call ns4kafka /login
             BearerAccessRefreshToken tokenResponse =
-                    clusterResourceClientService.login(
+                    clusterResourceClient.login(
                             UsernameAndPasswordRequest
                                     .builder()
                                     .username(user)
-                                    .password(currentContext.getContext().userToken)
+                                    .password(password)
                                     .build()
                     );
-            // 3. Store token in memory;
+            // 2. Store token in memory;
             accessToken = tokenResponse.getAccessToken();
-            // 4. Display token result
+            // 3. Display token result
             if (KafkactlCommand.VERBOSE) {
                 Calendar calendar = Calendar.getInstance(); // gets a calendar using the default time zone and locale.
                 calendar.add(Calendar.SECOND, tokenResponse.getExpiresIn());
                 System.out.println("Authentication successful, welcome " + tokenResponse.getUsername() + "!");
                 System.out.println("Your session is valid until " + calendar.getTime());
             }
-            // 5. Store token result locally
+            // 4. Store token result locally
             try {
                 ObjectMapper objectMapper = new ObjectMapper();
                 objectMapper.writeValue(jwtFile, tokenResponse);

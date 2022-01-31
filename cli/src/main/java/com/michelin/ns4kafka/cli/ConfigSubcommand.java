@@ -1,18 +1,21 @@
 package com.michelin.ns4kafka.cli;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.michelin.ns4kafka.cli.models.ObjectMeta;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ConfigService;
 import com.michelin.ns4kafka.cli.services.FormatService;
 import lombok.Getter;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.TypeDescription;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
+import org.yaml.snakeyaml.nodes.Tag;
+import org.yaml.snakeyaml.representer.Representer;
 import picocli.CommandLine;
 
 import javax.inject.Inject;
-import java.io.File;
+import java.io.FileWriter;
+import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.Callable;
 
@@ -34,12 +37,24 @@ public class ConfigSubcommand implements Callable<Integer> {
     public ConfigAction action;
 
     @CommandLine.Parameters(index="1", defaultValue = "", description = "Context", arity = "1")
-    public String contextToSet;
+    public String contextNameToSet;
 
     @Override
     public Integer call() throws Exception {
         if (action.equals(ConfigAction.CURRENT_CONTEXT)) {
-            System.out.println(kafkactlConfig.getCurrentContext());
+            Map<String,Object> specs = new HashMap<>();
+            specs.put("namespace", kafkactlConfig.getCurrentNamespace());
+            specs.put("api", kafkactlConfig.getApi());
+            specs.put("token", kafkactlConfig.getUserToken());
+
+            Resource currentContextAsResource = Resource.builder()
+                    .metadata(ObjectMeta.builder()
+                            .name(configService.getCurrentContextName())
+                            .build())
+                    .spec(specs)
+                    .build();
+
+            formatService.displayList("Context", List.of(currentContextAsResource), "table");
             return 0;
         }
 
@@ -47,8 +62,9 @@ public class ConfigSubcommand implements Callable<Integer> {
             List<Resource> allContextsAsResources = new ArrayList<>();
             kafkactlConfig.getContexts().forEach(context -> {
                 Map<String,Object> specs = new HashMap<>();
+                specs.put("namespace", context.getContext().getNamespace());
                 specs.put("api", context.getContext().getApi());
-                specs.put("namespace", context.getContext().getCurrentNamespace());
+                specs.put("token", context.getContext().getUserToken());
 
                 Resource currentContextAsResource = Resource.builder()
                         .metadata(ObjectMeta.builder()
@@ -64,18 +80,17 @@ public class ConfigSubcommand implements Callable<Integer> {
             return 0;
         }
 
-        if (!configService.contextExists(contextToSet)) {
-            System.out.println("error: no context exists with the name: " + contextToSet);
+        Optional<KafkactlConfig.Context> optionalContextToSet = configService.getContextByName(contextNameToSet);
+        if (optionalContextToSet.isEmpty()) {
+            System.out.println("error: no context exists with the name: " + contextNameToSet);
             return 1;
         }
 
+        KafkactlConfig.Context contextToSet = optionalContextToSet.get();
         if (action.equals(ConfigAction.USE_CONTEXT)) {
-            kafkactlConfig.setCurrentContext(contextToSet);
-            ObjectMapper mapper = new YAMLMapper();
-            mapper.setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE);
-            mapper.configure(SerializationFeature.WRAP_ROOT_VALUE, true);
-            mapper.writeValue(new File(kafkactlConfig.getConfigPath() + "/config.yml"), kafkactlConfig);
-            System.out.println("Switched to context \"" + contextToSet + "\".");
+            configService.updateConfigurationContext(contextToSet);
+            System.out.println("Switched to context \"" + contextNameToSet + "\".");
+            return 0;
         }
 
         return 1;

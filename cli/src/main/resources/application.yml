@@ -66,15 +66,18 @@ kafkactl:
       - "NAME:/metadata/name"
       - "NAMESPACE:/spec/namespace"
       - "API:/spec/api"
+      - "TOKEN:/spec/token"
+#  current-namespace: namespace
+#  api: http://localhost:8080
+#  user-token: token
 #  contexts:
 #    - context:
 #        user-token: token
-#        current-namespace: dhapgbl0
+#        namespace: namespace
 #        api: http://localhost:8080
 #      name: local
 #    - context:
 #        user-token: token
-#        current-namespace: dhapgbl0
+#        namespace: namespace
 #        api: https://dev-ns4kafka.com
 #      name: dev
-#  current-context: local

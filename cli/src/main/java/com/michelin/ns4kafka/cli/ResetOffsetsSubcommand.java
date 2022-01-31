@@ -2,7 +2,6 @@ package com.michelin.ns4kafka.cli;
 
 import com.michelin.ns4kafka.cli.models.ObjectMeta;
 import com.michelin.ns4kafka.cli.models.Resource;
-import com.michelin.ns4kafka.cli.services.ConfigService;
 import com.michelin.ns4kafka.cli.services.FormatService;
 import com.michelin.ns4kafka.cli.services.LoginService;
 import com.michelin.ns4kafka.cli.services.ResourceService;
@@ -21,15 +20,11 @@ import java.util.concurrent.Callable;
 
 @Command(name = "reset-offsets", description = "Reset Consumer Group offsets")
 public class ResetOffsetsSubcommand implements Callable<Integer> {
-    @Inject
-    public ConfigService configService;
 
     @Inject
     public LoginService loginService;
-
     @Inject
     public ResourceService resourceService;
-
     @Inject
     public FormatService formatService;
 
@@ -38,7 +33,6 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
 
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
-
     @Option(names = {"--group"}, required = true, description = "Consumer group name")
     public String group;
 
@@ -76,6 +70,7 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
+
         if (dryRun) {
             System.out.println("Dry run execution");
         }
@@ -84,9 +79,8 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
         if (!authenticated) {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
         }
-        KafkactlConfig.Context currentContext = configService.getCurrentContextInfos();
 
-        String namespace = kafkactlCommand.optionalNamespace.orElse(currentContext.getContext().getCurrentNamespace());
+        String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
 
         Map<String, Object> consumerGroupResetOffsetSpec = new HashMap<>();
 
