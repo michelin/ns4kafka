@@ -37,18 +37,14 @@ public class ConfigService {
      * @return The current context name
      */
     public String getCurrentContextName() {
-        Optional<KafkactlConfig.Context> currentContext = kafkactlConfig.getContexts()
+        return kafkactlConfig.getContexts()
                 .stream()
                 .filter(context -> context.getContext().getApi().equals(kafkactlConfig.getApi()) &&
                         context.getContext().getNamespace().equals(kafkactlConfig.getCurrentNamespace()) &&
                         context.getContext().getUserToken().equals(kafkactlConfig.getUserToken()))
-                .findFirst();
-
-        if (currentContext.isEmpty()) {
-            return null;
-        }
-
-        return currentContext.get().getName();
+                .findFirst()
+                .map(KafkactlConfig.Context::getName)
+                .orElse(null);
     }
 
     /**
