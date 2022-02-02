@@ -58,6 +58,11 @@ public class ConfigSubcommand implements Callable<Integer> {
             return 0;
         }
 
+        if (kafkactlConfig.getContexts().isEmpty()) {
+            System.out.println("No context pre-defined.");
+            return 0;
+        }
+
         if (action.equals(ConfigAction.GET_CONTEXTS)) {
             List<Resource> allContextsAsResources = new ArrayList<>();
             kafkactlConfig.getContexts().forEach(context -> {

@@ -67,6 +67,8 @@ kafkactl:
       - "NAMESPACE:/spec/namespace"
       - "API:/spec/api"
       - "TOKEN:/spec/token"
+  contexts:
+    -
 #  current-namespace: namespace
 #  api: http://localhost:8080
 #  user-token: token
