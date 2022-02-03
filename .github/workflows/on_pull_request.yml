@@ -91,10 +91,11 @@ jobs:
       - name: Configure Pagefile
         uses: al-cheb/configure-pagefile-action@v1.2
 
+      - name: Build
+        run: mvnw.bat -DskipTests package
+
       - name: Native Image for CLI
-        run: |
-          mvnw.bat -DskipTests package
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
+        run: call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
           mvnw.bat -f cli package -DskipTests -Dpackaging=native-image
         shell: cmd
 
