@@ -31,7 +31,12 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: mvn -B -DskipTests -DcentralAnalyzerEnabled=false verify sonar:sonar
+      run: |
+        chmod +x mvnw
+        ./mvnw -B -DskipTests -DcentralAnalyzerEnabled=false verify sonar:sonar
+
+    - name: Display target
+      run: ls -l cli/target
 
     - uses: actions/upload-artifact@v2
       with:
@@ -45,9 +50,7 @@ jobs:
         report_paths: '**/target/site/jacoco/*.xml'
 
     - name: Native Image for CLI
-      run: |
-        chmod +x mvnw
-        ./mvnw -f cli package -DskipTests -Dpackaging=native-image
+      run: ./mvnw -f cli package -DskipTests -Dpackaging=native-image
 
     - uses: actions/upload-artifact@v2
       with:
