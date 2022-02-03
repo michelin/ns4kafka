@@ -99,9 +99,8 @@ jobs:
         shell: cmd
 
       - name: Display target
-        run: |
-          - ls -l cli/target
-          
+        run: ls -l cli/target
+
       - name: Upload Windows CLI
         uses: actions/upload-artifact@v2
         with:
