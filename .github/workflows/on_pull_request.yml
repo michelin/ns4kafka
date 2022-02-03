@@ -11,44 +11,47 @@ jobs:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
     - uses: DeLaGuardo/setup-graalvm@4.0
       with:
-        graalvm: '21.3.0'
+        graalvm: '22.0.0.2'
         java: 'java11'
+
     - name: Install Native Image
       run: gu install native-image
+
     - name: Cache SonarCloud packages
       uses: actions/cache@v1
       with:
         path: ~/.sonar/cache
         key: ${{ runner.os }}-sonar
         restore-keys: ${{ runner.os }}-sonar
-    - name: Cache Gradle packages
-      uses: actions/cache@v1
-      with:
-        path: ~/.gradle/caches
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
-        restore-keys: ${{ runner.os }}-gradle
+
     - name: Build and analyze
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: ./gradlew jacocoTestReport sonarqube --info
+      run: mvn -B -DskipTests -DcentralAnalyzerEnabled=false verify sonar:sonar
+
     - name: Publish Test Report
       if: always()
       uses: mikepenz/action-junit-report@v2
       with:
-        report_paths: '**/build/test-results/test/TEST-*.xml'
+        report_paths: '**/target/test-results/test/TEST-*.xml'
+
     - name: Native Image for CLI
-      run: ./gradlew :cli:shadowJar :cli:nativeImage
+      run: ./mvnw -f cli package -DskipTests -Dpackaging=native-image
+
     - uses: actions/upload-artifact@v2
       with:
         name: native-image
-        path: ${{ github.workspace }}/cli/build/native-image/kafkactl-*
+        path: ${{ github.workspace }}/cli/target/kafkactl-*
+
     - uses: actions/upload-artifact@v2
       with:
         name: jar
-        path: ${{ github.workspace }}/cli/build/libs/kafkactl-*.jar
+        path: ${{ github.workspace }}/cli/target/kafkactl.jar
+
   build-windows:
     runs-on: windows-latest
     environment: Build
@@ -58,24 +61,21 @@ jobs:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
       - uses: DeLaGuardo/setup-graalvm@4.0
         with:
-          graalvm: '21.3.0'
+          graalvm: '22.0.0.2'
           java: 'java11'
+
       - name: Install Native Image
         run: ${{ env.JAVA_HOME }}\bin\gu.cmd install native-image
-      - name: Cache Gradle packages
-        uses: actions/cache@v2
-        with:
-          path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
-          restore-keys: ${{ runner.os }}-gradle
+
       - name: Configure Pagefile
         uses: al-cheb/configure-pagefile-action@v1.2
       - name: Native Image for CLI
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
-          gradlew.bat :cli:shadowJar :cli:nativeImage
+          mvnw.bat clean package -DskipTests -Dpackaging=native-image
         shell: cmd
+
       - uses: actions/upload-artifact@v2
         with:
           name: native-image-windows
-          path: ${{ github.workspace }}/cli/build/native-image/kafkactl-*.exe
+          path: ${{ github.workspace }}/cli/target/kafkactl-*.exe
