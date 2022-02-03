@@ -72,7 +72,7 @@ jobs:
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
-      - uses: DeLaGuardo/setup-graalvm@4.0
+      - uses: DeLaGuardo/setup-graalvm@5.0
         with:
           graalvm: '22.0.0.2'
           java: 'java11'
@@ -97,7 +97,7 @@ jobs:
 
       - name: Native Image for CLI
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
           mvnw.bat -f cli package -DskipTests -Dpackaging=native-image
         shell: cmd
 
