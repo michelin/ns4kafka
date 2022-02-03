@@ -40,7 +40,9 @@ jobs:
         report_paths: '**/target/test-results/test/TEST-*.xml'
 
     - name: Native Image for CLI
-      run: ./mvnw -f cli package -DskipTests -Dpackaging=native-image
+      run: |
+        chmod +x mvnw
+        ./mvnw -f cli package -DskipTests -Dpackaging=native-image
 
     - uses: actions/upload-artifact@v2
       with:
