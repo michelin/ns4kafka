@@ -27,13 +27,16 @@ jobs:
         key: ${{ runner.os }}-sonar
         restore-keys: ${{ runner.os }}-sonar
 
-    - name: Build and analyze
+    - name: Build
+      run: |
+        chmod +x mvnw
+        ./mvnw package
+
+    - name: Analyze
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: |
-        chmod +x mvnw
-        ./mvnw -B -DskipTests -DcentralAnalyzerEnabled=false verify sonar:sonar
+      run: ./mvnw -B -DskipTests -DcentralAnalyzerEnabled=false verify sonar:sonar
 
     - name: Display target
       run: ls -l cli/target
