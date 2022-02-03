@@ -37,7 +37,7 @@ jobs:
       if: always()
       uses: mikepenz/action-junit-report@v2
       with:
-        report_paths: '**/target/test-results/test/TEST-*.xml'
+        report_paths: '**/target/site/jacoco/*.xml'
 
     - name: Native Image for CLI
       run: |
