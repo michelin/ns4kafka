@@ -93,7 +93,7 @@ jobs:
 
       - name: Native Image for CLI
         run: |
-          mvn -DskipTests package
+          mvnw.bat -DskipTests package
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
           mvnw.bat -f cli package -DskipTests -Dpackaging=native-image
         shell: cmd
