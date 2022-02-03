@@ -27,40 +27,39 @@ jobs:
         key: ${{ runner.os }}-sonar
         restore-keys: ${{ runner.os }}-sonar
 
-    - name: Build
-      run: |
-        chmod +x mvnw
-        ./mvnw package
+    - name: Cache Maven packages
+      uses: actions/cache@v1
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
 
-    - name: Analyze
+    - name: Build & Analyze
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: ./mvnw -B -DskipTests -DcentralAnalyzerEnabled=false verify sonar:sonar
-
-    - name: Display target
-      run: ls -l cli/target
-
-    - uses: actions/upload-artifact@v2
-      with:
-        name: shaded-jar
-        path: ${{ github.workspace }}/cli/target/*-shaded.jar
+      run: |
+        chmod +x mvnw
+        ./mvnw -B -DcentralAnalyzerEnabled=false verify sonar:sonar
 
     - name: Publish Test Report
       if: always()
       uses: mikepenz/action-junit-report@v2
       with:
-        report_paths: '**/target/site/jacoco/*.xml'
+        report_paths: '**/target/surefire-reports/TEST-*.xml'
 
     - name: Native Image for CLI
       run: ./mvnw -f cli package -DskipTests -Dpackaging=native-image
 
-    - uses: actions/upload-artifact@v2
+    - name: Upload Linux Native CLI
+      uses: actions/upload-artifact@v2
       with:
         name: native-image
         path: ${{ github.workspace }}/cli/target/kafkactl-*
 
-    - uses: actions/upload-artifact@v2
+    - name: Upload JAR CLI
+      uses: actions/upload-artifact@v2
       with:
         name: jar
         path: ${{ github.workspace }}/cli/target/kafkactl.jar
@@ -72,6 +71,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
       - uses: DeLaGuardo/setup-graalvm@4.0
         with:
           graalvm: '22.0.0.2'
@@ -80,15 +80,26 @@ jobs:
       - name: Install Native Image
         run: ${{ env.JAVA_HOME }}\bin\gu.cmd install native-image
 
+      - name: Cache Maven packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
       - name: Configure Pagefile
         uses: al-cheb/configure-pagefile-action@v1.2
+
       - name: Native Image for CLI
         run: |
+          mvn -DskipTests package
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
           mvnw.bat -f cli package -DskipTests -Dpackaging=native-image
         shell: cmd
 
-      - uses: actions/upload-artifact@v2
+      - name: Upload Windows CLI
+        uses: actions/upload-artifact@v2
         with:
           name: native-image-windows
           path: ${{ github.workspace }}/cli/target/kafkactl-*.exe
