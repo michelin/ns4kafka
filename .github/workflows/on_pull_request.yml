@@ -33,6 +33,11 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: mvn -B -DskipTests -DcentralAnalyzerEnabled=false verify sonar:sonar
 
+    - uses: actions/upload-artifact@v2
+      with:
+        name: shaded-jar
+        path: ${{ github.workspace }}/cli/target/*-shaded.jar
+
     - name: Publish Test Report
       if: always()
       uses: mikepenz/action-junit-report@v2
