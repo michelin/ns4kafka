@@ -49,12 +49,6 @@
             <version>4.9</version>
             <scope>compile</scope>
         </dependency>
-
-        <dependency>
-            <groupId>org.graalvm.nativeimage</groupId>
-            <artifactId>svm</artifactId>
-            <scope>compile</scope>
-        </dependency>
     </dependencies>
 
     <build>
@@ -69,11 +63,6 @@
                             <groupId>info.picocli</groupId>
                             <artifactId>picocli-codegen</artifactId>
                             <version>${picocli.version}</version>
-                        </path>
-                        <path>
-                            <groupId>io.micronaut</groupId>
-                            <artifactId>micronaut-graal</artifactId>
-                            <version>${micronaut.graal.version}</version>
                         </path>
                         <path>
                             <groupId>org.projectlombok</groupId>
@@ -124,7 +113,7 @@
                 <groupId>org.graalvm.buildtools</groupId>
                 <artifactId>native-maven-plugin</artifactId>
                 <configuration combine.self="override">
-                    <imageName>kafkactl-${version}</imageName>
+                    <imageName>kafkactl-${project.version}</imageName>
                     <mainClass>${exec.mainClass}</mainClass>
                     <classpath>
                         <param>${project.build.directory}/kafkactl-${project.version}-shaded.jar</param>
