@@ -115,10 +115,8 @@
                 <configuration combine.self="override">
                     <imageName>kafkactl-${project.version}</imageName>
                     <mainClass>${exec.mainClass}</mainClass>
-                    <classpath>
-                        <param>${project.build.directory}/kafkactl-${project.version}-shaded.jar</param>
-                    </classpath>
                     <buildArgs>
+                        <buildArg>-H:Name=${project.build.directory}/kafkactl-${project.version}-shaded.jar</buildArg>
                         <buildArg>-H:IncludeResourceBundles=org.ocpsoft.prettytime.i18n.Resources</buildArg>
                         <buildArg>-H:+ReportUnsupportedElementsAtRuntime</buildArg>
                         <buildArg>-H:+ReportExceptionStackTraces</buildArg>
