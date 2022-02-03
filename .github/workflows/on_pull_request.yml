@@ -65,7 +65,7 @@ jobs:
         path: ${{ github.workspace }}/cli/target/kafkactl.jar
 
   build-windows:
-    runs-on: windows-2022
+    runs-on: windows-latest
     environment: Build
     steps:
       - uses: actions/checkout@v2
@@ -96,7 +96,7 @@ jobs:
         shell: cmd
 
       - name: Native Image for CLI
-        run: call "C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64 && mvnw.bat -f cli package -DskipTests -Dpackaging=native-image
+        run: call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64 && mvnw.bat -f cli package -DskipTests -Dpackaging=native-image
         shell: cmd
 
       - name: Display target
