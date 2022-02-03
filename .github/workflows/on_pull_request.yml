@@ -96,9 +96,7 @@ jobs:
         shell: cmd
 
       - name: Native Image for CLI
-        run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
-          mvnw.bat -f cli package -DskipTests -Dpackaging=native-image
+        run: call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64 && mvnw.bat -f cli package -DskipTests -Dpackaging=native-image
         shell: cmd
 
       - name: Display target
