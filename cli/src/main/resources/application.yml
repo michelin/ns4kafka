@@ -62,6 +62,24 @@ kafkactl:
       - "CLUSTER:/metadata/cluster"
       - "USER:/metadata/name"
       - "PASSWORD:/spec/newPassword"
+    Context:
+      - "NAME:/metadata/name"
+      - "NAMESPACE:/spec/namespace"
+      - "API:/spec/api"
+      - "TOKEN:/spec/token"
+  contexts:
+    -
+#  current-namespace: namespace
 #  api: http://localhost:8080
 #  user-token: token
-#  current-namespace: namespace_name
+#  contexts:
+#    - context:
+#        user-token: token
+#        namespace: namespace
+#        api: http://localhost:8080
+#      name: local
+#    - context:
+#        user-token: token
+#        namespace: namespace
+#        api: https://dev-ns4kafka.com
+#      name: dev

@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 public class ApiResourcesService {
     @Inject
     public ClusterResourceClient resourceClient;
+
     @Inject
     public LoginService loginService;
 

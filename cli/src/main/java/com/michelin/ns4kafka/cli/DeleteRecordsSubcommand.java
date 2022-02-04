@@ -53,5 +53,4 @@ public class DeleteRecordsSubcommand implements Callable<Integer> {
 
         return 0;
     }
-
 }

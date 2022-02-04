@@ -137,5 +137,4 @@ public class ApplySubcommand implements Callable<Integer> {
 
         return errors > 0 ? 1 : 0;
     }
-
 }

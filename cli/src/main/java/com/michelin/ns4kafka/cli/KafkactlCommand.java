@@ -23,7 +23,8 @@ import java.util.concurrent.Callable;
                         ImportSubcommand.class,
                         ConnectorsSubcommand.class,
                         SchemaSubcommand.class,
-                        UsersSubcommand.class
+                        UsersSubcommand.class,
+                        ConfigSubcommand.class
                 },
         versionProvider = KafkactlCommand.ConfigVersionProvider.class,
         mixinStandardHelpOptions = true)

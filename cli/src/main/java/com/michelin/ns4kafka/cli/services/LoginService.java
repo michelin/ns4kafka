@@ -105,7 +105,16 @@ public class LoginService {
         } catch (HttpClientResponseException e) {
             System.out.println("Authentication failed with message: " + e.getMessage());
         }
-        return false;
 
+        return false;
+    }
+
+    /**
+     * If exists, delete JWT file
+     */
+    public void deleteJWTfile() {
+        if (jwtFile.exists()) {
+            jwtFile.delete();
+        }
     }
 }

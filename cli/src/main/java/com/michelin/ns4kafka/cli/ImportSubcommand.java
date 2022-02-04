@@ -43,7 +43,7 @@ public class ImportSubcommand implements Callable<Integer> {
     CommandLine.Model.CommandSpec commandSpec;
 
     public Integer call() {
-        
+
         if (dryRun) {
             System.out.println("Dry run execution");
         }

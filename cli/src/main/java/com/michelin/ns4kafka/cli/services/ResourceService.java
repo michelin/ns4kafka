@@ -20,12 +20,16 @@ import java.util.stream.Collectors;
 public class ResourceService {
     @Inject
     NamespacedResourceClient namespacedClient;
+
     @Inject
     ClusterResourceClient nonNamespacedClient;
+
     @Inject
     LoginService loginService;
+
     @Inject
     FormatService formatService;
+
     @Inject
     FileService fileService;
 
@@ -50,7 +54,7 @@ public class ResourceService {
     }
 
     public Resource getSingleResourceWithType(ApiResource apiResource, String namespace, String resourceName, boolean throwError) {
-        Resource resource = null;
+        Resource resource;
         if (apiResource.isNamespaced()) {
             resource = namespacedClient.get(namespace, apiResource.getPath(), resourceName, loginService.getAuthorization());
         } else {
