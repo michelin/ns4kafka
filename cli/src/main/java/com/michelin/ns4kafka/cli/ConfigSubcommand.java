@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.cli.models.ObjectMeta;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ConfigService;
 import com.michelin.ns4kafka.cli.services.FormatService;
+import com.michelin.ns4kafka.cli.services.LoginService;
 import lombok.Getter;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.TypeDescription;

@@ -7,6 +7,7 @@ import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 import picocli.CommandLine;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -19,16 +20,14 @@ public class ConfigService {
     /**
      * The current Kafkactl configuration
      */
-    private final KafkactlConfig kafkactlConfig;
+    @Inject
+    public KafkactlConfig kafkactlConfig;
 
     /**
-     * Constructor
-     *
-     * @param kafkactlConfig The current Kafkactl configuration
+     * Login service
      */
-    public ConfigService(KafkactlConfig kafkactlConfig) {
-        this.kafkactlConfig = kafkactlConfig;
-    }
+    @Inject
+    public LoginService loginService;
 
     /**
      * Return the name of the current context according to the current api, namespace
@@ -86,5 +85,7 @@ public class ConfigService {
         Yaml yamlMapper = new Yaml(representer, options);
         FileWriter writer = new FileWriter(kafkactlConfig.getConfigPath() + "/config.yml");
         yamlMapper.dump(config, writer);
+
+        loginService.deleteJWTfile();
     }
 }
