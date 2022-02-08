@@ -80,7 +80,8 @@ public class TopicValidator extends ResourceValidator {
                                 "partitions", ResourceValidator.Range.between(3,6),
                                 "cleanup.policy", ResourceValidator.ValidList.in("delete","compact"),
                                 "min.insync.replicas", ResourceValidator.Range.between(2,2),
-                                "retention.ms", ResourceValidator.Range.between(60000,604800000)
+                                "retention.ms", ResourceValidator.Range.between(60000,604800000),
+                                "retention.bytes", ResourceValidator.Range.optionalBetween(-1, 104857600)
                         )
                 )
                 .build();
@@ -92,7 +93,8 @@ public class TopicValidator extends ResourceValidator {
                                 "partitions", ResourceValidator.Range.between(3,6),
                                 "cleanup.policy", ResourceValidator.ValidList.in("delete","compact"),
                                 "min.insync.replicas", ResourceValidator.Range.between(1,1),
-                                "retention.ms", ResourceValidator.Range.between(60000,604800000)
+                                "retention.ms", ResourceValidator.Range.between(60000,604800000),
+                                "retention.bytes", ResourceValidator.Range.optionalBetween(-1, 104857600)
                         )
                 )
                 .build();

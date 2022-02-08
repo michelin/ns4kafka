@@ -44,15 +44,17 @@ public abstract class ResourceValidator {
     public static class Range implements ResourceValidator.Validator {
         private Number min;
         private Number max;
+        private boolean optional = false;
 
         /**
          *  A numeric range with inclusive upper bound and inclusive lower bound
          * @param min  the lower bound
          * @param max  the upper bound
          */
-        public Range(Number min, Number max) {
+        public Range(Number min, Number max, boolean optional) {
             this.min = min;
             this.max = max;
+            this.optional = optional;
         }
 
         /**
@@ -61,20 +63,29 @@ public abstract class ResourceValidator {
          * @param min The minimum acceptable value
          */
         public static ResourceValidator.Range atLeast(Number min) {
-            return new ResourceValidator.Range(min, null);
+            return new ResourceValidator.Range(min, null, false);
         }
 
         /**
          * A numeric range that checks both the upper (inclusive) and lower bound
          */
         public static ResourceValidator.Range between(Number min, Number max) {
-            return new ResourceValidator.Range(min, max);
+            return new ResourceValidator.Range(min, max, false);
+        }
+        /**
+         * A numeric range that checks both the upper (inclusive) and lower bound, and accepts null as well
+         */
+        public static ResourceValidator.Range optionalBetween(Number min, Number max) {
+            return new ResourceValidator.Range(min, max, true);
         }
 
         public void ensureValid(String name, Object o) {
             Number n = null;
-            if (o == null)
+            if (o == null) {
+                if (optional)
+                    return;
                 throw new FieldValidationException(name, null, "Value must be non-null");
+            }
             try {
                 n = Double.valueOf(o.toString());
             }catch (NumberFormatException e){

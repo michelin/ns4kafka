@@ -41,6 +41,22 @@ public class ResourceValidatorTest {
 
     }
     @Test
+    void testOptionalRange() {
+        // BETWEEN
+        ResourceValidator.Validator original = new ResourceValidator.Range(0,10,true);
+        // test ensureValid
+
+        Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", ""));
+        Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "NotANumber"));
+        Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "-1"));
+        Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "11"));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", null));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "0"));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "10"));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "5"));
+
+    }
+    @Test
     void testRangeAtLeast() {
         ResourceValidator.Validator original = ResourceValidator.Range.atLeast(10);
         ResourceValidator.Validator same = ResourceValidator.Range.atLeast(10);
