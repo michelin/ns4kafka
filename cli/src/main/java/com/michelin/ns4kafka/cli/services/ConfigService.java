@@ -13,6 +13,7 @@ import java.io.*;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 
 @Singleton
 public class ConfigService {
@@ -70,19 +71,21 @@ public class ConfigService {
         Map<String, LinkedHashMap<String, Object>> rootNodeConfig = yaml.load(targetStream);
 
         LinkedHashMap<String, Object> kafkactlNodeConfig = rootNodeConfig.get("kafkactl");
-        kafkactlNodeConfig.put("currentNamespace", contextToSet.getContext().getNamespace());
-        kafkactlNodeConfig.put("api", contextToSet.getContext().getApi());
-        kafkactlNodeConfig.put("userToken", contextToSet.getContext().getUserToken());
 
-        Representer representer = new Representer();
-        representer.addClassTag(KafkactlConfig.Context.class, Tag.MAP);
+        String currentNamespaceKey = kafkactlNodeConfig.containsKey("currentNamespace") ? "currentNamespace" : "current-namespace";
+        kafkactlNodeConfig.put(currentNamespaceKey, contextToSet.getContext().getNamespace());
+
+        kafkactlNodeConfig.put("api", contextToSet.getContext().getApi());
+
+        String userTokenKey = kafkactlNodeConfig.containsKey("userToken") ? "userToken" : "user-token";
+        kafkactlNodeConfig.put(userTokenKey, contextToSet.getContext().getUserToken());
 
         DumperOptions options = new DumperOptions();
         options.setIndent(2);
         options.setPrettyFlow(true);
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
 
-        Yaml yamlMapper = new Yaml(representer, options);
+        Yaml yamlMapper = new Yaml(options);
         FileWriter writer = new FileWriter(kafkactlConfig.getConfigPath() + "/config.yml");
         yamlMapper.dump(rootNodeConfig, writer);
 
