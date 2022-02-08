@@ -9,8 +9,7 @@ import picocli.CommandLine;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -65,14 +64,15 @@ public class ConfigService {
      * @throws IOException Any exception during file writing
      */
     public void updateConfigurationContext(KafkactlConfig.Context contextToSet) throws IOException {
-        Map<String, Object> currentContext = new LinkedHashMap<>();
-        currentContext.put("currentNamespace", contextToSet.getContext().getNamespace());
-        currentContext.put("api", contextToSet.getContext().getApi());
-        currentContext.put("userToken", contextToSet.getContext().getUserToken());
-        currentContext.put("contexts", kafkactlConfig.getContexts());
+        Yaml yaml = new Yaml();
+        File initialFile = new File(kafkactlConfig.getConfigPath() + "/config.yml");
+        InputStream targetStream = new FileInputStream(initialFile);
+        Map<String, LinkedHashMap<String, Object>> rootNodeConfig = yaml.load(targetStream);
 
-        Map<String, Object> config = new LinkedHashMap<>();
-        config.put("kafkactl", currentContext);
+        LinkedHashMap<String, Object> kafkactlNodeConfig = rootNodeConfig.get("kafkactl");
+        kafkactlNodeConfig.put("currentNamespace", contextToSet.getContext().getNamespace());
+        kafkactlNodeConfig.put("api", contextToSet.getContext().getApi());
+        kafkactlNodeConfig.put("userToken", contextToSet.getContext().getUserToken());
 
         Representer representer = new Representer();
         representer.addClassTag(KafkactlConfig.Context.class, Tag.MAP);
@@ -84,7 +84,7 @@ public class ConfigService {
 
         Yaml yamlMapper = new Yaml(representer, options);
         FileWriter writer = new FileWriter(kafkactlConfig.getConfigPath() + "/config.yml");
-        yamlMapper.dump(config, writer);
+        yamlMapper.dump(rootNodeConfig, writer);
 
         loginService.deleteJWTfile();
     }
