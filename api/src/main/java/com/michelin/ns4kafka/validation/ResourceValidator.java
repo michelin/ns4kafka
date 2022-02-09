@@ -113,20 +113,28 @@ public abstract class ResourceValidator {
     @NoArgsConstructor
     public static class ValidList implements ResourceValidator.Validator {
 
-        List<String> validStrings;
+        private List<String> validStrings;
+        private boolean optional = false;
 
-        public ValidList(List<String> validStrings) {
+        public ValidList(List<String> validStrings, boolean optional) {
             this.validStrings = validStrings;
+            this.optional = optional;
         }
 
         public static ResourceValidator.ValidList in(String... validStrings) {
-            return new ResourceValidator.ValidList(Arrays.asList(validStrings));
+            return new ResourceValidator.ValidList(Arrays.asList(validStrings), false);
+        }
+        public static ResourceValidator.ValidList optionalIn(String... validStrings) {
+            return new ResourceValidator.ValidList(Arrays.asList(validStrings), true);
         }
 
         @Override
         public void ensureValid(final String name, final Object o) {
-            if (o == null)
+            if (o == null) {
+                if (optional)
+                    return;
                 throw new FieldValidationException(name, null, "Value must be non-null");
+            }
             String s = (String)o;
 
             List<String> values = List.of(s); //default if no "," (most of the time)
@@ -136,7 +144,7 @@ public abstract class ResourceValidator {
             }
 
             for (String string : values) {
-                ValidString validString = new ValidString(validStrings);
+                ValidString validString = new ValidString(validStrings, false);
                 validString.ensureValid(name, string);
             }
         }
@@ -149,21 +157,29 @@ public abstract class ResourceValidator {
     @Data
     @NoArgsConstructor
     public static class ValidString implements ResourceValidator.Validator {
-        List<String> validStrings;
+        private List<String> validStrings;
+        private boolean optional = false;
 
 
-        public ValidString(List<String> validStrings) {
+        public ValidString(List<String> validStrings, boolean optional) {
             this.validStrings = validStrings;
+            this.optional = optional;
         }
 
         public static ResourceValidator.ValidString in(String... validStrings) {
-            return new ResourceValidator.ValidString(Arrays.asList(validStrings));
+            return new ResourceValidator.ValidString(Arrays.asList(validStrings), false);
+        }
+        public static ResourceValidator.ValidString optionalIn(String... validStrings) {
+            return new ResourceValidator.ValidString(Arrays.asList(validStrings), true);
         }
 
         @Override
         public void ensureValid(String name, Object o) {
-            if (o == null)
+            if (o == null) {
+                if (optional)
+                    return;
                 throw new FieldValidationException(name, null, "Value must be non-null");
+            }
             String s = (String) o;
             if (!validStrings.contains(s)) {
                 throw new FieldValidationException(name, o, "String must be one of: " + String.join(", ", validStrings));
