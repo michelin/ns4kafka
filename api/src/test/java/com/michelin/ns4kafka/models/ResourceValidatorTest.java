@@ -41,6 +41,22 @@ public class ResourceValidatorTest {
 
     }
     @Test
+    void testOptionalRange() {
+        // BETWEEN
+        ResourceValidator.Validator original = new ResourceValidator.Range(0,10,true);
+        // test ensureValid
+
+        Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", ""));
+        Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "NotANumber"));
+        Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "-1"));
+        Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "11"));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", null));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "0"));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "10"));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "5"));
+
+    }
+    @Test
     void testRangeAtLeast() {
         ResourceValidator.Validator original = ResourceValidator.Range.atLeast(10);
         ResourceValidator.Validator same = ResourceValidator.Range.atLeast(10);
@@ -79,6 +95,19 @@ public class ResourceValidatorTest {
         Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "b"));
         Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "c"));
     }
+    @Test
+    void testOptionalValidString() {
+        ResourceValidator.Validator original = ResourceValidator.ValidString.optionalIn("a", "b", "c");
+
+        Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", ""));
+        Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "A"));
+        Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "d"));
+        Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "1"));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", null));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "a"));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "b"));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "c"));
+    }
 
     @Test
     void testValidList() {
@@ -98,6 +127,25 @@ public class ResourceValidatorTest {
         Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "1"));
         Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "a,A"));
         Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "a,b,c,d"));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "a"));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "b"));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "c"));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "a,b"));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "b,c"));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "c,b,a"));
+    }
+    @Test
+    void testOptionalValidList() {
+        ResourceValidator.Validator original = ResourceValidator.ValidList.optionalIn("a", "b", "c");
+        // test ensureValid
+
+        Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", ""));
+        Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "A"));
+        Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "d"));
+        Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "1"));
+        Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "a,A"));
+        Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "a,b,c,d"));
+        Assertions.assertDoesNotThrow(() -> original.ensureValid("k", null));
         Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "a"));
         Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "b"));
         Assertions.assertDoesNotThrow(() -> original.ensureValid("k", "c"));

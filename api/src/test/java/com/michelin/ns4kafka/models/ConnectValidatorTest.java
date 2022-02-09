@@ -19,7 +19,8 @@ public class ConnectValidatorTest {
                                 List.of("io.confluent.connect.jdbc.JdbcSourceConnector",
                                         "io.confluent.connect.jdbc.JdbcSinkConnector",
                                         "com.splunk.kafka.connect.SplunkSinkConnector",
-                                        "org.apache.kafka.connect.file.FileStreamSinkConnector")
+                                        "org.apache.kafka.connect.file.FileStreamSinkConnector"),
+                                false
                         )
                 ))
                 .sourceValidationConstraints(Map.of(
@@ -43,7 +44,8 @@ public class ConnectValidatorTest {
                                 List.of("io.confluent.connect.jdbc.JdbcSourceConnector",
                                         "io.confluent.connect.jdbc.JdbcSinkConnector",
                                         "com.splunk.kafka.connect.SplunkSinkConnector",
-                                        "org.apache.kafka.connect.file.FileStreamSinkConnector")
+                                        "org.apache.kafka.connect.file.FileStreamSinkConnector"),
+                                false
                         )
                 ))
                 .sourceValidationConstraints(Map.of(
@@ -84,7 +86,8 @@ public class ConnectValidatorTest {
                                 List.of("io.confluent.connect.jdbc.JdbcSourceConnector",
                                         "io.confluent.connect.jdbc.JdbcSinkConnector",
                                         "com.splunk.kafka.connect.SplunkSinkConnector",
-                                        "org.apache.kafka.connect.file.FileStreamSinkConnector")
+                                        "org.apache.kafka.connect.file.FileStreamSinkConnector"),
+                                false
                         )
                 ))
                 .sourceValidationConstraints(Map.of())
@@ -106,7 +109,8 @@ public class ConnectValidatorTest {
                                 List.of("io.confluent.connect.jdbc.JdbcSourceConnector",
                                         "io.confluent.connect.jdbc.JdbcSinkConnector",
                                         "com.splunk.kafka.connect.SplunkSinkConnector",
-                                        "org.apache.kafka.connect.file.FileStreamSinkConnector")
+                                        "org.apache.kafka.connect.file.FileStreamSinkConnector"),
+                                false
                         )
                 ))
                 .sourceValidationConstraints(Map.of(
@@ -128,7 +132,8 @@ public class ConnectValidatorTest {
                                 List.of("io.confluent.connect.jdbc.JdbcSourceConnector",
                                         "io.confluent.connect.jdbc.JdbcSinkConnector",
                                         "com.splunk.kafka.connect.SplunkSinkConnector",
-                                        "org.apache.kafka.connect.file.FileStreamSinkConnector")
+                                        "org.apache.kafka.connect.file.FileStreamSinkConnector"),
+                                false
                         )
                 ))
                 .sourceValidationConstraints(Map.of(
