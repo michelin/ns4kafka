@@ -71,14 +71,9 @@ public class ConfigService {
         Map<String, LinkedHashMap<String, Object>> rootNodeConfig = yaml.load(targetStream);
 
         LinkedHashMap<String, Object> kafkactlNodeConfig = rootNodeConfig.get("kafkactl");
-
-        String currentNamespaceKey = kafkactlNodeConfig.containsKey("currentNamespace") ? "currentNamespace" : "current-namespace";
-        kafkactlNodeConfig.put(currentNamespaceKey, contextToSet.getContext().getNamespace());
-
+        kafkactlNodeConfig.put("current-namespace", contextToSet.getContext().getNamespace());
         kafkactlNodeConfig.put("api", contextToSet.getContext().getApi());
-
-        String userTokenKey = kafkactlNodeConfig.containsKey("userToken") ? "userToken" : "user-token";
-        kafkactlNodeConfig.put(userTokenKey, contextToSet.getContext().getUserToken());
+        kafkactlNodeConfig.put("user-token", contextToSet.getContext().getUserToken());
 
         DumperOptions options = new DumperOptions();
         options.setIndent(2);
