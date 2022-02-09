@@ -4,19 +4,11 @@ import com.michelin.ns4kafka.cli.models.ObjectMeta;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.services.ConfigService;
 import com.michelin.ns4kafka.cli.services.FormatService;
-import com.michelin.ns4kafka.cli.services.LoginService;
+import io.micronaut.core.util.StringUtils;
 import lombok.Getter;
-import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.TypeDescription;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
-import org.yaml.snakeyaml.nodes.Tag;
-import org.yaml.snakeyaml.representer.Representer;
 import picocli.CommandLine;
 
 import javax.inject.Inject;
-import java.io.FileWriter;
-import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.Callable;
 
@@ -44,13 +36,20 @@ public class ConfigSubcommand implements Callable<Integer> {
     public Integer call() throws Exception {
         if (action.equals(ConfigAction.CURRENT_CONTEXT)) {
             Map<String,Object> specs = new HashMap<>();
-            specs.put("namespace", kafkactlConfig.getCurrentNamespace());
-            specs.put("api", kafkactlConfig.getApi());
-            specs.put("token", kafkactlConfig.getUserToken());
 
+            if (kafkactlConfig.getCurrentNamespace() != null)
+                specs.put("namespace", kafkactlConfig.getCurrentNamespace());
+
+            if (kafkactlConfig.getApi() != null)
+                specs.put("api", kafkactlConfig.getApi());
+
+            if (kafkactlConfig.getUserToken() != null)
+                specs.put("token", kafkactlConfig.getUserToken());
+
+            String currentContextName = configService.getCurrentContextName();
             Resource currentContextAsResource = Resource.builder()
                     .metadata(ObjectMeta.builder()
-                            .name(configService.getCurrentContextName())
+                            .name(currentContextName != null ? currentContextName : StringUtils.EMPTY_STRING)
                             .build())
                     .spec(specs)
                     .build();
