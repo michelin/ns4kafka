@@ -136,7 +136,7 @@ public class ResourceValidatorTest {
     }
     @Test
     void testOptionalValidList() {
-        ResourceValidator.Validator original = ResourceValidator.ValidList.in("a", "b", "c");
+        ResourceValidator.Validator original = ResourceValidator.ValidList.optionalIn("a", "b", "c");
         // test ensureValid
 
         Assertions.assertThrows(FieldValidationException.class, () -> original.ensureValid("k", ""));
