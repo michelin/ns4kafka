@@ -32,39 +32,6 @@ ns4kafka is built on top of 2 components : an **API** and a **CLI**.
 - The **ns4kafka** API exposes all the required controllers to list, create and delete Kafka resources. It must be deployed and managed by Kafka administrators.
 - The **kafkactl** CLI is, much like K8S's kubectl, a wrapper on the API to let any user or CI/CD pipeline deploy Kafka resources using yaml descriptors. It is made available to any project who needs to manage Kafka resources.
 
-
-# Key Features (WIP)
-- [x] Namespace Isolation
-  - [x] One or more Resource prefixes per Namespace
-  - [x] Single Kafka Principal per Namespace
-  - [ ] Multiple Kafka Principals
-- [x] Self-service Kafka resources management
-  - [x] Topics
-  - [x] Connectors
-  - [x] ACLs (applied to the Kafka Principal)
-  - [x] Cross Namespace Grants
-    - [x] Topic (Namespace1 grants Read and/or Write to Namespace2)
-  - [ ] Schemas
-  - [ ] Kafka Principals (passwords, byte-rates)
-- [x] Validation rules
-  - [x] Topics
-  - [x] Connectors
-  - [ ] Schemas
-- [x] Multi cluster
-- [x] Security
-  - [x] Authentication / Authorization
-    - [x] Gitlab Access Token
-    - [ ] LDAP
-    - [ ] OIDC
-  - [x] Role Bindings (Fine-Grained ACLs : User / Resource / Operation)
-- [ ] Resource Quotas
-  - [ ] Disk usage
-  - [ ] Partition count
-  - [ ] Topic count
-  - [ ] Connectors count
-- [ ] Detailed audit log
-- [x] ACLs linked with [AKHQ](https://github.com/tchiotludo/akhq)
-
 # Quick start CLI
 
 *The following examples demonstrates ns4kafka for a namespace which is owner of <b>test.\*</b> resources.*
