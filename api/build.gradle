@@ -61,7 +61,7 @@ tasks.withType(JavaCompile) {
 }
 
 run {
-//    environment( "MICRONAUT_ENVIRONMENTS","dev")
+    environment( "MICRONAUT_ENVIRONMENTS","dev")
 }
 
 test {
@@ -71,7 +71,7 @@ test {
 }
 
 dockerBuild {
-    images = ["twobeeb/ns4kafka:"+version]
+    images = ["michelin/ns4kafka:"+version]
 }
 
 jacocoTestReport {

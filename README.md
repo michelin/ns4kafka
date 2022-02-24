@@ -6,8 +6,8 @@ ns4kafka
 [![GitHub issues](https://img.shields.io/github/issues/michelin/ns4kafka)](https://github.com/michelin/ns4kafka/issues)
 [![SonarCloud Coverage](https://sonarcloud.io/api/project_badges/measure?project=michelin_ns4kafka&metric=coverage)](https://sonarcloud.io/component_measures/metric/coverage/list?id=michelin_ns4kafka)
 [![SonarCloud Bugs](https://sonarcloud.io/api/project_badges/measure?project=michelin_ns4kafka&metric=bugs)](https://sonarcloud.io/component_measures/metric/reliability_rating/list?id=michelin_ns4kafka)
-[![Docker Pulls](https://img.shields.io/docker/pulls/twobeeb/ns4kafka?label=ns4kafka%20pulls&logo=Docker)](https://hub.docker.com/r/twobeeb/ns4kafka/tags)
-[![Docker Pulls](https://img.shields.io/docker/pulls/twobeeb/kafkactl?label=kafkactl%20pulls&logo=Docker)](https://hub.docker.com/r/twobeeb/kafkactl/tags)
+[![Docker Pulls](https://img.shields.io/docker/pulls/michelin/ns4kafka?label=ns4kafka%20pulls&logo=Docker)](https://hub.docker.com/r/michelin/ns4kafka/tags)
+[![Docker Pulls](https://img.shields.io/docker/pulls/michelin/kafkactl?label=kafkactl%20pulls&logo=Docker)](https://hub.docker.com/r/michelin/kafkactl/tags)
 
 # Table of Contents
 * [About the project](#about-the-project)
@@ -347,7 +347,7 @@ Download the latest available version from the [Releases](https://github.com/mic
 - ``kafkactl`` binary for Linux
 - ``kafkactl.exe`` binary for Windows
 - ``kafkactl.jar`` java package
-- Docker image from DockerHub [twobeeb/kafkactl](https://hub.docker.com/repository/docker/twobeeb/kafkactl)
+- Docker image from DockerHub [michelin/kafkactl](https://hub.docker.com/repository/docker/michelin/kafkactl)
 
 Windows and Linux binaries are generated using GraalVM and native-image.  
 Java package requires at least Java 11.  
