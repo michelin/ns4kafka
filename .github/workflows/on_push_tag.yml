@@ -77,7 +77,7 @@ jobs:
         uses: al-cheb/configure-pagefile-action@v1.2
       - name: Native Image for CLI
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
           gradlew.bat :cli:shadowJar :cli:nativeImage
         shell: cmd
       - uses: actions/upload-artifact@v2
