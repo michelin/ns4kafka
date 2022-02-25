@@ -31,6 +31,7 @@ public class AkhqClaimProviderController {
     @Inject
     NamespaceService namespaceService;
 
+    // For AKHQ up to 0.19
     @Post
     public AKHQClaimResponse generateClaim(@Valid @Body AKHQClaimRequest request) {
         if (request == null || request.getGroups() == null || request.getGroups().isEmpty()) {
@@ -60,6 +61,34 @@ public class AkhqClaimProviderController {
                                 "consumerGroupsFilterRegexp", computeAllowedRegexListForResourceType(relatedACL, AccessControlEntry.ResourceType.GROUP)
                         )
                 )
+                .build();
+    }
+    // For AKHQ 0.20.0 and later
+    @Post("/v2")
+    public AKHQClaimResponseV2 generateClaimV2(@Valid @Body AKHQClaimRequest request) {
+        if (request == null || request.getGroups() == null || request.getGroups().isEmpty()) {
+            return AKHQClaimResponseV2.ofEmpty(config.getRoles());
+        }
+
+        if(request.getGroups().contains(config.getAdminGroup())){
+            return AKHQClaimResponseV2.ofAdmin(config.getAdminRoles());
+        }
+
+        List<AccessControlEntry> relatedACL = namespaceService.listAll()
+                .stream()
+                // keep namespaces with correct label
+                .filter(namespace -> namespace.getMetadata().getLabels() != null &&
+                        request.getGroups().contains(namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_"))
+                )
+                // find all ACL associated to these namespaces
+                .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace).stream())
+                .collect(Collectors.toList());
+
+        return AKHQClaimResponseV2.builder()
+                .roles(config.getRoles())
+                .topicsFilterRegexp(computeAllowedRegexListForResourceType(relatedACL, AccessControlEntry.ResourceType.TOPIC))
+                .connectsFilterRegexp(computeAllowedRegexListForResourceType(relatedACL, AccessControlEntry.ResourceType.CONNECT))
+                .consumerGroupsFilterRegexp(computeAllowedRegexListForResourceType(relatedACL, AccessControlEntry.ResourceType.GROUP))
                 .build();
     }
 
@@ -118,6 +147,33 @@ public class AkhqClaimProviderController {
                             "connectsFilterRegexp", ADMIN_REGEXP,
                             "consumerGroupsFilterRegexp", ADMIN_REGEXP
                     ))
+                    .build();
+        }
+    }
+    @Introspected
+    @Builder
+    @Getter
+    public static class AKHQClaimResponseV2 {
+        private List<String> roles;
+        private List<String> topicsFilterRegexp;
+        private List<String> connectsFilterRegexp;
+        private List<String> consumerGroupsFilterRegexp;
+
+        public static AKHQClaimResponseV2 ofEmpty(List<String> roles){
+            return AKHQClaimResponseV2.builder()
+                    .roles(roles)
+                    .topicsFilterRegexp(EMPTY_REGEXP)
+                    .connectsFilterRegexp(EMPTY_REGEXP)
+                    .consumerGroupsFilterRegexp(EMPTY_REGEXP)
+                    .build();
+        }
+        public static AKHQClaimResponseV2 ofAdmin(List<String> roles){
+
+            return AKHQClaimResponseV2.builder()
+                    .roles(roles)
+                    .topicsFilterRegexp(ADMIN_REGEXP)
+                    .connectsFilterRegexp(ADMIN_REGEXP)
+                    .consumerGroupsFilterRegexp(ADMIN_REGEXP)
                     .build();
         }
     }
