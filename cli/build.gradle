@@ -61,7 +61,7 @@ nativeImage {
             '-H:Log=*ShimDLL:3,link:3,copy:3']
 }
 dockerBuild {
-    images = ["twobeeb/kafkactl:"+version]
+    images = ["michelin/kafkactl:"+version]
 }
 
 jacocoTestReport {

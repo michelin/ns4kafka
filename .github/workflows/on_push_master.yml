@@ -11,8 +11,8 @@ jobs:
       - name: Docker Login
         uses: docker/login-action@v1.8.0
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          username: ${{ secrets.MICHELIN_DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.MICHELIN_DOCKER_HUB_PASSWD }}
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
@@ -74,7 +74,7 @@ jobs:
         uses: al-cheb/configure-pagefile-action@v1.2
       - name: Native Image for CLI
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
           gradlew.bat :cli:shadowJar :cli:nativeImage
         shell: cmd
       - uses: actions/upload-artifact@v2
