@@ -425,4 +425,65 @@ public class AkhqClaimProviderControllerTest {
         );
 
     }
+
+    @Test
+    void generateClaimV2_TestNullOrEmptyRequest(){
+        //null request
+        AkhqClaimProviderController.AKHQClaimResponseV2 actual = akhqClaimProviderController.generateClaimV2(null);
+
+        Assertions.assertEquals(1, actual.getTopicsFilterRegexp().size());
+        Assertions.assertEquals("^none$", actual.getTopicsFilterRegexp().get(0));
+
+        //null group list
+        AkhqClaimProviderController.AKHQClaimRequest request = AkhqClaimProviderController.AKHQClaimRequest.builder().build();
+        actual = akhqClaimProviderController.generateClaimV2(request);
+
+        Assertions.assertEquals(1, actual.getTopicsFilterRegexp().size());
+        Assertions.assertEquals("^none$", actual.getTopicsFilterRegexp().get(0));
+
+        //empty group list
+        request = AkhqClaimProviderController.AKHQClaimRequest.builder().groups(List.of()).build();
+        actual = akhqClaimProviderController.generateClaimV2(request);
+
+        Assertions.assertEquals(1, actual.getTopicsFilterRegexp().size());
+        Assertions.assertEquals("^none$", actual.getTopicsFilterRegexp().get(0));
+
+        Assertions.assertLinesMatch(
+                List.of(
+                        "topic/read",
+                        "topic/data/read",
+                        "group/read",
+                        "registry/read",
+                        "connect/read",
+                        "connect/state/update"
+                ),
+                actual.getRoles()
+        );
+    }
+
+    @Test
+    void generateClaimV2_TestSuccess_Admin() {
+
+        AkhqClaimProviderController.AKHQClaimRequest request = AkhqClaimProviderController.AKHQClaimRequest.builder()
+                .groups(List.of("GP-ADMIN"))
+                .build();
+
+        AkhqClaimProviderController.AKHQClaimResponseV2 actual = akhqClaimProviderController.generateClaimV2(request);
+        // AdminRoles
+        Assertions.assertLinesMatch(
+                List.of(
+                        "topic/read",
+                        "topic/data/read",
+                        "group/read",
+                        "registry/read",
+                        "connect/read",
+                        "connect/state/update"
+                ),
+                actual.getRoles()
+        );
+        // Admin Regexp
+        Assertions.assertLinesMatch(List.of(".*$"), actual.getTopicsFilterRegexp());
+        Assertions.assertLinesMatch(List.of(".*$"), actual.getConnectsFilterRegexp());
+        Assertions.assertLinesMatch(List.of(".*$"), actual.getConsumerGroupsFilterRegexp());
+    }
 }
