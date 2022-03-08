@@ -61,7 +61,7 @@ tasks.withType(JavaCompile) {
 }
 
 run {
-    environment( "MICRONAUT_ENVIRONMENTS","dev")
+    //environment( "MICRONAUT_ENVIRONMENTS","dev")
 }
 
 test {
