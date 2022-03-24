@@ -75,7 +75,6 @@ public class StreamController extends NamespacedResourceController {
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{stream}{?dryrun}")
     HttpResponse delete(String namespace,String stream, @QueryValue(defaultValue = "false") boolean dryrun){
-
         Namespace ns = getNamespace(namespace);
         if (!streamService.isNamespaceOwnerOfKafkaStream(ns, stream)) {
             throw new ResourceValidationException(List.of("Invalid value " + stream

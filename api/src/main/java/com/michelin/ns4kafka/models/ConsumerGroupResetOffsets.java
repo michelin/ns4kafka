@@ -14,17 +14,29 @@ import java.util.Map;
 @AllArgsConstructor
 @Data
 public class ConsumerGroupResetOffsets {
-
+    /**
+     * API version
+     */
     private final String apiVersion = "v1";
+
+    /**
+     * Resource kind
+     */
     private final String kind = "ConsumerGroupResetOffsets";
+
+    /**
+     * Resource metadata
+     */
     @Valid
     @NotNull
     private ObjectMeta metadata;
+
+    /**
+     * Resource specifications
+     */
     @Valid
     @NotNull
     private ConsumerGroupResetOffsetsSpec spec;
-    private ConsumerGroupResetOffsetStatus status;
-
 
     @Introspected
     @Builder
@@ -34,55 +46,35 @@ public class ConsumerGroupResetOffsets {
     @Setter
     @ToString
     public static class ConsumerGroupResetOffsetsSpec {
+        /**
+         * The topic to reset offsets
+         */
         @NotNull
         @NotBlank
         private String topic;
+
+        /**
+         * The method used to reset offsets
+         */
         @NotNull
         private ResetOffsetsMethod method;
+
+        /**
+         * Additional options for offsets reset
+         */
         private String options;
     }
 
+    /**
+     * All reset offsets method
+     */
     @Introspected
     public enum ResetOffsetsMethod {
         TO_EARLIEST,
         TO_LATEST,
-        TO_DATETIME,
+        TO_DATETIME, // string:yyyy-MM-ddTHH:mm:SS.sss
         BY_DURATION,
-        SHIFT_BY
-        //FROM_FILE
+        SHIFT_BY // int
+        // FROM_FILE map<string:topic-partition,long:offset
     }
-    // TO_EARLIEST      {}
-    // TO_LATEST        {}
-    // TO_DATETIME      {string:yyyy-MM-ddTHH:mm:SS.sss}
-    // SHIFT_BY         {int}
-    // FROM_FILE        {map<string:topic-partition,long:offset}
-    // BY_DURATION      {
-
-    @Introspected
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Getter
-    @Setter
-    @ToString
-    public static class ConsumerGroupResetOffsetStatus {
-        private boolean success;
-        private String errorMessage;
-        private Map<String, Long> offsetChanged;
-
-        public static ConsumerGroupResetOffsetStatus ofSuccess(Map<String, Long> offsetChanged) {
-            return ConsumerGroupResetOffsetStatus.builder()
-                    .success(true)
-                    .offsetChanged(offsetChanged)
-                    .build();
-        }
-
-        public static ConsumerGroupResetOffsetStatus ofFailure(String errorMessage) {
-            return ConsumerGroupResetOffsetStatus.builder()
-                    .success(false)
-                    .errorMessage(errorMessage)
-                    .build();
-        }
-    }
-
 }

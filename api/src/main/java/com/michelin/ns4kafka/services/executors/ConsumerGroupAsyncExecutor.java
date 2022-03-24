@@ -5,13 +5,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
 import org.apache.kafka.clients.admin.OffsetSpec;
+import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -20,12 +19,23 @@ import java.util.stream.Collectors;
 @EachBean(KafkaAsyncExecutorConfig.class)
 @Singleton
 public class ConsumerGroupAsyncExecutor {
+    /**
+     * The managed clusters config
+     */
     private final KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
 
+    /**
+     * Constructor
+     * @param kafkaAsyncExecutorConfig The managed clusters config
+     */
     public ConsumerGroupAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
         this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
     }
 
+    /**
+     * Getter for Kafka Admin client
+     * @return A Kafka Admin client instance
+     */
     private Admin getAdminClient() {
         return kafkaAsyncExecutorConfig.getAdminClient();
     }
@@ -57,6 +67,13 @@ public class ConsumerGroupAsyncExecutor {
                 .collect(Collectors.toMap(Map.Entry::getKey, kv -> kv.getValue().offset()));
     }
 
+    /**
+     * Get all the committed offsets of a given consumer group
+     * @param groupId The consumer group
+     * @return A map of topic-partition and committed offset number
+     * @throws ExecutionException Any execution exception during consumer groups description
+     * @throws InterruptedException Any interrupted exception during consumer groups description
+     */
     public Map<TopicPartition, Long> getCommittedOffsets(String groupId) throws ExecutionException, InterruptedException {
         return getAdminClient().listConsumerGroupOffsets(groupId)
                 .partitionsToOffsetAndMetadata()
@@ -64,6 +81,24 @@ public class ConsumerGroupAsyncExecutor {
                 .entrySet()
                 .stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().offset()));
+    }
+
+    /**
+     * Get the list of partitions of a given topic
+     * @param topicName The topic name
+     * @return A list of partitions
+     * @throws ExecutionException Any execution exception during topics description
+     * @throws InterruptedException Any interrupted exception during topics description
+     */
+    public List<TopicPartition> getTopicPartitions(String topicName) throws ExecutionException, InterruptedException {
+        return getAdminClient().describeTopics(Collections.singletonList(topicName))
+                .all()
+                .get()
+                .get(topicName)
+                .partitions()
+                .stream()
+                .map(partitionInfo -> new TopicPartition(topicName, partitionInfo.partition()))
+                .collect(Collectors.toList());
     }
 
     public Map<TopicPartition, Long> getLogStartOffsets(String groupId, List<TopicPartition> partitionsToReset) throws ExecutionException, InterruptedException {

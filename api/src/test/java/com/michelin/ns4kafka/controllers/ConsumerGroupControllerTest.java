@@ -5,6 +5,7 @@ import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets.ConsumerGroupReset
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets.ResetOffsetsMethod;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.TopicPartitionOffset;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.ConsumerGroupService;
 import com.michelin.ns4kafka.services.NamespaceService;
@@ -29,27 +30,51 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class ConsumerGroupControllerTest {
-
+class ConsumerGroupControllerTest {
+    /**
+     * The mocked namespace service
+     */
     @Mock
     NamespaceService namespaceService;
+
+    /**
+     * The mocked consumer group service
+     */
     @Mock
     ConsumerGroupService consumerGroupService;
+
+    /**
+     * The mocked app event publisher
+     */
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
+
+    /**
+     * The mocked security service
+     */
     @Mock
     SecurityService securityService;
+
+    /**
+     * The mocked consumer group controller
+     */
     @InjectMocks
     ConsumerGroupController consumerGroupController;
 
+    /**
+     * Assert the offsets reset is valid
+     * @throws InterruptedException Interrupted exception thrown
+     * @throws ExecutionException Execution exception thrown
+     */
     @Test
-    void reset_Valid() throws InterruptedException, ExecutionException {
+    void resetSuccess() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
+
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
                 .metadata(ObjectMeta.builder()
                         .name("groupID")
@@ -61,6 +86,7 @@ public class ConsumerGroupControllerTest {
                         .options(null)
                         .build())
                 .build();
+
         TopicPartition topicPartition1 = new TopicPartition("topic1", 0);
         TopicPartition topicPartition2 = new TopicPartition("topic1", 1);
         List<TopicPartition> topicPartitions = List.of(topicPartition1, topicPartition2);
@@ -81,22 +107,43 @@ public class ConsumerGroupControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        ConsumerGroupResetOffsets result = consumerGroupController.resetOffsets("test", "groupID", resetOffset, false);
+        List<TopicPartitionOffset> result = consumerGroupController.resetOffsets("test", "groupID", resetOffset, false);
 
-        assertTrue(result.getStatus().isSuccess());
-        assertEquals(5L, result.getStatus().getOffsetChanged().get(topicPartition1.toString()));
-        assertEquals(10L, result.getStatus().getOffsetChanged().get(topicPartition2.toString()));
+        TopicPartitionOffset resultTopicPartition1 = result
+            .stream()
+            .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 0)
+            .findFirst()
+            .orElse(null);
+
+        assertNotNull(resultTopicPartition1);
+        assertEquals(5L, resultTopicPartition1.getSpec().getOffset());
+
+        TopicPartitionOffset resultTopicPartition2 = result
+                .stream()
+                .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 1)
+                .findFirst()
+                .orElse(null);
+
+        assertNotNull(resultTopicPartition2);
+        assertEquals(10L, resultTopicPartition2.getSpec().getOffset());
+
         verify(consumerGroupService, times(1)).alterConsumerGroupOffsets(ArgumentMatchers.eq(ns), ArgumentMatchers.eq("groupID"), anyMap());
     }
 
+    /**
+     * Assert the offsets reset is valid in dry mode
+     * @throws InterruptedException Interrupted exception thrown
+     * @throws ExecutionException Execution exception thrown
+     */
     @Test
-    void reset_DryRunSucces() throws InterruptedException, ExecutionException {
+    void resetDryRunSuccess() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
+
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
                 .metadata(ObjectMeta.builder()
                         .name("groupID")
@@ -107,6 +154,7 @@ public class ConsumerGroupControllerTest {
                         .method(ResetOffsetsMethod.TO_EARLIEST)
                         .build())
                 .build();
+
         TopicPartition topicPartition1 = new TopicPartition("topic1", 0);
         TopicPartition topicPartition2 = new TopicPartition("topic1", 1);
         List<TopicPartition> topicPartitions = List.of(topicPartition1, topicPartition2);
@@ -124,22 +172,43 @@ public class ConsumerGroupControllerTest {
         when(consumerGroupService.prepareOffsetsToReset(ns, "groupID", null, topicPartitions, ResetOffsetsMethod.TO_EARLIEST))
                 .thenReturn(Map.of(topicPartition1, 5L, topicPartition2, 10L));
 
-        ConsumerGroupResetOffsets result = consumerGroupController.resetOffsets("test", "groupID", resetOffset, true);
+        List<TopicPartitionOffset> result = consumerGroupController.resetOffsets("test", "groupID", resetOffset, true);
 
-        assertTrue(result.getStatus().isSuccess());
-        assertEquals(5L, result.getStatus().getOffsetChanged().get(topicPartition1.toString()));
-        assertEquals(10L, result.getStatus().getOffsetChanged().get(topicPartition2.toString()));
+        TopicPartitionOffset resultTopicPartition1 = result
+                .stream()
+                .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 0)
+                .findFirst()
+                .orElse(null);
+
+        assertNotNull(resultTopicPartition1);
+        assertEquals(5L, resultTopicPartition1.getSpec().getOffset());
+
+        TopicPartitionOffset resultTopicPartition2 = result
+                .stream()
+                .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 1)
+                .findFirst()
+                .orElse(null);
+
+        assertNotNull(resultTopicPartition2);
+        assertEquals(10L, resultTopicPartition2.getSpec().getOffset());
+
         verify(consumerGroupService, never()).alterConsumerGroupOffsets(notNull(), anyString(), anyMap());
     }
 
+    /**
+     * Assert an error message is returned when an error occurred in offsets reset
+     * @throws InterruptedException Interrupted exception thrown
+     * @throws ExecutionException Execution exception thrown
+     */
     @Test
-    void reset_ExecutionError() throws InterruptedException, ExecutionException {
+    void resetExecutionError() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
+
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
                 .metadata(ObjectMeta.builder()
                         .name("groupID")
@@ -160,22 +229,26 @@ public class ConsumerGroupControllerTest {
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID"))
                 .thenReturn("Empty");
         when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1"))
-                .thenThrow(new ExecutionException("Error", new Throwable()));
+                .thenThrow(new ExecutionException("Error during getPartitionsToReset", new Throwable()));
 
-        ConsumerGroupResetOffsets result = consumerGroupController.resetOffsets("test", "groupID", resetOffset, false);
+        ExecutionException result = assertThrows(ExecutionException.class,
+                () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
 
-        assertFalse(result.getStatus().isSuccess());
-        assertEquals("Error", result.getStatus().getErrorMessage());
+        assertEquals("Error during getPartitionsToReset", result.getMessage());
     }
 
+    /**
+     * Assert an error message is returned when the namespace is not owner of consumer group
+     */
     @Test
-    void reset_ValidationErrorNotOwnerOfConsumerGroup() {
+    void resetValidationErrorNotOwnerOfConsumerGroup() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
+
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
                 .metadata(ObjectMeta.builder()
                         .name("groupID")
@@ -197,17 +270,21 @@ public class ConsumerGroupControllerTest {
         ResourceValidationException result = assertThrows(ResourceValidationException.class,
                 () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
 
-        assertLinesMatch(List.of("Invalid value groupID for name: Namespace not OWNER of this consumer group"), result.getValidationErrors());
+        assertLinesMatch(List.of("Namespace not owner of this consumer group \"groupID\"."), result.getValidationErrors());
     }
 
+    /**
+     * Assert an error message is returned when the offsets reset options are not valid
+     */
     @Test
-    void reset_ValidationErrorInvalidResource() {
+    void resetValidationErrorInvalidResource() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
+
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
                 .metadata(ObjectMeta.builder()
                         .name("groupID")
@@ -232,14 +309,18 @@ public class ConsumerGroupControllerTest {
         assertLinesMatch(List.of("Validation Error"), result.getValidationErrors());
     }
 
+    /**
+     * Assert an error message is returned when the consumer group is active
+     */
     @Test
-    void reset_ValidationErrorConsumerGroupActive() throws ExecutionException, InterruptedException {
+    void resetValidationErrorConsumerGroupActive() throws ExecutionException, InterruptedException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
+
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
                 .metadata(ObjectMeta.builder()
                         .name("groupID")
@@ -260,11 +341,9 @@ public class ConsumerGroupControllerTest {
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID"))
                 .thenReturn("Active");
 
-        ConsumerGroupResetOffsets result = consumerGroupController.resetOffsets("test", "groupID", resetOffset, false);
+        IllegalStateException result = assertThrows(IllegalStateException.class,
+                () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
 
-        assertFalse(result.getStatus().isSuccess());
-        assertEquals("Assignments can only be reset if the group 'groupID' is inactive, but the current state is Active.",
-                result.getStatus().getErrorMessage());
+        assertEquals("Assignments can only be reset if the consumer group \"groupID\" is inactive, but the current state is active.", result.getMessage());
     }
-
 }

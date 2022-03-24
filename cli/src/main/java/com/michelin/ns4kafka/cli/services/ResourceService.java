@@ -134,13 +134,24 @@ public class ResourceService {
         return null;
     }
 
-    public Resource resetOffsets(String namespace, String group, Resource resource, boolean dryRun) {
+    /**
+     * Reset offsets for a given topic and consumer group
+     * @param namespace The namespace
+     * @param group The consumer group
+     * @param resource The information about how to reset
+     * @param dryRun Is dry run mode or not ?
+     * @return The reset offsets response
+     */
+    public List<Resource> resetOffsets(String namespace, String group, Resource resource, boolean dryRun) {
+        List<Resource> resources = List.of();
+
         try {
-            return namespacedClient.resetOffsets(loginService.getAuthorization(), namespace, group, resource, dryRun);
+            resources = namespacedClient.resetOffsets(loginService.getAuthorization(), namespace, group, resource, dryRun);
         } catch (HttpClientResponseException e) {
             formatService.displayError(e, "ConsumerGroup", group);
         }
-        return null;
+
+        return resources;
     }
 
     public Resource changeConnectorState(String namespace, String connector, Resource changeConnectorState) {
