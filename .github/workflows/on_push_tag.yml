@@ -13,27 +13,37 @@ jobs:
         with:
           username: ${{ secrets.MICHELIN_DOCKER_HUB_USERNAME }}
           password: ${{ secrets.MICHELIN_DOCKER_HUB_PASSWD }}
-      - uses: actions/checkout@v2
+
+      - name: Checkout project
+        uses: actions/checkout@v2
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - uses: DeLaGuardo/setup-graalvm@4.0
+
+      - name: Set up GraalVM
+        uses: DeLaGuardo/setup-graalvm@4.0
         with:
           graalvm: '21.1.0'
           java: 'java11'
+
       - name: Install Native Image
         run: gu install native-image
+
       - name: Cache Gradle packages
         uses: actions/cache@v1
         with:
           path: ~/.gradle/caches
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
           restore-keys: ${{ runner.os }}-gradle
+
       - name: Build and Test
         run: ./gradlew build check -Prelease
+
       - name: Native Image for CLI
         run: ./gradlew :cli:shadowJar :cli:nativeImage -Prelease
+
       - name: Push ns4kafka and kafkactl
         run: ./gradlew dockerBuild api:dockerPush cli:dockerPush -Prelease
+
       - name: Generate Release Changelog
         uses: mikepenz/release-changelog-builder-action@v1
         id: build_changelog
@@ -41,54 +51,63 @@ jobs:
           configuration: "changelog-builder.json"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Prepare Release
-        uses: softprops/action-gh-release@v1
+
+      - name: Create release
+        uses: ncipollo/release-action@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: ${{ steps.build_changelog.outputs.changelog }}
+          artifacts: "cli/build/native-image/kafkactl-*,cli/build/libs/kafkactl-*.jar"
           draft: true
           prerelease: true
-          body: ${{ steps.build_changelog.outputs.changelog }}
-          files: |
-            cli/build/native-image/kafkactl-+([0-9]).+([0-9]).+([0-9])
-            cli/build/libs/kafkactl-+([0-9]).+([0-9]).+([0-9]).jar
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Display release note
-        run: echo "${{ steps.build_changelog.outputs.changelog }}"
+          allowUpdates: true
+
   build-windows:
     runs-on: windows-latest
     environment: Build
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout project
+        uses: actions/checkout@v2
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - uses: DeLaGuardo/setup-graalvm@4.0
+
+      - name: Set up GraalVM
+        uses: DeLaGuardo/setup-graalvm@4.0
         with:
           graalvm: '20.3.2'
           java: 'java11'
-      - name: Install Native Image
+
+      - name: Install native image
         run: ${{ env.JAVA_HOME }}\bin\gu.cmd install native-image
+
       - name: Cache Gradle packages
         uses: actions/cache@v2
         with:
           path: ~/.gradle/caches
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
           restore-keys: ${{ runner.os }}-gradle
+
       - name: Configure Pagefile
         uses: al-cheb/configure-pagefile-action@v1.2
-      - name: Native Image for CLI
+
+      - name: Native image for CLI
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
           gradlew.bat :cli:shadowJar :cli:nativeImage
         shell: cmd
-      - uses: actions/upload-artifact@v2
+
+      - name: Upload Windows native Kafkactl
+        uses: actions/upload-artifact@v2
         with:
           name: native-image-windows
           path: ${{ github.workspace }}/cli/build/native-image/kafkactl-*.exe
-      - name: Prepare Release
-        uses: softprops/action-gh-release@v1
+
+      - name: Update release with Windows Kafkactl
+        uses: ncipollo/release-action@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: ${{ steps.build_changelog.outputs.changelog }}
+          artifacts: "cli/build/native-image/kafkactl-*.exe"
           draft: true
           prerelease: true
-          files: ${{ github.workspace }}/cli/build/native-image/kafkactl-*.exe
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          allowUpdates: true
