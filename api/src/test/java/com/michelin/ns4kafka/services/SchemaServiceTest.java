@@ -50,7 +50,6 @@ class SchemaServiceTest {
     void getAllByNamespace() {
         Namespace namespace = this.buildNamespace();
         List<String> subjectsResponse = Arrays.asList("prefix.schema-one", "prefix2.schema-two", "prefix2.schema-three");
-        SchemaCompatibilityResponse compatibilityResponse = this.buildCompatibilityResponse();
 
         when(kafkaSchemaRegistryClient.getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())).thenReturn(subjectsResponse);
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(namespace))

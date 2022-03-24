@@ -1,8 +1,8 @@
 package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets;
-import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets.ConsumerGroupResetOffsetStatus;
 import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.TopicPartitionOffset;
 import com.michelin.ns4kafka.services.ConsumerGroupService;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
@@ -14,31 +14,41 @@ import org.apache.kafka.common.TopicPartition;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 @Tag(name = "Consumer Groups")
 @Controller("/api/namespaces/{namespace}/consumer-groups")
 public class ConsumerGroupController extends NamespacedResourceController {
-
+    /**
+     * The consumer group service
+     */
     @Inject
     ConsumerGroupService consumerGroupService;
 
+    /**
+     * Reset offsets for a given topic and consumer group
+     * @param namespace The namespace
+     * @param consumerGroup The consumer group
+     * @param consumerGroupResetOffsets The information about how to reset
+     * @param dryrun Is dry run mode or not ?
+     * @return The reset offsets response
+     */
     @Post("/{consumerGroup}/reset{?dryrun}")
-    public ConsumerGroupResetOffsets resetOffsets(String namespace, String consumerGroup,
-                                                  @Valid @Body ConsumerGroupResetOffsets consumerGroupResetOffsets,
-                                                  @QueryValue(defaultValue = "false") boolean dryrun) {
-
+    public List<TopicPartitionOffset> resetOffsets(String namespace, String consumerGroup,
+                                                   @Valid @Body ConsumerGroupResetOffsets consumerGroupResetOffsets,
+                                                   @QueryValue(defaultValue = "false") boolean dryrun) throws ExecutionException {
         Namespace ns = getNamespace(namespace);
 
-        // validate spec
+        // Validate spec
         List<String> validationErrors = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
+
         // validate ownership
         if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(namespace, consumerGroup)) {
-            validationErrors.add("Invalid value " + consumerGroup + " for name: Namespace not OWNER of this consumer group");
+            validationErrors.add("Namespace not owner of this consumer group \"" + consumerGroup + "\".");
         }
+
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors, "ConsumerGroup", consumerGroup);
         }
@@ -48,19 +58,22 @@ public class ConsumerGroupController extends NamespacedResourceController {
         consumerGroupResetOffsets.getMetadata().setNamespace(ns.getMetadata().getName());
         consumerGroupResetOffsets.getMetadata().setCluster(ns.getMetadata().getCluster());
 
-        ConsumerGroupResetOffsetStatus status = null;
+        List<TopicPartitionOffset> topicPartitionOffsets = null;
         try {
             // Starting from here, all the code is from Kafka kafka-consumer-group command
-            // https://github.com/apache/kafka/blob/trunk/core/src/main/scala/kafka/admin/ConsumerGroupCommand.scala
-            // validate Consumer Group is Dead or Inative
+            // https://github.com/apache/kafka/blob/trunk/core/src/main/scala/kafka/admin/ConsumerGroupCommand.scala#L421
+            // Validate Consumer Group is dead or inactive
             String currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
             if (!List.of("Empty", "Dead").contains(currentState)) {
-                throw new IllegalStateException("Assignments can only be reset if the group '" + consumerGroup + "' is inactive, but the current state is " + currentState + ".");
+                throw new IllegalStateException("Assignments can only be reset if the consumer group \"" + consumerGroup + "\" is inactive, but the current state is " + currentState.toLowerCase() + ".");
             }
-            // list partitions
+
+            // List partitions
             List<TopicPartition> partitionsToReset = consumerGroupService.getPartitionsToReset(ns, consumerGroup, consumerGroupResetOffsets.getSpec().getTopic());
-            // prepare offsets
+
+            // Prepare offsets
             Map<TopicPartition, Long> preparedOffsets = consumerGroupService.prepareOffsetsToReset(ns, consumerGroup, consumerGroupResetOffsets.getSpec().getOptions(), partitionsToReset, consumerGroupResetOffsets.getSpec().getMethod());
+
             if (!dryrun) {
                 sendEventLog("ConsumerGroupResetOffsets",
                         consumerGroupResetOffsets.getMetadata(),
@@ -69,16 +82,22 @@ public class ConsumerGroupController extends NamespacedResourceController {
                         consumerGroupResetOffsets.getSpec());
                 consumerGroupService.alterConsumerGroupOffsets(ns, consumerGroup, preparedOffsets);
             }
-            status = ConsumerGroupResetOffsetStatus.ofSuccess(
-                    preparedOffsets.entrySet().stream()
-                            .collect(Collectors.toMap(kv -> kv.getKey().toString(), Map.Entry::getValue)));
+
+            topicPartitionOffsets = preparedOffsets.entrySet()
+                    .stream()
+                    .map(entry -> TopicPartitionOffset.builder()
+                            .spec(TopicPartitionOffset.TopicPartitionOffsetSpec.builder()
+                                    .topic(entry.getKey().topic())
+                                    .partition(entry.getKey().partition())
+                                    .offset(entry.getValue())
+                                    .consumerGroup(consumerGroup)
+                                    .build())
+                            .build())
+                    .collect(Collectors.toList());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-        } catch (Exception e) {
-            status = ConsumerGroupResetOffsetStatus.ofFailure(e.getMessage());
         }
 
-        consumerGroupResetOffsets.setStatus(status);
-        return consumerGroupResetOffsets;
+        return topicPartitionOffsets;
     }
 }
