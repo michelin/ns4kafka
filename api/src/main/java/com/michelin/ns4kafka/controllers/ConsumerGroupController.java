@@ -61,7 +61,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
         List<TopicPartitionOffset> topicPartitionOffsets = null;
         try {
             // Starting from here, all the code is from Kafka kafka-consumer-group command
-            // https://github.com/apache/kafka/blob/trunk/core/src/main/scala/kafka/admin/ConsumerGroupCommand.scala
+            // https://github.com/apache/kafka/blob/trunk/core/src/main/scala/kafka/admin/ConsumerGroupCommand.scala#L421
             // Validate Consumer Group is dead or inactive
             String currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
             if (!List.of("Empty", "Dead").contains(currentState)) {

@@ -74,7 +74,8 @@ public class ConsumerGroupResetOffsets {
         TO_LATEST,
         TO_DATETIME, // string:yyyy-MM-ddTHH:mm:SS.sss
         BY_DURATION,
-        SHIFT_BY // int
+        SHIFT_BY, // int
+        TO_OFFSET
         // FROM_FILE map<string:topic-partition,long:offset
     }
 }

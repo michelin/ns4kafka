@@ -5,12 +5,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
 import org.apache.kafka.clients.admin.OffsetSpec;
-import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
 import javax.inject.Singleton;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -57,8 +59,14 @@ public class ConsumerGroupAsyncExecutor {
         }
     }
 
-    public Map<TopicPartition, Long> listOffsets(Map<TopicPartition, OffsetSpec> offsetsForTheSpec)
-            throws InterruptedException, ExecutionException {
+    /**
+     * Find offsets matching the offset specs for given partition (e.g.: last offset for latest spec)
+     * @param offsetsForTheSpec The offset specs
+     * @return A map of topic-partition and offsets
+     * @throws ExecutionException Any execution exception during offsets description
+     * @throws InterruptedException Any interrupted exception during offsets description
+     */
+    public Map<TopicPartition, Long> listOffsets(Map<TopicPartition, OffsetSpec> offsetsForTheSpec) throws InterruptedException, ExecutionException {
         return getAdminClient().listOffsets(offsetsForTheSpec)
                 .all()
                 .get()
@@ -101,21 +109,43 @@ public class ConsumerGroupAsyncExecutor {
                 .collect(Collectors.toList());
     }
 
-    public Map<TopicPartition, Long> getLogStartOffsets(String groupId, List<TopicPartition> partitionsToReset) throws ExecutionException, InterruptedException {
+    /**
+     * Get earliest offsets for given list of topic-partitions
+     * @param partitionsToReset The topic-partitions list
+     * @return A map of topic-partition and offsets
+     * @throws ExecutionException Any execution exception during offsets description
+     * @throws InterruptedException Any interrupted exception during offsets description
+     */
+    public Map<TopicPartition, Long> getLogStartOffsets(List<TopicPartition> partitionsToReset) throws ExecutionException, InterruptedException {
         Map<TopicPartition, OffsetSpec> startOffsets = partitionsToReset
                 .stream()
                 .collect(Collectors.toMap(Function.identity(), v -> OffsetSpec.earliest()));
         return listOffsets(startOffsets);
     }
 
-    public Map<TopicPartition, Long> getLogEndOffsets(String groupId, List<TopicPartition> partitionsToReset) throws ExecutionException, InterruptedException {
+    /**
+     * Get latest offsets for given list of topic-partitions
+     * @param partitionsToReset The topic-partitions list
+     * @return A map of topic-partition and offsets
+     * @throws ExecutionException Any execution exception during offsets description
+     * @throws InterruptedException Any interrupted exception during offsets description
+     */
+    public Map<TopicPartition, Long> getLogEndOffsets(List<TopicPartition> partitionsToReset) throws ExecutionException, InterruptedException {
         Map<TopicPartition, OffsetSpec> endOffsets = partitionsToReset
                 .stream()
                 .collect(Collectors.toMap(Function.identity(), v -> OffsetSpec.latest()));
         return listOffsets(endOffsets);
     }
 
-    public Map<TopicPartition, Long> getLogTimestampOffsets(String groupId, List<TopicPartition> partitionsToReset, long timestamp) throws ExecutionException, InterruptedException {
+    /**
+     * Get offsets from timestamp for given list of topic-partitions
+     * @param partitionsToReset The topic-partitions list
+     * @param timestamp The timestamp used to filter
+     * @return A map of topic-partition and offsets
+     * @throws ExecutionException Any execution exception during offsets description
+     * @throws InterruptedException Any interrupted exception during offsets description
+     */
+    public Map<TopicPartition, Long> getLogTimestampOffsets(List<TopicPartition> partitionsToReset, long timestamp) throws ExecutionException, InterruptedException {
         Map<TopicPartition, OffsetSpec> dateOffsets = partitionsToReset
                 .stream()
                 .collect(Collectors.toMap(Function.identity(), e -> OffsetSpec.forTimestamp(timestamp)));
@@ -127,29 +157,37 @@ public class ConsumerGroupAsyncExecutor {
                 .filter(e -> e.getValue() >= 0)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        // extract failed offsets paritions (== -1)
+        // extract failed offsets partitions (== -1)
         List<TopicPartition> unsuccessfulPartitions = offsets.entrySet().stream()
                 .filter(e -> e.getValue() == -1L)
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
+
         // reprocess failed offsets to OffsetSpec.latest()
-        Map<TopicPartition, Long> reprocessedUnsuccessfulOffsets = getLogEndOffsets(groupId, unsuccessfulPartitions);
+        Map<TopicPartition, Long> reprocessedUnsuccessfulOffsets = getLogEndOffsets(unsuccessfulPartitions);
         successfulLogTimestampOffsets.putAll(reprocessedUnsuccessfulOffsets);
 
         return successfulLogTimestampOffsets;
     }
 
-    public Map<TopicPartition, Long> checkOffsetsRange(String groupId, Map<TopicPartition, Long> requestedOffsets) throws ExecutionException, InterruptedException {
+    /**
+     * Check if given offsets for topic-partitions are properly between earliest and latest offsets
+     * @param requestedOffsets The offsets to check for topic-partitions
+     * @return A map of topic-partition and offsets with no unbound offsets
+     * @throws ExecutionException Any execution exception during offsets description
+     * @throws InterruptedException Any interrupted exception during offsets description
+     */
+    public Map<TopicPartition, Long> checkOffsetsRange(Map<TopicPartition, Long> requestedOffsets) throws ExecutionException, InterruptedException {
         // lower bound
-        Map<TopicPartition, Long> logStartOffsets = getLogStartOffsets(groupId, new ArrayList<>(requestedOffsets.keySet()));
+        Map<TopicPartition, Long> logStartOffsets = getLogStartOffsets(new ArrayList<>(requestedOffsets.keySet()));
         // upper bound
-        Map<TopicPartition, Long> logEndOffsets = getLogEndOffsets(groupId, new ArrayList<>(requestedOffsets.keySet()));
+        Map<TopicPartition, Long> logEndOffsets = getLogEndOffsets(new ArrayList<>(requestedOffsets.keySet()));
 
         // replace inside boundaries if required
         return requestedOffsets.entrySet().stream()
                 .map(entry -> {
                     if (entry.getValue() > logEndOffsets.get(entry.getKey())) {
-                        // went too much foward
+                        // went too much forward
                         return Map.entry(entry.getKey(), logEndOffsets.get(entry.getKey()));
                     } else if (entry.getValue() < logStartOffsets.get(entry.getKey())) {
                         // went too much backward

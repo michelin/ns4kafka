@@ -85,6 +85,16 @@ public class ConsumerGroupService {
                     validationErrors.add("Invalid options \"" + options + "\". Value must be an ISO 8601 DateTime with Time zone [ yyyy-MM-dd'T'HH:mm:ss.SSSXXX ].");
                 }
                 break;
+            case TO_OFFSET:
+                try {
+                    int offset = Integer.parseInt(options);
+                    if (offset < 0) {
+                        validationErrors.add("Invalid options \"" + options + "\". Value must be >= 0.");
+                    }
+                } catch (NumberFormatException e) {
+                    validationErrors.add("Invalid options \"" + options + "\". Value must be an integer.");
+                }
+                break;
             case TO_LATEST:
             case TO_EARLIEST:
             default:
@@ -151,24 +161,29 @@ public class ConsumerGroupService {
                 int shiftBy = Integer.parseInt(options);
                 Map<TopicPartition, Long> currentCommittedOffsets = consumerGroupAsyncExecutor.getCommittedOffsets(groupId);
                 Map<TopicPartition, Long> requestedOffsets = partitionsToReset.stream()
-                        .map(e -> {
-                            if (currentCommittedOffsets.containsKey(e)) {
-                                return Map.entry(e, currentCommittedOffsets.get(e) + shiftBy);
+                        .map(topicPartition -> {
+                            if (currentCommittedOffsets.containsKey(topicPartition)) {
+                                return Map.entry(topicPartition, currentCommittedOffsets.get(topicPartition) + shiftBy);
                             }
-                            throw new IllegalArgumentException("Cannot shift offset for partition " + e.toString() + " since there is no current committed offset");
+                            throw new IllegalArgumentException("Cannot shift offset for partition " + topicPartition.toString() + " since there is no current committed offset");
                         })
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-                return consumerGroupAsyncExecutor.checkOffsetsRange(groupId, requestedOffsets);
+                return consumerGroupAsyncExecutor.checkOffsetsRange(requestedOffsets);
             case BY_DURATION:
                 Duration duration = Duration.parse(options);
-                return consumerGroupAsyncExecutor.getLogTimestampOffsets(groupId, partitionsToReset, Instant.now().minus(duration).toEpochMilli());
+                return consumerGroupAsyncExecutor.getLogTimestampOffsets(partitionsToReset, Instant.now().minus(duration).toEpochMilli());
             case TO_DATETIME:
                 OffsetDateTime dateTime = OffsetDateTime.parse(options);
-                return consumerGroupAsyncExecutor.getLogTimestampOffsets(groupId, partitionsToReset, dateTime.toInstant().toEpochMilli());
+                return consumerGroupAsyncExecutor.getLogTimestampOffsets(partitionsToReset, dateTime.toInstant().toEpochMilli());
             case TO_LATEST:
-                return consumerGroupAsyncExecutor.getLogEndOffsets(groupId, partitionsToReset);
+                return consumerGroupAsyncExecutor.getLogEndOffsets(partitionsToReset);
             case TO_EARLIEST:
-                return consumerGroupAsyncExecutor.getLogStartOffsets(groupId, partitionsToReset);
+                return consumerGroupAsyncExecutor.getLogStartOffsets(partitionsToReset);
+            case TO_OFFSET:
+                Map<TopicPartition, Long> toRequestedOffset = partitionsToReset.stream()
+                    .map(topicPartition -> Map.entry(topicPartition, Long.parseLong(options)))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                return consumerGroupAsyncExecutor.checkOffsetsRange(toRequestedOffset);
             default:
                 throw new IllegalArgumentException("Unreachable code");
         }

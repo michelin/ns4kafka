@@ -116,6 +116,12 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
          */
         @Option(names = {"--by-duration"}, description = "Shift offset by a duration format [ PnDTnHnMnS ]", required = true)
         public Duration duration;
+
+        /**
+         * Reset offsets to a given offset
+         */
+        @Option(names = {"--to-offset"}, description = "Set offset to a specific index", required = true)
+        public Integer offset;
     }
 
     /**
@@ -159,6 +165,9 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
         } else if (method.duration != null) {
             consumerGroupResetOffsetSpec.put("method", "BY_DURATION");
             consumerGroupResetOffsetSpec.put("options", method.duration.toString());
+        } else if (method.offset != null) {
+            consumerGroupResetOffsetSpec.put("method", "TO_OFFSET");
+            consumerGroupResetOffsetSpec.put("options", method.offset);
         }
 
         Resource consumerGroupResetOffset = Resource.builder()

@@ -436,7 +436,7 @@ class ConsumerGroupServiceTest {
                 Map.of(new TopicPartition("topic1", 0), 10L,
                         new TopicPartition("topic1", 1), 15L,
                         new TopicPartition("topic2", 0), 10L));
-        when(consumerGroupAsyncExecutor.checkOffsetsRange(groupId,
+        when(consumerGroupAsyncExecutor.checkOffsetsRange(
                 Map.of(new TopicPartition("topic1", 0), 5L,
                         new TopicPartition("topic1", 1), 10L))).thenReturn(
                 Map.of(new TopicPartition("topic1", 0), 5L,
