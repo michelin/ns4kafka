@@ -44,6 +44,18 @@ jobs:
       - name: Push ns4kafka and kafkactl
         run: ./gradlew dockerBuild api:dockerPush cli:dockerPush -Prelease
 
+      - name: Upload Linux native Kafkactl
+        uses: actions/upload-artifact@v2
+        with:
+          name: native-image-linux
+          path: ${{ github.workspace }}/cli/build/native-image/kafkactl-*
+
+      - name: Upload JAR Kafkactl
+        uses: actions/upload-artifact@v2
+        with:
+          name: jar
+          path: ${{ github.workspace }}/cli/build/libs/kafkactl-*.jar
+
       - name: Generate Release Changelog
         uses: mikepenz/release-changelog-builder-action@v1
         id: build_changelog
@@ -52,12 +64,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create release
+      - name: Update release
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           body: ${{ steps.build_changelog.outputs.changelog }}
-          artifacts: "cli/build/native-image/kafkactl-*,cli/build/libs/kafkactl-*.jar"
+          artifacts: ${{ github.workspace }}/cli/build/native-image/kafkactl-*,${{ github.workspace }}/cli/build/libs/kafkactl-*.jar
           draft: true
           prerelease: true
           allowUpdates: true
@@ -102,12 +114,12 @@ jobs:
           name: native-image-windows
           path: ${{ github.workspace }}/cli/build/native-image/kafkactl-*.exe
 
-      - name: Update release with Windows Kafkactl
+      - name: Update release
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           body: ${{ steps.build_changelog.outputs.changelog }}
-          artifacts: "cli/build/native-image/kafkactl-*.exe"
+          artifacts: ${{ github.workspace }}/cli/build/native-image/kafkactl-*.exe
           draft: true
           prerelease: true
           allowUpdates: true
