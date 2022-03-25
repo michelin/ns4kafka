@@ -36,7 +36,10 @@ jobs:
           restore-keys: ${{ runner.os }}-gradle
 
       - name: Build and Test
-        run: ./gradlew build check -Prelease
+        id: build_and_test
+        run: |
+          ./gradlew build check -Prelease
+          echo ::set-output name=current_version::$(echo $(./gradlew properties --no-daemon --console=plain -q | grep "^version:" | awk '{printf $2}'))
 
       - name: Native Image for CLI
         run: ./gradlew :cli:shadowJar :cli:nativeImage -Prelease
@@ -69,7 +72,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           body: ${{ steps.build_changelog.outputs.changelog }}
-          artifacts: ${{ github.workspace }}/cli/build/native-image/kafkactl-*,${{ github.workspace }}/cli/build/libs/kafkactl-*.jar
+          artifacts: ${{ github.workspace }}/cli/build/native-image/kafkactl-${{ steps.build_and_test.outputs.current_version }},${{ github.workspace }}/cli/build/libs/kafkactl-*.jar
           draft: true
           prerelease: true
           allowUpdates: true
