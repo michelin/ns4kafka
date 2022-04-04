@@ -17,24 +17,66 @@ import java.util.Properties;
 @Setter
 @EachProperty("ns4kafka.managed-clusters")
 public class KafkaAsyncExecutorConfig {
+    /**
+     * Cluster name
+     */
     private final String name;
+
+    /**
+     * Run topics synchronization ?
+     */
     boolean manageTopics;
+
+    /**
+     * Run ACLs synchronization ?
+     */
     boolean manageAcls;
+
+    /**
+     * Drop ACLs ?
+     */
+    boolean dropAcls = true;
+
+    /**
+     * Run users synchronization ?
+     */
     boolean manageUsers;
+
+    /**
+     * Run connectors synchronization ?
+     */
     boolean manageConnectors;
-    boolean readOnly = true;
+
+    /**
+     * Kafka cluster provider
+     */
     KafkaProvider provider;
-    
+
+    /**
+     * Kafka cluster configuration
+     */
     Properties config;
 
-    private Admin adminClient = null;
-
+    /**
+     * Kafka Connects configuration
+     */
     @MapFormat(transformation = MapFormat.MapTransformation.FLAT)
     Map<String, ConnectConfig> connects;
 
+    /**
+     * Schema registry configuration
+     */
     RegistryConfig schemaRegistry;
 
+    /**
+     * Admin client service
+     */
+    private Admin adminClient = null;
 
+    /**
+     * Constructor
+     * @param name The cluster name
+     */
     public KafkaAsyncExecutorConfig(@Parameter String name) {
         this.name = name;
     }
@@ -43,8 +85,19 @@ public class KafkaAsyncExecutorConfig {
     @Setter
     @Introspected
     public static class ConnectConfig {
+        /**
+         * Kafka Connect URL
+         */
         String url;
+
+        /**
+         * Kafka Connect username
+         */
         String basicAuthUsername;
+
+        /**
+         * Kafka Connect password
+         */
         String basicAuthPassword;
     }
 
@@ -52,22 +105,39 @@ public class KafkaAsyncExecutorConfig {
     @Setter
     @ConfigurationProperties("schema-registry")
     public static class RegistryConfig {
+        /**
+         * Schema Registry URL
+         */
         String url;
+
+        /**
+         * Schema Registry username
+         */
         String basicAuthUsername;
+
+        /**
+         * Schema Registry password
+         */
         String basicAuthPassword;
     }
 
+    /**
+     * Kafka cluster provider type
+     */
     public enum KafkaProvider {
         SELF_MANAGED,
         CONFLUENT_CLOUD
     }
 
+    /**
+     * Getter for admin client service
+     * @return The admin client
+     */
     public Admin getAdminClient() {
-
-        if(this.adminClient == null) {
+        if (this.adminClient == null) {
             this.adminClient = Admin.create(config);
         }
+
         return this.adminClient;
     }
-
 }

@@ -178,6 +178,7 @@ public class TopicController extends NamespacedResourceController {
         if (dryrun) {
             return unsynchronizedTopics;
         }
+
         List<Topic> synchronizedTopics = unsynchronizedTopics.stream()
                 .map(topic -> {
                     sendEventLog("Topic", topic.getMetadata(), ApplyStatus.created, null, topic.getSpec());

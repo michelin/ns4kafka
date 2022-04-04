@@ -15,6 +15,7 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
@@ -29,25 +30,39 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
+import java.net.URL;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
-public class AccessControlListTest extends AbstractIntegrationTest {
-
+class AccessControlListTest extends AbstractIntegrationTest {
+    /**
+     * The HTTP client
+     */
     @Inject
     @Client("/")
     RxHttpClient client;
 
+    /**
+     * The ACL executors
+     */
     @Inject
     List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutorList;
 
+    /**
+     * The authentication token
+     */
     private String token;
 
+    /**
+     * Init all integration tests
+     */
     @BeforeAll
-    void init(){
+    void init() {
         Namespace ns1 = Namespace.builder()
             .metadata(ObjectMeta.builder()
                       .name("ns1")
@@ -86,9 +101,13 @@ public class AccessControlListTest extends AbstractIntegrationTest {
         client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1)).blockingFirst();
     }
 
+    /**
+     * Validate topic ACL creation
+     * @throws InterruptedException Any interrupted exception during ACLs synchronization
+     * @throws ExecutionException Any execution exception during ACLs synchronization
+     */
     @Test
     void createTopicReadACL() throws InterruptedException, ExecutionException {
-
         AccessControlEntry aclTopic = AccessControlEntry.builder()
             .metadata(ObjectMeta.builder()
                       .name("ns1-acl-topic")
@@ -105,7 +124,7 @@ public class AccessControlListTest extends AbstractIntegrationTest {
 
         client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic)).blockingFirst();
 
-        //force ACL Sync
+        // Force ACLs synchronization
         accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
 
         Admin kafkaClient = getAdminClient();
@@ -132,9 +151,55 @@ public class AccessControlListTest extends AbstractIntegrationTest {
         Assertions.assertTrue(results.isEmpty());
     }
 
+    /**
+     * Validate topic ACL creation when the ACL is already in broker but not in Ns4Kafka
+     * @throws InterruptedException Any interrupted exception during ACLs synchronization
+     * @throws ExecutionException Any execution exception during ACLs synchronization
+     */
+    @Test
+    void createTopicACLAlreadyExistsInBroker() throws InterruptedException, ExecutionException {
+        AccessControlEntry aclTopic = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-acl-topic")
+                        .namespace("ns1")
+                        .build())
+                .spec(AccessControlEntrySpec.builder()
+                        .resourceType(ResourceType.TOPIC)
+                        .resource("ns1-")
+                        .resourcePatternType(ResourcePatternType.PREFIXED)
+                        .permission(Permission.READ)
+                        .grantedTo("ns1")
+                        .build())
+                .build();
+
+        AclBinding aclBinding = new AclBinding(
+                new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, "ns1-", PatternType.PREFIXED),
+                new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.READ, AclPermissionType.ALLOW));
+
+        Admin kafkaClient = getAdminClient();
+        kafkaClient.createAcls(Collections.singletonList(aclBinding));
+
+        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic)).blockingFirst();
+
+        // Force ACLs synchronization
+        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+
+        AclBindingFilter user1Filter = new AclBindingFilter(
+                ResourcePatternFilter.ANY,
+                new AccessControlEntryFilter("User:user1", null, AclOperation.ANY, AclPermissionType.ANY));
+        Collection<AclBinding> results = kafkaClient.describeAcls(user1Filter).values().get();
+
+        Assertions.assertEquals(1, results.size());
+        Assertions.assertEquals(aclBinding, results.stream().findFirst().get());
+    }
+
+    /**
+     * Validate connect ACL creation
+     * @throws InterruptedException Any interrupted exception during ACLs synchronization
+     * @throws ExecutionException Any execution exception during ACLs synchronization
+     */
     @Test
     void createConnectOwnerACL() throws InterruptedException, ExecutionException {
-
         AccessControlEntry aclTopic = AccessControlEntry.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-acl-connect")
@@ -178,6 +243,11 @@ public class AccessControlListTest extends AbstractIntegrationTest {
         Assertions.assertTrue(results.isEmpty());
     }
 
+    /**
+     * Validate Kafka Stream ACL creation
+     * @throws InterruptedException Any interrupted exception during ACLs synchronization
+     * @throws ExecutionException Any execution exception during ACLs synchronization
+     */
     @Test
     void createStreamACL() throws InterruptedException, ExecutionException {
         AccessControlEntry aclTopic = AccessControlEntry.builder()
@@ -193,6 +263,7 @@ public class AccessControlListTest extends AbstractIntegrationTest {
                         .grantedTo("ns1")
                         .build())
                 .build();
+
         AccessControlEntry aclGroup = AccessControlEntry.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-acl-group")
@@ -240,7 +311,6 @@ public class AccessControlListTest extends AbstractIntegrationTest {
         Assertions.assertEquals(4, results.size());
         Assertions.assertTrue(results.containsAll(List.of(ac1, ac2, ac3, ac4)));
 
-
         KafkaStream stream = KafkaStream.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-stream1")
@@ -250,7 +320,7 @@ public class AccessControlListTest extends AbstractIntegrationTest {
 
         client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/streams").bearerAuth(token).body(stream)).blockingFirst();
 
-        //force ACL Sync
+        // Force ACLs synchronization
         accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
 
         results = kafkaClient.describeAcls(user1Filter).values().get();
