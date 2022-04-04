@@ -87,6 +87,9 @@ public class AccessControlEntryAsyncExecutor {
         return kafkaAsyncExecutorConfig.getAdminClient();
     }
 
+    /**
+     * Start the ACLs synchronization
+     */
     private void synchronizeACLs() {
         log.debug("Starting ACLs collection for cluster {}", kafkaAsyncExecutorConfig.getName());
 
