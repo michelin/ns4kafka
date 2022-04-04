@@ -197,41 +197,6 @@ class AccessControlListTest extends AbstractIntegrationTest {
     }
 
     /**
-     * Validate ACL synchronization is not triggered when disabled
-     * @throws InterruptedException Any interrupted exception during ACLs synchronization
-     * @throws ExecutionException Any execution exception during ACLs synchronization
-     */
-    @Test
-    void aclsSynchronizationDisabled() throws InterruptedException, ExecutionException {
-        AccessControlEntry aclTopic = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("ns1-acl-topic")
-                        .namespace("ns1")
-                        .build())
-                .spec(AccessControlEntrySpec.builder()
-                        .resourceType(ResourceType.TOPIC)
-                        .resource("ns1-")
-                        .resourcePatternType(ResourcePatternType.PREFIXED)
-                        .permission(Permission.READ)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
-
-        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic)).blockingFirst();
-
-        // Force ACLs synchronization
-        accessControlEntryAsyncExecutorList.get(1).run();
-
-        Admin kafkaClient = getAdminClient();
-        AclBindingFilter user1Filter = new AclBindingFilter(
-                ResourcePatternFilter.ANY,
-                new AccessControlEntryFilter("User:user1", null, AclOperation.ANY, AclPermissionType.ANY));
-        Collection<AclBinding> results = kafkaClient.describeAcls(user1Filter).values().get();
-
-        Assertions.assertEquals(0, results.size());
-    }
-
-    /**
      * Validate connect ACL creation
      * @throws InterruptedException Any interrupted exception during ACLs synchronization
      * @throws ExecutionException Any execution exception during ACLs synchronization

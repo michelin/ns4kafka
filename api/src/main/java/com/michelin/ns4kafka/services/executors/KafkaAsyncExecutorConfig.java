@@ -33,9 +33,9 @@ public class KafkaAsyncExecutorConfig {
     boolean manageAcls;
 
     /**
-     * Drop ACLs ?
+     * Drop unsynchronized ACLs ?
      */
-    boolean dropAcls = true;
+    boolean dropUnsyncAcls = true;
 
     /**
      * Run users synchronization ?

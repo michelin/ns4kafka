@@ -29,16 +29,3 @@ ns4kafka:
           #basicAuthPassword: "password"
       config:
         bootstrap.servers: "localhost:9092"
-    test-cluster-no-management:
-      provider: SELF_MANAGED
-      manage-users: true
-      manage-acls: false
-      manage-topics: true
-      manage-connectors: true
-      connects:
-        test-connect:
-          url: "" #"http://localhost/kafka/connect/"
-          #basicAuthUsername: "user"
-          #basicAuthPassword: "password"
-      config:
-        bootstrap.servers: "localhost:9092"

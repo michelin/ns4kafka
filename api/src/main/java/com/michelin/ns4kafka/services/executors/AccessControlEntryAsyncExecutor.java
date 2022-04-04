@@ -115,7 +115,7 @@ public class AccessControlEntryAsyncExecutor {
 
                 toCreate.forEach(aclBinding -> log.debug("ACLs to create: " + aclBinding.toString()));
 
-                if (!kafkaAsyncExecutorConfig.isDropAcls() && !toDelete.isEmpty()) {
+                if (!kafkaAsyncExecutorConfig.isDropUnsyncAcls() && !toDelete.isEmpty()) {
                     log.debug("The ACL drop is disabled. The following ACLs won't be deleted.");
                 }
 
@@ -126,7 +126,7 @@ public class AccessControlEntryAsyncExecutor {
             // such as deleting <LITERAL "toto.titi"> only to add one second later <PREFIX "toto.">
             createACLs(toCreate);
 
-            if (kafkaAsyncExecutorConfig.isDropAcls()) {
+            if (kafkaAsyncExecutorConfig.isDropUnsyncAcls()) {
                 deleteACLs(toDelete);
             }
         } catch (KafkaStoreException | ExecutionException | TimeoutException e) {
