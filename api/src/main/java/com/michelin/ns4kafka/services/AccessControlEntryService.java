@@ -3,32 +3,49 @@ package com.michelin.ns4kafka.services;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
+import com.michelin.ns4kafka.services.executors.AccessControlEntryAsyncExecutor;
+import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
+import io.micronaut.inject.qualifiers.Qualifiers;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Singleton
 public class AccessControlEntryService {
+    /**
+     * The ACL repository
+     */
     @Inject
     AccessControlEntryRepository accessControlEntryRepository;
+
+    /**
+     * The application context
+     */
     @Inject
     ApplicationContext applicationContext;
 
+    /**
+     * Validate a new ACL
+     * @param accessControlEntry The ACL
+     * @param namespace The namespace
+     * @return A list of validation errors
+     */
     public List<String> validate(AccessControlEntry accessControlEntry, Namespace namespace) {
         List<String> validationErrors = new ArrayList<>();
+
         // Which resource can be granted cross namespaces ? TOPIC
         List<AccessControlEntry.ResourceType> allowedResourceTypes =
                 List.of(AccessControlEntry.ResourceType.TOPIC);
+
         // Which permission can be granted cross namespaces ? READ, WRITE
         // Only admin can grant OWNER
         List<AccessControlEntry.Permission> allowedPermissions =
                 List.of(AccessControlEntry.Permission.READ,
                         AccessControlEntry.Permission.WRITE);
+
         // Which patternTypes can be granted
         List<AccessControlEntry.ResourcePatternType> allowedPatternTypes =
                 List.of(AccessControlEntry.ResourcePatternType.LITERAL,
@@ -40,6 +57,7 @@ public class AccessControlEntryService {
                     allowedResourceTypes.stream().map(Object::toString).collect(Collectors.joining(", ")) +
                     "]");
         }
+
         if (!allowedPermissions.contains(accessControlEntry.getSpec().getPermission())) {
 
             validationErrors.add("Invalid value " + accessControlEntry.getSpec().getPermission() +
@@ -47,13 +65,13 @@ public class AccessControlEntryService {
                     allowedPermissions.stream().map(Object::toString).collect(Collectors.joining(", ")) +
                     "]");
         }
+
         if (!allowedPatternTypes.contains(accessControlEntry.getSpec().getResourcePatternType())) {
             validationErrors.add("Invalid value " + accessControlEntry.getSpec().getResourcePatternType() +
                     " for patternType: Value must be one of [" +
                     allowedPatternTypes.stream().map(Object::toString).collect(Collectors.joining(", ")) +
                     "]");
         }
-
 
         // GrantedTo Namespace exists ?
         NamespaceService namespaceService = applicationContext.getBean(NamespaceService.class);
@@ -70,11 +88,18 @@ public class AccessControlEntryService {
         if (!isOwnerOfTopLevelAcl(accessControlEntry, namespace)) {
             validationErrors.add("Invalid grant " + accessControlEntry.getSpec().getResourcePatternType() + ":" +
                     accessControlEntry.getSpec().getResource() +
-                    " : Namespace is neither OWNER of LITERAL:resource nor top-level PREFIXED:resource");
+                    " : Namespace is neither OWNER of LITERAL: resource nor top-level PREFIXED:resource");
         }
+
         return validationErrors;
     }
 
+    /**
+     * Validate a new ACL created by an admin
+     * @param accessControlEntry The ACL
+     * @param namespace The namespace
+     * @return A list of validation errors
+     */
     public List<String> validateAsAdmin(AccessControlEntry accessControlEntry, Namespace namespace) {
         // another namespace is already OWNER of PREFIXED or LITERAL resource
         // exemple :
@@ -120,6 +145,12 @@ public class AccessControlEntryService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Is namespace owner of given ACL
+     * @param accessControlEntry The ACL
+     * @param namespace The namespace
+     * @return true if it is, false otherwise
+     */
     public boolean isOwnerOfTopLevelAcl(AccessControlEntry accessControlEntry, Namespace namespace) {
         // Grantor Namespace is OWNER of Resource + ResourcePattern ?
         return findAllGrantedToNamespace(namespace).stream()
@@ -157,32 +188,67 @@ public class AccessControlEntryService {
                 });
     }
 
+    /**
+     * Create an ACL in internal topic
+     * @param accessControlEntry The ACL
+     * @return The created ACL
+     */
     public AccessControlEntry create(AccessControlEntry accessControlEntry) {
         return accessControlEntryRepository.create(accessControlEntry);
     }
 
-    public void delete(AccessControlEntry accessControlEntry) {
+    /**
+     * Delete an ACL from broker and from internal topic
+     * @param accessControlEntry The ACL
+     */
+    public void delete(Namespace namespace, AccessControlEntry accessControlEntry) {
+        AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor = applicationContext.getBean(AccessControlEntryAsyncExecutor.class,
+                Qualifiers.byName(accessControlEntry.getMetadata().getCluster()));
+        accessControlEntryAsyncExecutor.deleteNs4KafkaACL(namespace, accessControlEntry);
+
         accessControlEntryRepository.delete(accessControlEntry);
     }
 
+    /**
+     * Find all ACLs granted to given namespace
+     * @param namespace The namespace
+     * @return A list of ACLs
+     */
     public List<AccessControlEntry> findAllGrantedToNamespace(Namespace namespace) {
         return accessControlEntryRepository.findAll().stream()
                 .filter(accessControlEntry -> accessControlEntry.getSpec().getGrantedTo().equals(namespace.getMetadata().getName()))
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Find all ACLs of given namespace
+     * @param namespace The namespace
+     * @return A list of ACLs
+     */
     public List<AccessControlEntry> findAllForNamespace(Namespace namespace) {
         return accessControlEntryRepository.findAll().stream()
                 .filter(accessControlEntry -> accessControlEntry.getMetadata().getNamespace().equals(namespace.getMetadata().getName()))
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Find all ACLs of given cluster
+     * @param cluster The cluster
+     * @return A list of ACLs
+     */
     public List<AccessControlEntry> findAllForCluster(String cluster) {
         return accessControlEntryRepository.findAll().stream()
                 .filter(accessControlEntry -> accessControlEntry.getMetadata().getCluster().equals(cluster))
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Does given namespace is owner of the given resource ?
+     * @param namespace The namespace
+     * @param resourceType The resource type to filter
+     * @param resource The resource name
+     * @return true if it is, false otherwise
+     */
     public boolean isNamespaceOwnerOfResource(String namespace, AccessControlEntry.ResourceType resourceType, String resource) {
         return accessControlEntryRepository.findAll()
                 .stream()
@@ -200,6 +266,12 @@ public class AccessControlEntryService {
                 });
     }
 
+    /**
+     * Find an ACL by name
+     * @param namespace The namespace
+     * @param name The ACL name
+     * @return An optional ACL
+     */
     public Optional<AccessControlEntry> findByName(String namespace, String name) {
         return accessControlEntryRepository.findByName(namespace, name);
     }

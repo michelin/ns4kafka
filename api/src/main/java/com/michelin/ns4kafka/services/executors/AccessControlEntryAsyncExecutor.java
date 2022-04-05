@@ -21,6 +21,7 @@ import org.apache.kafka.common.resource.ResourceType;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -77,14 +78,6 @@ public class AccessControlEntryAsyncExecutor {
         if (this.kafkaAsyncExecutorConfig.isManageAcls()) {
             synchronizeACLs();
         }
-    }
-
-    /**
-     * Getter for admin client service
-     * @return The admin client
-     */
-    private Admin getAdminClient() {
-        return kafkaAsyncExecutorConfig.getAdminClient();
     }
 
     /**
@@ -357,6 +350,39 @@ public class AccessControlEntryAsyncExecutor {
     }
 
     /**
+     * Delete a given Ns4Kafka ACL
+     * Convert Ns4Kafka ACL into Kafka ACLs before deletion
+     * @param namespace The namespace
+     * @param ns4kafkaACL The Kafka ACL
+     */
+    public void deleteNs4KafkaACL(Namespace namespace, AccessControlEntry ns4kafkaACL) {
+        List<AclBinding> results = new ArrayList<>();
+
+        if (ns4kafkaACL.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC ||
+                ns4kafkaACL.getSpec().getResourceType() == AccessControlEntry.ResourceType.GROUP) {
+            results.addAll(buildAclBindingsFromAccessControlEntry(ns4kafkaACL, namespace.getSpec().getKafkaUser()));
+        }
+
+        if (ns4kafkaACL.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT &&
+                ns4kafkaACL.getSpec().getPermission() == AccessControlEntry.Permission.OWNER) {
+            results.addAll(buildAclBindingsFromConnector(ns4kafkaACL, namespace.getSpec().getKafkaUser()));
+        }
+
+        deleteACLs(results);
+    }
+
+    /**
+     * Delete a given Kafka Streams
+     * @param namespace The namespace
+     * @param kafkaStream The Kafka Streams
+     */
+    public void deleteKafkaStreams(Namespace namespace, KafkaStream kafkaStream) {
+        List<AclBinding> results = new ArrayList<>(buildAclBindingsFromKafkaStream(kafkaStream, namespace.getSpec().getKafkaUser()));
+
+        deleteACLs(results);
+    }
+
+    /**
      * Create a given list of ACLs
      * @param toCreate The list of ACLs to create
      */
@@ -374,5 +400,13 @@ public class AccessControlEntryAsyncExecutor {
                         log.error(String.format("Error while creating ACL %s on %s", key, this.kafkaAsyncExecutorConfig.getName()), e);
                     }
                 });
+    }
+
+    /**
+     * Getter for admin client service
+     * @return The admin client
+     */
+    private Admin getAdminClient() {
+        return kafkaAsyncExecutorConfig.getAdminClient();
     }
 }

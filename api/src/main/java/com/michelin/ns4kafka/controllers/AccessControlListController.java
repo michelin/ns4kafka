@@ -25,19 +25,32 @@ import java.util.stream.Collectors;
         description = "APIs to handle cross namespace ACL")
 @Controller("/api/namespaces/{namespace}/acls")
 public class AccessControlListController extends NamespacedResourceController {
+    /**
+     * The namespace service
+     */
     @Inject
     NamespaceService namespaceService;
+
+    /**
+     * The ACL service
+     */
     @Inject
     AccessControlEntryService accessControlEntryService;
 
+    /**
+     * Get all ACLs of given namespace
+     * @param namespace The namespace
+     * @param limit The ACL scope
+     * @return A list of ACLs
+     */
     @Operation(summary = "Returns the Access Control Entry List")
     @Get("{?limit}")
     public List<AccessControlEntry> list(String namespace, Optional<AclLimit> limit) {
-        if (limit.isEmpty())
+        if (limit.isEmpty()) {
             limit = Optional.of(AclLimit.ALL);
+        }
 
         Namespace ns = getNamespace(namespace);
-
         switch (limit.get()) {
             case GRANTEE:
                 return accessControlEntryService.findAllGrantedToNamespace(ns)
@@ -69,6 +82,12 @@ public class AccessControlListController extends NamespacedResourceController {
 
     }
 
+    /**
+     * Get an ACL by namespace and name
+     * @param namespace The name
+     * @param acl The ACL name
+     * @return The ACL
+     */
     @Get("/{acl}")
     public Optional<AccessControlEntry> get(String namespace, String acl) {
         return list(namespace, Optional.of(AclLimit.ALL))
@@ -77,25 +96,35 @@ public class AccessControlListController extends NamespacedResourceController {
                 .findFirst();
     }
 
+    /**
+     * Create an ACL
+     * @param authentication The authentication entity
+     * @param namespace The namespace
+     * @param accessControlEntry The ACL
+     * @param dryrun Is dry run mode or not ?
+     * @return An HTTP response
+     */
     @Post("{?dryrun}")
     public HttpResponse<AccessControlEntry> apply(Authentication authentication, String namespace, @Valid @Body AccessControlEntry accessControlEntry, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
         boolean isAdmin = roles.contains(ResourceBasedSecurityRule.IS_ADMIN);
-        // self assigned ACL (spec.grantedTo == metadata.namespace)
+        // Self assigned ACL (spec.grantedTo == metadata.namespace)
         boolean isSelfAssignedACL = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
 
         List<String> validationErrors;
         if (isAdmin && isSelfAssignedACL) {
-            // validate overlapping OWNER
+            // Validate overlapping OWNER
             validationErrors = accessControlEntryService.validateAsAdmin(accessControlEntry, ns);
         } else {
             validationErrors = accessControlEntryService.validate(accessControlEntry, ns);
         }
+
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors, accessControlEntry.getKind(), accessControlEntry.getMetadata().getName());
         }
+
         // AccessControlEntry spec is immutable
         // This prevents accidental updates on ACL resources already declared with the same name (with differents rules)
         Optional<AccessControlEntry> existingACL = accessControlEntryService.findByName(namespace, accessControlEntry.getMetadata().getName());
@@ -103,49 +132,58 @@ public class AccessControlListController extends NamespacedResourceController {
             throw new ResourceValidationException(List.of("Invalid modification: `spec` is immutable. You can still update `metadata`"), accessControlEntry.getKind(), accessControlEntry.getMetadata().getName());
         }
 
-        //augment
         accessControlEntry.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
         accessControlEntry.getMetadata().setCluster(ns.getMetadata().getCluster());
         accessControlEntry.getMetadata().setNamespace(ns.getMetadata().getName());
 
-        if(existingACL.isPresent() && existingACL.get().equals(accessControlEntry)){
+        if (existingACL.isPresent() && existingACL.get().equals(accessControlEntry)) {
             return formatHttpResponse(existingACL.get(), ApplyStatus.unchanged);
         }
+
         ApplyStatus status = existingACL.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
 
-        //dryrun checks
+        // Dry run checks
         if (dryrun) {
             return formatHttpResponse(accessControlEntry, status);
         }
+
         sendEventLog(accessControlEntry.getKind(),
                 accessControlEntry.getMetadata(),
                 status,
-                existingACL.isPresent() ? existingACL.get().getSpec() : null,
+                existingACL.<Object>map(AccessControlEntry::getSpec).orElse(null),
                 accessControlEntry.getSpec());
 
-        //store
+        // Store
         return formatHttpResponse(accessControlEntryService.create(accessControlEntry), status);
     }
 
+    /**
+     * Delete an ACL
+     * @param authentication The authentication entity
+     * @param namespace The namespace
+     * @param name The ACL name
+     * @param dryrun Is dry run mode or not ?
+     * @return An HTTP response
+     */
     @Delete("/{name}{?dryrun}")
     @Status(HttpStatus.NO_CONTENT)
     public HttpResponse<Void> delete(Authentication authentication, String namespace, String name, @QueryValue(defaultValue = "false") boolean dryrun) {
-
+        Namespace ns = getNamespace(namespace);
         AccessControlEntry accessControlEntry = accessControlEntryService
                 .findByName(namespace, name)
                 .orElseThrow(() -> new ResourceValidationException(
                         List.of("Invalid value " + name + " for name : AccessControlEntry doesn't exist in this namespace"),
                         "AccessControlEntry",
-                        name
-                        )
+                        name)
                 );
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
         boolean isAdmin = roles.contains(ResourceBasedSecurityRule.IS_ADMIN);
-        // self assigned ACL (spec.grantedTo == metadata.namespace)
+        // Self assigned ACL (spec.grantedTo == metadata.namespace)
         boolean isSelfAssignedACL = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
+
         if (isSelfAssignedACL && !isAdmin) {
-            // prevent delete
+            // Prevent delete
             throw new ResourceValidationException(
                     List.of("Only admins can delete this AccessControlEntry"),
                     "AccessControlEntry",
@@ -158,7 +196,7 @@ public class AccessControlListController extends NamespacedResourceController {
         }
 
         sendEventLog(accessControlEntry.getKind(), accessControlEntry.getMetadata(), ApplyStatus.deleted,accessControlEntry.getSpec(), null);
-        accessControlEntryService.delete(accessControlEntry);
+        accessControlEntryService.delete(ns, accessControlEntry);
         return HttpResponse.noContent();
     }
 
