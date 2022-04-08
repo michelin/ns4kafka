@@ -12,8 +12,8 @@ ns4kafka
 # Table of contents
 
 * [About the project](#about-the-project)
-* [Quick Start](#quick-start-cli)
-* [Install kafkactl CLI](#install-kafkactl-cli)
+* [Install Kafkactl](#install-kafkactl)
+* [Kafkactl commands](#kafkactl-commands)
 
 # About the project
 
@@ -31,6 +31,81 @@ Ns4kafka is built on top of 2 components : an **API** and a **CLI**.
 
 - The **Ns4kafka** API exposes all the required controllers to list, create and delete Kafka resources. It must be deployed and managed by Kafka administrators.
 - The **Kafkactl** CLI is, much like K8S's kubectl, a wrapper on the API to let any user or CI/CD pipeline deploy Kafka resources using yaml descriptors. It is made available to any project who needs to manage Kafka resources.
+
+# Install Kafkactl
+
+**Kafkactl** can be downloaded at [https://github.com/michelin/ns4kafka/releases](https://github.com/michelin/ns4kafka/releases).
+
+It is available in 3 different formats: JAR, Windows executable and Linux executable.
+
+Windows and Linux binaries are generated using GraalVM and native-image.
+Java package requires at least Java 11.
+
+`kafkactl` requires 3 variables to work :
+- The url of ns4kafka API (provided by your Kafka admin)
+- The user default namespace (also provided by your Kafka admin)
+- The user security token (a Gitlab Access Token for instance)
+    - Technically, LDAP or OIDC is also supported, but it is untested yet.
+
+Setup of these variables can be done in two different ways.
+
+## Configuration file
+
+Create a folder .kafkactl in your home directory:
+
+- **Windows**: C:\Users\<Name>\.kafkactl
+- **Linux**: ~/.kafkactl
+
+Create .kafkactl/config.yml with the following content:
+
+```yaml
+kafkactl:
+  contexts:
+    - name: dev
+      context:
+        api: https://ns4kafka-dev-api.domain.com
+        user-token: my_token
+        namespace: my_namespace
+    - name: prod
+      context:
+        api: https://ns4kafka-prod-api.domain.com
+        user-token: my_token
+        namespace: my_namespace
+```
+
+For each context, define your GitLab token and your namespace.
+
+Check all your available contexts:
+
+```shell
+kafkactl config get-contexts
+```
+
+Set yourself on a given context:
+
+```shell
+kafkactl config use-context cloud-dev
+```
+
+Check your context is applied:
+
+```shell
+kafkactl config current-context
+```
+
+Check it works by reading the resources of the current context with:
+
+```shell
+kafkactl get all
+```
+
+## Environment variables
+
+````bash
+export KAFKACTL_API=http://ns4kafka-dev-api.domain.com
+export KAFKACTL_USER_TOKEN=*******
+export KAFKACTL_CURRENT_NAMESPACE=test
+````
 
 # Kafkactl commands
 
@@ -450,179 +525,128 @@ The default compatibility of Confluent Schema Registry is FORWARD_TRANSITIVE. It
 
 **Config** command can be used to manage Kafkactl configuration and contexts.
 
-### Administrator Resources
+# Administrator Resources
 
 Kafka Admins, we didn't forget you ! On the contrary, it is your role who will get the most out of ns4kafka. Let's have a look.
 
 <details><summary>Show instructions</summary>
 
 1. Create a Namespace
-    ````yaml
-    # namespace.yml
-    ---
-    apiVersion: v1
-    kind: Namespace
-    metadata:
-      name: test
-      cluster: local # This is the name of your Kafka cluster
-    spec:
-      kafkaUser: toto # This is the Kafka Principal associated to this Namespace
-      connectClusters: 
-        - local # Authorize this namespace to deploy Connectors on this Connect cluster
-    ````
 
-    ````console
-    user@local:/home/user$ kafkactl apply -f namespace.yml
-    Success Namespace/test (created)
-    ````
-2. It's not enough. Now you must Grant access to Resources to this Namespace
-    ````yaml
-    # acl.yml
-    ---
-    apiVersion: v1
-    kind: AccessControlEntry
-    metadata:
-      name: test-acl-topic
-      namespace: test
-    spec:
-      resourceType: TOPIC # Available Types : Connector, ConsumerGroup
-      resource: test.
-      resourcePatternType: PREFIXED
-      permission: OWNER
-      grantedTo: test
-    ````
-
-    ````console
-    # Since you're admin, you must override the namespace scope with -n
-    user@local:/home/user$ kafkactl apply -f acl.yml -n test
-    Success AccessControlEntry/test-acl-topic (created)
-    ````
-3. **Still** isn't enough. Now you must link this Namespace to a project team. Enters the RoleBinding Resource
-    ````yaml
-    # role-binding.yml
-    ---
-    apiVersion: v1
-    kind: RoleBinding
-    metadata:
-      name: test-role-group1
-      namespace: test
-    spec:
-      role:
-        resourceTypes:
-        - topics
-        - acls
-        verbs:
-        - GET
-        - POST
-        - DELETE
-      subject:
-        subjectType: GROUP
-        subjectName: group1/test-ops
-    ````
-
-    ````console
-    user@local:/home/user$ kafkactl apply -f role-binding.yml -n test
-    Success RoleBinding/test-role-group1 (created)
-    ````
-4. From now on, members of the group ``group1/test-ops`` (either Gitlab, LDAP or OIDC groups) can use ns4kafka to manage topics starting with `test.` on the `local` Kafka cluster.  
-   But wait ! **That's not enough.** Now you should only let them create Topics successfully if and only if their configuration is aligned with your strategy ! Let's add Validators !
-    ````yaml
-    # namespace.yml
-    ---
-    apiVersion: v1
-    kind: Namespace
-    metadata:
-      name: project1
-      cluster: local
-    spec:
-      kafkaUser: toto
-      connectClusters: 
-      - local
-      topicValidator:
-        validationConstraints:
-          partitions: # Enforce sensible partition count
-            validation-type: Range
-            min: 1
-            max: 6
-          replication.factor: # Enforce Durability
-            validation-type: Range
-            min: 3
-            max: 3
-          min.insync.replicas: # Enforce Durability
-            validation-type: Range
-            min: 2
-            max: 2
-          retention.ms: # Prevents Infinite Retention
-            validation-type: Range
-            min: 60000
-            max: 604800000
-          cleanup.policy: # This is pointless
-            validation-type: ValidList
-            validStrings:
-            - delete
-            - compact
-    ````
-
-    ````console
-    user@local:/home/user$ kafkactl apply -f namespace.yml
-    Success Namespace/test (changed)
-    ````
-5. And there's even more to come...
-</details>
-
-### Are you convinced yet ?
-By now you should understand how ns4kafka can help project teams manage their Kafka resources more easily, more consistently and much faster than any other centralized process.
-
-From this point forward, documentation is split in dedicated pages depending on your role :
-- **Kafka Cluster Admin**. You need to Install and Configure `ns4kafka` API for your project teams :
-  [Take me to ns4kafka Installation and Configuration page](/CONFIGURATION.md)
-- **Project DevOps** You need to Install and Configure `kafkactl` CLI : Keep reading.
-
-## Install kafkactl CLI
-Download the latest available version from the [Releases](https://github.com/michelin/ns4kafka/releases) page.
-4 packages are available :
-- ``kafkactl`` binary for Linux
-- ``kafkactl.exe`` binary for Windows
-- ``kafkactl.jar`` java package
-- Docker image from DockerHub [michelin/kafkactl](https://hub.docker.com/repository/docker/michelin/kafkactl)
-
-Windows and Linux binaries are generated using GraalVM and native-image.  
-Java package requires at least Java 11.  
-If you wish to build the package from source : [Take me to the Build page](#todo)
-
-`kafkactl` requires 3 variables to work :
-- The url of ns4kafka API (provided by your Kafka admin)
-- The user default namespace (also provided by your Kafka admin)
-- The user security token (a Gitlab Access Token for instance)
-  - Technically, LDAP or OIDC is also supported, but it is untested yet.
-
-Setup of these variables can be done in two different ways :
-1. A configuration file
-   ````yaml
-      # config.yml
-      kafkactl:
-        api: http://ns4kafka.api
-        user-token: <authentication-token>
-        current-namespace: <your-namespace>
-   ````
-   ``kafkactl`` will look for the configuration in `~/.kafkactl/config.yml` automatically.  
-   If you need to store the file somewhere else, you can define the environement variable ``KAFKACTL_CONFIG`` :
-   ````shell
-   export KAFKACTL_CONFIG=/path/to/config.yml
-   ````
-1. Environments variables
-   ````shell
-   export KAFKACTL_API=http://ns4kafka.api
-   export KAFKACTL_USER_TOKEN=*******
-   export KAFKACTL_CURRENT_NAMESPACE=test
-   ````
-
-Once this is done, you can verify connectivity with ns4kafka using the following command :
-````console
-user@local:/home/user$ kafkactl get all
-[Success or Failure response here]
+````yaml
+# namespace.yml
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test
+  cluster: local # This is the name of your Kafka cluster
+spec:
+  kafkaUser: toto # This is the Kafka Principal associated to this Namespace
+  connectClusters: 
+    - local # Authorize this namespace to deploy Connectors on this Connect cluster
 ````
 
-# Resources and Operations
+````console
+user@local:/home/user$ kafkactl apply -f namespace.yml
+Success Namespace/test (created)
+````
 
-To get the complete list of Resources and associated Operations : [Take me to the Resources page](/RESOURCES.md)
+2. It's not enough. Now you must Grant access to Resources to this Namespace
+````yaml
+# acl.yml
+---
+apiVersion: v1
+kind: AccessControlEntry
+metadata:
+  name: test-acl-topic
+  namespace: test
+spec:
+  resourceType: TOPIC # Available Types : Connector, ConsumerGroup
+  resource: test.
+  resourcePatternType: PREFIXED
+  permission: OWNER
+  grantedTo: test
+````
+
+````console
+# Since you're admin, you must override the namespace scope with -n
+user@local:/home/user$ kafkactl apply -f acl.yml -n test
+Success AccessControlEntry/test-acl-topic (created)
+````
+
+3. **Still** isn't enough. Now you must link this Namespace to a project team. Enters the RoleBinding Resource
+````yaml
+# role-binding.yml
+---
+apiVersion: v1
+kind: RoleBinding
+metadata:
+  name: test-role-group1
+  namespace: test
+spec:
+  role:
+    resourceTypes:
+    - topics
+    - acls
+    verbs:
+    - GET
+    - POST
+    - DELETE
+  subject:
+    subjectType: GROUP
+    subjectName: group1/test-ops
+````
+
+````console
+user@local:/home/user$ kafkactl apply -f role-binding.yml -n test
+Success RoleBinding/test-role-group1 (created)
+````
+
+4. From now on, members of the group ``group1/test-ops`` (either Gitlab, LDAP or OIDC groups) can use ns4kafka to manage topics starting with `test.` on the `local` Kafka cluster.  
+   But wait ! **That's not enough.** Now you should only let them create Topics successfully if and only if their configuration is aligned with your strategy ! Let's add Validators !
+
+````yaml
+# namespace.yml
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: project1
+  cluster: local
+spec:
+  kafkaUser: toto
+  connectClusters: 
+  - local
+  topicValidator:
+    validationConstraints:
+      partitions: # Enforce sensible partition count
+        validation-type: Range
+        min: 1
+        max: 6
+      replication.factor: # Enforce Durability
+        validation-type: Range
+        min: 3
+        max: 3
+      min.insync.replicas: # Enforce Durability
+        validation-type: Range
+        min: 2
+        max: 2
+      retention.ms: # Prevents Infinite Retention
+        validation-type: Range
+        min: 60000
+        max: 604800000
+      cleanup.policy: # This is pointless
+        validation-type: ValidList
+        validStrings:
+        - delete
+        - compact
+````
+
+````console
+user@local:/home/user$ kafkactl apply -f namespace.yml
+Success Namespace/test (changed)
+````
+
+5. And there's even more to come...
+</details>
