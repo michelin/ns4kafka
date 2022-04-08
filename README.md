@@ -57,7 +57,7 @@ Setup of these variables can be done in two different ways.
 
 Create a folder .kafkactl in your home directory:
 
-- **Windows**: C:\Users\Name\.kafkactl
+- **Windows**: C:\Users\Name\\.kafkactl
 - **Linux**: ~/.kafkactl
 
 Create .kafkactl/config.yml with the following content:
