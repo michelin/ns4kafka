@@ -14,6 +14,8 @@ ns4kafka
 * [About the project](#about-the-project)
 * [Install Kafkactl](#install-kafkactl)
 * [Kafkactl commands](#kafkactl-commands)
+* [Kafkactl for CI/CD](#kafkactl-for-cicd)
+* [Administrator resources](#administrator-resources)
 
 # About the project
 
@@ -39,13 +41,15 @@ Ns4kafka is built on top of 2 components : an **API** and a **CLI**.
 It is available in 3 different formats: JAR, Windows executable and Linux executable.
 
 Windows and Linux binaries are generated using GraalVM and native-image.
+
 Java package requires at least Java 11.
 
 `kafkactl` requires 3 variables to work :
 - The url of ns4kafka API (provided by your Kafka admin)
 - The user default namespace (also provided by your Kafka admin)
 - The user security token (a Gitlab Access Token for instance)
-    - Technically, LDAP or OIDC is also supported, but it is untested yet.
+  
+Technically, LDAP or OIDC is also supported, but it is untested yet.
 
 Setup of these variables can be done in two different ways.
 
@@ -53,7 +57,7 @@ Setup of these variables can be done in two different ways.
 
 Create a folder .kafkactl in your home directory:
 
-- **Windows**: C:\Users\<Name>\.kafkactl
+- **Windows**: C:\Users\Name\.kafkactl
 - **Linux**: ~/.kafkactl
 
 Create .kafkactl/config.yml with the following content:
@@ -84,7 +88,7 @@ kafkactl config get-contexts
 Set yourself on a given context:
 
 ```shell
-kafkactl config use-context cloud-dev
+kafkactl config use-context dev
 ```
 
 Check your context is applied:
@@ -323,7 +327,7 @@ spec:
   schema: |
     {
       "type": "record",
-      "namespace": "com.michelin.avro",
+      "namespace": "com.schema.avro",
       "name": "Client",
       "fields": [
         {
@@ -332,12 +336,12 @@ spec:
         },
         {
           "name": "address",
-          "type": "com.michelin.avro.Address"
+          "type": "com.schema.avro.Address"
         }
       ]
     }
   references:
-    - name: com.michelin.avro.Address
+    - name: com.schema.avro.Address
       subject: commons.address-value
       version: 1
 ```
@@ -525,7 +529,33 @@ The default compatibility of Confluent Schema Registry is FORWARD_TRANSITIVE. It
 
 **Config** command can be used to manage Kafkactl configuration and contexts.
 
-# Administrator Resources
+# Kafkactl for CI/CD
+
+A **Docker image** with Kafkactl is available at [https://hub.docker.com/repository/docker/michelin/kafkactl](https://hub.docker.com/repository/docker/michelin/kafkactl).
+
+Below is an example of how to use kafkactl in your pipeline (Gitlab CI):
+
+```yaml
+kafkactl:
+  stage: kafkactl
+  image:
+    name: michelin/kafkactl:1.5.0
+    entrypoint: ['/bin/sh', '-c']
+  tags:
+    - k8s
+  before_script:
+    - export KAFKACTL_CURRENT_NAMESPACE=test
+    - export KAFKACTL_API=http://ns4kafka-dev-api.domain.com
+    - export KAFKACTL_USER_TOKEN=${KFE_TOKEN}
+  script:
+    - java -jar /home/app/application.jar get all
+```
+
+- **KAFKACTL_CURRENT_NAMESPACE** is the namespace to use.
+- **KFE_TOKEN** is a CI/CD variable that contains the Gitlab token.
+- **KAFKACTL_API** is the URL of the Ns4Kafka in which to deploy
+    
+# Administrator resources
 
 Kafka Admins, we didn't forget you ! On the contrary, it is your role who will get the most out of ns4kafka. Let's have a look.
 
@@ -650,3 +680,4 @@ Success Namespace/test (changed)
 
 5. And there's even more to come...
 </details>
+
