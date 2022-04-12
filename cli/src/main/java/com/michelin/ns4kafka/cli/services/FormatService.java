@@ -58,16 +58,13 @@ public class FormatService {
      */
     public void displayError(HttpClientResponseException e, String kind, String name) {
         Optional<Status> statusOptional = e.getResponse().getBody(Status.class);
-        if (statusOptional.isPresent()) {
+        if (statusOptional.isPresent() && statusOptional.get().getDetails() != null && !statusOptional.get().getDetails().getCauses().isEmpty()) {
             Status status = statusOptional.get();
-            String causes = "";
-            if (status.getDetails() != null && !status.getDetails().getCauses().isEmpty()) {
-                causes = String.join("\n - ", status.getDetails().getCauses());
-            }
+            String causes = String.join("\n - ", status.getDetails().getCauses());
 
-            System.out.printf("Failed: %s/%s. %s for causes: %n - %s%n", kind, name, status.getMessage(), causes);
+            System.out.printf("Failed %s/%s: %s for causes: %n - %s%n", kind, name, status.getMessage(), causes);
         } else {
-            System.out.printf("Failed: %s/%s. %s%n", kind, name, e.getMessage());
+            System.out.printf("Failed %s/%s: %s%n", kind, name, e.getMessage());
         }
     }
 

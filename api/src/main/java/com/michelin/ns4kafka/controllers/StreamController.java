@@ -18,10 +18,17 @@ import java.util.Optional;
 @Tag(name = "Stream")
 @Controller(value = "/api/namespaces/{namespace}/streams")
 public class StreamController extends NamespacedResourceController {
-
+    /**
+     * The Kafka Streams service
+     */
     @Inject
     StreamService streamService;
 
+    /**
+     * Get all the Kafka Streams by namespace
+     * @param namespace The namespace
+     * @return A list of Kafka Streams
+     */
     @Get("/")
     List<KafkaStream> list(String namespace){
         Namespace ns = getNamespace(namespace);
@@ -29,29 +36,41 @@ public class StreamController extends NamespacedResourceController {
 
     }
 
+    /**
+     * Get a Kafka Streams by namespace and name
+     * @param namespace The name
+     * @param stream The Kafka Streams name
+     * @return The Kafka Streams
+     */
     @Get("/{stream}")
-    Optional<KafkaStream> get(String namespace,String stream){
+    Optional<KafkaStream> get(String namespace, String stream){
 
         Namespace ns = getNamespace(namespace);
         return streamService.findByName(ns, stream);
 
     }
 
+    /**
+     * Create a Kafka Streams
+     * @param namespace The namespace
+     * @param stream The Kafka Stream
+     * @param dryrun Is dry run mode or not ?
+     * @return An HTTP response
+     */
     @Post("/{?dryrun}")
     HttpResponse<KafkaStream> apply(String namespace,@Body @Valid KafkaStream stream, @QueryValue(defaultValue = "false") boolean dryrun){
         Namespace ns = getNamespace(namespace);
-
-        //Creation of the correct ACLs
         if (!streamService.isNamespaceOwnerOfKafkaStream(ns, stream.getMetadata().getName())) {
             throw new ResourceValidationException(List.of("Invalid value " + stream.getMetadata().getName()
                     + " for name: Namespace not OWNER of underlying Topic prefix and Group prefix"), "Stream", stream.getMetadata().getName());
         }
-        //Augment the Stream
+
+        // Augment the Stream
         stream.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
         stream.getMetadata().setCluster(ns.getMetadata().getCluster());
         stream.getMetadata().setNamespace(ns.getMetadata().getName());
 
-        //Creation of the correct ACLs
+        // Creation of the correct ACLs
         Optional<KafkaStream> existingStream = streamService.findByName(ns, stream.getMetadata().getName());
         if (existingStream.isPresent() && existingStream.get().equals(stream)){
             return formatHttpResponse(stream, ApplyStatus.unchanged);
@@ -62,6 +81,7 @@ public class StreamController extends NamespacedResourceController {
         if (dryrun) {
             return formatHttpResponse(stream, status);
         }
+
         sendEventLog(stream.getKind(),
                 stream.getMetadata(),
                 status,
@@ -69,9 +89,15 @@ public class StreamController extends NamespacedResourceController {
                 null);
 
         return formatHttpResponse(streamService.create(stream), status);
-
     }
 
+    /**
+     * Delete a Kafka Streams
+     * @param namespace The namespace
+     * @param stream The Kafka Streams
+     * @param dryrun Is dry run mode or not ?
+     * @return An HTTP response
+     */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{stream}{?dryrun}")
     HttpResponse delete(String namespace,String stream, @QueryValue(defaultValue = "false") boolean dryrun){
@@ -80,22 +106,24 @@ public class StreamController extends NamespacedResourceController {
             throw new ResourceValidationException(List.of("Invalid value " + stream
                     + " for name: Namespace not OWNER of underlying Topic prefix and Group prefix"), "Stream", stream);
         }
-        // exists ?
+
         Optional<KafkaStream> optionalStream = streamService.findByName(ns, stream);
 
-        if (optionalStream.isEmpty())
+        if (optionalStream.isEmpty()) {
             return HttpResponse.notFound();
+        }
 
         if (dryrun) {
             return HttpResponse.noContent();
         }
+
         var streamToDelete = optionalStream.get();
         sendEventLog(streamToDelete.getKind(),
                 streamToDelete.getMetadata(),
                 ApplyStatus.deleted,
                 null,
                 null);
-        streamService.delete(optionalStream.get());
+        streamService.delete(ns, optionalStream.get());
         return HttpResponse.noContent();
     }
 }

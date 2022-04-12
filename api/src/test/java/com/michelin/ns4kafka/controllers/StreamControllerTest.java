@@ -24,19 +24,40 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class StreamControllerTest {
-
+class StreamControllerTest {
+    /**
+     * The mocked namespace service
+     */
     @Mock
     NamespaceService namespaceService;
+
+    /**
+     * The mocked stream service
+     */
     @Mock
     StreamService streamService;
+
+    /**
+     * The mocked app event publisher
+     */
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
+
+    /**
+     * The mocked security service
+     */
     @Mock
     SecurityService securityService;
+
+    /**
+     * The mocked Kafka Streams controller
+     */
     @InjectMocks
     StreamController streamController;
 
+    /**
+     * Validate empty Kafka Streams listing
+     */
     @Test
     void listEmptyStreams() {
         Namespace ns = Namespace.builder()
@@ -54,6 +75,9 @@ public class StreamControllerTest {
         Assertions.assertEquals(0, actual.size());
     }
 
+    /**
+     * Validate Kafka Streams listing
+     */
     @Test
     void listStreams() {
         Namespace ns = Namespace.builder()
@@ -62,16 +86,19 @@ public class StreamControllerTest {
                         .cluster("local")
                         .build())
                 .build();
+
         KafkaStream stream1 = KafkaStream.builder()
             .metadata(ObjectMeta.builder()
                       .name("test_stream1")
                       .build())
             .build();
+
         KafkaStream stream2 = KafkaStream.builder()
             .metadata(ObjectMeta.builder()
                       .name("test_stream2")
                       .build())
             .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(streamService.findAllForNamespace(ns))
@@ -83,6 +110,9 @@ public class StreamControllerTest {
         Assertions.assertTrue(actual.contains(stream2));
     }
 
+    /**
+     * Validate get Kafka Streams with empty response
+     */
     @Test
     void getEmpty() {
         Namespace ns = Namespace.builder()
@@ -102,8 +132,11 @@ public class StreamControllerTest {
         Assertions.assertTrue(actual.isEmpty());
     }
 
+    /**
+     * Validate get Kafka Streams
+     */
     @Test
-    void getStreamFinded() {
+    void getStreamFound() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -250,6 +283,9 @@ public class StreamControllerTest {
         Mockito.verify(streamService, never()).create(any());
     }
 
+    /**
+     * Validate Kafka Streams deletion
+     */
     @Test
     void deleteStreamSuccess() {
         Namespace ns = Namespace.builder()
@@ -277,11 +313,14 @@ public class StreamControllerTest {
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
-        doNothing().when(streamService).delete(stream1);
+        doNothing().when(streamService).delete(ns,stream1);
         var response = streamController.delete("test", "test_stream1", false);
         Assertions.assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
     }
 
+    /**
+     * Validate Kafka Streams deletion in dry mode
+     */
     @Test
     void deleteStreamSuccessDryRun() {
         Namespace ns = Namespace.builder()
@@ -307,10 +346,13 @@ public class StreamControllerTest {
                 .thenReturn(Optional.of(stream1));
 
         var response = streamController.delete("test", "test_stream1", true);
-        Mockito.verify(streamService, never()).delete(any());
+        Mockito.verify(streamService, never()).delete(any(), any());
         Assertions.assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
     }
 
+    /**
+     * Validate Kafka Streams deletion fails when not found
+     */
     @Test
     void deleteStreamNotFound() {
         Namespace ns = Namespace.builder()
@@ -320,15 +362,8 @@ public class StreamControllerTest {
                         .build())
                 .build();
 
-        KafkaStream stream1 = KafkaStream.builder()
-            .metadata(ObjectMeta.builder()
-                      .name("test_stream1")
-                      .build())
-            .build();
-
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-
         Mockito.when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
                 .thenReturn(true);
 
@@ -336,10 +371,14 @@ public class StreamControllerTest {
                 .thenReturn(Optional.empty());
 
         var response = streamController.delete("test", "test_stream1", false);
-        Mockito.verify(streamService, never()).delete(any());
+        Mockito.verify(streamService, never()).delete(any(), any());
+
         Assertions.assertEquals(HttpStatus.NOT_FOUND, response.getStatus());
     }
 
+    /**
+     * Validate Kafka Streams deletion fails when not owner
+     */
     @Test
     void deleteStreamNotOwner() {
         Namespace ns = Namespace.builder()
@@ -355,8 +394,7 @@ public class StreamControllerTest {
         Mockito.when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
                 .thenReturn(false);
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> streamController.delete("test", "test_stream1", false));
-        Mockito.verify(streamService, never()).delete(any());
+        Assertions.assertThrows(ResourceValidationException.class, () -> streamController.delete("test", "test_stream1", false));
+        Mockito.verify(streamService, never()).delete(any(), any());
     }
-
 }

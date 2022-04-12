@@ -29,19 +29,19 @@ import java.util.Map;
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
     /**
-     * HTTP client
+     * The HTTP client
      */
     @Inject
     @Client("/")
     RxHttpClient client;
 
     /**
-     * Schema Registry client
+     * The Schema Registry client
      */
     HttpClient schemaClient;
 
     /**
-     * Authentication token
+     * The Authentication token
      */
     private String token;
 

@@ -22,14 +22,13 @@ import java.util.Optional;
 @ExecuteOn(TaskExecutors.IO)
 public class SchemaController extends NamespacedResourceController {
     /**
-     * Subject service
+     * The schema service
      */
     @Inject
     SchemaService schemaService;
 
     /**
      * Get all the schemas by namespace
-     *
      * @param namespace The namespace
      * @return A list of schemas
      */
@@ -41,7 +40,6 @@ public class SchemaController extends NamespacedResourceController {
 
     /**
      * Get the last version of a schema by namespace and subject
-     *
      * @param namespace The namespace
      * @param subject   The subject
      * @return A schema
@@ -59,7 +57,6 @@ public class SchemaController extends NamespacedResourceController {
 
     /**
      * Publish a schema
-     *
      * @param namespace The namespace
      * @param schema    The schema to create
      * @param dryrun    Does the creation is a dry run
@@ -115,7 +112,6 @@ public class SchemaController extends NamespacedResourceController {
 
     /**
      * Delete all schemas under the given subject
-     *
      * @param namespace The current namespace
      * @param subject   The current subject to delete
      * @param dryrun    Run in dry mode or not
@@ -158,7 +154,6 @@ public class SchemaController extends NamespacedResourceController {
 
     /**
      * Update the compatibility of a subject
-     *
      * @param namespace     The namespace
      * @param subject       The subject to update
      * @param compatibility The compatibility to apply

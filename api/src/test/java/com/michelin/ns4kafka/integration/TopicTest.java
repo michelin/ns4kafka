@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
-public class TopicTest extends AbstractIntegrationTest {
+class TopicTest extends AbstractIntegrationTest {
 
     @Inject
     @Client("/")
