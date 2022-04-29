@@ -26,6 +26,9 @@ public class SchemaResponse {
      */
     private final String schema;
 
+    /**
+     * The schema type
+     */
     private final String schemaType;
 
     /**
@@ -35,6 +38,7 @@ public class SchemaResponse {
      * @param version The schema version
      * @param subject The schema subject
      * @param schema The schema itself
+     * @param schemaType The schema type
      */
     @JsonCreator
     public SchemaResponse(@JsonProperty("id") Integer id, @JsonProperty("version") Integer version, @JsonProperty("subject") String subject,
@@ -82,6 +86,11 @@ public class SchemaResponse {
         return schema;
     }
 
+    /**
+     * Schema type access method
+     *
+     * @return schema type
+     */
     public String schemaType() {
         return schemaType;
     }

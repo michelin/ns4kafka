@@ -65,7 +65,7 @@ public class Schema {
          * Schema type
          */
         @Builder.Default
-        private String schemaType = "AVRO";
+        private SchemaType schemaType = SchemaType.AVRO;
 
         /**
          * Schema compatibility
@@ -103,5 +103,15 @@ public class Schema {
         FULL,
         FULL_TRANSITIVE,
         NONE
+    }
+
+    /**
+     * Schema type
+     */
+    @Introspected
+    public enum SchemaType {
+        AVRO,
+        JSON,
+        PROTOBUF
     }
 }

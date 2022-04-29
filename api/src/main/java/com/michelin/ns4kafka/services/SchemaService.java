@@ -81,12 +81,10 @@ public class SchemaService {
         if(response.isEmpty())
             return Optional.empty();
 
-
         Optional<SchemaCompatibilityResponse> compatibilityResponse = kafkaSchemaRegistryClient.
                 getCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), subject);
 
         Schema.Compatibility compatibility = compatibilityResponse.isPresent() ? compatibilityResponse.get().compatibilityLevel() : Schema.Compatibility.GLOBAL;
-
 
         return Optional.of(Schema.builder()
                         .metadata(ObjectMeta.builder()
@@ -99,7 +97,8 @@ public class SchemaService {
                                 .version(response.get().version())
                                 .compatibility(compatibility)
                                 .schema(response.get().schema())
-                                .schemaType(response.get().schemaType())
+                                .schemaType(response.get().schemaType() == null ? Schema.SchemaType.AVRO :
+                                        Schema.SchemaType.valueOf(response.get().schemaType()))
                                 .build())
                         .build());
     }
@@ -115,6 +114,7 @@ public class SchemaService {
         SchemaResponse response = kafkaSchemaRegistryClient.
                 register(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
                         schema.getMetadata().getName(), SchemaRequest.builder()
+                                .schemaType(String.valueOf(schema.getSpec().getSchemaType()))
                                 .schema(schema.getSpec().getSchema())
                                 .references(schema.getSpec().getReferences())
                                 .build());
@@ -149,6 +149,7 @@ public class SchemaService {
         try {
             Optional<SchemaCompatibilityCheckResponse> response = kafkaSchemaRegistryClient.validateSchemaCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
                     cluster, schema.getMetadata().getName(), SchemaRequest.builder()
+                            .schemaType(String.valueOf(schema.getSpec().getSchemaType()))
                             .schema(schema.getSpec().getSchema())
                             .references(schema.getSpec().getReferences())
                             .build());
@@ -169,7 +170,6 @@ public class SchemaService {
      * @param namespace The namespace
      * @param schema The schema
      * @param compatibility The compatibility to apply
-     * @return A schema compatibility state
      */
     public void updateSubjectCompatibility(Namespace namespace, Schema schema, Schema.Compatibility compatibility) {
         // Reset to default

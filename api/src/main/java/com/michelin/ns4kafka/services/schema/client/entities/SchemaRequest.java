@@ -8,6 +8,7 @@ import java.util.List;
 @Getter
 @Builder
 public class SchemaRequest {
+    private String schemaType;
     private String schema;
     private List<Schema.SchemaSpec.Reference> references;
 }
