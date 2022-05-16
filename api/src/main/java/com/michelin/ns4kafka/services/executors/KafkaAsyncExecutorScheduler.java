@@ -14,36 +14,54 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j
 @Singleton
 public class KafkaAsyncExecutorScheduler {
-
+    /**
+     * The topic async executor
+     */
     @Inject
     List<TopicAsyncExecutor> topicAsyncExecutors;
+
+    /**
+     * The ACL async executor
+     */
     @Inject
     List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutors;
+
+    /**
+     * The connector async executor
+     */
     @Inject
     List<ConnectorAsyncExecutor> connectorAsyncExecutors;
+
+    /**
+     * The user async executor
+     */
     @Inject
     List<UserAsyncExecutor> userAsyncExecutors;
 
+    /**
+     * Is the application ready
+     */
     private final AtomicBoolean ready = new AtomicBoolean(false);
 
+    /**
+     * Register when the application is ready
+     * @param event The application start event
+     */
     @EventListener
     public void onStartupEvent(ApplicationStartupEvent event) {
-        // startup logic here
         ready.compareAndSet(false,true);
     }
 
-    //TODO urgent : start the schedulder only when Application is started (ServerStartupEvent)
     @Scheduled(initialDelay = "12s", fixedDelay = "20s")
     void schedule(){
-
-        if(ready.get()) {
+        if (ready.get()) {
             //TODO sequential forEach with exception handling (to let next clusters sync)
             topicAsyncExecutors.forEach(TopicAsyncExecutor::run);
             accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
             connectorAsyncExecutors.forEach(ConnectorAsyncExecutor::run);
             userAsyncExecutors.forEach(UserAsyncExecutor::run);
-        }else {
-            log.warn("Scheduled job did not start because micronaut is not ready yet");
+        } else {
+            log.warn("Scheduled jobs did not start because Micronaut is not ready yet");
         }
     }
 }

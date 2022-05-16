@@ -5,7 +5,7 @@ import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets.ConsumerGroupReset
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets.ResetOffsetsMethod;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.TopicPartitionOffset;
+import com.michelin.ns4kafka.models.ConsumerGroupResetOffsetsResponse;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.ConsumerGroupService;
 import com.michelin.ns4kafka.services.NamespaceService;
@@ -107,9 +107,9 @@ class ConsumerGroupControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        List<TopicPartitionOffset> result = consumerGroupController.resetOffsets("test", "groupID", resetOffset, false);
+        List<ConsumerGroupResetOffsetsResponse> result = consumerGroupController.resetOffsets("test", "groupID", resetOffset, false);
 
-        TopicPartitionOffset resultTopicPartition1 = result
+        ConsumerGroupResetOffsetsResponse resultTopicPartition1 = result
             .stream()
             .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 0)
             .findFirst()
@@ -118,7 +118,7 @@ class ConsumerGroupControllerTest {
         assertNotNull(resultTopicPartition1);
         assertEquals(5L, resultTopicPartition1.getSpec().getOffset());
 
-        TopicPartitionOffset resultTopicPartition2 = result
+        ConsumerGroupResetOffsetsResponse resultTopicPartition2 = result
                 .stream()
                 .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 1)
                 .findFirst()
@@ -172,9 +172,9 @@ class ConsumerGroupControllerTest {
         when(consumerGroupService.prepareOffsetsToReset(ns, "groupID", null, topicPartitions, ResetOffsetsMethod.TO_EARLIEST))
                 .thenReturn(Map.of(topicPartition1, 5L, topicPartition2, 10L));
 
-        List<TopicPartitionOffset> result = consumerGroupController.resetOffsets("test", "groupID", resetOffset, true);
+        List<ConsumerGroupResetOffsetsResponse> result = consumerGroupController.resetOffsets("test", "groupID", resetOffset, true);
 
-        TopicPartitionOffset resultTopicPartition1 = result
+        ConsumerGroupResetOffsetsResponse resultTopicPartition1 = result
                 .stream()
                 .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 0)
                 .findFirst()
@@ -183,7 +183,7 @@ class ConsumerGroupControllerTest {
         assertNotNull(resultTopicPartition1);
         assertEquals(5L, resultTopicPartition1.getSpec().getOffset());
 
-        TopicPartitionOffset resultTopicPartition2 = result
+        ConsumerGroupResetOffsetsResponse resultTopicPartition2 = result
                 .stream()
                 .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 1)
                 .findFirst()

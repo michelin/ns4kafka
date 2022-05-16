@@ -125,13 +125,23 @@ public class ResourceService {
         return resources;
     }
 
-    public Resource deleteRecords(String namespace, String topic, boolean dryrun) {
+    /**
+     * Delete records for a given topic
+     * @param namespace The namespace
+     * @param topic The topic to delete records
+     * @param dryrun Is dry run mode or not ?
+     * @return The delete records response
+     */
+    public List<Resource> deleteRecords(String namespace, String topic, boolean dryrun) {
+        List<Resource> resources = List.of();
+
         try {
             return namespacedClient.deleteRecords(loginService.getAuthorization(), namespace, topic, dryrun);
         } catch (HttpClientResponseException e) {
             formatService.displayError(e, "Topic", topic);
         }
-        return null;
+
+        return resources;
     }
 
     /**

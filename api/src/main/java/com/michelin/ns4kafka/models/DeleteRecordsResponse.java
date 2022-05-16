@@ -11,7 +11,7 @@ import javax.validation.constraints.NotNull;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class TopicPartitionOffset {
+public class DeleteRecordsResponse {
     /**
      * API version
      */
@@ -20,7 +20,7 @@ public class TopicPartitionOffset {
     /**
      * Resource kind
      */
-    private final String kind = "TopicPartitionOffset";
+    private final String kind = "DeleteRecordsResponse";
 
     /**
      * Resource metadata
@@ -34,7 +34,7 @@ public class TopicPartitionOffset {
      */
     @Valid
     @NotNull
-    private TopicPartitionOffsetSpec spec;
+    private DeleteRecordsResponseSpec spec;
 
     @Introspected
     @Builder
@@ -42,7 +42,7 @@ public class TopicPartitionOffset {
     @NoArgsConstructor
     @Getter
     @ToString
-    public static class TopicPartitionOffsetSpec {
+    public static class DeleteRecordsResponseSpec {
         /**
          * The topic that was reset
          */
@@ -57,10 +57,5 @@ public class TopicPartitionOffset {
          * The new offset
          */
         private Long offset;
-
-        /**
-         * The consumer group
-         */
-        private String consumerGroup;
     }
 }

@@ -48,8 +48,16 @@ public interface NamespacedResourceClient {
             @Header("Authorization") String token,
             @QueryValue boolean dryrun);
 
+    /**
+     * Delete records for a given topic
+     * @param token The authentication token
+     * @param namespace The namespace
+     * @param topic The topic to delete records
+     * @param dryrun Is dry run mode or not ?
+     * @return The delete records response
+     */
     @Post("{namespace}/topics/{topic}/delete-records{?dryrun}")
-    Resource deleteRecords(
+    List<Resource> deleteRecords(
             @Header("Authorization") String token,
             String namespace,
             String topic,
