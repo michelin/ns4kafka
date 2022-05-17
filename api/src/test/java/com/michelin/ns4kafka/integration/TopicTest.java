@@ -261,7 +261,6 @@ class TopicTest extends AbstractIntegrationTest {
      */
     @Test
     void updateTopic() throws InterruptedException, ExecutionException {
-
         Topic topic2Create = Topic.builder()
             .metadata(ObjectMeta.builder()
                       .name("ns1-topic2Create")
@@ -496,13 +495,12 @@ class TopicTest extends AbstractIntegrationTest {
 
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
 
-        ResourceValidationException exception = Assertions.assertThrows(ResourceValidationException.class,
+        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,
                 () -> client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics/compactTopicToDelete/delete-records")
                         .bearerAuth(token))
                         .blockingFirst());
 
-        Assertions.assertEquals(1, exception.getValidationErrors().size());
-        Assertions.assertEquals("Cannot delete records on a compacted topic. Please delete and recreate the topic.", exception.getValidationErrors().get(0));
+        Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
     }
 
     /**
