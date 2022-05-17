@@ -479,7 +479,7 @@ class TopicTest extends AbstractIntegrationTest {
     void testDeleteRecordsCompactTopic() {
         Topic topicToDelete = Topic.builder()
                 .metadata(ObjectMeta.builder()
-                        .name("ns1-topicToDelete")
+                        .name("ns1-compactTopicToDelete")
                         .namespace("ns1")
                         .build())
                 .spec(TopicSpec.builder()
@@ -497,7 +497,7 @@ class TopicTest extends AbstractIntegrationTest {
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
 
         ResourceValidationException exception = Assertions.assertThrows(ResourceValidationException.class,
-                () -> client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics/ns1-topicToDelete/delete-records")
+                () -> client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics/compactTopicToDelete/delete-records")
                         .bearerAuth(token))
                         .blockingFirst());
 
