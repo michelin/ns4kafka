@@ -766,7 +766,7 @@ class TopicControllerTest {
                 () -> topicController.deleteRecords("test", "topic.empty", false));
 
         Assertions.assertEquals(1, actual.getValidationErrors().size());
-        Assertions.assertLinesMatch(List.of(".*Namespace not OWNER of this topic.*"),
+        Assertions.assertLinesMatch(List.of("Namespace not owner of this topic \"topic.empty\"."),
                 actual.getValidationErrors());
     }
 
@@ -793,12 +793,18 @@ class TopicControllerTest {
                 () -> topicController.deleteRecords("test", "topic.empty", false));
 
         Assertions.assertEquals(1, actual.getValidationErrors().size());
-        Assertions.assertLinesMatch(List.of(".*Topic doesn't exist.*"),
+        Assertions.assertLinesMatch(List.of("Topic \"topic.empty\" does not exist."),
                 actual.getValidationErrors());
     }
 
+    /**
+     * Validate topic creation with name collision
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     * @throws TimeoutException Any timeout exception
+     */
     @Test
-    public void CreateCollidingTopic() throws InterruptedException, ExecutionException, TimeoutException {
+    void createCollidingTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -830,7 +836,7 @@ class TopicControllerTest {
         ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> topicController.apply("test", topic, false));
         Assertions.assertEquals(1, actual.getValidationErrors().size());
         Assertions.assertLinesMatch(
-                List.of("Topic test.topic collides with existing topics: test_topic"),
+                List.of("Topic test.topic collides with existing topics: test_topic."),
                 actual.getValidationErrors());
     }
 }
