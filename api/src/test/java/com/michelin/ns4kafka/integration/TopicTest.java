@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.integration;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.michelin.ns4kafka.controllers.AkhqClaimProviderController;
+import com.michelin.ns4kafka.controllers.ResourceValidationException;
 import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
@@ -470,6 +471,39 @@ class TopicTest extends AbstractIntegrationTest {
         Assertions.assertEquals(2, resultPartition2.getSpec().getPartition());
         Assertions.assertEquals("ns1-topicToDelete", resultPartition2.getSpec().getTopic());
    }
+
+    /**
+     * Validate records deletion on compacted topic
+     */
+    @Test
+    void testDeleteRecordsCompactTopic() {
+        Topic topicToDelete = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-topicToDelete")
+                        .namespace("ns1")
+                        .build())
+                .spec(TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(Map.of("cleanup.policy", "compact",
+                                "min.insync.replicas", "1",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        var response = client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics").bearerAuth(token).body(topicToDelete)).blockingFirst();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+
+        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+
+        ResourceValidationException exception = Assertions.assertThrows(ResourceValidationException.class,
+                () -> client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics/ns1-topicToDelete/delete-records")
+                        .bearerAuth(token))
+                        .blockingFirst());
+
+        Assertions.assertEquals(1, exception.getValidationErrors().size());
+        Assertions.assertEquals("Cannot delete records on a compacted topic. Please delete and recreate the topic.", exception.getValidationErrors().get(0));
+    }
 
     /**
      * Bearer token class

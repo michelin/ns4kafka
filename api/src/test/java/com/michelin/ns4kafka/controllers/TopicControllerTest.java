@@ -686,6 +686,37 @@ class TopicControllerTest {
     }
 
     /**
+     * Validate delete records fails on compacted topic
+     */
+    @Test
+    void deleteRecordsCompactedTopic() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic toEmpty = Topic.builder().metadata(ObjectMeta.builder().name("topic.empty").build()).build();
+
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.isNamespaceOwnerOfTopic("test","topic.empty"))
+                .thenReturn(true);
+        when(topicService.validateDeleteRecordsTopic(toEmpty))
+                .thenReturn(List.of("Cannot delete records on a compacted topic. Please delete and recreate the topic."));
+        when(topicService.findByName(ns, "topic.empty"))
+                .thenReturn(Optional.of(toEmpty));
+
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+                () -> topicController.deleteRecords("test", "topic.empty", false));
+
+        Assertions.assertEquals(1, actual.getValidationErrors().size());
+        Assertions.assertLinesMatch(List.of("Cannot delete records on a compacted topic. Please delete and recreate the topic."),
+                actual.getValidationErrors());
+    }
+
+    /**
      * Validate delete records in dry mode
      * @throws InterruptedException Any interrupted exception
      * @throws ExecutionException Any execution exception
