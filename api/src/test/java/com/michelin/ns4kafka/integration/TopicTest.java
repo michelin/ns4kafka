@@ -456,17 +456,17 @@ class TopicTest extends AbstractIntegrationTest {
         Assertions.assertEquals(3L, deleteRecordsResponse.size());
 
         assertNotNull(resultPartition0);
-        Assertions.assertEquals(100L, resultPartition0.getSpec().getOffset());
+        Assertions.assertEquals(0, resultPartition0.getSpec().getOffset());
         Assertions.assertEquals(0, resultPartition0.getSpec().getPartition());
         Assertions.assertEquals("ns1-topicToDelete", resultPartition0.getSpec().getTopic());
 
         assertNotNull(resultPartition1);
-        Assertions.assertEquals(101L, resultPartition1.getSpec().getOffset());
+        Assertions.assertEquals(0, resultPartition1.getSpec().getOffset());
         Assertions.assertEquals(1, resultPartition1.getSpec().getPartition());
         Assertions.assertEquals("ns1-topicToDelete", resultPartition1.getSpec().getTopic());
 
         assertNotNull(resultPartition2);
-        Assertions.assertEquals(101L, resultPartition2.getSpec().getOffset());
+        Assertions.assertEquals(0, resultPartition2.getSpec().getOffset());
         Assertions.assertEquals(2, resultPartition2.getSpec().getPartition());
         Assertions.assertEquals("ns1-topicToDelete", resultPartition2.getSpec().getTopic());
    }
