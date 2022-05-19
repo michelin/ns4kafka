@@ -1,13 +1,11 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.models.DeleteRecords;
-import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
-import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.TopicService;
+import com.michelin.ns4kafka.validation.ResourceValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
@@ -30,32 +28,54 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class TopicControllerTest {
-
+class TopicControllerTest {
+    /**
+     * The mocked namespace service
+     */
     @Mock
     NamespaceService namespaceService;
+
+    /**
+     * The mocked topic service
+     */
     @Mock
     TopicService topicService;
+
+    /**
+     * The mocked app event publisher
+     */
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
+
+    /**
+     * The mocked security service
+     */
     @Mock
     SecurityService securityService;
 
+    /**
+     * The mocked topic controller
+     */
     @InjectMocks
     TopicController topicController;
 
+    /**
+     * Validate empty topics listing
+     */
     @Test
-    public void ListEmptyTopics() {
+    void listEmptyTopics() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.findAllForNamespace(ns))
@@ -65,14 +85,18 @@ public class TopicControllerTest {
         Assertions.assertEquals(0, actual.size());
     }
 
+    /**
+     * Validate topics listing
+     */
     @Test
-    public void ListMultipleTopics() {
+    void listMultipleTopics() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.findAllForNamespace(ns))
@@ -88,14 +112,18 @@ public class TopicControllerTest {
         Assertions.assertEquals("topic2", actual.get(1).getMetadata().getName());
     }
 
+    /**
+     * Validate get topic empty response
+     */
     @Test
-    public void GetEmptyTopic() {
+    void getEmptyTopic() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "topic.notfound"))
@@ -106,14 +134,18 @@ public class TopicControllerTest {
         Assertions.assertTrue(actual.isEmpty());
     }
 
+    /**
+     * Validate get topic
+     */
     @Test
-    public void GetTopic() {
+    void getTopic() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "topic.found"))
@@ -127,15 +159,21 @@ public class TopicControllerTest {
         Assertions.assertEquals("topic.found", actual.get().getMetadata().getName());
     }
 
+    /**
+     * Validate topic deletion
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     * @throws TimeoutException Any timeout exception
+     */
     @Test
-    public void DeleteTopic() throws InterruptedException, ExecutionException, TimeoutException {
-        //Given
+    void deleteTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         Optional<Topic> toDelete = Optional.of(
@@ -149,22 +187,26 @@ public class TopicControllerTest {
         doNothing().when(topicService).delete(toDelete.get());
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        //When
         HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete", false);
 
-        //Then
         Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
     }
 
+    /**
+     * Validate topic deletion in dry mode
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     * @throws TimeoutException Any timeout exception
+     */
     @Test
-    public void DeleteTopicDryRun() throws InterruptedException, ExecutionException, TimeoutException {
-        //Given
+    void deleteTopicDryRun() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         Optional<Topic> toDelete = Optional.of(
@@ -174,34 +216,40 @@ public class TopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic("test","topic.delete"))
                 .thenReturn(true);
 
-        //When
-        HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete", true);
+        topicController.deleteTopic("test", "topic.delete", true);
 
-        //Then
         verify(topicService, never()).delete(any());
     }
 
+    /**
+     * Validate topic deletion when unauthorized
+     */
     @Test
-    public void DeleteTopicUnauthorized()  {
-        //Given
+    void deleteTopicUnauthorized()  {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "topic.delete"))
                 .thenReturn(false);
 
-        //When
-        var actual = Assertions.assertThrows(ResourceValidationException.class,
+        Assertions.assertThrows(ResourceValidationException.class,
         () -> topicController.deleteTopic("test", "topic.delete", false));
     }
 
+    /**
+     * Validate topic creation
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     * @throws TimeoutException Any timeout exception
+     */
     @Test
-    public void CreateNewTopic() throws InterruptedException, ExecutionException, TimeoutException {
+    void createNewTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -223,6 +271,7 @@ public class TopicControllerTest {
                                         "retention.ms", "60000"))
                         .build())
                 .build();
+
         when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
@@ -239,8 +288,14 @@ public class TopicControllerTest {
         assertEquals(actual.getMetadata().getName(), "test.topic");
     }
 
+    /**
+     * Validate topic update
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     * @throws TimeoutException Any timeout exception
+     */
     @Test
-    public void UpdateTopic() throws InterruptedException, ExecutionException, TimeoutException {
+    void updateTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -250,6 +305,7 @@ public class TopicControllerTest {
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
+
         Topic existing = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test.topic")
@@ -262,6 +318,7 @@ public class TopicControllerTest {
                                 "retention.ms", "60000"))
                         .build())
                 .build();
+
         Topic topic = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test.topic")
@@ -274,6 +331,7 @@ public class TopicControllerTest {
                                 "retention.ms", "60000"))
                         .build())
                 .build();
+
         when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
@@ -285,11 +343,14 @@ public class TopicControllerTest {
         var response = topicController.apply("test", topic, false);
         Topic actual = response.body();
         Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
-        assertEquals(actual.getMetadata().getName(), "test.topic");
+        assertEquals("test.topic", actual.getMetadata().getName());
     }
 
+    /**
+     * Validate topic update when number of partitions change
+     */
     @Test
-    public void UpdateTopic_AlreadyExists() throws InterruptedException, ExecutionException, TimeoutException {
+    void updateTopicChangePartition() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -299,6 +360,123 @@ public class TopicControllerTest {
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
+
+        Topic existing = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","compact",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(6)
+                        .configs(Map.of("cleanup.policy","delete",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
+
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+                () -> topicController.apply("test", topic, false));
+        Assertions.assertEquals(1, actual.getValidationErrors().size());
+        Assertions.assertLinesMatch(List.of("Invalid value 6 for configuration partitions: Value is immutable (3)."), actual.getValidationErrors());
+    }
+
+    /**
+     * Validate topic update when number of partitions change
+     */
+    @Test
+    void updateTopicChangeReplicationFactor() {
+        TopicValidator topicValidator = TopicValidator.builder()
+                .validationConstraints(
+                        Map.of( "replication.factor", ResourceValidator.Range.between(3,6),
+                                "partitions", ResourceValidator.Range.between(3,6),
+                                "cleanup.policy", ResourceValidator.ValidList.in("delete","compact"),
+                                "min.insync.replicas", ResourceValidator.Range.between(2,2),
+                                "retention.ms", ResourceValidator.Range.between(60000,604800000),
+                                "retention.bytes", ResourceValidator.Range.optionalBetween(-1, 104857600),
+                                "preallocate", ResourceValidator.ValidString.optionalIn("true", "false"))
+                ).build();
+
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .topicValidator(topicValidator)
+                        .build())
+                .build();
+
+        Topic existing = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","compact",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(6)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","delete",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
+
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+                () -> topicController.apply("test", topic, false));
+        Assertions.assertEquals(1, actual.getValidationErrors().size());
+        Assertions.assertLinesMatch(List.of("Invalid value 6 for configuration replication.factor: Value is immutable (3)."), actual.getValidationErrors());
+    }
+
+    /**
+     * Validate topic update when topic doesn't change
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     * @throws TimeoutException Any timeout exception
+     */
+    @Test
+    void updateTopicAlreadyExistsUnchanged() throws InterruptedException, ExecutionException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+
         Topic existing = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test.topic")
@@ -313,6 +491,7 @@ public class TopicControllerTest {
                                 "retention.ms", "60000"))
                         .build())
                 .build();
+
         Topic topic = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test.topic")
@@ -325,6 +504,7 @@ public class TopicControllerTest {
                                 "retention.ms", "60000"))
                         .build())
                 .build();
+
         when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
@@ -334,11 +514,16 @@ public class TopicControllerTest {
         Assertions.assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         verify(topicService, never()).create(ArgumentMatchers.any());
         assertEquals(existing, actual);
-
     }
 
+    /**
+     * Validate topic creation in dry mode
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     * @throws TimeoutException Any timeout exception
+     */
     @Test
-    public void CreateNewTopicDryRun() throws InterruptedException, ExecutionException, TimeoutException {
+    void createNewTopicDryRun() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -348,6 +533,7 @@ public class TopicControllerTest {
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
+
         Topic topic = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test.topic")
@@ -360,19 +546,22 @@ public class TopicControllerTest {
                                         "retention.ms", "60000"))
                         .build())
                 .build();
+
         when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
 
         var response = topicController.apply("test", topic, true);
-        Topic actual = response.body();
         Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(topicService, never()).create(topic);
     }
 
+    /**
+     * Validate topic creation when topic validation fails
+     */
     @Test
-    public void CreateNewTopicFailValidationNoAPI() {
+    void CreateNewTopicFailValidation() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -382,6 +571,7 @@ public class TopicControllerTest {
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
+
         Topic topic = Topic.builder()
                 .metadata(ObjectMeta.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
@@ -392,6 +582,7 @@ public class TopicControllerTest {
                                         "retention.ms", "60000"))
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
@@ -403,8 +594,14 @@ public class TopicControllerTest {
         Assertions.assertLinesMatch(List.of(".*replication\\.factor.*"), actual.getValidationErrors());
     }
 
+    /**
+     * Validate topic import
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     * @throws TimeoutException Any timeout exception
+     */
     @Test
-    public void ImportTopic() throws InterruptedException, ExecutionException, TimeoutException {
+    void importTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -414,6 +611,7 @@ public class TopicControllerTest {
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
+
         Topic topic1 = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test.topic1")
@@ -426,6 +624,7 @@ public class TopicControllerTest {
                                 "retention.ms", "60000"))
                         .build())
                 .build();
+
         Topic topic2 = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test.topic2")
@@ -438,18 +637,7 @@ public class TopicControllerTest {
                                 "retention.ms", "60000"))
                         .build())
                 .build();
-        Topic topic3 = Topic.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test.topic3")
-                        .build())
-                .spec(Topic.TopicSpec.builder()
-                        .replicationFactor(3)
-                        .partitions(3)
-                        .configs(Map.of("cleanup.policy","delete",
-                                "min.insync.replicas", "2",
-                                "retention.ms", "60000"))
-                        .build())
-                .build();
+
         when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.listUnsynchronizedTopics(ns))
@@ -459,26 +647,35 @@ public class TopicControllerTest {
 
 
         List<Topic> actual = topicController.importResources("test", false);
+
         Assertions.assertTrue(actual.stream()
                 .anyMatch(t ->
                         t.getMetadata().getName().equals("test.topic1")
                         && t.getStatus().getMessage().equals("Imported from cluster")
                         && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)
         ));
+
         Assertions.assertTrue(actual.stream()
                 .anyMatch(t ->
                         t.getMetadata().getName().equals("test.topic2")
                                 && t.getStatus().getMessage().equals("Imported from cluster")
                                 && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)
                 ));
+
         Assertions.assertFalse(actual.stream()
                 .anyMatch(t ->
                         t.getMetadata().getName().equals("test.topic3")
                 ));
     }
 
+    /**
+     * Validate topic import in dry mode
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     * @throws TimeoutException Any timeout exception
+     */
     @Test
-    public void ImportTopicDryRun() throws InterruptedException, ExecutionException, TimeoutException {
+    void importTopicDryRun() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -488,6 +685,7 @@ public class TopicControllerTest {
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
+
         Topic topic1 = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test.topic1")
@@ -500,6 +698,7 @@ public class TopicControllerTest {
                                 "retention.ms", "60000"))
                         .build())
                 .build();
+
         Topic topic2 = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test.topic2")
@@ -512,47 +711,41 @@ public class TopicControllerTest {
                                 "retention.ms", "60000"))
                         .build())
                 .build();
-        Topic topic3 = Topic.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test.topic3")
-                        .build())
-                .spec(Topic.TopicSpec.builder()
-                        .replicationFactor(3)
-                        .partitions(3)
-                        .configs(Map.of("cleanup.policy","delete",
-                                "min.insync.replicas", "2",
-                                "retention.ms", "60000"))
-                        .build())
-                .build();
+
         when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.listUnsynchronizedTopics(ns))
                 .thenReturn(List.of(topic1, topic2));
 
-
         List<Topic> actual = topicController.importResources("test", true);
+
         Assertions.assertTrue(actual.stream()
                 .anyMatch(t ->
                         t.getMetadata().getName().equals("test.topic1")
                                 && t.getStatus().getMessage().equals("Imported from cluster")
                                 && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)
                 ));
+
         Assertions.assertTrue(actual.stream()
                 .anyMatch(t ->
                         t.getMetadata().getName().equals("test.topic2")
                                 && t.getStatus().getMessage().equals("Imported from cluster")
                                 && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)
                 ));
+
         Assertions.assertFalse(actual.stream()
                 .anyMatch(t ->
                         t.getMetadata().getName().equals("test.topic3")
                 ));
     }
 
-
+    /**
+     * Validate delete records
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     */
     @Test
-    public void deleteRecords_Success() throws ExecutionException, InterruptedException {
-        //Given
+    void deleteRecordsSuccess() throws ExecutionException, InterruptedException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -561,13 +754,17 @@ public class TopicControllerTest {
                 .build();
 
         Topic toEmpty = Topic.builder().metadata(ObjectMeta.builder().name("topic.empty").build()).build();
+
         Map<TopicPartition, Long> partitionsToDelete = Map.of(
                 new TopicPartition("topic.empty",0), 100L,
                 new TopicPartition("topic.empty", 1), 101L);
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test","topic.empty"))
                 .thenReturn(true);
+        when(topicService.validateDeleteRecordsTopic(toEmpty))
+                .thenReturn(List.of());
         when(topicService.findByName(ns, "topic.empty"))
                 .thenReturn(Optional.of(toEmpty));
         when(topicService.prepareRecordsToDelete(toEmpty))
@@ -575,99 +772,184 @@ public class TopicControllerTest {
         when(topicService.deleteRecords(ArgumentMatchers.eq(toEmpty), anyMap()))
                 .thenReturn(partitionsToDelete);
 
-        //When
-        DeleteRecords actual = topicController.deleteRecords("test", "topic.empty", false);
+        List<DeleteRecordsResponse> actual = topicController.deleteRecords("test", "topic.empty", false);
 
-        //Then
-        Assertions.assertEquals("test", actual.getMetadata().getNamespace());
-        Assertions.assertEquals("topic.empty", actual.getMetadata().getName());
-        Assertions.assertTrue(actual.getStatus().isSuccess());
-        Assertions.assertEquals(2, actual.getStatus().getLowWaterMarks().size());
+        DeleteRecordsResponse resultPartition0 = actual
+                .stream()
+                .filter(deleteRecord -> deleteRecord.getSpec().getPartition() == 0)
+                .findFirst()
+                .orElse(null);
 
+        DeleteRecordsResponse resultPartition1 = actual
+                .stream()
+                .filter(deleteRecord -> deleteRecord.getSpec().getPartition() == 1)
+                .findFirst()
+                .orElse(null);
+
+        Assertions.assertEquals(2L, actual.size());
+
+        assertNotNull(resultPartition0);
+        Assertions.assertEquals(100L, resultPartition0.getSpec().getOffset());
+        Assertions.assertEquals(0, resultPartition0.getSpec().getPartition());
+        Assertions.assertEquals("topic.empty", resultPartition0.getSpec().getTopic());
+
+        assertNotNull(resultPartition1);
+        Assertions.assertEquals(101L, resultPartition1.getSpec().getOffset());
+        Assertions.assertEquals(1, resultPartition1.getSpec().getPartition());
+        Assertions.assertEquals("topic.empty", resultPartition1.getSpec().getTopic());
     }
 
+    /**
+     * Validate delete records fails on compacted topic
+     */
     @Test
-    public void deleteRecords_DryRun() throws InterruptedException, ExecutionException {
-        //Given
+    void deleteRecordsCompactedTopic() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
+
         Topic toEmpty = Topic.builder().metadata(ObjectMeta.builder().name("topic.empty").build()).build();
-        Map<TopicPartition, Long> partitionsToDelete = Map.of(
-                new TopicPartition("topic.empty",0), 100L,
-                new TopicPartition("topic.empty", 1), 101L);
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test","topic.empty"))
                 .thenReturn(true);
+        when(topicService.validateDeleteRecordsTopic(toEmpty))
+                .thenReturn(List.of("Cannot delete records on a compacted topic. Please delete and recreate the topic."));
+        when(topicService.findByName(ns, "topic.empty"))
+                .thenReturn(Optional.of(toEmpty));
+
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+                () -> topicController.deleteRecords("test", "topic.empty", false));
+
+        Assertions.assertEquals(1, actual.getValidationErrors().size());
+        Assertions.assertLinesMatch(List.of("Cannot delete records on a compacted topic. Please delete and recreate the topic."),
+                actual.getValidationErrors());
+    }
+
+    /**
+     * Validate delete records in dry mode
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     */
+    @Test
+    void deleteRecordsDryRun() throws InterruptedException, ExecutionException {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic toEmpty = Topic.builder().metadata(ObjectMeta.builder().name("topic.empty").build()).build();
+
+        Map<TopicPartition, Long> partitionsToDelete = Map.of(
+                new TopicPartition("topic.empty",0), 100L,
+                new TopicPartition("topic.empty", 1), 101L);
+
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.isNamespaceOwnerOfTopic("test","topic.empty"))
+                .thenReturn(true);
+        when(topicService.validateDeleteRecordsTopic(toEmpty))
+                .thenReturn(List.of());
         when(topicService.findByName(ns, "topic.empty"))
                 .thenReturn(Optional.of(toEmpty));
         when(topicService.prepareRecordsToDelete(toEmpty))
                 .thenReturn(partitionsToDelete);
 
-        //When
-        DeleteRecords actual = topicController.deleteRecords("test", "topic.empty", true);
+        List<DeleteRecordsResponse> actual = topicController.deleteRecords("test", "topic.empty", true);
 
+        DeleteRecordsResponse resultPartition0 = actual
+                .stream()
+                .filter(deleteRecord -> deleteRecord.getSpec().getPartition() == 0)
+                .findFirst()
+                .orElse(null);
 
-        Assertions.assertEquals("test", actual.getMetadata().getNamespace());
-        Assertions.assertEquals("topic.empty", actual.getMetadata().getName());
-        Assertions.assertTrue(actual.getStatus().isSuccess());
-        Assertions.assertEquals(2, actual.getStatus().getLowWaterMarks().size());
+        DeleteRecordsResponse resultPartition1 = actual
+                .stream()
+                .filter(deleteRecord -> deleteRecord.getSpec().getPartition() == 1)
+                .findFirst()
+                .orElse(null);
+
+        Assertions.assertEquals(2L, actual.size());
+
+        assertNotNull(resultPartition0);
+        Assertions.assertEquals(100L, resultPartition0.getSpec().getOffset());
+        Assertions.assertEquals(0, resultPartition0.getSpec().getPartition());
+        Assertions.assertEquals("topic.empty", resultPartition0.getSpec().getTopic());
+
+        assertNotNull(resultPartition1);
+        Assertions.assertEquals(101L, resultPartition1.getSpec().getOffset());
+        Assertions.assertEquals(1, resultPartition1.getSpec().getPartition());
+        Assertions.assertEquals("topic.empty", resultPartition1.getSpec().getTopic());
+
         verify(topicService, never()).deleteRecords(any(), anyMap());
     }
 
+    /**
+     * Validate delete records when not owner of topic
+     */
     @Test
-    public void deleteRecords_NotOwner() {
-        //Given
+    void deleteRecordsNotOwner() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test","topic.empty"))
                 .thenReturn(false);
 
-        //When
         ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
                 () -> topicController.deleteRecords("test", "topic.empty", false));
 
         Assertions.assertEquals(1, actual.getValidationErrors().size());
-        Assertions.assertLinesMatch(List.of(".*Namespace not OWNER of this topic.*"),
+        Assertions.assertLinesMatch(List.of("Namespace not owner of this topic \"topic.empty\"."),
                 actual.getValidationErrors());
     }
 
+    /**
+     * Validate delete records when not owner of topic
+     */
     @Test
-    public void deleteRecords_NotExistingTopic() {
-        //Given
+    void deleteRecordsNotExistingTopic() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test","topic.empty"))
                 .thenReturn(true);
         when(topicService.findByName(ns, "topic.empty"))
                 .thenReturn(Optional.empty());
-        //When
+
         ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
                 () -> topicController.deleteRecords("test", "topic.empty", false));
 
         Assertions.assertEquals(1, actual.getValidationErrors().size());
-        Assertions.assertLinesMatch(List.of(".*Topic doesn't exist.*"),
+        Assertions.assertLinesMatch(List.of("Topic \"topic.empty\" does not exist."),
                 actual.getValidationErrors());
     }
 
+    /**
+     * Validate topic creation with name collision
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     * @throws TimeoutException Any timeout exception
+     */
     @Test
-    public void CreateCollidingTopic() throws InterruptedException, ExecutionException, TimeoutException {
+    void createCollidingTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -699,7 +981,7 @@ public class TopicControllerTest {
         ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> topicController.apply("test", topic, false));
         Assertions.assertEquals(1, actual.getValidationErrors().size());
         Assertions.assertLinesMatch(
-                List.of("Topic test.topic collides with existing topics: test_topic"),
+                List.of("Topic test.topic collides with existing topics: test_topic."),
                 actual.getValidationErrors());
     }
 }

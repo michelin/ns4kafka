@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -25,24 +26,36 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 @ExtendWith(MockitoExtension.class)
-public class KafkaTopicServiceTest {
-
+class KafkaTopicServiceTest {
+    /**
+     * The topic service
+     */
     @InjectMocks
     TopicService topicService;
 
+    /**
+     * The ACL service
+     */
     @Mock
     AccessControlEntryService accessControlEntryService;
 
+    /**
+     * The topic repository
+     */
     @Mock
     TopicRepository topicRepository;
 
+    /**
+     * The application context
+     */
     @Mock
     ApplicationContext applicationContext;
 
+    /**
+     * Validate find topic by name
+     */
     @Test
     void findByName() {
-
-        // init ns4kfk namespace
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -53,23 +66,25 @@ public class KafkaTopicServiceTest {
                         .build())
                 .build();
 
-        // init ns4kfk topics
         Topic t1 = Topic.builder()
                 .metadata(ObjectMeta.builder().name("ns-topic1").build())
                 .build();
+
         Topic t2 = Topic.builder()
                 .metadata(ObjectMeta.builder().name("ns-topic2").build())
                 .build();
+
         Topic t3 = Topic.builder()
                 .metadata(ObjectMeta.builder().name("ns1-topic1").build())
                 .build();
+
         Topic t4 = Topic.builder()
                 .metadata(ObjectMeta.builder().name("ns2-topic1").build())
                 .build();
+
         Mockito.when(topicRepository.findAllForCluster("local"))
                 .thenReturn(List.of(t1, t2, t3, t4));
 
-        // ns4kfk access control entries
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(
                         AccessControlEntry.builder()
@@ -103,11 +118,11 @@ public class KafkaTopicServiceTest {
         Assertions.assertThrows(NoSuchElementException.class, () -> actualTopicNotFound.get(), "No value present");
     }
 
-
+    /**
+     * Validate empty response when no topic in namespace
+     */
     @Test
     void findAllForNamespaceNoTopics() {
-
-        // init ns4kfk namespace
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -120,8 +135,7 @@ public class KafkaTopicServiceTest {
 
         // no ns4kfk access control entries
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
-                .thenReturn(List.of()
-                );
+                .thenReturn(List.of());
 
         // no ns4kfk topics 
         Mockito.when(topicRepository.findAllForCluster("local"))
@@ -134,10 +148,11 @@ public class KafkaTopicServiceTest {
         Assertions.assertTrue(list.isEmpty());
     }
 
+    /**
+     * Validate empty response when no topic ACLs
+     */
     @Test
     void findAllForNamespaceNoAcls() {
-
-        // init ns4kfk namespace
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -166,18 +181,18 @@ public class KafkaTopicServiceTest {
 
         // no ns4kfk access control entries
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
-                .thenReturn(List.of()
-                );
+                .thenReturn(List.of());
 
         // list of topics is empty 
         List<Topic> actual = topicService.findAllForNamespace(ns);
         Assertions.assertTrue(actual.isEmpty());
     }
 
+    /**
+     * Validate find all topics for namespace
+     */
     @Test
     void findAllForNamespace() {
-
-        // init ns4kfk namespace
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -262,10 +277,14 @@ public class KafkaTopicServiceTest {
         Assertions.assertFalse(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns2-topic1")));
     }
 
+    /**
+     * Validate unsynchronized topics listing
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     * @throws TimeoutException Any timeout exception
+     */
     @Test
     void listUnsynchronizedNoExistingTopics() throws InterruptedException, ExecutionException, TimeoutException {
-
-        // init ns4kfk namespace
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -332,9 +351,14 @@ public class KafkaTopicServiceTest {
 
     }
 
+    /**
+     * Validate unsynchronized topics listing when all topics existing
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     * @throws TimeoutException Any timeout exception
+     */
     @Test
     void listUnsynchronizedAllExistingTopics() throws InterruptedException, ExecutionException, TimeoutException {
-
         // init ns4kfk namespace
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
@@ -411,9 +435,14 @@ public class KafkaTopicServiceTest {
 
     }
 
+    /**
+     * Validate unsynchronized topics listing when some topics existing and some not
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     * @throws TimeoutException Any timeout exception
+     */
     @Test
     void listUnsynchronizedPartialExistingTopics() throws InterruptedException, ExecutionException, TimeoutException {
-
         // init ns4kfk namespace
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
@@ -487,8 +516,14 @@ public class KafkaTopicServiceTest {
 
     }
 
+    /**
+     * Validate colliding topics when there is no collision
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     * @throws TimeoutException Any timeout exception
+     */
     @Test
-    void testFindCollidingTopics_NoCollision() throws ExecutionException, InterruptedException, TimeoutException {
+    void findCollidingTopicsNoCollision() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -510,8 +545,14 @@ public class KafkaTopicServiceTest {
         Assertions.assertTrue(actual.isEmpty());
     }
 
+    /**
+     * Validate colliding topics when names collide
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     * @throws TimeoutException Any timeout exception
+     */
     @Test
-    void testFindCollidingTopics_IdenticalName() throws ExecutionException, InterruptedException, TimeoutException {
+    void findCollidingTopicsIdenticalName() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -533,8 +574,14 @@ public class KafkaTopicServiceTest {
         Assertions.assertTrue(actual.isEmpty(), "Topic with exactly the same name should not interfere with collision check");
     }
 
+    /**
+     * Validate colliding topics when names collide
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     * @throws TimeoutException Any timeout exception
+     */
     @Test
-    void testFindCollidingTopics_CollidingName() throws ExecutionException, InterruptedException, TimeoutException {
+    void findCollidingTopicsCollidingName() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -557,8 +604,14 @@ public class KafkaTopicServiceTest {
         Assertions.assertLinesMatch(List.of("project1_topic"), actual);
     }
 
+    /**
+     * Validate colliding topics when there is an interrupted exception
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     * @throws TimeoutException Any timeout exception
+     */
     @Test
-    void testFindCollidingTopics_InterruptedException() throws ExecutionException, InterruptedException, TimeoutException {
+    void findCollidingTopicsInterruptedException() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -575,21 +628,27 @@ public class KafkaTopicServiceTest {
         Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
                 .thenThrow(new InterruptedException());
 
-        var actual = Assertions.assertThrows(InterruptedException.class,
+       Assertions.assertThrows(InterruptedException.class,
                 () -> topicService.findCollidingTopics(ns, topic));
 
         Assertions.assertTrue(Thread.interrupted());
-        //Assertions.assertEquals(1, actual.getValidationErrors().size());
     }
 
+    /**
+     * Validate colliding topics when there is a runtime exception
+     * @throws InterruptedException Any interrupted exception
+     * @throws ExecutionException Any execution exception
+     * @throws TimeoutException Any timeout exception
+     */
     @Test
-    void testFindCollidingTopics_OtherException() throws ExecutionException, InterruptedException, TimeoutException {
+    void findCollidingTopicsOtherException() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
                         .cluster("local")
                         .build())
                 .build();
+
         Topic topic = Topic.builder()
                 .metadata(ObjectMeta.builder().name("project1.topic").build())
                 .build();
@@ -600,10 +659,27 @@ public class KafkaTopicServiceTest {
         Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
                 .thenThrow(new RuntimeException("Unknown Error"));
 
-        var actual = Assertions.assertThrows(RuntimeException.class,
+        Assertions.assertThrows(RuntimeException.class,
                 () -> topicService.findCollidingTopics(ns, topic));
-
-        //Assertions.assertEquals(1, actual.getValidationErrors().size());
     }
 
+    /**
+     * Validate a topic is eligible for record deletion
+     */
+    @Test
+    void validateDeleteRecordsTopic() {
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("project1.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .configs(Collections.singletonMap("cleanup.policy", "compact"))
+                        .build())
+                .build();
+
+        List<String> actual = topicService.validateDeleteRecordsTopic(topic);
+
+        Assertions.assertEquals(1, actual.size());
+        Assertions.assertLinesMatch(List.of("Cannot delete records on a compacted topic. Please delete and recreate the topic."), actual);
+    }
 }

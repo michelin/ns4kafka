@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.integration;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.michelin.ns4kafka.controllers.AkhqClaimProviderController;
+import com.michelin.ns4kafka.controllers.ResourceValidationException;
 import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
@@ -14,6 +15,7 @@ import com.michelin.ns4kafka.services.TopicService;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.annotation.Property;
+import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
@@ -42,23 +44,38 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 class TopicTest extends AbstractIntegrationTest {
-
+    /**
+     * The HTTP client
+     */
     @Inject
     @Client("/")
     RxHttpClient client;
 
+    /**
+     * The topic sync executor
+     */
     @Inject
     List<TopicAsyncExecutor> topicAsyncExecutorList;
 
+    /**
+     * The topic service
+     */
     @Inject
     TopicService topicService;
 
+    /**
+     * The Authentication token
+     */
     private String token;
 
+    /**
+     * Init all integration tests
+     */
     @BeforeAll
     void init(){
         Namespace ns1 = Namespace.builder()
@@ -162,6 +179,9 @@ class TopicTest extends AbstractIntegrationTest {
         client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns2/acls").bearerAuth(token).body(ns2acl)).blockingFirst();
     }
 
+    /**
+     * Validate AKHQ claims
+     */
     @Test
     void akhqClaim(){
         AkhqClaimProviderController.AKHQClaimRequest akhqClaimRequest = AkhqClaimProviderController.AKHQClaimRequest.builder()
@@ -169,10 +189,10 @@ class TopicTest extends AbstractIntegrationTest {
                 .groups(List.of("LDAP-GROUP-1"))
                 .providerName("LDAP")
                 .build();
+
         AkhqClaimProviderController.AKHQClaimResponse response =  client.retrieve(
                 HttpRequest.POST("/akhq-claim", akhqClaimRequest),
-                AkhqClaimProviderController.AKHQClaimResponse.class
-        ).blockingFirst();
+                AkhqClaimProviderController.AKHQClaimResponse.class).blockingFirst();
 
         Assertions.assertLinesMatch(
                 List.of(
@@ -184,18 +204,19 @@ class TopicTest extends AbstractIntegrationTest {
                         "connect/state/update"
                 ),
                 response.getRoles());
-        Assertions.assertEquals(1, response.getAttributes().get("topicsFilterRegexp").size());
-        Assertions.assertLinesMatch(
-                List.of(
-                        "^\\Qns1-\\E.*$"
-                ),
-                response.getAttributes().get("topicsFilterRegexp")
-        );
 
+        Assertions.assertEquals(1, response.getAttributes().get("topicsFilterRegexp").size());
+
+        Assertions.assertLinesMatch(List.of("^\\Qns1-\\E.*$"), response.getAttributes().get("topicsFilterRegexp"));
     }
+
+    /**
+     * Validate topic creation
+     * @throws ExecutionException Any execution exception
+     * @throws InterruptedException Any interrupted exception
+     */
     @Test
     void createTopic() throws InterruptedException, ExecutionException {
-
         Topic topicFirstCreate = Topic.builder()
             .metadata(ObjectMeta.builder()
                       .name("ns1-topicFirstCreate")
@@ -213,7 +234,6 @@ class TopicTest extends AbstractIntegrationTest {
         var response = client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics").bearerAuth(token).body(topicFirstCreate)).blockingFirst();
         Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
 
-        //force Topic Sync
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
 
         Admin kafkaClient = getAdminClient();
@@ -231,14 +251,16 @@ class TopicTest extends AbstractIntegrationTest {
             .collect(Collectors.toList());
 
         Assertions.assertEquals(config.size(), valueToVerify.size());
-        valueToVerify.forEach(entry -> {
-            Assertions.assertEquals(config.get(entry.name()), entry.value());
-        });
+        valueToVerify.forEach(entry -> Assertions.assertEquals(config.get(entry.name()), entry.value()));
     }
 
+    /**
+     * Validate topic update
+     * @throws ExecutionException Any execution exception
+     * @throws InterruptedException Any interrupted exception
+     */
     @Test
     void updateTopic() throws InterruptedException, ExecutionException {
-
         Topic topic2Create = Topic.builder()
             .metadata(ObjectMeta.builder()
                       .name("ns1-topic2Create")
@@ -256,7 +278,6 @@ class TopicTest extends AbstractIntegrationTest {
         var response = client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics").bearerAuth(token).body(topic2Create)).blockingFirst();
         Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
 
-        //force Topic Sync
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
 
         response = client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics").bearerAuth(token).body(topic2Create)).blockingFirst();
@@ -304,9 +325,11 @@ class TopicTest extends AbstractIntegrationTest {
         });
     }
 
+    /**
+     * Validate topic creation when topic name is invalid
+     */
     @Test
-    void invalidTopicName() throws InterruptedException, ExecutionException {
-
+    void invalidTopicName() {
         Topic topicFirstCreate = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-invalid-é")
@@ -320,6 +343,7 @@ class TopicTest extends AbstractIntegrationTest {
                                 "retention.ms", "60000"))
                         .build())
                 .build();
+
         HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,
                 () -> client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics")
                         .bearerAuth(token)
@@ -331,9 +355,11 @@ class TopicTest extends AbstractIntegrationTest {
 
     }
 
+    /**
+     * Validate topic creation when there is no change on it
+     */
     @Test
-    void unauthorizedModifications() throws InterruptedException {
-
+    void updateTopicNoChange() {
         AccessControlEntry aclns1Tons2 = AccessControlEntry.builder()
             .metadata(ObjectMeta.builder()
                       .name("ns1-acltons2")
@@ -378,15 +404,16 @@ class TopicTest extends AbstractIntegrationTest {
 
         HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,() -> client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns2/topics").bearerAuth(token).body(topicToModifyBis)).blockingFirst());
         Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
-        //Assertions.assertEquals("Validation failed: [Invalid value ns1-topicToModify for name: Namespace not OWNER of this topic]", exception.getMessage());
 
         // Compare spec of the topics and assure there is no change
         Assertions.assertEquals(topicToModify.getSpec(),client.retrieve(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/topics/ns1-topicToModify").bearerAuth(token), Topic.class ).blockingFirst().getSpec());
     }
 
+    /**
+     * Validate records deletion on topic
+     */
     @Test
-    void testDeleteRecords() throws InterruptedException {
-
+    void testDeleteRecords() {
         Topic topicToDelete = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-topicToDelete")
@@ -404,32 +431,111 @@ class TopicTest extends AbstractIntegrationTest {
         var response = client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics").bearerAuth(token).body(topicToDelete)).blockingFirst();
         Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
 
-        //force Topic Sync
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
 
-        var deleteRecordsResponse = client.retrieve(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics/ns1-topicToDelete/delete-records").bearerAuth(token), DeleteRecords.class).blockingFirst();
+        List<DeleteRecordsResponse> deleteRecordsResponse = client.retrieve(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics/ns1-topicToDelete/delete-records").bearerAuth(token), Argument.listOf(DeleteRecordsResponse.class)).blockingFirst();
 
-        deleteRecordsResponse.getStatus().getLowWaterMarks().entrySet().stream().forEach(topicPartitionLongEntry -> {
-            Assertions.assertEquals(0L, topicPartitionLongEntry.getValue());
-        });
+        DeleteRecordsResponse resultPartition0 = deleteRecordsResponse
+                .stream()
+                .filter(deleteRecord -> deleteRecord.getSpec().getPartition() == 0)
+                .findFirst()
+                .orElse(null);
+
+        DeleteRecordsResponse resultPartition1 = deleteRecordsResponse
+                .stream()
+                .filter(deleteRecord -> deleteRecord.getSpec().getPartition() == 1)
+                .findFirst()
+                .orElse(null);
+
+        DeleteRecordsResponse resultPartition2 = deleteRecordsResponse
+                .stream()
+                .filter(deleteRecord -> deleteRecord.getSpec().getPartition() == 2)
+                .findFirst()
+                .orElse(null);
+
+        Assertions.assertEquals(3L, deleteRecordsResponse.size());
+
+        assertNotNull(resultPartition0);
+        Assertions.assertEquals(0, resultPartition0.getSpec().getOffset());
+        Assertions.assertEquals(0, resultPartition0.getSpec().getPartition());
+        Assertions.assertEquals("ns1-topicToDelete", resultPartition0.getSpec().getTopic());
+
+        assertNotNull(resultPartition1);
+        Assertions.assertEquals(0, resultPartition1.getSpec().getOffset());
+        Assertions.assertEquals(1, resultPartition1.getSpec().getPartition());
+        Assertions.assertEquals("ns1-topicToDelete", resultPartition1.getSpec().getTopic());
+
+        assertNotNull(resultPartition2);
+        Assertions.assertEquals(0, resultPartition2.getSpec().getOffset());
+        Assertions.assertEquals(2, resultPartition2.getSpec().getPartition());
+        Assertions.assertEquals("ns1-topicToDelete", resultPartition2.getSpec().getTopic());
    }
 
+    /**
+     * Validate records deletion on compacted topic
+     */
+    @Test
+    void testDeleteRecordsCompactTopic() {
+        Topic topicToDelete = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-compactTopicToDelete")
+                        .namespace("ns1")
+                        .build())
+                .spec(TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(Map.of("cleanup.policy", "compact",
+                                "min.insync.replicas", "1",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        var response = client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics").bearerAuth(token).body(topicToDelete)).blockingFirst();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+
+        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+
+        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,
+                () -> client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics/compactTopicToDelete/delete-records")
+                        .bearerAuth(token))
+                        .blockingFirst());
+
+        Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
+    }
+
+    /**
+     * Bearer token class
+     */
+    @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    @Data
     public static class BearerAccessRefreshToken {
+        /**
+         * The username
+         */
         private String username;
+
+        /**
+         * The roles
+         */
         private Collection<String> roles;
 
+        /**
+         * The access token
+         */
         @JsonProperty("access_token")
         private String accessToken;
 
+        /**
+         * The token type
+         */
         @JsonProperty("token_type")
         private String tokenType;
 
+        /**
+         * The expires in
+         */
         @JsonProperty("expires_in")
         private Integer expiresIn;
     }
-
-
 }

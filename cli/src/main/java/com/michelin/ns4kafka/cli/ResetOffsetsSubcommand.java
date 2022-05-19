@@ -46,10 +46,14 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
     public KafkactlConfig kafkactlConfig;
 
     /**
-     * The consumer group to reset
+     * The Kafkactl command
      */
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
+
+    /**
+     * The consumer group to reset
+     */
     @Option(names = {"--group"}, required = true, description = "Consumer group name")
     public String group;
 
@@ -181,7 +185,7 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
 
         List<Resource> resources = resourceService.resetOffsets(namespace, group, consumerGroupResetOffset, dryRun);
         if (!resources.isEmpty()) {
-            formatService.displayList("TopicPartitionOffset", resources, "table");
+            formatService.displayList("ConsumerGroupResetOffsetsResponse", resources, "table");
             return 0;
         }
 

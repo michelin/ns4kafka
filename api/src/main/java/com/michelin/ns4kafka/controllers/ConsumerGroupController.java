@@ -2,7 +2,7 @@ package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.TopicPartitionOffset;
+import com.michelin.ns4kafka.models.ConsumerGroupResetOffsetsResponse;
 import com.michelin.ns4kafka.services.ConsumerGroupService;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
@@ -36,15 +36,15 @@ public class ConsumerGroupController extends NamespacedResourceController {
      * @return The reset offsets response
      */
     @Post("/{consumerGroup}/reset{?dryrun}")
-    public List<TopicPartitionOffset> resetOffsets(String namespace, String consumerGroup,
-                                                   @Valid @Body ConsumerGroupResetOffsets consumerGroupResetOffsets,
-                                                   @QueryValue(defaultValue = "false") boolean dryrun) throws ExecutionException {
+    public List<ConsumerGroupResetOffsetsResponse> resetOffsets(String namespace, String consumerGroup,
+                                                                @Valid @Body ConsumerGroupResetOffsets consumerGroupResetOffsets,
+                                                                @QueryValue(defaultValue = "false") boolean dryrun) throws ExecutionException {
         Namespace ns = getNamespace(namespace);
 
         // Validate spec
         List<String> validationErrors = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
 
-        // validate ownership
+        // Validate ownership
         if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(namespace, consumerGroup)) {
             validationErrors.add("Namespace not owner of this consumer group \"" + consumerGroup + "\".");
         }
@@ -58,7 +58,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
         consumerGroupResetOffsets.getMetadata().setNamespace(ns.getMetadata().getName());
         consumerGroupResetOffsets.getMetadata().setCluster(ns.getMetadata().getCluster());
 
-        List<TopicPartitionOffset> topicPartitionOffsets = null;
+        List<ConsumerGroupResetOffsetsResponse> topicPartitionOffsets = null;
         try {
             // Starting from here, all the code is from Kafka kafka-consumer-group command
             // https://github.com/apache/kafka/blob/trunk/core/src/main/scala/kafka/admin/ConsumerGroupCommand.scala#L421
@@ -85,8 +85,8 @@ public class ConsumerGroupController extends NamespacedResourceController {
 
             topicPartitionOffsets = preparedOffsets.entrySet()
                     .stream()
-                    .map(entry -> TopicPartitionOffset.builder()
-                            .spec(TopicPartitionOffset.TopicPartitionOffsetSpec.builder()
+                    .map(entry -> ConsumerGroupResetOffsetsResponse.builder()
+                            .spec(ConsumerGroupResetOffsetsResponse.ConsumerGroupResetOffsetsResponseSpec.builder()
                                     .topic(entry.getKey().topic())
                                     .partition(entry.getKey().partition())
                                     .offset(entry.getValue())

@@ -63,8 +63,12 @@ kafkactl:
       - "CLUSTER:/metadata/cluster"
       - "USER:/metadata/name"
       - "PASSWORD:/spec/newPassword"
-    TopicPartitionOffset:
+    ConsumerGroupResetOffsetsResponse:
       - "CONSUMER GROUP:/spec/consumerGroup"
+      - "TOPIC:/spec/topic"
+      - "PARTITION:/spec/partition"
+      - "OFFSET:/spec/offset"
+    DeleteRecordsResponse:
       - "TOPIC:/spec/topic"
       - "PARTITION:/spec/partition"
       - "OFFSET:/spec/offset"

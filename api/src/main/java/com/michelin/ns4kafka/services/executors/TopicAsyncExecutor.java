@@ -278,6 +278,14 @@ public class TopicAsyncExecutor {
         return total;
     }
 
+    /**
+     * For a given topic, get each latest offset by partition in order to delete all the records
+     * before these offsets
+     * @param topic The topic to delete records
+     * @return A map of offsets by topic-partitions
+     * @throws ExecutionException Any execution exception
+     * @throws InterruptedException Any interrupted exception
+     */
     public Map<TopicPartition, RecordsToDelete> prepareRecordsToDelete(String topic) throws ExecutionException, InterruptedException {
         // List all partitions for topic and prepare a listOffsets call
         Map<TopicPartition, OffsetSpec> topicsPartitionsToDelete = getAdminClient().describeTopics(List.of(topic)).all().get()
@@ -294,15 +302,21 @@ public class TopicAsyncExecutor {
                 .collect(Collectors.toMap(Map.Entry::getKey, kv -> RecordsToDelete.beforeOffset(kv.getValue().offset())));
     }
 
-    public Map<TopicPartition, Long> deleteRecords(Map<TopicPartition, RecordsToDelete> recordsToDelete) throws ExecutionException, InterruptedException {
+    /**
+     * Delete the records for each partition, before each offset
+     * @param recordsToDelete The offsets by topic-partitions
+     * @return The new offsets by topic-partitions
+     * @throws InterruptedException Any interrupted exception
+     */
+    public Map<TopicPartition, Long> deleteRecords(Map<TopicPartition, RecordsToDelete> recordsToDelete) throws InterruptedException {
         return getAdminClient().deleteRecords(recordsToDelete).lowWatermarks().entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, kv-> {
                     try {
                         var newValue = kv.getValue().get().lowWatermark();
-                        log.info("Deleting Record {} of TopicPartition {}",newValue,kv.getKey());
+                        log.info("Deleting records {} of topic-partition {}", newValue, kv.getKey());
                         return newValue;
                     } catch (Exception e) {
-                        log.error(String.format("Error deleting records of TopicPartition %s", kv.getKey()), e);
+                        log.error(String.format("Error deleting records of topic-partition %s", kv.getKey()), e);
                         return -1L;
                     }
                 }));
