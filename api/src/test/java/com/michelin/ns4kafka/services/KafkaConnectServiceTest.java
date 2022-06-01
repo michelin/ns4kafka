@@ -13,6 +13,8 @@ import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.ResourceValidator;
 import io.micronaut.context.ApplicationContext;
+import io.micronaut.http.HttpResponse;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -29,21 +31,44 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
-@ExtendWith(MockitoExtension.class)
-public class KafkaConnectServiceTest {
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
+class KafkaConnectServiceTest {
+    /**
+     * The mocked ACL service
+     */
     @Mock
     AccessControlEntryService accessControlEntryService;
+
+    /**
+     * The mocked Kafka connector client
+     */
     @Mock
     KafkaConnectClient kafkaConnectClient;
+
+    /**
+     * The mocked connector repository
+     */
     @Mock
     ConnectorRepository connectorRepository;
+
+    /**
+     * The mocked application context
+     */
     @Mock
     ApplicationContext applicationContext;
 
+    /**
+     * The mocked kafka connect service
+     */
     @InjectMocks
     KafkaConnectService kafkaConnectService;
 
+    /**
+     * Test to find all connectors by namespace when there is no connector
+     */
     @Test
     void findByNamespaceNone() {
         Namespace ns = Namespace.builder()
@@ -64,6 +89,9 @@ public class KafkaConnectServiceTest {
         Assertions.assertTrue(actual.isEmpty());
     }
 
+    /**
+     * Test to find all connectors by namespace
+     */
     @Test
     void findByNamespaceMultiple() {
         Namespace ns = Namespace.builder()
@@ -75,6 +103,7 @@ public class KafkaConnectServiceTest {
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
+
         Connector c1 = Connector.builder()
                 .metadata(ObjectMeta.builder().name("ns-connect1").build())
                 .build();
@@ -89,9 +118,6 @@ public class KafkaConnectServiceTest {
                 .build();
         Connector c5 = Connector.builder()
                 .metadata(ObjectMeta.builder().name("ns2-connect1").build())
-                .build();
-        Connector c6 = Connector.builder()
-                .metadata(ObjectMeta.builder().name("ns3-connect1").build())
                 .build();
 
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
@@ -142,6 +168,7 @@ public class KafkaConnectServiceTest {
                                         .build())
                                 .build()
                 ));
+
         Mockito.when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1, c2, c3, c4, c5));
 
@@ -158,6 +185,9 @@ public class KafkaConnectServiceTest {
         Assertions.assertFalse(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns3-connect1")));
     }
 
+    /**
+     * Test to find a given connector that does not exist
+     */
     @Test
     void findByNameNotFound() {
         Namespace ns = Namespace.builder()
@@ -178,6 +208,9 @@ public class KafkaConnectServiceTest {
         Assertions.assertTrue(actual.isEmpty());
     }
 
+    /**
+     * Test to find a given connector
+     */
     @Test
     void findByNameFound() {
         Namespace ns = Namespace.builder()
@@ -247,6 +280,9 @@ public class KafkaConnectServiceTest {
         Assertions.assertEquals("ns-connect1", actual.get().getMetadata().getName());
     }
 
+    /**
+     * Test to validate the configuration of a connector when the connect cluster is invalid
+     */
     @Test
     void validateLocallyInvalidConnectCluster() {
         Connector connector = Connector.builder()
@@ -256,6 +292,7 @@ public class KafkaConnectServiceTest {
                         .config(Map.of("connector.class", "Test"))
                         .build())
                 .build();
+
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -277,6 +314,9 @@ public class KafkaConnectServiceTest {
         Assertions.assertEquals("Invalid value wrong for spec.connectCluster: Value must be one of [local-name]", actual.get(0));
     }
 
+    /**
+     * Test to validate the configuration of a connector when the class name is missing
+     */
     @Test
     void validateLocallyNoClassName() {
         Connector connector = Connector.builder()
@@ -301,6 +341,9 @@ public class KafkaConnectServiceTest {
         Assertions.assertEquals("Invalid value for spec.config.'connector.class': Value must be non-null", actual.get(0));
     }
 
+    /**
+     * Test to validate the configuration of a connector when the class name is invalid
+     */
     @Test
     void validateLocallyInvalidClassName() {
         Connector connector = Connector.builder()
@@ -328,6 +371,9 @@ public class KafkaConnectServiceTest {
 
     }
 
+    /**
+     * Test to validate the configuration of a connector when a field should not be null
+     */
     @Test
     void validateLocallyValidationErrors() {
         Connector connector = Connector.builder()
@@ -361,6 +407,9 @@ public class KafkaConnectServiceTest {
 
     }
 
+    /**
+     * Test to validate the configuration of a connector
+     */
     @Test
     void validateLocallySuccess() {
         Connector connector = Connector.builder()
@@ -393,8 +442,11 @@ public class KafkaConnectServiceTest {
         Assertions.assertTrue(actual.isEmpty());
     }
 
+    /**
+     * Test to invalidate the configuration of a connector against the connect cluster
+     */
     @Test
-    void validateRemotely_Errors() {
+    void validateRemotelyErrors() {
         Connector connector = Connector.builder()
                 .metadata(ObjectMeta.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -402,6 +454,7 @@ public class KafkaConnectServiceTest {
                         .config(Map.of("connector.class", "com.michelin.NoClass"))
                         .build())
                 .build();
+
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -411,6 +464,7 @@ public class KafkaConnectServiceTest {
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
+
         ConfigInfos configInfos = new ConfigInfos("name", 1, List.of(),
                 List.of(new ConfigInfo(new ConfigKeyInfo(null, null, false, null, null, null, null, 0, null, null, null),
                         new ConfigValueInfo(null, null, null, List.of("error_message"), true))));
@@ -427,8 +481,11 @@ public class KafkaConnectServiceTest {
         Assertions.assertIterableEquals(List.of("error_message"), actual);
     }
 
+    /**
+     * Test to validate the configuration of a connector against the connect cluster
+     */
     @Test
-    void validateRemotely_Success() {
+    void validateRemotelySuccess() {
         Connector connector = Connector.builder()
                 .metadata(ObjectMeta.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -436,6 +493,7 @@ public class KafkaConnectServiceTest {
                         .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector"))
                         .build())
                 .build();
+
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -445,6 +503,7 @@ public class KafkaConnectServiceTest {
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
+
         ConfigInfos configInfos = new ConfigInfos("name", 1, List.of(), List.of());
         Mockito.when(kafkaConnectClient.validate(
                 ArgumentMatchers.anyString(),
@@ -459,9 +518,11 @@ public class KafkaConnectServiceTest {
         Assertions.assertTrue(actual.isEmpty());
     }
 
+    /**
+     * Test the listing of unsynchronized connectors when they are all unsynchronized
+     */
     @Test
-    void listUnsynchronizedNoExistingConnectors() throws InterruptedException, ExecutionException, TimeoutException {
-
+    void listUnsynchronizedNoExistingConnectors() {
         // init ns4kfk namespace
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
@@ -523,8 +584,7 @@ public class KafkaConnectServiceTest {
                                         .resourceType(AccessControlEntry.ResourceType.CONNECT)
                                         .resource("ns1-connect1")
                                         .build())
-                                .build()
-                ));
+                                .build()));
 
         // no connects exists into ns4kfk
         Mockito.when(connectorRepository.findAllForCluster("local"))
@@ -541,8 +601,11 @@ public class KafkaConnectServiceTest {
 
     }
 
+    /**
+     * Test the listing of unsynchronized connectors when they are all synchronized
+     */
     @Test
-    void listUnsynchronizedAllExistingConnectors() throws InterruptedException, ExecutionException, TimeoutException {
+    void listUnsynchronizedAllExistingConnectors() {
 
         // init ns4kfk namespace
         Namespace ns = Namespace.builder()
@@ -622,8 +685,11 @@ public class KafkaConnectServiceTest {
 
     }
 
+    /**
+     * Test the listing of unsynchronized connectors when some are synchronized and some not
+     */
     @Test
-    void listUnsynchronizedPartialExistingConnectors() throws InterruptedException, ExecutionException, TimeoutException {
+    void listUnsynchronizedPartialExistingConnectors() {
 
         // init ns4kfk namespace
         Namespace ns = Namespace.builder()
@@ -713,4 +779,64 @@ public class KafkaConnectServiceTest {
 
     }
 
+    /**
+     * Tests to delete a connector
+     */
+    @Test
+    void deleteConnectorSuccess() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(ObjectMeta.builder().name("ns-connect1").build())
+                .spec(Connector.ConnectorSpec.builder().connectCluster("local-name").build())
+                .build();
+
+        when(kafkaConnectClient.delete(KafkaConnectClientProxy.PROXY_SECRET, ns.getMetadata().getCluster(),
+                "local-name", "ns-connect1")).thenReturn(HttpResponse.ok());
+
+        doNothing().when(connectorRepository).delete(connector);
+
+        kafkaConnectService.delete(ns, connector);
+
+        verify(kafkaConnectClient, times(1)).delete(KafkaConnectClientProxy.PROXY_SECRET, ns.getMetadata().getCluster(),
+                "local-name", "ns-connect1");
+
+        verify(connectorRepository, times(1)).delete(connector);
+    }
+
+    /**
+     * Tests to delete a connector
+     */
+    @Test
+    void deleteConnectorConnectClusterError() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(ObjectMeta.builder().name("ns-connect1").build())
+                .spec(Connector.ConnectorSpec.builder().connectCluster("local-name").build())
+                .build();
+
+        when(kafkaConnectClient.delete(KafkaConnectClientProxy.PROXY_SECRET, ns.getMetadata().getCluster(),
+                "local-name", "ns-connect1")).thenThrow(new HttpClientResponseException("Error", HttpResponse.serverError()));
+
+        assertThrows(HttpClientResponseException.class, () -> kafkaConnectService.delete(ns, connector));
+
+        verify(connectorRepository, never()).delete(connector);
+    }
 }

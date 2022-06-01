@@ -44,7 +44,7 @@ class SchemaServiceTest {
     KafkaSchemaRegistryClient kafkaSchemaRegistryClient;
 
     /**
-     * Tests to find all schemas by namespace
+     * Test to find all schemas by namespace
      */
     @Test
     void getAllByNamespace() {
@@ -100,7 +100,7 @@ class SchemaServiceTest {
     }
 
     /**
-     * Tests to find all schemas by namespace and the response from the schema registry is empty
+     * Test to find all schemas by namespace and the response from the schema registry is empty
      */
     @Test
     void getAllByNamespaceEmptyResponse() {
@@ -113,7 +113,7 @@ class SchemaServiceTest {
     }
 
     /**
-     * Tests to find all schemas by namespace
+     * Test to find all schemas by namespace
      */
     @Test
     void getBySubjectAndVersion() {
@@ -132,7 +132,7 @@ class SchemaServiceTest {
     }
 
     /**
-     * Tests to find all schemas by namespace
+     * Test to find all schemas by namespace
      */
     @Test
     void getBySubjectAndVersionEmptyResponse() {
@@ -147,7 +147,7 @@ class SchemaServiceTest {
 
 
     /**
-     * Tests to register a new schema to the schema registry
+     * Test to register a new schema to the schema registry
      */
     @Test
     void register() {
@@ -163,7 +163,7 @@ class SchemaServiceTest {
     }
 
     /**
-     * Tests to delete a subject
+     * Test to delete a subject
      */
     @Test
     void deleteSubject() {
@@ -185,7 +185,7 @@ class SchemaServiceTest {
     }
 
     /**
-     * Tests the schema compatibility validation
+     * Test the schema compatibility validation
      */
     @Test
     void validateSchemaCompatibility() {
@@ -204,7 +204,7 @@ class SchemaServiceTest {
     }
 
     /**
-     * Tests the schema compatibility invalidation
+     * Test the schema compatibility invalidation
      */
     @Test
     void invalidateSchemaCompatibility() {
@@ -225,7 +225,7 @@ class SchemaServiceTest {
     }
 
     /**
-     * Tests the schema compatibility validation when the Schema Registry returns 404 not found
+     * Test the schema compatibility validation when the Schema Registry returns 404 not found
      */
     @Test
     void validateSchemaCompatibility404NotFound() {
@@ -241,7 +241,7 @@ class SchemaServiceTest {
     }
 
     /**
-     * Tests the schema compatibility validation when the Schema Registry throws an exception
+     * Test the schema compatibility validation when the Schema Registry throws an exception
      */
     @Test
     void validateSchemaCompatibilityThrowsException() {
@@ -258,7 +258,7 @@ class SchemaServiceTest {
     }
 
     /**
-     * Tests the schema compatibility update when reset to default is asked
+     * Test the schema compatibility update when reset to default is asked
      */
     @Test
     void updateSubjectCompatibilityResetToDefault() {
@@ -274,7 +274,7 @@ class SchemaServiceTest {
     }
 
     /**
-     * Tests the schema compatibility validation
+     * Test the schema compatibility validation
      */
     @Test
     void updateSubjectCompatibility() {
@@ -308,7 +308,6 @@ class SchemaServiceTest {
 
     /**
      * Build a namespace resource
-     *
      * @return The namespace
      */
     private Namespace buildNamespace() {
@@ -324,7 +323,6 @@ class SchemaServiceTest {
 
     /**
      * Build a schema resource
-     *
      * @return The schema
      */
     private Schema buildSchema() {
@@ -341,7 +339,6 @@ class SchemaServiceTest {
 
     /**
      * Build a schema response
-     *
      * @param subject The subject to set to the schema
      * @return The schema response
      */
@@ -356,7 +353,6 @@ class SchemaServiceTest {
 
     /**
      * Build a schema compatibility response
-     *
      * @return The compatibility response
      */
     private SchemaCompatibilityResponse buildCompatibilityResponse() {
