@@ -30,7 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class ConnectControllerTest {
+class ConnectControllerTest {
 
     @Mock
     KafkaConnectService kafkaConnectService;
@@ -272,7 +272,7 @@ public class ConnectControllerTest {
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
-        Mockito.when(kafkaConnectService.createOrUpdate(ns, connector))
+        Mockito.when(kafkaConnectService.createOrUpdate(connector))
                 .thenReturn(expected);
 
         var response = connectController.apply("test", connector, false);
@@ -321,7 +321,7 @@ public class ConnectControllerTest {
 
         Assertions.assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         Assertions.assertEquals(expected, actual);
-        verify(kafkaConnectService,never()).createOrUpdate(ArgumentMatchers.any(), ArgumentMatchers.any());
+        verify(kafkaConnectService,never()).createOrUpdate(ArgumentMatchers.any());
     }
 
     @Test
@@ -359,7 +359,7 @@ public class ConnectControllerTest {
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
-        Mockito.when(kafkaConnectService.createOrUpdate(ns, connector))
+        Mockito.when(kafkaConnectService.createOrUpdate(connector))
                 .thenReturn(expected);
 
         var response = connectController.apply("test", connector, false);
@@ -375,11 +375,6 @@ public class ConnectControllerTest {
         Connector connector = Connector.builder()
                 .metadata(ObjectMeta.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
-                .build();
-        Connector expected = Connector.builder()
-                .metadata(ObjectMeta.builder().name("connect1").build())
-                .spec(Connector.ConnectorSpec.builder().config(Map.of("name", "connect1")).build())
-                .status(Connector.ConnectorStatus.builder().state(Connector.TaskState.UNASSIGNED).build())
                 .build();
 
         Namespace ns = Namespace.builder()
@@ -398,9 +393,8 @@ public class ConnectControllerTest {
                 .thenReturn(List.of());
 
         var response = connectController.apply("test", connector, true);
-        Connector actual = response.body();
         Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
-        verify(kafkaConnectService, never()).createOrUpdate(ns, connector);
+        verify(kafkaConnectService, never()).createOrUpdate(connector);
 
     }
 
@@ -415,7 +409,6 @@ public class ConnectControllerTest {
                 .build();
         Connector connector1 = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
         Connector connector2 = Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build();
-        Connector connector3 = Connector.builder().metadata(ObjectMeta.builder().name("connect3").build()).build();
 
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
@@ -423,8 +416,8 @@ public class ConnectControllerTest {
         when(kafkaConnectService.listUnsynchronizedConnectors(ns))
                 .thenReturn(List.of(connector1, connector2));
         
-        when(kafkaConnectService.createOrUpdate(ns, connector1)).thenReturn(connector1);
-        when(kafkaConnectService.createOrUpdate(ns, connector2)).thenReturn(connector2);
+        when(kafkaConnectService.createOrUpdate(connector1)).thenReturn(connector1);
+        when(kafkaConnectService.createOrUpdate(connector2)).thenReturn(connector2);
 
         List<Connector> actual = connectController.importResources("test", false);
         Assertions.assertTrue(actual.stream()
@@ -473,9 +466,9 @@ public class ConnectControllerTest {
                 .anyMatch(c ->
                         c.getMetadata().getName().equals("connect3")
                 ));
-        verify(kafkaConnectService, never()).createOrUpdate(ns, connector1);
-        verify(kafkaConnectService, never()).createOrUpdate(ns, connector2);
-        verify(kafkaConnectService, never()).createOrUpdate(ns, connector3);
+        verify(kafkaConnectService, never()).createOrUpdate(connector1);
+        verify(kafkaConnectService, never()).createOrUpdate(connector2);
+        verify(kafkaConnectService, never()).createOrUpdate(connector3);
     }
     @Test
     void restartConnectorNotOwned() {
