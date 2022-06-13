@@ -1,14 +1,11 @@
 package com.michelin.ns4kafka.services.connect.client;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.michelin.ns4kafka.models.Connector;
 import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
 import com.michelin.ns4kafka.services.connect.client.entities.*;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.client.annotation.Client;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,7 +25,6 @@ public interface KafkaConnectClient {
             String connectorClass,
             @Body ConnectorSpecs connectorSpec);
 
-    //@Retryable(predicate = ConnectRestService.RebalanceRetryPredicate.class)
     @Put("/connectors/{connector}/config")
     ConnectorInfo createOrUpdate(
             @Header(value = KafkaConnectClientProxy.PROXY_HEADER_SECRET) String secret,
