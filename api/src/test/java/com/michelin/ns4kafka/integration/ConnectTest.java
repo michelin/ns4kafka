@@ -293,27 +293,19 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                         .build())
                 .build();
 
-        Connector connector = Connector.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("ns1-connector")
-                        .namespace("ns1")
-                        .build())
-                .spec(Connector.ConnectorSpec.builder()
-                        .connectCluster("test-connect")
-                        .config(Map.of(
-                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
-                                "tasks.max", "1",
-                                "topics", "ns1-to1",
-                                "file", "test"
-                        ))
-                        .build())
+        ConnectorSpecs connectorSpecs = ConnectorSpecs.builder()
+                .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                        "tasks.max", "1",
+                        "topics", "ns1-to1",
+                        "file", "test"
+                ))
                 .build();
 
-        Map<String, String> connectorSpecs = new HashMap<>();
-        connectorSpecs.put("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector");
-        connectorSpecs.put("tasks.max", "1");
-        connectorSpecs.put("topics", "ns1-to1");
-        connectorSpecs.put("file", null);
+        Map<String, String> updatedConnectorSpecs = new HashMap<>();
+        updatedConnectorSpecs.put("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector");
+        updatedConnectorSpecs.put("tasks.max", "1");
+        updatedConnectorSpecs.put("topics", "ns1-to1");
+        updatedConnectorSpecs.put("file", null);
 
         Connector updateConnector = Connector.builder()
                 .metadata(ObjectMeta.builder()
@@ -322,12 +314,12 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("test-connect")
-                        .config(connectorSpecs)
+                        .config(updatedConnectorSpecs)
                         .build())
                 .build();
 
         RxHttpClient connectCli = RxHttpClient.create(new URL(connect.getUrl()));
-        HttpResponse<ConnectorInfo> connectorInfo = connectCli.exchange(HttpRequest.PUT("/connectors/ns1-connector/config", connector), ConnectorInfo.class).blockingFirst();
+        HttpResponse<ConnectorInfo> connectorInfo = connectCli.exchange(HttpRequest.PUT("/connectors/ns1-connector/config", connectorSpecs), ConnectorInfo.class).blockingFirst();
 
         // "File" property is present and fill
         Assertions.assertTrue(connectorInfo.getBody().isPresent());

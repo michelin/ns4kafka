@@ -24,7 +24,7 @@ public interface KafkaConnectClient {
             @Header(value = KafkaConnectClientProxy.PROXY_HEADER_CONNECT_CLUSTER) String connectCluster,
             String connectorClass,
             @Body ConnectorSpecs connectorSpec);
-    
+
     @Put("/connectors/{connector}/config")
     ConnectorInfo createOrUpdate(
             @Header(value = KafkaConnectClientProxy.PROXY_HEADER_SECRET) String secret,
