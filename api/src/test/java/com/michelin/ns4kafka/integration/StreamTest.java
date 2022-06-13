@@ -73,6 +73,7 @@ public class StreamTest extends AbstractIntegrationTest {
                   .grantedTo("nskafkastream")
                   .build())
             .build();
+
         AccessControlEntry acl2 = AccessControlEntry.builder()
                 .metadata(ObjectMeta.builder()
                         .name("nskafkastream-acl-group")

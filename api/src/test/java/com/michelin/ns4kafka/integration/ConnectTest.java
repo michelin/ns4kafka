@@ -38,19 +38,34 @@ import java.util.concurrent.ExecutionException;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
-public class ConnectTest extends AbstractIntegrationConnectTest {
+class ConnectTest extends AbstractIntegrationConnectTest {
+    /**
+     * The HTTP client
+     */
     @Inject
     @Client("/")
     RxHttpClient client;
 
+    /**
+     * The topic async executor list
+     */
     @Inject
     List<TopicAsyncExecutor> topicAsyncExecutorList;
 
+    /**
+     * The connector async executor list
+     */
     @Inject
     List<ConnectorAsyncExecutor> connectorAsyncExecutorList;
 
+    /**
+     * The authentication token
+     */
     private String token;
 
+    /**
+     * Init all integration tests
+     */
     @BeforeAll
     void init() {
         Namespace ns1 = Namespace.builder()
@@ -126,16 +141,22 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
         client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic)).blockingFirst();
     }
 
+    /**
+     * Validate connector HTTP client creation
+     * @throws MalformedURLException Any malformed URL exception
+     */
     @Test
-    void createConnect() throws InterruptedException, ExecutionException, MalformedURLException {
-
+    void createConnect() throws MalformedURLException {
         RxHttpClient connectCli = RxHttpClient.create(new URL(connect.getUrl()));
         ServerInfo actual = connectCli.retrieve(HttpRequest.GET("/"), ServerInfo.class).blockingFirst();
         Assertions.assertEquals("6.2.0-ccs", actual.version());
     }
 
+    /**
+     * Validate the namespace creation without connector
+     */
     @Test
-    void createNamespaceWithoutConnect() throws InterruptedException, ExecutionException, MalformedURLException {
+    void createNamespaceWithoutConnect() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns-without-connect")
@@ -153,11 +174,9 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
     }
 
     /**
-     * Deploy connectors
-     *
+     * Validate connector deployment
      * Deploy a topic and connectors and assert the deployments worked.
      * The test asserts null/empty connector properties are deployed.
-     *
      * @throws InterruptedException Any interrupted exception
      * @throws MalformedURLException Any malformed URL exception
      */
@@ -250,12 +269,90 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
         // "File" property is present
         Assertions.assertTrue(actualConnectorWithFillParameter.config().containsKey("file"));
         Assertions.assertEquals("test", actualConnectorWithFillParameter.config().get("file"));
-
     }
 
+    /**
+     * Validate connector update when connector is already deployed
+     * in the cluster and it is updated with a null property
+     * @throws InterruptedException Any interrupted exception
+     * @throws MalformedURLException Any malformed URL exception
+     */
     @Test
-    void restartConnector() throws InterruptedException, ExecutionException, MalformedURLException {
+    void updateConnectorsWithNullProperty() throws InterruptedException, MalformedURLException {
+        Topic to = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-to1")
+                        .namespace("ns1")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(Map.of("cleanup.policy", "delete",
+                                "min.insync.replicas", "1",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
 
+        Connector connector = Connector.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-connector")
+                        .namespace("ns1")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(Map.of(
+                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                                "tasks.max", "1",
+                                "topics", "ns1-to1",
+                                "file", "test"
+                        ))
+                        .build())
+                .build();
+
+        Map<String, String> connectorSpecs = new HashMap<>();
+        connectorSpecs.put("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector");
+        connectorSpecs.put("tasks.max", "1");
+        connectorSpecs.put("topics", "ns1-to1");
+        connectorSpecs.put("file", null);
+
+        Connector updateConnector = Connector.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-connector")
+                        .namespace("ns1")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(connectorSpecs)
+                        .build())
+                .build();
+
+        RxHttpClient connectCli = RxHttpClient.create(new URL(connect.getUrl()));
+        HttpResponse<ConnectorInfo> connectorInfo = connectCli.exchange(HttpRequest.POST("/connectors/ns1-connector", connector), ConnectorInfo.class).blockingFirst();
+
+        // "File" property is present and fill
+        Assertions.assertTrue(connectorInfo.getBody().isPresent());
+        Assertions.assertTrue(connectorInfo.getBody().get().config().containsKey("file"));
+        Assertions.assertEquals("test", connectorInfo.getBody().get().config().get("file"));
+
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to)).blockingFirst();
+        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects").bearerAuth(token).body(updateConnector)).blockingFirst();
+        connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
+        Thread.sleep(2000);
+
+        ConnectorInfo actualConnector = connectCli.retrieve(HttpRequest.GET("/connectors/ns1-connector"), ConnectorInfo.class).blockingFirst();
+
+        // "File" property is present, but null
+        Assertions.assertTrue(actualConnector.config().containsKey("file"));
+        Assertions.assertNull(actualConnector.config().get("file"));
+    }
+
+    /**
+     * Validate the connector restart
+     * @throws InterruptedException Any interrupted exception
+     */
+    @Test
+    void restartConnector() throws InterruptedException {
         Topic to = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-to1")
@@ -300,6 +397,11 @@ public class ConnectTest extends AbstractIntegrationConnectTest {
         Assertions.assertEquals(HttpStatus.OK, actual.status());
     }
 
+    /**
+     * Validate connector pause and resume
+     * @throws MalformedURLException Any malformed URL exception
+     * @throws InterruptedException Any interrupted exception
+     */
     @Test
     void PauseAndResumeConnector() throws MalformedURLException, InterruptedException {
 

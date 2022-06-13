@@ -52,10 +52,12 @@ public class KafkaAsyncExecutorScheduler {
         ready.compareAndSet(false,true);
     }
 
+    /**
+     * Schedule resource synchronization
+     */
     @Scheduled(initialDelay = "12s", fixedDelay = "20s")
     void schedule(){
         if (ready.get()) {
-            //TODO sequential forEach with exception handling (to let next clusters sync)
             topicAsyncExecutors.forEach(TopicAsyncExecutor::run);
             accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
             connectorAsyncExecutors.forEach(ConnectorAsyncExecutor::run);

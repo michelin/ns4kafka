@@ -41,7 +41,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
     HttpClient schemaClient;
 
     /**
-     * The Authentication token
+     * The authentication token
      */
     private String token;
 
