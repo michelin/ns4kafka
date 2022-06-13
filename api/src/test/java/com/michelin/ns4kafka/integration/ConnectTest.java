@@ -327,7 +327,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .build();
 
         RxHttpClient connectCli = RxHttpClient.create(new URL(connect.getUrl()));
-        HttpResponse<ConnectorInfo> connectorInfo = connectCli.exchange(HttpRequest.POST("/connectors/ns1-connector", connector), ConnectorInfo.class).blockingFirst();
+        HttpResponse<ConnectorInfo> connectorInfo = connectCli.exchange(HttpRequest.PUT("/connectors/ns1-connector", connector), ConnectorInfo.class).blockingFirst();
 
         // "File" property is present and fill
         Assertions.assertTrue(connectorInfo.getBody().isPresent());
