@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.kafka.clients.admin.Admin;
 
+import java.security.Provider;
 import java.util.Map;
 import java.util.Properties;
 
@@ -79,6 +80,16 @@ public class KafkaAsyncExecutorConfig {
      */
     public KafkaAsyncExecutorConfig(@Parameter String name) {
         this.name = name;
+    }
+
+    /**
+     * Constructor
+     * @param name The cluster name
+     * @param provider The kafka provider
+     */
+    public KafkaAsyncExecutorConfig(@Parameter String name, @Parameter KafkaProvider provider) {
+        this.name = name;
+        this.provider = provider;
     }
 
     @Getter
