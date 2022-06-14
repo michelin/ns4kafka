@@ -347,10 +347,10 @@ class TopicControllerTest {
     }
 
     /**
-     * Validate topic update when number of partitions change
+     * Validate topic update when there are validations errors
      */
     @Test
-    void updateTopicChangePartition() {
+    void updateTopicValidationErrors() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -390,73 +390,12 @@ class TopicControllerTest {
         when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
+        when(topicService.validateTopicUpdate(ns, existing, topic)).thenReturn(List.of("Invalid value 6 for configuration partitions: Value is immutable (3)."));
 
         ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
                 () -> topicController.apply("test", topic, false));
         Assertions.assertEquals(1, actual.getValidationErrors().size());
         Assertions.assertLinesMatch(List.of("Invalid value 6 for configuration partitions: Value is immutable (3)."), actual.getValidationErrors());
-    }
-
-    /**
-     * Validate topic update when number of partitions change
-     */
-    @Test
-    void updateTopicChangeReplicationFactor() {
-        TopicValidator topicValidator = TopicValidator.builder()
-                .validationConstraints(
-                        Map.of( "replication.factor", ResourceValidator.Range.between(3,6),
-                                "partitions", ResourceValidator.Range.between(3,6),
-                                "cleanup.policy", ResourceValidator.ValidList.in("delete","compact"),
-                                "min.insync.replicas", ResourceValidator.Range.between(2,2),
-                                "retention.ms", ResourceValidator.Range.between(60000,604800000),
-                                "retention.bytes", ResourceValidator.Range.optionalBetween(-1, 104857600),
-                                "preallocate", ResourceValidator.ValidString.optionalIn("true", "false"))
-                ).build();
-
-        Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .spec(NamespaceSpec.builder()
-                        .topicValidator(topicValidator)
-                        .build())
-                .build();
-
-        Topic existing = Topic.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test.topic")
-                        .build())
-                .spec(Topic.TopicSpec.builder()
-                        .replicationFactor(3)
-                        .partitions(3)
-                        .configs(Map.of("cleanup.policy","compact",
-                                "min.insync.replicas", "2",
-                                "retention.ms", "60000"))
-                        .build())
-                .build();
-
-        Topic topic = Topic.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test.topic")
-                        .build())
-                .spec(Topic.TopicSpec.builder()
-                        .replicationFactor(6)
-                        .partitions(3)
-                        .configs(Map.of("cleanup.policy","delete",
-                                "min.insync.replicas", "2",
-                                "retention.ms", "60000"))
-                        .build())
-                .build();
-
-        when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
-
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
-                () -> topicController.apply("test", topic, false));
-        Assertions.assertEquals(1, actual.getValidationErrors().size());
-        Assertions.assertLinesMatch(List.of("Invalid value 6 for configuration replication.factor: Value is immutable (3)."), actual.getValidationErrors());
     }
 
     /**
@@ -561,7 +500,7 @@ class TopicControllerTest {
      * Validate topic creation when topic validation fails
      */
     @Test
-    void CreateNewTopicFailValidation() {
+    void createNewTopicFailValidation() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")

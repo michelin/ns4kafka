@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.repositories.TopicRepository;
+import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
@@ -14,6 +15,9 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+
+import static org.apache.kafka.common.config.TopicConfig.*;
+import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 
 @Singleton
 public class TopicService {
@@ -34,6 +38,12 @@ public class TopicService {
      */
     @Inject
     ApplicationContext applicationContext;
+
+    /**
+     * The managed cluster config
+     */
+    @Inject
+    List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfig;
 
     /**
      * Find all topics by given namespace
@@ -134,12 +144,46 @@ public class TopicService {
     }
 
     /**
+     * Validate existing topic can be updated with new given configs
+     * @param existingTopic The existing topic
+     * @param newTopic The new topic
+     * @return A list of validation errors
+     */
+    public List<String> validateTopicUpdate(Namespace namespace, Topic existingTopic, Topic newTopic) {
+        List<String> validationErrors = new ArrayList<>();
+
+        if (existingTopic.getSpec().getPartitions() != newTopic.getSpec().getPartitions()) {
+            validationErrors.add(String.format("Invalid value %s for configuration partitions: Value is immutable (%s).",
+                    newTopic.getSpec().getPartitions(), existingTopic.getSpec().getPartitions()));
+        }
+
+        if (existingTopic.getSpec().getReplicationFactor() != newTopic.getSpec().getReplicationFactor()) {
+            validationErrors.add(String.format("Invalid value %s for configuration replication.factor: Value is immutable (%s).",
+                    newTopic.getSpec().getReplicationFactor(), existingTopic.getSpec().getReplicationFactor()));
+        }
+
+        Optional<KafkaAsyncExecutorConfig> topicCluster = kafkaAsyncExecutorConfig
+                .stream()
+                .filter(cluster -> namespace.getMetadata().getCluster().equals(cluster.getName()))
+                .findFirst();
+
+        boolean confluentCloudCluster = topicCluster.isPresent() && topicCluster.get().getProvider().equals(KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD);
+        if (confluentCloudCluster && existingTopic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG).equals(CLEANUP_POLICY_DELETE) &&
+                newTopic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG).equals(CLEANUP_POLICY_COMPACT)) {
+            validationErrors.add(String.format("Invalid value %s for configuration cleanup.policy: Altering topic configuration from `delete` to `compact` is not currently supported. Please create a new topic with `compact` policy specified instead.",
+                    newTopic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG)));
+        }
+
+        return validationErrors;
+    }
+
+    /**
      * Check if topics collide with "_" instead of "."
      * @param topicA The first topic
      * @param topicB The second topic
      * @return true if it does, false otherwise
      */
-    private boolean hasCollision(String topicA, String topicB){
+    private boolean hasCollision(String topicA, String topicB) {
         return topicA.replace('.', '_').equals(topicB.replace('.', '_'));
     }
 
@@ -243,5 +287,4 @@ public class TopicService {
             throw new InterruptedException(e.getMessage());
         }
     }
-
 }

@@ -31,15 +31,12 @@ public class Schema {
     private ObjectMeta metadata;
 
     /**
-     * The schema specifications
+     * Schema specifications
      */
     @Valid
     @NotNull
     private SchemaSpec spec;
 
-    /**
-     * Schema specifications
-     */
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor

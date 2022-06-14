@@ -17,16 +17,32 @@ import java.util.Map;
 @AllArgsConstructor
 @Data
 public class Topic {
+    /**
+     * API version
+     */
     private final String apiVersion = "v1";
+
+    /**
+     * Kind of resource
+     */
     private final String kind = "Topic";
 
+    /**
+     * Schema metadata
+     */
     @Valid
     @NotNull
     private ObjectMeta metadata;
 
+    /**
+     * Topic specifications
+     */
     @NotNull
     private TopicSpec spec;
 
+    /**
+     * Topic status
+     */
     @EqualsAndHashCode.Exclude
     private TopicStatus status;
 
@@ -35,8 +51,19 @@ public class Topic {
     @NoArgsConstructor
     @Data
     public static class TopicSpec {
+        /**
+         * Replication factor
+         */
         private int replicationFactor;
+
+        /**
+         * Partitions quantity
+         */
         private int partitions;
+
+        /**
+         * Topic configuration
+         */
         private Map<String, String> configs;
     }
 
@@ -47,11 +74,27 @@ public class Topic {
     @Setter
     @Schema(description = "Server-side", accessMode = Schema.AccessMode.READ_ONLY)
     public static class TopicStatus {
+        /**
+         * Topic phase
+         */
         private TopicPhase phase;
+
+        /**
+         * Message
+         */
         private String message;
+
+        /**
+         * Last updated time
+         */
         @JsonFormat(shape = JsonFormat.Shape.STRING)
         private Date lastUpdateTime;
 
+        /**
+         * Success status
+         * @param message A success message
+         * @return A success topic status
+         */
         public static TopicStatus ofSuccess(String message) {
             return TopicStatus.builder()
                     .phase(TopicPhase.Success)
@@ -60,6 +103,11 @@ public class Topic {
                     .build();
         }
 
+        /**
+         * Failed status
+         * @param message A failure message
+         * @return A failure topic status
+         */
         public static TopicStatus ofFailed(String message) {
             return TopicStatus.builder()
                     .phase(TopicPhase.Failed)
@@ -68,6 +116,10 @@ public class Topic {
                     .build();
         }
 
+        /**
+         * Pending status
+         * @return A pending topic status
+         */
         public static TopicStatus ofPending() {
             return Topic.TopicStatus.builder()
                     .phase(Topic.TopicPhase.Pending)
@@ -81,5 +133,4 @@ public class Topic {
         Success,
         Failed
     }
-
 }

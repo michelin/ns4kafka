@@ -1,12 +1,12 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.controllers.ResourceValidationException;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.TopicRepository;
+import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
@@ -18,15 +18,13 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
 
 @ExtendWith(MockitoExtension.class)
-class KafkaTopicServiceTest {
+class TopicServiceTest {
     /**
      * The topic service
      */
@@ -50,6 +48,12 @@ class KafkaTopicServiceTest {
      */
     @Mock
     ApplicationContext applicationContext;
+
+    /**
+     * The mocked managed cluster config
+     */
+    @Mock
+    List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigs;
 
     /**
      * Validate find topic by name
@@ -668,6 +672,13 @@ class KafkaTopicServiceTest {
      */
     @Test
     void validateDeleteRecordsTopic() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
         Topic topic = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("project1.topic")
@@ -681,5 +692,235 @@ class KafkaTopicServiceTest {
 
         Assertions.assertEquals(1, actual.size());
         Assertions.assertLinesMatch(List.of("Cannot delete records on a compacted topic. Please delete and recreate the topic."), actual);
+    }
+
+    /**
+     * Validate topic update when partition number change
+     */
+    @Test
+    void validateTopicUpdatePartitions() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic existing = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","compact",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(6)
+                        .configs(Map.of("cleanup.policy","compact",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Mockito.when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of());
+
+        List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
+
+        Assertions.assertEquals(1, actual.size());
+        Assertions.assertLinesMatch(List.of("Invalid value 6 for configuration partitions: Value is immutable (3)."), actual);
+    }
+
+    /**
+     * Validate topic update when replication factor change
+     */
+    @Test
+    void validateTopicUpdateReplicationFactor() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic existing = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","compact",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(6)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","compact",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Mockito.when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of());
+
+        List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
+
+        Assertions.assertEquals(1, actual.size());
+        Assertions.assertLinesMatch(List.of("Invalid value 6 for configuration replication.factor: Value is immutable (3)."), actual);
+    }
+
+    /**
+     * Validate topic update when cleanup policy change from delete to compact on Confluent Cloud
+     */
+    @Test
+    void validateTopicUpdateCleanupPolicyDeleteToCompactOnCCloud() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic existing = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","delete",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","compact",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Mockito.when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)));
+
+        List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
+
+        Assertions.assertEquals(1, actual.size());
+        Assertions.assertLinesMatch(List.of("Invalid value compact for configuration cleanup.policy: Altering topic configuration from `delete` to `compact` is not currently supported. Please create a new topic with `compact` policy specified instead."), actual);
+    }
+
+    /**
+     * Validate topic update when cleanup policy change from compact to delete on Confluent Cloud
+     */
+    @Test
+    void validateTopicUpdateCleanupPolicyCompactToDeleteOnCCloud() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic existing = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","compact",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","delete",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Mockito.when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)));
+
+        List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
+
+        Assertions.assertEquals(0, actual.size());
+    }
+
+    /**
+     * Validate topic update when cleanup policy change from delete to compact on Confluent Cloud
+     */
+    @Test
+    void validateTopicUpdateCleanupPolicyDeleteToCompactOnSelfManaged() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic existing = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","delete",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","compact",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Mockito.when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.SELF_MANAGED)));
+
+        List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
+
+        Assertions.assertEquals(0, actual.size());
     }
 }

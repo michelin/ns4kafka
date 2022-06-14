@@ -1,11 +1,12 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.models.*;
+import com.michelin.ns4kafka.models.DeleteRecordsResponse;
+import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.services.TopicService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
-import io.micronaut.http.annotation.Status;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.apache.kafka.common.TopicPartition;
 
@@ -71,31 +72,18 @@ public class TopicController extends NamespacedResourceController {
         if (existingTopic.isEmpty()) {
             // Topic namespace ownership validation
             if (!topicService.isNamespaceOwnerOfTopic(namespace, topic.getMetadata().getName())) {
-                validationErrors.add("Namespace not owner of this topic \"" + topic.getMetadata().getName() + "\".");
+                validationErrors.add(String.format("Namespace not owner of this topic %s.", topic.getMetadata().getName()));
             }
 
             // Topic names with a period ('.') or underscore ('_') could collide
             List<String> collidingTopics = topicService.findCollidingTopics(ns, topic);
             if (!collidingTopics.isEmpty()) {
                 validationErrors.addAll(collidingTopics.stream()
-                        .map(collidingTopic -> "Topic " + topic.getMetadata().getName()
-                                + " collides with existing topics: "
-                                + collidingTopic + ".")
+                        .map(collidingTopic -> String.format("Topic %s collides with existing topics: %s.", topic.getMetadata().getName(), collidingTopic))
                         .collect(Collectors.toList()));
             }
-
         } else {
-            // Forbidden changes when updating (partitions, replicationFactor)
-            if (existingTopic.get().getSpec().getPartitions() != topic.getSpec().getPartitions()) {
-                validationErrors.add("Invalid value " + topic.getSpec().getPartitions()
-                        + " for configuration partitions: Value is immutable ("
-                        + existingTopic.get().getSpec().getPartitions() + ").");
-            }
-            if (existingTopic.get().getSpec().getReplicationFactor() != topic.getSpec().getReplicationFactor()) {
-                validationErrors.add("Invalid value " + topic.getSpec().getReplicationFactor()
-                        + " for configuration replication.factor: Value is immutable ("
-                        + existingTopic.get().getSpec().getReplicationFactor() + ").");
-            }
+            validationErrors.addAll(topicService.validateTopicUpdate(ns, existingTopic.get(), topic));
         }
 
         if (!validationErrors.isEmpty()) {
