@@ -15,7 +15,8 @@ ns4kafka
 * [Install Kafkactl](#install-kafkactl)
 * [Kafkactl commands](#kafkactl-commands)
 * [Kafkactl for CI/CD](#kafkactl-for-cicd)
-* [Administrator resources](#administrator-resources)
+* [Install Ns4Kafka](#install-ns4kafka)
+* [Administrator](#administrator)
 
 # About the project
 
@@ -102,14 +103,6 @@ Check it works by reading the resources of the current context with:
 ```shell
 kafkactl get all
 ```
-
-## Environment variables
-
-````bash
-export KAFKACTL_API=http://ns4kafka-dev-api.domain.com
-export KAFKACTL_USER_TOKEN=*******
-export KAFKACTL_CURRENT_NAMESPACE=test
-````
 
 # Kafkactl commands
 
@@ -227,7 +220,7 @@ spec:
 ```
 
 Available options :
-- **spec.resourceType**: TOPIC
+- **spec.resourceType**: TOPIC, GROUP, CONNECT
 - **spec.resourcePatternType**: PREFIXED, LITERAL
 - **spec.permission**: READ, WRITE
 
@@ -546,22 +539,123 @@ kafkactl:
   before_script:
     - export KAFKACTL_CURRENT_NAMESPACE=test
     - export KAFKACTL_API=http://ns4kafka-dev-api.domain.com
-    - export KAFKACTL_USER_TOKEN=${KFE_TOKEN}
+    - export KAFKACTL_USER_TOKEN=${GITLAB_TOKEN}
   script:
     - java -jar /home/app/application.jar get all
 ```
 
 - **KAFKACTL_CURRENT_NAMESPACE** is the namespace to use.
-- **KFE_TOKEN** is a CI/CD variable that contains the Gitlab token.
+- **GITLAB_TOKEN** is a CI/CD variable that contains the Gitlab token.
 - **KAFKACTL_API** is the URL of the Ns4Kafka in which to deploy
-    
-# Administrator resources
 
-Kafka Admins, we didn't forget you ! On the contrary, it is your role who will get the most out of ns4kafka. Let's have a look.
+# Install Ns4Kafka
 
-<details><summary>Show instructions</summary>
+The Ns4kafka API uses a Kafka broker to store its data and Gitlab to authenticate users.
 
-1. Create a Namespace
+## API installation
+
+The API can be cloned and build with gradle:
+``.gradlew :api:build``
+
+It generated a fat jar in ``api/build/libs``.
+
+Or else, there is a Docker Image at: https://hub.docker.com/r/michelin/ns4kafka
+
+## API configuration
+
+The project use micronaut configuration file, there is an example of configuration file in ``api/src/ressource/application.yml``
+
+If needed, properties from default application.yml can be overrided:
+````shell
+java -Dmicronaut.config.file=application.yml -jar api.jar
+````
+Or
+````shell
+MICRONAUT_CONFIG_FILE=application.yml java -jar api.jar
+````
+
+## Configuration 
+
+### Managed clusters
+
+This is where you can configure the Kafka clusters managed by Ns4kafka
+
+```yaml
+ns4kafka:
+  managed-clusters:
+    cluster-name1:
+      manage-users: false
+      manage-acls: false
+      manage-topics: true
+      manage-connect: false
+      manage-role-bindings: false
+      config:
+        bootstrap.servers: "localhost:19092, localhost:29092, localhost:39092"
+      connects:
+        connect1:
+          url: "http://localhost/kafka/connect/"
+          basicAuthUsername: "user"
+          basicAuthPassword: "password"
+        connect2:
+          ...
+```
+
+You have to put a unique name for each cluster in ``managed-clusters``.
+This is this name you have to set in the field ``metadata.cluster`` of resources.
+
+| Property                                | type    | description                                        |
+| -----                                   | -----   | -----                                              |
+| manage-users                            | boolean | Does the cluster manages users ?                          |
+| manage-acls                             | boolean | Does the cluster manages access control entries ?        |
+| manage-topics                           | boolean | Does the cluster manages topics ?                      |
+| manage-connect                          | boolean | Does the cluster manages connects ?                     |
+| manage-role-bindings                    | boolean | Does the cluster manages role bindings ?                  |
+| config.bootstrap.servers                | string  | The location of the clusters servers               |
+| connects.connect-name.url               | string  | The location of the kafka connect                  |
+| connects.connect-name.basicAuthUsername | string  | Basic authentication username to the kafka connect |
+| connects.connect-name.basicAuthPassword | string  | Basic authentication password to the kafka connect |
+
+### Admin account
+
+This is where you configure the admin user
+
+```yaml
+micronaut:
+  security:
+    enabled: true
+    authentication: bearer
+    gitlab:
+      enabled: true
+      url: https://gitlab.com
+ns4kafka:
+  security:
+    admin-group: test-ns4kafka
+    local-users: # Not for production use.
+      - username: admin
+        # SHA-256 password.
+        password: 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+        groups:
+          - "test-ns4kafka"
+```
+
+| Property                               | type            | description                                       |
+| -----                                  | -----           | -----                                             |
+| micronaut.security.enabled             | boolean         | Enabled the security of the API                   |
+| micronaut.security.authentication      | string (Bearer) | Type of security, for now Bearer only             |
+| micronaut.security.gitlab.enabled      | boolean         | Enabled the security of the API via Gitlab groups |
+| micronaut.security.gitlab.url          | string          | url of the instance gitlab                        |
+| ns4kafka.security.admin-group          | string          | Name of the Gitlab group of the admin             |
+| ns4kafka.security.local-users.username | string          | Username of the localusers                        |
+| ns4kafka.security.local-users.password | string          | Password of the localusers encrypted in SHA-256   |
+| ns4kafka.security.local-users.groups   | list<string>    | Names of the groups of this local user            |
+
+The group as to be setted up on Gitlab. So if the admin group is "admin", ns4kafka will look for the group of the user and search for the Gitlab group "admin".
+
+# Administration
+
+Kafka admins, we didn't forget you ! On the contrary, it is your role who will get the most out of ns4kafka. Let's have a look.
+
+## Namespace
 
 ````yaml
 # namespace.yml
@@ -582,7 +676,8 @@ user@local:/home/user$ kafkactl apply -f namespace.yml
 Success Namespace/test (created)
 ````
 
-2. It's not enough. Now you must Grant access to Resources to this Namespace
+It's not enough. Now you must grant access to resources to this namespace
+  
 ````yaml
 # acl.yml
 ---
@@ -605,7 +700,8 @@ user@local:/home/user$ kafkactl apply -f acl.yml -n test
 Success AccessControlEntry/test-acl-topic (created)
 ````
 
-3. **Still** isn't enough. Now you must link this Namespace to a project team. Enters the RoleBinding Resource
+Still isn't enough. Now you must link this namespace to a project team. Enters the RoleBinding Resource
+  
 ````yaml
 # role-binding.yml
 ---
@@ -633,8 +729,9 @@ user@local:/home/user$ kafkactl apply -f role-binding.yml -n test
 Success RoleBinding/test-role-group1 (created)
 ````
 
-4. From now on, members of the group ``group1/test-ops`` (either Gitlab, LDAP or OIDC groups) can use ns4kafka to manage topics starting with `test.` on the `local` Kafka cluster.  
-   But wait ! **That's not enough.** Now you should only let them create Topics successfully if and only if their configuration is aligned with your strategy ! Let's add Validators !
+From now on, members of the group ``group1/test-ops`` (either Gitlab, LDAP or OIDC groups) can use ns4kafka to manage topics starting with `test.` on the `local` Kafka cluster.  
+
+  But wait ! That's not enough. Now you should only let them create Topics successfully if and only if their configuration is aligned with your strategy ! Let's add Validators !
 
 ````yaml
 # namespace.yml
@@ -677,7 +774,4 @@ spec:
 user@local:/home/user$ kafkactl apply -f namespace.yml
 Success Namespace/test (changed)
 ````
-
-5. And there's even more to come...
-</details>
 
