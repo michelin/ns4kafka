@@ -1,4 +1,4 @@
-ns4kafka
+Ns4kafka
 =======================
 [![GitHub release](https://img.shields.io/github/v/release/michelin/ns4kafka)](https://github.com/michelin/ns4kafka/releases)
 ![GitHub commits since latest release (by SemVer)](https://img.shields.io/github/commits-since/michelin/ns4kafka/latest)
