@@ -448,7 +448,7 @@ Success Topic/test.topic1 (changed)
 
 ## Reset-offsets
 
-> kafkactl reset-offsets --group \<group\> all-topic \<method\>
+> kafkactl reset-offsets --group \<group\> --all-topic \<method\>
 >
 > kafkactl reset-offsets --group \<group\> --topic \<topic\> \<method\>
 
@@ -459,11 +459,11 @@ Success Topic/test.topic1 (changed)
 **--topic/--all-topic** is a given topic or all the topics to reset.
 
 **method** is one of:
-- to-earliest
-- to-latest
-- to-offset
-- to-datetime
-- shift-by
+- --to-earliest
+- --to-latest
+- --to-offset
+- --to-datetime
+- --shift-by
 
 ## Delete-records
 
