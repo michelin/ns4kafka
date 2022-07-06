@@ -77,6 +77,15 @@ kafkactl:
       - "NAMESPACE:/spec/namespace"
       - "API:/spec/api"
       - "TOKEN:/spec/token"
+  retry:
+    apply:
+      delay: "5s"
+      attempt: "5"
+      multiplier: "1.0"
+    delete:
+      delay: "5s"
+      attempt: "5"
+      multiplier: "1.0"
   contexts:
     -
 

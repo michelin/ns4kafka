@@ -17,8 +17,6 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @Tag(name = "Connects")
@@ -30,6 +28,7 @@ public class ConnectController extends NamespacedResourceController {
      */
     @Inject
     KafkaConnectService kafkaConnectService;
+
     /**
      * Get all the connectors by namespace
      * @param namespace The namespace
