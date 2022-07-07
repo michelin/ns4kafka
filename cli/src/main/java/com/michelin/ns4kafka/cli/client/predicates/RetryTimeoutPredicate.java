@@ -21,7 +21,7 @@ public class RetryTimeoutPredicate implements RetryPredicate {
                 Status status = statusOptional.get();
 
                 if (status.getDetails() != null && !status.getDetails().getCauses().isEmpty()) {
-                    System.out.println("Received timeout from Ns4Kafka... retrying in few seconds...");
+                    System.out.println("Timeout received from Ns4Kafka... retrying in few seconds...");
 
                     return status.getCode() == HttpResponseStatus.INTERNAL_SERVER_ERROR.code()
                             && status.getDetails().getCauses().stream().anyMatch(cause -> cause.contains("ReadTimeoutException"));
