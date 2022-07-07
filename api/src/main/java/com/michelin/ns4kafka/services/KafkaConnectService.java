@@ -2,7 +2,7 @@ package com.michelin.ns4kafka.services;
 
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
-import com.michelin.ns4kafka.models.Connector;
+import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
@@ -22,8 +22,6 @@ import javax.inject.Singleton;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 

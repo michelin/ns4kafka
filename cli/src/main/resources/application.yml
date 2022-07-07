@@ -45,6 +45,10 @@ kafkactl:
       - "GROUP:/spec/subject/subjectName"
       - "VERBS:/spec/role/verbs"
       - "RESOURCES:/spec/role/resourceTypes"
+    ResourceQuotaResponse:
+      - "RESOURCE:/metadata/name"
+      - "USED:/spec/topic/count"
+      - "LIMIT:/spec/topic/disk"
     ChangeConnectorState:
       - "CONNECTOR:/metadata/name"
       - "STATUS:/status/code"

@@ -1,11 +1,11 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets;
-import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets.ConsumerGroupResetOffsetsSpec;
-import com.michelin.ns4kafka.models.ConsumerGroupResetOffsets.ResetOffsetsMethod;
+import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets;
+import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets.ConsumerGroupResetOffsetsSpec;
+import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets.ResetOffsetsMethod;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.ConsumerGroupResetOffsetsResponse;
+import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsetsResponse;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.ConsumerGroupService;
 import com.michelin.ns4kafka.services.NamespaceService;

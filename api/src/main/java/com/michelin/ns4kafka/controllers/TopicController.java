@@ -86,6 +86,8 @@ public class TopicController extends NamespacedResourceController {
             validationErrors.addAll(topicService.validateTopicUpdate(ns, existingTopic.get(), topic));
         }
 
+        validationErrors.addAll(topicService.validateTopicQuota(ns));
+
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors, topic.getKind(), topic.getMetadata().getName());
         }

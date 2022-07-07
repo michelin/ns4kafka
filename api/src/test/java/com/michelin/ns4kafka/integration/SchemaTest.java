@@ -2,6 +2,8 @@ package com.michelin.ns4kafka.integration;
 
 import com.michelin.ns4kafka.integration.TopicTest.BearerAccessRefreshToken;
 import com.michelin.ns4kafka.models.*;
+import com.michelin.ns4kafka.models.schema.Schema;
+import com.michelin.ns4kafka.models.schema.SchemaCompatibilityState;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
 import io.micronaut.context.annotation.Property;

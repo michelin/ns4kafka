@@ -22,53 +22,77 @@ import java.util.Optional;
 @Controller(value = "/api/namespaces/{namespace}/role-bindings")
 @ExecuteOn(TaskExecutors.IO)
 public class RoleBindingController extends NamespacedResourceController {
-
+    /**
+     * The role binding service
+     */
     @Inject
     RoleBindingService roleBindingService;
 
+    /**
+     * Get all the role bindings by namespace
+     * @param namespace The namespace
+     * @return A list of role bindings
+     */
     @Get
     public List<RoleBinding> list(String namespace) {
         return roleBindingService.list(namespace);
     }
 
+    /**
+     * Get a role binding by namespace and subject
+     * @param namespace The namespace
+     * @param name The role binding name
+     * @return A role binding
+     */
     @Get("/{name}")
     public Optional<RoleBinding> get(String namespace, String name) {
         return roleBindingService.findByName(namespace, name);
     }
 
+    /**
+     * Publish a role binding
+     * @param namespace The namespace
+     * @param roleBinding The role binding
+     * @param dryrun Does the creation is a dry run
+     * @return The created role binding
+     */
     @Post("{?dryrun}")
-    public HttpResponse<RoleBinding> apply(String namespace, @Valid @Body RoleBinding rolebinding, @QueryValue(defaultValue = "false") boolean dryrun) {
-
-        // fill with cluster name
+    public HttpResponse<RoleBinding> apply(String namespace, @Valid @Body RoleBinding roleBinding, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
-        // augment
-        rolebinding.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-        rolebinding.getMetadata().setCluster(ns.getMetadata().getCluster());
-        rolebinding.getMetadata().setNamespace(namespace);
 
-        Optional<RoleBinding> existingRoleBinding = roleBindingService.findByName(namespace, rolebinding.getMetadata().getName());
+        roleBinding.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+        roleBinding.getMetadata().setCluster(ns.getMetadata().getCluster());
+        roleBinding.getMetadata().setNamespace(namespace);
 
-        if(existingRoleBinding.isPresent() && existingRoleBinding.get().equals(rolebinding)){
+        Optional<RoleBinding> existingRoleBinding = roleBindingService.findByName(namespace, roleBinding.getMetadata().getName());
+        if (existingRoleBinding.isPresent() && existingRoleBinding.get().equals(roleBinding)) {
             return formatHttpResponse(existingRoleBinding.get(), ApplyStatus.unchanged);
         }
+
         ApplyStatus status = existingRoleBinding.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
         if (dryrun) {
-            return formatHttpResponse(rolebinding, status);
+            return formatHttpResponse(roleBinding, status);
         }
-        sendEventLog(rolebinding.getKind(),
-                rolebinding.getMetadata(),
+
+        sendEventLog(roleBinding.getKind(),
+                roleBinding.getMetadata(),
                 status,
-                existingRoleBinding.isPresent() ? existingRoleBinding.get().getSpec() : null,
-                rolebinding.getSpec());
-        roleBindingService.create(rolebinding);
-        return formatHttpResponse(rolebinding, status);
+                existingRoleBinding.<Object>map(RoleBinding::getSpec).orElse(null),
+                roleBinding.getSpec());
+        roleBindingService.create(roleBinding);
+        return formatHttpResponse(roleBinding, status);
     }
 
+    /**
+     * Delete a role binding
+     * @param namespace The namespace
+     * @param name The role binding
+     * @param dryrun Is dry run mode or not ?
+     * @return An HTTP response
+     */
     @Delete("/{name}{?dryrun}")
     @Status(HttpStatus.NO_CONTENT)
     public HttpResponse<Void> delete(String namespace, String name, @QueryValue(defaultValue = "false") boolean dryrun) {
-
-        // ToDo duplicated with Access Control
         Optional<RoleBinding> roleBinding = roleBindingService.findByName(namespace, name);
 
         if (roleBinding.isEmpty()) {

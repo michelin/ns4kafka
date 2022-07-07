@@ -2,8 +2,8 @@ package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.Schema;
-import com.michelin.ns4kafka.models.SchemaCompatibilityState;
+import com.michelin.ns4kafka.models.schema.Schema;
+import com.michelin.ns4kafka.models.schema.SchemaCompatibilityState;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.SchemaService;

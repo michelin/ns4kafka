@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
+import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig.ConnectConfig;

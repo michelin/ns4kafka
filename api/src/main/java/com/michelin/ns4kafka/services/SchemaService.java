@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.*;
+import com.michelin.ns4kafka.models.schema.Schema;
 import com.michelin.ns4kafka.services.schema.KafkaSchemaRegistryClientProxy;
 import com.michelin.ns4kafka.services.schema.client.KafkaSchemaRegistryClient;
 import com.michelin.ns4kafka.services.schema.client.entities.*;

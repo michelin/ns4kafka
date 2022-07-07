@@ -23,31 +23,71 @@ import java.util.stream.Collectors;
 
 @Command(name = "apply", description = "Create or update a resource")
 public class ApplySubcommand implements Callable<Integer> {
-
+    /**
+     * The login service
+     */
     @Inject
     public LoginService loginService;
+
+    /**
+     * The API resources service
+     */
     @Inject
     public ApiResourcesService apiResourcesService;
+
+    /**
+     * The file service
+     */
     @Inject
     public FileService fileService;
+
+    /**
+     * The resource service
+     */
     @Inject
     public ResourceService resourceService;
 
+    /**
+     * The Kafkactl configuration
+     */
     @Inject
     public KafkactlConfig kafkactlConfig;
 
+    /**
+     * The Kafkactl command
+     */
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
+
+    /**
+     * The YAML file or directory given to the apply command
+     */
     @Option(names = {"-f", "--file"}, description = "YAML File or Directory containing YAML resources")
     public Optional<File> file;
+
+    /**
+     * Enable recursion
+     */
     @Option(names = {"-R", "--recursive"}, description = "Enable recursive search of file")
     public boolean recursive;
+
+    /**
+     * Enable dry run mode
+     */
     @Option(names = {"--dry-run"}, description = "Does not persist resources. Validate only")
     public boolean dryRun;
 
+    /**
+     * The current command
+     */
     @CommandLine.Spec
     public CommandLine.Model.CommandSpec commandSpec;
 
+    /**
+     * Run the "apply" command
+     * @return The command return code
+     * @throws Exception Any exception during the run
+     */
     @Override
     public Integer call() throws Exception {
         if (dryRun) {

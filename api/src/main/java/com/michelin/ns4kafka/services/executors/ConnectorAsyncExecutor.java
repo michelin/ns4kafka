@@ -1,7 +1,6 @@
 package com.michelin.ns4kafka.services.executors;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.michelin.ns4kafka.models.Connector;
+import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;

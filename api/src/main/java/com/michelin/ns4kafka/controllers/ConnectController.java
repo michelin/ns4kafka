@@ -1,7 +1,7 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.models.ChangeConnectorState;
-import com.michelin.ns4kafka.models.Connector;
+import com.michelin.ns4kafka.models.connector.ChangeConnectorState;
+import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.services.KafkaConnectService;
 import io.micronaut.http.HttpResponse;
@@ -17,8 +17,6 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @Tag(name = "Connects")

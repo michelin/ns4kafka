@@ -11,12 +11,11 @@ import java.util.Map;
 
 @Client("${kafkactl.api}/api/namespaces/")
 public interface NamespacedResourceClient {
-
-    @Delete("{namespace}/{kind}/{resourcename}{?dryrun}")
-    HttpResponse delete(
+    @Delete("{namespace}/{kind}/{resourceName}{?dryrun}")
+    HttpResponse<Void> delete(
             String namespace,
             String kind,
-            String resourcename,
+            String resourceName,
             @Header("Authorization") String token,
             @QueryValue boolean dryrun);
 
@@ -34,11 +33,11 @@ public interface NamespacedResourceClient {
             String kind,
             @Header("Authorization") String token);
 
-    @Get("{namespace}/{kind}/{resourcename}")
+    @Get("{namespace}/{kind}/{resourceName}")
     Resource get(
             String namespace,
             String kind,
-            String resourcename,
+            String resourceName,
             @Header("Authorization") String token);
 
     @Post("{namespace}/{kind}/_/import{?dryrun}")
@@ -54,7 +53,7 @@ public interface NamespacedResourceClient {
      * @param namespace The namespace
      * @param topic The topic to delete records
      * @param dryrun Is dry run mode or not ?
-     * @return The delete records response
+     * @return The deleted records response
      */
     @Post("{namespace}/topics/{topic}/delete-records{?dryrun}")
     List<Resource> deleteRecords(

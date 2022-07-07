@@ -18,10 +18,6 @@ public class SchemaSubcommand implements Callable<Integer> {
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
 
-    // If more actions later on, reuse this
-    //@CommandLine.Parameters(index = "0", description = "compatibility", arity = "1")
-    //public SchemaAction action;
-
     @CommandLine.Parameters(index="0",  description = "Compatibility mode to set [GLOBAL, BACKWARD, " +
             "BACKWARD_TRANSITIVE, FORWARD, FORWARD_TRANSITIVE, FULL, FULL_TRANSITIVE, NONE]. " +
             "GLOBAL will revert to Schema Registry's compatibility level", arity = "1")
@@ -54,7 +50,6 @@ public class SchemaSubcommand implements Callable<Integer> {
 
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
 
-
         List<Resource> updatedSchemas = subjects
                 .stream()
                 .map(subject -> this.resourceService.changeSchemaCompatibility(namespace, subject,
@@ -67,11 +62,6 @@ public class SchemaSubcommand implements Callable<Integer> {
             return 0;
         }
 
-
         return 1;
     }
-}
-
-enum SchemaAction {
-    compatibility
 }

@@ -64,7 +64,7 @@ public class DeleteRecordsSubcommand implements Callable<Integer> {
     public CommandLine.Model.CommandSpec commandSpec;
 
     /**
-     * Run the delete records command
+     * Run the "delete records" command
      * @return The command return code
      * @throws Exception Any exception during the run
      */

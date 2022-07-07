@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.*;
+import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
@@ -32,6 +33,12 @@ public class TopicService {
      */
     @Inject
     AccessControlEntryService accessControlEntryService;
+
+    /**
+     * The resource quota service
+     */
+    @Inject
+    ResourceQuotaService resourceQuotaService;
 
     /**
      * The application context
@@ -286,5 +293,27 @@ public class TopicService {
             Thread.currentThread().interrupt();
             throw new InterruptedException(e.getMessage());
         }
+    }
+
+    /**
+     * Validate the topics quota
+     * @param namespace The namespace
+     * @return A list of validation errors
+     */
+    public List<String> validateTopicQuota(Namespace namespace) {
+        Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByNamespace(namespace.getMetadata().getName());
+        if (resourceQuotaOptional.isEmpty()) {
+            return List.of();
+        }
+
+        List<String> errors = new ArrayList<>();
+        ResourceQuota resourceQuota = resourceQuotaOptional.get();
+        List<Topic> topics = findAllForNamespace(namespace);
+        int countTopicQuota = Integer.parseInt(resourceQuota.getSpec().get("count/topics"));
+        if (countTopicQuota > topics.size() + 1) {
+            errors.add(String.format("Quota for count/topics exceeded: %s (used)/%s (limit)", topics.size(), countTopicQuota));
+        }
+
+        return errors;
     }
 }
