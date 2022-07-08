@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 
 @Controller("/errors")
 public class ExceptionHandlerController {
-
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, ResourceValidationException exception) {
         var status = Status.builder()
@@ -90,7 +89,6 @@ public class ExceptionHandlerController {
 
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, AuthenticationException exception) {
-
         var status = Status.builder()
                 .status(StatusPhase.Failed)
                 .message(exception.getMessage())
@@ -98,7 +96,6 @@ public class ExceptionHandlerController {
                 .code(HttpStatus.UNAUTHORIZED.getCode())
                 .build();
         return HttpResponse.unauthorized().body(status);
-
     }
 
     @Error(global = true)
@@ -112,7 +109,6 @@ public class ExceptionHandlerController {
                     .build();
             return HttpResponse.status(HttpStatus.FORBIDDEN)
                     .body(status);
-
         }
 
         var status = Status.builder()
@@ -121,6 +117,7 @@ public class ExceptionHandlerController {
                 .reason(StatusReason.Unauthorized)
                 .code(HttpStatus.UNAUTHORIZED.getCode())
                 .build();
+
         return HttpResponse.unauthorized().body(status);
 
     }
@@ -140,5 +137,4 @@ public class ExceptionHandlerController {
         return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(status);
     }
-
 }
