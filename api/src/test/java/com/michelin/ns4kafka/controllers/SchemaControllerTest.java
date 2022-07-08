@@ -234,7 +234,9 @@ class SchemaControllerTest {
         schemaController.list("myNamespace")
             .test()
             .assertValue(schemas -> schemas.size() == 1)
-            .assertValue(schemas -> schemas.get(0).getMetadata().getName().equals("prefix.subject-value"));
+            .assertValue(schemas -> schemas.get(0).getMetadata().getName().equals("prefix.subject-value"))
+            .assertValue(schemas -> schemas.get(0).getSpec().getId() == 1)
+            .assertValue(schemas -> schemas.get(0).getSpec().getVersion() == 1);
     }
 
     /**
