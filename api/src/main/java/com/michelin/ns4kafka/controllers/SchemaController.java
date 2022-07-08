@@ -71,13 +71,14 @@ public class SchemaController extends NamespacedResourceController {
         // Validate TopicNameStrategy
         // https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject/TopicNameStrategy.java
         if (!schema.getMetadata().getName().endsWith("-key") && !schema.getMetadata().getName().endsWith("-value")) {
-            throw new ResourceValidationException(List.of("Invalid value " + schema.getMetadata().getName() +
-                    " for name: subject must end with -key or -value"), schema.getKind(), schema.getMetadata().getName());
+            return Single.error(new ResourceValidationException(List.of("Invalid value " + schema.getMetadata().getName() +
+                    " for name: subject must end with -key or -value"), schema.getKind(), schema.getMetadata().getName()));
         }
 
         // Validate ownership
         if (!schemaService.isNamespaceOwnerOfSubject(ns, schema.getMetadata().getName())) {
-            throw new ResourceValidationException(List.of(String.format("Namespace not owner of this schema %s.", schema.getMetadata().getName())), schema.getKind(), schema.getMetadata().getName());
+            return Single.error(new ResourceValidationException(List.of(String.format("Namespace not owner of this schema %s.",
+                    schema.getMetadata().getName())), schema.getKind(), schema.getMetadata().getName()));
         }
 
         return schemaService
@@ -96,7 +97,7 @@ public class SchemaController extends NamespacedResourceController {
                             .getLatestSubject(ns, schema.getMetadata().getName())
                             .map(Optional::of)
                             .defaultIfEmpty(Optional.empty())
-                            .flatMapSingle(existingSchemaOptional -> schemaService
+                            .flatMapSingle(latestSubjectOptional -> schemaService
                                     .register(ns, schema)
                                     .flatMap(id -> schemaService
                                             .getLatestSubject(ns, schema.getMetadata().getName())
@@ -110,13 +111,13 @@ public class SchemaController extends NamespacedResourceController {
                                                 Schema registeredSchema = registeredSchemaOptional.get();
                                                 ApplyStatus status;
 
-                                                if (existingSchemaOptional.isEmpty()) {
+                                                if (latestSubjectOptional.isEmpty()) {
                                                     status = ApplyStatus.created;
                                                     sendEventLog(schema.getKind(), registeredSchema.getMetadata(), status, null, registeredSchema.getSpec());
-                                                } else if (registeredSchema.getSpec().getVersion() > existingSchemaOptional.get().getSpec().getVersion()) {
+                                                } else if (registeredSchema.getSpec().getVersion() > latestSubjectOptional.get().getSpec().getVersion()) {
                                                     status = ApplyStatus.changed;
                                                     sendEventLog(schema.getKind(), registeredSchema.getMetadata(), status,
-                                                            existingSchemaOptional.get().getSpec(), registeredSchema.getSpec());
+                                                            latestSubjectOptional.get().getSpec(), registeredSchema.getSpec());
                                                 } else {
                                                     status = ApplyStatus.unchanged;
                                                 }
@@ -141,14 +142,15 @@ public class SchemaController extends NamespacedResourceController {
 
         // Validate ownership
         if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
-            throw new ResourceValidationException(List.of(String.format("Namespace not owner of this schema %s.", subject)), AccessControlEntry.ResourceType.SCHEMA.toString(), subject);
+            return Single.error(new ResourceValidationException(List.of(String.format("Namespace not owner of this schema %s.", subject)),
+                    AccessControlEntry.ResourceType.SCHEMA.toString(), subject));
         }
 
        return schemaService.getLatestSubject(ns, subject)
                .map(Optional::of)
                .defaultIfEmpty(Optional.empty())
-               .flatMapSingle(schemaOptional -> {
-                   if (schemaOptional.isEmpty()) {
+               .flatMapSingle(latestSubjectOptional -> {
+                   if (latestSubjectOptional.isEmpty()) {
                        return Single.just(HttpResponse.notFound());
                    }
 
@@ -156,7 +158,7 @@ public class SchemaController extends NamespacedResourceController {
                        return Single.just(HttpResponse.noContent());
                    }
 
-                   Schema schemaToDelete = schemaOptional.get();
+                   Schema schemaToDelete = latestSubjectOptional.get();
                    sendEventLog(schemaToDelete.getKind(),
                            schemaToDelete.getMetadata(),
                            ApplyStatus.deleted,
@@ -165,7 +167,7 @@ public class SchemaController extends NamespacedResourceController {
 
                    return schemaService
                             .deleteSubject(ns, subject)
-                            .map(deleted -> HttpResponse.noContent());
+                            .map(deletedSchemaIds -> HttpResponse.noContent());
                 });
     }
 
@@ -181,36 +183,36 @@ public class SchemaController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
-            throw new ResourceValidationException(List.of("Invalid prefix " + subject +
-                    " : namespace not owner of this subject"), AccessControlEntry.ResourceType.SCHEMA.toString(), subject);
+            return Single.error(new ResourceValidationException(List.of("Invalid prefix " + subject +
+                    " : namespace not owner of this subject"), AccessControlEntry.ResourceType.SCHEMA.toString(), subject));
         }
 
         return schemaService.getLatestSubject(ns, subject)
                 .map(Optional::of)
                 .defaultIfEmpty(Optional.empty())
-                .flatMapSingle(schemaOptional -> {
-                    if (schemaOptional.isEmpty()) {
+                .flatMapSingle(latestSubjectOptional -> {
+                    if (latestSubjectOptional.isEmpty()) {
                         return Single.just(HttpResponse.notFound());
                     }
 
                     SchemaCompatibilityState state = SchemaCompatibilityState.builder()
-                            .metadata(schemaOptional.get().getMetadata())
+                            .metadata(latestSubjectOptional.get().getMetadata())
                             .spec(SchemaCompatibilityState.SchemaCompatibilityStateSpec.builder()
                                     .compatibility(compatibility)
                                     .build())
                             .build();
 
-                    if (schemaOptional.get().getSpec().getCompatibility().equals(compatibility)) {
+                    if (latestSubjectOptional.get().getSpec().getCompatibility().equals(compatibility)) {
                         return Single.just(HttpResponse.ok(state));
                     }
 
                     return schemaService
-                            .updateSubjectCompatibility(ns, schemaOptional.get(), compatibility)
-                            .map(updateCompatibility -> {
+                            .updateSubjectCompatibility(ns, latestSubjectOptional.get(), compatibility)
+                            .map(schemaCompatibility -> {
                                 sendEventLog("SchemaCompatibilityState",
-                                        schemaOptional.get().getMetadata(),
+                                        latestSubjectOptional.get().getMetadata(),
                                         ApplyStatus.changed,
-                                        schemaOptional.get().getSpec().getCompatibility(),
+                                        latestSubjectOptional.get().getSpec().getCompatibility(),
                                         compatibility);
 
                                 return HttpResponse.ok(state);

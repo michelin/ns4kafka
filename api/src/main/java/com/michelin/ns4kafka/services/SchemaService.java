@@ -9,6 +9,7 @@ import com.michelin.ns4kafka.services.schema.client.KafkaSchemaRegistryClient;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaRequest;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
 import lombok.extern.slf4j.Slf4j;
@@ -85,8 +86,8 @@ public class SchemaService {
                 .getLatestSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), subject)
                 .map(Optional::of)
                 .defaultIfEmpty(Optional.empty())
-                .flatMap(schemaResponseOptional -> {
-                    if (schemaResponseOptional.isEmpty()) {
+                .flatMap(latestSubjectOptional -> {
+                    if (latestSubjectOptional.isEmpty()) {
                         return Maybe.empty();
                     }
 
@@ -94,22 +95,22 @@ public class SchemaService {
                             .getCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), subject)
                             .map(Optional::of)
                             .defaultIfEmpty(Optional.empty())
-                            .map(schemaCompatibilityResponse -> {
-                                Schema.Compatibility compatibility = schemaCompatibilityResponse.isPresent() ? schemaCompatibilityResponse.get().compatibilityLevel() : Schema.Compatibility.GLOBAL;
+                            .map(currentCompatibilityOptional -> {
+                                Schema.Compatibility compatibility = currentCompatibilityOptional.isPresent() ? currentCompatibilityOptional.get().compatibilityLevel() : Schema.Compatibility.GLOBAL;
 
                                 return Schema.builder()
                                         .metadata(ObjectMeta.builder()
                                                 .cluster(namespace.getMetadata().getCluster())
                                                 .namespace(namespace.getMetadata().getName())
-                                                .name(schemaResponseOptional.get().subject())
+                                                .name(latestSubjectOptional.get().subject())
                                                 .build())
                                         .spec(Schema.SchemaSpec.builder()
-                                                .id(schemaResponseOptional.get().id())
-                                                .version(schemaResponseOptional.get().version())
+                                                .id(latestSubjectOptional.get().id())
+                                                .version(latestSubjectOptional.get().version())
                                                 .compatibility(compatibility)
-                                                .schema(schemaResponseOptional.get().schema())
-                                                .schemaType(schemaResponseOptional.get().schemaType() == null ? Schema.SchemaType.AVRO :
-                                                        Schema.SchemaType.valueOf(schemaResponseOptional.get().schemaType()))
+                                                .schema(latestSubjectOptional.get().schema())
+                                                .schemaType(latestSubjectOptional.get().schemaType() == null ? Schema.SchemaType.AVRO :
+                                                        Schema.SchemaType.valueOf(latestSubjectOptional.get().schemaType()))
                                                 .build())
                                         .build();
                             });
@@ -162,14 +163,14 @@ public class SchemaService {
                         .schema(schema.getSpec().getSchema())
                         .references(schema.getSpec().getReferences())
                         .build())
-                .flatMap(schemaCompatibilityCheckResponseSuccess -> {
-                            if (!schemaCompatibilityCheckResponseSuccess.isCompatible()) {
-                                return Maybe.just(schemaCompatibilityCheckResponseSuccess.messages());
+                .flatMap(schemaCompatibilityCheckSuccess -> {
+                            if (!schemaCompatibilityCheckSuccess.isCompatible()) {
+                                return Maybe.just(schemaCompatibilityCheckSuccess.messages());
                             } else {
                                 return Maybe.just(List.<String>of());
                             }
                         },
-                        schemaCompatibilityCheckResponseError -> Maybe.just(List.of("An error occurred during the schema validation (status code:)")),
+                        schemaCompatibilityCheckError -> Maybe.just(List.of("An error occurred during the schema validation (status code: " + ((HttpClientResponseException) schemaCompatibilityCheckError).getStatus() + ")")),
                         () -> Maybe.just(List.<String>of()))
                 .flatMapSingle(Single::just);
     }
@@ -185,10 +186,7 @@ public class SchemaService {
         // Reset to default
         if (compatibility.equals(Schema.Compatibility.GLOBAL)) {
             return kafkaSchemaRegistryClient.deleteCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
-                    namespace.getMetadata().getCluster(), schema.getMetadata().getName())
-                    .map(currentCompatibilityDeleted -> SchemaCompatibilityResponse.builder()
-                            .compatibilityLevel(Schema.Compatibility.GLOBAL)
-                            .build());
+                    namespace.getMetadata().getCluster(), schema.getMetadata().getName());
         } else {
             // Update
             return kafkaSchemaRegistryClient.updateSubjectCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
