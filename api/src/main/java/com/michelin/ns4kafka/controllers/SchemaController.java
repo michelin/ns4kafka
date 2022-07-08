@@ -35,7 +35,7 @@ public class SchemaController extends NamespacedResourceController {
      * @return A list of schemas
      */
     @Get
-    public List<Schema> list(String namespace) {
+    public Single<List<Schema>> list(String namespace) {
         Namespace ns = getNamespace(namespace);
         return schemaService.findAllForNamespace(ns);
     }

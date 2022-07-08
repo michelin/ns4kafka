@@ -12,7 +12,6 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -230,12 +229,12 @@ class SchemaControllerTest {
         Schema schema = buildSchema();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
-        when(schemaService.findAllForNamespace(namespace)).thenReturn(List.of(schema));
+        when(schemaService.findAllForNamespace(namespace)).thenReturn(Single.just(List.of(schema)));
 
-        List<Schema> response = schemaController.list("myNamespace");
-
-        Assertions.assertEquals(1L, response.size());
-        Assertions.assertEquals("prefix.subject-value", response.get(0).getMetadata().getName());
+        schemaController.list("myNamespace")
+            .test()
+            .assertValue(schemas -> schemas.size() == 1)
+            .assertValue(schemas -> schemas.get(0).getMetadata().getName().equals("prefix.subject-value"));
     }
 
     /**

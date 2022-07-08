@@ -15,7 +15,7 @@ import java.util.List;
 @Client(value = KafkaSchemaRegistryClientProxy.SCHEMA_REGISTRY_PREFIX)
 public interface KafkaSchemaRegistryClient {
     @Get("/subjects")
-    List<String> getSubjects(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
+    Single<List<String>> getSubjects(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
                              @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster);
 
     @Get("/subjects/{subject}/versions/latest")

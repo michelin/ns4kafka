@@ -37,11 +37,10 @@ public class SchemaService {
 
     /**
      * Get all the schemas by namespace
-     *
      * @param namespace The namespace
      * @return A list of schemas
      */
-    public List<Schema> findAllForNamespace(Namespace namespace) {
+    public Single<List<Schema>> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace).stream()
                 .filter(acl -> acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
                 .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC)
@@ -49,29 +48,30 @@ public class SchemaService {
 
         return kafkaSchemaRegistryClient
                 .getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())
-                .stream()
-                .filter(subject -> {
-                    String underlyingTopicName = subject.replaceAll("(-key|-value)$","");
+                .map(subjects -> subjects
+                        .stream()
+                        .filter(subject -> {
+                            String underlyingTopicName = subject.replaceAll("(-key|-value)$","");
 
-                    return acls.stream().anyMatch(accessControlEntry -> {
-                        switch (accessControlEntry.getSpec().getResourcePatternType()) {
-                            case PREFIXED:
-                                return underlyingTopicName.startsWith(accessControlEntry.getSpec().getResource());
-                            case LITERAL:
-                                return underlyingTopicName.equals(accessControlEntry.getSpec().getResource());
-                        }
+                            return acls.stream().anyMatch(accessControlEntry -> {
+                                switch (accessControlEntry.getSpec().getResourcePatternType()) {
+                                    case PREFIXED:
+                                        return underlyingTopicName.startsWith(accessControlEntry.getSpec().getResource());
+                                    case LITERAL:
+                                        return underlyingTopicName.equals(accessControlEntry.getSpec().getResource());
+                                }
 
-                        return false;
-                    });
-                })
-                .map(namespacedSubject -> Schema.builder()
-                    .metadata(ObjectMeta.builder()
-                            .cluster(namespace.getMetadata().getCluster())
-                            .namespace(namespace.getMetadata().getName())
-                            .name(namespacedSubject)
-                            .build())
-                    .build())
-                .collect(Collectors.toList());
+                                return false;
+                            });
+                        })
+                        .map(namespacedSubject -> Schema.builder()
+                                .metadata(ObjectMeta.builder()
+                                        .cluster(namespace.getMetadata().getCluster())
+                                        .namespace(namespace.getMetadata().getName())
+                                        .name(namespacedSubject)
+                                        .build())
+                                .build())
+                        .collect(Collectors.toList()));
     }
 
     /**
