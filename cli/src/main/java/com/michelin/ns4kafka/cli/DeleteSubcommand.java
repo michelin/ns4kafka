@@ -164,7 +164,7 @@ public class DeleteSubcommand implements Callable<Integer> {
                             .findFirst()
                             .orElseThrow();
                     boolean success = resourceService.delete(apiResource, namespace, resource.getMetadata().getName(), dryRun);
-                    if(success) {
+                    if (success) {
                         System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,green Success |@") + apiResource.getKind() + "/" + resource.getMetadata().getName() + " (deleted)");
                     }
                     return success;
