@@ -6,6 +6,7 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.services.KafkaConnectService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
@@ -24,6 +25,11 @@ import java.util.stream.Collectors;
 @Controller(value = "/api/namespaces/{namespace}/connects")
 @ExecuteOn(TaskExecutors.IO)
 public class ConnectController extends NamespacedResourceController {
+    /**
+     * Message threw when namespace is not owner of the given connector
+     */
+    private final String NAMESPACE_NOT_OWNER = "Namespace not owner of this connector %s.";
+
     /**
      * Connector service
      */
@@ -65,12 +71,11 @@ public class ConnectController extends NamespacedResourceController {
 
         // Validate ownership
         if (!kafkaConnectService.isNamespaceOwnerOfConnect(ns, connector)) {
-            return Single.error(new ResourceValidationException(List.of(String.format("Namespace not owner of this connector %s.", connector)),
+            return Single.error(new ResourceValidationException(List.of(String.format(NAMESPACE_NOT_OWNER, connector)),
                     "Connector", connector));
         }
 
         Optional<Connector> optionalConnector = kafkaConnectService.findByName(ns, connector);
-
         if (optionalConnector.isEmpty()) {
             return Single.just(HttpResponse.notFound());
         }
@@ -88,7 +93,7 @@ public class ConnectController extends NamespacedResourceController {
 
         return kafkaConnectService
                 .delete(ns, optionalConnector.get())
-                .map(deletionSuccess -> HttpResponse.noContent());
+                .map(httpResponse -> HttpResponse.noContent());
     }
 
     /**
@@ -104,7 +109,7 @@ public class ConnectController extends NamespacedResourceController {
 
         // Validate ownership
         if (!kafkaConnectService.isNamespaceOwnerOfConnect(ns, connector.getMetadata().getName())) {
-            return Single.error(new ResourceValidationException(List.of(String.format("Namespace not owner of this connector %s.", connector)),
+            return Single.error(new ResourceValidationException(List.of(String.format(NAMESPACE_NOT_OWNER, connector)),
                     connector.getKind(), connector.getMetadata().getName()));
         }
 
@@ -169,11 +174,11 @@ public class ConnectController extends NamespacedResourceController {
      * @return The change connector state response
      */
     @Post("/{connector}/change-state")
-    public Single<HttpResponse<ChangeConnectorState>> changeState(String namespace, String connector, @Body @Valid ChangeConnectorState changeConnectorState) {
+    public Single<MutableHttpResponse<ChangeConnectorState>> changeState(String namespace, String connector, @Body @Valid ChangeConnectorState changeConnectorState) {
         Namespace ns = getNamespace(namespace);
 
         if (!kafkaConnectService.isNamespaceOwnerOfConnect(ns, connector)) {
-            return Single.error(new ResourceValidationException(List.of(String.format("Namespace not owner of this connector %s.", connector)),
+            return Single.error(new ResourceValidationException(List.of(String.format(NAMESPACE_NOT_OWNER, connector)),
                     "Connector", connector));
         }
 
@@ -199,20 +204,27 @@ public class ConnectController extends NamespacedResourceController {
         }
 
         return response
-                .doOnSuccess(httpResponse -> changeConnectorState.setStatus(ChangeConnectorState.ChangeConnectorStateStatus.builder()
-                        .success(true)
-                        .code(httpResponse.status())
-                        .build()))
-                .doOnError(httpError -> changeConnectorState.setStatus(ChangeConnectorState.ChangeConnectorStateStatus.builder()
-                        .success(false)
-                        .code(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .errorMessage(httpError.getMessage())
-                        .build()))
-                .map(httpResponse -> {
+                .doOnEvent((httpResponse, httpError) -> {
+                    if (httpResponse != null) {
+                        changeConnectorState.setStatus(ChangeConnectorState.ChangeConnectorStateStatus.builder()
+                                .success(true)
+                                .code(httpResponse.status())
+                                .build());
+                    }
+
+                    if (httpError != null) {
+                        changeConnectorState.setStatus(ChangeConnectorState.ChangeConnectorStateStatus.builder()
+                                .success(false)
+                                .code(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .errorMessage(httpError.getMessage())
+                                .build());
+                    }
+
                     changeConnectorState.setMetadata(optionalConnector.get().getMetadata());
                     changeConnectorState.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                    return HttpResponse.ok(changeConnectorState);
-                });
+                })
+                .map(httpResponse -> HttpResponse.ok(changeConnectorState))
+                .onErrorReturnItem(HttpResponse.ok(changeConnectorState));
     }
 
     /**
@@ -222,26 +234,27 @@ public class ConnectController extends NamespacedResourceController {
      * @return The list of imported connectors
      */
     @Post("/_/import{?dryrun}")
-    public List<Connector> importResources(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public Single<List<Connector>> importResources(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
-        List<Connector> unsynchronizedConnectors = kafkaConnectService.listUnsynchronizedConnectors(ns);
+        return kafkaConnectService.listUnsynchronizedConnectors(ns)
+            .map(unsynchronizedConnectors -> {
+                unsynchronizedConnectors.forEach(connector -> {
+                    connector.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                    connector.getMetadata().setCluster(ns.getMetadata().getCluster());
+                    connector.getMetadata().setNamespace(ns.getMetadata().getName());
+                });
 
-        unsynchronizedConnectors.forEach(connector -> {
-            connector.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-            connector.getMetadata().setCluster(ns.getMetadata().getCluster());
-            connector.getMetadata().setNamespace(ns.getMetadata().getName());
-        });
+                if (dryrun) {
+                    return unsynchronizedConnectors;
+                }
 
-        if (dryrun) {
-            return unsynchronizedConnectors;
-        }
-
-        return unsynchronizedConnectors
-                .stream()
-                .map(connector -> {
-                    sendEventLog(connector.getKind(), connector.getMetadata(), ApplyStatus.created, null, connector.getSpec());
-                    return kafkaConnectService.createOrUpdate(connector);
-                })
-                .collect(Collectors.toList());
+                return unsynchronizedConnectors
+                        .stream()
+                        .map(connector -> {
+                            sendEventLog(connector.getKind(), connector.getMetadata(), ApplyStatus.created, null, connector.getSpec());
+                            return kafkaConnectService.createOrUpdate(connector);
+                        })
+                        .collect(Collectors.toList());
+            });
     }
 }

@@ -178,7 +178,8 @@ public class KafkaConnectService {
     public Single<HttpResponse<Void>> delete(Namespace namespace, Connector connector) {
         return kafkaConnectClient.delete(KafkaConnectClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(), connector.getMetadata().getName())
-                .doOnSuccess(deletionSuccess -> {
+                .defaultIfEmpty(HttpResponse.noContent())
+                .flatMapSingle(httpResponse -> {
                     connectorRepository.delete(connector);
 
                     if (log.isInfoEnabled()) {
@@ -186,6 +187,8 @@ public class KafkaConnectService {
                                 "] on Kafka [" + namespace.getMetadata().getName() +
                                 "] Connect [" + connector.getSpec().getConnectCluster() + "]");
                     }
+
+                    return Single.just(httpResponse);
                 });
     }
 
@@ -194,18 +197,22 @@ public class KafkaConnectService {
      * @param namespace The namespace
      * @return The list of connectors
      */
-    public List<Connector> listUnsynchronizedConnectors(Namespace namespace) {
+    public Single<List<Connector>> listUnsynchronizedConnectors(Namespace namespace) {
         ConnectorAsyncExecutor connectorAsyncExecutor = applicationContext.getBean(ConnectorAsyncExecutor.class,
                 Qualifiers.byName(namespace.getMetadata().getCluster()));
 
-        return namespace.getSpec().getConnectClusters().stream()
-                // get all connectors from all connect clusters...
-                .flatMap(connectCluster -> connectorAsyncExecutor.collectBrokerConnectors(connectCluster).stream())
-                // ...that belongs to this namespace
-                .filter(connector -> isNamespaceOwnerOfConnect(namespace, connector.getMetadata().getName()))
-                // ...and aren't in ns4kafka storage
-                .filter(connector -> findByName(namespace, connector.getMetadata().getName()).isEmpty())
+        // Get all connectors from all connect clusters
+        List<Observable<Connector>> connectors = namespace.getSpec().getConnectClusters().stream()
+                .map(connectCluster -> connectorAsyncExecutor.collectBrokerConnectors(connectCluster)
+                        .toObservable()
+                        .flatMapIterable(brokerConnectors -> brokerConnectors)
+                        // That belongs to this namespace
+                        .filter(connector -> isNamespaceOwnerOfConnect(namespace, connector.getMetadata().getName()))
+                        // And aren't in ns4kafka storage
+                        .filter(connector -> findByName(namespace, connector.getMetadata().getName()).isEmpty()))
                 .collect(Collectors.toList());
+
+        return Observable.merge(connectors).toList();
     }
 
     /**
