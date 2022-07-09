@@ -12,6 +12,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.utils.SecurityService;
+import io.reactivex.Single;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,30 +22,46 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ConnectControllerTest {
-
+    /**
+     * Connector service
+     */
     @Mock
     KafkaConnectService kafkaConnectService;
 
+    /**
+     * Namespace service
+     */
     @Mock
     NamespaceService namespaceService;
+
+    /**
+     * App service
+     */
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
+
+    /**
+     * Security service
+     */
     @Mock
     SecurityService securityService;
 
+    /**
+     * Connector controller
+     */
     @InjectMocks
     ConnectController connectController;
 
+    /**
+     * Test connector listing when namespace is empty
+     */
     @Test
     void listEmptyConnectors() {
         Namespace ns = Namespace.builder()
@@ -53,6 +70,7 @@ class ConnectControllerTest {
                         .cluster("local")
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         Mockito.when(kafkaConnectService.findAllForNamespace(ns))
@@ -62,6 +80,9 @@ class ConnectControllerTest {
         Assertions.assertTrue(actual.isEmpty());
     }
 
+    /**
+     * Test connector listing
+     */
     @Test
     void listMultipleConnectors() {
         Namespace ns = Namespace.builder()
@@ -70,18 +91,21 @@ class ConnectControllerTest {
                         .cluster("local")
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         Mockito.when(kafkaConnectService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
-                        Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()
-                ));
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
         List<Connector> actual = connectController.list("test");
         Assertions.assertEquals(2, actual.size());
     }
 
+    /**
+     * Test get connector by name when it does not exist
+     */
     @Test
     void getConnectorEmpty() {
         Namespace ns = Namespace.builder()
@@ -90,6 +114,7 @@ class ConnectControllerTest {
                         .cluster("local")
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         Mockito.when(kafkaConnectService.findByName(ns, "missing"))
@@ -99,6 +124,9 @@ class ConnectControllerTest {
         Assertions.assertTrue(actual.isEmpty());
     }
 
+    /**
+     * Test get connector by name
+     */
     @Test
     void getConnector() {
         Namespace ns = Namespace.builder()
@@ -107,34 +135,46 @@ class ConnectControllerTest {
                         .cluster("local")
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         Mockito.when(kafkaConnectService.findByName(ns, "connect1"))
                 .thenReturn(Optional.of(
-                        Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build()
-                ));
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build()));
 
         Optional<Connector> actual = connectController.getConnector("test", "connect1");
         Assertions.assertTrue(actual.isPresent());
         Assertions.assertEquals("connect1", actual.get().getMetadata().getName());
     }
 
+    /**
+     * Test connector deletion when namespace is not owner
+     */
     @Test
-    void deleteConnecortNotOwned() {
+    void deleteConnectorNotOwned() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(false);
 
-        Assertions.assertThrows(ResourceValidationException.class, () -> connectController.deleteConnector("test", "connect1", false));
+        connectController.deleteConnector("test", "connect1", false)
+                .test()
+                .assertError(ResourceValidationException.class)
+                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1L)
+                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
+                        .equals("Namespace not owner of this connector connect1."));
     }
 
+    /**
+     * Test connector deletion when namespace is owner
+     */
     @Test
     void deleteConnectorOwned() {
         Namespace ns = Namespace.builder()
@@ -143,6 +183,7 @@ class ConnectControllerTest {
                         .cluster("local")
                         .build())
                 .build();
+
         Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
@@ -154,9 +195,15 @@ class ConnectControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        Assertions.assertDoesNotThrow(() -> connectController.deleteConnector("test", "connect1", false));
+        connectController.deleteConnector("test", "connect1", false)
+                .test()
+                .assertNoErrors()
+                .assertValue(response -> response.getStatus().equals(HttpStatus.NO_CONTENT));
     }
 
+    /**
+     * Test connector deletion in dry run mode
+     */
     @Test
     void deleteConnectorOwnedDryRun() {
         Namespace ns = Namespace.builder()
@@ -170,29 +217,43 @@ class ConnectControllerTest {
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
 
-        connectController.deleteConnector("test", "connect1", true);
+        connectController.deleteConnector("test", "connect1", true)
+                .test()
+                .assertNoErrors()
+                .assertValue(response -> response.getStatus().equals(HttpStatus.NO_CONTENT));
+
         verify(kafkaConnectService, never()).delete(any(), any());
     }
 
+    /**
+     * Test connector creation when namespace is not owner
+     */
     @Test
     void createConnectorNotOwner() {
         Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
-
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(false);
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> connectController.apply("test", connector, false));
-        Assertions.assertLinesMatch(List.of("Invalid value connect1 for name: Namespace not OWNER of this connector"), actual.getValidationErrors());
+        connectController.apply("test", connector, false)
+                .test()
+                .assertError(ResourceValidationException.class)
+                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1L)
+                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
+                        .equals("Namespace not owner of this connector connect1."));
     }
 
+    /**
+     * Test connector creation when there are local errors
+     */
     @Test
     void createConnectorLocalErrors() {
         Connector connector = Connector.builder()
@@ -211,12 +272,19 @@ class ConnectControllerTest {
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
         Mockito.when(kafkaConnectService.validateLocally(ns, connector))
-                .thenReturn(List.of("Local Validation Error 1"));
+                .thenReturn(Single.just(List.of("Local Validation Error 1")));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> connectController.apply("test", connector, false));
-        Assertions.assertLinesMatch(List.of("Local Validation Error 1"), actual.getValidationErrors());
+        connectController.apply("test", connector, false)
+                .test()
+                .assertError(ResourceValidationException.class)
+                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1L)
+                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
+                        .equals("Local Validation Error 1"));
     }
 
+    /**
+     * Test connector creation when there are remote errors
+     */
     @Test
     void createConnectorRemoteErrors() {
         Connector connector = Connector.builder()
@@ -230,19 +298,27 @@ class ConnectControllerTest {
                         .cluster("local")
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
         Mockito.when(kafkaConnectService.validateLocally(ns, connector))
-                .thenReturn(List.of());
+                .thenReturn(Single.just(List.of()));
         Mockito.when(kafkaConnectService.validateRemotely(ns, connector))
-                .thenReturn(List.of("Remote Validation Error 1"));
+                .thenReturn(Single.just(List.of("Remote Validation Error 1")));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> connectController.apply("test", connector, false));
-        Assertions.assertLinesMatch(List.of("Remote Validation Error 1"), actual.getValidationErrors());
+        connectController.apply("test", connector, false)
+                .test()
+                .assertError(ResourceValidationException.class)
+                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1L)
+                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
+                        .equals("Remote Validation Error 1"));
     }
 
+    /**
+     * Test connector creation on success
+     */
     @Test
     void createConnectorSuccess() {
         Connector connector = Connector.builder()
@@ -266,25 +342,27 @@ class ConnectControllerTest {
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
         Mockito.when(kafkaConnectService.validateLocally(ns, connector))
-                .thenReturn(List.of());
+                .thenReturn(Single.just(List.of()));
         Mockito.when(kafkaConnectService.validateRemotely(ns, connector))
-                .thenReturn(List.of());
+                .thenReturn(Single.just(List.of()));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
         Mockito.when(kafkaConnectService.createOrUpdate(connector))
                 .thenReturn(expected);
 
-        var response = connectController.apply("test", connector, false);
-        Connector actual = response.body();
-
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
-        Assertions.assertEquals(expected.getStatus().getState(), actual.getStatus().getState());
-
+        connectController.apply("test", connector, false)
+                .test()
+                .assertValue(response -> Objects.equals(response.header("X-Ns4kafka-Result"), "created"))
+                .assertValue(response -> response.getBody().isPresent()
+                        && response.getBody().get().getStatus().getState().equals(expected.getStatus().getState()));
     }
 
+    /**
+     * Test connector creation unchanged
+     */
     @Test
-    void createConnectorSuccess_AlreadyExists() {
+    void createConnectorSuccessAlreadyExists() {
         Connector connector = Connector.builder()
                 .metadata(ObjectMeta.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
@@ -309,23 +387,26 @@ class ConnectControllerTest {
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
         Mockito.when(kafkaConnectService.validateLocally(ns, connector))
-                .thenReturn(List.of());
+                .thenReturn(Single.just(List.of()));
         Mockito.when(kafkaConnectService.validateRemotely(ns, connector))
-                .thenReturn(List.of());
+                .thenReturn(Single.just(List.of()));
         Mockito.when(kafkaConnectService.findByName(ns, "connect1"))
                 .thenReturn(Optional.of(connector));
 
+        connectController.apply("test", connector, false)
+                .test()
+                .assertValue(response -> Objects.equals(response.header("X-Ns4kafka-Result"), "unchanged"))
+                .assertValue(response -> response.getBody().isPresent()
+                        && response.getBody().get().getStatus().getState().equals(expected.getStatus().getState()));
 
-        var response = connectController.apply("test", connector, false);
-        Connector actual = response.body();
-
-        Assertions.assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
-        Assertions.assertEquals(expected, actual);
         verify(kafkaConnectService,never()).createOrUpdate(ArgumentMatchers.any());
     }
 
+    /**
+     * Test connector change
+     */
     @Test
-    void createConnectorSuccess_Changed() {
+    void createConnectorSuccessChanged() {
         Connector connector = Connector.builder()
                 .metadata(ObjectMeta.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
@@ -351,9 +432,9 @@ class ConnectControllerTest {
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
         Mockito.when(kafkaConnectService.validateLocally(ns, connector))
-                .thenReturn(List.of());
+                .thenReturn(Single.just(List.of()));
         Mockito.when(kafkaConnectService.validateRemotely(ns, connector))
-                .thenReturn(List.of());
+                .thenReturn(Single.just(List.of()));
         Mockito.when(kafkaConnectService.findByName(ns, "connect1"))
                 .thenReturn(Optional.of(connectorOld));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
@@ -362,14 +443,16 @@ class ConnectControllerTest {
         Mockito.when(kafkaConnectService.createOrUpdate(connector))
                 .thenReturn(expected);
 
-        var response = connectController.apply("test", connector, false);
-        Connector actual = response.body();
-
-        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
-        Assertions.assertEquals(expected, actual);
-
+        connectController.apply("test", connector, false)
+                .test()
+                .assertValue(response -> Objects.equals(response.header("X-Ns4kafka-Result"), "changed"))
+                .assertValue(response -> response.getBody().isPresent()
+                        && response.getBody().get().getStatus().getState().equals(expected.getStatus().getState()));
     }
 
+    /**
+     * Test connector creation in dry mode
+     */
     @Test
     void createConnectorDryRun() {
         Connector connector = Connector.builder()
@@ -388,19 +471,22 @@ class ConnectControllerTest {
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
         Mockito.when(kafkaConnectService.validateLocally(ns, connector))
-                .thenReturn(List.of());
+                .thenReturn(Single.just(List.of()));
         Mockito.when(kafkaConnectService.validateRemotely(ns, connector))
-                .thenReturn(List.of());
+                .thenReturn(Single.just(List.of()));
 
-        var response = connectController.apply("test", connector, true);
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+        connectController.apply("test", connector, true)
+                .test()
+                .assertValue(response -> Objects.equals(response.header("X-Ns4kafka-Result"), "created"));
+
         verify(kafkaConnectService, never()).createOrUpdate(connector);
-
     }
 
+    /**
+     * Test connector import
+     */
     @Test
-    public void ImportConnector() {
-       
+    void importConnector() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -414,29 +500,23 @@ class ConnectControllerTest {
                 .thenReturn(Optional.of(ns));
         
         when(kafkaConnectService.listUnsynchronizedConnectors(ns))
-                .thenReturn(List.of(connector1, connector2));
+                .thenReturn(Single.just(List.of(connector1, connector2)));
         
         when(kafkaConnectService.createOrUpdate(connector1)).thenReturn(connector1);
         when(kafkaConnectService.createOrUpdate(connector2)).thenReturn(connector2);
 
-        List<Connector> actual = connectController.importResources("test", false);
-        Assertions.assertTrue(actual.stream()
-                .anyMatch(c ->
-                        c.getMetadata().getName().equals("connect1")
-                ));
-        Assertions.assertTrue(actual.stream()
-                .anyMatch(c ->
-                        c.getMetadata().getName().equals("connect2")
-                ));
-        Assertions.assertFalse(actual.stream()
-                .anyMatch(c ->
-                        c.getMetadata().getName().equals("connect3")
-                ));
+        connectController.importResources("test", false)
+                .test()
+                .assertValue(response -> response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect1")))
+                .assertValue(response -> response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect2")))
+                .assertValue(response -> response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect3")));
     }
 
+    /**
+     * Test connector import in dry mode
+     */
     @Test
-    public void ImportConnectorDryRun() {
-
+    void ImportConnectorDryRun() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -451,25 +531,22 @@ class ConnectControllerTest {
                 .thenReturn(Optional.of(ns));
 
         when(kafkaConnectService.listUnsynchronizedConnectors(ns))
-                .thenReturn(List.of(connector1, connector2));
+                .thenReturn(Single.just(List.of(connector1, connector2)));
 
-        List<Connector> actual = connectController.importResources("test", true);
-        Assertions.assertTrue(actual.stream()
-                .anyMatch(c ->
-                        c.getMetadata().getName().equals("connect1")
-                ));
-        Assertions.assertTrue(actual.stream()
-                .anyMatch(c ->
-                        c.getMetadata().getName().equals("connect2")
-                ));
-        Assertions.assertFalse(actual.stream()
-                .anyMatch(c ->
-                        c.getMetadata().getName().equals("connect3")
-                ));
+        connectController.importResources("test", true)
+                .test()
+                .assertValue(response -> response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect1")))
+                .assertValue(response -> response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect2")))
+                .assertValue(response -> response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect3")));
+
         verify(kafkaConnectService, never()).createOrUpdate(connector1);
         verify(kafkaConnectService, never()).createOrUpdate(connector2);
         verify(kafkaConnectService, never()).createOrUpdate(connector3);
     }
+
+    /**
+     * Test connector restart when namespace is not owner
+     */
     @Test
     void restartConnectorNotOwned() {
         Namespace ns = Namespace.builder()
@@ -478,6 +555,7 @@ class ConnectControllerTest {
                         .cluster("local")
                         .build())
                 .build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
@@ -488,9 +566,17 @@ class ConnectControllerTest {
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.restart).build())
                 .build();
 
-        Assertions.assertThrows(ResourceValidationException.class, () -> connectController.changeState("test", "connect1", restart));
+        connectController.changeState("test", "connect1", restart)
+                .test()
+                .assertError(ResourceValidationException.class)
+                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1L)
+                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
+                        .equals("Namespace not owner of this connector connect1."));
     }
 
+    /**
+     * Test connector restart when it does not exist
+     */
     @Test
     void restartConnectorNotExists() {
         Namespace ns = Namespace.builder()
@@ -511,11 +597,16 @@ class ConnectControllerTest {
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.restart).build())
                 .build();
 
-        HttpResponse<ChangeConnectorState> actual = connectController.changeState("test", "connect1", restart);
+        connectController.changeState("test", "connect1", restart)
+                .test()
+                .assertValue(response -> response.getStatus().equals(HttpStatus.NOT_FOUND));
 
-        Assertions.assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
         verify(kafkaConnectService,never()).restart(ArgumentMatchers.any(), ArgumentMatchers.any());
     }
+
+    /**
+     * Test connector restart throwing an exception
+     */
     @Test
     void restartConnectorException() {
         Namespace ns = Namespace.builder()
@@ -539,12 +630,16 @@ class ConnectControllerTest {
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.restart).build())
                 .build();
 
-        HttpResponse<ChangeConnectorState> actual = connectController.changeState("test", "connect1", restart);
-
-        Assertions.assertFalse(actual.body().getStatus().isSuccess());
-        Assertions.assertEquals("Rebalancing", actual.body().getStatus().getErrorMessage());
+        connectController.changeState("test", "connect1", restart)
+                .test()
+                .assertValue(response -> response.getBody().isPresent()
+                        && response.getBody().get().getStatus().isSuccess()
+                        && response.getBody().get().getStatus().getErrorMessage().equals("Rebalancing"));
     }
 
+    /**
+     * Test connector restart when namespace is owner
+     */
     @Test
     void restartConnectorOwned() {
         Namespace ns = Namespace.builder()
@@ -553,6 +648,7 @@ class ConnectControllerTest {
                         .cluster("local")
                         .build())
                 .build();
+
         Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
@@ -561,19 +657,24 @@ class ConnectControllerTest {
         Mockito.when(kafkaConnectService.findByName(ns,"connect1"))
                 .thenReturn(Optional.of(connector));
         Mockito.when(kafkaConnectService.restart(ArgumentMatchers.any(),ArgumentMatchers.any()))
-                .thenReturn(HttpResponse.noContent());
+                .thenReturn(Single.just(HttpResponse.noContent()));
 
         ChangeConnectorState changeConnectorState = ChangeConnectorState.builder()
                 .metadata(ObjectMeta.builder().name("connect1").build())
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.restart).build())
                 .build();
 
-        HttpResponse<ChangeConnectorState> actual = connectController.changeState("test", "connect1", changeConnectorState);
-
-        Assertions.assertTrue(actual.body().getStatus().isSuccess());
-        Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.body().getStatus().getCode());
-        Assertions.assertEquals("connect1", actual.body().getMetadata().getName());
+        connectController.changeState("test", "connect1", changeConnectorState)
+                .test()
+                .assertValue(response -> response.getBody().isPresent()
+                        && response.getBody().get().getStatus().isSuccess()
+                        && response.getStatus().equals(HttpStatus.NO_CONTENT)
+                        && response.getBody().get().getMetadata().getName().equals("connect1"));
     }
+
+    /**
+     * Test connector pause when namespace is owner
+     */
     @Test
     void pauseConnectorOwned() {
         Namespace ns = Namespace.builder()
@@ -582,6 +683,7 @@ class ConnectControllerTest {
                         .cluster("local")
                         .build())
                 .build();
+
         Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
@@ -590,7 +692,7 @@ class ConnectControllerTest {
         Mockito.when(kafkaConnectService.findByName(ns,"connect1"))
                 .thenReturn(Optional.of(connector));
         Mockito.when(kafkaConnectService.pause(ArgumentMatchers.any(),ArgumentMatchers.any()))
-                .thenReturn(HttpResponse.noContent());
+                .thenReturn(Single.just(HttpResponse.noContent()));
 
         ChangeConnectorState changeConnectorState = ChangeConnectorState.builder()
                 .metadata(ObjectMeta.builder().name("connect1").build())
@@ -600,11 +702,17 @@ class ConnectControllerTest {
                         .build())
                 .build();
 
-        HttpResponse<ChangeConnectorState> actual = connectController.changeState("test", "connect1", changeConnectorState);
-
-        Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.body().getStatus().getCode());
-        Assertions.assertEquals("connect1", actual.body().getMetadata().getName());
+        connectController.changeState("test", "connect1", changeConnectorState)
+                .test()
+                .assertValue(response -> response.getBody().isPresent()
+                        && response.getBody().get().getStatus().isSuccess()
+                        && response.getStatus().equals(HttpStatus.NO_CONTENT)
+                        && response.getBody().get().getMetadata().getName().equals("connect1"));
     }
+
+    /**
+     * Test connector resume when namespace is owner
+     */
     @Test
     void resumeConnectorOwned() {
         Namespace ns = Namespace.builder()
@@ -621,7 +729,7 @@ class ConnectControllerTest {
         Mockito.when(kafkaConnectService.findByName(ns,"connect1"))
                 .thenReturn(Optional.of(connector));
         Mockito.when(kafkaConnectService.resume(ArgumentMatchers.any(),ArgumentMatchers.any()))
-                .thenReturn(HttpResponse.noContent());
+                .thenReturn(Single.just(HttpResponse.noContent()));
 
         ChangeConnectorState changeConnectorState = ChangeConnectorState.builder()
                 .metadata(ObjectMeta.builder().name("connect1").build())
@@ -631,9 +739,11 @@ class ConnectControllerTest {
                         .build())
                 .build();
 
-        HttpResponse<ChangeConnectorState> actual = connectController.changeState("test", "connect1", changeConnectorState);
-
-        Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.body().getStatus().getCode());
-        Assertions.assertEquals("connect1", actual.body().getMetadata().getName());
+        connectController.changeState("test", "connect1", changeConnectorState)
+                .test()
+                .assertValue(response -> response.getBody().isPresent()
+                        && response.getBody().get().getStatus().isSuccess()
+                        && response.getStatus().equals(HttpStatus.NO_CONTENT)
+                        && response.getBody().get().getMetadata().getName().equals("connect1"));
     }
 }
