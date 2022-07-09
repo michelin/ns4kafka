@@ -18,33 +18,67 @@ import java.util.stream.Collectors;
 
 @CommandLine.Command(name = "connectors", description = "Interact with connectors (Pause/Resume/Restart)")
 public class ConnectorsSubcommand implements Callable<Integer> {
-
+    /**
+     * Kafkactl command
+     */
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
 
+    /**
+     * Action to perform on connectors
+     */
     @CommandLine.Parameters(index = "0", description = "(pause | resume | restart)", arity = "1")
     public ConnectorAction action;
 
+    /**
+     * List of connectors
+     */
     @CommandLine.Parameters(index="1..*", description = "Connector names separated by space (use `ALL` for all connectors)", arity = "1..*")
     public List<String> connectors;
 
+    /**
+     * Login service
+     */
     @Inject
     public LoginService loginService;
+
+    /**
+     * Kafkactl configuration
+     */
     @Inject
     public KafkactlConfig kafkactlConfig;
+
+    /**
+     * Resource service
+     */
     @Inject
     public ResourceService resourceService;
+
+    /**
+     * API resources service
+     */
     @Inject
     public ApiResourcesService apiResourcesService;
+
+    /**
+     * Format service
+     */
     @Inject
     public FormatService formatService;
 
+    /**
+     * Current command
+     */
     @CommandLine.Spec
     public CommandLine.Model.CommandSpec commandSpec;
 
+    /**
+     * Run the "connectors" command
+     * @return The command return code
+     * @throws Exception Any exception during the run
+     */
     @Override
     public Integer call() throws Exception {
-
         boolean authenticated = loginService.doAuthenticate();
         if (!authenticated) {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
@@ -52,8 +86,7 @@ public class ConnectorsSubcommand implements Callable<Integer> {
 
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
 
-        // specific case ALL
-        if(connectors.stream().anyMatch(s -> s.equalsIgnoreCase("ALL"))){
+        if (connectors.stream().anyMatch(s -> s.equalsIgnoreCase("ALL"))) {
             ApiResource connectType = apiResourcesService.getResourceDefinitionFromKind("Connector")
                     .orElseThrow(() -> new CommandLine.ParameterException(commandSpec.commandLine(), "`Connector` Kind not found in ApiResources Service"));
             connectors = resourceService.listResourcesWithType(connectType, namespace)
@@ -63,7 +96,7 @@ public class ConnectorsSubcommand implements Callable<Integer> {
         }
 
         List<Resource> changeConnectorResponseList = connectors.stream()
-                // prepare request object
+                // Prepare request object
                 .map(connector -> Resource.builder()
                         .metadata(ObjectMeta.builder()
                                 .namespace(namespace)
@@ -71,12 +104,9 @@ public class ConnectorsSubcommand implements Callable<Integer> {
                                 .build())
                         .spec(Map.of("action", action.toString()))
                         .build())
-                // execute action on each connectors
                 .map(changeConnectorStateRequest -> resourceService.changeConnectorState(namespace, changeConnectorStateRequest.getMetadata().getName(), changeConnectorStateRequest))
-                // drop nulls
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
-
 
         if (!changeConnectorResponseList.isEmpty()) {
             formatService.displayList("ChangeConnectorState", changeConnectorResponseList, "table");

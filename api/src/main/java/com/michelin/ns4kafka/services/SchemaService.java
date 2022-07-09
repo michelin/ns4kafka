@@ -37,11 +37,10 @@ public class SchemaService {
 
     /**
      * Get all the schemas by namespace
-     *
      * @param namespace The namespace
      * @return A list of schemas
      */
-    public List<Schema> findAllForNamespace(Namespace namespace) {
+    public Single<List<Schema>> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace).stream()
                 .filter(acl -> acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
                 .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC)
@@ -49,9 +48,10 @@ public class SchemaService {
 
         return kafkaSchemaRegistryClient
                 .getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())
-                .stream()
+                .toObservable()
+                .flatMapIterable(subjects -> subjects)
                 .filter(subject -> {
-                    String underlyingTopicName = subject.replaceAll("(-key|-value)$","");
+                    String underlyingTopicName = subject.replaceAll("(-key|-value)$", "");
 
                     return acls.stream().anyMatch(accessControlEntry -> {
                         switch (accessControlEntry.getSpec().getResourcePatternType()) {
@@ -64,14 +64,28 @@ public class SchemaService {
                         return false;
                     });
                 })
-                .map(namespacedSubject -> Schema.builder()
-                    .metadata(ObjectMeta.builder()
-                            .cluster(namespace.getMetadata().getCluster())
-                            .namespace(namespace.getMetadata().getName())
-                            .name(namespacedSubject)
-                            .build())
-                    .build())
-                .collect(Collectors.toList());
+                .flatMapMaybe(subject -> getLatestSubject(namespace, subject)
+                        .map(Optional::of)
+                        .defaultIfEmpty(Optional.empty())
+                        .map(schemaOptional -> {
+                            Schema schema = Schema.builder()
+                                    .metadata(ObjectMeta.builder()
+                                            .cluster(namespace.getMetadata().getCluster())
+                                            .namespace(namespace.getMetadata().getName())
+                                            .name(subject)
+                                            .build())
+                                    .build();
+
+                            schemaOptional.ifPresent(value -> schema.setSpec(Schema.SchemaSpec.builder()
+                                    .id(value.getSpec().getId())
+                                    .version(value.getSpec().getVersion())
+                                    .compatibility(value.getSpec().getCompatibility())
+                                    .schemaType(value.getSpec().getSchemaType())
+                                    .build()));
+
+                            return schema;
+                        }))
+                .toList();
     }
 
     /**

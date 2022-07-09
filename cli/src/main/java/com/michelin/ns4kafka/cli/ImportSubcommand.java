@@ -20,67 +20,107 @@ import java.util.stream.Collectors;
 
 @Command(name = "import", description = "Import resources already present on the Kafka Cluster in ns4kafka")
 public class ImportSubcommand implements Callable<Integer> {
-
+    /**
+     * Login service
+     */
     @Inject
     public LoginService loginService;
+
+    /**
+     * Resource service
+     */
     @Inject
     public ResourceService resourceService;
+
+    /**
+     * API resources service
+     */
     @Inject
     public ApiResourcesService apiResourcesService;
+
+    /**
+     * Format service
+     */
     @Inject
     public FormatService formatService;
+
+    /**
+     * Kafkactl configuration
+     */
     @Inject
     public KafkactlConfig kafkactlConfig;
 
+    /**
+     * Kafkactl command
+     */
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
+
+    /**
+     * Resource type to import
+     */
     @Parameters(index = "0", description = "Resource type", arity = "1")
     public String resourceType;
+
+    /**
+     * Does not persist resources. Validate only
+     */
     @Option(names = {"--dry-run"}, description = "Does not persist resources. Validate only")
     public boolean dryRun;
 
+    /**
+     * Current command
+     */
     @CommandLine.Spec
     CommandLine.Model.CommandSpec commandSpec;
 
+    /**
+     * Run the "get" command
+     * @return The command return code
+     */
     public Integer call() {
-
         if (dryRun) {
             System.out.println("Dry run execution");
         }
-        // 1. Authent
+
         boolean authenticated = loginService.doAuthenticate();
         if (!authenticated) {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
         }
 
-        // 2. validate resourceType + custom type ALL
+        // Validate resourceType + custom type ALL
         List<ApiResource> apiResources = validateResourceType();
 
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
 
         Map<ApiResource, List<Resource>> resources = resourceService.importAll(apiResources, namespace, dryRun);
 
-        // 5.a display all resources by type
+        // Display all resources by type
         resources.forEach((k, v) -> formatService.displayList(k.getKind(), v, "table"));
         return 0;
-
     }
 
+    /**
+     * Validate required resource type
+     * @return The list of resource type
+     */
     private List<ApiResource> validateResourceType() {
-        // specific case ALL
+        // Specific case ALL
         if (resourceType.equalsIgnoreCase("ALL")) {
             return apiResourcesService.getListResourceDefinition()
                     .stream()
-                    .filter(apiResource -> apiResource.isSynchronizable())
+                    .filter(ApiResource::isSynchronizable)
                     .collect(Collectors.toList());
         }
-        // otherwise check resource exists
+
+        // Otherwise, check resource exists
         Optional<ApiResource> optionalApiResource = apiResourcesService.getResourceDefinitionFromCommandName(resourceType);
         if (optionalApiResource.isEmpty()) {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "The server doesn't have resource type " + resourceType);
         }
-        if(!optionalApiResource.get().isSynchronizable()){
-            throw new CommandLine.ParameterException(commandSpec.commandLine(), "Resource Type " + resourceType+" is not synchronizable");
+
+        if (!optionalApiResource.get().isSynchronizable()) {
+            throw new CommandLine.ParameterException(commandSpec.commandLine(), "Resource Type " + resourceType + " is not synchronizable");
         }
 
         return List.of(optionalApiResource.get());

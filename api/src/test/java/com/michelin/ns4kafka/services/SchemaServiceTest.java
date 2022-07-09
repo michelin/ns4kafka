@@ -54,8 +54,12 @@ class SchemaServiceTest {
     void getAllByNamespace() {
         Namespace namespace = buildNamespace();
         List<String> subjectsResponse = Arrays.asList("prefix.schema-one", "prefix2.schema-two", "prefix2.schema-three");
+        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
 
-        when(kafkaSchemaRegistryClient.getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())).thenReturn(subjectsResponse);
+        when(kafkaSchemaRegistryClient.getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())).thenReturn(Single.just(subjectsResponse));
+        when(kafkaSchemaRegistryClient.getLatestSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), "prefix.schema-one")).thenReturn(Maybe.just(buildSchemaResponse("prefix.schema-one")));
+        when(kafkaSchemaRegistryClient.getLatestSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), "prefix2.schema-two")).thenReturn(Maybe.just(buildSchemaResponse("prefix2.schema-two")));
+        when(kafkaSchemaRegistryClient.getCurrentCompatibilityBySubject(any(), any(), any())).thenReturn(Maybe.just(compatibilityResponse));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(namespace))
                 .thenReturn(List.of(
                         AccessControlEntry.builder()
@@ -96,11 +100,12 @@ class SchemaServiceTest {
                                 .build()
                 ));
 
-        List<Schema> retrievedSchemas = schemaService.findAllForNamespace(namespace);
-        Assertions.assertEquals(2L, retrievedSchemas.size());
-        Assertions.assertEquals("prefix.schema-one", retrievedSchemas.get(0).getMetadata().getName());
-        Assertions.assertEquals("prefix2.schema-two", retrievedSchemas.get(1).getMetadata().getName());
-        Assertions.assertTrue(retrievedSchemas.stream().noneMatch(schema -> schema.getMetadata().getName().equals("prefix2.schema-three")));
+        schemaService.findAllForNamespace(namespace)
+            .test()
+            .assertValue(schemas -> schemas.size() == 2)
+            .assertValue(schemas -> schemas.get(0).getMetadata().getName().equals("prefix.schema-one"))
+            .assertValue(schemas -> schemas.get(1).getMetadata().getName().equals("prefix2.schema-two"))
+            .assertValue(schemas -> schemas.stream().noneMatch(schema -> schema.getMetadata().getName().equals("prefix2.schema-three")));
     }
 
     /**
@@ -110,10 +115,11 @@ class SchemaServiceTest {
     void getAllByNamespaceEmptyResponse() {
         Namespace namespace = buildNamespace();
 
-        when(kafkaSchemaRegistryClient.getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())).thenReturn(List.of());
+        when(kafkaSchemaRegistryClient.getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())).thenReturn(Single.just(List.of()));
 
-        List<Schema> retrievedSchemas = schemaService.findAllForNamespace(namespace);
-        Assertions.assertTrue(retrievedSchemas.isEmpty());
+       schemaService.findAllForNamespace(namespace)
+                .test()
+                .assertValue(List::isEmpty);
     }
 
     /**
