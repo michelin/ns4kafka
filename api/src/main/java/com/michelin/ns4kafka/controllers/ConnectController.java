@@ -109,7 +109,7 @@ public class ConnectController extends NamespacedResourceController {
 
         // Validate ownership
         if (!kafkaConnectService.isNamespaceOwnerOfConnect(ns, connector.getMetadata().getName())) {
-            return Single.error(new ResourceValidationException(List.of(String.format(NAMESPACE_NOT_OWNER, connector)),
+            return Single.error(new ResourceValidationException(List.of(String.format(NAMESPACE_NOT_OWNER, connector.getMetadata().getName())),
                     connector.getKind(), connector.getMetadata().getName()));
         }
 
@@ -133,8 +133,8 @@ public class ConnectController extends NamespacedResourceController {
                     // Validate against connect rest API /validate
                     return kafkaConnectService.validateRemotely(ns, connector)
                             .flatMap(remoteValidationErrors -> {
-                                if (!validationErrors.isEmpty()) {
-                                    return Single.error(new ResourceValidationException(validationErrors, connector.getKind(), connector.getMetadata().getName()));
+                                if (!remoteValidationErrors.isEmpty()) {
+                                    return Single.error(new ResourceValidationException(remoteValidationErrors, connector.getKind(), connector.getMetadata().getName()));
                                 }
 
                                 // Augment with server side fields

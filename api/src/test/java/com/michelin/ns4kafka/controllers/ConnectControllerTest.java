@@ -167,7 +167,7 @@ class ConnectControllerTest {
         connectController.deleteConnector("test", "connect1", false)
                 .test()
                 .assertError(ResourceValidationException.class)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1L)
+                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1)
                 .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
                         .equals("Namespace not owner of this connector connect1."));
     }
@@ -191,6 +191,8 @@ class ConnectControllerTest {
                 .thenReturn(true);
         Mockito.when(kafkaConnectService.findByName(ns,"connect1"))
                 .thenReturn(Optional.of(connector));
+        Mockito.when(kafkaConnectService.delete(ns,connector))
+                .thenReturn(Single.just(HttpResponse.noContent()));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -212,8 +214,12 @@ class ConnectControllerTest {
                         .cluster("local")
                         .build())
                 .build();
+        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
+        Mockito.when(kafkaConnectService.findByName(ns,"connect1"))
+                .thenReturn(Optional.of(connector));
         Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
 
@@ -246,7 +252,7 @@ class ConnectControllerTest {
         connectController.apply("test", connector, false)
                 .test()
                 .assertError(ResourceValidationException.class)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1L)
+                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1)
                 .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
                         .equals("Namespace not owner of this connector connect1."));
     }
@@ -277,7 +283,7 @@ class ConnectControllerTest {
         connectController.apply("test", connector, false)
                 .test()
                 .assertError(ResourceValidationException.class)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1L)
+                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1)
                 .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
                         .equals("Local Validation Error 1"));
     }
@@ -311,7 +317,7 @@ class ConnectControllerTest {
         connectController.apply("test", connector, false)
                 .test()
                 .assertError(ResourceValidationException.class)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1L)
+                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1)
                 .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
                         .equals("Remote Validation Error 1"));
     }
@@ -509,14 +515,14 @@ class ConnectControllerTest {
                 .test()
                 .assertValue(response -> response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect1")))
                 .assertValue(response -> response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect2")))
-                .assertValue(response -> response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect3")));
+                .assertValue(response -> response.stream().noneMatch(c -> c.getMetadata().getName().equals("connect3")));
     }
 
     /**
      * Test connector import in dry mode
      */
     @Test
-    void ImportConnectorDryRun() {
+    void importConnectorDryRun() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -537,7 +543,7 @@ class ConnectControllerTest {
                 .test()
                 .assertValue(response -> response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect1")))
                 .assertValue(response -> response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect2")))
-                .assertValue(response -> response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect3")));
+                .assertValue(response -> response.stream().noneMatch(c -> c.getMetadata().getName().equals("connect3")));
 
         verify(kafkaConnectService, never()).createOrUpdate(connector1);
         verify(kafkaConnectService, never()).createOrUpdate(connector2);
@@ -569,7 +575,7 @@ class ConnectControllerTest {
         connectController.changeState("test", "connect1", restart)
                 .test()
                 .assertError(ResourceValidationException.class)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1L)
+                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1)
                 .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
                         .equals("Namespace not owner of this connector connect1."));
     }
@@ -623,7 +629,7 @@ class ConnectControllerTest {
         Mockito.when(kafkaConnectService.findByName(ns,"connect1"))
                 .thenReturn(Optional.of(connector));
         Mockito.when(kafkaConnectService.restart(ArgumentMatchers.any(),ArgumentMatchers.any()))
-                .thenThrow(new HttpClientResponseException("Rebalancing", HttpResponse.status(HttpStatus.CONFLICT)));
+                .thenReturn(Single.error(new HttpClientResponseException("Rebalancing", HttpResponse.status(HttpStatus.CONFLICT))));
 
         ChangeConnectorState restart = ChangeConnectorState.builder()
                 .metadata(ObjectMeta.builder().name("connect1").build())
@@ -633,8 +639,8 @@ class ConnectControllerTest {
         connectController.changeState("test", "connect1", restart)
                 .test()
                 .assertValue(response -> response.getBody().isPresent()
-                        && response.getBody().get().getStatus().isSuccess()
-                        && response.getBody().get().getStatus().getErrorMessage().equals("Rebalancing"));
+                        && !response.getBody().get().getStatus().isSuccess()
+                        && response.body().getStatus().getErrorMessage().equals("Rebalancing"));
     }
 
     /**
@@ -666,10 +672,10 @@ class ConnectControllerTest {
 
         connectController.changeState("test", "connect1", changeConnectorState)
                 .test()
-                .assertValue(response -> response.getBody().isPresent()
-                        && response.getBody().get().getStatus().isSuccess()
-                        && response.getStatus().equals(HttpStatus.NO_CONTENT)
-                        && response.getBody().get().getMetadata().getName().equals("connect1"));
+                .assertValue(response -> response.getBody().isPresent() &&
+                        response.getBody().get().getStatus().isSuccess())
+                .assertValue(response -> HttpStatus.NO_CONTENT.equals(response.body().getStatus().getCode()))
+                .assertValue(response -> response.body().getMetadata().getName().equals("connect1"));
     }
 
     /**
@@ -704,10 +710,10 @@ class ConnectControllerTest {
 
         connectController.changeState("test", "connect1", changeConnectorState)
                 .test()
-                .assertValue(response -> response.getBody().isPresent()
-                        && response.getBody().get().getStatus().isSuccess()
-                        && response.getStatus().equals(HttpStatus.NO_CONTENT)
-                        && response.getBody().get().getMetadata().getName().equals("connect1"));
+                .assertValue(response -> response.getBody().isPresent() &&
+                        response.getBody().get().getStatus().isSuccess())
+                .assertValue(response -> HttpStatus.NO_CONTENT.equals(response.body().getStatus().getCode()))
+                .assertValue(response -> response.body().getMetadata().getName().equals("connect1"));
     }
 
     /**
@@ -741,9 +747,9 @@ class ConnectControllerTest {
 
         connectController.changeState("test", "connect1", changeConnectorState)
                 .test()
-                .assertValue(response -> response.getBody().isPresent()
-                        && response.getBody().get().getStatus().isSuccess()
-                        && response.getStatus().equals(HttpStatus.NO_CONTENT)
-                        && response.getBody().get().getMetadata().getName().equals("connect1"));
+                .assertValue(response -> response.getBody().isPresent() &&
+                        response.getBody().get().getStatus().isSuccess())
+                .assertValue(response -> HttpStatus.NO_CONTENT.equals(response.body().getStatus().getCode()))
+                .assertValue(response -> response.body().getMetadata().getName().equals("connect1"));
     }
 }
