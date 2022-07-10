@@ -27,31 +27,31 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class SchemaControllerTest {
     /**
-     * The namespace service
+     * Namespace service
      */
     @Mock
     NamespaceService namespaceService;
 
     /**
-     * The schema service
+     * Schema service
      */
     @Mock
     SchemaService schemaService;
 
     /**
-     * The schema controller
+     * Schema controller
      */
     @InjectMocks
     SchemaController schemaController;
 
     /**
-     * The security service
+     * Security service
      */
     @Mock
     SecurityService securityService;
 
     /**
-     * The app publisher
+     * App publisher
      */
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
