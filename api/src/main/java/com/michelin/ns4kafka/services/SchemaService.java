@@ -3,7 +3,8 @@ package com.michelin.ns4kafka.services;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.Schema;
+import com.michelin.ns4kafka.models.schema.Schema;
+import com.michelin.ns4kafka.models.schema.SchemaList;
 import com.michelin.ns4kafka.services.schema.KafkaSchemaRegistryClientProxy;
 import com.michelin.ns4kafka.services.schema.client.KafkaSchemaRegistryClient;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
@@ -40,7 +41,7 @@ public class SchemaService {
      * @param namespace The namespace
      * @return A list of schemas
      */
-    public Single<List<Schema>> findAllForNamespace(Namespace namespace) {
+    public Single<List<SchemaList>> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace).stream()
                 .filter(acl -> acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
                 .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC)
@@ -48,44 +49,31 @@ public class SchemaService {
 
         return kafkaSchemaRegistryClient
                 .getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())
-                .toObservable()
-                .flatMapIterable(subjects -> subjects)
-                .filter(subject -> {
-                    String underlyingTopicName = subject.replaceAll("(-key|-value)$", "");
+                .map(subjects -> subjects
+                        .stream()
+                        .filter(subject -> {
+                            String underlyingTopicName = subject.replaceAll("(-key|-value)$","");
 
-                    return acls.stream().anyMatch(accessControlEntry -> {
-                        switch (accessControlEntry.getSpec().getResourcePatternType()) {
-                            case PREFIXED:
-                                return underlyingTopicName.startsWith(accessControlEntry.getSpec().getResource());
-                            case LITERAL:
-                                return underlyingTopicName.equals(accessControlEntry.getSpec().getResource());
-                        }
+                            return acls.stream().anyMatch(accessControlEntry -> {
+                                switch (accessControlEntry.getSpec().getResourcePatternType()) {
+                                    case PREFIXED:
+                                        return underlyingTopicName.startsWith(accessControlEntry.getSpec().getResource());
+                                    case LITERAL:
+                                        return underlyingTopicName.equals(accessControlEntry.getSpec().getResource());
+                                }
 
-                        return false;
-                    });
-                })
-                .flatMapMaybe(subject -> getLatestSubject(namespace, subject)
-                        .map(Optional::of)
-                        .defaultIfEmpty(Optional.empty())
-                        .map(schemaOptional -> {
-                            Schema schema = Schema.builder()
-                                    .metadata(ObjectMeta.builder()
-                                            .cluster(namespace.getMetadata().getCluster())
-                                            .namespace(namespace.getMetadata().getName())
-                                            .name(subject)
-                                            .build())
-                                    .build();
-
-                            schemaOptional.ifPresent(value -> schema.setSpec(Schema.SchemaSpec.builder()
-                                    .id(value.getSpec().getId())
-                                    .version(value.getSpec().getVersion())
-                                    .compatibility(value.getSpec().getCompatibility())
-                                    .schemaType(value.getSpec().getSchemaType())
-                                    .build()));
-
-                            return schema;
-                        }))
-                .toList();
+                                return false;
+                            });
+                        })
+                        .map(namespacedSubject -> SchemaList.builder()
+                                .metadata(ObjectMeta.builder()
+                                        .cluster(namespace.getMetadata().getCluster())
+                                        .namespace(namespace.getMetadata().getName())
+                                        .name(namespacedSubject)
+                                        .build())
+                                .build())
+                        .collect(Collectors.toList())
+                );
     }
 
     /**

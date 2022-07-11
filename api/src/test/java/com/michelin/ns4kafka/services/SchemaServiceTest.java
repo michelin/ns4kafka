@@ -3,7 +3,7 @@ package com.michelin.ns4kafka.services;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.Schema;
+import com.michelin.ns4kafka.models.schema.Schema;
 import com.michelin.ns4kafka.services.schema.KafkaSchemaRegistryClientProxy;
 import com.michelin.ns4kafka.services.schema.client.KafkaSchemaRegistryClient;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityCheckResponse;

@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.validation;
 
-import com.michelin.ns4kafka.models.Connector;
+import com.michelin.ns4kafka.models.connector.Connector;
 import lombok.*;
 
 import java.util.ArrayList;

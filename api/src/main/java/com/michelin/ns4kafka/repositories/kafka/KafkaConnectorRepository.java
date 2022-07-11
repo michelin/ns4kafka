@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.repositories.kafka;
 
-import com.michelin.ns4kafka.models.Connector;
+import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import io.micronaut.configuration.kafka.annotation.*;
 import io.micronaut.context.annotation.Value;

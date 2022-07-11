@@ -1,7 +1,8 @@
-package com.michelin.ns4kafka.models;
+package com.michelin.ns4kafka.models.connector;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 
