@@ -10,9 +10,16 @@ micronaut:
       connect:
         num-threads: 4
         prefer-native-transport: true
+      schema:
+        num-threads: 4
+        prefer-native-transport: true
   http:
-    client:
-      event-loop-group: connect
+    services:
+      /connect-proxy:
+        event-loop-group: connect
+      /schema-registry-proxy:
+        event-loop-group: schema
+
 # END ThreadPoolOptimization
   application:
     name: ns4kafka

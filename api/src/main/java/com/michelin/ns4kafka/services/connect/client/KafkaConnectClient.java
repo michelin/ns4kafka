@@ -11,7 +11,7 @@ import io.reactivex.Single;
 import java.util.List;
 import java.util.Map;
 
-@Client(KafkaConnectClientProxy.PROXY_PREFIX)
+@Client(value = KafkaConnectClientProxy.PROXY_PREFIX)
 public interface KafkaConnectClient {
     @Get("/connectors?expand=info&expand=status")
     Single<Map<String, ConnectorStatus>> listAll(
