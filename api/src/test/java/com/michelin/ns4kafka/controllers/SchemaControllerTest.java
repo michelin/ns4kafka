@@ -2,7 +2,8 @@ package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.Schema;
+import com.michelin.ns4kafka.models.schema.Schema;
+import com.michelin.ns4kafka.models.schema.SchemaList;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.SchemaService;
@@ -226,7 +227,7 @@ class SchemaControllerTest {
     @Test
     void list() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
+        SchemaList schema = buildSchemaList();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.findAllForNamespace(namespace)).thenReturn(Single.just(List.of(schema)));
@@ -234,9 +235,7 @@ class SchemaControllerTest {
         schemaController.list("myNamespace")
             .test()
             .assertValue(schemas -> schemas.size() == 1)
-            .assertValue(schemas -> schemas.get(0).getMetadata().getName().equals("prefix.subject-value"))
-            .assertValue(schemas -> schemas.get(0).getSpec().getId() == 1)
-            .assertValue(schemas -> schemas.get(0).getSpec().getVersion() == 1);
+            .assertValue(schemas -> schemas.get(0).getMetadata().getName().equals("prefix.subject-value"));
     }
 
     /**
@@ -450,6 +449,14 @@ class SchemaControllerTest {
                         .id(1)
                         .version(1)
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the person\"}]}")
+                        .build())
+                .build();
+    }
+
+    private SchemaList buildSchemaList() {
+        return SchemaList.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("prefix.subject-value")
                         .build())
                 .build();
     }

@@ -1,5 +1,6 @@
-package com.michelin.ns4kafka.models;
+package com.michelin.ns4kafka.models.schema;
 
+import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 

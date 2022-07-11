@@ -2,8 +2,9 @@ package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.Schema;
-import com.michelin.ns4kafka.models.SchemaCompatibilityState;
+import com.michelin.ns4kafka.models.schema.Schema;
+import com.michelin.ns4kafka.models.schema.SchemaCompatibilityState;
+import com.michelin.ns4kafka.models.schema.SchemaList;
 import com.michelin.ns4kafka.services.SchemaService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -35,7 +36,7 @@ public class SchemaController extends NamespacedResourceController {
      * @return A list of schemas
      */
     @Get
-    public Single<List<Schema>> list(String namespace) {
+    public Single<List<SchemaList>> list(String namespace) {
         Namespace ns = getNamespace(namespace);
         return schemaService.findAllForNamespace(ns);
     }

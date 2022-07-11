@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.models;
 
+import com.michelin.ns4kafka.models.connector.Connector;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

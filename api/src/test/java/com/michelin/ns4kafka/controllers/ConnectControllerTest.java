@@ -1,7 +1,7 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.models.ChangeConnectorState;
-import com.michelin.ns4kafka.models.Connector;
+import com.michelin.ns4kafka.models.connector.ChangeConnectorState;
+import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;

@@ -1,7 +1,7 @@
 package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
-import com.michelin.ns4kafka.models.Connector;
+import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;

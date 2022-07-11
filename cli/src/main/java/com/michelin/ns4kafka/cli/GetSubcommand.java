@@ -134,7 +134,7 @@ public class GetSubcommand implements Callable<Integer> {
                     resources.entrySet()
                             .stream()
                             .filter(kv -> !kv.getValue().isEmpty())
-                            .forEach(kv -> formatService.displayList(kv.getKey().getKind(), kv.getValue(), output));
+                            .forEach(kv -> formatService.displayList(kv.getValue().get(0).getKind(), kv.getValue(), output));
                 }
             } catch (HttpClientResponseException e) {
                 formatService.displayError(e, apiResources.get(0).getKind(), null);
