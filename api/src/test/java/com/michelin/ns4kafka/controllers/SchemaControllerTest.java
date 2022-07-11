@@ -69,9 +69,7 @@ class SchemaControllerTest {
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
         when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Single.just(List.of()));
-        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName()))
-                .thenReturn(Maybe.empty())
-                .thenReturn(Maybe.just(schema));
+        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Maybe.empty());
         when(schemaService.register(namespace, schema)).thenReturn(Single.just(1));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
@@ -92,15 +90,12 @@ class SchemaControllerTest {
     void applyChanged() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
-        Schema schemaV2 = buildSchema();
-        schemaV2.getSpec().setVersion(2);
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
         when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Single.just(List.of()));
         when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName()))
-                .thenReturn(Maybe.just(schema))
-                .thenReturn(Maybe.just(schemaV2));
+                .thenReturn(Maybe.just(schema));
         when(schemaService.register(namespace, schema)).thenReturn(Single.just(2));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
@@ -125,9 +120,7 @@ class SchemaControllerTest {
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
         when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Single.just(List.of()));
-        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName()))
-                .thenReturn(Maybe.just(schema))
-                .thenReturn(Maybe.just(schema));
+        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Maybe.just(schema));
         when(schemaService.register(namespace, schema)).thenReturn(Single.just(1));
 
         schemaController.apply("myNamespace", schema, false)

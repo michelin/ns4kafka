@@ -100,31 +100,22 @@ public class SchemaController extends NamespacedResourceController {
                             .defaultIfEmpty(Optional.empty())
                             .flatMapSingle(latestSubjectOptional -> schemaService
                                     .register(ns, schema)
-                                    .flatMap(id -> schemaService
-                                            .getLatestSubject(ns, schema.getMetadata().getName())
-                                            .map(Optional::of)
-                                            .defaultIfEmpty(Optional.empty())
-                                            .flatMapSingle(registeredSchemaOptional -> {
-                                                if (registeredSchemaOptional.isEmpty()) {
-                                                    return Single.error(new Exception(String.format("Cannot register schema %s", schema.getMetadata().getName())));
-                                                }
+                                    .map(id -> {
+                                        ApplyStatus status;
 
-                                                Schema registeredSchema = registeredSchemaOptional.get();
-                                                ApplyStatus status;
+                                        if (latestSubjectOptional.isEmpty()) {
+                                            status = ApplyStatus.created;
+                                            sendEventLog(schema.getKind(), schema.getMetadata(), status, null, schema.getSpec());
+                                        } else if (!id.equals(latestSubjectOptional.get().getSpec().getId())) {
+                                            status = ApplyStatus.changed;
+                                            sendEventLog(schema.getKind(), schema.getMetadata(), status, latestSubjectOptional.get().getSpec(),
+                                                    schema.getSpec());
+                                        } else {
+                                            status = ApplyStatus.unchanged;
+                                        }
 
-                                                if (latestSubjectOptional.isEmpty()) {
-                                                    status = ApplyStatus.created;
-                                                    sendEventLog(schema.getKind(), registeredSchema.getMetadata(), status, null, registeredSchema.getSpec());
-                                                } else if (registeredSchema.getSpec().getVersion() > latestSubjectOptional.get().getSpec().getVersion()) {
-                                                    status = ApplyStatus.changed;
-                                                    sendEventLog(schema.getKind(), registeredSchema.getMetadata(), status,
-                                                            latestSubjectOptional.get().getSpec(), registeredSchema.getSpec());
-                                                } else {
-                                                    status = ApplyStatus.unchanged;
-                                                }
-
-                                                return Single.just(formatHttpResponse(schema, status));
-                                            })));
+                                        return formatHttpResponse(schema, status);
+                                    }));
                 });
     }
 
