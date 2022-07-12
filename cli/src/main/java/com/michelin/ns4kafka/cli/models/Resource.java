@@ -1,18 +1,15 @@
 package com.michelin.ns4kafka.cli.models;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micronaut.core.annotation.Introspected;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.Map;
 
-@Introspected
-@Builder
 @Data
+@Getter
+@Builder
+@Introspected
 @NoArgsConstructor
 @AllArgsConstructor
 public class Resource {

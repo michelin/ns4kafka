@@ -11,6 +11,15 @@ import java.util.Map;
 
 @Client("${kafkactl.api}/api/namespaces/")
 public interface NamespacedResourceClient {
+    /**
+     * Delete a given resource
+     * @param namespace The namespace
+     * @param kind The kind of resource
+     * @param resourceName The name of the resource
+     * @param token The auth token
+     * @param dryrun is dry-run mode or not ?
+     * @return The delete response
+     */
     @Delete("{namespace}/{kind}/{resourceName}{?dryrun}")
     HttpResponse<Void> delete(
             String namespace,
@@ -19,6 +28,15 @@ public interface NamespacedResourceClient {
             @Header("Authorization") String token,
             @QueryValue boolean dryrun);
 
+    /**
+     * Apply a given resource
+     * @param namespace The namespace
+     * @param kind The kind of resource
+     * @param token The auth token
+     * @param resource The resource to apply
+     * @param dryrun is dry-run mode or not ?
+     * @return The resource
+     */
     @Post("{namespace}/{kind}{?dryrun}")
     HttpResponse<Resource> apply(
             String namespace,
@@ -27,12 +45,27 @@ public interface NamespacedResourceClient {
             @Body Resource json,
             @QueryValue boolean dryrun);
 
+    /**
+     * List all resources
+     * @param namespace The namespace
+     * @param kind The kind of resource
+     * @param token The auth token
+     * @return The list of resources
+     */
     @Get("{namespace}/{kind}")
     List<Resource> list(
             String namespace,
             String kind,
             @Header("Authorization") String token);
 
+    /**
+     * Get a resource
+     * @param namespace The namespace
+     * @param kind The kind of resource
+     * @param resourceName The name of the resource
+     * @param token The auth token
+     * @return The resource
+     */
     @Get("{namespace}/{kind}/{resourceName}")
     Resource get(
             String namespace,
@@ -40,6 +73,14 @@ public interface NamespacedResourceClient {
             String resourceName,
             @Header("Authorization") String token);
 
+    /**
+     * Imports the unsynchronized given type of resource
+     * @param namespace The namespace
+     * @param kind The kind of resource
+     * @param token The auth token
+     * @param dryrun is dry-run mode or not ?
+     * @return The list of imported resources
+     */
     @Post("{namespace}/{kind}/_/import{?dryrun}")
     List<Resource> importResources(
             String namespace,
@@ -79,6 +120,14 @@ public interface NamespacedResourceClient {
             @Body Resource json,
             @QueryValue boolean dryrun);
 
+    /**
+     * Change the state of a given connector
+     * @param namespace The namespace
+     * @param connector The connector to change
+     * @param changeConnectorState The state
+     * @param token The auth token
+     * @return The change state response
+     */
     @Post("{namespace}/connects/{connector}/change-state")
     Resource changeConnectorState(
             String namespace,
@@ -86,6 +135,14 @@ public interface NamespacedResourceClient {
             @Body Resource changeConnectorState,
             @Header("Authorization") String token);
 
+    /**
+     * Change the schema compatibility mode
+     * @param namespace The namespace
+     * @param subject The subject
+     * @param compatibility The compatibility to apply
+     * @param token The auth token
+     * @return The change compatibility response
+     */
     @Post("{namespace}/schemas/{subject}/config")
     Resource changeSchemaCompatibility(
             String namespace,
@@ -93,6 +150,13 @@ public interface NamespacedResourceClient {
             @Body Map<String, SchemaCompatibility> compatibility,
             @Header("Authorization") String token);
 
+    /**
+     * Reset password of a given user
+     * @param namespace The namespace
+     * @param user The user
+     * @param token The auth token
+     * @return The reset password response
+     */
     @Post("{namespace}/users/{user}/reset-password")
     Resource resetPassword(String namespace, String user, @Header("Authorization") String token);
 }

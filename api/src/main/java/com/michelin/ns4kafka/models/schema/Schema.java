@@ -8,11 +8,11 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
-@Introspected
+@Data
 @Builder
+@Introspected
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
 public class Schema {
     /**
      * API version

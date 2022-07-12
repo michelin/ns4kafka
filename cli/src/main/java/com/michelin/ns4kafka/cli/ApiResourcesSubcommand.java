@@ -10,19 +10,19 @@ import java.util.concurrent.Callable;
 @CommandLine.Command(name = "api-resources", description = "Print the supported API resources on the server")
 public class ApiResourcesSubcommand implements Callable<Integer> {
     /**
-     * The API resources service
+     * API resources service
      */
     @Inject
     public ApiResourcesService apiResourcesService;
 
     /**
-     * The login service
+     * Login service
      */
     @Inject
     public LoginService loginService;
 
     /**
-     * The current command
+     * Current command
      */
     @CommandLine.Spec
     CommandLine.Model.CommandSpec commandSpec;

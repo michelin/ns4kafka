@@ -1,6 +1,8 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.models.*;
+import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.schema.Schema;
 import com.michelin.ns4kafka.services.schema.KafkaSchemaRegistryClientProxy;
 import com.michelin.ns4kafka.services.schema.client.KafkaSchemaRegistryClient;
@@ -9,6 +11,8 @@ import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibility
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import io.reactivex.Maybe;
+import io.reactivex.Single;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,7 +23,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -49,10 +52,10 @@ class SchemaServiceTest {
      */
     @Test
     void getAllByNamespace() {
-        Namespace namespace = this.buildNamespace();
+        Namespace namespace = buildNamespace();
         List<String> subjectsResponse = Arrays.asList("prefix.schema-one", "prefix2.schema-two", "prefix2.schema-three");
 
-        when(kafkaSchemaRegistryClient.getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())).thenReturn(subjectsResponse);
+        when(kafkaSchemaRegistryClient.getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())).thenReturn(Single.just(subjectsResponse));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(namespace))
                 .thenReturn(List.of(
                         AccessControlEntry.builder()
@@ -93,11 +96,12 @@ class SchemaServiceTest {
                                 .build()
                 ));
 
-        List<Schema> retrievedSchemas = this.schemaService.findAllForNamespace(namespace);
-        Assertions.assertEquals(2L, retrievedSchemas.size());
-        Assertions.assertEquals("prefix.schema-one", retrievedSchemas.get(0).getMetadata().getName());
-        Assertions.assertEquals("prefix2.schema-two", retrievedSchemas.get(1).getMetadata().getName());
-        Assertions.assertTrue(retrievedSchemas.stream().noneMatch(schema -> schema.getMetadata().getName().equals("prefix2.schema-three")));
+        schemaService.findAllForNamespace(namespace)
+            .test()
+            .assertValue(schemas -> schemas.size() == 2)
+            .assertValue(schemas -> schemas.get(0).getMetadata().getName().equals("prefix.schema-one"))
+            .assertValue(schemas -> schemas.get(1).getMetadata().getName().equals("prefix2.schema-two"))
+            .assertValue(schemas -> schemas.stream().noneMatch(schema -> schema.getMetadata().getName().equals("prefix2.schema-three")));
     }
 
     /**
@@ -105,12 +109,13 @@ class SchemaServiceTest {
      */
     @Test
     void getAllByNamespaceEmptyResponse() {
-        Namespace namespace = this.buildNamespace();
+        Namespace namespace = buildNamespace();
 
-        when(kafkaSchemaRegistryClient.getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())).thenReturn(List.of());
+        when(kafkaSchemaRegistryClient.getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())).thenReturn(Single.just(List.of()));
 
-        List<Schema> retrievedSchemas = this.schemaService.findAllForNamespace(namespace);
-        Assertions.assertTrue(retrievedSchemas.isEmpty());
+       schemaService.findAllForNamespace(namespace)
+                .test()
+                .assertValue(List::isEmpty);
     }
 
     /**
@@ -118,18 +123,17 @@ class SchemaServiceTest {
      */
     @Test
     void getBySubjectAndVersion() {
-        Namespace namespace = this.buildNamespace();
-        SchemaCompatibilityResponse compatibilityResponse = this.buildCompatibilityResponse();
+        Namespace namespace = buildNamespace();
+        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
 
-        when(kafkaSchemaRegistryClient.getLatestSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), "prefix.schema-one")).thenReturn(Optional.of(this.buildSchemaResponse("prefix.schema-one")));
-        when(kafkaSchemaRegistryClient.getCurrentCompatibilityBySubject(any(), any(), any())).thenReturn(Optional.of(compatibilityResponse));
+        when(kafkaSchemaRegistryClient.getLatestSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), "prefix.schema-one")).thenReturn(Maybe.just(buildSchemaResponse("prefix.schema-one")));
+        when(kafkaSchemaRegistryClient.getCurrentCompatibilityBySubject(any(), any(), any())).thenReturn(Maybe.just(compatibilityResponse));
 
-        Optional<Schema> retrievedSchema = this.schemaService.getLatestSubject(namespace, "prefix.schema-one");
-
-        Assertions.assertTrue(retrievedSchema.isPresent());
-        Assertions.assertEquals("prefix.schema-one", retrievedSchema.get().getMetadata().getName());
-        Assertions.assertEquals("local", retrievedSchema.get().getMetadata().getCluster());
-        Assertions.assertEquals("myNamespace", retrievedSchema.get().getMetadata().getNamespace());
+        schemaService.getLatestSubject(namespace, "prefix.schema-one")
+                .test()
+                .assertValue(latestSubject -> latestSubject.getMetadata().getName().equals("prefix.schema-one"))
+                .assertValue(latestSubject -> latestSubject.getMetadata().getCluster().equals("local"))
+                .assertValue(latestSubject -> latestSubject.getMetadata().getNamespace().equals("myNamespace"));
     }
 
     /**
@@ -137,13 +141,13 @@ class SchemaServiceTest {
      */
     @Test
     void getBySubjectAndVersionEmptyResponse() {
-        Namespace namespace = this.buildNamespace();
+        Namespace namespace = buildNamespace();
 
-        when(kafkaSchemaRegistryClient.getLatestSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), "prefix.schema-one")).thenReturn(Optional.empty());
+        when(kafkaSchemaRegistryClient.getLatestSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), "prefix.schema-one")).thenReturn(Maybe.empty());
 
-        Optional<Schema> retrievedSchema = this.schemaService.getLatestSubject(namespace, "prefix.schema-one");
-
-        Assertions.assertTrue(retrievedSchema.isEmpty());
+        schemaService.getLatestSubject(namespace, "prefix.schema-one")
+                .test()
+                .assertResult();
     }
 
 
@@ -152,15 +156,15 @@ class SchemaServiceTest {
      */
     @Test
     void register() {
-        Namespace namespace = this.buildNamespace();
-        Schema schema = this.buildSchema();
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
 
         when(kafkaSchemaRegistryClient.register(any(), any(), any(), any()))
-                .thenReturn(SchemaResponse.builder().id(1).version(1).build());
+                .thenReturn(Single.just(SchemaResponse.builder().id(1).version(1).build()));
 
-        Integer retrievedSchemaVersion = this.schemaService.register(namespace, schema);
-
-        Assertions.assertEquals(1, retrievedSchemaVersion);
+        schemaService.register(namespace, schema)
+                .test()
+                .assertValue(id -> id.equals(1));
     }
 
     /**
@@ -168,15 +172,17 @@ class SchemaServiceTest {
      */
     @Test
     void deleteSubject() {
-        Namespace namespace = this.buildNamespace();
+        Namespace namespace = buildNamespace();
 
-        doNothing().when(kafkaSchemaRegistryClient).deleteSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
-                "prefix.schema-one", false);
+        when(kafkaSchemaRegistryClient.deleteSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
+                "prefix.schema-one", false)).thenReturn(Single.just(new Integer[]{1}));
 
-        doNothing().when(kafkaSchemaRegistryClient).deleteSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
-                "prefix.schema-one", true);
+        when(kafkaSchemaRegistryClient.deleteSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
+                "prefix.schema-one", true)).thenReturn(Single.just(new Integer[]{1}));
 
-        this.schemaService.deleteSubject(namespace, "prefix.schema-one");
+        schemaService.deleteSubject(namespace, "prefix.schema-one")
+                .test()
+                .assertValue(ids -> ids.length == 1 && ids[0] == 1);
 
         verify(kafkaSchemaRegistryClient, times(1)).deleteSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
                 namespace.getMetadata().getCluster(), "prefix.schema-one", false);
@@ -190,18 +196,18 @@ class SchemaServiceTest {
      */
     @Test
     void validateSchemaCompatibility() {
-        Namespace namespace = this.buildNamespace();
-        Schema schema = this.buildSchema();
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
         SchemaCompatibilityCheckResponse schemaCompatibilityCheckResponse = SchemaCompatibilityCheckResponse.builder()
                 .isCompatible(true)
                 .build();
 
         when(kafkaSchemaRegistryClient.validateSchemaCompatibility(any(), any(), any(), any()))
-                .thenReturn(Optional.of(schemaCompatibilityCheckResponse));
+                .thenReturn(Maybe.just(schemaCompatibilityCheckResponse));
 
-        List<String> validationResponse = this.schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema);
-
-        Assertions.assertTrue(validationResponse.isEmpty());
+        schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema)
+                .test()
+                .assertValue(List::isEmpty);
     }
 
     /**
@@ -209,20 +215,20 @@ class SchemaServiceTest {
      */
     @Test
     void invalidateSchemaCompatibility() {
-        Namespace namespace = this.buildNamespace();
-        Schema schema = this.buildSchema();
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
         SchemaCompatibilityCheckResponse schemaCompatibilityCheckResponse = SchemaCompatibilityCheckResponse.builder()
                 .isCompatible(false)
                 .messages(List.of("Incompatible schema"))
                 .build();
 
         when(kafkaSchemaRegistryClient.validateSchemaCompatibility(any(), any(), any(), any()))
-                .thenReturn(Optional.of(schemaCompatibilityCheckResponse));
+                .thenReturn(Maybe.just(schemaCompatibilityCheckResponse));
 
-        List<String> validationResponse = this.schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema);
-
-        Assertions.assertEquals(1L, validationResponse.size());
-        Assertions.assertTrue(validationResponse.contains("Incompatible schema"));
+        schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema)
+                .test()
+                .assertValue(validationErrors -> validationErrors.size() == 1)
+                .assertValue(validationErrors -> validationErrors.contains("Incompatible schema"));
     }
 
     /**
@@ -230,15 +236,15 @@ class SchemaServiceTest {
      */
     @Test
     void validateSchemaCompatibility404NotFound() {
-        Namespace namespace = this.buildNamespace();
-        Schema schema = this.buildSchema();
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
 
         when(kafkaSchemaRegistryClient.validateSchemaCompatibility(any(), any(), any(), any()))
-                .thenReturn(Optional.empty());
+                .thenReturn(Maybe.empty());
 
-        List<String> validationResponse = this.schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema);
-
-        Assertions.assertTrue(validationResponse.isEmpty());
+        schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema)
+                .test()
+                .assertValue(List::isEmpty);
     }
 
     /**
@@ -246,16 +252,17 @@ class SchemaServiceTest {
      */
     @Test
     void validateSchemaCompatibilityThrowsException() {
-        Namespace namespace = this.buildNamespace();
-        Schema schema = this.buildSchema();
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
 
         when(kafkaSchemaRegistryClient.validateSchemaCompatibility(any(), any(), any(), any()))
-                .thenThrow(new HttpClientResponseException("Error", HttpResponse.notFound()));
+                .thenReturn(Maybe.error(new HttpClientResponseException("Error", HttpResponse.notFound())));
 
-        List<String> validationResponse = this.schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema);
-
-        Assertions.assertEquals(1L, validationResponse.size());
-        Assertions.assertEquals("An error occurred during the schema validation (status code: NOT_FOUND)", validationResponse.get(0));
+        schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema)
+                .test()
+                .assertValue(validationErrors -> validationErrors.size() == 1L)
+                .assertValue(validationErrors -> validationErrors.get(0)
+                        .equals("An error occurred during the schema validation (status code: NOT_FOUND)"));
     }
 
     /**
@@ -263,13 +270,17 @@ class SchemaServiceTest {
      */
     @Test
     void updateSubjectCompatibilityResetToDefault() {
-        Namespace namespace = this.buildNamespace();
-        Schema schema = this.buildSchema();
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
 
-        doNothing().when(kafkaSchemaRegistryClient).deleteCurrentCompatibilityBySubject(any(), any(), any());
+        when(kafkaSchemaRegistryClient.deleteCurrentCompatibilityBySubject(any(), any(), any()))
+                .thenReturn(Single.just(SchemaCompatibilityResponse.builder()
+                        .compatibilityLevel(Schema.Compatibility.FORWARD)
+                        .build()));
 
-        this.schemaService
-                .updateSubjectCompatibility(namespace, schema, Schema.Compatibility.GLOBAL);
+        schemaService.updateSubjectCompatibility(namespace, schema, Schema.Compatibility.GLOBAL)
+                .test()
+                .assertValue(schemaCompatibilityResponse -> schemaCompatibilityResponse.compatibilityLevel().equals(Schema.Compatibility.FORWARD));
 
         verify(kafkaSchemaRegistryClient, times(1)).deleteCurrentCompatibilityBySubject(any(), any(), any());
     }
@@ -281,13 +292,15 @@ class SchemaServiceTest {
     void updateSubjectCompatibility() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
-        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
 
         when(kafkaSchemaRegistryClient.updateSubjectCompatibility(any(), any(), any(), any()))
-                .thenReturn(compatibilityResponse);
+                .thenReturn(Single.just(SchemaCompatibilityResponse.builder()
+                         .compatibilityLevel(Schema.Compatibility.FORWARD)
+                        .build()));
 
-        schemaService
-                .updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD);
+        schemaService.updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD)
+                .test()
+                .assertValue(schemaCompatibilityResponse -> schemaCompatibilityResponse.compatibilityLevel().equals(Schema.Compatibility.FORWARD));
 
         verify(kafkaSchemaRegistryClient, times(1)).updateSubjectCompatibility(any(), any(), any(), any());
     }

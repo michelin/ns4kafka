@@ -24,61 +24,61 @@ import java.util.stream.Collectors;
 @Command(name = "apply", description = "Create or update a resource")
 public class ApplySubcommand implements Callable<Integer> {
     /**
-     * The login service
+     * Login service
      */
     @Inject
     public LoginService loginService;
 
     /**
-     * The API resources service
+     * API resources service
      */
     @Inject
     public ApiResourcesService apiResourcesService;
 
     /**
-     * The file service
+     * File service
      */
     @Inject
     public FileService fileService;
 
     /**
-     * The resource service
+     * Resource service
      */
     @Inject
     public ResourceService resourceService;
 
     /**
-     * The Kafkactl configuration
+     * Kafkactl configuration
      */
     @Inject
     public KafkactlConfig kafkactlConfig;
 
     /**
-     * The Kafkactl command
+     * Kafkactl command
      */
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
 
     /**
-     * The YAML file or directory given to the apply command
+     * YAML file or directory containing YAML resources to apply
      */
     @Option(names = {"-f", "--file"}, description = "YAML File or Directory containing YAML resources")
     public Optional<File> file;
 
     /**
-     * Enable recursion
+     * Enable recursive search of file
      */
     @Option(names = {"-R", "--recursive"}, description = "Enable recursive search of file")
     public boolean recursive;
 
     /**
-     * Enable dry run mode
+     * Does not persist resources. Validate only
      */
     @Option(names = {"--dry-run"}, description = "Does not persist resources. Validate only")
     public boolean dryRun;
 
     /**
-     * The current command
+     * Current command
      */
     @CommandLine.Spec
     public CommandLine.Model.CommandSpec commandSpec;
@@ -99,37 +99,35 @@ public class ApplySubcommand implements Callable<Integer> {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Login failed");
         }
 
-        // 0. Check STDIN and -f
-        boolean hasStdin = System.in.available() > 0;
         // If we have none or both stdin and File set, we stop
+        boolean hasStdin = System.in.available() > 0;
         if (hasStdin == file.isPresent()) {
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Required one of -f or stdin");
         }
 
         List<Resource> resources;
-
         if (file.isPresent()) {
-            // 1. list all files to process
+            // List all files to process
             List<File> yamlFiles = fileService.computeYamlFileList(file.get(), recursive);
             if (yamlFiles.isEmpty()) {
                 throw new CommandLine.ParameterException(commandSpec.commandLine(), "Could not find yaml/yml files in " + file.get().getName());
             }
-            // 2 load each files
+            // Load each files
             resources = fileService.parseResourceListFromFiles(yamlFiles);
         } else {
             Scanner scanner = new Scanner(System.in);
             scanner.useDelimiter("\\Z");
-            // 2 load STDIN
             resources = fileService.parseResourceListFromString(scanner.next());
         }
 
-        // 3. validate resource types from resources
+        // Validate resource types from resources
         List<Resource> invalidResources = apiResourcesService.validateResourceTypes(resources);
         if (!invalidResources.isEmpty()) {
-            String invalid = String.join(", ", invalidResources.stream().map(Resource::getKind).distinct().collect(Collectors.toList()));
+            String invalid = invalidResources.stream().map(Resource::getKind).distinct().collect(Collectors.joining(", "));
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "The server doesn't have resource type [" + invalid + "]");
         }
-        // 4. validate namespace mismatch
+
+        // Validate namespace mismatch
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
         List<Resource> nsMismatch = resources.stream()
                 .filter(resource -> resource.getMetadata().getNamespace() != null && !resource.getMetadata().getNamespace().equals(namespace))
@@ -138,9 +136,10 @@ public class ApplySubcommand implements Callable<Integer> {
             String invalid = String.join(", ", nsMismatch.stream().map(resource -> resource.getKind() + "/" + resource.getMetadata().getName()).distinct().collect(Collectors.toList()));
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "Namespace mismatch between kafkactl and yaml document [" + invalid + "]");
         }
+
         List<ApiResource> apiResources = apiResourcesService.getListResourceDefinition();
 
-        // 5. load schema content
+        // Load schema content
         resources.stream()
                 .filter(resource -> resource.getKind().equals("Schema") && resource.getSpec().get("schemaFile") != null && StringUtils.isNotEmpty(resource.getSpec().get("schemaFile").toString()))
                 .forEach(resource -> {
@@ -152,22 +151,25 @@ public class ApplySubcommand implements Callable<Integer> {
                     }
                 });
 
-        // 6. process each document individually, return 0 when all succeed
+        // Process each document individually, return 0 when all succeed
         int errors = resources.stream()
                 .map(resource -> {
                     ApiResource apiResource = apiResources.stream()
                             .filter(apiRes -> apiRes.getKind().equals(resource.getKind()))
                             .findFirst()
-                            .orElseThrow(); // already validated
+                            .orElseThrow();
+
                     HttpResponse<Resource> response = resourceService.apply(apiResource, namespace, resource, dryRun);
                     if (response == null) {
                         return null;
                     }
+
                     Resource merged = response.body();
                     String resourceState = "";
                     if (response.header("X-Ns4kafka-Result") != null) {
                         resourceState = " (" +response.header("X-Ns4kafka-Result") + ")";
                     }
+
                     System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,green Success |@") + merged.getKind() + "/" + merged.getMetadata().getName() + resourceState);
 
                     return merged;

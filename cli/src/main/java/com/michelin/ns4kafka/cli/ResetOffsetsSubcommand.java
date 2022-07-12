@@ -22,37 +22,37 @@ import java.util.concurrent.Callable;
 @Command(name = "reset-offsets", description = "Reset Consumer Group offsets")
 public class ResetOffsetsSubcommand implements Callable<Integer> {
     /**
-     * The login service
+     * Login service
      */
     @Inject
     public LoginService loginService;
 
     /**
-     * The resource service
+     * Resource service
      */
     @Inject
     public ResourceService resourceService;
 
     /**
-     * The format service
+     * Format service
      */
     @Inject
     public FormatService formatService;
 
     /**
-     * The kafkactl configuration
+     * Kafkactl configuration
      */
     @Inject
     public KafkactlConfig kafkactlConfig;
 
     /**
-     * The Kafkactl command
+     * Kafkactl command
      */
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
 
     /**
-     * The consumer group to reset
+     * Consumer group to reset
      */
     @Option(names = {"--group"}, required = true, description = "Consumer group name")
     public String group;
@@ -64,7 +64,7 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
     public boolean dryRun;
 
     /**
-     * The topic to reset the consumer group
+     * Topic to reset the consumer group
      */
     @ArgGroup(exclusive = true, multiplicity = "1")
     public TopicArgs topic;
@@ -128,13 +128,13 @@ public class ResetOffsetsSubcommand implements Callable<Integer> {
     }
 
     /**
-     * The current command
+     * Current command
      */
     @CommandLine.Spec
     public CommandLine.Model.CommandSpec commandSpec;
 
     /**
-     * Run the reset offsets command
+     * Run the "reset-offsets" command
      * @return The command return code
      * @throws Exception Any exception during the run
      */
