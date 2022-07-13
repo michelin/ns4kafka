@@ -88,8 +88,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
         sendEventLog(quota.getKind(), quota.getMetadata(), status,
                 resourceQuotaOptional.<Object>map(ResourceQuota::getSpec).orElse(null), quota.getSpec());
 
-        resourceQuotaService.create(quota);
-        return formatHttpResponse(quota, status);
+        return formatHttpResponse(resourceQuotaService.create(quota), status);
     }
 
     /**
@@ -103,13 +102,8 @@ public class ResourceQuotaController extends NamespacedResourceController {
     @Status(HttpStatus.NO_CONTENT)
     public HttpResponse<Void> delete(String namespace, String name, @QueryValue(defaultValue = "false") boolean dryrun) {
         Optional<ResourceQuota> resourceQuota = resourceQuotaService.findByName(namespace, name);
-
         if (resourceQuota.isEmpty()) {
-            throw new ResourceValidationException(
-                    List.of(String.format("The resource quota %s does not exist in this namespace.", name)),
-                    "ResourceQuota",
-                    name
-            );
+            return HttpResponse.notFound();
         }
 
         if (dryrun) {

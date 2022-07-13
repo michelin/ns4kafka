@@ -72,9 +72,10 @@ public class ResourceQuotaService {
 
     /**
      * Create a resource quota
-     * @param resourceQuota The resource to create
+     * @param resourceQuota The resource quota to create
+     * @return The created resource quota
      */
-    public void create(ResourceQuota resourceQuota) { resourceQuotaRepository.create(resourceQuota); }
+    public ResourceQuota create(ResourceQuota resourceQuota) { return resourceQuotaRepository.create(resourceQuota); }
 
     /**
      * Delete a resource quota
