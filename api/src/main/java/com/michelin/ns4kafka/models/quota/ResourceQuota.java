@@ -38,6 +38,7 @@ public class ResourceQuota {
     @NotNull
     private Map<String, String> spec;
 
+    @Getter
     @Introspected
     @AllArgsConstructor
     public enum ResourceQuotaSpecKey {
@@ -45,11 +46,11 @@ public class ResourceQuota {
         COUNT_PARTITIONS("count/partitions"),
         COUNT_CONNECTORS("count/connectors");
 
-        private final String name;
+        private final String key;
 
         @Override
         public String toString() {
-            return name;
+            return key;
         }
     }
 }

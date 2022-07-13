@@ -1,14 +1,17 @@
 package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.models.quota.ResourceQuotaResponse;
 import com.michelin.ns4kafka.repositories.ResourceQuotaRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,6 +41,12 @@ public class ResourceQuotaService {
      */
     @Inject
     TopicService topicService;
+
+    /**
+     * Connector service
+     */
+    @Inject
+    KafkaConnectService kafkaConnectService;
 
     /**
      * Find a resource quota by namespace
@@ -84,14 +93,15 @@ public class ResourceQuotaService {
     public List<String> validateNewQuotaAgainstCurrentResource(Namespace namespace, ResourceQuota resourceQuota) {
         List<String> errors = new ArrayList<>();
 
-        if (resourceQuota.getSpec().get(COUNT_TOPICS.toString()) != null) {
-            int countTopics = getCurrentUsedResource(namespace, COUNT_TOPICS);
-            int quotaCountTopics = Integer.parseInt(resourceQuota.getSpec().get(COUNT_TOPICS.toString()));
-            if (countTopics > quotaCountTopics) {
-                errors.add(String.format("The quota %s for %s already exceeds the number of topics %s.", quotaCountTopics, COUNT_TOPICS,
-                        countTopics));
+        Arrays.stream(values()).forEach(quotaKey -> {
+            if (resourceQuota.getSpec().get(quotaKey.getKey()) != null) {
+                int used = getCurrentUsedResource(namespace, quotaKey);
+                int limit = Integer.parseInt(resourceQuota.getSpec().get(quotaKey.getKey()));
+                if (used > limit) {
+                    errors.add(String.format("Quota already exceeded for %s: %s/%s (used/limit)", quotaKey, used, limit));
+                }
             }
-        }
+        });
 
         return errors;
     }
@@ -107,7 +117,77 @@ public class ResourceQuotaService {
             return topicService.findAllForNamespace(namespace).size();
         }
 
+        if (key.equals(COUNT_PARTITIONS)) {
+            return topicService.findAllForNamespace(namespace)
+                    .stream()
+                    .map(topic -> topic.getSpec().getPartitions())
+                    .reduce(0, Integer::sum);
+        }
+
+        if (key.equals(COUNT_CONNECTORS)) {
+            return kafkaConnectService.findAllForNamespace(namespace).size();
+        }
+
         return 0;
+    }
+
+    /**
+     * Validate the topic quota
+     * @param namespace The namespace
+     * @param topic The topic
+     * @return A list of errors
+     */
+    public List<String> validateTopicQuota(Namespace namespace, Topic topic) {
+        Optional<ResourceQuota> resourceQuotaOptional = findByNamespace(namespace.getMetadata().getName());
+        if (resourceQuotaOptional.isEmpty()) {
+            return List.of();
+        }
+
+        List<String> errors = new ArrayList<>();
+        ResourceQuota resourceQuota = resourceQuotaOptional.get();
+
+        if (StringUtils.isNotBlank(resourceQuota.getSpec().get(COUNT_TOPICS.getKey()))) {
+            int used = getCurrentUsedResource(namespace, COUNT_TOPICS);
+            int limit = Integer.parseInt(resourceQuota.getSpec().get(COUNT_TOPICS.toString()));
+            if (used + 1 > limit) {
+                errors.add(String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add 1 topic.", COUNT_TOPICS, used, limit));
+            }
+        }
+
+        if (StringUtils.isNotBlank(resourceQuota.getSpec().get(COUNT_PARTITIONS.getKey()))) {
+            int used = getCurrentUsedResource(namespace, COUNT_PARTITIONS);
+            int limit = Integer.parseInt(resourceQuota.getSpec().get(COUNT_PARTITIONS.toString()));
+            if (used + topic.getSpec().getPartitions() > limit) {
+                errors.add(String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add %s partition(s).", COUNT_PARTITIONS, used, limit, topic.getSpec().getPartitions()));
+            }
+        }
+
+        return errors;
+    }
+
+    /**
+     * Validate the connector quota
+     * @param namespace The namespace
+     * @return A list of errors
+     */
+    public List<String> validateConnectorQuota(Namespace namespace) {
+        Optional<ResourceQuota> resourceQuotaOptional = findByNamespace(namespace.getMetadata().getName());
+        if (resourceQuotaOptional.isEmpty()) {
+            return List.of();
+        }
+
+        List<String> errors = new ArrayList<>();
+        ResourceQuota resourceQuota = resourceQuotaOptional.get();
+
+        if (StringUtils.isNotBlank(resourceQuota.getSpec().get(COUNT_CONNECTORS.getKey()))) {
+            int used = getCurrentUsedResource(namespace, COUNT_CONNECTORS);
+            int limit = Integer.parseInt(resourceQuota.getSpec().get(COUNT_CONNECTORS.toString()));
+            if (used + 1 > limit) {
+                errors.add(String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add 1 connector.", COUNT_CONNECTORS, used, limit));
+            }
+        }
+
+        return errors;
     }
 
     /**

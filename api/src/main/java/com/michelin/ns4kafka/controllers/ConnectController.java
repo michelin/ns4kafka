@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.models.connector.ChangeConnectorState;
 import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.services.KafkaConnectService;
+import com.michelin.ns4kafka.services.ResourceQuotaService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MutableHttpResponse;
@@ -28,13 +29,19 @@ public class ConnectController extends NamespacedResourceController {
     /**
      * Message threw when namespace is not owner of the given connector
      */
-    private final String NAMESPACE_NOT_OWNER = "Namespace not owner of this connector %s.";
+    private static final String NAMESPACE_NOT_OWNER = "Namespace not owner of this connector %s.";
 
     /**
      * Connector service
      */
     @Inject
     KafkaConnectService kafkaConnectService;
+
+    /**
+     * The resource quota service
+     */
+    @Inject
+    ResourceQuotaService resourceQuotaService;
 
     /**
      * Get all the connectors by namespace
@@ -155,11 +162,16 @@ public class ConnectController extends NamespacedResourceController {
                                     return Single.just(formatHttpResponse(connector, status));
                                 }
 
-                                sendEventLog(connector.getKind(),
-                                        connector.getMetadata(),
-                                        status,
-                                        existingConnector.<Object>map(Connector::getSpec).orElse(null),
-                                        connector.getSpec());
+                                // Only check quota on connector creation
+                                if (status.equals(ApplyStatus.created)) {
+                                    validationErrors.addAll(resourceQuotaService.validateConnectorQuota(ns));
+                                    if (!validationErrors.isEmpty()) {
+                                        return Single.error(new ResourceValidationException(validationErrors, connector.getKind(), connector.getMetadata().getName()));
+                                    }
+                                }
+
+                                sendEventLog(connector.getKind(), connector.getMetadata(), status,
+                                        existingConnector.<Object>map(Connector::getSpec).orElse(null), connector.getSpec());
 
                                 return Single.just(formatHttpResponse(kafkaConnectService.createOrUpdate(connector), status));
                             });

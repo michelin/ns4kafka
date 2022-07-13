@@ -288,27 +288,4 @@ public class TopicService {
             throw new InterruptedException(e.getMessage());
         }
     }
-
-    /**
-     * Validate the topics quota
-     * @param namespace The namespace
-     * @return A list of validation errors
-     */
-    public List<String> validateTopicQuota(Namespace namespace) {
-        /*Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByNamespace(namespace.getMetadata().getName());
-        if (resourceQuotaOptional.isEmpty()) {
-            return List.of();
-        }
-
-        List<String> errors = new ArrayList<>();
-        ResourceQuota resourceQuota = resourceQuotaOptional.get();
-        List<Topic> topics = findAllForNamespace(namespace);
-        int countTopicQuota = Integer.parseInt(resourceQuota.getSpec().get("count/topics"));
-        if (countTopicQuota > topics.size() + 1) {
-            errors.add(String.format("Quota for count/topics exceeded: %s (used)/%s (limit)", topics.size(), countTopicQuota));
-        }
-
-        return errors;*/
-        return List.of();
-    }
 }
