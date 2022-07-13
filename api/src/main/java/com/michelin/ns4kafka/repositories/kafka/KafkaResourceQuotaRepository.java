@@ -62,6 +62,15 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
      */
     @Override
     public ResourceQuota create(ResourceQuota resourceQuota) {
-        return this.produce(getMessageKey(resourceQuota),resourceQuota);
+        return produce(getMessageKey(resourceQuota),resourceQuota);
+    }
+
+    /**
+     * Delete a resource quota message by pushing a tomb stone message
+     * @param resourceQuota The resource quota to delete
+     */
+    @Override
+    public void delete(ResourceQuota resourceQuota) {
+        produce(getMessageKey(resourceQuota),null);
     }
 }

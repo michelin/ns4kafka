@@ -1,7 +1,8 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.models.*;
-import com.michelin.ns4kafka.models.quota.ResourceQuota;
+import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
@@ -18,7 +19,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import static org.apache.kafka.common.config.TopicConfig.*;
-import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 
 @Singleton
 public class TopicService {
@@ -33,12 +33,6 @@ public class TopicService {
      */
     @Inject
     AccessControlEntryService accessControlEntryService;
-
-    /**
-     * The resource quota service
-     */
-    @Inject
-    ResourceQuotaService resourceQuotaService;
 
     /**
      * The application context
@@ -301,7 +295,7 @@ public class TopicService {
      * @return A list of validation errors
      */
     public List<String> validateTopicQuota(Namespace namespace) {
-        Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByNamespace(namespace.getMetadata().getName());
+        /*Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByNamespace(namespace.getMetadata().getName());
         if (resourceQuotaOptional.isEmpty()) {
             return List.of();
         }
@@ -314,6 +308,7 @@ public class TopicService {
             errors.add(String.format("Quota for count/topics exceeded: %s (used)/%s (limit)", topics.size(), countTopicQuota));
         }
 
-        return errors;
+        return errors;*/
+        return List.of();
     }
 }

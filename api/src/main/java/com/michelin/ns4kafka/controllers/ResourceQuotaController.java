@@ -5,10 +5,8 @@ import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.models.quota.ResourceQuotaResponse;
 import com.michelin.ns4kafka.services.ResourceQuotaService;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.annotation.Body;
-import io.micronaut.http.annotation.Controller;
-import io.micronaut.http.annotation.Post;
-import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,7 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Tag(name = "Resource Quota")
-@Controller(value = "/api/namespaces/{namespace}/resource-quota")
+@Controller(value = "/api/namespaces/{namespace}/resource-quotas")
 @ExecuteOn(TaskExecutors.IO)
 public class ResourceQuotaController extends NamespacedResourceController {
     /**
@@ -31,6 +29,33 @@ public class ResourceQuotaController extends NamespacedResourceController {
     ResourceQuotaService resourceQuotaService;
 
     /**
+     * Get all the quotas by namespace
+     * @param namespace The namespace
+     * @return Listed quotas
+     */
+    @Get
+    public List<ResourceQuotaResponse> list(String namespace) {
+        Namespace ns = getNamespace(namespace);
+        return List.of(resourceQuotaService.toResponse(ns, resourceQuotaService.findByNamespace(namespace)));
+    }
+
+    /**
+     * Get a quota by namespace and name
+     * @param namespace The name
+     * @param quota The quota name
+     * @return Listed quotas
+     */
+    @Get("/{quota}")
+    public Optional<ResourceQuotaResponse> get(String namespace, String quota) {
+        Namespace ns = getNamespace(namespace);
+        Optional<ResourceQuota> resourceQuota = resourceQuotaService.findByName(namespace, quota);
+        if (resourceQuota.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(resourceQuotaService.toResponse(ns, resourceQuota));
+    }
+
+    /**
      * Publish a resource quota
      * @param namespace The namespace
      * @param quota The resource quota
@@ -38,7 +63,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * @return The created role binding
      */
     @Post("/{?dryrun}")
-    HttpResponse<List<ResourceQuotaResponse>> apply(String namespace, @Body @Valid ResourceQuota quota, @QueryValue(defaultValue = "false") boolean dryrun){
+    HttpResponse<ResourceQuota> apply(String namespace, @Body @Valid ResourceQuota quota, @QueryValue(defaultValue = "false") boolean dryrun){
         Namespace ns = getNamespace(namespace);
 
         quota.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
@@ -51,22 +76,50 @@ public class ResourceQuotaController extends NamespacedResourceController {
         }
 
         Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByNamespace(namespace);
-        if (resourceQuotaOptional.isPresent() && resourceQuotaOptional.get().equals(quota)){
-            return formatHttpResponse(resourceQuotaService.mapCurrentQuotaToQuotaResponse(ns), ApplyStatus.unchanged);
+        if (resourceQuotaOptional.isPresent() && resourceQuotaOptional.get().equals(quota)) {
+            return formatHttpResponse(quota, ApplyStatus.unchanged);
         }
 
         ApplyStatus status = resourceQuotaOptional.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
         if (dryrun) {
-            return formatHttpResponse(resourceQuotaService.mapQuotaToQuotaResponse(ns, Optional.of(quota)),
-                    status);
+            return formatHttpResponse(quota, status);
         }
 
-        sendEventLog(quota.getKind(),
-                quota.getMetadata(),
-                status,
-                resourceQuotaOptional.<Object>map(ResourceQuota::getSpec).orElse(null),
-                quota.getSpec());
+        sendEventLog(quota.getKind(), quota.getMetadata(), status,
+                resourceQuotaOptional.<Object>map(ResourceQuota::getSpec).orElse(null), quota.getSpec());
+
         resourceQuotaService.create(quota);
-        return formatHttpResponse(resourceQuotaService.mapCurrentQuotaToQuotaResponse(ns), status);
+        return formatHttpResponse(quota, status);
+    }
+
+    /**
+     * Delete a resource quota
+     * @param namespace The namespace
+     * @param name The resource quota
+     * @param dryrun Is dry run mode or not ?
+     * @return An HTTP response
+     */
+    @Delete("/{name}{?dryrun}")
+    @Status(HttpStatus.NO_CONTENT)
+    public HttpResponse<Void> delete(String namespace, String name, @QueryValue(defaultValue = "false") boolean dryrun) {
+        Optional<ResourceQuota> resourceQuota = resourceQuotaService.findByName(namespace, name);
+
+        if (resourceQuota.isEmpty()) {
+            throw new ResourceValidationException(
+                    List.of(String.format("The resource quota %s does not exist in this namespace.", name)),
+                    "ResourceQuota",
+                    name
+            );
+        }
+
+        if (dryrun) {
+            return HttpResponse.noContent();
+        }
+
+        ResourceQuota resourceQuotaToDelete = resourceQuota.get();
+        sendEventLog(resourceQuotaToDelete .getKind(), resourceQuotaToDelete.getMetadata(), ApplyStatus.deleted,
+                resourceQuotaToDelete.getSpec(), null);
+        resourceQuotaService.delete(resourceQuotaToDelete);
+        return HttpResponse.noContent();
     }
 }

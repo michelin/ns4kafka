@@ -36,12 +36,14 @@ public class ResourceQuota {
      */
     @Valid
     @NotNull
-    private Map<ResourceQuotaSpecKey, String> spec;
+    private Map<String, String> spec;
 
     @Introspected
     @AllArgsConstructor
     public enum ResourceQuotaSpecKey {
-        COUNT_TOPICS("count/topics");
+        COUNT_TOPICS("count/topics"),
+        COUNT_PARTITIONS("count/partitions"),
+        COUNT_CONNECTORS("count/connectors");
 
         private final String name;
 

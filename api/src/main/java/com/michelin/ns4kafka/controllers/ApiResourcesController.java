@@ -22,6 +22,9 @@ import java.util.stream.Collectors;
 @RolesAllowed(SecurityRule.IS_ANONYMOUS)
 @Controller("/api-resources")
 public class ApiResourcesController {
+    /**
+     * ACL resource definition
+     */
     public static final ResourceDefinition ACL = ResourceDefinition.builder()
             .kind("AccessControlEntry")
             .namespaced(true)
@@ -29,6 +32,10 @@ public class ApiResourcesController {
             .path("acls")
             .names(List.of("acls", "acl", "ac"))
             .build();
+
+    /**
+     * Connector resource definition
+     */
     public static final ResourceDefinition CONNECTOR = ResourceDefinition.builder()
             .kind("Connector")
             .namespaced(true)
@@ -36,6 +43,10 @@ public class ApiResourcesController {
             .path("connects")
             .names(List.of("connects", "connect", "co"))
             .build();
+
+    /**
+     * Kafka Streams resource definition
+     */
     public static final ResourceDefinition KSTREAM = ResourceDefinition.builder()
             .kind("KafkaStream")
             .namespaced(true)
@@ -43,6 +54,10 @@ public class ApiResourcesController {
             .path("streams")
             .names(List.of("streams", "stream", "st"))
             .build();
+
+    /**
+     * Role binding resource definition
+     */
     public static final ResourceDefinition ROLE_BINDING = ResourceDefinition.builder()
             .kind("RoleBinding")
             .namespaced(true)
@@ -50,6 +65,10 @@ public class ApiResourcesController {
             .path("role-bindings")
             .names(List.of("rolebindings", "rolebinding", "rb"))
             .build();
+
+    /**
+     * Topic resource definition
+     */
     public static final ResourceDefinition TOPIC = ResourceDefinition.builder()
             .kind("Topic")
             .namespaced(true)
@@ -57,6 +76,10 @@ public class ApiResourcesController {
             .path("topics")
             .names(List.of("topics", "topic", "to"))
             .build();
+
+    /**
+     * Schema resource definition
+     */
     public static final ResourceDefinition SCHEMA = ResourceDefinition.builder()
             .kind("Schema")
             .namespaced(true)
@@ -64,6 +87,21 @@ public class ApiResourcesController {
             .path("schemas")
             .names(List.of("schemas", "schema", "sc"))
             .build();
+
+    /**
+     * Resource quota resource definition
+     */
+    public static final ResourceDefinition RESOURCE_QUOTA = ResourceDefinition.builder()
+            .kind("ResourceQuota")
+            .namespaced(true)
+            .synchronizable(false)
+            .path("resource-quotas")
+            .names(List.of("resource-quotas", "resource-quota", "quotas", "quota", "qu"))
+            .build();
+
+    /**
+     * Namespace resource definition
+     */
     public static final ResourceDefinition NAMESPACE = ResourceDefinition.builder()
             .kind("Namespace")
             .namespaced(false)
@@ -72,9 +110,17 @@ public class ApiResourcesController {
             .names(List.of("namespaces", "namespace", "ns"))
             .build();
 
+    /**
+     * Role binding repository
+     */
     @Inject
     RoleBindingRepository roleBindingRepository;
 
+    /**
+     * List all the API resources
+     * @param authentication The authentication
+     * @return The list of API resources
+     */
     @Get
     public List<ResourceDefinition> list(@Nullable Authentication authentication) {
         List<ResourceDefinition> all = List.of(
@@ -82,17 +128,20 @@ public class ApiResourcesController {
                 CONNECTOR,
                 KSTREAM,
                 ROLE_BINDING,
+                RESOURCE_QUOTA,
                 TOPIC,
                 NAMESPACE,
                 SCHEMA
         );
-        if(authentication==null){
+
+        if (authentication == null) {
             return all; // Backward compatibility for cli <= 1.3.0
         }
+
         List<String> roles = (List<String>)authentication.getAttributes().getOrDefault("roles", List.of());
         List<String> groups = (List<String>) authentication.getAttributes().getOrDefault("groups",List.of());
 
-        if(roles.contains(ResourceBasedSecurityRule.IS_ADMIN)) {
+        if (roles.contains(ResourceBasedSecurityRule.IS_ADMIN)) {
             return all;
         }
 
@@ -101,6 +150,7 @@ public class ApiResourcesController {
                 .flatMap(roleBinding -> roleBinding.getSpec().getRole().getResourceTypes().stream())
                 .distinct()
                 .collect(Collectors.toList());
+
         return all.stream()
                 .filter(resourceDefinition -> authorizedResources.contains(resourceDefinition.getPath()))
                 .collect(Collectors.toList());

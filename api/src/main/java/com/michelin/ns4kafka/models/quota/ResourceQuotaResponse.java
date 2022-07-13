@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.models.quota;
 
+import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 
@@ -23,6 +24,13 @@ public class ResourceQuotaResponse {
     private final String kind = "ResourceQuotaResponse";
 
     /**
+     * Resource quota metadata
+     */
+    @Valid
+    @NotNull
+    private ObjectMeta metadata;
+
+    /**
      * Resource specifications
      */
     @Valid
@@ -37,18 +45,19 @@ public class ResourceQuotaResponse {
     @NoArgsConstructor
     public static class ResourceQuotaResponseSpec {
         /**
-         * The resource name
+         * The count quota for topics
          */
-        private ResourceQuota.ResourceQuotaSpecKey resourceName;
+        private String countTopic;
 
         /**
-         * The currently used rate
+         * The count quota for partitions
          */
-        private String used;
+        private String countPartition;
 
         /**
-         * The quota limit
+         * The count quota for connectors
          */
-        private String limit;
+        private String countConnector;
+
     }
 }

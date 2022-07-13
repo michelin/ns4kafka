@@ -113,7 +113,7 @@ public class RoleBindingController extends NamespacedResourceController {
                 ApplyStatus.deleted,
                 roleBindingToDelete.getSpec(),
                 null);
-        roleBindingService.delete(roleBinding.get());
+        roleBindingService.delete(roleBindingToDelete);
         return HttpResponse.noContent();
     }
 }

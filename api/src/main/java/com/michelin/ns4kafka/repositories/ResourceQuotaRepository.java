@@ -17,4 +17,10 @@ public interface ResourceQuotaRepository {
      * @param resourceQuota The resource quota to create
      */
     ResourceQuota create(ResourceQuota resourceQuota);
+
+    /**
+     * Delete a resource quota
+     * @param resourceQuota The resource quota to delete
+     */
+    void delete(ResourceQuota resourceQuota);
 }

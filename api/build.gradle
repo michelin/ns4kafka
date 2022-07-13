@@ -37,7 +37,6 @@ dependencies {
     implementation("io.micronaut.security:micronaut-security-ldap")
     implementation("io.micronaut.kafka:micronaut-kafka")
 
-
     runtimeOnly("ch.qos.logback:logback-classic")
 
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.20'
@@ -61,7 +60,7 @@ tasks.withType(JavaCompile) {
 }
 
 run {
-    //environment( "MICRONAUT_ENVIRONMENTS","dev")
+    environment( "MICRONAUT_ENVIRONMENTS","dev")
 }
 
 test {
