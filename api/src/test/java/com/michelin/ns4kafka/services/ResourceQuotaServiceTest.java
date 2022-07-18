@@ -367,4 +367,123 @@ class ResourceQuotaServiceTest {
         Assertions.assertEquals(1, validationErrors.size());
         Assertions.assertEquals("Quota already exceeded for count/connectors: 2/1 (used/limit)", validationErrors.get(0));
     }
+
+    /**
+     * Test get current used resource for count topics
+     */
+    @Test
+    void getCurrentUsedResourceForCountTopics() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .build();
+
+        when(topicService.findAllForNamespace(ns))
+                .thenReturn(List.of(topic1, topic2, topic3));
+
+        Integer currentlyUsed = resourceQuotaService.getCurrentUsedResource(ns, COUNT_TOPICS);
+        Assertions.assertEquals(3, currentlyUsed);
+    }
+
+    /**
+     * Test get current used resource for count partitions
+     */
+    @Test
+    void getCurrentUsedResourceForCountPartitions() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(10)
+                        .build())
+                .build();
+
+        when(topicService.findAllForNamespace(ns))
+                .thenReturn(List.of(topic1, topic2, topic3));
+
+        Integer currentlyUsed = resourceQuotaService.getCurrentUsedResource(ns, COUNT_PARTITIONS);
+        Assertions.assertEquals(19, currentlyUsed);
+    }
+
+    /**
+     * Test get current used resource for count connectors
+     */
+    @Test
+    void getCurrentUsedResourceForCountConnectors() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        when(kafkaConnectService.findAllForNamespace(ns))
+                .thenReturn(List.of(
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
+
+        Integer currentlyUsed = resourceQuotaService.getCurrentUsedResource(ns, COUNT_CONNECTORS);
+        Assertions.assertEquals(2, currentlyUsed);
+    }
 }

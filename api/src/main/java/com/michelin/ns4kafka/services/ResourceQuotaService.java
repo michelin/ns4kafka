@@ -113,7 +113,7 @@ public class ResourceQuotaService {
      * @param key The quota key
      * @return The current value
      */
-    private Integer getCurrentUsedResource(Namespace namespace, ResourceQuota.ResourceQuotaSpecKey key) {
+    public Integer getCurrentUsedResource(Namespace namespace, ResourceQuota.ResourceQuotaSpecKey key) {
         if (key.equals(COUNT_TOPICS)) {
             return topicService.findAllForNamespace(namespace).size();
         }
