@@ -23,7 +23,7 @@ public class ResourceQuotaService {
     /**
      * Format of the quota response
      */
-    private static final String QUOTA_RESPONSE_FORMAT = "%s / %s";
+    private static final String QUOTA_RESPONSE_FORMAT = "%s/%s";
 
     /**
      * Limit to display when there is no quota

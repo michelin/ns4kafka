@@ -5,6 +5,7 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
+import com.michelin.ns4kafka.models.quota.ResourceQuotaResponse;
 import com.michelin.ns4kafka.repositories.ResourceQuotaRepository;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -757,5 +758,133 @@ class ResourceQuotaServiceTest {
         List<String> validationErrors = resourceQuotaService.validateConnectorQuota(ns);
         Assertions.assertEquals(1, validationErrors.size());
         Assertions.assertEquals("Exceeding quota for count/connectors: 2/2 (used/limit). Cannot add 1 connector.", validationErrors.get(0));
+    }
+
+    /**
+     * Test response format
+     */
+    @Test
+    void toResponse() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(COUNT_TOPICS.toString(), "3",
+                        COUNT_PARTITIONS.toString(), "20",
+                        COUNT_CONNECTORS.toString(), "2"))
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(10)
+                        .build())
+                .build();
+
+        when(topicService.findAllForNamespace(ns))
+                .thenReturn(List.of(topic1, topic2, topic3));
+        when(kafkaConnectService.findAllForNamespace(ns))
+                .thenReturn(List.of(
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
+
+        ResourceQuotaResponse response = resourceQuotaService.toResponse(ns, Optional.of(resourceQuota));
+        Assertions.assertEquals(resourceQuota.getMetadata(), response.getMetadata());
+        Assertions.assertEquals("3/3", response.getSpec().getCountTopic());
+        Assertions.assertEquals("19/20", response.getSpec().getCountPartition());
+        Assertions.assertEquals("2/2", response.getSpec().getCountConnector());
+    }
+
+    /**
+     * Test response format when there is no quota
+     */
+    @Test
+    void toResponseNoQuota() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(10)
+                        .build())
+                .build();
+
+        when(topicService.findAllForNamespace(ns))
+                .thenReturn(List.of(topic1, topic2, topic3));
+        when(kafkaConnectService.findAllForNamespace(ns))
+                .thenReturn(List.of(
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
+
+        ResourceQuotaResponse response = resourceQuotaService.toResponse(ns, Optional.empty());
+        Assertions.assertNull(response.getMetadata());
+        Assertions.assertEquals("3/INF", response.getSpec().getCountTopic());
+        Assertions.assertEquals("19/INF", response.getSpec().getCountPartition());
+        Assertions.assertEquals("2/INF", response.getSpec().getCountConnector());
     }
 }
