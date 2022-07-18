@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ResourceQuotaServiceTest {
@@ -77,6 +77,28 @@ class ResourceQuotaServiceTest {
                         .build())
                 .build();
 
+        when(resourceQuotaRepository.findForNamespace("namespace"))
+                .thenReturn(Optional.empty());
+
+        Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByNamespace(ns.getMetadata().getName());
+        Assertions.assertTrue(resourceQuotaOptional.isEmpty());
+    }
+
+    /**
+     * Test get quota by name
+     */
+    @Test
+    void findByName() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
         ResourceQuota resourceQuota = ResourceQuota.builder()
                 .metadata(ObjectMeta.builder()
                         .cluster("local")
@@ -86,9 +108,96 @@ class ResourceQuotaServiceTest {
                 .build();
 
         when(resourceQuotaRepository.findForNamespace("namespace"))
+                .thenReturn(Optional.of(resourceQuota));
+
+        Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByName(ns.getMetadata().getName(), "test");
+        Assertions.assertTrue(resourceQuotaOptional.isPresent());
+        Assertions.assertEquals("test", resourceQuotaOptional.get().getMetadata().getName());
+    }
+
+    /**
+     * Test get quota by wrong name
+     */
+    @Test
+    void findByNameWrongName() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of("count/topics", "1"))
+                .build();
+
+        when(resourceQuotaRepository.findForNamespace("namespace"))
+                .thenReturn(Optional.of(resourceQuota));
+
+        Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByName(ns.getMetadata().getName(), "wrong-name");
+        Assertions.assertTrue(resourceQuotaOptional.isEmpty());
+    }
+
+    /**
+     * Test get quota when there is no quota defined on the namespace
+     */
+    @Test
+    void findByNameEmpty() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        when(resourceQuotaRepository.findForNamespace("namespace"))
                 .thenReturn(Optional.empty());
 
-        Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByNamespace(ns.getMetadata().getName());
+        Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByName(ns.getMetadata().getName(), "test");
         Assertions.assertTrue(resourceQuotaOptional.isEmpty());
+    }
+
+    @Test
+    void create() {
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of("count/topics", "1"))
+                .build();
+
+        when(resourceQuotaRepository.create(resourceQuota))
+                .thenReturn(resourceQuota);
+
+        ResourceQuota createdResourceQuota = resourceQuotaService.create(resourceQuota);
+        Assertions.assertEquals(resourceQuota, createdResourceQuota);
+        verify(resourceQuotaRepository, times(1)).create(resourceQuota);
+    }
+
+    @Test
+    void delete() {
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of("count/topics", "1"))
+                .build();
+
+        doNothing().when(resourceQuotaRepository).delete(resourceQuota);
+
+        resourceQuotaService.delete(resourceQuota);
+        verify(resourceQuotaRepository, times(1)).delete(resourceQuota);
     }
 }
