@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
-public class TopicTest {
+class TopicTest {
     @Test
     void testEquals(){
         Topic original = Topic.builder()
@@ -18,6 +18,7 @@ public class TopicTest {
                         .build())
                 .status(Topic.TopicStatus.ofPending())
                 .build();
+
         Topic same = Topic.builder()
                 .metadata(ObjectMeta.builder().name("topic1").build())
                 .spec(Topic.TopicSpec.builder()
@@ -29,6 +30,7 @@ public class TopicTest {
                 // Status should not intefere
                 .status(Topic.TopicStatus.ofSuccess("Created !"))
                 .build();
+
         Topic differentByMetadata = Topic.builder()
                 .metadata(ObjectMeta.builder().name("topic2").build())
                 .spec(Topic.TopicSpec.builder()
@@ -39,6 +41,7 @@ public class TopicTest {
                         .build())
                 .status(Topic.TopicStatus.ofPending())
                 .build();
+
         Topic differentByReplicationFactor = Topic.builder()
                 .metadata(ObjectMeta.builder().name("topic2").build())
                 .spec(Topic.TopicSpec.builder()
@@ -49,6 +52,7 @@ public class TopicTest {
                         .build())
                 .status(Topic.TopicStatus.ofPending())
                 .build();
+
         Topic differentByPartitions = Topic.builder()
                 .metadata(ObjectMeta.builder().name("topic2").build())
                 .spec(Topic.TopicSpec.builder()
@@ -59,6 +63,7 @@ public class TopicTest {
                         .build())
                 .status(Topic.TopicStatus.ofPending())
                 .build();
+
         Topic differentByConfigs = Topic.builder()
                 .metadata(ObjectMeta.builder().name("topic2").build())
                 .spec(Topic.TopicSpec.builder()
