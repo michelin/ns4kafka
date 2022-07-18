@@ -46,10 +46,10 @@ kafkactl:
       - "VERBS:/spec/role/verbs"
       - "RESOURCES:/spec/role/resourceTypes"
     ResourceQuotaResponse:
-      - "NAME:/metadata/name"
-      - "COUNT/TOPIC:/spec/countTopic"
-      - "COUNT/PARTITION:/spec/countPartition"
-      - "COUNT/CONNECTOR:/spec/countConnector"
+      - "QUOTA:/metadata/name"
+      - "COUNT/TOPICS:/spec/countTopic"
+      - "COUNT/PARTITIONS:/spec/countPartition"
+      - "COUNT/CONNECTORS:/spec/countConnector"
     ChangeConnectorState:
       - "CONNECTOR:/metadata/name"
       - "STATUS:/status/code"
