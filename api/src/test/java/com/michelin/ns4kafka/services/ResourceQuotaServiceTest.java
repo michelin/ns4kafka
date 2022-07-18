@@ -883,8 +883,8 @@ class ResourceQuotaServiceTest {
 
         ResourceQuotaResponse response = resourceQuotaService.toResponse(ns, Optional.empty());
         Assertions.assertNull(response.getMetadata());
-        Assertions.assertEquals("3/INF", response.getSpec().getCountTopic());
-        Assertions.assertEquals("19/INF", response.getSpec().getCountPartition());
-        Assertions.assertEquals("2/INF", response.getSpec().getCountConnector());
+        Assertions.assertEquals("3", response.getSpec().getCountTopic());
+        Assertions.assertEquals("19", response.getSpec().getCountPartition());
+        Assertions.assertEquals("2", response.getSpec().getCountConnector());
     }
 }

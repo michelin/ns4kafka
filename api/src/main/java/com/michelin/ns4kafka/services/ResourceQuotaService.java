@@ -21,9 +21,14 @@ import static com.michelin.ns4kafka.models.quota.ResourceQuota.ResourceQuotaSpec
 @Singleton
 public class ResourceQuotaService {
     /**
-     * Format of the quota response
+     * Quota response format
      */
     private static final String QUOTA_RESPONSE_FORMAT = "%s/%s";
+
+    /**
+     * No quota response format
+     */
+    private static final String NO_QUOTA_RESPONSE_FORMAT = "%s";
 
     /**
      * Limit to display when there is no quota
@@ -198,18 +203,24 @@ public class ResourceQuotaService {
      * @return A list of quotas as response format
      */
     public ResourceQuotaResponse toResponse(Namespace namespace, Optional<ResourceQuota> resourceQuota) {
+        String countTopic = resourceQuota.isPresent() ? String.format(QUOTA_RESPONSE_FORMAT, getCurrentUsedResource(namespace, COUNT_TOPICS),
+                resourceQuota.map(quota -> quota.getSpec().get(COUNT_TOPICS.toString())).orElse(UNLIMITED_QUOTA)) :
+                String.format(NO_QUOTA_RESPONSE_FORMAT, getCurrentUsedResource(namespace, COUNT_TOPICS));
+
+        String countPartition = resourceQuota.isPresent() ? String.format(QUOTA_RESPONSE_FORMAT, getCurrentUsedResource(namespace, COUNT_PARTITIONS),
+                resourceQuota.map(quota -> quota.getSpec().get(COUNT_PARTITIONS.toString())).orElse(UNLIMITED_QUOTA)) :
+                String.format(NO_QUOTA_RESPONSE_FORMAT, getCurrentUsedResource(namespace, COUNT_PARTITIONS));
+
+        String countConnector = resourceQuota.isPresent() ? String.format(QUOTA_RESPONSE_FORMAT, getCurrentUsedResource(namespace, COUNT_CONNECTORS),
+                resourceQuota.map(quota -> quota.getSpec().get(COUNT_CONNECTORS.toString())).orElse(UNLIMITED_QUOTA)) :
+                String.format(NO_QUOTA_RESPONSE_FORMAT, getCurrentUsedResource(namespace, COUNT_CONNECTORS));
+
         return ResourceQuotaResponse.builder()
                 .metadata(resourceQuota.map(ResourceQuota::getMetadata).orElse(null))
                 .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
-                        .countTopic(String.format(QUOTA_RESPONSE_FORMAT,
-                                getCurrentUsedResource(namespace, COUNT_TOPICS),
-                                resourceQuota.map(quota -> quota.getSpec().get(COUNT_TOPICS.toString())).orElse(UNLIMITED_QUOTA)))
-                        .countPartition(String.format(QUOTA_RESPONSE_FORMAT,
-                                getCurrentUsedResource(namespace, COUNT_PARTITIONS),
-                                resourceQuota.map(quota -> quota.getSpec().get(COUNT_PARTITIONS.toString())).orElse(UNLIMITED_QUOTA)))
-                        .countConnector(String.format(QUOTA_RESPONSE_FORMAT,
-                                getCurrentUsedResource(namespace, COUNT_CONNECTORS),
-                                resourceQuota.map(quota -> quota.getSpec().get(COUNT_CONNECTORS.toString())).orElse(UNLIMITED_QUOTA)))
+                        .countTopic(countTopic)
+                        .countPartition(countPartition)
+                        .countConnector(countConnector)
                         .build())
                 .build();
     }
