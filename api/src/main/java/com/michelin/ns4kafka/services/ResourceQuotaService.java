@@ -119,18 +119,18 @@ public class ResourceQuotaService {
      * @return The current value
      */
     public Integer getCurrentUsedResource(Namespace namespace, ResourceQuota.ResourceQuotaSpecKey key) {
-        if (key.equals(COUNT_TOPICS)) {
+        if (COUNT_TOPICS.equals(key)) {
             return topicService.findAllForNamespace(namespace).size();
         }
 
-        if (key.equals(COUNT_PARTITIONS)) {
+        if (COUNT_PARTITIONS.equals(key)) {
             return topicService.findAllForNamespace(namespace)
                     .stream()
                     .map(topic -> topic.getSpec().getPartitions())
                     .reduce(0, Integer::sum);
         }
 
-        if (key.equals(COUNT_CONNECTORS)) {
+        if (COUNT_CONNECTORS.equals(key)) {
             return kafkaConnectService.findAllForNamespace(namespace).size();
         }
 
