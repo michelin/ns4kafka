@@ -2,6 +2,8 @@ package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.repositories.ResourceQuotaRepository;
 import org.junit.jupiter.api.Assertions;
@@ -15,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.michelin.ns4kafka.models.quota.ResourceQuota.ResourceQuotaSpecKey.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,6 +33,18 @@ class ResourceQuotaServiceTest {
      */
     @Mock
     ResourceQuotaRepository resourceQuotaRepository;
+
+    /**
+     * The topic service
+     */
+    @Mock
+    TopicService topicService;
+
+    /**
+     * Connect service
+     */
+    @Mock
+    KafkaConnectService kafkaConnectService;
 
     /**
      * Test get quota by namespace when it is defined
@@ -51,7 +66,7 @@ class ResourceQuotaServiceTest {
                         .cluster("local")
                         .name("test")
                         .build())
-                .spec(Map.of("count/topics", "1"))
+                .spec(Map.of(COUNT_TOPICS.toString(), "1"))
                 .build();
 
         when(resourceQuotaRepository.findForNamespace("namespace"))
@@ -104,7 +119,7 @@ class ResourceQuotaServiceTest {
                         .cluster("local")
                         .name("test")
                         .build())
-                .spec(Map.of("count/topics", "1"))
+                .spec(Map.of(COUNT_TOPICS.toString(), "1"))
                 .build();
 
         when(resourceQuotaRepository.findForNamespace("namespace"))
@@ -135,7 +150,7 @@ class ResourceQuotaServiceTest {
                         .cluster("local")
                         .name("test")
                         .build())
-                .spec(Map.of("count/topics", "1"))
+                .spec(Map.of(COUNT_TOPICS.toString(), "1"))
                 .build();
 
         when(resourceQuotaRepository.findForNamespace("namespace"))
@@ -167,6 +182,9 @@ class ResourceQuotaServiceTest {
         Assertions.assertTrue(resourceQuotaOptional.isEmpty());
     }
 
+    /**
+     * Test create quota
+     */
     @Test
     void create() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
@@ -174,7 +192,7 @@ class ResourceQuotaServiceTest {
                         .cluster("local")
                         .name("test")
                         .build())
-                .spec(Map.of("count/topics", "1"))
+                .spec(Map.of(COUNT_TOPICS.toString(), "1"))
                 .build();
 
         when(resourceQuotaRepository.create(resourceQuota))
@@ -185,6 +203,9 @@ class ResourceQuotaServiceTest {
         verify(resourceQuotaRepository, times(1)).create(resourceQuota);
     }
 
+    /**
+     * Test delete quota
+     */
     @Test
     void delete() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
@@ -192,12 +213,158 @@ class ResourceQuotaServiceTest {
                         .cluster("local")
                         .name("test")
                         .build())
-                .spec(Map.of("count/topics", "1"))
+                .spec(Map.of(COUNT_TOPICS.toString(), "1"))
                 .build();
 
         doNothing().when(resourceQuotaRepository).delete(resourceQuota);
 
         resourceQuotaService.delete(resourceQuota);
         verify(resourceQuotaRepository, times(1)).delete(resourceQuota);
+    }
+
+    /**
+     * Test validation when creating quota on count/topics
+     */
+    @Test
+    void validateNewQuotaAgainstCurrentResourceForCountTopics() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(COUNT_TOPICS.toString(), "2"))
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .build();
+
+        when(topicService.findAllForNamespace(ns))
+                .thenReturn(List.of(topic1, topic2, topic3));
+
+        List<String> validationErrors = resourceQuotaService.validateNewQuotaAgainstCurrentResource(ns, resourceQuota);
+        Assertions.assertEquals(1, validationErrors.size());
+        Assertions.assertEquals("Quota already exceeded for count/topics: 3/2 (used/limit)", validationErrors.get(0));
+    }
+
+    /**
+     * Test validation when creating quota on count/partitions
+     */
+    @Test
+    void validateNewQuotaAgainstCurrentResourceForCountPartitions() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(COUNT_PARTITIONS.toString(), "10"))
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(10)
+                        .build())
+                .build();
+
+        when(topicService.findAllForNamespace(ns))
+                .thenReturn(List.of(topic1, topic2, topic3));
+
+        List<String> validationErrors = resourceQuotaService.validateNewQuotaAgainstCurrentResource(ns, resourceQuota);
+        Assertions.assertEquals(1, validationErrors.size());
+        Assertions.assertEquals("Quota already exceeded for count/partitions: 19/10 (used/limit)", validationErrors.get(0));
+    }
+
+    /**
+     * Test validation when creating quota on count/connectors
+     */
+    @Test
+    void validateNewQuotaAgainstCurrentResourceForCountConnectors() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(COUNT_CONNECTORS.toString(), "1"))
+                .build();
+
+        when(kafkaConnectService.findAllForNamespace(ns))
+                .thenReturn(List.of(
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
+
+        List<String> validationErrors = resourceQuotaService.validateNewQuotaAgainstCurrentResource(ns, resourceQuota);
+        Assertions.assertEquals(1, validationErrors.size());
+        Assertions.assertEquals("Quota already exceeded for count/connectors: 2/1 (used/limit)", validationErrors.get(0));
     }
 }
