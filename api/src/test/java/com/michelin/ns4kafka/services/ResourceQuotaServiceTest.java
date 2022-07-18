@@ -486,4 +486,276 @@ class ResourceQuotaServiceTest {
         Integer currentlyUsed = resourceQuotaService.getCurrentUsedResource(ns, COUNT_CONNECTORS);
         Assertions.assertEquals(2, currentlyUsed);
     }
+
+    /**
+     * Test quota validation on topics
+     */
+    @Test
+    void validateTopicQuota() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(COUNT_TOPICS.toString(), "4"))
+                .spec(Map.of(COUNT_PARTITIONS.toString(), "25"))
+                .build();
+
+        Topic newTopic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .build())
+                .build();
+
+
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(10)
+                        .build())
+                .build();
+
+        when(resourceQuotaRepository.findForNamespace("namespace"))
+                .thenReturn(Optional.of(resourceQuota));
+        when(topicService.findAllForNamespace(ns))
+                .thenReturn(List.of(topic1, topic2, topic3));
+
+        List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, newTopic);
+        Assertions.assertEquals(0, validationErrors.size());
+    }
+
+    /**
+     * Test quota validation on topics when there is no quota defined
+     */
+    @Test
+    void validateTopicQuotaNoQuota() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        Topic newTopic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .build())
+                .build();
+
+        when(resourceQuotaRepository.findForNamespace("namespace"))
+                .thenReturn(Optional.empty());
+
+        List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, newTopic);
+        Assertions.assertEquals(0, validationErrors.size());
+    }
+
+    /**
+     * Test quota validation on topics when quota is being exceeded
+     */
+    @Test
+    void validateTopicQuotaExceed() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(COUNT_TOPICS.toString(), "3", COUNT_PARTITIONS.toString(), "20"))
+                .build();
+
+        Topic newTopic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .build())
+                .build();
+
+
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(10)
+                        .build())
+                .build();
+
+        when(resourceQuotaRepository.findForNamespace("namespace"))
+                .thenReturn(Optional.of(resourceQuota));
+        when(topicService.findAllForNamespace(ns))
+                .thenReturn(List.of(topic1, topic2, topic3));
+
+        List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, newTopic);
+        Assertions.assertEquals(2, validationErrors.size());
+        Assertions.assertEquals("Exceeding quota for count/topics: 3/3 (used/limit). Cannot add 1 topic.", validationErrors.get(0));
+        Assertions.assertEquals("Exceeding quota for count/partitions: 19/20 (used/limit). Cannot add 6 partition(s).", validationErrors.get(1));
+    }
+
+    /**
+     * Test quota validation on connectors
+     */
+    @Test
+    void validateConnectorQuota() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(COUNT_CONNECTORS.toString(), "3"))
+                .build();
+
+        when(resourceQuotaRepository.findForNamespace("namespace"))
+                .thenReturn(Optional.of(resourceQuota));
+        when(kafkaConnectService.findAllForNamespace(ns))
+                .thenReturn(List.of(
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
+
+        List<String> validationErrors = resourceQuotaService.validateConnectorQuota(ns);
+        Assertions.assertEquals(0, validationErrors.size());
+    }
+
+    /**
+     * Test quota validation on connectors when there is no quota defined
+     */
+    @Test
+    void validateConnectorQuotaNoQuota() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        when(resourceQuotaRepository.findForNamespace("namespace"))
+                .thenReturn(Optional.empty());
+
+        List<String> validationErrors = resourceQuotaService.validateConnectorQuota(ns);
+        Assertions.assertEquals(0, validationErrors.size());
+    }
+
+    /**
+     * Test quota validation on connectors when quota is being exceeded
+     */
+    @Test
+    void validateConnectorQuotaExceed() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(COUNT_CONNECTORS.toString(), "2"))
+                .build();
+
+        when(resourceQuotaRepository.findForNamespace("namespace"))
+                .thenReturn(Optional.of(resourceQuota));
+        when(kafkaConnectService.findAllForNamespace(ns))
+                .thenReturn(List.of(
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
+
+        List<String> validationErrors = resourceQuotaService.validateConnectorQuota(ns);
+        Assertions.assertEquals(1, validationErrors.size());
+        Assertions.assertEquals("Exceeding quota for count/connectors: 2/2 (used/limit). Cannot add 1 connector.", validationErrors.get(0));
+    }
 }
