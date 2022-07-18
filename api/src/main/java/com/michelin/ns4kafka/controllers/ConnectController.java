@@ -164,9 +164,9 @@ public class ConnectController extends NamespacedResourceController {
 
                                 // Only check quota on connector creation
                                 if (status.equals(ApplyStatus.created)) {
-                                    validationErrors.addAll(resourceQuotaService.validateConnectorQuota(ns));
-                                    if (!validationErrors.isEmpty()) {
-                                        return Single.error(new ResourceValidationException(validationErrors, connector.getKind(), connector.getMetadata().getName()));
+                                    List<String> quotaErrors = resourceQuotaService.validateConnectorQuota(ns);
+                                    if (!quotaErrors.isEmpty()) {
+                                        return Single.error(new ResourceValidationException(quotaErrors, connector.getKind(), connector.getMetadata().getName()));
                                     }
                                 }
 

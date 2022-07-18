@@ -359,7 +359,7 @@ class ConnectControllerTest {
         .thenReturn(Single.just(List.of()));
         when(kafkaConnectService.validateRemotely(ns, connector))
                 .thenReturn(Single.just(List.of()));
-        when(resourceQuotaService.validateConnectorQuota(ns)).thenReturn(List.of());
+        when(resourceQuotaService.validateConnectorQuota(any())).thenReturn(List.of());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -382,11 +382,6 @@ class ConnectControllerTest {
                 .metadata(ObjectMeta.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
                 .build();
-        Connector expected = Connector.builder()
-                .metadata(ObjectMeta.builder().name("connect1").build())
-                .spec(Connector.ConnectorSpec.builder().config(Map.of("name", "connect1")).build())
-                .status(Connector.ConnectorStatus.builder().state(Connector.TaskState.UNASSIGNED).build())
-                .build();
 
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
@@ -403,11 +398,6 @@ class ConnectControllerTest {
         when(kafkaConnectService.validateRemotely(ns, connector))
                 .thenReturn(Single.just(List.of()));
         when(resourceQuotaService.validateConnectorQuota(ns)).thenReturn(List.of("Quota error"));
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
-        when(kafkaConnectService.createOrUpdate(connector))
-                .thenReturn(expected);
 
         connectController.apply("test", connector, false)
                 .test()
