@@ -543,7 +543,7 @@ class ResourceQuotaServiceTest {
      * Test get current used resource for count topics
      */
     @Test
-    void getCurrentUsedResourceForCountTopics() {
+    void getCurrentUsedResourceForUnknownKey() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -554,32 +554,8 @@ class ResourceQuotaServiceTest {
                         .build())
                 .build();
 
-        Topic topic1 = Topic.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("topic")
-                        .namespace("namespace")
-                        .build())
-                .build();
-
-        Topic topic2 = Topic.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("topic")
-                        .namespace("namespace")
-                        .build())
-                .build();
-
-        Topic topic3 = Topic.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("topic")
-                        .namespace("namespace")
-                        .build())
-                .build();
-
-        when(topicService.findAllForNamespace(ns))
-                .thenReturn(List.of(topic1, topic2, topic3));
-
-        Integer currentlyUsed = resourceQuotaService.getCurrentUsedResource(ns, COUNT_TOPICS);
-        Assertions.assertEquals(3, currentlyUsed);
+        Integer currentlyUsed = resourceQuotaService.getCurrentUsedResource(ns, null);
+        Assertions.assertEquals(0, currentlyUsed);
     }
 
     /**
