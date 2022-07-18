@@ -1,6 +1,8 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.models.*;
+import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
@@ -17,7 +19,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import static org.apache.kafka.common.config.TopicConfig.*;
-import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 
 @Singleton
 public class TopicService {

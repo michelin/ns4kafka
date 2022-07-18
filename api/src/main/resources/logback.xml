@@ -12,7 +12,6 @@
     <logger name="io.micronaut.security" level="debug"/>
     <logger name="io.micronaut.configuration.security.ldap" level="debug"/>
     <logger name="io.micronaut" level="info"/>
-    <logger name="io.micronaut.http" level="info"/>
     <logger name="com.michelin" level="debug" />
     <logger name="org.apache" level="error" />
 

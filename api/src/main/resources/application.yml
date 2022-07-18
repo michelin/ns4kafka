@@ -145,7 +145,7 @@ ns4kafka:
           min.compaction.lag.ms: "0"
           max.compaction.lag.ms: "604800000"
           segment.ms: "600000"
-  # Logs the the actions performed by users when changes are made (created/deleted/changed)
+  # Logs the actions performed by users when changes are made (created/deleted/changed)
   log:
     console: # 
       enabled: true

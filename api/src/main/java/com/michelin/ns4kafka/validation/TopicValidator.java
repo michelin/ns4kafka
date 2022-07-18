@@ -21,7 +21,7 @@ public class TopicValidator extends ResourceValidator {
         super(validationConstraints);
     }
 
-    public List<String> validate(Topic topic, Namespace namespace){
+    public List<String> validate(Topic topic, Namespace namespace) {
         List<String> validationErrors = new ArrayList<>();
 
         //Topic name validation
@@ -42,7 +42,7 @@ public class TopicValidator extends ResourceValidator {
                     .stream()
                     .filter(s -> !validationConstraints.containsKey(s))
                     .collect(Collectors.toSet());
-            if (configsWithoutConstraints.size() > 0) {
+            if (!configsWithoutConstraints.isEmpty()) {
                 validationErrors.add("Configurations [" + String.join(",", configsWithoutConstraints) + "] are not allowed");
             }
         }

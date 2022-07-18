@@ -40,7 +40,7 @@ public class ApiResourcesTest extends AbstractIntegrationTest {
                 Argument.listOf(ApiResourcesController.ResourceDefinition.class)
         ).blockingFirst();
 
-        Assertions.assertEquals(7, resources.size());
+        Assertions.assertEquals(8, resources.size());
 
     }
 
@@ -53,7 +53,7 @@ public class ApiResourcesTest extends AbstractIntegrationTest {
                 Argument.listOf(ApiResourcesController.ResourceDefinition.class)
         ).blockingFirst();
 
-        Assertions.assertEquals(7, resources.size());
+        Assertions.assertEquals(8, resources.size());
     }
 
     @Test

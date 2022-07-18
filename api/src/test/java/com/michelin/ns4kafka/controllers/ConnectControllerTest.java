@@ -7,6 +7,7 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.KafkaConnectService;
 import com.michelin.ns4kafka.services.NamespaceService;
+import com.michelin.ns4kafka.services.ResourceQuotaService;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -58,6 +59,13 @@ class ConnectControllerTest {
      */
     @InjectMocks
     ConnectController connectController;
+
+
+    /**
+     * The mocked resource quota service
+     */
+    @Mock
+    ResourceQuotaService resourceQuotaService;
 
     /**
      * Test connector listing when namespace is empty
@@ -343,18 +351,19 @@ class ConnectControllerTest {
                         .cluster("local")
                         .build())
                 .build();
-        Mockito.when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
-        Mockito.when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
-                .thenReturn(true);
-        Mockito.when(kafkaConnectService.validateLocally(ns, connector))
+        when(namespaceService.findByName("test"))
+        .thenReturn(Optional.of(ns));
+        when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
+        .thenReturn(true);
+        when(kafkaConnectService.validateLocally(ns, connector))
+        .thenReturn(Single.just(List.of()));
+        when(kafkaConnectService.validateRemotely(ns, connector))
                 .thenReturn(Single.just(List.of()));
-        Mockito.when(kafkaConnectService.validateRemotely(ns, connector))
-                .thenReturn(Single.just(List.of()));
+        when(resourceQuotaService.validateConnectorQuota(any())).thenReturn(List.of());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
-        Mockito.when(kafkaConnectService.createOrUpdate(connector))
+        when(kafkaConnectService.createOrUpdate(connector))
                 .thenReturn(expected);
 
         connectController.apply("test", connector, false)
@@ -362,6 +371,40 @@ class ConnectControllerTest {
                 .assertValue(response -> Objects.equals(response.header("X-Ns4kafka-Result"), "created"))
                 .assertValue(response -> response.getBody().isPresent()
                         && response.getBody().get().getStatus().getState().equals(expected.getStatus().getState()));
+    }
+
+    /**
+     * Test connector creation when there are validation failures
+     */
+    @Test
+    void createConnectorFailQuotaValidation() {
+        Connector connector = Connector.builder()
+                .metadata(ObjectMeta.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
+                .build();
+
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(kafkaConnectService.isNamespaceOwnerOfConnect(ns, "connect1"))
+                .thenReturn(true);
+        when(kafkaConnectService.validateLocally(ns, connector))
+                .thenReturn(Single.just(List.of()));
+        when(kafkaConnectService.validateRemotely(ns, connector))
+                .thenReturn(Single.just(List.of()));
+        when(resourceQuotaService.validateConnectorQuota(ns)).thenReturn(List.of("Quota error"));
+
+        connectController.apply("test", connector, false)
+                .test()
+                .assertError(ResourceValidationException.class)
+                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1)
+                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
+                        .equals("Quota error"));
     }
 
     /**
