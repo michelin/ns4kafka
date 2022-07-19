@@ -41,8 +41,7 @@ public class Schema {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @Getter
-    @Setter
+    @Data
     public static class SchemaSpec {
         /**
          * Schema ID

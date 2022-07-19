@@ -224,6 +224,57 @@ class ResourceQuotaServiceTest {
     }
 
     /**
+     * Test successful validation when creating quota
+     */
+    @Test
+    void validateNewQuotaAgainstCurrentResourceSuccess() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(COUNT_TOPICS.toString(), "10"))
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .build();
+
+        when(topicService.findAllForNamespace(ns))
+                .thenReturn(List.of(topic1, topic2, topic3));
+
+        List<String> validationErrors = resourceQuotaService.validateNewQuotaAgainstCurrentResource(ns, resourceQuota);
+        Assertions.assertEquals(0, validationErrors.size());
+    }
+
+    /**
      * Test validation when creating quota on count/topics
      */
     @Test
@@ -486,6 +537,25 @@ class ResourceQuotaServiceTest {
 
         Integer currentlyUsed = resourceQuotaService.getCurrentUsedResource(ns, COUNT_CONNECTORS);
         Assertions.assertEquals(2, currentlyUsed);
+    }
+
+    /**
+     * Test get current used resource for count topics
+     */
+    @Test
+    void getCurrentUsedResourceForUnknownKey() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        Integer currentlyUsed = resourceQuotaService.getCurrentUsedResource(ns, null);
+        Assertions.assertEquals(0, currentlyUsed);
     }
 
     /**
