@@ -17,6 +17,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -102,6 +104,10 @@ public class SchemaController extends NamespacedResourceController {
                                     .register(ns, schema)
                                     .map(id -> {
                                         ApplyStatus status;
+
+                                        schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                                        schema.getMetadata().setCluster(ns.getMetadata().getCluster());
+                                        schema.getMetadata().setNamespace(ns.getMetadata().getName());
 
                                         if (latestSubjectOptional.isEmpty()) {
                                             status = ApplyStatus.created;
