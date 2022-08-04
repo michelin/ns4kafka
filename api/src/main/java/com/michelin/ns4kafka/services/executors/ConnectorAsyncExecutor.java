@@ -163,7 +163,7 @@ public class ConnectorAsyncExecutor {
                 .stream()
                 .filter(connector -> connector.getSpec().getConnectCluster().equals(connectCluster))
                 .collect(Collectors.toList());
-        log.debug("Connectors found on Ns4kafka for Connect Cluster {} : {}", connectCluster, connectorList.size());
+        log.debug("Connectors found on Ns4kafka for Connect Cluster {}: {}", connectCluster, connectorList.size());
         return connectorList;
     }
 

@@ -200,10 +200,10 @@ public class TopicAsyncExecutor {
                         updatedTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                         updatedTopic.getMetadata().setGeneration(updatedTopic.getMetadata().getGeneration()+1);
                         updatedTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic configs updated"));
-                        log.info("Success updating topic configs {} on {} : [{}]",
+                        log.info("Success updating topic configs {} on {}: [{}]",
                                 mapEntry.getKey().name(),
-                                this.kafkaAsyncExecutorConfig.getName(),
-                                ops.stream().map(alterConfigOp -> alterConfigOp.toString()).collect(Collectors.joining(",")));
+                                kafkaAsyncExecutorConfig.getName(),
+                                ops.stream().map(AlterConfigOp::toString).collect(Collectors.joining(",")));
                     } catch (InterruptedException e) {
                         log.error("Error", e);
                         Thread.currentThread().interrupt();
