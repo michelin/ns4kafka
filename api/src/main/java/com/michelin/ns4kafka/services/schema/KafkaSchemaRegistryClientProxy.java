@@ -10,7 +10,6 @@ import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.annotation.Filter;
 import io.micronaut.http.client.ProxyHttpClient;
-import io.micronaut.http.filter.HttpServerFilter;
 import io.micronaut.http.filter.OncePerRequestHttpServerFilter;
 import io.micronaut.http.filter.ServerFilterChain;
 import org.reactivestreams.Publisher;
@@ -24,7 +23,7 @@ import java.util.UUID;
 @Filter(KafkaSchemaRegistryClientProxy.SCHEMA_REGISTRY_PREFIX + "/**")
 public class KafkaSchemaRegistryClientProxy extends OncePerRequestHttpServerFilter {
     /**
-     * Schema registry prefix used to filter request to schema registries. It'll be replace by
+     * Schema registry prefix used to filter request to schema registries. It'll be replaced by
      * the schema registry URL of the
      */
     public static final String SCHEMA_REGISTRY_PREFIX = "/schema-registry-proxy";
@@ -94,7 +93,7 @@ public class KafkaSchemaRegistryClientProxy extends OncePerRequestHttpServerFilt
             return Publishers.just(new ResourceValidationException(List.of("Kafka Cluster [" + kafkaCluster + "] has no schema registry"),null,null));
         }
 
-        return this.client.proxy(mutateSchemaRegistryRequest(request, config.get()));
+        return client.proxy(mutateSchemaRegistryRequest(request, config.get()));
     }
 
     /**

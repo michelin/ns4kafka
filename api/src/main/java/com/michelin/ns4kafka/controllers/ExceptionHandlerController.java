@@ -11,6 +11,7 @@ import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Error;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthorizationException;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
@@ -20,10 +21,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Controller("/errors")
 public class ExceptionHandlerController {
     @Error(global = true)
-    public HttpResponse<Status> error(HttpRequest<?> request, ResourceValidationException exception) {
+    public HttpResponse<Status> error(ResourceValidationException exception) {
         var status = Status.builder()
                 .status(StatusPhase.Failed)
                 .message(String.format("Invalid %s %s", exception.getKind(), exception.getName()))
@@ -41,7 +43,7 @@ public class ExceptionHandlerController {
     }
 
     @Error(global = true)
-    public HttpResponse<Status> error(HttpRequest<?> request, ConstraintViolationException exception) {
+    public HttpResponse<Status> error(ConstraintViolationException exception) {
         var status = Status.builder()
                 .status(StatusPhase.Failed)
                 .message("Invalid Resource")
@@ -75,7 +77,7 @@ public class ExceptionHandlerController {
     }
 
     @Error(global = true, status = HttpStatus.NOT_FOUND)
-    public HttpResponse<Status> error(HttpRequest<?> request) {
+    public HttpResponse<Status> error() {
         var status = Status.builder()
                 .status(StatusPhase.Failed)
                 .message("Not Found")
@@ -88,7 +90,7 @@ public class ExceptionHandlerController {
     }
 
     @Error(global = true)
-    public HttpResponse<Status> error(HttpRequest<?> request, AuthenticationException exception) {
+    public HttpResponse<Status> error(AuthenticationException exception) {
         var status = Status.builder()
                 .status(StatusPhase.Failed)
                 .message(exception.getMessage())
@@ -99,7 +101,7 @@ public class ExceptionHandlerController {
     }
 
     @Error(global = true)
-    public HttpResponse<Status> error(HttpRequest<?> request, AuthorizationException exception) {
+    public HttpResponse<Status> error(AuthorizationException exception) {
         if (exception.isForbidden()) {
             var status = Status.builder()
                     .status(StatusPhase.Failed)
@@ -122,19 +124,22 @@ public class ExceptionHandlerController {
 
     }
 
-    // if we don't know the exception
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, Exception exception) {
-        var status = Status.builder()
+        log.error("An error occurred on API endpoint {} {}: {}", request.getMethodName(), request.getUri(), exception.getMessage());
+
+        Status status = Status.builder()
                 .status(StatusPhase.Failed)
                 .message("Internal server error")
                 .reason(StatusReason.InternalError)
                 .details(StatusDetails.builder()
-                        .causes(List.of(exception.toString()))
+                        .causes(List.of(exception.getMessage()))
                         .build())
                 .code(HttpStatus.INTERNAL_SERVER_ERROR.getCode())
                 .build();
-        return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
+
+        return HttpResponse
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(status);
     }
 }
