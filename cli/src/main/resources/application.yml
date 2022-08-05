@@ -86,12 +86,12 @@ kafkactl:
       - "TOKEN:/spec/token"
   retry:
     apply:
-      delay: "5s"
-      attempt: "5"
+      delay: "2s"
+      attempt: "10"
       multiplier: "1.0"
     delete:
-      delay: "5s"
-      attempt: "5"
+      delay: "2s"
+      attempt: "10"
       multiplier: "1.0"
   contexts:
     -
