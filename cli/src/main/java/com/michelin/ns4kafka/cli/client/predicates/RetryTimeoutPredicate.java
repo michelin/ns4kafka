@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public class RetryTimeoutPredicate implements RetryPredicate {
     /**
-     * Detect timeout exceptions from Ns4kafka API
+     * Detect when Ns4Kafka return a timeout exception (e.g. when deploying schemas, connectors)
      * @param throwable the input argument
      * @return true if a retry is necessary, false otherwise
      */
@@ -17,15 +17,12 @@ public class RetryTimeoutPredicate implements RetryPredicate {
     public boolean test(Throwable throwable) {
         if (throwable instanceof HttpClientResponseException) {
             Optional<Status> statusOptional = ((HttpClientResponseException) throwable).getResponse().getBody(Status.class);
-            if (statusOptional.isPresent()) {
-                Status status = statusOptional.get();
-
-                if (status.getDetails() != null && !status.getDetails().getCauses().isEmpty()) {
-                    System.out.println("Timeout received from Ns4Kafka... retrying in few seconds...");
-
-                    return status.getCode() == HttpResponseStatus.INTERNAL_SERVER_ERROR.code()
-                            && status.getDetails().getCauses().stream().anyMatch(cause -> cause.contains("ReadTimeoutException"));
-                }
+            if (statusOptional.isPresent() && statusOptional.get().getDetails() != null
+                    && !statusOptional.get().getDetails().getCauses().isEmpty()
+                    && HttpResponseStatus.INTERNAL_SERVER_ERROR.code() == statusOptional.get().getCode()
+                    && statusOptional.get().getDetails().getCauses().stream().anyMatch(cause -> cause.contains("Read Timeout"))) {
+                System.out.println("Read timeout... retrying...");
+                return true;
             }
         }
         return false;
