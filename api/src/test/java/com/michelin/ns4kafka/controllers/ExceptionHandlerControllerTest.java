@@ -1,27 +1,25 @@
 package com.michelin.ns4kafka.controllers;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthorizationException;
 import io.micronaut.security.authentication.DefaultAuthentication;
-import javax.validation.ConstraintViolationException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
+import javax.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class ExceptionHandlerControllerTest {
+class ExceptionHandlerControllerTest {
 
     ExceptionHandlerController exceptionHandlerController = new ExceptionHandlerController();
 
     @Test
-    void ressourceValidationError() {
+    void resourceValidationError() {
         var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local")
                                                       ,new ResourceValidationException(List.of("Error1", "Error2"),"Topic", "Name"));
         var status = response.body();
@@ -36,7 +34,6 @@ public class ExceptionHandlerControllerTest {
     }
 
     @Test
-    @Disabled
     void constraintViolationError() {
         var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local")
                                                       ,new ConstraintViolationException(Set.of()));
@@ -44,7 +41,6 @@ public class ExceptionHandlerControllerTest {
 
         Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatus());
         Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.getCode(), status.getCode());
-        //Assertions.assertEquals("Error1", status.getDetails().getCauses().get(0));
     }
 
     @Test

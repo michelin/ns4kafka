@@ -10,7 +10,6 @@ import com.michelin.ns4kafka.services.schema.client.KafkaSchemaRegistryClient;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaRequest;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
 import lombok.extern.slf4j.Slf4j;
@@ -165,16 +164,19 @@ public class SchemaService {
                         .schema(schema.getSpec().getSchema())
                         .references(schema.getSpec().getReferences())
                         .build())
-                .flatMap(schemaCompatibilityCheckSuccess -> {
-                            if (!schemaCompatibilityCheckSuccess.isCompatible()) {
-                                return Maybe.just(schemaCompatibilityCheckSuccess.messages());
-                            } else {
-                                return Maybe.just(List.<String>of());
+                .map(Optional::of)
+                .defaultIfEmpty(Optional.empty())
+                .flatMapSingle(schemaCompatibilityCheckOptional -> {
+                            if (schemaCompatibilityCheckOptional.isEmpty()) {
+                                return Single.just(List.of());
                             }
-                        },
-                        schemaCompatibilityCheckError -> Maybe.just(List.of("An error occurred during the schema validation (status code: " + ((HttpClientResponseException) schemaCompatibilityCheckError).getStatus() + ")")),
-                        () -> Maybe.just(List.<String>of()))
-                .flatMapSingle(Single::just);
+
+                            if (!schemaCompatibilityCheckOptional.get().isCompatible()) {
+                                return Single.just(schemaCompatibilityCheckOptional.get().messages());
+                            } 
+
+                            return Single.just(List.of());
+                        });
     }
 
     /**

@@ -11,6 +11,7 @@ import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Error;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthorizationException;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
@@ -20,6 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Controller("/errors")
 public class ExceptionHandlerController {
     @Error(global = true)
@@ -122,19 +124,22 @@ public class ExceptionHandlerController {
 
     }
 
-    // if we don't know the exception
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, Exception exception) {
-        var status = Status.builder()
+        log.error("An error occurred on API endpoint {} {}: {}", request.getMethodName(), request.getUri(), exception.getMessage());
+
+        Status status = Status.builder()
                 .status(StatusPhase.Failed)
                 .message("Internal server error")
                 .reason(StatusReason.InternalError)
                 .details(StatusDetails.builder()
-                        .causes(List.of(exception.toString()))
+                        .causes(List.of(exception.getMessage() != null ? exception.getMessage() : exception.toString()))
                         .build())
                 .code(HttpStatus.INTERNAL_SERVER_ERROR.getCode())
                 .build();
-        return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
+
+        return HttpResponse
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(status);
     }
 }

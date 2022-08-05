@@ -9,8 +9,6 @@ import com.michelin.ns4kafka.services.schema.client.KafkaSchemaRegistryClient;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
-import io.micronaut.http.HttpResponse;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
 import org.junit.jupiter.api.Assertions;
@@ -245,24 +243,6 @@ class SchemaServiceTest {
         schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema)
                 .test()
                 .assertValue(List::isEmpty);
-    }
-
-    /**
-     * Test the schema compatibility validation when the Schema Registry throws an exception
-     */
-    @Test
-    void validateSchemaCompatibilityThrowsException() {
-        Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
-
-        when(kafkaSchemaRegistryClient.validateSchemaCompatibility(any(), any(), any(), any()))
-                .thenReturn(Maybe.error(new HttpClientResponseException("Error", HttpResponse.notFound())));
-
-        schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema)
-                .test()
-                .assertValue(validationErrors -> validationErrors.size() == 1L)
-                .assertValue(validationErrors -> validationErrors.get(0)
-                        .equals("An error occurred during the schema validation (status code: NOT_FOUND)"));
     }
 
     /**

@@ -86,11 +86,9 @@ public class TopicAsyncExecutor {
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
             if(log.isDebugEnabled()){
-                log.debug("Topics to create : "+ toCreate.stream().map(t -> t.getMetadata().getName()).collect(Collectors.joining(", ")));
-                //TODO reenable
-                // LOG.debug("Topics to delete : "+String.join(", ", toDelete.stream().map(t -> t.getMetadata().getName()).collect(Collectors.toList())));
-                log.debug("Topics to delete : "+toDelete.size());
-                log.debug("Topic configs to update : "+toUpdate.size());
+                log.debug("Topics to create: " + toCreate.stream().map(t -> t.getMetadata().getName()).collect(Collectors.joining(", ")));
+                log.debug("Topics to delete: " + toDelete.size());
+                log.debug("Topics to update: " + toUpdate.size());
                 for (Map.Entry<ConfigResource,Collection<AlterConfigOp>> e : toUpdate.entrySet()) {
                     for (AlterConfigOp op : e.getValue()) {
                         log.debug(e.getKey().name()+" "+op.opType().toString()+" " +op.configEntry().name()+"("+op.configEntry().value()+")");
