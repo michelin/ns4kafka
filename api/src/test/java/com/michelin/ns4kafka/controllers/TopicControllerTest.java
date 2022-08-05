@@ -1,11 +1,14 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.models.*;
+import com.michelin.ns4kafka.models.DeleteRecordsResponse;
+import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
+import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
+import com.michelin.ns4kafka.services.ResourceQuotaService;
 import com.michelin.ns4kafka.services.TopicService;
-import com.michelin.ns4kafka.validation.ResourceValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
@@ -57,6 +60,12 @@ class TopicControllerTest {
      */
     @Mock
     SecurityService securityService;
+
+    /**
+     * The mocked resource quota service
+     */
+    @Mock
+    ResourceQuotaService resourceQuotaService;
 
     /**
      * The mocked topic controller
@@ -276,6 +285,7 @@ class TopicControllerTest {
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
+        when(resourceQuotaService.validateTopicQuota(ns, topic)).thenReturn(List.of());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -285,7 +295,7 @@ class TopicControllerTest {
         var response = topicController.apply("test", topic, false);
         Topic actual = response.body();
         Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
-        assertEquals(actual.getMetadata().getName(), "test.topic");
+        assertEquals("test.topic", actual.getMetadata().getName());
     }
 
     /**
@@ -490,6 +500,7 @@ class TopicControllerTest {
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
+        when(resourceQuotaService.validateTopicQuota(ns, topic)).thenReturn(List.of());
 
         var response = topicController.apply("test", topic, true);
         Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
@@ -531,6 +542,45 @@ class TopicControllerTest {
                 () -> topicController.apply("test", topic, false));
         Assertions.assertEquals(1, actual.getValidationErrors().size());
         Assertions.assertLinesMatch(List.of(".*replication\\.factor.*"), actual.getValidationErrors());
+    }
+
+    /**
+     * Validate topic creation when topic quota validation fails
+     */
+    @Test
+    void createNewTopicFailQuotaValidation() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","delete",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
+        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
+        when(resourceQuotaService.validateTopicQuota(ns, topic)).thenReturn(List.of("Quota error"));
+
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+                () -> topicController.apply("test", topic, false));
+        Assertions.assertEquals(1, actual.getValidationErrors().size());
+        Assertions.assertLinesMatch(List.of("Quota error"), actual.getValidationErrors());
     }
 
     /**

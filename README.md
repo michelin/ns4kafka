@@ -448,7 +448,7 @@ Success Topic/test.topic1 (changed)
 
 ## Reset-offsets
 
-> kafkactl reset-offsets --group \<group\> --all-topic \<method\>
+> kafkactl reset-offsets --group \<group\> --all-topics \<method\>
 >
 > kafkactl reset-offsets --group \<group\> --topic \<topic\> \<method\>
 
@@ -456,7 +456,7 @@ Success Topic/test.topic1 (changed)
 
 **--group** is one of your consumer group to reset
 
-**--topic/--all-topic** is a given topic or all the topics to reset.
+**--topic/--all-topics** is a given topic or all the topics to reset.
 
 **method** is one of:
 - --to-earliest

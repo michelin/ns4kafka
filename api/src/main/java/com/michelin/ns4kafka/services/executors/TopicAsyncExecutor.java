@@ -86,11 +86,9 @@ public class TopicAsyncExecutor {
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
             if(log.isDebugEnabled()){
-                log.debug("Topics to create : "+ toCreate.stream().map(t -> t.getMetadata().getName()).collect(Collectors.joining(", ")));
-                //TODO reenable
-                // LOG.debug("Topics to delete : "+String.join(", ", toDelete.stream().map(t -> t.getMetadata().getName()).collect(Collectors.toList())));
-                log.debug("Topics to delete : "+toDelete.size());
-                log.debug("Topic configs to update : "+toUpdate.size());
+                log.debug("Topics to create: " + toCreate.stream().map(t -> t.getMetadata().getName()).collect(Collectors.joining(", ")));
+                log.debug("Topics to delete: " + toDelete.size());
+                log.debug("Topics to update: " + toUpdate.size());
                 for (Map.Entry<ConfigResource,Collection<AlterConfigOp>> e : toUpdate.entrySet()) {
                     for (AlterConfigOp op : e.getValue()) {
                         log.debug(e.getKey().name()+" "+op.opType().toString()+" " +op.configEntry().name()+"("+op.configEntry().value()+")");
@@ -200,10 +198,10 @@ public class TopicAsyncExecutor {
                         updatedTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                         updatedTopic.getMetadata().setGeneration(updatedTopic.getMetadata().getGeneration()+1);
                         updatedTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic configs updated"));
-                        log.info("Success updating topic configs {} on {} : [{}]",
+                        log.info("Success updating topic configs {} on {}: [{}]",
                                 mapEntry.getKey().name(),
-                                this.kafkaAsyncExecutorConfig.getName(),
-                                ops.stream().map(alterConfigOp -> alterConfigOp.toString()).collect(Collectors.joining(",")));
+                                kafkaAsyncExecutorConfig.getName(),
+                                ops.stream().map(AlterConfigOp::toString).collect(Collectors.joining(",")));
                     } catch (InterruptedException e) {
                         log.error("Error", e);
                         Thread.currentThread().interrupt();

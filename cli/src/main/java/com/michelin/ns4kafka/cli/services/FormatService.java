@@ -26,10 +26,6 @@ import java.util.concurrent.TimeUnit;
 
 @Singleton
 public class FormatService {
-
-    @Inject
-    public KafkactlConfig kafkactlConfig;
-
     private static final String YAML = "yaml";
     private static final String TABLE = "table";
     private final List<String> defaults = List.of(
@@ -37,6 +33,9 @@ public class FormatService {
             "NAME:/metadata/name",
             "AGE:/metadata/creationTimestamp%AGO"
     );
+
+    @Inject
+    public KafkactlConfig kafkactlConfig;
 
     public void displayList(String kind, List<Resource> resources, String output) {
         if (output.equals(TABLE)) {
@@ -60,11 +59,12 @@ public class FormatService {
         Optional<Status> statusOptional = e.getResponse().getBody(Status.class);
         if (statusOptional.isPresent() && statusOptional.get().getDetails() != null && !statusOptional.get().getDetails().getCauses().isEmpty()) {
             Status status = statusOptional.get();
-            String causes = String.join("\n - ", status.getDetails().getCauses());
+            String causes = status.getDetails().getCauses().size() > 1 ?
+                    "\n - " + String.join("\n - ", status.getDetails().getCauses()) : status.getDetails().getCauses().get(0);
 
-            System.out.printf("Failed %s/%s: %s for causes: %n - %s%n", kind, name, status.getMessage(), causes);
+            System.out.printf("Failed %s/%s %s for causes: %s", kind, name, status.getMessage(), causes);
         } else {
-            System.out.printf("Failed %s/%s: %s%n", kind, name, e.getMessage());
+            System.out.printf("Failed %s/%s %s%n", kind, name, e.getMessage());
         }
     }
 

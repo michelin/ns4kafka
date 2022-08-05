@@ -10,6 +10,4 @@ public interface AccessControlEntryRepository {
     Optional<AccessControlEntry> findByName(String namespace, String name);
     AccessControlEntry create(AccessControlEntry accessControlEntry);
     void delete(AccessControlEntry accessControlEntry);
-
-
 }

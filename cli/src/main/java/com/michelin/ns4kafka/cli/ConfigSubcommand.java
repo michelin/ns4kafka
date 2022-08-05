@@ -14,24 +14,47 @@ import java.util.concurrent.Callable;
 
 @CommandLine.Command(name = "config", description = "Manage configuration")
 public class ConfigSubcommand implements Callable<Integer> {
+    /**
+     * Kafkactl configuration
+     */
     @Inject
     public KafkactlConfig kafkactlConfig;
 
+    /**
+     * User configuration service
+     */
     @Inject
     public ConfigService configService;
 
+    /**
+     * Format service
+     */
     @Inject
     public FormatService formatService;
 
+    /**
+     * Kafkactl command
+     */
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
 
+    /**
+     * Action to perform
+     */
     @CommandLine.Parameters(index = "0", description = "(get-contexts | current-context | use-context)", arity = "1")
     public ConfigAction action;
 
+    /**
+     * Context name to set on use-context
+     */
     @CommandLine.Parameters(index="1", defaultValue = "", description = "Context", arity = "1")
     public String contextNameToSet;
 
+    /**
+     * Run the "config" command
+     * @return The command return code
+     * @throws Exception Any exception during the run
+     */
     @Override
     public Integer call() throws Exception {
         if (action.equals(ConfigAction.CURRENT_CONTEXT)) {

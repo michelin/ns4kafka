@@ -10,7 +10,6 @@ import java.util.List;
 
 @Client("${kafkactl.api}")
 public interface ClusterResourceClient {
-
     @Post("/login")
     BearerAccessRefreshToken login(@Body UsernameAndPasswordRequest request);
 

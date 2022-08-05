@@ -1,5 +1,6 @@
-package com.michelin.ns4kafka.models;
+package com.michelin.ns4kafka.models.schema;
 
+import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 
@@ -7,11 +8,11 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
-@Introspected
+@Data
 @Builder
+@Introspected
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
 public class Schema {
     /**
      * API version
@@ -40,8 +41,7 @@ public class Schema {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @Getter
-    @Setter
+    @Data
     public static class SchemaSpec {
         /**
          * Schema ID

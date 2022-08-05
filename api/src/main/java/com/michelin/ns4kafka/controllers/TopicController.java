@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.DeleteRecordsResponse;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.services.ResourceQuotaService;
 import com.michelin.ns4kafka.services.TopicService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -29,6 +30,12 @@ public class TopicController extends NamespacedResourceController {
      */
     @Inject
     TopicService topicService;
+
+    /**
+     * The resource quota service
+     */
+    @Inject
+    ResourceQuotaService resourceQuotaService;
 
     /**
      * Get all the topics by namespace
@@ -101,6 +108,14 @@ public class TopicController extends NamespacedResourceController {
         }
 
         ApplyStatus status = existingTopic.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
+
+        // Only check quota on topic creation
+        if (status.equals(ApplyStatus.created)) {
+            validationErrors.addAll(resourceQuotaService.validateTopicQuota(ns, topic));
+            if (!validationErrors.isEmpty()) {
+                throw new ResourceValidationException(validationErrors, topic.getKind(), topic.getMetadata().getName());
+            }
+        }
 
         if (dryrun) {
             return formatHttpResponse(topic, status);

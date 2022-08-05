@@ -43,6 +43,7 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
      * Consume messages from role bindings topic
      * @param record The role binding message
      */
+    @Override
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.role-bindings")
     void receive(ConsumerRecord<String, RoleBinding> record) {
         super.receive(record);

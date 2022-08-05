@@ -18,14 +18,10 @@ import java.util.List;
 public class Status {
     private String apiVersion = "v1";
     private String kind = "Status";
-
     private StatusPhase status;
-
     private String message;
     private String reason;
-
     private StatusDetails details;
-
     private int code;
 
     @Builder

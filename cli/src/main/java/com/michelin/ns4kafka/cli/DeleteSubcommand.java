@@ -22,22 +22,45 @@ import java.util.stream.Collectors;
 
 @Command(name = "delete", description = "Delete a resource")
 public class DeleteSubcommand implements Callable<Integer> {
-
+    /**
+     * Kafkactl config
+     */
     @Inject
     public KafkactlConfig kafkactlConfig;
 
+    /**
+     * Resource service
+     */
     @Inject
     public ResourceService resourceService;
+
+    /**
+     * Login service
+     */
     @Inject
     public LoginService loginService;
+
+    /**
+     * API resources service
+     */
     @Inject
     public ApiResourcesService apiResourcesService;
+
+    /**
+     * File service
+     */
     @Inject
     public FileService fileService;
 
+    /**
+     * Kafkactl command
+     */
     @CommandLine.ParentCommand
     public KafkactlCommand kafkactlCommand;
 
+    /**
+     * Handle deletion either by resource name or by file
+     */
     @ArgGroup(exclusive = true, multiplicity = "1")
     public EitherOf config;
 
@@ -47,27 +70,41 @@ public class DeleteSubcommand implements Callable<Integer> {
         @ArgGroup(exclusive = false)
         public ByFile fileConfig;
     }
+
     static class ByName {
         @Parameters(index = "0", description = "Resource type", arity = "1")
         public String resourceType;
+
         @Parameters(index = "1", description = "Resource name", arity = "1")
         public String name;
     }
+
     static class ByFile {
         @Option(names = {"-f", "--file"}, description = "YAML File or Directory containing YAML resources")
         public Optional<File> file;
+
         @Option(names = {"-R", "--recursive"}, description = "Enable recursive search in Directory")
         public boolean recursive;
     }
+
+    /**
+     * Does not persist resources. Validate only
+     */
     @Option(names = {"--dry-run"}, description = "Does not persist operation. Validate only")
     public boolean dryRun;
 
+    /**
+     * Current command
+     */
     @CommandLine.Spec
     public CommandLine.Model.CommandSpec commandSpec;
 
+    /**
+     * Run the "delete" command
+     * @return The command return code
+     */
     @Override
     public Integer call() {
-
         if (dryRun) {
             System.out.println("Dry run execution");
         }
@@ -78,16 +115,14 @@ public class DeleteSubcommand implements Callable<Integer> {
         }
 
         String namespace = kafkactlCommand.optionalNamespace.orElse(kafkactlConfig.getCurrentNamespace());
-
         List<Resource> resources;
-
         if (config.fileConfig != null && config.fileConfig.file.isPresent()) {
-            // 1. list all files to process
+            // List all files to process
             List<File> yamlFiles = fileService.computeYamlFileList(config.fileConfig.file.get(), config.fileConfig.recursive);
             if (yamlFiles.isEmpty()) {
                 throw new CommandLine.ParameterException(commandSpec.commandLine(), "Could not find yaml/yml files in " + config.fileConfig.file.get().getName());
             }
-            // 2 load each files
+            // Load each files
             resources = fileService.parseResourceListFromFiles(yamlFiles);
         } else {
             Optional<ApiResource> optionalApiResource = apiResourcesService.getResourceDefinitionFromCommandName(config.nameConfig.resourceType);
@@ -104,14 +139,14 @@ public class DeleteSubcommand implements Callable<Integer> {
                     .build());
         }
 
-        // 3. validate resource types from resources
+        // Validate resource types from resources
         List<Resource> invalidResources = apiResourcesService.validateResourceTypes(resources);
         if (!invalidResources.isEmpty()) {
-            String invalid = String.join(", ", invalidResources.stream().map(Resource::getKind).distinct().collect(Collectors.toList()));
+            String invalid = invalidResources.stream().map(Resource::getKind).distinct().collect(Collectors.joining(", "));
             throw new CommandLine.ParameterException(commandSpec.commandLine(), "The server doesn't have resource type [" + invalid + "]");
         }
 
-        // 4. validate namespace mismatch
+        // Validate namespace mismatch
         List<Resource> nsMismatch = resources.stream()
                 .filter(resource -> resource.getMetadata().getNamespace() != null && !resource.getMetadata().getNamespace().equals(namespace))
                 .collect(Collectors.toList());
@@ -121,20 +156,20 @@ public class DeleteSubcommand implements Callable<Integer> {
         }
         List<ApiResource> apiResources = apiResourcesService.getListResourceDefinition();
 
-        // 5. process each document individually, return 0 when all succeed
+        // Process each document individually, return 0 when all succeed
         int errors = resources.stream()
                 .map(resource -> {
                     ApiResource apiResource = apiResources.stream()
                             .filter(apiRes -> apiRes.getKind().equals(resource.getKind()))
                             .findFirst()
-                            .orElseThrow(); // already validated
+                            .orElseThrow();
                     boolean success = resourceService.delete(apiResource, namespace, resource.getMetadata().getName(), dryRun);
-                    if(success) {
+                    if (success) {
                         System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,green Success |@") + apiResource.getKind() + "/" + resource.getMetadata().getName() + " (deleted)");
                     }
                     return success;
                 })
-                .mapToInt(value -> value ? 0 : 1)
+                .mapToInt(value -> Boolean.TRUE.equals(value) ? 0 : 1)
                 .sum();
 
         return errors > 0 ? 1 : 0;
