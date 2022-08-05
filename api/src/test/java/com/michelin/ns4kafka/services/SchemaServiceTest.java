@@ -244,7 +244,7 @@ class SchemaServiceTest {
                 .test()
                 .assertValue(List::isEmpty);
     }
-    
+
     /**
      * Test the schema compatibility update when reset to default is asked
      */

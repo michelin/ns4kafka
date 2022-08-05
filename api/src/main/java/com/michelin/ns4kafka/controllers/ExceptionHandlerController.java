@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 @Controller("/errors")
 public class ExceptionHandlerController {
     @Error(global = true)
-    public HttpResponse<Status> error(ResourceValidationException exception) {
+    public HttpResponse<Status> error(HttpRequest<?> request, ResourceValidationException exception) {
         var status = Status.builder()
                 .status(StatusPhase.Failed)
                 .message(String.format("Invalid %s %s", exception.getKind(), exception.getName()))
@@ -43,7 +43,7 @@ public class ExceptionHandlerController {
     }
 
     @Error(global = true)
-    public HttpResponse<Status> error(ConstraintViolationException exception) {
+    public HttpResponse<Status> error(HttpRequest<?> request, ConstraintViolationException exception) {
         var status = Status.builder()
                 .status(StatusPhase.Failed)
                 .message("Invalid Resource")
@@ -77,7 +77,7 @@ public class ExceptionHandlerController {
     }
 
     @Error(global = true, status = HttpStatus.NOT_FOUND)
-    public HttpResponse<Status> error() {
+    public HttpResponse<Status> error(HttpRequest<?> request) {
         var status = Status.builder()
                 .status(StatusPhase.Failed)
                 .message("Not Found")
@@ -90,7 +90,7 @@ public class ExceptionHandlerController {
     }
 
     @Error(global = true)
-    public HttpResponse<Status> error(AuthenticationException exception) {
+    public HttpResponse<Status> error(HttpRequest<?> request, AuthenticationException exception) {
         var status = Status.builder()
                 .status(StatusPhase.Failed)
                 .message(exception.getMessage())
@@ -101,7 +101,7 @@ public class ExceptionHandlerController {
     }
 
     @Error(global = true)
-    public HttpResponse<Status> error(AuthorizationException exception) {
+    public HttpResponse<Status> error(HttpRequest<?> request, AuthorizationException exception) {
         if (exception.isForbidden()) {
             var status = Status.builder()
                     .status(StatusPhase.Failed)
@@ -133,7 +133,7 @@ public class ExceptionHandlerController {
                 .message("Internal server error")
                 .reason(StatusReason.InternalError)
                 .details(StatusDetails.builder()
-                        .causes(List.of(exception.getMessage()))
+                        .causes(List.of(exception.getMessage() != null ? exception.getMessage() : exception.toString()))
                         .build())
                 .code(HttpStatus.INTERNAL_SERVER_ERROR.getCode())
                 .build();
