@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.services.executors;
 
-
 import io.micronaut.context.annotation.ConfigurationProperties;
 import io.micronaut.context.annotation.EachProperty;
 import io.micronaut.context.annotation.Parameter;
@@ -10,7 +9,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.kafka.clients.admin.Admin;
 
-import java.security.Provider;
 import java.util.Map;
 import java.util.Properties;
 
@@ -21,7 +19,7 @@ public class KafkaAsyncExecutorConfig {
     /**
      * Cluster name
      */
-    private final String name;
+    private String name;
 
     /**
      * Run topics synchronization ?

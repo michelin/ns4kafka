@@ -27,8 +27,7 @@ public class ConnectorAsyncExecutor {
     /**
      * The managed clusters config
      */
-    @Inject
-    private KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
+    private final KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
 
     /**
      * The connector repository
@@ -41,6 +40,15 @@ public class ConnectorAsyncExecutor {
      */
     @Inject
     private KafkaConnectClient kafkaConnectClient;
+
+    /**
+     * Constructor
+     * Required to inject multiple
+     * @param kafkaAsyncExecutorConfig The managed clusters config
+     */
+    public ConnectorAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
+        this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
+    }
 
     /**
      * Start connector synchronization
