@@ -1,10 +1,12 @@
 package com.michelin.ns4kafka.cli.client;
 
+import com.michelin.ns4kafka.cli.client.predicates.RetryTimeoutPredicate;
 import com.michelin.ns4kafka.cli.models.Resource;
 import com.michelin.ns4kafka.cli.models.SchemaCompatibility;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.retry.annotation.Retryable;
 
 import java.util.List;
 import java.util.Map;
@@ -21,6 +23,10 @@ public interface NamespacedResourceClient {
      * @return The delete response
      */
     @Delete("{namespace}/{kind}/{resourceName}{?dryrun}")
+    @Retryable(delay = "${kafkactl.retry.delete.delay}",
+            attempts = "${kafkactl.retry.delete.attempt}",
+            multiplier = "${kafkactl.retry.delete.multiplier}",
+            predicate = RetryTimeoutPredicate.class)
     HttpResponse<Void> delete(
             String namespace,
             String kind,
@@ -38,11 +44,15 @@ public interface NamespacedResourceClient {
      * @return The resource
      */
     @Post("{namespace}/{kind}{?dryrun}")
+    @Retryable(delay = "${kafkactl.retry.apply.delay}",
+            attempts = "${kafkactl.retry.apply.attempt}",
+            multiplier = "${kafkactl.retry.apply.multiplier}",
+            predicate = RetryTimeoutPredicate.class)
     HttpResponse<Resource> apply(
             String namespace,
             String kind,
             @Header("Authorization") String token,
-            @Body Resource json,
+            @Body Resource resource,
             @QueryValue boolean dryrun);
 
     /**

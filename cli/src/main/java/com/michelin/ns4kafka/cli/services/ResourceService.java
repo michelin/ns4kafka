@@ -90,7 +90,7 @@ public class ResourceService {
     public boolean delete(ApiResource apiResource, String namespace, String resource, boolean dryRun) {
         try {
             if (apiResource.isNamespaced()) {
-                HttpResponse response = namespacedClient.delete(namespace, apiResource.getPath(), resource, loginService.getAuthorization(), dryRun);
+                HttpResponse<Void> response = namespacedClient.delete(namespace, apiResource.getPath(), resource, loginService.getAuthorization(), dryRun);
                 if(response.getStatus() != HttpStatus.NO_CONTENT){
                     throw new HttpClientResponseException("Resource not Found", response);
                 }
