@@ -158,16 +158,17 @@ public class ConnectController extends NamespacedResourceController {
                                 }
 
                                 ApplyStatus status = existingConnector.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
-                                if (dryrun) {
-                                    return Single.just(formatHttpResponse(connector, status));
-                                }
-
+                                
                                 // Only check quota on connector creation
                                 if (status.equals(ApplyStatus.created)) {
                                     List<String> quotaErrors = resourceQuotaService.validateConnectorQuota(ns);
                                     if (!quotaErrors.isEmpty()) {
                                         return Single.error(new ResourceValidationException(quotaErrors, connector.getKind(), connector.getMetadata().getName()));
                                     }
+                                }
+
+                                if (dryrun) {
+                                    return Single.just(formatHttpResponse(connector, status));
                                 }
 
                                 sendEventLog(connector.getKind(), connector.getMetadata(), status,
