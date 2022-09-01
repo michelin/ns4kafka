@@ -17,6 +17,7 @@ import java.util.Optional;
 
 import static com.michelin.ns4kafka.models.quota.ResourceQuota.ResourceQuotaSpecKey.*;
 import static com.michelin.ns4kafka.utils.BytesUtils.*;
+import static org.apache.kafka.common.config.TopicConfig.RETENTION_BYTES_CONFIG;
 
 @Slf4j
 @Singleton
@@ -189,10 +190,11 @@ public class ResourceQuotaService {
     /**
      * Validate the topic quota
      * @param namespace The namespace
-     * @param topic The topic
+     * @param existingTopic The existing topic
+     * @param newTopic The new topic
      * @return A list of errors
      */
-    public List<String> validateTopicQuota(Namespace namespace, Topic topic) {
+    public List<String> validateTopicQuota(Namespace namespace, Optional<Topic> existingTopic, Topic newTopic) {
         Optional<ResourceQuota> resourceQuotaOptional = findByNamespace(namespace.getMetadata().getName());
         if (resourceQuotaOptional.isEmpty()) {
             return List.of();
@@ -201,20 +203,42 @@ public class ResourceQuotaService {
         List<String> errors = new ArrayList<>();
         ResourceQuota resourceQuota = resourceQuotaOptional.get();
 
-        if (StringUtils.isNotBlank(resourceQuota.getSpec().get(COUNT_TOPICS.getKey()))) {
-            long used = getCurrentCountTopics(namespace);
-            long limit = Long.parseLong(resourceQuota.getSpec().get(COUNT_TOPICS.getKey()));
-            if (used + 1 > limit) {
-                errors.add(String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add 1 topic.", COUNT_TOPICS, used, limit));
+        // Check count topics and count partitions only at creation
+        if (existingTopic.isEmpty()) {
+            if (StringUtils.isNotBlank(resourceQuota.getSpec().get(COUNT_TOPICS.getKey()))) {
+                long used = getCurrentCountTopics(namespace);
+                long limit = Long.parseLong(resourceQuota.getSpec().get(COUNT_TOPICS.getKey()));
+                if (used + 1 > limit) {
+                    errors.add(String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add 1 topic.", COUNT_TOPICS, used, limit));
+                }
+            }
+
+            if (StringUtils.isNotBlank(resourceQuota.getSpec().get(COUNT_PARTITIONS.getKey()))) {
+                long used = getCurrentCountPartitions(namespace);
+                long limit = Long.parseLong(resourceQuota.getSpec().get(COUNT_PARTITIONS.getKey()));
+                if (used + newTopic.getSpec().getPartitions() > limit) {
+                    errors.add(String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add %s partition(s).", COUNT_PARTITIONS, used, limit, newTopic.getSpec().getPartitions()));
+                }
             }
         }
 
-        if (StringUtils.isNotBlank(resourceQuota.getSpec().get(COUNT_PARTITIONS.getKey()))) {
-            long used = getCurrentCountPartitions(namespace);
-            long limit = Long.parseLong(resourceQuota.getSpec().get(COUNT_PARTITIONS.getKey()));
-            if (used + topic.getSpec().getPartitions() > limit) {
-                errors.add(String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add %s partition(s).", COUNT_PARTITIONS, used, limit, topic.getSpec().getPartitions()));
+        if (StringUtils.isNotBlank(resourceQuota.getSpec().get(DISK_TOPICS.getKey())) &&
+                StringUtils.isNotBlank(newTopic.getSpec().getConfigs().get(RETENTION_BYTES_CONFIG))) {
+            long used = getCurrentDiskTopics(namespace);
+            long limit = BytesUtils.humanReadableToBytes(resourceQuota.getSpec().get(DISK_TOPICS.getKey()));
+
+            long newTopicSize = Long.parseLong(newTopic.getSpec().getConfigs().get(RETENTION_BYTES_CONFIG)) * newTopic.getSpec().getPartitions();
+            long existingTopicSize = existingTopic
+                    .map(value -> Long.parseLong(value.getSpec().getConfigs().getOrDefault(RETENTION_BYTES_CONFIG, "0"))
+                            * value.getSpec().getPartitions())
+                    .orElse(0L);
+
+            long bytesToAdd = newTopicSize - existingTopicSize;
+            if (bytesToAdd > 0 && used + bytesToAdd > limit) {
+                errors.add(String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add %s of data.", DISK_TOPICS,
+                        BytesUtils.bytesToHumanReadable(used), BytesUtils.bytesToHumanReadable(limit), BytesUtils.bytesToHumanReadable(bytesToAdd)));
             }
+
         }
 
         return errors;

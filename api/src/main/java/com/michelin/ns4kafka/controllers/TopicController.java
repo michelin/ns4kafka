@@ -107,16 +107,12 @@ public class TopicController extends NamespacedResourceController {
             return formatHttpResponse(existingTopic.get(), ApplyStatus.unchanged);
         }
 
-        ApplyStatus status = existingTopic.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
-
-        // Only check quota on topic creation
-        if (status.equals(ApplyStatus.created)) {
-            validationErrors.addAll(resourceQuotaService.validateTopicQuota(ns, topic));
-            if (!validationErrors.isEmpty()) {
-                throw new ResourceValidationException(validationErrors, topic.getKind(), topic.getMetadata().getName());
-            }
+        validationErrors.addAll(resourceQuotaService.validateTopicQuota(ns, existingTopic, topic));
+        if (!validationErrors.isEmpty()) {
+            throw new ResourceValidationException(validationErrors, topic.getKind(), topic.getMetadata().getName());
         }
 
+        ApplyStatus status = existingTopic.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
         if (dryrun) {
             return formatHttpResponse(topic, status);
         }

@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static com.michelin.ns4kafka.models.quota.ResourceQuota.ResourceQuotaSpecKey.*;
+import static org.apache.kafka.common.config.TopicConfig.RETENTION_BYTES_CONFIG;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -697,6 +698,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .spec(Map.of(COUNT_TOPICS.toString(), "4"))
                 .spec(Map.of(COUNT_PARTITIONS.toString(), "25"))
+                .spec(Map.of(DISK_TOPICS.toString(), "2GiB"))
                 .build();
 
         Topic newTopic = Topic.builder()
@@ -706,6 +708,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(6)
+                        .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
                         .build())
                 .build();
 
@@ -717,6 +720,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(6)
+                        .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
                         .build())
                 .build();
 
@@ -727,6 +731,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(3)
+                        .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
                         .build())
                 .build();
 
@@ -737,6 +742,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(10)
+                        .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
                         .build())
                 .build();
 
@@ -745,7 +751,7 @@ class ResourceQuotaServiceTest {
         when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(topic1, topic2, topic3));
 
-        List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, newTopic);
+        List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, Optional.empty(), newTopic);
         Assertions.assertEquals(0, validationErrors.size());
     }
 
@@ -777,7 +783,7 @@ class ResourceQuotaServiceTest {
         when(resourceQuotaRepository.findForNamespace("namespace"))
                 .thenReturn(Optional.empty());
 
-        List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, newTopic);
+        List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, Optional.empty(), newTopic);
         Assertions.assertEquals(0, validationErrors.size());
     }
 
@@ -801,7 +807,7 @@ class ResourceQuotaServiceTest {
                         .cluster("local")
                         .name("test")
                         .build())
-                .spec(Map.of(COUNT_TOPICS.toString(), "3", COUNT_PARTITIONS.toString(), "20"))
+                .spec(Map.of(COUNT_TOPICS.toString(), "3", COUNT_PARTITIONS.toString(), "20", DISK_TOPICS.toString(), "20KiB"))
                 .build();
 
         Topic newTopic = Topic.builder()
@@ -811,6 +817,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(6)
+                        .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
                         .build())
                 .build();
 
@@ -822,6 +829,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(6)
+                        .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
                         .build())
                 .build();
 
@@ -832,6 +840,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(3)
+                        .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
                         .build())
                 .build();
 
@@ -842,6 +851,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(10)
+                        .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
                         .build())
                 .build();
 
@@ -850,10 +860,11 @@ class ResourceQuotaServiceTest {
         when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(topic1, topic2, topic3));
 
-        List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, newTopic);
-        Assertions.assertEquals(2, validationErrors.size());
+        List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, Optional.empty(), newTopic);
+        Assertions.assertEquals(3, validationErrors.size());
         Assertions.assertEquals("Exceeding quota for count/topics: 3/3 (used/limit). Cannot add 1 topic.", validationErrors.get(0));
         Assertions.assertEquals("Exceeding quota for count/partitions: 19/20 (used/limit). Cannot add 6 partition(s).", validationErrors.get(1));
+        Assertions.assertEquals("Exceeding quota for disk/topics: 18.555KiB/20.0KiB (used/limit). Cannot add 5.86KiB of data.", validationErrors.get(2));
     }
 
     /**
