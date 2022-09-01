@@ -969,7 +969,8 @@ class ResourceQuotaServiceTest {
                         .build())
                 .spec(Map.of(COUNT_TOPICS.toString(), "3",
                         COUNT_PARTITIONS.toString(), "20",
-                        COUNT_CONNECTORS.toString(), "2"))
+                        COUNT_CONNECTORS.toString(), "2",
+                        DISK_TOPICS.toString(), "60KiB"))
                 .build();
 
         Topic topic1 = Topic.builder()
@@ -979,6 +980,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(6)
+                        .configs(Map.of("retention.bytes", "1000"))
                         .build())
                 .build();
 
@@ -989,6 +991,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(3)
+                        .configs(Map.of("retention.bytes", "2000"))
                         .build())
                 .build();
 
@@ -999,6 +1002,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(10)
+                        .configs(Map.of("retention.bytes", "4000"))
                         .build())
                 .build();
 
@@ -1014,6 +1018,7 @@ class ResourceQuotaServiceTest {
         Assertions.assertEquals("3/3", response.getSpec().getCountTopic());
         Assertions.assertEquals("19/20", response.getSpec().getCountPartition());
         Assertions.assertEquals("2/2", response.getSpec().getCountConnector());
+        Assertions.assertEquals("50.782KiB/60KiB", response.getSpec().getDiskTopic());
     }
 
     /**
@@ -1038,6 +1043,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(6)
+                        .configs(Map.of("retention.bytes", "1000"))
                         .build())
                 .build();
 
@@ -1048,6 +1054,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(3)
+                        .configs(Map.of("retention.bytes", "2000"))
                         .build())
                 .build();
 
@@ -1058,6 +1065,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(10)
+                        .configs(Map.of("retention.bytes", "4000"))
                         .build())
                 .build();
 
@@ -1073,5 +1081,6 @@ class ResourceQuotaServiceTest {
         Assertions.assertEquals("3", response.getSpec().getCountTopic());
         Assertions.assertEquals("19", response.getSpec().getCountPartition());
         Assertions.assertEquals("2", response.getSpec().getCountConnector());
+        Assertions.assertEquals("50.782KiB", response.getSpec().getDiskTopic());
     }
 }
