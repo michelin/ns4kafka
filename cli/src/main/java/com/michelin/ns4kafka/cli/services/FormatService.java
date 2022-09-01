@@ -62,7 +62,7 @@ public class FormatService {
             String causes = status.getDetails().getCauses().size() > 1 ?
                     "\n - " + String.join("\n - ", status.getDetails().getCauses()) : status.getDetails().getCauses().get(0);
 
-            System.out.printf("Failed %s/%s %s for causes: %s", kind, name, status.getMessage(), causes);
+            System.out.printf("Failed %s/%s %s for causes: %s%n", kind, name, status.getMessage(), causes);
         } else {
             System.out.printf("Failed %s/%s %s%n", kind, name, e.getMessage());
         }
