@@ -120,7 +120,7 @@ public class ResourceQuotaService {
             String limitAsString = resourceQuota.getSpec().get(DISK_TOPICS.getKey());
             if (!limitAsString.endsWith(BYTE) && !limitAsString.endsWith(KIBIBYTE) && !limitAsString.endsWith(MEBIBYTE) && !limitAsString.endsWith(GIBIBYTE)) {
                 errors.add(String.format("Invalid value for %s: value must end with either %s, %s, %s or %s",
-                        resourceQuota.getSpec().get(DISK_TOPICS.getKey()), BYTE, KIBIBYTE, MEBIBYTE, GIBIBYTE));
+                        DISK_TOPICS, BYTE, KIBIBYTE, MEBIBYTE, GIBIBYTE));
             } else {
                 long used = getCurrentDiskTopics(namespace);
                 long limit = BytesUtils.humanReadableToBytes(limitAsString);

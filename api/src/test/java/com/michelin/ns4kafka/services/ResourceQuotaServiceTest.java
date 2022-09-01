@@ -388,6 +388,87 @@ class ResourceQuotaServiceTest {
     }
 
     /**
+     * Test format when creating quota on disk/topics
+     */
+    @Test
+    void validateNewQuotaDiskTopicsFormat() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(DISK_TOPICS.toString(), "10"))
+                .build();
+
+        List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
+        Assertions.assertEquals(1, validationErrors.size());
+        Assertions.assertEquals("Invalid value for disk/topics: value must end with either B, KiB, MiB or GiB", validationErrors.get(0));
+    }
+
+    /**
+     * Test validation when creating quota on disk/topics
+     */
+    @Test
+    void validateNewQuotaAgainstCurrentResourceForDiskTopics() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(DISK_TOPICS.toString(), "5000B"))
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .configs(Map.of("retention.bytes", "1000"))
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .configs(Map.of("retention.bytes", "1000"))
+                        .build())
+                .build();
+
+        when(topicService.findAllForNamespace(ns))
+                .thenReturn(List.of(topic1, topic2));
+
+        List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
+        Assertions.assertEquals(1, validationErrors.size());
+        Assertions.assertEquals("Quota already exceeded for disk/topics: 8.79KiB/5000B (used/limit)", validationErrors.get(0));
+    }
+
+    /**
      * Test validation when creating quota on count/connectors
      */
     @Test
@@ -537,6 +618,61 @@ class ResourceQuotaServiceTest {
 
         long currentlyUsed = resourceQuotaService.getCurrentCountConnectors(ns);
         Assertions.assertEquals(2L, currentlyUsed);
+    }
+
+    /**
+     * Test get current used resource for disk topics
+     */
+    @Test
+    void getCurrentUsedResourceForDiskTopics() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .configs(Map.of("retention.bytes", "1000"))
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .configs(Map.of("retention.bytes", "50000"))
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(10)
+                        .configs(Map.of("retention.bytes", "2500"))
+                        .build())
+                .build();
+
+        when(topicService.findAllForNamespace(ns))
+                .thenReturn(List.of(topic1, topic2, topic3));
+
+        long currentlyUsed = resourceQuotaService.getCurrentDiskTopics(ns);
+        Assertions.assertEquals(181000L, currentlyUsed);
     }
 
     /**
