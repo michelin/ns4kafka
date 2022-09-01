@@ -868,6 +868,83 @@ class ResourceQuotaServiceTest {
     }
 
     /**
+     * Test quota validation on topic update when quota is being exceeded
+     */
+    @Test
+    void validateUpdateTopicQuotaExceed() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(COUNT_TOPICS.toString(), "3", COUNT_PARTITIONS.toString(), "20", DISK_TOPICS.toString(), "20KiB"))
+                .build();
+
+        Topic newTopic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .configs(Map.of(RETENTION_BYTES_CONFIG, "1500"))
+                        .build())
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(10)
+                        .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
+                        .build())
+                .build();
+
+        when(resourceQuotaRepository.findForNamespace("namespace"))
+                .thenReturn(Optional.of(resourceQuota));
+        when(topicService.findAllForNamespace(ns))
+                .thenReturn(List.of(topic1, topic2, topic3));
+
+        List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, Optional.of(topic1), newTopic);
+        Assertions.assertEquals(1, validationErrors.size());
+        Assertions.assertEquals("Exceeding quota for disk/topics: 18.555KiB/20.0KiB (used/limit). Cannot add 2.93KiB of data.", validationErrors.get(0));
+    }
+
+    /**
      * Test quota validation on connectors
      */
     @Test
