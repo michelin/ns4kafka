@@ -55,6 +55,11 @@ public class ResourceQuotaResponse {
         private String countPartition;
 
         /**
+         * The disk quota for topics
+         */
+        private String diskTopic;
+
+        /**
          * The count quota for connectors
          */
         private String countConnector;

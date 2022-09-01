@@ -270,7 +270,7 @@ class ResourceQuotaServiceTest {
         when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(topic1, topic2, topic3));
 
-        List<String> validationErrors = resourceQuotaService.validateNewQuotaAgainstCurrentResource(ns, resourceQuota);
+        List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
         Assertions.assertEquals(0, validationErrors.size());
     }
 
@@ -321,7 +321,7 @@ class ResourceQuotaServiceTest {
         when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(topic1, topic2, topic3));
 
-        List<String> validationErrors = resourceQuotaService.validateNewQuotaAgainstCurrentResource(ns, resourceQuota);
+        List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
         Assertions.assertEquals(1, validationErrors.size());
         Assertions.assertEquals("Quota already exceeded for count/topics: 3/2 (used/limit)", validationErrors.get(0));
     }
@@ -382,7 +382,7 @@ class ResourceQuotaServiceTest {
         when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(topic1, topic2, topic3));
 
-        List<String> validationErrors = resourceQuotaService.validateNewQuotaAgainstCurrentResource(ns, resourceQuota);
+        List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
         Assertions.assertEquals(1, validationErrors.size());
         Assertions.assertEquals("Quota already exceeded for count/partitions: 19/10 (used/limit)", validationErrors.get(0));
     }
@@ -415,7 +415,7 @@ class ResourceQuotaServiceTest {
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
-        List<String> validationErrors = resourceQuotaService.validateNewQuotaAgainstCurrentResource(ns, resourceQuota);
+        List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
         Assertions.assertEquals(1, validationErrors.size());
         Assertions.assertEquals("Quota already exceeded for count/connectors: 2/1 (used/limit)", validationErrors.get(0));
     }
@@ -459,8 +459,8 @@ class ResourceQuotaServiceTest {
         when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(topic1, topic2, topic3));
 
-        Integer currentlyUsed = resourceQuotaService.getCurrentUsedResource(ns, COUNT_TOPICS);
-        Assertions.assertEquals(3, currentlyUsed);
+        long currentlyUsed = resourceQuotaService.getCurrentCountTopics(ns);
+        Assertions.assertEquals(3L, currentlyUsed);
     }
 
     /**
@@ -511,8 +511,8 @@ class ResourceQuotaServiceTest {
         when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(topic1, topic2, topic3));
 
-        Integer currentlyUsed = resourceQuotaService.getCurrentUsedResource(ns, COUNT_PARTITIONS);
-        Assertions.assertEquals(19, currentlyUsed);
+        long currentlyUsed = resourceQuotaService.getCurrentCountPartitions(ns);
+        Assertions.assertEquals(19L, currentlyUsed);
     }
 
     /**
@@ -535,27 +535,8 @@ class ResourceQuotaServiceTest {
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
-        Integer currentlyUsed = resourceQuotaService.getCurrentUsedResource(ns, COUNT_CONNECTORS);
-        Assertions.assertEquals(2, currentlyUsed);
-    }
-
-    /**
-     * Test get current used resource for count topics
-     */
-    @Test
-    void getCurrentUsedResourceForUnknownKey() {
-        Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .spec(Namespace.NamespaceSpec.builder()
-                        .connectClusters(List.of("local-name"))
-                        .build())
-                .build();
-
-        Integer currentlyUsed = resourceQuotaService.getCurrentUsedResource(ns, null);
-        Assertions.assertEquals(0, currentlyUsed);
+        long currentlyUsed = resourceQuotaService.getCurrentCountConnectors(ns);
+        Assertions.assertEquals(2L, currentlyUsed);
     }
 
     /**

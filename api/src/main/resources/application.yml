@@ -28,7 +28,7 @@ micronaut:
     authentication: bearer
     gitlab:
       enabled: true
-      url: https://gitlab.com
+      url: https://gitlab.michelin.com
     ldap:
       enabled: false
 #      default:
@@ -124,7 +124,7 @@ ns4kafka:
       - connect/state/update
       - users/reset-password
   security:
-    admin-group: _
+    admin-group: DEV
 #    local-users: # Not for production use.
 #      - username: admin
 #        # SHA-256 password.

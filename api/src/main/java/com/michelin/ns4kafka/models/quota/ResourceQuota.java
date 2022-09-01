@@ -44,6 +44,7 @@ public class ResourceQuota {
     public enum ResourceQuotaSpecKey {
         COUNT_TOPICS("count/topics"),
         COUNT_PARTITIONS("count/partitions"),
+        DISK_TOPICS("disk/topics"),
         COUNT_CONNECTORS("count/connectors");
 
         private final String key;

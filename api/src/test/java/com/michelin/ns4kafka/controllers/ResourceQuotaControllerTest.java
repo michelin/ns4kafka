@@ -162,7 +162,7 @@ class ResourceQuotaControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(resourceQuotaService.validateNewQuotaAgainstCurrentResource(ns, resourceQuota)).thenReturn(List.of("Quota already exceeded"));
+        when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of("Quota already exceeded"));
 
         ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
                 () -> resourceQuotaController.apply("test", resourceQuota, false));
@@ -193,7 +193,7 @@ class ResourceQuotaControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(resourceQuotaService.validateNewQuotaAgainstCurrentResource(ns, resourceQuota)).thenReturn(List.of());
+        when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
         when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.of(resourceQuota));
 
         var response = resourceQuotaController.apply("test", resourceQuota, false);
@@ -223,7 +223,7 @@ class ResourceQuotaControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(resourceQuotaService.validateNewQuotaAgainstCurrentResource(ns, resourceQuota)).thenReturn(List.of());
+        when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
         when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.empty());
 
         var response = resourceQuotaController.apply("test", resourceQuota, true);
@@ -252,7 +252,7 @@ class ResourceQuotaControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(resourceQuotaService.validateNewQuotaAgainstCurrentResource(ns, resourceQuota)).thenReturn(List.of());
+        when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
         when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.empty());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
@@ -294,7 +294,7 @@ class ResourceQuotaControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(resourceQuotaService.validateNewQuotaAgainstCurrentResource(ns, resourceQuota)).thenReturn(List.of());
+        when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
         when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.of(resourceQuotaExisting));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
