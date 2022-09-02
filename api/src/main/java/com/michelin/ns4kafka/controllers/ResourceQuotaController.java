@@ -70,7 +70,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
         quota.getMetadata().setCluster(ns.getMetadata().getCluster());
         quota.getMetadata().setNamespace(namespace);
 
-        List<String> validationErrors = resourceQuotaService.validateNewQuotaAgainstCurrentResource(ns, quota);
+        List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, quota);
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors, quota.getKind(), quota.getMetadata().getName());
         }

@@ -268,6 +268,7 @@ class TopicControllerTest {
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
+
         Topic topic = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test.topic")
@@ -285,7 +286,7 @@ class TopicControllerTest {
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
-        when(resourceQuotaService.validateTopicQuota(ns, topic)).thenReturn(List.of());
+        when(resourceQuotaService.validateTopicQuota(ns, Optional.empty(), topic)).thenReturn(List.of());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -500,7 +501,7 @@ class TopicControllerTest {
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
-        when(resourceQuotaService.validateTopicQuota(ns, topic)).thenReturn(List.of());
+        when(resourceQuotaService.validateTopicQuota(ns, Optional.empty(), topic)).thenReturn(List.of());
 
         var response = topicController.apply("test", topic, true);
         Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
@@ -575,7 +576,7 @@ class TopicControllerTest {
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
-        when(resourceQuotaService.validateTopicQuota(ns, topic)).thenReturn(List.of("Quota error"));
+        when(resourceQuotaService.validateTopicQuota(ns, Optional.empty(), topic)).thenReturn(List.of("Quota error"));
 
         ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
                 () -> topicController.apply("test", topic, false));

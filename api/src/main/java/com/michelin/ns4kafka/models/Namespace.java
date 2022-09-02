@@ -19,9 +19,9 @@ import java.util.List;
 @NoArgsConstructor
 @Data
 public class Namespace {
-
     private final String apiVersion = "v1";
     private final String kind = "Namespace";
+
     @Valid
     @NotNull
     private ObjectMeta metadata;
@@ -40,8 +40,5 @@ public class Namespace {
         private List<String> connectClusters = List.of();
         private TopicValidator topicValidator;
         private ConnectValidator connectValidator;
-        //private ResourceQuota quota;
     }
-
-
 }

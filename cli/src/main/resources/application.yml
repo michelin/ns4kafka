@@ -49,6 +49,7 @@ kafkactl:
       - "QUOTA:/metadata/name"
       - "COUNT/TOPICS:/spec/countTopic"
       - "COUNT/PARTITIONS:/spec/countPartition"
+      - "DISK/TOPICS:/spec/diskTopic"
       - "COUNT/CONNECTORS:/spec/countConnector"
     ChangeConnectorState:
       - "CONNECTOR:/metadata/name"
