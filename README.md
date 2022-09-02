@@ -797,4 +797,5 @@ spec:
 - **count/topics**: maximum number of deployable topics
 - **count/partitions**: maximum number of deployable partitions
 - **count/connectors**: maximum number of deployable connectors
-- **disk/topics**: maximum size of all topics. Computed from the sum of _retention.bytes_ * number of partitions of all topics
+- **disk/topics**: maximum size of all topics. Computed from the sum of _retention.bytes_ * _number of partitions_ of all topics. 
+Unit of measure accepted is byte (B), kibibyte (KiB), mebibyte (MiB), gibibyte (GiB)
