@@ -731,7 +731,7 @@ Success RoleBinding/test-role-group1 (created)
 
 From now on, members of the group ``group1/test-ops`` (either Gitlab, LDAP or OIDC groups) can use ns4kafka to manage topics starting with `test.` on the `local` Kafka cluster.  
 
-  But wait ! That's not enough. Now you should only let them create Topics successfully if and only if their configuration is aligned with your strategy ! Let's add Validators !
+But wait ! That's not enough. Now you should only let them create Topics successfully if and only if their configuration is aligned with your strategy ! Let's add Validators !
 
 ````yaml
 # namespace.yml
@@ -775,3 +775,26 @@ user@local:/home/user$ kafkactl apply -f namespace.yml
 Success Namespace/test (changed)
 ````
 
+## Quota management
+
+It is possible to define quotas on a namespace. Ideal for clusters with limited resources!
+
+A namespace with quotas will not be able to exceed the limits enforced by the quotas.
+
+```yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  namespace: test
+  name: test-rq1
+spec:
+  count/topics: 10
+  count/partitions: 60
+  count/connectors: 5
+  disk/topics: 500MiB
+```
+
+- count/topics: maximum number of deployable topics
+- count/partitions: maximum number of deployable partitions
+- count/connectors: maximum number of deployable connectors
+- disk/topics: maximum size of all topics. Computed from the sum of _retention.bytes_ * number of partitions of all topics
