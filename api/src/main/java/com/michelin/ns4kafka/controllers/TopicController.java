@@ -1,10 +1,13 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.DeleteRecordsResponse;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.services.ResourceQuotaService;
 import com.michelin.ns4kafka.services.TopicService;
+import com.michelin.ns4kafka.utils.enums.ApplyStatus;
+import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;

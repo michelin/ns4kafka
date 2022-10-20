@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.services.executors;
 
-import com.michelin.ns4kafka.controllers.ResourceValidationException;
+import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import io.micronaut.context.annotation.EachBean;
 import lombok.extern.slf4j.Slf4j;

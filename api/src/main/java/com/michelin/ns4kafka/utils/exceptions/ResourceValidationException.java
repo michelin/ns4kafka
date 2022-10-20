@@ -1,4 +1,4 @@
-package com.michelin.ns4kafka.controllers;
+package com.michelin.ns4kafka.utils.exceptions;
 
 import lombok.Getter;
 

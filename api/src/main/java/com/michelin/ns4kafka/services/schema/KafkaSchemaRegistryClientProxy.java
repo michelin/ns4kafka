@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.services.schema;
 
-import com.michelin.ns4kafka.controllers.ResourceValidationException;
+import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.core.util.StringUtils;
@@ -24,7 +24,7 @@ import java.util.UUID;
 public class KafkaSchemaRegistryClientProxy extends OncePerRequestHttpServerFilter {
     /**
      * Schema registry prefix used to filter request to schema registries. It'll be replaced by
-     * the schema registry URL of the
+     * the schema registry URL of the given cluster
      */
     public static final String SCHEMA_REGISTRY_PREFIX = "/schema-registry-proxy";
 
@@ -57,7 +57,6 @@ public class KafkaSchemaRegistryClientProxy extends OncePerRequestHttpServerFilt
 
     /**
      * Filter requests
-     *
      * @param request The request to filter
      * @param chain The servlet chain
      * @return A modified request
@@ -74,7 +73,6 @@ public class KafkaSchemaRegistryClientProxy extends OncePerRequestHttpServerFilt
             return Publishers.just(new ResourceValidationException(List.of("Invalid value " + secret + " for header " + KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET), null, null));
         }
 
-        // Retrieve the connectConfig based on Header
         if (!request.getHeaders().contains(KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER)) {
             return Publishers.just(new ResourceValidationException(List.of("Missing required header " + KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER), null, null));
         }
@@ -99,7 +97,6 @@ public class KafkaSchemaRegistryClientProxy extends OncePerRequestHttpServerFilt
     /**
      * Mutate a request to the Schema Registry by modifying the base URI by the Schema Registry URI from the
      * cluster config
-     *
      * @param request The request to modify
      * @param config The configuration used to modify the request
      * @return The modified request

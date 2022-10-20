@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpStatus;

@@ -23,7 +23,7 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
      * @param kafkaProducer The resource quota producer
      */
     public KafkaResourceQuotaRepository(@Value("${ns4kafka.store.kafka.topics.prefix}.resource-quotas") String kafkaTopic,
-                                      @KafkaClient("role-resource-quotas") Producer<String, ResourceQuota> kafkaProducer) {
+                                      @KafkaClient("resource-quotas") Producer<String, ResourceQuota> kafkaProducer) {
         super(kafkaTopic, kafkaProducer);
     }
 

@@ -19,9 +19,11 @@ import javax.validation.constraints.NotNull;
 public class ChangeConnectorState {
     private final String apiVersion = "v1";
     private final String kind = "ChangeConnectorState";
+
     @Valid
     @NotNull
     private ObjectMeta metadata;
+
     @Valid
     @NotNull
     private ChangeConnectorStateSpec spec;
@@ -35,9 +37,6 @@ public class ChangeConnectorState {
     public static class ChangeConnectorStateSpec {
         @NotNull
         private ConnectorAction action;
-        //TODO
-        // connectCluster
-        // taskId
     }
 
     @Introspected

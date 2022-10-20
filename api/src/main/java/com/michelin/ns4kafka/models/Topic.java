@@ -11,38 +11,22 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 
-@Introspected
+@Data
 @Builder
+@Introspected
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
 public class Topic {
-    /**
-     * API version
-     */
     private final String apiVersion = "v1";
-
-    /**
-     * Kind of resource
-     */
     private final String kind = "Topic";
 
-    /**
-     * Schema metadata
-     */
     @Valid
     @NotNull
     private ObjectMeta metadata;
 
-    /**
-     * Topic specifications
-     */
     @NotNull
     private TopicSpec spec;
 
-    /**
-     * Topic status
-     */
     @EqualsAndHashCode.Exclude
     private TopicStatus status;
 
@@ -51,19 +35,8 @@ public class Topic {
     @NoArgsConstructor
     @Data
     public static class TopicSpec {
-        /**
-         * Replication factor
-         */
         private int replicationFactor;
-
-        /**
-         * Partitions quantity
-         */
         private int partitions;
-
-        /**
-         * Topic configuration
-         */
         private Map<String, String> configs;
     }
 
@@ -74,19 +47,9 @@ public class Topic {
     @Setter
     @Schema(description = "Server-side", accessMode = Schema.AccessMode.READ_ONLY)
     public static class TopicStatus {
-        /**
-         * Topic phase
-         */
         private TopicPhase phase;
-
-        /**
-         * Message
-         */
         private String message;
 
-        /**
-         * Last updated time
-         */
         @JsonFormat(shape = JsonFormat.Shape.STRING)
         private Date lastUpdateTime;
 

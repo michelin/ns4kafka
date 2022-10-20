@@ -1,9 +1,12 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsetsResponse;
 import com.michelin.ns4kafka.services.ConsumerGroupService;
+import com.michelin.ns4kafka.utils.enums.ApplyStatus;
+import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;

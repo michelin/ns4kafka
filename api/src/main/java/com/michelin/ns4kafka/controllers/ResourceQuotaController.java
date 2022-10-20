@@ -1,9 +1,12 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.models.quota.ResourceQuotaResponse;
 import com.michelin.ns4kafka.services.ResourceQuotaService;
+import com.michelin.ns4kafka.utils.enums.ApplyStatus;
+import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
@@ -18,7 +21,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-@Tag(name = "Resource Quota")
+@Tag(name = "Resource Quotas")
 @Controller(value = "/api/namespaces/{namespace}/resource-quotas")
 @ExecuteOn(TaskExecutors.IO)
 public class ResourceQuotaController extends NamespacedResourceController {

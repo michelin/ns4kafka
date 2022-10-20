@@ -46,7 +46,7 @@ class ResourceQuotaServiceTest {
      * Connect service
      */
     @Mock
-    KafkaConnectService kafkaConnectService;
+    ConnectorService connectorService;
 
     /**
      * Test get quota by namespace when it is defined
@@ -492,7 +492,7 @@ class ResourceQuotaServiceTest {
                 .spec(Map.of(COUNT_CONNECTORS.toString(), "1"))
                 .build();
 
-        when(kafkaConnectService.findAllForNamespace(ns))
+        when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
@@ -612,7 +612,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .build();
 
-        when(kafkaConnectService.findAllForNamespace(ns))
+        when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
@@ -969,7 +969,7 @@ class ResourceQuotaServiceTest {
 
         when(resourceQuotaRepository.findForNamespace("namespace"))
                 .thenReturn(Optional.of(resourceQuota));
-        when(kafkaConnectService.findAllForNamespace(ns))
+        when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
@@ -1025,7 +1025,7 @@ class ResourceQuotaServiceTest {
 
         when(resourceQuotaRepository.findForNamespace("namespace"))
                 .thenReturn(Optional.of(resourceQuota));
-        when(kafkaConnectService.findAllForNamespace(ns))
+        when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
@@ -1096,7 +1096,7 @@ class ResourceQuotaServiceTest {
 
         when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(topic1, topic2, topic3));
-        when(kafkaConnectService.findAllForNamespace(ns))
+        when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
@@ -1159,7 +1159,7 @@ class ResourceQuotaServiceTest {
 
         when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(topic1, topic2, topic3));
-        when(kafkaConnectService.findAllForNamespace(ns))
+        when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));

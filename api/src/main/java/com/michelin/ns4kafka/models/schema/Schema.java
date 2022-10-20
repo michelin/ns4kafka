@@ -14,26 +14,13 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Schema {
-    /**
-     * API version
-     */
     private final String apiVersion = "v1";
-
-    /**
-     * Kind of resource
-     */
     private final String kind = "Schema";
 
-    /**
-     * Schema metadata
-     */
     @Valid
     @NotNull
     private ObjectMeta metadata;
 
-    /**
-     * Schema specifications
-     */
     @Valid
     @NotNull
     private SchemaSpec spec;
@@ -43,36 +30,15 @@ public class Schema {
     @NoArgsConstructor
     @Data
     public static class SchemaSpec {
-        /**
-         * Schema ID
-         */
         private Integer id;
-
-        /**
-         * Schema version
-         */
         private Integer version;
-
-        /**
-         * Content of the schema
-         */
         private String schema;
 
-        /**
-         * Schema type
-         */
         @Builder.Default
         private SchemaType schemaType = SchemaType.AVRO;
 
-        /**
-         * Schema compatibility
-         */
         @Builder.Default
         private Compatibility compatibility = Compatibility.GLOBAL;
-
-        /**
-         * References list
-         */
         private List<Reference> references;
 
         @Builder
@@ -87,9 +53,6 @@ public class Schema {
         }
     }
 
-    /**
-     * Schema compatibility
-     */
     @Introspected
     public enum Compatibility {
         GLOBAL,
@@ -102,9 +65,6 @@ public class Schema {
         NONE
     }
 
-    /**
-     * Schema type
-     */
     @Introspected
     public enum SchemaType {
         AVRO,

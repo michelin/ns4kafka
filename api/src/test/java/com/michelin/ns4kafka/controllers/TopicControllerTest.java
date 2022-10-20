@@ -9,6 +9,7 @@ import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.ResourceQuotaService;
 import com.michelin.ns4kafka.services.TopicService;
+import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;

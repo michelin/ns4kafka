@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.models.Status;
 import com.michelin.ns4kafka.models.Status.StatusDetails;
 import com.michelin.ns4kafka.models.Status.StatusPhase;
 import com.michelin.ns4kafka.models.Status.StatusReason;
+import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;

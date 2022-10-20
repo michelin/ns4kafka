@@ -14,26 +14,13 @@ import java.util.Map;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ResourceQuota {
-    /**
-     * API version
-     */
     private final String apiVersion = "v1";
-
-    /**
-     * Kind of resource
-     */
     private final String kind = "ResourceQuota";
 
-    /**
-     * Resource quota metadata
-     */
     @Valid
     @NotNull
     private ObjectMeta metadata;
 
-    /**
-     * Resource quota specification
-     */
     @Valid
     @NotNull
     private Map<String, String> spec;

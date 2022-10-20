@@ -1,4 +1,4 @@
-package com.michelin.ns4kafka.controllers;
+package com.michelin.ns4kafka.controllers.generic;
 
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.services.NamespaceService;

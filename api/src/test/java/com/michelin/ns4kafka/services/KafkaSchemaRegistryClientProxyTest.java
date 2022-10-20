@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.controllers.ResourceValidationException;
+import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.schema.KafkaSchemaRegistryClientProxy;
 import io.micronaut.http.*;

@@ -21,6 +21,7 @@ import java.util.Map;
 public class Connector {
     private final String apiVersion = "v1";
     private final String kind = "Connector";
+
     @Valid
     @NotNull
     private ObjectMeta metadata;
@@ -53,8 +54,8 @@ public class Connector {
     public static class ConnectorStatus {
         private TaskState state;
         private String worker_id;
-
         private List<TaskStatus> tasks;
+
         @JsonFormat(shape = JsonFormat.Shape.STRING)
         private Date lastUpdateTime;
 

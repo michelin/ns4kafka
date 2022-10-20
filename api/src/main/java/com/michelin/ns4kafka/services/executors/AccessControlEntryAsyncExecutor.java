@@ -6,7 +6,7 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
 import com.michelin.ns4kafka.services.AccessControlEntryService;
-import com.michelin.ns4kafka.services.KafkaConnectService;
+import com.michelin.ns4kafka.services.ConnectorService;
 import com.michelin.ns4kafka.services.StreamService;
 import io.micronaut.context.annotation.EachBean;
 import lombok.extern.slf4j.Slf4j;
@@ -55,7 +55,7 @@ public class AccessControlEntryAsyncExecutor {
      * The Kafka Connect service
      */
     @Inject
-    KafkaConnectService kafkaConnectService;
+    ConnectorService connectorService;
 
     /**
      * The namespace repository

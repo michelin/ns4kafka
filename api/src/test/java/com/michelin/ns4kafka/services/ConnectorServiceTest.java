@@ -6,8 +6,8 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
-import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
-import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
+import com.michelin.ns4kafka.services.connect.ConnectorClientProxy;
+import com.michelin.ns4kafka.services.connect.client.ConnectorClient;
 import com.michelin.ns4kafka.services.connect.client.entities.*;
 import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
 import com.michelin.ns4kafka.validation.ConnectValidator;
@@ -35,7 +35,7 @@ import java.util.Optional;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class KafkaConnectServiceTest {
+class ConnectorServiceTest {
     /**
      * Mocked ACL service
      */
@@ -46,7 +46,7 @@ class KafkaConnectServiceTest {
      * Mocked Kafka connector client
      */
     @Mock
-    KafkaConnectClient kafkaConnectClient;
+    ConnectorClient connectorClient;
 
     /**
      * Mocked connector repository
@@ -64,7 +64,7 @@ class KafkaConnectServiceTest {
      * Mocked kafka connect service
      */
     @InjectMocks
-    KafkaConnectService kafkaConnectService;
+    ConnectorService connectorService;
 
     /**
      * Test to find all connectors by namespace when there is no connector
@@ -84,7 +84,7 @@ class KafkaConnectServiceTest {
         Mockito.when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of());
 
-        List<Connector> actual = kafkaConnectService.findAllForNamespace(ns);
+        List<Connector> actual = connectorService.findAllForNamespace(ns);
 
         Assertions.assertTrue(actual.isEmpty());
     }
@@ -172,7 +172,7 @@ class KafkaConnectServiceTest {
         Mockito.when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1, c2, c3, c4, c5));
 
-        List<Connector> actual = kafkaConnectService.findAllForNamespace(ns);
+        List<Connector> actual = connectorService.findAllForNamespace(ns);
 
         Assertions.assertEquals(3, actual.size());
         // contains
@@ -203,7 +203,7 @@ class KafkaConnectServiceTest {
         Mockito.when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of());
 
-        Optional<Connector> actual = kafkaConnectService.findByName(ns, "ns-connect1");
+        Optional<Connector> actual = connectorService.findByName(ns, "ns-connect1");
 
         Assertions.assertTrue(actual.isEmpty());
     }
@@ -274,7 +274,7 @@ class KafkaConnectServiceTest {
         Mockito.when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1, c2, c3));
 
-        Optional<Connector> actual = kafkaConnectService.findByName(ns, "ns-connect1");
+        Optional<Connector> actual = connectorService.findByName(ns, "ns-connect1");
 
         Assertions.assertTrue(actual.isPresent());
         Assertions.assertEquals("ns-connect1", actual.get().getMetadata().getName());
@@ -309,7 +309,7 @@ class KafkaConnectServiceTest {
                         .build())
                 .build();
 
-        kafkaConnectService.validateLocally(ns, connector)
+        connectorService.validateLocally(ns, connector)
                 .test()
                 .assertValue(response -> response.size() == 1)
                 .assertValue(response -> response.get(0).equals("Invalid value wrong for spec.connectCluster: Value must be one of [local-name]"));
@@ -337,7 +337,7 @@ class KafkaConnectServiceTest {
                         .build())
                 .build();
 
-        kafkaConnectService.validateLocally(ns, connector)
+        connectorService.validateLocally(ns, connector)
                 .test()
                 .assertValue(response -> response.size() == 1)
                 .assertValue(response -> response.get(0).equals("Invalid value for spec.config.'connector.class': Value must be non-null"));
@@ -364,10 +364,10 @@ class KafkaConnectServiceTest {
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
-        Mockito.when(kafkaConnectClient.connectPlugins(KafkaConnectClientProxy.PROXY_SECRET, "local", "local-name"))
+        Mockito.when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
                 .thenReturn(Single.just(List.of()));
 
-        kafkaConnectService.validateLocally(ns, connector)
+        connectorService.validateLocally(ns, connector)
                 .test()
                 .assertValue(response -> response.size() == 1)
                 .assertValue(response -> response.get(0).equals("Failed to find any class that implements Connector and which name matches org.apache.kafka.connect.file.FileStreamSinkConnector"));
@@ -400,10 +400,10 @@ class KafkaConnectServiceTest {
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
-        Mockito.when(kafkaConnectClient.connectPlugins(KafkaConnectClientProxy.PROXY_SECRET, "local", "local-name"))
+        Mockito.when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
                 .thenReturn(Single.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
 
-        kafkaConnectService.validateLocally(ns, connector)
+        connectorService.validateLocally(ns, connector)
                 .test()
                 .assertValue(response -> response.size() == 1)
                 .assertValue(response -> response.get(0).equals("Invalid value null for configuration missing.field: Value must be non-null"));
@@ -436,10 +436,10 @@ class KafkaConnectServiceTest {
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
-        Mockito.when(kafkaConnectClient.connectPlugins(KafkaConnectClientProxy.PROXY_SECRET, "local", "local-name"))
+        Mockito.when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
                 .thenReturn(Single.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
 
-        kafkaConnectService.validateLocally(ns, connector)
+        connectorService.validateLocally(ns, connector)
                 .test()
                 .assertValue(List::isEmpty);
     }
@@ -471,7 +471,7 @@ class KafkaConnectServiceTest {
                 List.of(new ConfigInfo(new ConfigKeyInfo(null, null, false, null, null, null, null, 0, null, null, null),
                         new ConfigValueInfo(null, null, null, List.of("error_message"), true))));
 
-        Mockito.when(kafkaConnectClient.validate(
+        Mockito.when(connectorClient.validate(
                 ArgumentMatchers.anyString(),
                 ArgumentMatchers.eq("local"),
                 ArgumentMatchers.eq("local-name"),
@@ -479,7 +479,7 @@ class KafkaConnectServiceTest {
                 ArgumentMatchers.any()))
                 .thenReturn(Single.just(configInfos));
 
-        kafkaConnectService.validateRemotely(ns, connector)
+        connectorService.validateRemotely(ns, connector)
                 .test()
                 .assertValue(response -> response.size() == 1)
                 .assertValue(response -> response.contains("error_message"));
@@ -509,7 +509,7 @@ class KafkaConnectServiceTest {
                 .build();
 
         ConfigInfos configInfos = new ConfigInfos("name", 1, List.of(), List.of());
-        Mockito.when(kafkaConnectClient.validate(
+        Mockito.when(connectorClient.validate(
                 ArgumentMatchers.anyString(),
                 ArgumentMatchers.eq("local"),
                 ArgumentMatchers.eq("local-name"),
@@ -517,7 +517,7 @@ class KafkaConnectServiceTest {
                 ArgumentMatchers.any()))
                 .thenReturn(Single.just(configInfos));
 
-        kafkaConnectService.validateRemotely(ns, connector)
+        connectorService.validateRemotely(ns, connector)
                 .test()
                 .assertValue(List::isEmpty);
     }
@@ -594,7 +594,7 @@ class KafkaConnectServiceTest {
         Mockito.when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of());
 
-        kafkaConnectService.listUnsynchronizedConnectors(ns)
+        connectorService.listUnsynchronizedConnectors(ns)
                 .test()
                 .assertValue(response -> response.size() == 3)
                 .assertValue(response -> response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")))
@@ -679,7 +679,7 @@ class KafkaConnectServiceTest {
         Mockito.when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1, c2, c3, c4));
 
-        kafkaConnectService.listUnsynchronizedConnectors(ns)
+        connectorService.listUnsynchronizedConnectors(ns)
                 .test()
                 .assertValue(response -> response.size() == 0);
     }
@@ -763,7 +763,7 @@ class KafkaConnectServiceTest {
         Mockito.when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1));
 
-        kafkaConnectService.listUnsynchronizedConnectors(ns)
+        connectorService.listUnsynchronizedConnectors(ns)
                 .test()
                 .assertValue(response -> response.size() == 2)
                 .assertValue(response -> response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect2")))
@@ -792,16 +792,16 @@ class KafkaConnectServiceTest {
                 .spec(Connector.ConnectorSpec.builder().connectCluster("local-name").build())
                 .build();
 
-        when(kafkaConnectClient.delete(KafkaConnectClientProxy.PROXY_SECRET, ns.getMetadata().getCluster(),
+        when(connectorClient.delete(ConnectorClientProxy.PROXY_SECRET, ns.getMetadata().getCluster(),
                 "local-name", "ns-connect1")).thenReturn(Maybe.just(HttpResponse.ok()));
 
         doNothing().when(connectorRepository).delete(connector);
 
-        kafkaConnectService.delete(ns, connector)
+        connectorService.delete(ns, connector)
                 .test()
                 .assertValue(response -> response.getStatus().equals(HttpStatus.OK));
 
-        verify(kafkaConnectClient, times(1)).delete(KafkaConnectClientProxy.PROXY_SECRET, ns.getMetadata().getCluster(),
+        verify(connectorClient, times(1)).delete(ConnectorClientProxy.PROXY_SECRET, ns.getMetadata().getCluster(),
                 "local-name", "ns-connect1");
 
         verify(connectorRepository, times(1)).delete(connector);
@@ -827,10 +827,10 @@ class KafkaConnectServiceTest {
                 .spec(Connector.ConnectorSpec.builder().connectCluster("local-name").build())
                 .build();
 
-        when(kafkaConnectClient.delete(KafkaConnectClientProxy.PROXY_SECRET, ns.getMetadata().getCluster(),
+        when(connectorClient.delete(ConnectorClientProxy.PROXY_SECRET, ns.getMetadata().getCluster(),
                 "local-name", "ns-connect1")).thenReturn(Maybe.error(new HttpClientResponseException("Error", HttpResponse.serverError())));
 
-        kafkaConnectService.delete(ns, connector)
+        connectorService.delete(ns, connector)
                 .test()
                 .assertError(HttpClientResponseException.class);
 

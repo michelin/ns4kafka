@@ -1,8 +1,9 @@
-package com.michelin.ns4kafka.controllers;
+package com.michelin.ns4kafka.controllers.generic;
 
 import com.michelin.ns4kafka.models.AuditLog;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
+import com.michelin.ns4kafka.utils.enums.ApplyStatus;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.security.utils.SecurityService;
@@ -12,6 +13,7 @@ import java.time.Instant;
 import java.util.Date;
 
 public abstract class ResourceController {
+    private static final String STATUS_HEADER = "X-Ns4kafka-Result";
 
     @Inject
     public SecurityService securityService;
@@ -19,10 +21,8 @@ public abstract class ResourceController {
     @Inject
     public ApplicationEventPublisher applicationEventPublisher;
 
-    public final String statusHeaderName = "X-Ns4kafka-Result";
-
     public <T> HttpResponse<T> formatHttpResponse(T body, ApplyStatus status) {
-        return HttpResponse.ok(body).header(statusHeaderName, status.toString());
+        return HttpResponse.ok(body).header(STATUS_HEADER, status.toString());
     }
 
     public void sendEventLog(String kind, ObjectMeta metadata, ApplyStatus operation, Object before, Object after) {

@@ -9,11 +9,11 @@ import javax.validation.constraints.Pattern;
 import java.util.Date;
 import java.util.Map;
 
-@Introspected
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
 @Data
+@Builder
+@Introspected
+@NoArgsConstructor
+@AllArgsConstructor
 public class ObjectMeta {
     @NotBlank
     @Pattern(regexp = "^[a-zA-Z0-9_.-]+$")

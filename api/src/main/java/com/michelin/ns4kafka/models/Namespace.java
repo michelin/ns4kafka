@@ -13,11 +13,11 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
-@Introspected
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
 @Data
+@Builder
+@Introspected
+@NoArgsConstructor
+@AllArgsConstructor
 public class Namespace {
     private final String apiVersion = "v1";
     private final String kind = "Namespace";
@@ -30,10 +30,10 @@ public class Namespace {
     @NotNull
     private NamespaceSpec spec;
 
+    @Data
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @Data
     public static class NamespaceSpec {
         @NotBlank
         private String kafkaUser;
