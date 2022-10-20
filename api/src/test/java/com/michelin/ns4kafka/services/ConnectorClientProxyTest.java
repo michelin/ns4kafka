@@ -1,9 +1,11 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
+import com.michelin.ns4kafka.models.ConnectCluster;
+import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.services.connect.ConnectorClientProxy;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig.ConnectConfig;
+import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.http.*;
 import io.micronaut.http.client.ProxyHttpClient;
@@ -21,25 +23,30 @@ import org.reactivestreams.Publisher;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 @ExtendWith(MockitoExtension.class)
-public class ConnectorClientProxyTest {
+class ConnectorClientProxyTest {
     @Mock
     ProxyHttpClient client;
+
     @Mock
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigs;
+
+    @Mock
+    ConnectClusterService connectClusterService;
 
     @InjectMocks
     ConnectorClientProxy proxy;
 
     @Test
-    void doFilterMissingHeader_Secret() {
+    void doFilterMissingHeaderSecret() {
         MutableHttpRequest<?> request = HttpRequest
                 .GET("http://localhost/connect-proxy/connectors")
                 .header("X-Unused", "123");
 
-        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
+        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
         Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
@@ -49,7 +56,7 @@ public class ConnectorClientProxyTest {
         subscriber.assertError(throwable ->
                 ((ResourceValidationException)throwable)
                         .getValidationErrors()
-                        .contains("Missing required Header X-Proxy-Secret")
+                        .contains("Missing required header X-Proxy-Secret")
         );
     }
 
@@ -59,7 +66,7 @@ public class ConnectorClientProxyTest {
                 .GET("http://localhost/connect-proxy/connectors")
                 .header("X-Proxy-Secret", "123");
 
-        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
+        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
         Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
@@ -69,17 +76,17 @@ public class ConnectorClientProxyTest {
         subscriber.assertError(throwable ->
                 ((ResourceValidationException)throwable)
                         .getValidationErrors()
-                        .contains("Invalid value 123 for Header X-Proxy-Secret")
+                        .contains("Invalid value 123 for header X-Proxy-Secret")
         );
     }
     @Test
-    void doFilterMissingHeader_KafkaCluster() {
+    void doFilterMissingHeaderKafkaCluster() {
         MutableHttpRequest<?> request = HttpRequest
                 .GET("http://localhost/connect-proxy/connectors")
                 .header("X-Proxy-Secret", ConnectorClientProxy.PROXY_SECRET)
                 .header("X-Unused", "123");
 
-        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
+        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
         Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
@@ -89,17 +96,17 @@ public class ConnectorClientProxyTest {
         subscriber.assertError(throwable ->
                 ((ResourceValidationException)throwable)
                         .getValidationErrors()
-                        .contains("Missing required Header X-Kafka-Cluster")
+                        .contains("Missing required header X-Kafka-Cluster")
         );
     }
     @Test
-    void doFilterMissingHeader_ConnectCluster() {
+    void doFilterMissingHeaderConnectCluster() {
         MutableHttpRequest<?> request = HttpRequest
                 .GET("http://localhost/connect-proxy/connectors")
                 .header("X-Proxy-Secret", ConnectorClientProxy.PROXY_SECRET)
                 .header(ConnectorClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local");
 
-        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
+        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
         Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
@@ -109,7 +116,7 @@ public class ConnectorClientProxyTest {
         subscriber.assertError(throwable ->
                 ((ResourceValidationException)throwable)
                         .getValidationErrors()
-                        .contains("Missing required Header X-Connect-Cluster")
+                        .contains("Missing required header X-Connect-Cluster")
         );
     }
 
@@ -122,7 +129,7 @@ public class ConnectorClientProxyTest {
                 .header(ConnectorClientProxy.PROXY_HEADER_CONNECT_CLUSTER, "local-name");
         Mockito.when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.empty());
 
-        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
+        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
         Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
@@ -148,7 +155,7 @@ public class ConnectorClientProxyTest {
         Mockito.when(kafkaAsyncExecutorConfigs.stream())
                 .thenReturn(Stream.of(config));
 
-        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
+        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
         Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
@@ -157,21 +164,20 @@ public class ConnectorClientProxyTest {
         subscriber.assertError(throwable ->
              ((ResourceValidationException)throwable)
                      .getValidationErrors()
-                     .contains("Connect Cluster [local-name] not found")
+                     .contains("Connect cluster [local-name] not found")
         );
 
     }
 
     @Test
     void doFilterSuccess() {
-
-        MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors")
+        MutableHttpRequest<?> request = new MutableSimpleHttpRequest<>("http://localhost/connect-proxy/connectors")
                 .header("X-Proxy-Secret", ConnectorClientProxy.PROXY_SECRET)
                 .header(ConnectorClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local")
                 .header(ConnectorClientProxy.PROXY_HEADER_CONNECT_CLUSTER, "local-name");
         KafkaAsyncExecutorConfig config1 = new KafkaAsyncExecutorConfig("local");
         ConnectConfig connectConfig = new KafkaAsyncExecutorConfig.ConnectConfig();
-        connectConfig.setUrl("http://target/");
+        connectConfig.setUrl("https://target/");
         config1.setConnects(Map.of("local-name",connectConfig));
         // Should not interfere
         KafkaAsyncExecutorConfig config2 = new KafkaAsyncExecutorConfig("not-match");
@@ -181,7 +187,45 @@ public class ConnectorClientProxyTest {
         Mockito.when(client.proxy(ArgumentMatchers.any(MutableHttpRequest.class)))
                 .thenReturn(Publishers.just(HttpResponse.ok()));
 
-        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber();
+        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+
+        mutableHttpResponsePublisher.subscribe(subscriber);
+        subscriber.awaitTerminalEvent();
+
+        subscriber.assertValueCount(1);
+        subscriber.assertValue(mutableHttpResponse -> mutableHttpResponse.status() == HttpStatus.OK);
+    }
+
+    @Test
+    void doFilterSuccessSelfDeployedConnectCluster() {
+        MutableHttpRequest<?> request = new MutableSimpleHttpRequest<>("http://localhost/connect-proxy/connectors")
+                .header("X-Proxy-Secret", ConnectorClientProxy.PROXY_SECRET)
+                .header(ConnectorClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local")
+                .header(ConnectorClientProxy.PROXY_HEADER_CONNECT_CLUSTER, "local-name");
+
+        KafkaAsyncExecutorConfig config1 = new KafkaAsyncExecutorConfig("local");
+        ConnectConfig connectConfig = new KafkaAsyncExecutorConfig.ConnectConfig();
+        connectConfig.setUrl("https://target/");
+        config1.setConnects(Map.of("local-name",connectConfig));
+        KafkaAsyncExecutorConfig config2 = new KafkaAsyncExecutorConfig("not-match");
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("connect-cluster")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .url("https://my-custom-connect-cluster")
+                        .build())
+                .build();
+
+        Mockito.when(kafkaAsyncExecutorConfigs.stream())
+                .thenReturn(Stream.of(config1, config2));
+        Mockito.when(connectClusterService.findByName("local-name"))
+                .thenReturn(Optional.of(connectCluster));
+        Mockito.when(client.proxy(ArgumentMatchers.any(MutableHttpRequest.class)))
+                .thenReturn(Publishers.just(HttpResponse.ok()));
+
+        TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
         Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
@@ -193,55 +237,44 @@ public class ConnectorClientProxyTest {
 
     @Test
     void testMutateKafkaConnectRequest() {
-        MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors");
-        KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig();
-        config.setUrl("http://target/");
+        MutableHttpRequest<?> request = new MutableSimpleHttpRequest<>("http://localhost/connect-proxy/connectors");
 
-        MutableHttpRequest<?> actual = proxy.mutateKafkaConnectRequest(request, config);
+        MutableHttpRequest<?> actual = proxy.mutateKafkaConnectRequest(request, "https://target/", null, null);
 
-        Assertions.assertEquals("http://target/connectors", actual.getUri().toString());
+        Assertions.assertEquals("https://target/connectors", actual.getUri().toString());
     }
 
     @Test
-    void testMutateKafkaConnectRequestEmptyHostHeader_fix107() {
-        // https://github.com/michelin/ns4kafka/issues/107
-        MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors");
+    void testMutateKafkaConnectRequestEmptyHostHeader() {
+        MutableHttpRequest<?> request = new MutableSimpleHttpRequest<>("http://localhost/connect-proxy/connectors");
         request.header("Host","value");
-        KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig();
-        config.setUrl("http://target/");
 
-        MutableHttpRequest<?> actual = proxy.mutateKafkaConnectRequest(request, config);
+        MutableHttpRequest<?> actual = proxy.mutateKafkaConnectRequest(request, "https://target/", null, null);
 
-        Assertions.assertEquals("http://target/connectors", actual.getUri().toString());
+        Assertions.assertEquals("https://target/connectors", actual.getUri().toString());
         Assertions.assertTrue(actual.getHeaders().getAll("Host").isEmpty(), "Host header should be unset");
     }
 
     @Test
     void testMutateKafkaConnectRequestRewrite() {
-        MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors");
-        KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig();
-        config.setUrl("http://target/rewrite");
+        MutableHttpRequest<?> request = new MutableSimpleHttpRequest<>("http://localhost/connect-proxy/connectors");
 
-        MutableHttpRequest<?> actual = proxy.mutateKafkaConnectRequest(request, config);
+        MutableHttpRequest<?> actual = proxy.mutateKafkaConnectRequest(request, "https://target/rewrite", null, null);
 
-        Assertions.assertEquals("http://target/rewrite/connectors", actual.getUri().toString());
+        Assertions.assertEquals("https://target/rewrite/connectors", actual.getUri().toString());
     }
 
     @Test
-    void testMutateKafkaConnectRequestAuthent() {
-        MutableHttpRequest<?> request = new MutableSimpleHttpRequest("http://localhost/connect-proxy/connectors");
-        KafkaAsyncExecutorConfig.ConnectConfig config = new KafkaAsyncExecutorConfig.ConnectConfig();
-        config.setUrl("http://target/");
-        config.setBasicAuthUsername("toto");
-        config.setBasicAuthPassword("titi");
+    void testMutateKafkaConnectRequestAuthentication() {
+        MutableHttpRequest<?> request = new MutableSimpleHttpRequest<>("http://localhost/connect-proxy/connectors");
 
-        MutableHttpRequest<?> actual = proxy.mutateKafkaConnectRequest(request, config);
+        MutableHttpRequest<?> actual = proxy.mutateKafkaConnectRequest(request, "https://target/", "toto", "titi");
 
-        Assertions.assertEquals("http://target/connectors", actual.getUri().toString());
+        Assertions.assertEquals("https://target/connectors", actual.getUri().toString());
         Assertions.assertEquals("Basic dG90bzp0aXRp", actual.getHeaders().get(HttpHeaders.AUTHORIZATION));
     }
 
-    public class MutableSimpleHttpRequest<B> extends SimpleHttpRequest<B>{
+    public static class MutableSimpleHttpRequest<B> extends SimpleHttpRequest<B>{
 
         @Override
         public MutableHttpRequest<B> mutate() {
