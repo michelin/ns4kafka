@@ -269,6 +269,114 @@ class ConnectorServiceTest {
     }
 
     /**
+     * Test find all by namespace and connect cluster
+     */
+    @Test
+    void findAllByNamespaceAndConnectCluster() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        Connector c1 = Connector.builder()
+                .metadata(ObjectMeta.builder().name("ns-connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("connect-cluster")
+                        .build())
+                .build();
+
+        Connector c2 = Connector.builder()
+                .metadata(ObjectMeta.builder().name("ns-connect2").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("connect-cluster2")
+                        .build())
+                .build();
+
+        Connector c3 = Connector.builder()
+                .metadata(ObjectMeta.builder().name("other-connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("connect-cluster3")
+                        .build())
+                .build();
+
+        Connector c4 = Connector.builder()
+                .metadata(ObjectMeta.builder().name("other-connect2").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("connect-cluster4")
+                        .build())
+                .build();
+
+        Connector c5 = Connector.builder()
+                .metadata(ObjectMeta.builder().name("ns2-connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("connect-cluster5")
+                        .build())
+                .build();
+
+        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
+                .thenReturn(List.of(
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                                        .resource("ns-")
+                                        .build())
+                                .build(),
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                                        .resource("other-connect1")
+                                        .build())
+                                .build(),
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                        .resource("ns-")
+                                        .build())
+                                .build(),
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.READ)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                                        .resource("ns2-")
+                                        .build())
+                                .build(),
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.WRITE)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                                        .resource("ns3-")
+                                        .build())
+                                .build()
+                ));
+
+        Mockito.when(connectorRepository.findAllForCluster("local"))
+                .thenReturn(List.of(c1, c2, c3, c4, c5));
+
+        List<Connector> actual = connectorService.findAllByNamespaceAndConnectCluster(ns, "connect-cluster");
+
+        Assertions.assertEquals(1, actual.size());
+        Assertions.assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")));
+    }
+
+    /**
      * Test to validate the configuration of a connector when the KConnect cluster is invalid
      */
     @Test
