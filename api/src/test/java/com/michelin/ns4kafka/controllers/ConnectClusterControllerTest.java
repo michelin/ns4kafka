@@ -17,6 +17,7 @@ import io.micronaut.security.utils.SecurityService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -24,8 +25,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -266,12 +265,9 @@ class ConnectClusterControllerTest {
 
     /**
      * Validate Connect cluster creation
-     * @throws InterruptedException Any interrupted exception
-     * @throws ExecutionException Any execution exception
-     * @throws TimeoutException Any timeout exception
      */
     @Test
-    void createNewConnectCluster() throws InterruptedException, ExecutionException, TimeoutException {
+    void createNewConnectCluster() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -302,5 +298,131 @@ class ConnectClusterControllerTest {
 
         Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("connect-cluster", actual.getMetadata().getName());
+    }
+
+    /**
+     * Validate Connect cluster creation being not owner
+     */
+    @Test
+    void createNewConnectClusterNotOwner() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("connect-cluster")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster")).thenReturn(false);
+        when(connectClusterService.validateConnectClusterCreation(connectCluster)).thenReturn(List.of());
+
+        ResourceValidationException result = Assertions.assertThrows(ResourceValidationException.class,
+                () -> connectClusterController.apply("test", connectCluster, false));
+
+        Assertions.assertEquals(1, result.getValidationErrors().size());
+        Assertions.assertEquals("Namespace not owner of this Connect cluster connect-cluster.", result.getValidationErrors().get(0));
+    }
+
+    /**
+     * Validate Connect cluster creation being not owner
+     */
+    @Test
+    void createNewConnectClusterValidationError() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("connect-cluster")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster")).thenReturn(true);
+        when(connectClusterService.validateConnectClusterCreation(connectCluster)).thenReturn(List.of("Error occurred"));
+
+        ResourceValidationException result = Assertions.assertThrows(ResourceValidationException.class,
+                () -> connectClusterController.apply("test", connectCluster, false));
+
+        Assertions.assertEquals(1, result.getValidationErrors().size());
+        Assertions.assertEquals("Error occurred", result.getValidationErrors().get(0));
+    }
+
+    /**
+     * Validate Connect cluster updated when unchanged
+     */
+    @Test
+    void updateConnectClusterUnchanged() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("connect-cluster")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster")).thenReturn(true);
+        when(connectClusterService.validateConnectClusterCreation(connectCluster)).thenReturn(List.of());
+        when(connectClusterService.findByNamespaceAndName(ns, "connect-cluster")).thenReturn(Optional.of(connectCluster));
+
+        HttpResponse<ConnectCluster> response = connectClusterController.apply("test", connectCluster, false);
+        ConnectCluster actual = response.body();
+
+        Assertions.assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
+        verify(connectClusterService, never()).create(ArgumentMatchers.any());
+        assertEquals(connectCluster, actual);
+    }
+
+    /**
+     * Validate Connect cluster creation in dry run mode
+     */
+    @Test
+    void createConnectClusterDryRun() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("connect-cluster")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster")).thenReturn(true);
+        when(connectClusterService.validateConnectClusterCreation(connectCluster)).thenReturn(List.of());
+        when(connectClusterService.findByNamespaceAndName(ns, "connect-cluster")).thenReturn(Optional.empty());
+
+        HttpResponse<ConnectCluster> response = connectClusterController.apply("test", connectCluster, true);
+
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+        verify(connectClusterService, never()).create(connectCluster);
     }
 }
