@@ -384,7 +384,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.restart).build())
                 .build();
 
-        HttpResponse<ChangeConnectorState> actual = client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects/ns1-co1/change-state").bearerAuth(token).body(restartState), ChangeConnectorState.class).blockingFirst();
+        HttpResponse<ChangeConnectorState> actual = client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co1/change-state").bearerAuth(token).body(restartState), ChangeConnectorState.class).blockingFirst();
         Assertions.assertEquals(HttpStatus.OK, actual.status());
     }
 
@@ -437,7 +437,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .metadata(ObjectMeta.builder().name("ns1-co2").build())
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.pause).build())
                 .build();
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects/ns1-co2/change-state").bearerAuth(token).body(pauseState)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co2/change-state").bearerAuth(token).body(pauseState)).blockingFirst();
         Thread.sleep(2000);
 
         // verify paused directly on connect cluster
@@ -452,7 +452,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .metadata(ObjectMeta.builder().name("ns1-co2").build())
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.resume).build())
                 .build();
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects/ns1-co2/change-state").bearerAuth(token).body(resumeState)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co2/change-state").bearerAuth(token).body(resumeState)).blockingFirst();
         Thread.sleep(2000);
 
         // verify resumed directly on connect cluster
