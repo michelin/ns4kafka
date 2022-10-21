@@ -170,6 +170,29 @@ class ConnectClusterControllerTest {
     }
 
     /**
+     * Test connect cluster deletion when not found
+     */
+    @Test
+    void deleteConnectClusterNotFound() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
+                .thenReturn(true);
+        Mockito.when(connectClusterService.findByNamespaceAndName(ns,"connect-cluster"))
+                .thenReturn(Optional.empty());
+
+        HttpResponse<Void> actual = connectClusterController.delete("test", "connect-cluster", false);
+        Assertions.assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
+    }
+
+    /**
      * Test connect cluster deletion when namespace is owner
      */
     @Test

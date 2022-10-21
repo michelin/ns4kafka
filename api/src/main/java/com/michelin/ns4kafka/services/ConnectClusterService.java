@@ -10,6 +10,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.RxHttpClient;
+import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -34,6 +35,10 @@ public class ConnectClusterService {
 
     @Inject
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfig;
+
+    @Inject
+    @Client("/")
+    RxHttpClient httpClient;
 
     /**
      * Find all self deployed Connect clusters
@@ -116,8 +121,8 @@ public class ConnectClusterService {
             errors.add(String.format("A Connect cluster is already defined globally with the name %s. Please provide a different name.", connectCluster.getMetadata().getName()));
         }
 
-        try (RxHttpClient httpClient = RxHttpClient.create(new URL(connectCluster.getSpec().getUrl()))) {
-            MutableHttpRequest<?> request = HttpRequest.GET("/connectors?expand=info&expand=status");
+        try {
+            MutableHttpRequest<?> request = HttpRequest.GET(new URL(connectCluster.getSpec().getUrl()) + "/connectors?expand=info&expand=status");
             if (StringUtils.isNotBlank(connectCluster.getSpec().getUsername()) && StringUtils.isNotBlank(connectCluster.getSpec().getPassword())){
                 request.basicAuth(connectCluster.getSpec().getUsername(), connectCluster.getSpec().getPassword());
             }
@@ -126,9 +131,9 @@ public class ConnectClusterService {
                 errors.add(String.format("The Connect cluster %s is not healthy (HTTP code %s).", connectCluster.getMetadata().getName(), response.getStatus().getCode()));
             }
         } catch (MalformedURLException e) {
-            errors.add(String.format("The Connect cluster URL %s is malformed.", connectCluster.getSpec().getUrl()));
+            errors.add(String.format("The Connect cluster %s has a malformed URL \"%s\".", connectCluster.getMetadata().getName(), connectCluster.getSpec().getUrl()));
         } catch (HttpClientException e) {
-            errors.add(String.format("The following error occurred trying to check the Connect cluster %s health: %s", connectCluster.getMetadata().getName(), e.getMessage()));
+            errors.add(String.format("The following error occurred trying to check the Connect cluster %s health: %s.", connectCluster.getMetadata().getName(), e.getMessage()));
         }
 
         return errors;
