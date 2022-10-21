@@ -36,35 +36,23 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ConnectorServiceTest {
-    /**
-     * Mocked ACL service
-     */
     @Mock
     AccessControlEntryService accessControlEntryService;
 
-    /**
-     * Mocked Kafka connector client
-     */
     @Mock
     ConnectorClient connectorClient;
 
-    /**
-     * Mocked connector repository
-     */
     @Mock
     ConnectorRepository connectorRepository;
 
-    /**
-     * Mocked application context
-     */
     @Mock
     ApplicationContext applicationContext;
 
-    /**
-     * Mocked kafka connect service
-     */
     @InjectMocks
     ConnectorService connectorService;
+
+    @Mock
+    ConnectClusterService connectClusterService;
 
     /**
      * Test to find all connectors by namespace when there is no connector
@@ -309,6 +297,7 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
+        when(connectClusterService.findByNamespaceAndName(ns, "wrong")).thenReturn(Optional.empty());
         connectorService.validateLocally(ns, connector)
                 .test()
                 .assertValue(response -> response.size() == 1)

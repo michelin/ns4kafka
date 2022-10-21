@@ -246,9 +246,9 @@ class ConnectTest extends AbstractIntegrationConnectTest {
 
         client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to)).blockingFirst();
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects").bearerAuth(token).body(connectorWithNullParameter)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects").bearerAuth(token).body(connectorWithEmptyParameter)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects").bearerAuth(token).body(connectorWithFillParameter)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(connectorWithNullParameter)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(connectorWithEmptyParameter)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(connectorWithFillParameter)).blockingFirst();
         connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
         Thread.sleep(2000);
 
@@ -327,7 +327,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
 
         client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to)).blockingFirst();
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects").bearerAuth(token).body(updateConnector)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(updateConnector)).blockingFirst();
         connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
         Thread.sleep(2000);
 
@@ -375,7 +375,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
 
         client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to)).blockingFirst();
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects").bearerAuth(token).body(co)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(co)).blockingFirst();
         connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
         Thread.sleep(2000);
 
@@ -428,7 +428,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
 
         client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to)).blockingFirst();
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connects").bearerAuth(token).body(co)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(co)).blockingFirst();
         connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
         Thread.sleep(2000);
 

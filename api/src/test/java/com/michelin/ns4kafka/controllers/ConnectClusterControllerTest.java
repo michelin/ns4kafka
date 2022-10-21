@@ -396,6 +396,50 @@ class ConnectClusterControllerTest {
     }
 
     /**
+     * Validate Connect cluster updated when changed
+     */
+    @Test
+    void updateConnectClusterChanged() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("connect-cluster")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .url("https://after")
+                        .build())
+                .build();
+
+        ConnectCluster connectClusterChanged = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("connect-cluster")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .url("https://before")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster")).thenReturn(true);
+        when(connectClusterService.validateConnectClusterCreation(connectCluster)).thenReturn(List.of());
+        when(connectClusterService.findByNamespaceAndName(ns, "connect-cluster")).thenReturn(Optional.of(connectClusterChanged));
+        when(connectClusterService.create(connectCluster)).thenReturn(connectCluster);
+
+        HttpResponse<ConnectCluster> response = connectClusterController.apply("test", connectCluster, false);
+        ConnectCluster actual = response.body();
+
+        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
+        assertEquals("connect-cluster", actual.getMetadata().getName());
+    }
+
+    /**
      * Validate Connect cluster creation in dry run mode
      */
     @Test
