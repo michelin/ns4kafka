@@ -390,7 +390,7 @@ class ConnectClusterServiceTest {
                 .metadata(ObjectMeta.builder().name("test-connect")
                         .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
-                        .url("malformed-url")
+                        .url("https://after")
                         .build())
                 .build();
 
