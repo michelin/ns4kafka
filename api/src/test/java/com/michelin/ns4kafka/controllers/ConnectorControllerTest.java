@@ -241,6 +241,33 @@ class ConnectorControllerTest {
     }
 
     /**
+     * Test connector deletion when connector is not found
+     */
+    @Test
+    void deleteConnectorNotFound() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Mockito.when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        Mockito.when(connectorService.findByName(ns,"connect1"))
+                .thenReturn(Optional.empty());
+        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
+                .thenReturn(true);
+
+        connectorController.deleteConnector("test", "connect1", true)
+                .test()
+                .assertNoErrors()
+                .assertValue(response -> response.getStatus().equals(HttpStatus.NOT_FOUND));
+
+        verify(connectorService, never()).delete(any(), any());
+    }
+
+    /**
      * Test connector creation when namespace is not owner
      */
     @Test

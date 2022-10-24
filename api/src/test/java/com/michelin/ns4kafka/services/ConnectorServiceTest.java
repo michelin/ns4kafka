@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.ConnectCluster;
 import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
@@ -534,6 +535,48 @@ class ConnectorServiceTest {
                         .build())
                 .build();
         Mockito.when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
+                .thenReturn(Single.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
+
+        connectorService.validateLocally(ns, connector)
+                .test()
+                .assertValue(List::isEmpty);
+    }
+
+    /**
+     * Test to validate the configuration of a connector
+     */
+    @Test
+    void validateLocallySuccessWithSelfDeployedConnectCluster() {
+        Connector connector = Connector.builder()
+                .metadata(ObjectMeta.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("local-name")
+                        .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector"))
+                        .build())
+                .build();
+
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectValidator(ConnectValidator.builder()
+                                .classValidationConstraints(Map.of())
+                                .sinkValidationConstraints(Map.of())
+                                .sourceValidationConstraints(Map.of())
+                                .validationConstraints(Map.of())
+                                .build())
+                        .connectClusters(List.of())
+                        .build())
+                .build();
+
+        when(connectClusterService.findByNamespaceAndName(ns, "local-name")).thenReturn(Optional.of(ConnectCluster.builder()
+                        .metadata(ObjectMeta.builder()
+                                .name("local-name")
+                                .build())
+                .build()));
+        when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
                 .thenReturn(Single.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
 
         connectorService.validateLocally(ns, connector)

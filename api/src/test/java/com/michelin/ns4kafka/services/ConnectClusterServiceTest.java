@@ -159,8 +159,8 @@ class ConnectClusterServiceTest {
                                         .permission(AccessControlEntry.Permission.OWNER)
                                         .grantedTo("namespace")
                                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                                        .resource("ns-")
+                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                        .resource("topic.")
                                         .build())
                                 .build()
                 ));
@@ -348,6 +348,8 @@ class ConnectClusterServiceTest {
                         .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
+                        .username("username")
+                        .password("password")
                         .build())
                 .build();
 
