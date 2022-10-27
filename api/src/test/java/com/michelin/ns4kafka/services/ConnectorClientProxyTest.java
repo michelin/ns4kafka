@@ -1,11 +1,14 @@
 package com.michelin.ns4kafka.services;
 
+import com.michelin.ns4kafka.config.SecurityConfig;
 import com.michelin.ns4kafka.models.ConnectCluster;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.services.connect.ConnectorClientProxy;
 import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig.ConnectConfig;
+import com.michelin.ns4kafka.utils.EncryptionUtils;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
+import com.nimbusds.jose.JOSEException;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.http.*;
 import io.micronaut.http.client.ProxyHttpClient;
@@ -21,6 +24,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Publisher;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,6 +40,9 @@ class ConnectorClientProxyTest {
 
     @Mock
     ConnectClusterService connectClusterService;
+
+    @Mock
+    SecurityConfig securityConfig;
 
     @InjectMocks
     ConnectorClientProxy proxy;
@@ -198,7 +205,7 @@ class ConnectorClientProxyTest {
     }
 
     @Test
-    void doFilterSuccessSelfDeployedConnectCluster() {
+    void doFilterSuccessSelfDeployedConnectCluster() throws IOException, JOSEException {
         MutableHttpRequest<?> request = new MutableSimpleHttpRequest<>("http://localhost/connect-proxy/connectors")
                 .header("X-Proxy-Secret", ConnectorClientProxy.PROXY_SECRET)
                 .header(ConnectorClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local")
@@ -215,6 +222,8 @@ class ConnectorClientProxyTest {
                         .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://my-custom-connect-cluster")
+                        .username("myUsername")
+                        .password(EncryptionUtils.encryptAES256GCM("myPassword", "changeitchangeitchangeitchangeit"))
                         .build())
                 .build();
 
@@ -224,6 +233,8 @@ class ConnectorClientProxyTest {
                 .thenReturn(Optional.of(connectCluster));
         Mockito.when(client.proxy(ArgumentMatchers.any(MutableHttpRequest.class)))
                 .thenReturn(Publishers.just(HttpResponse.ok()));
+        Mockito.when(securityConfig.getAes256EncryptionKey())
+                .thenReturn("changeitchangeitchangeitchangeit");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
         Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);

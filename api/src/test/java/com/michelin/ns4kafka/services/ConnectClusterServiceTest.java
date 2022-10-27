@@ -22,7 +22,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import javax.inject.Inject;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +42,7 @@ class ConnectClusterServiceTest {
     @Mock
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigList;
 
-    @Inject
+    @Mock
     SecurityConfig securityConfig;
 
     @InjectMocks
@@ -336,11 +335,11 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        when(connectClusterRepository.create(connectCluster))
-                .thenReturn(connectCluster);
+        when(connectClusterRepository.create(connectCluster)).thenReturn(connectCluster);
+        when(securityConfig.getAes256EncryptionKey()).thenReturn("changeitchangeitchangeitchangeit");
 
-        ConnectCluster actual = connectClusterService.create(connectCluster);
-        Assertions.assertNotEquals(actual.getSpec().getPassword(), connectCluster.getSpec().getPassword());
+        connectClusterService.create(connectCluster);
+        Assertions.assertNotEquals("myPassword", connectCluster.getSpec().getPassword());
     }
 
     /**
