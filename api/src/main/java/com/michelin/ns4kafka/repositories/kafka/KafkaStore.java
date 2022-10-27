@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.repositories.kafka;
 
+import com.michelin.ns4kafka.config.KafkaStoreConfig;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.scheduling.TaskExecutors;
@@ -39,7 +40,8 @@ public abstract class KafkaStore<T> {
     @Inject ApplicationContext applicationContext;
     @Inject AdminClient adminClient;
 
-    @Inject KafkaStoreConfig kafkaStoreConfig;
+    @Inject
+    KafkaStoreConfig kafkaStoreConfig;
 
     @Inject @Named(TaskExecutors.SCHEDULED) TaskScheduler taskScheduler;
 

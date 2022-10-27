@@ -1,10 +1,13 @@
 package com.michelin.ns4kafka.services;
 
+import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.config.SecurityConfig;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.ConnectCluster;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.ConnectClusterRepository;
-import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.utils.EncryptionUtils;
+import com.nimbusds.jose.JOSEException;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -17,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -35,6 +39,9 @@ public class ConnectClusterService {
 
     @Inject
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfig;
+
+    @Inject
+    SecurityConfig securityConfig;
 
     @Inject
     @Client("/")
@@ -104,7 +111,11 @@ public class ConnectClusterService {
      * @param connectCluster The connect worker
      * @return The created connect worker
      */
-    public ConnectCluster create(ConnectCluster connectCluster) {
+    public ConnectCluster create(ConnectCluster connectCluster) throws IOException, JOSEException {
+        if (StringUtils.isNotBlank(connectCluster.getSpec().getPassword())) {
+            connectCluster.getSpec()
+                    .setPassword(EncryptionUtils.encryptAES256GCM(connectCluster.getSpec().getPassword(), securityConfig.getAes256EncryptionKey()));
+        }
         return connectClusterRepository.create(connectCluster);
     }
 

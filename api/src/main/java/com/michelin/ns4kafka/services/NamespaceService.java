@@ -2,7 +2,7 @@ package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
-import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;

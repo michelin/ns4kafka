@@ -290,7 +290,7 @@ class ConnectClusterControllerTest {
      * Validate Connect cluster creation
      */
     @Test
-    void createNewConnectCluster() {
+    void createNewConnectCluster() throws Exception {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -389,7 +389,7 @@ class ConnectClusterControllerTest {
      * Validate Connect cluster updated when unchanged
      */
     @Test
-    void updateConnectClusterUnchanged() {
+    void updateConnectClusterUnchanged() throws Exception {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -422,7 +422,7 @@ class ConnectClusterControllerTest {
      * Validate Connect cluster updated when changed
      */
     @Test
-    void updateConnectClusterChanged() {
+    void updateConnectClusterChanged() throws Exception {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -466,7 +466,7 @@ class ConnectClusterControllerTest {
      * Validate Connect cluster creation in dry run mode
      */
     @Test
-    void createConnectClusterDryRun() {
+    void createConnectClusterDryRun() throws Exception {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")

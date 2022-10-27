@@ -1,4 +1,4 @@
-package com.michelin.ns4kafka.controllers;
+package com.michelin.ns4kafka.config;
 
 import io.micronaut.context.annotation.ConfigurationProperties;
 import lombok.Getter;

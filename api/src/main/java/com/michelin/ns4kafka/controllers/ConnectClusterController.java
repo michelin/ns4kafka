@@ -63,7 +63,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @return The created role binding
      */
     @Post("/{?dryrun}")
-    HttpResponse<ConnectCluster> apply(String namespace, @Body @Valid ConnectCluster connectCluster, @QueryValue(defaultValue = "false") boolean dryrun) {
+    HttpResponse<ConnectCluster> apply(String namespace, @Body @Valid ConnectCluster connectCluster, @QueryValue(defaultValue = "false") boolean dryrun) throws Exception {
         Namespace ns = getNamespace(namespace);
 
         List<String> validationErrors = new ArrayList<>();

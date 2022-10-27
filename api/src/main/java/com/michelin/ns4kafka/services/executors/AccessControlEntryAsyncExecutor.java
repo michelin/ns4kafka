@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.services.executors;
 
+import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.KafkaStream;
 import com.michelin.ns4kafka.models.Namespace;

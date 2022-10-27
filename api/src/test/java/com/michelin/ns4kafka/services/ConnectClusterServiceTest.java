@@ -1,11 +1,13 @@
 package com.michelin.ns4kafka.services;
 
+import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.config.SecurityConfig;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.ConnectCluster;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.ConnectClusterRepository;
-import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
+import com.nimbusds.jose.JOSEException;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.RxHttpClient;
@@ -20,6 +22,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import javax.inject.Inject;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -38,6 +42,9 @@ class ConnectClusterServiceTest {
 
     @Mock
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigList;
+
+    @Inject
+    SecurityConfig securityConfig;
 
     @InjectMocks
     ConnectClusterService connectClusterService;
@@ -298,7 +305,7 @@ class ConnectClusterServiceTest {
      * Test creation
      */
     @Test
-    void create() {
+    void create() throws IOException, JOSEException {
         ConnectCluster connectCluster = ConnectCluster.builder()
                 .metadata(ObjectMeta.builder().name("prefix.connect-cluster")
                         .build())
@@ -311,6 +318,29 @@ class ConnectClusterServiceTest {
 
         ConnectCluster actual = connectClusterService.create(connectCluster);
         Assertions.assertEquals(actual, connectCluster);
+    }
+
+
+    /**
+     * Test creation with encrypted credentials
+     */
+    @Test
+    void createCredentialsEncrypted() throws IOException, JOSEException {
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("prefix.connect-cluster")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .url("https://after")
+                        .username("myUsername")
+                        .password("myPassword")
+                        .build())
+                .build();
+
+        when(connectClusterRepository.create(connectCluster))
+                .thenReturn(connectCluster);
+
+        ConnectCluster actual = connectClusterService.create(connectCluster);
+        Assertions.assertNotEquals(actual.getSpec().getPassword(), connectCluster.getSpec().getPassword());
     }
 
     /**
