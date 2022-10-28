@@ -273,7 +273,7 @@ class ConnectorServiceTest {
      * Test find all by namespace and connect cluster
      */
     @Test
-    void findAllByNamespaceAndConnectCluster() {
+    void findAllByConnectCluster() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -318,55 +318,6 @@ class ConnectorServiceTest {
                         .connectCluster("connect-cluster5")
                         .build())
                 .build();
-
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
-                .thenReturn(List.of(
-                        AccessControlEntry.builder()
-                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                        .permission(AccessControlEntry.Permission.OWNER)
-                                        .grantedTo("namespace")
-                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                                        .resource("ns-")
-                                        .build())
-                                .build(),
-                        AccessControlEntry.builder()
-                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                        .permission(AccessControlEntry.Permission.OWNER)
-                                        .grantedTo("namespace")
-                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                                        .resource("other-connect1")
-                                        .build())
-                                .build(),
-                        AccessControlEntry.builder()
-                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                        .permission(AccessControlEntry.Permission.OWNER)
-                                        .grantedTo("namespace")
-                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                        .resource("ns-")
-                                        .build())
-                                .build(),
-                        AccessControlEntry.builder()
-                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                        .permission(AccessControlEntry.Permission.READ)
-                                        .grantedTo("namespace")
-                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                                        .resource("ns2-")
-                                        .build())
-                                .build(),
-                        AccessControlEntry.builder()
-                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                        .permission(AccessControlEntry.Permission.WRITE)
-                                        .grantedTo("namespace")
-                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                                        .resource("ns3-")
-                                        .build())
-                                .build()
-                ));
 
         Mockito.when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1, c2, c3, c4, c5));

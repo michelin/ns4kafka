@@ -8,7 +8,6 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.services.connect.ConnectorClientProxy;
 import com.michelin.ns4kafka.utils.EncryptionUtils;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
-import com.nimbusds.jose.JOSEException;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.http.*;
 import io.micronaut.http.client.ProxyHttpClient;
@@ -24,7 +23,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Publisher;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -204,11 +202,11 @@ class ConnectorClientProxyTest {
     }
 
     @Test
-    void doFilterSuccessSelfDeployedConnectCluster() throws IOException, JOSEException {
+    void doFilterSuccessSelfDeployedConnectCluster() {
         MutableHttpRequest<?> request = new MutableSimpleHttpRequest<>("http://localhost/connect-proxy/connectors")
                 .header("X-Proxy-Secret", ConnectorClientProxy.PROXY_SECRET)
                 .header(ConnectorClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local")
-                .header(ConnectorClientProxy.PROXY_HEADER_CONNECT_CLUSTER, "local-name");
+                .header(ConnectorClientProxy.PROXY_HEADER_CONNECT_CLUSTER, "connect-cluster");
 
         KafkaAsyncExecutorConfig config1 = new KafkaAsyncExecutorConfig("local");
         ConnectConfig connectConfig = new KafkaAsyncExecutorConfig.ConnectConfig();
