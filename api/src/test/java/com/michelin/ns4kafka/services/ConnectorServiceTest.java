@@ -371,7 +371,7 @@ class ConnectorServiceTest {
         Mockito.when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1, c2, c3, c4, c5));
 
-        List<Connector> actual = connectorService.findAllByNamespaceAndConnectCluster(ns, "connect-cluster");
+        List<Connector> actual = connectorService.findAllByConnectCluster(ns, "connect-cluster");
 
         Assertions.assertEquals(1, actual.size());
         Assertions.assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")));

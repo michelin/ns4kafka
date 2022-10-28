@@ -212,7 +212,7 @@ class ConnectClusterControllerTest {
                 .thenReturn(Optional.of(ns));
         Mockito.when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
                 .thenReturn(true);
-        Mockito.when(connectorService.findAllByNamespaceAndConnectCluster(ns,"connect-cluster"))
+        Mockito.when(connectorService.findAllByConnectCluster(ns,"connect-cluster"))
                 .thenReturn(List.of());
         Mockito.when(connectClusterService.findByNamespaceAndNameOwner(ns,"connect-cluster"))
                 .thenReturn(Optional.of(connectCluster));
@@ -246,7 +246,7 @@ class ConnectClusterControllerTest {
                 .thenReturn(Optional.of(ns));
         Mockito.when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
                 .thenReturn(true);
-        Mockito.when(connectorService.findAllByNamespaceAndConnectCluster(ns,"connect-cluster"))
+        Mockito.when(connectorService.findAllByConnectCluster(ns,"connect-cluster"))
                 .thenReturn(List.of());
         Mockito.when(connectClusterService.findByNamespaceAndNameOwner(ns,"connect-cluster"))
                 .thenReturn(Optional.of(connectCluster));
@@ -275,7 +275,7 @@ class ConnectClusterControllerTest {
                 .thenReturn(Optional.of(ns));
         Mockito.when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
                 .thenReturn(true);
-        Mockito.when(connectorService.findAllByNamespaceAndConnectCluster(ns,"connect-cluster"))
+        Mockito.when(connectorService.findAllByConnectCluster(ns,"connect-cluster"))
                 .thenReturn(List.of(connector));
 
         ResourceValidationException result = Assertions.assertThrows(ResourceValidationException.class,
