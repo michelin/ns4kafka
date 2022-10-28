@@ -56,14 +56,15 @@ public class ConnectClusterService {
     }
 
     /**
-     * Find all self deployed Connect clusters for a given namespace
+     * Find all self deployed Connect clusters for a given namespace with a given list of permissions
      * @param namespace The namespace
+     * @param permissions The list of permission to filter on
      * @return A list of Connect clusters
      */
-    public List<ConnectCluster> findAllForNamespace(Namespace namespace) {
+    public List<ConnectCluster> findAllByNamespace(Namespace namespace, List<AccessControlEntry.Permission> permissions) {
         List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace).stream()
-                .filter(acl -> acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
-                .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT)
+                .filter(acl -> permissions.contains(acl.getSpec().getPermission()))
+                .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT_CLUSTER)
                 .collect(Collectors.toList());
 
         return connectClusterRepository.findAllForCluster(namespace.getMetadata().getCluster())
@@ -82,25 +83,41 @@ public class ConnectClusterService {
     }
 
     /**
-     * Find a Connect worker by name
-     * @param connectClusterName The connect worker name
-     * @return An optional connect worker
+     * Find all self deployed Connect clusters whose namespace is owner
+     * @param namespace The namespace
+     * @return The list of owned Connect cluster
      */
-    public Optional<ConnectCluster> findByName(String connectClusterName) {
-        return findAll()
+    public List<ConnectCluster> findAllByNamespaceOwner(Namespace namespace) {
+        return findAllByNamespace(namespace, List.of(AccessControlEntry.Permission.OWNER))
                 .stream()
-                .filter(connectCluster -> connectCluster.getMetadata().getName().equals(connectClusterName))
-                .findFirst();
+                .map(connectCluster -> ConnectCluster.builder()
+                        .metadata(connectCluster.getMetadata())
+                        .spec(ConnectCluster.ConnectClusterSpec.builder()
+                                .url(connectCluster.getSpec().getUrl())
+                                .username(connectCluster.getSpec().getUsername())
+                                .password(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getPassword(), securityConfig.getAes256EncryptionKey()))
+                                .build())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     /**
-     * Find a Connect worker by namespace and name
+     * Find all self deployed Connect clusters whose namespace has write access
+     * @param namespace The namespace
+     * @return The list of Connect cluster with write access
+     */
+    public List<ConnectCluster> findAllByNamespaceWrite(Namespace namespace) {
+        return findAllByNamespace(namespace, List.of(AccessControlEntry.Permission.OWNER, AccessControlEntry.Permission.WRITE));
+    }
+
+    /**
+     * Find a self deployed Connect cluster by namespace and name with owner rights
      * @param namespace The namespace
      * @param connectClusterName The connect worker name
      * @return An optional connect worker
      */
-    public Optional<ConnectCluster> findByNamespaceAndName(Namespace namespace, String connectClusterName) {
-        return findAllForNamespace(namespace)
+    public Optional<ConnectCluster> findByNamespaceAndNameOwner(Namespace namespace, String connectClusterName) {
+        return findAllByNamespaceOwner(namespace)
                 .stream()
                 .filter(connectCluster -> connectCluster.getMetadata().getName().equals(connectClusterName))
                 .findFirst();

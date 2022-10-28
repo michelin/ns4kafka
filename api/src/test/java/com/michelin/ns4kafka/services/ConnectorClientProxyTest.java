@@ -1,11 +1,11 @@
 package com.michelin.ns4kafka.services;
 
+import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig.ConnectConfig;
 import com.michelin.ns4kafka.config.SecurityConfig;
 import com.michelin.ns4kafka.models.ConnectCluster;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.services.connect.ConnectorClientProxy;
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig.ConnectConfig;
 import com.michelin.ns4kafka.utils.EncryptionUtils;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import com.nimbusds.jose.JOSEException;
@@ -27,7 +27,6 @@ import org.reactivestreams.Publisher;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 @ExtendWith(MockitoExtension.class)
@@ -229,8 +228,8 @@ class ConnectorClientProxyTest {
 
         Mockito.when(kafkaAsyncExecutorConfigs.stream())
                 .thenReturn(Stream.of(config1, config2));
-        Mockito.when(connectClusterService.findByName("local-name"))
-                .thenReturn(Optional.of(connectCluster));
+        Mockito.when(connectClusterService.findAll())
+                .thenReturn(List.of(connectCluster));
         Mockito.when(client.proxy(ArgumentMatchers.any(MutableHttpRequest.class)))
                 .thenReturn(Publishers.just(HttpResponse.ok()));
         Mockito.when(securityConfig.getAes256EncryptionKey())

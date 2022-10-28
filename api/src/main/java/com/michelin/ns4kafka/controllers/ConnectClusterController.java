@@ -41,7 +41,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      */
     @Get
     public List<ConnectCluster> list(String namespace) {
-        return connectClusterService.findAllForNamespace(getNamespace(namespace));
+        return connectClusterService.findAllByNamespaceOwner(getNamespace(namespace));
     }
 
     /**
@@ -52,7 +52,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      */
     @Get("/{connectCluster}")
     public Optional<ConnectCluster> getConnectCluster(String namespace, String connectCluster) {
-        return connectClusterService.findByNamespaceAndName(getNamespace(namespace), connectCluster);
+        return connectClusterService.findByNamespaceAndNameOwner(getNamespace(namespace), connectCluster);
     }
 
     /**
@@ -81,7 +81,7 @@ public class ConnectClusterController extends NamespacedResourceController {
         connectCluster.getMetadata().setCluster(ns.getMetadata().getCluster());
         connectCluster.getMetadata().setNamespace(ns.getMetadata().getName());
 
-        Optional<ConnectCluster> existingConnectCluster = connectClusterService.findByNamespaceAndName(ns, connectCluster.getMetadata().getName());
+        Optional<ConnectCluster> existingConnectCluster = connectClusterService.findByNamespaceAndNameOwner(ns, connectCluster.getMetadata().getName());
         if (existingConnectCluster.isPresent() && existingConnectCluster.get().equals(connectCluster)) {
             return formatHttpResponse(existingConnectCluster.get(), ApplyStatus.unchanged);
         }
@@ -114,7 +114,7 @@ public class ConnectClusterController extends NamespacedResourceController {
             validationErrors.add(String.format("Namespace not owner of this Connect cluster %s.", connectCluster));
         }
 
-        List<Connector> connectors = connectorService.findAllByNamespaceAndConnectCluster(ns, connectCluster);
+        List<Connector> connectors = connectorService.findAllByConnectCluster(ns, connectCluster);
         if (!connectors.isEmpty()) {
             validationErrors.add(String.format("The Connect cluster %s has %s deployed connector(s): %s. Please remove the associated connector(s) before deleting it.", connectCluster, connectors.size(),
                     connectors.stream().map(connector -> connector.getMetadata().getName()).collect(Collectors.joining(", "))));
@@ -124,7 +124,7 @@ public class ConnectClusterController extends NamespacedResourceController {
             throw new ResourceValidationException(validationErrors, "ConnectCluster", connectCluster);
         }
 
-        Optional<ConnectCluster> optionalConnectCluster = connectClusterService.findByNamespaceAndName(ns, connectCluster);
+        Optional<ConnectCluster> optionalConnectCluster = connectClusterService.findByNamespaceAndNameOwner(ns, connectCluster);
         if (optionalConnectCluster.isEmpty()) {
             return HttpResponse.notFound();
         }

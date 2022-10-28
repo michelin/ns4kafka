@@ -138,7 +138,7 @@ class ConnectClusterServiceTest {
                                         .permission(AccessControlEntry.Permission.OWNER)
                                         .grantedTo("namespace")
                                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
                                         .resource("prefix.")
                                         .build())
                                 .build(),
@@ -147,7 +147,7 @@ class ConnectClusterServiceTest {
                                         .permission(AccessControlEntry.Permission.OWNER)
                                         .grantedTo("namespace")
                                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
                                         .resource("prefix2.connect-two")
                                         .build())
                                 .build(),
@@ -156,7 +156,7 @@ class ConnectClusterServiceTest {
                                         .permission(AccessControlEntry.Permission.READ)
                                         .grantedTo("namespace")
                                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
                                         .resource("prefix3.")
                                         .build())
                                 .build(),
@@ -171,7 +171,7 @@ class ConnectClusterServiceTest {
                                 .build()
                 ));
 
-        List<ConnectCluster> actual = connectClusterService.findAllForNamespace(namespace);
+        List<ConnectCluster> actual = connectClusterService.findAllByNamespace(namespace, List.of(AccessControlEntry.Permission.OWNER));
 
         Assertions.assertEquals(2, actual.size());
         // contains
@@ -180,37 +180,6 @@ class ConnectClusterServiceTest {
         // doesn't contain
         Assertions.assertFalse(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("not-owner")));
         Assertions.assertFalse(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("prefix3.connect-cluster")));
-    }
-
-    /**
-     * Test find by name
-     */
-    @Test
-    void findByName() {
-        ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(ObjectMeta.builder().name("prefix.connect-cluster")
-                        .build())
-                .spec(ConnectCluster.ConnectClusterSpec.builder()
-                        .url("https://after")
-                        .build())
-                .build();
-
-        Mockito.when(connectClusterRepository.findAll()).thenReturn(List.of(connectCluster));
-        Optional<ConnectCluster> actual = connectClusterService.findByName("prefix.connect-cluster");
-
-        Assertions.assertTrue(actual.isPresent());
-        Assertions.assertEquals("prefix.connect-cluster", actual.get().getMetadata().getName());
-    }
-
-    /**
-     * Test find by name empty response
-     */
-    @Test
-    void findByNameEmpty() {
-        Mockito.when(connectClusterRepository.findAll()).thenReturn(List.of());
-        Optional<ConnectCluster> actual = connectClusterService.findByName("prefix.connect-cluster");
-
-        Assertions.assertTrue(actual.isEmpty());
     }
 
     /**
@@ -245,13 +214,13 @@ class ConnectClusterServiceTest {
                                         .permission(AccessControlEntry.Permission.OWNER)
                                         .grantedTo("namespace")
                                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
                                         .resource("prefix.")
                                         .build())
                                 .build()
                 ));
 
-        Optional<ConnectCluster> actual = connectClusterService.findByNamespaceAndName(namespace, "prefix.connect-cluster");
+        Optional<ConnectCluster> actual = connectClusterService.findByNamespaceAndNameOwner(namespace, "prefix.connect-cluster");
 
         Assertions.assertTrue(actual.isPresent());
         Assertions.assertEquals("prefix.connect-cluster", actual.get().getMetadata().getName());
@@ -289,13 +258,13 @@ class ConnectClusterServiceTest {
                                         .permission(AccessControlEntry.Permission.OWNER)
                                         .grantedTo("namespace")
                                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
                                         .resource("prefix.")
                                         .build())
                                 .build()
                 ));
 
-        Optional<ConnectCluster> actual = connectClusterService.findByNamespaceAndName(namespace, "does-not-exist");
+        Optional<ConnectCluster> actual = connectClusterService.findByNamespaceAndNameOwner(namespace, "does-not-exist");
 
         Assertions.assertTrue(actual.isEmpty());
     }

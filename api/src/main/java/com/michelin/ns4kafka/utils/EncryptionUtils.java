@@ -4,12 +4,15 @@ import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.AESDecrypter;
 import com.nimbusds.jose.crypto.AESEncrypter;
 import com.nimbusds.jose.util.Base64URL;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
+@Slf4j
 public class EncryptionUtils {
     /**
      * Constructor
@@ -22,18 +25,28 @@ public class EncryptionUtils {
      * @param key The key encryption key (KEK)
      * @return The encrypted password
      */
-    public static String encryptAES256GCM(String clearText, String key) throws JOSEException, IOException {
-        AESEncrypter encrypter = new AESEncrypter(key.getBytes(StandardCharsets.UTF_8));
-        JWECryptoParts encryptedData = encrypter.encrypt(new JWEHeader(JWEAlgorithm.A256KW, EncryptionMethod.A256GCM),
-                clearText.getBytes(StandardCharsets.UTF_8));
+    public static String encryptAES256GCM(String clearText, String key) {
+        try {
+            if (!StringUtils.isNotBlank(clearText)) {
+                return clearText;
+            }
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        outputStream.write(encryptedData.getEncryptedKey().decode());
-        outputStream.write(encryptedData.getInitializationVector().decode());
-        outputStream.write(encryptedData.getAuthenticationTag().decode());
-        outputStream.write(encryptedData.getCipherText().decode());
+            AESEncrypter encrypter = new AESEncrypter(key.getBytes(StandardCharsets.UTF_8));
+            JWECryptoParts encryptedData = encrypter.encrypt(new JWEHeader(JWEAlgorithm.A256KW, EncryptionMethod.A256GCM),
+                    clearText.getBytes(StandardCharsets.UTF_8));
 
-        return Base64URL.encode(outputStream.toByteArray()).toString();
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            outputStream.write(encryptedData.getEncryptedKey().decode());
+            outputStream.write(encryptedData.getInitializationVector().decode());
+            outputStream.write(encryptedData.getAuthenticationTag().decode());
+            outputStream.write(encryptedData.getCipherText().decode());
+
+            return Base64URL.encode(outputStream.toByteArray()).toString();
+        } catch (JOSEException | IOException e) {
+            log.error("An error occurred during Connect cluster password encryption", e);
+        }
+
+        return clearText;
     }
 
     /**
@@ -42,18 +55,28 @@ public class EncryptionUtils {
      * @param key The key encryption key (KEK)
      * @return The decrypted text
      */
-    public static String decryptAES256GCM(String encryptedText, String key) throws JOSEException {
-        AESDecrypter decrypter = new AESDecrypter(key.getBytes(StandardCharsets.UTF_8));
-        byte[] encryptedData = Base64URL.from(encryptedText).decode();
+    public static String decryptAES256GCM(String encryptedText, String key) {
+        try {
+            if (!StringUtils.isNotBlank(encryptedText)) {
+                return encryptedText;
+            }
 
-        Base64URL encryptedKey = Base64URL.encode(Arrays.copyOfRange(encryptedData, 0, 40));
-        Base64URL iv = Base64URL.encode(Arrays.copyOfRange(encryptedData, 40, 52));
-        Base64URL auth = Base64URL.encode(Arrays.copyOfRange(encryptedData, 52, 68));
-        Base64URL text = Base64URL.encode(Arrays.copyOfRange(encryptedData, 68, encryptedData.length));
+            AESDecrypter decrypter = new AESDecrypter(key.getBytes(StandardCharsets.UTF_8));
+            byte[] encryptedData = Base64URL.from(encryptedText).decode();
 
-        byte[] clearTextAsBytes = decrypter.decrypt(new JWEHeader(JWEAlgorithm.A256KW, EncryptionMethod.A256GCM),
-                encryptedKey, iv, text, auth);
+            Base64URL encryptedKey = Base64URL.encode(Arrays.copyOfRange(encryptedData, 0, 40));
+            Base64URL iv = Base64URL.encode(Arrays.copyOfRange(encryptedData, 40, 52));
+            Base64URL auth = Base64URL.encode(Arrays.copyOfRange(encryptedData, 52, 68));
+            Base64URL text = Base64URL.encode(Arrays.copyOfRange(encryptedData, 68, encryptedData.length));
 
-        return new String(clearTextAsBytes);
+            byte[] clearTextAsBytes = decrypter.decrypt(new JWEHeader(JWEAlgorithm.A256KW, EncryptionMethod.A256GCM),
+                    encryptedKey, iv, text, auth);
+
+            return new String(clearTextAsBytes);
+        } catch (JOSEException e) {
+            log.error("An error occurred during Connect cluster password decryption", e);
+        }
+
+        return encryptedText;
     }
 }

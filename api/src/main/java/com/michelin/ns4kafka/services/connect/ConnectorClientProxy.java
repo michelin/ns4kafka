@@ -1,13 +1,12 @@
 package com.michelin.ns4kafka.services.connect;
 
+import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig.ConnectConfig;
 import com.michelin.ns4kafka.config.SecurityConfig;
 import com.michelin.ns4kafka.models.ConnectCluster;
 import com.michelin.ns4kafka.services.ConnectClusterService;
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig.ConnectConfig;
 import com.michelin.ns4kafka.utils.EncryptionUtils;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
-import com.nimbusds.jose.JOSEException;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpHeaders;
@@ -106,17 +105,16 @@ public class ConnectorClientProxy extends OncePerRequestHttpServerFilter {
             return Publishers.just(new ResourceValidationException(List.of("Kafka Cluster [" + kafkaCluster + "] not found"),null,null));
         }
 
-        Optional<ConnectCluster> connectClusterOptional = connectClusterService.findByName(connectCluster);
+        Optional<ConnectCluster> connectClusterOptional = connectClusterService.findAll()
+                .stream()
+                .filter(researchConnectCluster -> researchConnectCluster.getMetadata().getName().equals(connectCluster))
+                .findFirst();
+
         if (connectClusterOptional.isPresent()) {
             log.debug("Self deployed Connect cluster {} found in namespace {}", connectCluster, connectClusterOptional.get().getMetadata().getNamespace());
-            try {
-                return client.proxy(mutateKafkaConnectRequest(request, connectClusterOptional.get().getSpec().getUrl(),
-                        connectClusterOptional.get().getSpec().getUsername(),
-                        EncryptionUtils.decryptAES256GCM(connectClusterOptional.get().getSpec().getPassword(), securityConfig.getAes256EncryptionKey())));
-            } catch (JOSEException e) {
-                log.error("Cannot decrypt password for Connect cluster {}", connectCluster, e);
-                return Publishers.just(new ResourceValidationException(List.of("Cannot decrypt password for Connect cluster [" + connectCluster + "]"), null, null));
-            }
+            return client.proxy(mutateKafkaConnectRequest(request, connectClusterOptional.get().getSpec().getUrl(),
+                    connectClusterOptional.get().getSpec().getUsername(),
+                    EncryptionUtils.decryptAES256GCM(connectClusterOptional.get().getSpec().getPassword(), securityConfig.getAes256EncryptionKey())));
         }
 
         ConnectConfig connectConfig = config.get().getConnects().get(connectCluster);

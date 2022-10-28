@@ -52,7 +52,6 @@ public class ConnectorService {
         return connectorRepository.findAllForCluster(namespace.getMetadata().getCluster())
                 .stream()
                 .filter(connector -> acls.stream().anyMatch(accessControlEntry -> {
-                    //need to check accessControlEntry.Permission, we want OWNER
                     if (accessControlEntry.getSpec().getPermission() != AccessControlEntry.Permission.OWNER) {
                         return false;
                     }
@@ -75,8 +74,8 @@ public class ConnectorService {
      * @param connectCluster The Connect cluster
      * @return A list of connectors
      */
-    public List<Connector> findAllByNamespaceAndConnectCluster(Namespace namespace, String connectCluster) {
-        return findAllForNamespace(namespace)
+    public List<Connector> findAllByConnectCluster(Namespace namespace, String connectCluster) {
+        return connectorRepository.findAllForCluster(namespace.getMetadata().getCluster())
                 .stream()
                 .filter(connector -> connector.getSpec().getConnectCluster().equals(connectCluster))
                 .collect(Collectors.toList());
@@ -103,9 +102,13 @@ public class ConnectorService {
      */
     public Single<List<String>> validateLocally(Namespace namespace, Connector connector) {
         // Check whether target Connect Cluster is allowed for this namespace
+        List<String> selfDeployedConnectClusters = connectClusterService.findAllByNamespaceWrite(namespace)
+                .stream()
+                .map(connectCluster -> connectCluster.getMetadata().getName())
+                .collect(Collectors.toList());
+
         if (!namespace.getSpec().getConnectClusters().contains(connector.getSpec().getConnectCluster()) &&
-                connectClusterService.findByNamespaceAndName(namespace, connector.getSpec().getConnectCluster()).isEmpty()) {
-            List<String> selfDeployedConnectClusters = connectClusterService.findAllForNamespace(namespace).stream().map(connectCluster -> connectCluster.getMetadata().getName()).collect(Collectors.toList());
+                !selfDeployedConnectClusters.contains(connector.getSpec().getConnectCluster())) {
             String allowedConnectClusters = Stream.concat(namespace.getSpec().getConnectClusters().stream(), selfDeployedConnectClusters.stream()).collect(Collectors.joining(", "));
             return Single.just(
                     List.of("Invalid value " + connector.getSpec().getConnectCluster() + " for spec.connectCluster: Value must be one of [" + allowedConnectClusters + "]"));

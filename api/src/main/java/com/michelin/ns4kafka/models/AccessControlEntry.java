@@ -52,6 +52,7 @@ public class AccessControlEntry {
         TOPIC,
         GROUP,
         CONNECT,
+        CONNECT_CLUSTER,
         SCHEMA
     }
 

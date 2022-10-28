@@ -406,7 +406,7 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        when(connectClusterService.findByNamespaceAndName(ns, "wrong")).thenReturn(Optional.empty());
+        when(connectClusterService.findAllByNamespaceWrite(ns)).thenReturn(List.of());
         connectorService.validateLocally(ns, connector)
                 .test()
                 .assertValue(response -> response.size() == 1)
@@ -571,7 +571,7 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        when(connectClusterService.findByNamespaceAndName(ns, "local-name")).thenReturn(Optional.of(ConnectCluster.builder()
+        when(connectClusterService.findAllByNamespaceWrite(ns)).thenReturn(List.of(ConnectCluster.builder()
                         .metadata(ObjectMeta.builder()
                                 .name("local-name")
                                 .build())
@@ -815,7 +815,6 @@ class ConnectorServiceTest {
                                 .build()
                 ));
 
-        // all connects exists into ns4kfk
         Mockito.when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1, c2, c3, c4));
 
