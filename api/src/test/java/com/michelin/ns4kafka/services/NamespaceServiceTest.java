@@ -4,8 +4,8 @@ import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
-import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
-import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig.ConnectConfig;
+import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig.ConnectConfig;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,7 +30,7 @@ public class NamespaceServiceTest {
     @Mock
     AccessControlEntryService accessControlEntryService;
     @Mock
-    KafkaConnectService kafkaConnectService;
+    ConnectorService connectorService;
     @Mock
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigList;
 
@@ -285,7 +285,7 @@ public class NamespaceServiceTest {
 
         Mockito.when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of());
-        Mockito.when(kafkaConnectService.findAllForNamespace(ns))
+        Mockito.when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of());
         Mockito.when(roleBindingService.list("namespace"))
                 .thenReturn(List.of());
@@ -319,7 +319,7 @@ public class NamespaceServiceTest {
 
         Mockito.when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(topic));
-        Mockito.when(kafkaConnectService.findAllForNamespace(ns))
+        Mockito.when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of());
         Mockito.when(roleBindingService.list("namespace"))
                 .thenReturn(List.of());
@@ -354,7 +354,7 @@ public class NamespaceServiceTest {
 
         Mockito.when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of());
-        Mockito.when(kafkaConnectService.findAllForNamespace(ns))
+        Mockito.when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of(connector));
         Mockito.when(roleBindingService.list("namespace"))
                 .thenReturn(List.of());
@@ -389,7 +389,7 @@ public class NamespaceServiceTest {
 
         Mockito.when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of());
-        Mockito.when(kafkaConnectService.findAllForNamespace(ns))
+        Mockito.when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of());
         Mockito.when(roleBindingService.list("namespace"))
                 .thenReturn(List.of(rb));
@@ -424,7 +424,7 @@ public class NamespaceServiceTest {
 
         Mockito.when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of());
-        Mockito.when(kafkaConnectService.findAllForNamespace(ns))
+        Mockito.when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of());
         Mockito.when(roleBindingService.list("namespace"))
                 .thenReturn(List.of());

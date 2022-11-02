@@ -7,9 +7,7 @@ import java.util.Optional;
 
 public interface NamespaceRepository {
     List<Namespace> findAllForCluster(String cluster);
-
     Namespace createNamespace(Namespace namespace);
     Optional<Namespace> findByName(String namespace);
-
     void delete(Namespace namespace);
 }

@@ -40,6 +40,11 @@ kafkactl:
       - "CLASS:/spec/config/connector.class"
       - "TOPICS:/spec/config/topics"
       - "AGE:/metadata/creationTimestamp%AGO"
+    ConnectCluster:
+      - "CLUSTER:/metadata/name"
+      - "URL:/spec/url"
+      - "USERNAME:/spec/username"
+      - "PASSWORD:/spec/password"
     RoleBinding:
       - "ROLEBINDING:/metadata/name"
       - "GROUP:/spec/subject/subjectName"

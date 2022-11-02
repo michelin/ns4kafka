@@ -4,8 +4,8 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
-import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
-import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
+import com.michelin.ns4kafka.services.connect.ConnectorClientProxy;
+import com.michelin.ns4kafka.services.connect.client.ConnectorClient;
 import com.michelin.ns4kafka.services.connect.client.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
@@ -22,34 +22,25 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
+import java.util.stream.Stream;
 
 @Slf4j
 @Singleton
-public class KafkaConnectService {
-    /**
-     * The ACL service
-     */
+public class ConnectorService {
     @Inject
     AccessControlEntryService accessControlEntryService;
 
-    /**
-     * The connector HTTP client
-     */
     @Inject
-    KafkaConnectClient kafkaConnectClient;
+    ConnectorClient connectorClient;
 
-    /**
-     * The connector repository
-     */
     @Inject
     ConnectorRepository connectorRepository;
 
-    /**
-     * The application context
-     */
     @Inject
     ApplicationContext applicationContext;
+
+    @Inject
+    ConnectClusterService connectClusterService;
 
     /**
      * Find all connectors by given namespace
@@ -61,7 +52,6 @@ public class KafkaConnectService {
         return connectorRepository.findAllForCluster(namespace.getMetadata().getCluster())
                 .stream()
                 .filter(connector -> acls.stream().anyMatch(accessControlEntry -> {
-                    //need to check accessControlEntry.Permission, we want OWNER
                     if (accessControlEntry.getSpec().getPermission() != AccessControlEntry.Permission.OWNER) {
                         return false;
                     }
@@ -75,6 +65,19 @@ public class KafkaConnectService {
                     }
                     return false;
                 }))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Find all connectors by given namespace and Connect cluster
+     * @param namespace The namespace
+     * @param connectCluster The Connect cluster
+     * @return A list of connectors
+     */
+    public List<Connector> findAllByConnectCluster(Namespace namespace, String connectCluster) {
+        return connectorRepository.findAllForCluster(namespace.getMetadata().getCluster())
+                .stream()
+                .filter(connector -> connector.getSpec().getConnectCluster().equals(connectCluster))
                 .collect(Collectors.toList());
     }
 
@@ -99,18 +102,25 @@ public class KafkaConnectService {
      */
     public Single<List<String>> validateLocally(Namespace namespace, Connector connector) {
         // Check whether target Connect Cluster is allowed for this namespace
-        if(!namespace.getSpec().getConnectClusters().contains(connector.getSpec().getConnectCluster())){
-            String allowedConnectClusters = String.join(", ",namespace.getSpec().getConnectClusters());
+        List<String> selfDeployedConnectClusters = connectClusterService.findAllByNamespaceWrite(namespace)
+                .stream()
+                .map(connectCluster -> connectCluster.getMetadata().getName())
+                .collect(Collectors.toList());
+
+        if (!namespace.getSpec().getConnectClusters().contains(connector.getSpec().getConnectCluster()) &&
+                !selfDeployedConnectClusters.contains(connector.getSpec().getConnectCluster())) {
+            String allowedConnectClusters = Stream.concat(namespace.getSpec().getConnectClusters().stream(), selfDeployedConnectClusters.stream()).collect(Collectors.joining(", "));
             return Single.just(
-                    List.of("Invalid value " + connector.getSpec().getConnectCluster() + " for spec.connectCluster: Value must be one of ["+allowedConnectClusters+"]"));
+                    List.of("Invalid value " + connector.getSpec().getConnectCluster() + " for spec.connectCluster: Value must be one of [" + allowedConnectClusters + "]"));
         }
 
         // If class doesn't exist, no need to go further
-        if (StringUtils.isEmpty(connector.getSpec().getConfig().get("connector.class")))
+        if (StringUtils.isEmpty(connector.getSpec().getConfig().get("connector.class"))) {
             return Single.just(List.of("Invalid value for spec.config.'connector.class': Value must be non-null"));
+        }
 
         // Connector type exists on this target connect cluster ?
-        return kafkaConnectClient.connectPlugins(KafkaConnectClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
+        return connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster())
                 .map(connectorPluginInfos -> {
                     Optional<String> connectorType = connectorPluginInfos
@@ -145,12 +155,8 @@ public class KafkaConnectService {
      * @return A list of errors
      */
     public Single<List<String>> validateRemotely(Namespace namespace, Connector connector) {
-        // Calls the "validate" endpoints and returns the validation error messages if any
-        return kafkaConnectClient.validate(
-                KafkaConnectClientProxy.PROXY_SECRET,
-                namespace.getMetadata().getCluster(),
-                connector.getSpec().getConnectCluster(),
-                connector.getSpec().getConfig().get("connector.class"),
+        return connectorClient.validate(ConnectorClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(), connector.getSpec().getConfig().get("connector.class"),
                 ConnectorSpecs.builder()
                         .config(connector.getSpec().getConfig())
                         .build())
@@ -176,7 +182,7 @@ public class KafkaConnectService {
      * @param connector The connector
      */
     public Single<HttpResponse<Void>> delete(Namespace namespace, Connector connector) {
-        return kafkaConnectClient.delete(KafkaConnectClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
+        return connectorClient.delete(ConnectorClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(), connector.getMetadata().getName())
                 .defaultIfEmpty(HttpResponse.noContent())
                 .flatMapSingle(httpResponse -> {
@@ -222,11 +228,11 @@ public class KafkaConnectService {
      * @return An HTTP response
      */
     public Single<HttpResponse<Void>> restart(Namespace namespace, Connector connector) {
-        return kafkaConnectClient.status(KafkaConnectClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), connector.getSpec().getConnectCluster(),
+        return connectorClient.status(ConnectorClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), connector.getSpec().getConnectCluster(),
                 connector.getMetadata().getName())
                 .flatMap(status -> {
                     Observable<HttpResponse<Void>> observable = Observable.fromIterable(status.tasks())
-                        .flatMapSingle(task -> kafkaConnectClient.restart(KafkaConnectClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
+                        .flatMapSingle(task -> connectorClient.restart(ConnectorClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
                                 connector.getSpec().getConnectCluster(), connector.getMetadata().getName(), task.id()))
                         .map(restartedTasks -> {
                             log.info("Success restarting connector [{}] on namespace [{}] connect [{}]",
@@ -248,7 +254,7 @@ public class KafkaConnectService {
      * @return An HTTP response
      */
     public Single<HttpResponse<Void>> pause(Namespace namespace, Connector connector) {
-        return kafkaConnectClient.pause(KafkaConnectClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
+        return connectorClient.pause(ConnectorClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
                 connector.getSpec().getConnectCluster(), connector.getMetadata().getName())
                         .map(pause -> {
                             log.info("Success pausing Connector [{}] on Namespace [{}] Connect [{}]",
@@ -267,7 +273,7 @@ public class KafkaConnectService {
      * @return An HTTP response
      */
     public Single<HttpResponse<Void>> resume(Namespace namespace, Connector connector) {
-        return kafkaConnectClient.resume(KafkaConnectClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
+        return connectorClient.resume(ConnectorClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
                 connector.getSpec().getConnectCluster(), connector.getMetadata().getName())
                         .map(resume -> {
                             log.info("Success resuming Connector [{}] on Namespace [{}] Connect [{}]",

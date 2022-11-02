@@ -1,4 +1,4 @@
-package com.michelin.ns4kafka.services.executors;
+package com.michelin.ns4kafka.config;
 
 import io.micronaut.context.annotation.ConfigurationProperties;
 import io.micronaut.context.annotation.EachProperty;

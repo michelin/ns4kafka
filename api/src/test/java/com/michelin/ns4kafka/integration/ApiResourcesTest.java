@@ -22,15 +22,13 @@ import java.util.List;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
-public class ApiResourcesTest extends AbstractIntegrationTest {
-
+class ApiResourcesTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
     RxHttpClient client;
 
     @Test
     void asAdmin() {
-
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
         HttpResponse<TopicTest.BearerAccessRefreshToken> response = client.exchange(HttpRequest.POST("/login", credentials), TopicTest.BearerAccessRefreshToken.class).blockingFirst();
 
@@ -40,8 +38,7 @@ public class ApiResourcesTest extends AbstractIntegrationTest {
                 Argument.listOf(ApiResourcesController.ResourceDefinition.class)
         ).blockingFirst();
 
-        Assertions.assertEquals(8, resources.size());
-
+        Assertions.assertEquals(9, resources.size());
     }
 
     @Test
@@ -53,7 +50,7 @@ public class ApiResourcesTest extends AbstractIntegrationTest {
                 Argument.listOf(ApiResourcesController.ResourceDefinition.class)
         ).blockingFirst();
 
-        Assertions.assertEquals(8, resources.size());
+        Assertions.assertEquals(9, resources.size());
     }
 
     @Test

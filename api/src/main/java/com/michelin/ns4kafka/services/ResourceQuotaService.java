@@ -53,7 +53,7 @@ public class ResourceQuotaService {
      * Connector service
      */
     @Inject
-    KafkaConnectService kafkaConnectService;
+    ConnectorService connectorService;
 
     /**
      * Find a resource quota by namespace
@@ -184,7 +184,7 @@ public class ResourceQuotaService {
      * @return The number of topics
      */
     public long getCurrentCountConnectors(Namespace namespace) {
-        return kafkaConnectService.findAllForNamespace(namespace).size();
+        return connectorService.findAllForNamespace(namespace).size();
     }
 
     /**

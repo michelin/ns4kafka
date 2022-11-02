@@ -4,13 +4,14 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.services.executors.AccessControlEntryAsyncExecutor;
-import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -36,9 +37,9 @@ public class AccessControlEntryService {
     public List<String> validate(AccessControlEntry accessControlEntry, Namespace namespace) {
         List<String> validationErrors = new ArrayList<>();
 
-        // Which resource can be granted cross namespaces ? TOPIC
+        // Which resource can be granted cross namespaces
         List<AccessControlEntry.ResourceType> allowedResourceTypes =
-                List.of(AccessControlEntry.ResourceType.TOPIC);
+                List.of(AccessControlEntry.ResourceType.TOPIC, AccessControlEntry.ResourceType.CONNECT_CLUSTER);
 
         // Which permission can be granted cross namespaces ? READ, WRITE
         // Only admin can grant OWNER
@@ -59,7 +60,6 @@ public class AccessControlEntryService {
         }
 
         if (!allowedPermissions.contains(accessControlEntry.getSpec().getPermission())) {
-
             validationErrors.add("Invalid value " + accessControlEntry.getSpec().getPermission() +
                     " for permission: Value must be one of [" +
                     allowedPermissions.stream().map(Object::toString).collect(Collectors.joining(", ")) +

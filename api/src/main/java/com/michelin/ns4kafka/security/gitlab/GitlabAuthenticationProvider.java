@@ -1,7 +1,7 @@
 package com.michelin.ns4kafka.security.gitlab;
 
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
-import com.michelin.ns4kafka.security.SecurityConfig;
+import com.michelin.ns4kafka.config.SecurityConfig;
 import com.michelin.ns4kafka.services.RoleBindingService;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import io.micronaut.http.HttpRequest;

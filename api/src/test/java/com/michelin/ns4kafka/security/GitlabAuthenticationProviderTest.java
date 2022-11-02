@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.security;
 
+import com.michelin.ns4kafka.config.SecurityConfig;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.security.gitlab.GitlabAuthenticationProvider;

@@ -1,9 +1,12 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.KafkaUserResetPassword;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.services.executors.UserAsyncExecutor;
+import com.michelin.ns4kafka.utils.enums.ApplyStatus;
+import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Controller;

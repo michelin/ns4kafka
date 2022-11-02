@@ -24,10 +24,11 @@ public class KafkaConnectorRepository extends KafkaStore<Connector> implements C
     }
 
     @Override
-    String getMessageKey(Connector roleBinding) {
-        return roleBinding.getMetadata().getNamespace() + "/" + roleBinding.getMetadata().getName();
+    String getMessageKey(Connector connector) {
+        return connector.getMetadata().getNamespace() + "/" + connector.getMetadata().getName();
     }
 
+    @Override
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.connectors")
     void receive(ConsumerRecord<String, Connector> record) {
         super.receive(record);
@@ -49,5 +50,4 @@ public class KafkaConnectorRepository extends KafkaStore<Connector> implements C
                 .filter(connector -> connector.getMetadata().getCluster().equals(cluster))
                 .collect(Collectors.toList());
     }
-
 }

@@ -220,7 +220,7 @@ spec:
 ```
 
 Available options :
-- **spec.resourceType**: TOPIC, GROUP, CONNECT
+- **spec.resourceType**: TOPIC, GROUP, CONNECT, CONNECT_CLUSTER
 - **spec.resourcePatternType**: PREFIXED, LITERAL
 - **spec.permission**: READ, WRITE
 
@@ -260,6 +260,31 @@ Everything else is dependent on the “Connect Validation rules” associated to
 user@local:/home/user$ kafkactl apply -f connector.yml
 Success Connector/test.connect1 (created)
 ```
+
+### Connect Cluster
+
+This resource declares a Connect cluster that has been self-deployed so namespace are autonomous to deploy connectors on it
+without any Ns4Kafka outage.
+
+```yaml
+---
+apiVersion: v1
+kind: ConnectCluster
+metadata:
+  name: test.myConnectCluster
+spec:
+  url: http://localhost:8083
+  username: myUsername
+  password: myPassword
+```
+
+```bash
+user@local:/home/user$ kafkactl apply -f connect-cluster.yml
+Success ConnectCluster/test.myConnectCluster (created)
+```
+
+**metadata.name** should not collide with the name of a Connect cluster declared in the Ns4Kafka configuration.
+An error message will be thrown otherwise.
 
 ### Kafka Streams
 
@@ -779,7 +804,7 @@ Success Namespace/test (changed)
 
 It is possible to define quotas on a namespace. Ideal for clusters with limited resources!
 
-A namespace with quotas will not be able to exceed the limits enforced by the quotas.
+A namespace with quotas will not be able to exceed the limits enforced by these quotas.
 
 ```yaml
 apiVersion: v1

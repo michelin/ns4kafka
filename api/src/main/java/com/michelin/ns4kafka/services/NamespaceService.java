@@ -2,7 +2,7 @@ package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
-import com.michelin.ns4kafka.services.executors.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -26,7 +26,7 @@ public class NamespaceService {
     @Inject
     AccessControlEntryService accessControlEntryService;
     @Inject
-    KafkaConnectService kafkaConnectService;
+    ConnectorService connectorService;
 
     /**
      * Namespace validation in case of new namespace
@@ -91,7 +91,7 @@ public class NamespaceService {
         return Stream.of(
                 topicService.findAllForNamespace(namespace).stream()
                         .map(topic -> topic.getKind()+"/"+topic.getMetadata().getName()),
-                kafkaConnectService.findAllForNamespace(namespace).stream()
+                connectorService.findAllForNamespace(namespace).stream()
                         .map(connector -> connector.getKind()+"/"+connector.getMetadata().getName()),
                 accessControlEntryService.findAllForNamespace(namespace).stream()
                         .map(ace -> ace.getKind()+"/"+ace.getMetadata().getName()),

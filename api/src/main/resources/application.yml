@@ -1,8 +1,7 @@
 micronaut:
-# BEGIN ThreadPoolOptimization
-# https://docs.micronaut.io/latest/guide/#clientConfiguration
-# Moves HttpClient calls to a different ThreadPool
-# This is mainly for Kafka Connect calls
+  application:
+    name: ns4kafka
+
   netty:
     event-loops:
       default:
@@ -13,6 +12,7 @@ micronaut:
       schema:
         num-threads: 4
         prefer-native-transport: true
+
   http:
     services:
       /connect-proxy:
@@ -20,9 +20,6 @@ micronaut:
       /schema-registry-proxy:
         event-loop-group: schema
 
-# END ThreadPoolOptimization
-  application:
-    name: ns4kafka
   security:
     enabled: true
     authentication: bearer
@@ -59,6 +56,7 @@ micronaut:
         http-method: GET
         access:
           - isAnonymous()
+
   router:
     static-resources:
       swagger:
@@ -145,10 +143,9 @@ ns4kafka:
           min.compaction.lag.ms: "0"
           max.compaction.lag.ms: "604800000"
           segment.ms: "600000"
-  # Logs the actions performed by users when changes are made (created/deleted/changed)
+
   log:
-    console: # 
+    console:
       enabled: true
-    kafka: # 
+    kafka:
       enabled: false
-      #topic: ns4kafka.audit-log

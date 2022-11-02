@@ -40,7 +40,7 @@ public class ApiResourcesController {
             .kind("Connector")
             .namespaced(true)
             .synchronizable(true)
-            .path("connects")
+            .path("connectors")
             .names(List.of("connects", "connect", "co"))
             .build();
 
@@ -100,6 +100,17 @@ public class ApiResourcesController {
             .build();
 
     /**
+     * Connect worker resource definition
+     */
+    public static final ResourceDefinition CONNECT_CLUSTER = ResourceDefinition.builder()
+            .kind("ConnectCluster")
+            .namespaced(true)
+            .synchronizable(false)
+            .path("connect-clusters")
+            .names(List.of("connect-clusters", "connect-cluster", "cc"))
+            .build();
+
+    /**
      * Namespace resource definition
      */
     public static final ResourceDefinition NAMESPACE = ResourceDefinition.builder()
@@ -129,6 +140,7 @@ public class ApiResourcesController {
                 KSTREAM,
                 ROLE_BINDING,
                 RESOURCE_QUOTA,
+                CONNECT_CLUSTER,
                 TOPIC,
                 NAMESPACE,
                 SCHEMA

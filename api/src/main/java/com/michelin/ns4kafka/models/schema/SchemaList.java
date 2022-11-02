@@ -16,19 +16,9 @@ import javax.validation.constraints.NotNull;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SchemaList {
-    /**
-     * API version
-     */
     private final String apiVersion = "v1";
-
-    /**
-     * Kind of resource
-     */
     private final String kind = "SchemaList";
 
-    /**
-     * Schema metadata
-     */
     @Valid
     @NotNull
     private ObjectMeta metadata;

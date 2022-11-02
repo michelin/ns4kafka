@@ -1,10 +1,12 @@
 package com.michelin.ns4kafka.services.executors;
 
+import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
-import com.michelin.ns4kafka.services.connect.KafkaConnectClientProxy;
-import com.michelin.ns4kafka.services.connect.client.KafkaConnectClient;
+import com.michelin.ns4kafka.services.ConnectClusterService;
+import com.michelin.ns4kafka.services.connect.ConnectorClientProxy;
+import com.michelin.ns4kafka.services.connect.client.ConnectorClient;
 import com.michelin.ns4kafka.services.connect.client.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStatus;
 import io.micronaut.context.annotation.EachBean;
@@ -19,27 +21,22 @@ import javax.inject.Singleton;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @EachBean(KafkaAsyncExecutorConfig.class)
 @Singleton
 public class ConnectorAsyncExecutor {
-    /**
-     * The managed clusters config
-     */
     private final KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
 
-    /**
-     * The connector repository
-     */
     @Inject
     private ConnectorRepository connectorRepository;
 
-    /**
-     * The Kafka Connect client
-     */
     @Inject
-    private KafkaConnectClient kafkaConnectClient;
+    private ConnectorClient connectorClient;
+
+    @Inject
+    private ConnectClusterService connectClusterService;
 
     /**
      * Constructor
@@ -63,8 +60,13 @@ public class ConnectorAsyncExecutor {
      * For each connect cluster, start the synchronization of connectors
      */
     private void synchronizeConnectors() {
-        kafkaAsyncExecutorConfig.getConnects()
-                .forEach((s, connectConfig) -> synchronizeConnectCluster(s));
+        List<String> selfDeclaredConnectClusterNames = connectClusterService.findAll()
+                .stream()
+                .map(connectCluster -> connectCluster.getMetadata().getName())
+                .collect(Collectors.toList());
+
+        Stream.concat(kafkaAsyncExecutorConfig.getConnects().keySet().stream(), selfDeclaredConnectClusterNames.stream())
+                        .forEach(this::synchronizeConnectCluster);
     }
 
     /**
@@ -73,8 +75,7 @@ public class ConnectorAsyncExecutor {
      */
     private void synchronizeConnectCluster(String connectCluster) {
         log.debug("Starting Connector synchronization for Kafka cluster {} and Connect cluster {}",
-                kafkaAsyncExecutorConfig.getName(),
-                connectCluster);
+                kafkaAsyncExecutorConfig.getName(), connectCluster);
 
         collectBrokerConnectors(connectCluster)
                 .subscribe(new ConsumerSingleObserver<>(brokerConnectors -> {
@@ -130,9 +131,9 @@ public class ConnectorAsyncExecutor {
      * @return A list of connectors
      */
     public Single<List<Connector>> collectBrokerConnectors(String connectCluster) {
-        return kafkaConnectClient.listAll(KafkaConnectClientProxy.PROXY_SECRET, kafkaAsyncExecutorConfig.getName(), connectCluster)
+        return connectorClient.listAll(ConnectorClientProxy.PROXY_SECRET, kafkaAsyncExecutorConfig.getName(), connectCluster)
                 .map(connectors -> {
-                    log.debug("Connectors found on Connect Cluster {} : {}", connectCluster, connectors.size());
+                    log.debug("Connectors found on Connect cluster {} : {}", connectCluster, connectors.size());
 
                     return connectors
                             .values()
@@ -171,7 +172,7 @@ public class ConnectorAsyncExecutor {
                 .stream()
                 .filter(connector -> connector.getSpec().getConnectCluster().equals(connectCluster))
                 .collect(Collectors.toList());
-        log.debug("Connectors found on Ns4kafka for Connect Cluster {}: {}", connectCluster, connectorList.size());
+        log.debug("Connectors found on Ns4kafka for Connect cluster {}: {}", connectCluster, connectorList.size());
         return connectorList;
     }
 
@@ -200,7 +201,7 @@ public class ConnectorAsyncExecutor {
      * @param connector The connector to deploy
      */
     private void deployConnector(Connector connector) {
-        kafkaConnectClient.createOrUpdate(KafkaConnectClientProxy.PROXY_SECRET, kafkaAsyncExecutorConfig.getName(),
+        connectorClient.createOrUpdate(ConnectorClientProxy.PROXY_SECRET, kafkaAsyncExecutorConfig.getName(),
                 connector.getSpec().getConnectCluster(), connector.getMetadata().getName(),
                         ConnectorSpecs.builder().config(connector.getSpec().getConfig()).build())
                 .subscribe(new ConsumerSingleObserver<>(httpResponse -> log.info("Success deploying Connector [{}] on Kafka [{}] Connect [{}]",

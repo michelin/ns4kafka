@@ -19,7 +19,6 @@ import java.util.Collection;
 @NoArgsConstructor
 @Data
 public class RoleBinding {
-
     private final String apiVersion = "v1";
     private final String kind = "RoleBinding";
 
@@ -36,7 +35,6 @@ public class RoleBinding {
     @NoArgsConstructor
     @Data
     public static class RoleBindingSpec {
-
         @Valid
         @NotNull
         private Role role;
@@ -51,7 +49,6 @@ public class RoleBinding {
     @NoArgsConstructor
     @Data
     public static class Role {
-
         @NotNull
         @NotEmpty
         private Collection<String> resourceTypes;
@@ -66,7 +63,6 @@ public class RoleBinding {
     @NoArgsConstructor
     @Data
     public static class Subject {
-
         @NotNull
         private SubjectType subjectType;
 

@@ -8,22 +8,18 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-@Introspected
+@Data
 @Builder
+@Introspected
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
 public class Status {
     private final String apiVersion = "v1";
     private final String kind = "Status";
-
     private StatusPhase status;
-
     private String message;
     private StatusReason reason;
-
     private StatusDetails details;
-
     private int code;
 
     @Builder
@@ -54,5 +50,4 @@ public class Status {
         MethodNotAllowed,
         InternalError
     }
-
 }

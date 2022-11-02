@@ -6,9 +6,9 @@ import lombok.Setter;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.security.scram.internals.ScramMechanism;
 
-@NoArgsConstructor
 @Getter
 @Setter
+@NoArgsConstructor
 public class KafkaCluster {
     private String name;
     private String boostrapServers;
@@ -16,5 +16,4 @@ public class KafkaCluster {
     private ScramMechanism scramMechanism;
     private String username;
     private String password;
-
 }

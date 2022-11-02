@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.services.executors;
 
+import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.TopicRepository;
@@ -157,7 +158,6 @@ public class TopicAsyncExecutor {
                         .map(s -> new ConfigResource(ConfigResource.Type.TOPIC, s))
                         .collect(Collectors.toList())
                 )
-                //.describeConfigs(List.of(new ConfigResource(ConfigResource.Type.TOPIC,"*")))
                 .all()
                 .get(30, TimeUnit.SECONDS)
                 .entrySet()

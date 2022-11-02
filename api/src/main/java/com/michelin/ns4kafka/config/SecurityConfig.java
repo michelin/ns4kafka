@@ -1,4 +1,4 @@
-package com.michelin.ns4kafka.security;
+package com.michelin.ns4kafka.config;
 
 import com.michelin.ns4kafka.security.local.LocalUser;
 import io.micronaut.context.annotation.ConfigurationProperties;
@@ -13,4 +13,5 @@ import java.util.List;
 public class SecurityConfig {
     private List<LocalUser> localUsers;
     private String adminGroup;
+    private String aes256EncryptionKey;
 }

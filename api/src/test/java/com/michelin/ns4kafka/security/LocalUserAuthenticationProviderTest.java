@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.security;
 
+import com.michelin.ns4kafka.config.SecurityConfig;
 import com.michelin.ns4kafka.security.local.LocalUser;
 import com.michelin.ns4kafka.security.local.LocalUserAuthenticationProvider;
 import io.micronaut.security.authentication.AuthenticationResponse;
