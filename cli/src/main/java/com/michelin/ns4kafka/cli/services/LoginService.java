@@ -90,6 +90,8 @@ public class LoginService {
                 calendar.add(Calendar.SECOND, tokenResponse.getExpiresIn());
                 System.out.println("Authentication successful, welcome " + tokenResponse.getUsername() + "!");
                 System.out.println("Your session is valid until " + calendar.getTime() + ".");
+            } else {
+                System.out.println("Done.");
             }
 
             try {
@@ -99,7 +101,6 @@ public class LoginService {
                 System.out.println("Unexpected error occurred: " + e.getMessage());
             }
 
-            System.out.println("Done.");
             return true;
         } catch (HttpClientResponseException e) {
             System.out.println("Authentication failed with message: " + e.getMessage());
