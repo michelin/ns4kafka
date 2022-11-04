@@ -101,7 +101,7 @@ jobs:
         shell: cmd
 
       - name: Upload Windows native Kafkactl
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: native-image-windows
           path: ${{ github.workspace }}/cli/build/native-image/kafkactl-*.exe

@@ -48,13 +48,13 @@ jobs:
         run: ./gradlew dockerBuild api:dockerPush cli:dockerPush -Prelease
 
       - name: Upload Linux native Kafkactl
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: native-image-linux
           path: ${{ github.workspace }}/cli/build/native-image/kafkactl-*
 
       - name: Upload JAR Kafkactl
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: jar
           path: ${{ github.workspace }}/cli/build/libs/kafkactl-*.jar
@@ -112,7 +112,7 @@ jobs:
         shell: cmd
 
       - name: Upload Windows native Kafkactl
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: native-image-windows
           path: ${{ github.workspace }}/cli/build/native-image/kafkactl-*.exe
