@@ -14,11 +14,11 @@ jobs:
         fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
     - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@v1
-        with:
-          version: '21.1.0'
-          java-version: '11'
-          components: 'native-image'
+      uses: graalvm/setup-graalvm@v1
+      with:
+        version: '21.1.0'
+        java-version: '11'
+        components: 'native-image'
 
     - name: Cache SonarCloud packages
       uses: actions/cache@v3
@@ -76,7 +76,7 @@ jobs:
           version: '20.3.2'
           java-version: '11'
           components: 'native-image'
-        
+
       - name: Cache Gradle packages
         uses: actions/cache@v3
         with:
