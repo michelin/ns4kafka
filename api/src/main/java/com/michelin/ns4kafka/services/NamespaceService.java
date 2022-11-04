@@ -14,43 +14,49 @@ import java.util.stream.Stream;
 
 @Singleton
 public class NamespaceService {
-
     @Inject
     NamespaceRepository namespaceRepository;
+
     @Inject
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigList;
+
     @Inject
     TopicService topicService;
+
     @Inject
     RoleBindingService roleBindingService;
+
     @Inject
     AccessControlEntryService accessControlEntryService;
+
     @Inject
     ConnectorService connectorService;
 
     /**
-     * Namespace validation in case of new namespace
-     *
-     * @param namespace
-     * @return
+     * Validate new namespace creation
+     * @param namespace The namespace to create
+     * @return A list of validation errors
      */
     public List<String> validateCreation(Namespace namespace) {
-
         List<String> validationErrors = new ArrayList<>();
 
-        if (kafkaAsyncExecutorConfigList.stream()
-                .noneMatch(config -> config.getName().equals(namespace.getMetadata().getCluster()))) {
-            validationErrors.add("Invalid value " + namespace.getMetadata().getCluster()
-                    + " for cluster: Cluster doesn't exist");
+        if (kafkaAsyncExecutorConfigList.stream().noneMatch(config -> config.getName().equals(namespace.getMetadata().getCluster()))) {
+            validationErrors.add("Invalid value " + namespace.getMetadata().getCluster() + " for cluster: Cluster doesn't exist");
         }
+
         if (namespaceRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
                 .anyMatch(namespace1 -> namespace1.getSpec().getKafkaUser().equals(namespace.getSpec().getKafkaUser()))) {
-            validationErrors.add("Invalid value " + namespace.getSpec().getKafkaUser()
-                    + " for user: KafkaUser already exists");
+            validationErrors.add("Invalid value " + namespace.getSpec().getKafkaUser() + " for user: KafkaUser already exists");
         }
+
         return validationErrors;
     }
 
+    /**
+     * Validate the Connect clusters of the namespace
+     * @param namespace The namespace
+     * @return A list of validation errors
+     */
     public List<String> validate(Namespace namespace) {
         return namespace.getSpec().getConnectClusters()
                 .stream()
@@ -59,6 +65,12 @@ public class NamespaceService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Check if a given Connect cluster exists on a given Kafka cluster
+     * @param kafkaCluster The Kafka cluster
+     * @param connectCluster The Connect cluster
+     * @return true it does, false otherwise
+     */
     private boolean connectClusterExists(String kafkaCluster, String connectCluster) {
         return kafkaAsyncExecutorConfigList.stream()
                 .anyMatch(kafkaAsyncExecutorConfig -> kafkaAsyncExecutorConfig.getName().equals(kafkaCluster) &&

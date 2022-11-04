@@ -2,9 +2,16 @@ package com.michelin.ns4kafka.repositories;
 
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface ResourceQuotaRepository {
+    /**
+     * Find all quotas of all namespaces
+     * @return The resource quotas
+     */
+    List<ResourceQuota> findAll();
+
     /**
      * Get resource quota by namespace
      * @param namespace The namespace used to research

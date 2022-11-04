@@ -8,6 +8,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
 import javax.inject.Singleton;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,16 +35,39 @@ public class KafkaConnectorRepository extends KafkaStore<Connector> implements C
         super.receive(record);
     }
 
+    /**
+     * Create a given connector
+     * @param connector The connector to create
+     * @return The created connector
+     */
     @Override
     public Connector create(Connector connector) {
         return this.produce(getMessageKey(connector),connector);
     }
 
+    /**
+     * Delete a given connector
+     * @param connector The connector to delete
+     */
     @Override
     public void delete(Connector connector) {
         this.produce(getMessageKey(connector),null);
     }
 
+    /**
+     * Find all connectors
+     * @return The list of connectors
+     */
+    @Override
+    public List<Connector> findAll() {
+        return new ArrayList<>(getKafkaStore().values());
+    }
+
+    /**
+     * Find all connectors by cluster
+     * @param cluster The cluster
+     * @return The list of connectors
+     */
     @Override
     public List<Connector> findAllForCluster(String cluster) {
         return getKafkaStore().values().stream()

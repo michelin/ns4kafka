@@ -81,7 +81,7 @@ class ResourceQuotaControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.empty());
-        when(resourceQuotaService.toResponse(ns, Optional.empty())).thenReturn(response);
+        when(resourceQuotaService.formatQuotaResponseByNamespace(ns, Optional.empty())).thenReturn(response);
 
         List<ResourceQuotaResponse> actual = resourceQuotaController.list("test");
         Assertions.assertEquals(1, actual.size());
@@ -135,7 +135,7 @@ class ResourceQuotaControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.findByName(ns.getMetadata().getName(), "quotaName")).thenReturn(Optional.of(resourceQuota));
-        when(resourceQuotaService.toResponse(ns, Optional.of(resourceQuota))).thenReturn(response);
+        when(resourceQuotaService.formatQuotaResponseByNamespace(ns, Optional.of(resourceQuota))).thenReturn(response);
 
         Optional<ResourceQuotaResponse> actual = resourceQuotaController.get("test", "quotaName");
         Assertions.assertTrue(actual.isPresent());

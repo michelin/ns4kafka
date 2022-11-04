@@ -541,7 +541,7 @@ class ResourceQuotaServiceTest {
         when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(topic1, topic2, topic3));
 
-        long currentlyUsed = resourceQuotaService.getCurrentCountTopics(ns);
+        long currentlyUsed = resourceQuotaService.getCurrentCountTopicsByNamespace(ns);
         Assertions.assertEquals(3L, currentlyUsed);
     }
 
@@ -1101,7 +1101,7 @@ class ResourceQuotaServiceTest {
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
-        ResourceQuotaResponse response = resourceQuotaService.toResponse(ns, Optional.of(resourceQuota));
+        ResourceQuotaResponse response = resourceQuotaService.formatQuotaResponseByNamespace(ns, Optional.of(resourceQuota));
         Assertions.assertEquals(resourceQuota.getMetadata(), response.getMetadata());
         Assertions.assertEquals("3/3", response.getSpec().getCountTopic());
         Assertions.assertEquals("19/20", response.getSpec().getCountPartition());
@@ -1164,7 +1164,7 @@ class ResourceQuotaServiceTest {
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
-        ResourceQuotaResponse response = resourceQuotaService.toResponse(ns, Optional.empty());
+        ResourceQuotaResponse response = resourceQuotaService.formatQuotaResponseByNamespace(ns, Optional.empty());
         Assertions.assertNull(response.getMetadata());
         Assertions.assertEquals("3", response.getSpec().getCountTopic());
         Assertions.assertEquals("19", response.getSpec().getCountPartition());
