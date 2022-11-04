@@ -20,10 +20,11 @@ jobs:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Set up GraalVM
-        uses: DeLaGuardo/setup-graalvm@5.0
+        uses: graalvm/setup-graalvm@v1
         with:
-          graalvm: '21.1.0'
-          java: 'java11'
+          version: '21.1.0'
+          java-version: '11'
+          components: 'native-image'
 
       - name: Install native image
         run: gu install native-image
@@ -76,10 +77,11 @@ jobs:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Set up GraalVM
-        uses: DeLaGuardo/setup-graalvm@5.0
+        uses: graalvm/setup-graalvm@v1
         with:
-          graalvm: '20.3.2'
-          java: 'java11'
+          version: '20.3.2'
+          java-version: '11'
+          components: 'native-image'
 
       - name: Install native image
         run: ${{ env.JAVA_HOME }}\bin\gu.cmd install native-image
