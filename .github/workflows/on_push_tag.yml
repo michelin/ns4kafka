@@ -15,21 +15,22 @@ jobs:
           password: ${{ secrets.MICHELIN_DOCKER_HUB_PASSWD }}
 
       - name: Checkout project
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Set up GraalVM
-        uses: DeLaGuardo/setup-graalvm@4.0
+        uses: graalvm/setup-graalvm@v1
         with:
-          graalvm: '21.1.0'
-          java: 'java11'
+          version: '21.1.0'
+          java-version: '11'
+          components: 'native-image'
 
       - name: Install Native Image
         run: gu install native-image
 
       - name: Cache Gradle packages
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         with:
           path: ~/.gradle/caches
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
@@ -48,13 +49,13 @@ jobs:
         run: ./gradlew dockerBuild api:dockerPush cli:dockerPush -Prelease
 
       - name: Upload Linux native Kafkactl
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: native-image-linux
           path: ${{ github.workspace }}/cli/build/native-image/kafkactl-*
 
       - name: Upload JAR Kafkactl
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: jar
           path: ${{ github.workspace }}/cli/build/libs/kafkactl-*.jar
@@ -82,28 +83,29 @@ jobs:
     environment: Build
     steps:
       - name: Checkout project
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Set up GraalVM
-        uses: DeLaGuardo/setup-graalvm@4.0
+        uses: graalvm/setup-graalvm@v1
         with:
-          graalvm: '20.3.2'
-          java: 'java11'
+          version: '20.3.2'
+          java-version: '11'
+          components: 'native-image'
 
       - name: Install native image
         run: ${{ env.JAVA_HOME }}\bin\gu.cmd install native-image
 
       - name: Cache Gradle packages
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.gradle/caches
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
           restore-keys: ${{ runner.os }}-gradle
 
       - name: Configure Pagefile
-        uses: al-cheb/configure-pagefile-action@v1.2
+        uses: al-cheb/configure-pagefile-action@v1.3
 
       - name: Native image for CLI
         run: |
@@ -112,7 +114,7 @@ jobs:
         shell: cmd
 
       - name: Upload Windows native Kafkactl
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: native-image-windows
           path: ${{ github.workspace }}/cli/build/native-image/kafkactl-*.exe
