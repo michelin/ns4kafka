@@ -18,6 +18,7 @@ import java.util.Date;
 
 @Singleton
 public class LoginService {
+    private static final String UNEXPECTED_ERROR = "Unexpected error occurred: ";
     private final KafkactlConfig kafkactlConfig;
     private final ClusterResourceClient clusterResourceClient;
     private final File jwtFile;
@@ -65,10 +66,10 @@ public class LoginService {
             accessToken = token.getAccessToken();
             return userInfo.isActive();
         } catch (IOException e) {
-            System.out.println("Unexpected error occurred: " + e.getMessage());
+            System.out.println(UNEXPECTED_ERROR + e.getMessage());
         } catch (HttpClientResponseException e) {
             if (e.getStatus() != HttpStatus.UNAUTHORIZED) {
-                System.out.println("Unexpected error occurred: " + e.getMessage());
+                System.out.println(UNEXPECTED_ERROR + e.getMessage());
             }
         }
         return false;
@@ -98,7 +99,7 @@ public class LoginService {
                 ObjectMapper objectMapper = new ObjectMapper();
                 objectMapper.writeValue(jwtFile, tokenResponse);
             } catch (IOException e) {
-                System.out.println("Unexpected error occurred: " + e.getMessage());
+                System.out.println(UNEXPECTED_ERROR + e.getMessage());
             }
 
             return true;
