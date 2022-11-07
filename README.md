@@ -286,6 +286,8 @@ Success ConnectCluster/test.myConnectCluster (created)
 **metadata.name** should not collide with the name of a Connect cluster declared in the Ns4Kafka configuration.
 An error message will be thrown otherwise.
 
+Owners of Connect clusters can authorize other namespaces to deploy connectors on their own Connect clusters by giving an ACL with the WRITE permission to the grantees.
+
 ### Kafka Streams
 
 This resource only grants the necessary Kafka ACLs for your Kafka Stream to work properly (if you have internal topics). It doesn’t do anything with your actual Kafka Stream code or Kafka Stream deployment.

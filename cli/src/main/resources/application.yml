@@ -41,7 +41,7 @@ kafkactl:
       - "TOPICS:/spec/config/topics"
       - "AGE:/metadata/creationTimestamp%AGO"
     ConnectCluster:
-      - "CLUSTER:/metadata/name"
+      - "CONNECT CLUSTER:/metadata/name"
       - "URL:/spec/url"
       - "USERNAME:/spec/username"
       - "PASSWORD:/spec/password"

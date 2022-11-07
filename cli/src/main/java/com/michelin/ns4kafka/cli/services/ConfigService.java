@@ -84,6 +84,6 @@ public class ConfigService {
         FileWriter writer = new FileWriter(kafkactlConfig.getConfigPath() + "/config.yml");
         yamlMapper.dump(rootNodeConfig, writer);
 
-        loginService.deleteJWTfile();
+        loginService.deleteJWTFile();
     }
 }
