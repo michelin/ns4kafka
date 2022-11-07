@@ -25,35 +25,47 @@ import java.util.stream.Stream;
 
 @ExtendWith(MockitoExtension.class)
 class TopicServiceTest {
-    /**
-     * The topic service
-     */
     @InjectMocks
     TopicService topicService;
 
-    /**
-     * The ACL service
-     */
     @Mock
     AccessControlEntryService accessControlEntryService;
 
-    /**
-     * The topic repository
-     */
     @Mock
     TopicRepository topicRepository;
 
-    /**
-     * The application context
-     */
     @Mock
     ApplicationContext applicationContext;
 
-    /**
-     * The mocked managed cluster config
-     */
     @Mock
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigs;
+
+    /**
+     * Validate find all for all namespaces
+     */
+    @Test
+    void findAll() {
+        Topic t1 = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic1").build())
+                .build();
+
+        Topic t2 = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic2").build())
+                .build();
+
+        Topic t3 = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns1-topic1").build())
+                .build();
+
+        Topic t4 = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns2-topic1").build())
+                .build();
+
+        Mockito.when(topicRepository.findAll()).thenReturn(List.of(t1, t2, t3, t4));
+
+        List<Topic> topics = topicService.findAll();
+        Assertions.assertEquals(4, topics.size());
+    }
 
     /**
      * Validate find topic by name

@@ -24,27 +24,15 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ResourceQuotaServiceTest {
-    /**
-     * The resource quota service
-     */
     @InjectMocks
     ResourceQuotaService resourceQuotaService;
 
-    /**
-     * The resource quota repository
-     */
     @Mock
     ResourceQuotaRepository resourceQuotaRepository;
 
-    /**
-     * The topic service
-     */
     @Mock
     TopicService topicService;
 
-    /**
-     * Connect service
-     */
     @Mock
     ConnectorService connectorService;
 
@@ -503,10 +491,42 @@ class ResourceQuotaServiceTest {
     }
 
     /**
+     * Test get current used resourced for count topics for all namespaces
+     */
+    @Test
+    void getCurrentUsedResourceForCountTopicsAllNamespaces() {
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .build();
+
+        when(topicService.findAll()).thenReturn(List.of(topic1, topic2, topic3));
+
+        long currentlyUsed = resourceQuotaService.getCurrentCountTopics();
+        Assertions.assertEquals(3L, currentlyUsed);
+    }
+
+    /**
      * Test get current used resource for count topics
      */
     @Test
-    void getCurrentUsedResourceForCountTopics() {
+    void getCurrentUsedResourceForCountTopicsByNamespace() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -541,15 +561,56 @@ class ResourceQuotaServiceTest {
         when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(topic1, topic2, topic3));
 
-        long currentlyUsed = resourceQuotaService.getCurrentCountTopics(ns);
+        long currentlyUsed = resourceQuotaService.getCurrentCountTopicsByNamespace(ns);
         Assertions.assertEquals(3L, currentlyUsed);
     }
 
     /**
-     * Test get current used resource for count partitions
+     * Test get current used resourced for count partitions for all namespaces
      */
     @Test
     void getCurrentUsedResourceForCountPartitions() {
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(10)
+                        .build())
+                .build();
+
+        when(topicService.findAll()).thenReturn(List.of(topic1, topic2, topic3));
+
+        long currentlyUsed = resourceQuotaService.getCurrentCountPartitions();
+        Assertions.assertEquals(19L, currentlyUsed);
+    }
+
+    /**
+     * Test get current used resource for count partitions by namespace
+     */
+    @Test
+    void getCurrentUsedResourceForCountPartitionsByNamespace() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -593,15 +654,29 @@ class ResourceQuotaServiceTest {
         when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(topic1, topic2, topic3));
 
-        long currentlyUsed = resourceQuotaService.getCurrentCountPartitions(ns);
+        long currentlyUsed = resourceQuotaService.getCurrentCountPartitionsByNamespace(ns);
         Assertions.assertEquals(19L, currentlyUsed);
     }
 
     /**
-     * Test get current used resource for count connectors
+     * Test get current used resource for count connectors for all namespaces
      */
     @Test
-    void getCurrentUsedResourceForCountConnectors() {
+    void getCurrentUsedResourceForCountConnectorsAllNamespaces() {
+        when(connectorService.findAll())
+                .thenReturn(List.of(
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
+
+        long currentlyUsed = resourceQuotaService.getCurrentCountConnectors();
+        Assertions.assertEquals(2L, currentlyUsed);
+    }
+
+    /**
+     * Test get current used resource for count connectors by namespace
+     */
+    @Test
+    void getCurrentUsedResourceForCountConnectorsByNamespace() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -617,15 +692,15 @@ class ResourceQuotaServiceTest {
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
-        long currentlyUsed = resourceQuotaService.getCurrentCountConnectors(ns);
+        long currentlyUsed = resourceQuotaService.getCurrentCountConnectorsByNamespace(ns);
         Assertions.assertEquals(2L, currentlyUsed);
     }
 
     /**
-     * Test get current used resource for disk topics
+     * Test get current used resource for disk topics for all namespaces
      */
     @Test
-    void getCurrentUsedResourceForDiskTopics() {
+    void getCurrentUsedResourceForDiskTopicsAllNamespaces() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -669,10 +744,63 @@ class ResourceQuotaServiceTest {
                         .build())
                 .build();
 
-        when(topicService.findAllForNamespace(ns))
-                .thenReturn(List.of(topic1, topic2, topic3));
+        when(topicService.findAll()).thenReturn(List.of(topic1, topic2, topic3));
 
-        long currentlyUsed = resourceQuotaService.getCurrentDiskTopics(ns);
+        long currentlyUsed = resourceQuotaService.getCurrentDiskTopics();
+        Assertions.assertEquals(181000L, currentlyUsed);
+    }
+
+    /**
+     * Test get current used resource for disk topics by namespace
+     */
+    @Test
+    void getCurrentUsedResourceForDiskTopicsByNamespace() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .configs(Map.of("retention.bytes", "1000"))
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .configs(Map.of("retention.bytes", "50000"))
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(10)
+                        .configs(Map.of("retention.bytes", "2500"))
+                        .build())
+                .build();
+
+        when(topicService.findAllForNamespace(ns)).thenReturn(List.of(topic1, topic2, topic3));
+
+        long currentlyUsed = resourceQuotaService.getCurrentDiskTopicsByNamespace(ns);
         Assertions.assertEquals(181000L, currentlyUsed);
     }
 
@@ -1039,7 +1167,73 @@ class ResourceQuotaServiceTest {
      * Test response format
      */
     @Test
-    void toResponse() {
+    void getCurrentResourcesQuotasAllNamespaces() {
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(COUNT_TOPICS.toString(), "3",
+                        COUNT_PARTITIONS.toString(), "20",
+                        COUNT_CONNECTORS.toString(), "2",
+                        DISK_TOPICS.toString(), "60KiB"))
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .configs(Map.of("retention.bytes", "1000"))
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .configs(Map.of("retention.bytes", "2000"))
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(10)
+                        .configs(Map.of("retention.bytes", "4000"))
+                        .build())
+                .build();
+
+        when(resourceQuotaRepository.findAll())
+                .thenReturn(List.of(resourceQuota));
+        when(topicService.findAll())
+                .thenReturn(List.of(topic1, topic2, topic3));
+        when(connectorService.findAll())
+                .thenReturn(List.of(
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
+
+        ResourceQuotaResponse response = resourceQuotaService.getCurrentResourcesQuotasAllNamespaces();
+        Assertions.assertEquals("3/3", response.getSpec().getCountTopic());
+        Assertions.assertEquals("19/20", response.getSpec().getCountPartition());
+        Assertions.assertEquals("2/2", response.getSpec().getCountConnector());
+        Assertions.assertEquals("50.782KiB/60KiB", response.getSpec().getDiskTopic());
+    }
+
+
+    /**
+     * Test response format
+     */
+    @Test
+    void getCurrentResourcesQuotasByNamespace() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -1101,7 +1295,7 @@ class ResourceQuotaServiceTest {
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
-        ResourceQuotaResponse response = resourceQuotaService.toResponse(ns, Optional.of(resourceQuota));
+        ResourceQuotaResponse response = resourceQuotaService.getCurrentResourcesQuotasByNamespace(ns, Optional.of(resourceQuota));
         Assertions.assertEquals(resourceQuota.getMetadata(), response.getMetadata());
         Assertions.assertEquals("3/3", response.getSpec().getCountTopic());
         Assertions.assertEquals("19/20", response.getSpec().getCountPartition());
@@ -1113,7 +1307,7 @@ class ResourceQuotaServiceTest {
      * Test response format when there is no quota
      */
     @Test
-    void toResponseNoQuota() {
+    void getCurrentResourcesQuotasByNamespaceNoQuota() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -1164,11 +1358,70 @@ class ResourceQuotaServiceTest {
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
-        ResourceQuotaResponse response = resourceQuotaService.toResponse(ns, Optional.empty());
+        ResourceQuotaResponse response = resourceQuotaService.getCurrentResourcesQuotasByNamespace(ns, Optional.empty());
         Assertions.assertNull(response.getMetadata());
         Assertions.assertEquals("3", response.getSpec().getCountTopic());
         Assertions.assertEquals("19", response.getSpec().getCountPartition());
         Assertions.assertEquals("2", response.getSpec().getCountConnector());
         Assertions.assertEquals("50.782KiB", response.getSpec().getDiskTopic());
+    }
+
+    /**
+     * Validate sum all the quotas of all the namespaces
+     */
+    @Test
+    void sumAllQuotas() {
+        ResourceQuota resourceQuotaOne = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(COUNT_TOPICS.toString(), "3",
+                        COUNT_PARTITIONS.toString(), "20",
+                        COUNT_CONNECTORS.toString(), "2",
+                        DISK_TOPICS.toString(), "60KiB"))
+                .build();
+
+        ResourceQuota resourceQuotaTwo = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(COUNT_TOPICS.toString(), "10",
+                        COUNT_PARTITIONS.toString(), "60",
+                        COUNT_CONNECTORS.toString(), "15",
+                        DISK_TOPICS.toString(), "100MiB"))
+                .build();
+
+        ResourceQuota resourceQuotaThree = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(COUNT_TOPICS.toString(), "25",
+                        COUNT_PARTITIONS.toString(), "50",
+                        COUNT_CONNECTORS.toString(), "15",
+                        DISK_TOPICS.toString(), "29MiB"))
+                .build();
+
+        when(resourceQuotaRepository.findAll()).thenReturn(List.of(resourceQuotaOne, resourceQuotaTwo, resourceQuotaThree));
+
+        Optional<ResourceQuota> response = resourceQuotaService.sumAllQuotas();
+        Assertions.assertTrue(response.isPresent());
+        Assertions.assertEquals("38", response.get().getSpec().get(COUNT_TOPICS.getKey()));
+        Assertions.assertEquals("130", response.get().getSpec().get(COUNT_PARTITIONS.getKey()));
+        Assertions.assertEquals("32", response.get().getSpec().get(COUNT_CONNECTORS.getKey()));
+        Assertions.assertEquals("129.06MiB", response.get().getSpec().get(DISK_TOPICS.getKey()));
+    }
+
+    /**
+     * Validate sum all the quotas of all the namespaces when there is no quota
+     */
+    @Test
+    void sumAllQuotasNoQuota() {
+        when(resourceQuotaRepository.findAll()).thenReturn(List.of());
+
+        Optional<ResourceQuota> response = resourceQuotaService.sumAllQuotas();
+        Assertions.assertTrue(response.isEmpty());
     }
 }

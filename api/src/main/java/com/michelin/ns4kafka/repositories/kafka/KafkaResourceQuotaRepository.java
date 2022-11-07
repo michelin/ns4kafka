@@ -8,6 +8,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
 import javax.inject.Singleton;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Singleton
@@ -30,6 +32,15 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
     @Override
     String getMessageKey(ResourceQuota message) {
         return message.getMetadata().getNamespace();
+    }
+
+    /**
+     * Find all quotas of all namespaces
+     * @return The resource quotas
+     */
+    @Override
+    public List<ResourceQuota> findAll() {
+        return new ArrayList<>(getKafkaStore().values());
     }
 
     /**

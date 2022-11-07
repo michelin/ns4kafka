@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 @Tag(name = "Namespaces")
 @Controller("/api/namespaces")
 public class NamespaceController extends NonNamespacedResourceController {
-
     @Inject
     NamespaceService namespaceService;
 

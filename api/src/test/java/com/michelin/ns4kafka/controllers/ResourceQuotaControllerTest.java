@@ -29,35 +29,39 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ResourceQuotaControllerTest {
-    /**
-     * The mocked resource quota controller
-     */
     @InjectMocks
     ResourceQuotaController resourceQuotaController;
 
-    /**
-     * The mocked resource quota service
-     */
     @Mock
     ResourceQuotaService resourceQuotaService;
 
-    /**
-     * The mocked namespace service
-     */
     @Mock
     NamespaceService namespaceService;
 
-    /**
-     * The mocked security service
-     */
     @Mock
     SecurityService securityService;
 
-    /**
-     * The mocked app event publisher
-     */
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
+
+    /**
+     * Validate quota listing
+     */
+    @Test
+    void listAllNamespaces() {
+        ResourceQuotaResponse response = ResourceQuotaResponse.builder()
+                .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
+                        .countTopic("2/5")
+                        .countPartition("2/10")
+                        .countConnector("5/5")
+                        .build())
+                .build();
+
+        when(resourceQuotaService.getCurrentResourcesQuotasAllNamespaces()).thenReturn(response);
+
+        ResourceQuotaResponse actual = resourceQuotaController.listAllNamespaces();
+        Assertions.assertEquals(response, actual);
+    }
 
     /**
      * Validate quota listing
@@ -81,7 +85,7 @@ class ResourceQuotaControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.empty());
-        when(resourceQuotaService.toResponse(ns, Optional.empty())).thenReturn(response);
+        when(resourceQuotaService.getCurrentResourcesQuotasByNamespace(ns, Optional.empty())).thenReturn(response);
 
         List<ResourceQuotaResponse> actual = resourceQuotaController.list("test");
         Assertions.assertEquals(1, actual.size());
@@ -135,7 +139,7 @@ class ResourceQuotaControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.findByName(ns.getMetadata().getName(), "quotaName")).thenReturn(Optional.of(resourceQuota));
-        when(resourceQuotaService.toResponse(ns, Optional.of(resourceQuota))).thenReturn(response);
+        when(resourceQuotaService.getCurrentResourcesQuotasByNamespace(ns, Optional.of(resourceQuota))).thenReturn(response);
 
         Optional<ResourceQuotaResponse> actual = resourceQuotaController.get("test", "quotaName");
         Assertions.assertTrue(actual.isPresent());

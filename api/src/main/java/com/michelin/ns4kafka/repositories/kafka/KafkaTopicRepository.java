@@ -11,6 +11,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
 import javax.inject.Singleton;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,11 +33,20 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
         return topic.getMetadata().getCluster()+"/"+topic.getMetadata().getName();
     }
 
+    /**
+     * Create a given topic
+     * @param topic The topic to create
+     * @return The created topic
+     */
     @Override
     public Topic create(Topic topic) {
         return this.produce(getMessageKey(topic), topic);
     }
 
+    /**
+     * Delete a given topic
+     * @param topic The topic to delete
+     */
     @Override
     public void delete(Topic topic) {
         this.produce(getMessageKey(topic),null);
@@ -47,14 +57,20 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
         super.receive(record);
     }
 
-    //@Override
-    //public List<Topic> findAllForNamespace(Namespace namespace) {
-    //        return getKafkaStore().values()
-    //                .stream()
-    //                .filter(topic -> topic.getMetadata().getCluster().equals(namespace.getCluster()))
-    //                .collect(Collectors.toList());
-    //}
+    /**
+     * Find all topics
+     * @return The list of topics
+     */
+    @Override
+    public List<Topic> findAll() {
+        return new ArrayList<>(getKafkaStore().values());
+    }
 
+    /**
+     * Find all topics by cluster
+     * @param cluster The cluster
+     * @return The list of topics
+     */
     @Override
     public List<Topic> findAllForCluster(String cluster) {
         return getKafkaStore().values()
@@ -62,5 +78,4 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
                 .filter(topic -> topic.getMetadata().getCluster().equals(cluster))
                 .collect(Collectors.toList());
     }
-
 }

@@ -5,18 +5,29 @@ import com.michelin.ns4kafka.models.Topic;
 import java.util.List;
 
 public interface TopicRepository {
+    /**
+     * Find all topics
+     * @return The list of topics
+     */
+    List<Topic> findAll();
 
-    /***
-     *
-     * @param cluster the cluster id
-     * @return the list of all topics for this cluster as a KV Map with :<br>
-     * key : String : Topic Name<br>
-     * value : Topic : Topic data<br>
+    /**
+     * Find all topics by cluster
+     * @param cluster The cluster
+     * @return The list of topics
      */
     List<Topic> findAllForCluster(String cluster);
 
+    /**
+     * Create a given topic
+     * @param topic The topic to create
+     * @return The created topic
+     */
     Topic create(Topic topic);
 
+    /**
+     * Delete a given topic
+     * @param topic The topic to delete
+     */
     void delete(Topic topic);
-
 }

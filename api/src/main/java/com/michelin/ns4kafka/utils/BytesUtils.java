@@ -36,6 +36,11 @@ public class BytesUtils {
         return bytes + BYTE;
     }
 
+    /**
+     * Converts given human-readable measure to bytes
+     * @param quota The measure to convert
+     * @return The converted value as bytes
+     */
     public static long humanReadableToBytes(String quota) {
         long kibibyte = 1024;
         long mebibyte = kibibyte * 1024;

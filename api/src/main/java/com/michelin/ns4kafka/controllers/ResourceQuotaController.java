@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.models.quota.ResourceQuotaResponse;
+import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.ResourceQuotaService;
 import com.michelin.ns4kafka.utils.enums.ApplyStatus;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
@@ -14,6 +15,7 @@ import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
@@ -25,11 +27,18 @@ import java.util.Optional;
 @Controller(value = "/api/namespaces/{namespace}/resource-quotas")
 @ExecuteOn(TaskExecutors.IO)
 public class ResourceQuotaController extends NamespacedResourceController {
-    /**
-     * The resource quota service
-     */
     @Inject
     ResourceQuotaService resourceQuotaService;
+
+    /**
+     * Get the sum of all quotas of all namespaces with all the current consumed resources
+     * @return A quota response
+     */
+    @Get("/all")
+    @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
+    public ResourceQuotaResponse listAllNamespaces() {
+        return resourceQuotaService.getCurrentResourcesQuotasAllNamespaces();
+    }
 
     /**
      * Get all the quotas by namespace
@@ -39,7 +48,8 @@ public class ResourceQuotaController extends NamespacedResourceController {
     @Get
     public List<ResourceQuotaResponse> list(String namespace) {
         Namespace ns = getNamespace(namespace);
-        return List.of(resourceQuotaService.toResponse(ns, resourceQuotaService.findByNamespace(namespace)));
+        return List.of(resourceQuotaService.getCurrentResourcesQuotasByNamespace(ns,
+                resourceQuotaService.findByNamespace(namespace)));
     }
 
     /**
@@ -55,7 +65,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
         if (resourceQuota.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(resourceQuotaService.toResponse(ns, resourceQuota));
+        return Optional.of(resourceQuotaService.getCurrentResourcesQuotasByNamespace(ns, resourceQuota));
     }
 
     /**
