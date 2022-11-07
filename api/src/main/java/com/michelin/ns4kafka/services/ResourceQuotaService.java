@@ -11,9 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static com.michelin.ns4kafka.models.quota.ResourceQuota.ResourceQuotaSpecKey.*;
 import static com.michelin.ns4kafka.utils.BytesUtils.*;
@@ -300,27 +298,28 @@ public class ResourceQuotaService {
         return resourceQuotaRepository.findAll()
                 .stream()
                 .reduce((aggResourceQuota, newResourceQuota) -> {
-                    aggResourceQuota.getSpec().put(COUNT_TOPICS.getKey(),
-                            String.valueOf(Long.parseLong(newResourceQuota.getSpec().get(COUNT_TOPICS.getKey())) +
+                    Map<String, String> sumQuotas = new HashMap<>();
+
+                    sumQuotas.put(COUNT_TOPICS.getKey(),
+                            String.valueOf(Long.parseLong(aggResourceQuota.getSpec().get(COUNT_TOPICS.getKey())) +
                                     Long.parseLong(newResourceQuota.getSpec().get(COUNT_TOPICS.getKey()))));
 
-                    aggResourceQuota.getSpec().put(COUNT_PARTITIONS.getKey(),
-                            String.valueOf(Long.parseLong(newResourceQuota.getSpec().get(COUNT_PARTITIONS.getKey())) +
+                    sumQuotas.put(COUNT_PARTITIONS.getKey(),
+                            String.valueOf(Long.parseLong(aggResourceQuota.getSpec().get(COUNT_PARTITIONS.getKey())) +
                                     Long.parseLong(newResourceQuota.getSpec().get(COUNT_PARTITIONS.getKey()))));
 
-                    aggResourceQuota.getSpec().put(COUNT_CONNECTORS.getKey(),
-                            String.valueOf(Long.parseLong(newResourceQuota.getSpec().get(COUNT_CONNECTORS.getKey())) +
+                    sumQuotas.put(COUNT_CONNECTORS.getKey(),
+                            String.valueOf(Long.parseLong(aggResourceQuota.getSpec().get(COUNT_CONNECTORS.getKey())) +
                                     Long.parseLong(newResourceQuota.getSpec().get(COUNT_CONNECTORS.getKey()))));
 
-                    aggResourceQuota.getSpec().put(DISK_TOPICS.getKey(),
-                            bytesToHumanReadable(humanReadableToBytes(newResourceQuota.getSpec().get(DISK_TOPICS.getKey())) +
+                    sumQuotas.put(DISK_TOPICS.getKey(),
+                            bytesToHumanReadable(humanReadableToBytes(aggResourceQuota.getSpec().get(DISK_TOPICS.getKey())) +
                                     humanReadableToBytes(newResourceQuota.getSpec().get(DISK_TOPICS.getKey()))));
 
-                    return aggResourceQuota;
-                })
-                .map(resourceQuota -> ResourceQuota.builder()
-                        .spec(resourceQuota.getSpec())
-                        .build());
+                    return ResourceQuota.builder()
+                            .spec(sumQuotas)
+                            .build();
+                });
     }
 
     /**

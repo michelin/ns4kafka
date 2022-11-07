@@ -495,16 +495,6 @@ class ResourceQuotaServiceTest {
      */
     @Test
     void getCurrentUsedResourceForCountTopicsAllNamespaces() {
-        Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .spec(Namespace.NamespaceSpec.builder()
-                        .connectClusters(List.of("local-name"))
-                        .build())
-                .build();
-
         Topic topic1 = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("topic")
@@ -673,22 +663,12 @@ class ResourceQuotaServiceTest {
      */
     @Test
     void getCurrentUsedResourceForCountConnectorsAllNamespaces() {
-        Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .spec(Namespace.NamespaceSpec.builder()
-                        .connectClusters(List.of("local-name"))
-                        .build())
-                .build();
-
-        when(connectorService.findAllForNamespace(ns))
+        when(connectorService.findAll())
                 .thenReturn(List.of(
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
-        long currentlyUsed = resourceQuotaService.getCurrentCountConnectorsByNamespace(ns);
+        long currentlyUsed = resourceQuotaService.getCurrentCountConnectors();
         Assertions.assertEquals(2L, currentlyUsed);
     }
 
@@ -1187,7 +1167,73 @@ class ResourceQuotaServiceTest {
      * Test response format
      */
     @Test
-    void toResponse() {
+    void getCurrentResourcesQuotasAllNamespaces() {
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(COUNT_TOPICS.toString(), "3",
+                        COUNT_PARTITIONS.toString(), "20",
+                        COUNT_CONNECTORS.toString(), "2",
+                        DISK_TOPICS.toString(), "60KiB"))
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .configs(Map.of("retention.bytes", "1000"))
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .configs(Map.of("retention.bytes", "2000"))
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(10)
+                        .configs(Map.of("retention.bytes", "4000"))
+                        .build())
+                .build();
+
+        when(resourceQuotaRepository.findAll())
+                .thenReturn(List.of(resourceQuota));
+        when(topicService.findAll())
+                .thenReturn(List.of(topic1, topic2, topic3));
+        when(connectorService.findAll())
+                .thenReturn(List.of(
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
+
+        ResourceQuotaResponse response = resourceQuotaService.getCurrentResourcesQuotasAllNamespaces();
+        Assertions.assertEquals("3/3", response.getSpec().getCountTopic());
+        Assertions.assertEquals("19/20", response.getSpec().getCountPartition());
+        Assertions.assertEquals("2/2", response.getSpec().getCountConnector());
+        Assertions.assertEquals("50.782KiB/60KiB", response.getSpec().getDiskTopic());
+    }
+
+
+    /**
+     * Test response format
+     */
+    @Test
+    void getCurrentResourcesQuotasByNamespace() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -1261,7 +1307,7 @@ class ResourceQuotaServiceTest {
      * Test response format when there is no quota
      */
     @Test
-    void toResponseNoQuota() {
+    void getCurrentResourcesQuotasByNamespaceNoQuota() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -1318,5 +1364,64 @@ class ResourceQuotaServiceTest {
         Assertions.assertEquals("19", response.getSpec().getCountPartition());
         Assertions.assertEquals("2", response.getSpec().getCountConnector());
         Assertions.assertEquals("50.782KiB", response.getSpec().getDiskTopic());
+    }
+
+    /**
+     * Validate sum all the quotas of all the namespaces
+     */
+    @Test
+    void sumAllQuotas() {
+        ResourceQuota resourceQuotaOne = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(COUNT_TOPICS.toString(), "3",
+                        COUNT_PARTITIONS.toString(), "20",
+                        COUNT_CONNECTORS.toString(), "2",
+                        DISK_TOPICS.toString(), "60KiB"))
+                .build();
+
+        ResourceQuota resourceQuotaTwo = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(COUNT_TOPICS.toString(), "10",
+                        COUNT_PARTITIONS.toString(), "60",
+                        COUNT_CONNECTORS.toString(), "15",
+                        DISK_TOPICS.toString(), "100MiB"))
+                .build();
+
+        ResourceQuota resourceQuotaThree = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(COUNT_TOPICS.toString(), "25",
+                        COUNT_PARTITIONS.toString(), "50",
+                        COUNT_CONNECTORS.toString(), "15",
+                        DISK_TOPICS.toString(), "29MiB"))
+                .build();
+
+        when(resourceQuotaRepository.findAll()).thenReturn(List.of(resourceQuotaOne, resourceQuotaTwo, resourceQuotaThree));
+
+        Optional<ResourceQuota> response = resourceQuotaService.sumAllQuotas();
+        Assertions.assertTrue(response.isPresent());
+        Assertions.assertEquals("38", response.get().getSpec().get(COUNT_TOPICS.getKey()));
+        Assertions.assertEquals("130", response.get().getSpec().get(COUNT_PARTITIONS.getKey()));
+        Assertions.assertEquals("32", response.get().getSpec().get(COUNT_CONNECTORS.getKey()));
+        Assertions.assertEquals("129.06MiB", response.get().getSpec().get(DISK_TOPICS.getKey()));
+    }
+
+    /**
+     * Validate sum all the quotas of all the namespaces when there is no quota
+     */
+    @Test
+    void sumAllQuotasNoQuota() {
+        when(resourceQuotaRepository.findAll()).thenReturn(List.of());
+
+        Optional<ResourceQuota> response = resourceQuotaService.sumAllQuotas();
+        Assertions.assertTrue(response.isEmpty());
     }
 }
