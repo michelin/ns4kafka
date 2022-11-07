@@ -491,10 +491,52 @@ class ResourceQuotaServiceTest {
     }
 
     /**
+     * Test get current used resourced for count topics for all namespaces
+     */
+    @Test
+    void getCurrentUsedResourceForCountTopicsAllNamespaces() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .build();
+
+        when(topicService.findAll()).thenReturn(List.of(topic1, topic2, topic3));
+
+        long currentlyUsed = resourceQuotaService.getCurrentCountTopics();
+        Assertions.assertEquals(3L, currentlyUsed);
+    }
+
+    /**
      * Test get current used resource for count topics
      */
     @Test
-    void getCurrentUsedResourceForCountTopics() {
+    void getCurrentUsedResourceForCountTopicsByNamespace() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -534,10 +576,51 @@ class ResourceQuotaServiceTest {
     }
 
     /**
-     * Test get current used resource for count partitions
+     * Test get current used resourced for count partitions for all namespaces
      */
     @Test
     void getCurrentUsedResourceForCountPartitions() {
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(10)
+                        .build())
+                .build();
+
+        when(topicService.findAll()).thenReturn(List.of(topic1, topic2, topic3));
+
+        long currentlyUsed = resourceQuotaService.getCurrentCountPartitions();
+        Assertions.assertEquals(19L, currentlyUsed);
+    }
+
+    /**
+     * Test get current used resource for count partitions by namespace
+     */
+    @Test
+    void getCurrentUsedResourceForCountPartitionsByNamespace() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -586,10 +669,10 @@ class ResourceQuotaServiceTest {
     }
 
     /**
-     * Test get current used resource for count connectors
+     * Test get current used resource for count connectors for all namespaces
      */
     @Test
-    void getCurrentUsedResourceForCountConnectors() {
+    void getCurrentUsedResourceForCountConnectorsAllNamespaces() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -610,10 +693,34 @@ class ResourceQuotaServiceTest {
     }
 
     /**
-     * Test get current used resource for disk topics
+     * Test get current used resource for count connectors by namespace
      */
     @Test
-    void getCurrentUsedResourceForDiskTopics() {
+    void getCurrentUsedResourceForCountConnectorsByNamespace() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        when(connectorService.findAllForNamespace(ns))
+                .thenReturn(List.of(
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
+                        Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
+
+        long currentlyUsed = resourceQuotaService.getCurrentCountConnectorsByNamespace(ns);
+        Assertions.assertEquals(2L, currentlyUsed);
+    }
+
+    /**
+     * Test get current used resource for disk topics for all namespaces
+     */
+    @Test
+    void getCurrentUsedResourceForDiskTopicsAllNamespaces() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -657,8 +764,61 @@ class ResourceQuotaServiceTest {
                         .build())
                 .build();
 
-        when(topicService.findAllForNamespace(ns))
-                .thenReturn(List.of(topic1, topic2, topic3));
+        when(topicService.findAll()).thenReturn(List.of(topic1, topic2, topic3));
+
+        long currentlyUsed = resourceQuotaService.getCurrentDiskTopics();
+        Assertions.assertEquals(181000L, currentlyUsed);
+    }
+
+    /**
+     * Test get current used resource for disk topics by namespace
+     */
+    @Test
+    void getCurrentUsedResourceForDiskTopicsByNamespace() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(6)
+                        .configs(Map.of("retention.bytes", "1000"))
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .configs(Map.of("retention.bytes", "50000"))
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(10)
+                        .configs(Map.of("retention.bytes", "2500"))
+                        .build())
+                .build();
+
+        when(topicService.findAllForNamespace(ns)).thenReturn(List.of(topic1, topic2, topic3));
 
         long currentlyUsed = resourceQuotaService.getCurrentDiskTopicsByNamespace(ns);
         Assertions.assertEquals(181000L, currentlyUsed);

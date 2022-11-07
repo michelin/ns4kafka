@@ -48,6 +48,25 @@ class ResourceQuotaControllerTest {
      * Validate quota listing
      */
     @Test
+    void listAllNamespaces() {
+        ResourceQuotaResponse response = ResourceQuotaResponse.builder()
+                .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
+                        .countTopic("2/5")
+                        .countPartition("2/10")
+                        .countConnector("5/5")
+                        .build())
+                .build();
+
+        when(resourceQuotaService.getCurrentResourcesQuotasAllNamespaces()).thenReturn(response);
+
+        ResourceQuotaResponse actual = resourceQuotaController.listAllNamespaces();
+        Assertions.assertEquals(response, actual);
+    }
+
+    /**
+     * Validate quota listing
+     */
+    @Test
     void list() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()

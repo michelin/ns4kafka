@@ -34,9 +34,9 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * Get the sum of all quotas of all namespaces with all the current consumed resources
      * @return A quota response
      */
-    @Get("/sum")
+    @Get("/all")
     @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
-    public ResourceQuotaResponse sum() {
+    public ResourceQuotaResponse listAllNamespaces() {
         return resourceQuotaService.getCurrentResourcesQuotasAllNamespaces();
     }
 
