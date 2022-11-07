@@ -28,16 +28,6 @@ micronaut:
       url: https://gitlab.com
     ldap:
       enabled: false
-#      default:
-#        context:
-#          server: 'ldap://ldap.forumsys.com:389'
-#          managerDn: 'cn=read-only-admin,dc=example,dc=com'
-#          managerPassword: 'password'
-#        search:
-#          base: "dc=example,dc=com"
-#        groups:
-#          enabled: true
-#          base: "dc=example,dc=com"
     endpoints:
       introspection:
         enabled: true
@@ -75,9 +65,6 @@ kafka:
   health:
     enabled: false
   bootstrap.servers: "localhost:9092"
-  #security.protocol: "SASL_PLAINTEXT"
-  #sasl.mechanism: "SCRAM-SHA-512"
-  #sasl.jaas.config: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"user\" password=\"password\";"
   producers:
     default:
       retries: 1
@@ -89,7 +76,6 @@ kafka:
       session.timeout.ms: 30000
 
 ns4kafka:
-  ## AKHQ
   # This section lets ns4kafka be used as JWT Claim generator for AKHQ.
   # This will generate the required payload for AKHQ during authentication in the form :
   # {
@@ -149,4 +135,22 @@ ns4kafka:
     console:
       enabled: true
     kafka:
+      enabled: false
+
+  endpoints:
+    env:
+      enabled: false
+    beans:
+      enabled: false
+    info:
+      enabled: false
+    loggers:
+      enabled: false
+    metrics:
+      enabled: false
+    refresh:
+      enabled: false
+    routes:
+      enabled: false
+    threaddump:
       enabled: false
