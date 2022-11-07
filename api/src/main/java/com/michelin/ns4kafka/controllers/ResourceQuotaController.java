@@ -37,7 +37,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
     @Get("/sum")
     @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
     public ResourceQuotaResponse sum() {
-        return resourceQuotaService.formatQuotaResponseAllNamespaces();
+        return resourceQuotaService.getCurrentResourcesQuotasAllNamespaces();
     }
 
     /**
@@ -48,7 +48,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
     @Get
     public List<ResourceQuotaResponse> list(String namespace) {
         Namespace ns = getNamespace(namespace);
-        return List.of(resourceQuotaService.formatQuotaResponseByNamespace(ns,
+        return List.of(resourceQuotaService.getCurrentResourcesQuotasByNamespace(ns,
                 resourceQuotaService.findByNamespace(namespace)));
     }
 
@@ -65,7 +65,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
         if (resourceQuota.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(resourceQuotaService.formatQuotaResponseByNamespace(ns, resourceQuota));
+        return Optional.of(resourceQuotaService.getCurrentResourcesQuotasByNamespace(ns, resourceQuota));
     }
 
     /**

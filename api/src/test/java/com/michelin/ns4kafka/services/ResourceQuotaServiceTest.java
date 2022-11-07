@@ -24,27 +24,15 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ResourceQuotaServiceTest {
-    /**
-     * The resource quota service
-     */
     @InjectMocks
     ResourceQuotaService resourceQuotaService;
 
-    /**
-     * The resource quota repository
-     */
     @Mock
     ResourceQuotaRepository resourceQuotaRepository;
 
-    /**
-     * The topic service
-     */
     @Mock
     TopicService topicService;
 
-    /**
-     * Connect service
-     */
     @Mock
     ConnectorService connectorService;
 
@@ -593,7 +581,7 @@ class ResourceQuotaServiceTest {
         when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(topic1, topic2, topic3));
 
-        long currentlyUsed = resourceQuotaService.getCurrentCountPartitions(ns);
+        long currentlyUsed = resourceQuotaService.getCurrentCountPartitionsByNamespace(ns);
         Assertions.assertEquals(19L, currentlyUsed);
     }
 
@@ -617,7 +605,7 @@ class ResourceQuotaServiceTest {
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
-        long currentlyUsed = resourceQuotaService.getCurrentCountConnectors(ns);
+        long currentlyUsed = resourceQuotaService.getCurrentCountConnectorsByNamespace(ns);
         Assertions.assertEquals(2L, currentlyUsed);
     }
 
@@ -672,7 +660,7 @@ class ResourceQuotaServiceTest {
         when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(topic1, topic2, topic3));
 
-        long currentlyUsed = resourceQuotaService.getCurrentDiskTopics(ns);
+        long currentlyUsed = resourceQuotaService.getCurrentDiskTopicsByNamespace(ns);
         Assertions.assertEquals(181000L, currentlyUsed);
     }
 
@@ -1101,7 +1089,7 @@ class ResourceQuotaServiceTest {
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
-        ResourceQuotaResponse response = resourceQuotaService.formatQuotaResponseByNamespace(ns, Optional.of(resourceQuota));
+        ResourceQuotaResponse response = resourceQuotaService.getCurrentResourcesQuotasByNamespace(ns, Optional.of(resourceQuota));
         Assertions.assertEquals(resourceQuota.getMetadata(), response.getMetadata());
         Assertions.assertEquals("3/3", response.getSpec().getCountTopic());
         Assertions.assertEquals("19/20", response.getSpec().getCountPartition());
@@ -1164,7 +1152,7 @@ class ResourceQuotaServiceTest {
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
-        ResourceQuotaResponse response = resourceQuotaService.formatQuotaResponseByNamespace(ns, Optional.empty());
+        ResourceQuotaResponse response = resourceQuotaService.getCurrentResourcesQuotasByNamespace(ns, Optional.empty());
         Assertions.assertNull(response.getMetadata());
         Assertions.assertEquals("3", response.getSpec().getCountTopic());
         Assertions.assertEquals("19", response.getSpec().getCountPartition());

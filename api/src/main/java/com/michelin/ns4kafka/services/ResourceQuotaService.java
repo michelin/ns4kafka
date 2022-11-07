@@ -327,7 +327,7 @@ public class ResourceQuotaService {
      * Map current consumed resources and current quota of the given namespace to a response
      * @return A list of quotas as response format
      */
-    public ResourceQuotaResponse formatQuotaResponseAllNamespaces() {
+    public ResourceQuotaResponse getCurrentResourcesQuotasAllNamespaces() {
         long currentCountTopic = getCurrentCountTopics();
         long currentCountPartition = getCurrentCountPartitions();
         long currentDiskTopic = getCurrentDiskTopics();
@@ -342,7 +342,7 @@ public class ResourceQuotaService {
      * @param resourceQuota The quota to map
      * @return A list of quotas as response format
      */
-    public ResourceQuotaResponse formatQuotaResponseByNamespace(Namespace namespace, Optional<ResourceQuota> resourceQuota) {
+    public ResourceQuotaResponse getCurrentResourcesQuotasByNamespace(Namespace namespace, Optional<ResourceQuota> resourceQuota) {
         long currentCountTopic = getCurrentCountTopicsByNamespace(namespace);
         long currentCountPartition = getCurrentCountPartitionsByNamespace(namespace);
         long currentDiskTopic = getCurrentDiskTopicsByNamespace(namespace);
