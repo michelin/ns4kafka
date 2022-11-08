@@ -18,25 +18,24 @@ import picocli.CommandLine;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Singleton
 public class FormatService {
     private static final String YAML = "yaml";
     private static final String TABLE = "table";
-    private final List<String> defaults = List.of(
-            "KIND:/kind",
-            "NAME:/metadata/name",
-            "AGE:/metadata/creationTimestamp%AGO"
-    );
+    private final List<String> defaults = List.of("KIND:/kind", "NAME:/metadata/name", "AGE:/metadata/creationTimestamp%AGO");
 
     @Inject
     public KafkactlConfig kafkactlConfig;
 
+    /**
+     * Display a list of resources
+     * @param kind The kind of resource
+     * @param resources The list of resources
+     * @param output The type of display
+     */
     public void displayList(String kind, List<Resource> resources, String output) {
         if (output.equals(TABLE)) {
             printTable(kind, resources);
@@ -45,6 +44,11 @@ public class FormatService {
         }
     }
 
+    /**
+     * Display a single resource
+     * @param resource The resource
+     * @param output The type of display
+     */
     public void displaySingle(Resource resource, String output) {
         displayList(resource.getKind(), List.of(resource), output);
     }
@@ -68,6 +72,11 @@ public class FormatService {
         }
     }
 
+    /**
+     * Print the list of resources to table format
+     * @param kind The kind of resources
+     * @param resources The list of resources
+     */
     private void printTable(String kind, List<Resource> resources) {
         String hyphenatedKind = StringConvention.HYPHENATED.format(kind);
         List<String> formats = kafkactlConfig.tableFormat.getOrDefault(hyphenatedKind, defaults);
@@ -76,6 +85,10 @@ public class FormatService {
         System.out.println(ptt);
     }
 
+    /**
+     * Print the list of resources to yaml format
+     * @param resources The list of resources
+     */
     private void printYaml(List<Resource> resources) {
         DumperOptions options = new DumperOptions();
         options.setExplicitStart(true);
@@ -95,9 +108,9 @@ public class FormatService {
             formats.forEach(item -> {
                 String[] elements = item.split(":");
                 if (elements.length != 2) {
-                    throw new IllegalStateException("Expected line with format 'NAME:JSONPOINTER[%TRANSFORM]', got " + elements);
+                    throw new IllegalStateException("Expected line with format 'NAME:JSONPOINTER[%TRANSFORM]', but got " + Arrays.toString(elements) + " instead.");
                 }
-                columns.add(new PrettyTextTableColumn(elements));
+                columns.add(new PrettyTextTableColumn(columns.isEmpty() ? 0 : 2, elements));
             });
 
             // 2. Prepare rows and update column sizes
@@ -115,13 +128,12 @@ public class FormatService {
         public String toString() {
             CommandLine.Help.Column[] sizedColumns = this.columns
                     .stream()
-                    .map(column -> new CommandLine.Help.Column(column.size, 2, CommandLine.Help.Column.Overflow.SPAN))
+                    .map(column -> new CommandLine.Help.Column(column.size, column.indent, CommandLine.Help.Column.Overflow.SPAN))
                     .toArray(CommandLine.Help.Column[]::new);
 
             CommandLine.Help.TextTable tt = CommandLine.Help.TextTable.forColumns(
                     CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.AUTO),
-                    sizedColumns
-            );
+                    sizedColumns);
 
             // Create Header Row
             tt.addRowValues(this.columns.stream().map(column -> column.header).toArray(String[]::new));
@@ -132,13 +144,16 @@ public class FormatService {
         }
 
         static class PrettyTextTableColumn {
-            private String header;
-            private String jsonPointer;
-            private String transform;
+            private final String header;
+            private final String jsonPointer;
+            private final String transform;
             private int size = -1;
+            private final int indent;
 
-            public PrettyTextTableColumn(String... elements) {
+            public PrettyTextTableColumn(int indent, String... elements) {
                 this.header = elements[0];
+                this.indent = indent;
+
                 if (elements[1].contains("%")) {
                     this.jsonPointer = elements[1].split("%")[0];
                     this.transform = elements[1].split("%")[1];
@@ -147,11 +162,11 @@ public class FormatService {
                     this.transform = "NONE";
                 }
                 // Size should consider headers
-                this.size = Math.max(this.size, this.header.length() + 2);
+                this.size = Math.max(this.size, this.header.length() + indent);
             }
 
             public String transform(JsonNode node) {
-                String output = null;
+                String output;
                 JsonNode cell = node.at(this.jsonPointer);
                 switch (this.transform) {
                     case "AGO":
@@ -188,7 +203,7 @@ public class FormatService {
                         break;
                 }
                 // Check size for later
-                size = Math.max(size, output.length() + 2);
+                size = Math.max(size, output.length() + indent);
                 return output;
             }
         }
