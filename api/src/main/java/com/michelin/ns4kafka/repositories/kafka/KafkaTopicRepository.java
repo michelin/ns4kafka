@@ -58,15 +58,6 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
     }
 
     /**
-     * Find all topics
-     * @return The list of topics
-     */
-    @Override
-    public List<Topic> findAll() {
-        return new ArrayList<>(getKafkaStore().values());
-    }
-
-    /**
      * Find all topics by cluster
      * @param cluster The cluster
      * @return The list of topics

@@ -55,15 +55,6 @@ public class KafkaConnectorRepository extends KafkaStore<Connector> implements C
     }
 
     /**
-     * Find all connectors
-     * @return The list of connectors
-     */
-    @Override
-    public List<Connector> findAll() {
-        return new ArrayList<>(getKafkaStore().values());
-    }
-
-    /**
      * Find all connectors by cluster
      * @param cluster The cluster
      * @return The list of connectors
