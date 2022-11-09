@@ -1,31 +1,15 @@
 package com.michelin.ns4kafka.integration;
 
-import javax.inject.Inject;
-
 import com.michelin.ns4kafka.integration.TopicTest.BearerAccessRefreshToken;
-import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
-import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
-import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.RoleBinding;
-import com.michelin.ns4kafka.models.RoleBinding.Role;
-import com.michelin.ns4kafka.models.RoleBinding.RoleBindingSpec;
-import com.michelin.ns4kafka.models.RoleBinding.Subject;
-import com.michelin.ns4kafka.models.RoleBinding.SubjectType;
-import com.michelin.ns4kafka.models.RoleBinding.Verb;
-import com.michelin.ns4kafka.models.Status;
-import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.models.RoleBinding.*;
 import com.michelin.ns4kafka.models.Topic.TopicSpec;
 import com.michelin.ns4kafka.validation.TopicValidator;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
@@ -36,7 +20,11 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
+import javax.inject.Inject;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -136,7 +124,6 @@ public class ExceptionHandlerTest extends AbstractIntegrationTest {
 
     @Test
     void forbiddenTopic() throws InterruptedException, ExecutionException {
-
         HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,
                 () -> client.exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns2/topics")
                         .bearerAuth(token))

@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.controllers.topic.TopicController;
 import com.michelin.ns4kafka.models.DeleteRecordsResponse;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
@@ -38,39 +39,21 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TopicControllerTest {
-    /**
-     * The mocked namespace service
-     */
     @Mock
     NamespaceService namespaceService;
 
-    /**
-     * The mocked topic service
-     */
     @Mock
     TopicService topicService;
 
-    /**
-     * The mocked app event publisher
-     */
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
 
-    /**
-     * The mocked security service
-     */
     @Mock
     SecurityService securityService;
 
-    /**
-     * The mocked resource quota service
-     */
     @Mock
     ResourceQuotaService resourceQuotaService;
 
-    /**
-     * The mocked topic controller
-     */
     @InjectMocks
     TopicController topicController;
 

@@ -1,4 +1,4 @@
-package com.michelin.ns4kafka.controllers;
+package com.michelin.ns4kafka.controllers.topic;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.DeleteRecordsResponse;
@@ -28,15 +28,9 @@ import java.util.stream.Collectors;
 @Tag(name = "Topics")
 @Controller(value = "/api/namespaces/{namespace}/topics")
 public class TopicController extends NamespacedResourceController {
-    /**
-     * The topic service
-     */
     @Inject
     TopicService topicService;
 
-    /**
-     * The resource quota service
-     */
     @Inject
     ResourceQuotaService resourceQuotaService;
 
@@ -70,7 +64,7 @@ public class TopicController extends NamespacedResourceController {
      * @param dryrun Is dry run mode or not ?
      * @return An HTTP response
      */
-    @Post("{?dryrun}")
+    @Post
     public HttpResponse<Topic> apply(String namespace, @Valid @Body Topic topic, @QueryValue(defaultValue = "false") boolean dryrun) throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
 
