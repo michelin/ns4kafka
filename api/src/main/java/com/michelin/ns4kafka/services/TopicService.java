@@ -47,14 +47,6 @@ public class TopicService {
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfig;
 
     /**
-     * Find all topics
-     * @return The list of topics
-     */
-    public List<Topic> findAll() {
-        return topicRepository.findAll();
-    }
-
-    /**
      * Find all topics by given namespace
      * @param namespace The namespace
      * @return A list of topics
