@@ -51,7 +51,7 @@ public class TopicController extends NamespacedResourceController {
      * @param topic The topic name
      * @return The topic
      */
-    @Get
+    @Get("/{topic}")
     public Optional<Topic> getTopic(String namespace, String topic) {
         Namespace ns = getNamespace(namespace);
         return topicService.findByName(ns, topic);
