@@ -42,6 +42,15 @@ public class ConnectorService {
     @Inject
     ConnectClusterService connectClusterService;
 
+
+    /**
+     * Find all connectors
+     * @return The list of connectors
+     */
+    public List<Connector> findAll() {
+        return connectorRepository.findAll();
+    }
+
     /**
      * Find all connectors by given namespace
      * @param namespace The namespace

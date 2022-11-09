@@ -53,6 +53,30 @@ class ConnectorServiceTest {
     ConnectClusterService connectClusterService;
 
     /**
+     * Validate find all for all namespaces
+     */
+    @Test
+    void findAll() {
+        Connector c1 = Connector.builder()
+                .metadata(ObjectMeta.builder().name("ns-connect1").build())
+                .build();
+        Connector c2 = Connector.builder()
+                .metadata(ObjectMeta.builder().name("ns-connect2").build())
+                .build();
+        Connector c3 = Connector.builder()
+                .metadata(ObjectMeta.builder().name("other-connect1").build())
+                .build();
+        Connector c4 = Connector.builder()
+                .metadata(ObjectMeta.builder().name("other-connect2").build())
+                .build();
+
+        Mockito.when(connectorRepository.findAll()).thenReturn(List.of(c1, c2, c3, c4));
+
+        List<Connector> connectors = connectorService.findAll();
+        Assertions.assertEquals(4, connectors.size());
+    }
+
+    /**
      * Test to find all connectors by namespace when there is no connector
      */
     @Test
