@@ -1,10 +1,9 @@
-package com.michelin.ns4kafka.controllers;
+package com.michelin.ns4kafka.controllers.quota;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.models.quota.ResourceQuotaResponse;
-import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.ResourceQuotaService;
 import com.michelin.ns4kafka.utils.enums.ApplyStatus;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
@@ -15,7 +14,6 @@ import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
@@ -29,16 +27,6 @@ import java.util.Optional;
 public class ResourceQuotaController extends NamespacedResourceController {
     @Inject
     ResourceQuotaService resourceQuotaService;
-
-    /**
-     * Get all the quotas of all namespaces
-     * @return A list of quotas
-     */
-    @Get("/all")
-    @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
-    public List<ResourceQuotaResponse> listAll(String namespace) {
-        return resourceQuotaService.getUsedResourcesByQuotaForAllNamespaces();
-    }
 
     /**
      * Get all the quotas by namespace
@@ -75,8 +63,8 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * @param dryrun Does the creation is a dry run
      * @return The created role binding
      */
-    @Post("/{?dryrun}")
-    HttpResponse<ResourceQuota> apply(String namespace, @Body @Valid ResourceQuota quota, @QueryValue(defaultValue = "false") boolean dryrun){
+    @Post("{?dryrun}")
+    public HttpResponse<ResourceQuota> apply(String namespace, @Body @Valid ResourceQuota quota, @QueryValue(defaultValue = "false") boolean dryrun){
         Namespace ns = getNamespace(namespace);
 
         quota.getMetadata().setCreationTimestamp(Date.from(Instant.now()));

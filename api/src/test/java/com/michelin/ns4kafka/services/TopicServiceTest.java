@@ -908,4 +908,31 @@ class TopicServiceTest {
 
         Assertions.assertEquals(0, actual.size());
     }
+
+    /**
+     * Validate find all for all namespaces
+     */
+    @Test
+    void findAll() {
+        Topic t1 = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic1").build())
+                .build();
+
+        Topic t2 = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic2").build())
+                .build();
+
+        Topic t3 = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns1-topic1").build())
+                .build();
+
+        Topic t4 = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns2-topic1").build())
+                .build();
+
+        Mockito.when(topicRepository.findAll()).thenReturn(List.of(t1, t2, t3, t4));
+
+        List<Topic> topics = topicService.findAll();
+        Assertions.assertEquals(4, topics.size());
+    }
 }

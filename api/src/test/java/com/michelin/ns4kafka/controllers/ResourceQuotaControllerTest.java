@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.controllers.quota.ResourceQuotaController;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
@@ -43,26 +44,6 @@ class ResourceQuotaControllerTest {
 
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
-
-    /**
-     * Validate quota listing
-     */
-    @Test
-    void listAll() {
-        ResourceQuotaResponse response = ResourceQuotaResponse.builder()
-                .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
-                        .countTopic("2/5")
-                        .countPartition("2/10")
-                        .countConnector("5/5")
-                        .build())
-                .build();
-
-        when(resourceQuotaService.getUsedResourcesByQuotaForAllNamespaces()).thenReturn(List.of(response));
-
-        List<ResourceQuotaResponse> actual = resourceQuotaController.listAll("ns");
-        Assertions.assertEquals(1, actual.size());
-        Assertions.assertEquals(response, actual.get(0));
-    }
 
     /**
      * Validate quota listing
