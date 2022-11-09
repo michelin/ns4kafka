@@ -1153,7 +1153,6 @@ class ResourceQuotaServiceTest {
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
         ResourceQuotaResponse response = resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.empty());
-        Assertions.assertNull(response.getMetadata());
         Assertions.assertEquals("namespace", response.getMetadata().getNamespace());
         Assertions.assertEquals("local", response.getMetadata().getCluster());
         Assertions.assertEquals("3", response.getSpec().getCountTopic());
