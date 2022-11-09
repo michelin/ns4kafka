@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.models.quota.ResourceQuotaResponse;
@@ -274,12 +275,13 @@ public class ResourceQuotaService {
         long currentDiskTopic = getCurrentDiskTopicsByNamespace(namespace);
         long currentCountConnector = getCurrentCountConnectorsByNamespace(namespace);
 
-        return formatUsedResourceByQuotaResponse(currentCountTopic, currentCountPartition, currentDiskTopic,
+        return formatUsedResourceByQuotaResponse(namespace, currentCountTopic, currentCountPartition, currentDiskTopic,
                 currentCountConnector, resourceQuota);
     }
 
     /**
      * Map given consumed resources and current quota to a response
+     * @param namespace The namespace
      * @param currentCountTopic The current number of topics
      * @param currentCountPartition The current number of partitions
      * @param currentDiskTopic The current number of disk space used by topics
@@ -287,7 +289,7 @@ public class ResourceQuotaService {
      * @param resourceQuota The quota to map
      * @return A list of quotas as response format
      */
-    public ResourceQuotaResponse formatUsedResourceByQuotaResponse(long currentCountTopic, long currentCountPartition, long currentDiskTopic,
+    public ResourceQuotaResponse formatUsedResourceByQuotaResponse(Namespace namespace, long currentCountTopic, long currentCountPartition, long currentDiskTopic,
                                                      long currentCountConnector, Optional<ResourceQuota> resourceQuota) {
         String countTopic = resourceQuota.isPresent() && StringUtils.isNotBlank(resourceQuota.get().getSpec().get(COUNT_TOPICS.getKey())) ?
                 String.format(QUOTA_RESPONSE_FORMAT, currentCountTopic, resourceQuota.get().getSpec().get(COUNT_TOPICS.getKey())) :
@@ -306,7 +308,10 @@ public class ResourceQuotaService {
                 String.format(NO_QUOTA_RESPONSE_FORMAT, currentCountConnector);
 
         return ResourceQuotaResponse.builder()
-                .metadata(resourceQuota.map(ResourceQuota::getMetadata).orElse(null))
+                .metadata(resourceQuota.map(ResourceQuota::getMetadata).orElse(ObjectMeta.builder()
+                        .namespace(namespace.getMetadata().getName())
+                        .cluster(namespace.getMetadata().getCluster())
+                        .build()))
                 .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
                         .countTopic(countTopic)
                         .countPartition(countPartition)

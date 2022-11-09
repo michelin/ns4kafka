@@ -1154,6 +1154,8 @@ class ResourceQuotaServiceTest {
 
         ResourceQuotaResponse response = resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.empty());
         Assertions.assertNull(response.getMetadata());
+        Assertions.assertEquals("namespace", response.getMetadata().getNamespace());
+        Assertions.assertEquals("local", response.getMetadata().getCluster());
         Assertions.assertEquals("3", response.getSpec().getCountTopic());
         Assertions.assertEquals("19", response.getSpec().getCountPartition());
         Assertions.assertEquals("2", response.getSpec().getCountConnector());
