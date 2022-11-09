@@ -12,6 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.michelin.ns4kafka.models.quota.ResourceQuota.ResourceQuotaSpecKey.*;
 import static com.michelin.ns4kafka.utils.BytesUtils.*;
@@ -125,32 +126,12 @@ public class ResourceQuotaService {
     }
 
     /**
-     * Get currently used number of topics
-     * @return The number of topics
-     */
-    public long getCurrentCountTopics() {
-        return topicService.findAll().size();
-    }
-
-    /**
      * Get currently used number of topics by namespace
      * @param namespace The namespace
      * @return The number of topics
      */
     public long getCurrentCountTopicsByNamespace(Namespace namespace) {
         return topicService.findAllForNamespace(namespace).size();
-    }
-
-    /**
-     * Get currently used number of partitions
-     * @return The number of partitions
-     */
-    public long getCurrentCountPartitions() {
-        return topicService.findAll()
-                .stream()
-                .map(topic -> topic.getSpec().getPartitions())
-                .reduce(0, Integer::sum)
-                .longValue();
     }
 
     /**
@@ -167,18 +148,6 @@ public class ResourceQuotaService {
     }
 
     /**
-     * Get currently used topic disk in bytes
-     * @return The number of topic disk
-     */
-    public long getCurrentDiskTopics() {
-        return topicService.findAll()
-                .stream()
-                .map(topic -> Long.parseLong(topic.getSpec().getConfigs().getOrDefault("retention.bytes", "0")) *
-                        topic.getSpec().getPartitions())
-                .reduce(0L, Long::sum);
-    }
-
-    /**
      * Get currently used topic disk in bytes by namespace
      * @param namespace The namespace
      * @return The number of topic disk
@@ -189,14 +158,6 @@ public class ResourceQuotaService {
                 .map(topic -> Long.parseLong(topic.getSpec().getConfigs().getOrDefault("retention.bytes", "0")) *
                         topic.getSpec().getPartitions())
                 .reduce(0L, Long::sum);
-    }
-
-    /**
-     * Get currently used number of connectors
-     * @return The number of connectors
-     */
-    public long getCurrentCountConnectors() {
-        return connectorService.findAll().size();
     }
 
     /**
@@ -291,48 +252,14 @@ public class ResourceQuotaService {
     }
 
     /**
-     * Sum all the quotas of all namespaces into a single quota
-     * @return The sum of all quotas
-     */
-    public Optional<ResourceQuota> sumAllQuotas() {
-        return resourceQuotaRepository.findAll()
-                .stream()
-                .reduce((aggResourceQuota, newResourceQuota) -> {
-                    Map<String, String> sumQuotas = new HashMap<>();
-
-                    sumQuotas.put(COUNT_TOPICS.getKey(),
-                            String.valueOf(Long.parseLong(aggResourceQuota.getSpec().get(COUNT_TOPICS.getKey())) +
-                                    Long.parseLong(newResourceQuota.getSpec().get(COUNT_TOPICS.getKey()))));
-
-                    sumQuotas.put(COUNT_PARTITIONS.getKey(),
-                            String.valueOf(Long.parseLong(aggResourceQuota.getSpec().get(COUNT_PARTITIONS.getKey())) +
-                                    Long.parseLong(newResourceQuota.getSpec().get(COUNT_PARTITIONS.getKey()))));
-
-                    sumQuotas.put(COUNT_CONNECTORS.getKey(),
-                            String.valueOf(Long.parseLong(aggResourceQuota.getSpec().get(COUNT_CONNECTORS.getKey())) +
-                                    Long.parseLong(newResourceQuota.getSpec().get(COUNT_CONNECTORS.getKey()))));
-
-                    sumQuotas.put(DISK_TOPICS.getKey(),
-                            bytesToHumanReadable(humanReadableToBytes(aggResourceQuota.getSpec().get(DISK_TOPICS.getKey())) +
-                                    humanReadableToBytes(newResourceQuota.getSpec().get(DISK_TOPICS.getKey()))));
-
-                    return ResourceQuota.builder()
-                            .spec(sumQuotas)
-                            .build();
-                });
-    }
-
-    /**
-     * Map current consumed resources and current quota of the given namespace to a response
+     * Get the current consumed resources against the current quota of the given namespace to a response
      * @return A list of quotas as response format
      */
-    public ResourceQuotaResponse getCurrentResourcesQuotasAllNamespaces() {
-        long currentCountTopic = getCurrentCountTopics();
-        long currentCountPartition = getCurrentCountPartitions();
-        long currentDiskTopic = getCurrentDiskTopics();
-        long currentCountConnector = getCurrentCountConnectors();
-
-        return formatQuotaResponse(currentCountTopic, currentCountPartition, currentDiskTopic, currentCountConnector, sumAllQuotas());
+    public List<ResourceQuotaResponse> getUsedResourcesByQuotaForAllNamespaces() {
+        return namespaceService.listAll()
+                .stream()
+                .map(namespace -> getUsedResourcesByQuotaByNamespace(namespace, findByNamespace(namespace.getMetadata().getName())))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -341,13 +268,14 @@ public class ResourceQuotaService {
      * @param resourceQuota The quota to map
      * @return A list of quotas as response format
      */
-    public ResourceQuotaResponse getCurrentResourcesQuotasByNamespace(Namespace namespace, Optional<ResourceQuota> resourceQuota) {
+    public ResourceQuotaResponse getUsedResourcesByQuotaByNamespace(Namespace namespace, Optional<ResourceQuota> resourceQuota) {
         long currentCountTopic = getCurrentCountTopicsByNamespace(namespace);
         long currentCountPartition = getCurrentCountPartitionsByNamespace(namespace);
         long currentDiskTopic = getCurrentDiskTopicsByNamespace(namespace);
         long currentCountConnector = getCurrentCountConnectorsByNamespace(namespace);
 
-        return formatQuotaResponse(currentCountTopic, currentCountPartition, currentDiskTopic, currentCountConnector, resourceQuota);
+        return formatUsedResourceByQuotaResponse(currentCountTopic, currentCountPartition, currentDiskTopic,
+                currentCountConnector, resourceQuota);
     }
 
     /**
@@ -359,7 +287,7 @@ public class ResourceQuotaService {
      * @param resourceQuota The quota to map
      * @return A list of quotas as response format
      */
-    public ResourceQuotaResponse formatQuotaResponse(long currentCountTopic, long currentCountPartition, long currentDiskTopic,
+    public ResourceQuotaResponse formatUsedResourceByQuotaResponse(long currentCountTopic, long currentCountPartition, long currentDiskTopic,
                                                      long currentCountConnector, Optional<ResourceQuota> resourceQuota) {
         String countTopic = resourceQuota.isPresent() && StringUtils.isNotBlank(resourceQuota.get().getSpec().get(COUNT_TOPICS.getKey())) ?
                 String.format(QUOTA_RESPONSE_FORMAT, currentCountTopic, resourceQuota.get().getSpec().get(COUNT_TOPICS.getKey())) :

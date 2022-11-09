@@ -6,12 +6,6 @@ import java.util.List;
 
 public interface TopicRepository {
     /**
-     * Find all topics
-     * @return The list of topics
-     */
-    List<Topic> findAll();
-
-    /**
      * Find all topics by cluster
      * @param cluster The cluster
      * @return The list of topics

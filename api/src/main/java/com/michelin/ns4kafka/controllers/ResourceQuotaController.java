@@ -31,13 +31,13 @@ public class ResourceQuotaController extends NamespacedResourceController {
     ResourceQuotaService resourceQuotaService;
 
     /**
-     * Get the sum of all quotas of all namespaces with all the current consumed resources
-     * @return A quota response
+     * Get all the quotas of all namespaces
+     * @return A list of quotas
      */
     @Get("/all")
     @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
-    public ResourceQuotaResponse listAllNamespaces() {
-        return resourceQuotaService.getCurrentResourcesQuotasAllNamespaces();
+    public List<ResourceQuotaResponse> listAll(String namespace) {
+        return resourceQuotaService.getUsedResourcesByQuotaForAllNamespaces();
     }
 
     /**
@@ -48,7 +48,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
     @Get
     public List<ResourceQuotaResponse> list(String namespace) {
         Namespace ns = getNamespace(namespace);
-        return List.of(resourceQuotaService.getCurrentResourcesQuotasByNamespace(ns,
+        return List.of(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns,
                 resourceQuotaService.findByNamespace(namespace)));
     }
 
@@ -65,7 +65,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
         if (resourceQuota.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(resourceQuotaService.getCurrentResourcesQuotasByNamespace(ns, resourceQuota));
+        return Optional.of(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, resourceQuota));
     }
 
     /**

@@ -6,12 +6,6 @@ import java.util.List;
 
 public interface ConnectorRepository {
     /**
-     * Find all connectors
-     * @return The list of connectors
-     */
-    List<Connector> findAll();
-
-    /**
      * Find all connectors by cluster
      * @param cluster The cluster
      * @return The list of connectors
