@@ -28,7 +28,7 @@ Ns4kafka
 - **Server side validation.** Customizable validation rules defined by Kafka OPS to enforce values on Topic configs (``min.insync.replica``, ``replication.factor``, ...) or Connect configs (``connect.class``, ``consumer.override.jaas``, ...).
 - **Robust CLI for all your CI/CD needs.** The `kafkactl` command line tool lets you control your resources within your namespace.
   You can deploy resources, list or delete them, reset consumer groups and so on.
-- **An evolving list of Resources.** As Kafka project teams, you can now become fully autonomous managing Kafka ``Topics``, ``Connectors``, ``Schemas``, ``AccessControlEntries`` and ``ConsumerGroups``. Kafka Admin are treated equaly only with different resources to manage : `Namespaces`, `RoleBindings`, `ResourceQuotas`, `ResourceValidators`,  `AccessControlEntries`, ...
+- **An evolving list of Resources.** As Kafka project teams, you can now become fully autonomous managing Kafka ``Topics``, ``Connectors``, ``Schemas``, ``AccessControlEntries`` and ``ConnectCluster``. Kafka administrators are treated equaly only with different resources to manage: `Namespaces`, `RoleBindings`, `ResourceQuotas`, and `AccessControlEntries`.
 
 Ns4kafka is built on top of 2 components : an **API** and a **CLI**.
 
