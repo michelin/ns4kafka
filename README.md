@@ -561,8 +561,6 @@ kafkactl:
   image:
     name: michelin/kafkactl:1.10.0
     entrypoint: ['/bin/sh', '-c']
-  tags:
-    - k8s
   before_script:
     - export KAFKACTL_CURRENT_NAMESPACE=test
     - export KAFKACTL_API=http://ns4kafka-dev-api.domain.com
