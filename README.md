@@ -559,7 +559,7 @@ Below is an example of how to use kafkactl in your pipeline (Gitlab CI):
 kafkactl:
   stage: kafkactl
   image:
-    name: michelin/kafkactl:1.5.0
+    name: michelin/kafkactl:1.10.0
     entrypoint: ['/bin/sh', '-c']
   tags:
     - k8s
