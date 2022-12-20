@@ -31,6 +31,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.michelin.ns4kafka.services.AccessControlEntryService.PUBLIC_GRANTED_TO;
+
 @Slf4j
 @EachBean(KafkaAsyncExecutorConfig.class)
 @Singleton
@@ -66,6 +68,7 @@ public class AccessControlEntryAsyncExecutor {
 
     /**
      * Constructor
+     *
      * @param kafkaAsyncExecutorConfig The managed clusters configuration
      */
     public AccessControlEntryAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
@@ -136,6 +139,7 @@ public class AccessControlEntryAsyncExecutor {
      * Whenever the permission is OWNER, create 2 entries (one READ and one WRITE)
      * This is necessary to translate ns4kafka grouped AccessControlEntry (OWNER, WRITE, READ)
      * into Kafka Atomic ACLs (READ and WRITE)
+     *
      * @return A list of ACLs
      */
     private List<AclBinding> collectNs4KafkaACLs() {
@@ -151,7 +155,9 @@ public class AccessControlEntryAsyncExecutor {
                                 accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.GROUP)
                         //1-N ACE to List<AclBinding>
                         .flatMap(accessControlEntry ->
-                                buildAclBindingsFromAccessControlEntry(accessControlEntry, namespace.getSpec().getKafkaUser()).stream()));
+                                buildAclBindingsFromAccessControlEntry(accessControlEntry, namespace.getSpec().getKafkaUser()).stream())
+                        .distinct()
+                );
 
         // Converts KafkaStream Resources to topic (CREATE/DELETE) AclBindings
         Stream<AclBinding> aclBindingFromKStream = namespaces.stream()
@@ -184,11 +190,12 @@ public class AccessControlEntryAsyncExecutor {
 
     /**
      * Collect the ACLs from broker
+     *
      * @param managedUsersOnly Only retrieve ACLs from Kafka user managed by Ns4Kafka or not ?
      * @return A list of ACLs
-     * @throws ExecutionException Any execution exception during ACLs description
+     * @throws ExecutionException   Any execution exception during ACLs description
      * @throws InterruptedException Any interrupted exception during ACLs description
-     * @throws TimeoutException Any timeout exception during ACLs description
+     * @throws TimeoutException     Any timeout exception during ACLs description
      */
     private List<AclBinding> collectBrokerACLs(boolean managedUsersOnly) throws ExecutionException, InterruptedException, TimeoutException {
         //TODO soon : manage IDEMPOTENT_WRITE on CLUSTER 'kafka-cluster'
@@ -220,9 +227,13 @@ public class AccessControlEntryAsyncExecutor {
                     .flatMap(namespace -> List.of("User:" + namespace.getSpec().getKafkaUser()).stream())
                     .collect(Collectors.toList());
 
-            // And then filter out the AclBinding to retain only those matching.
+            // And then filter out the AclBinding to retain only those matching
+            // or having principal equal to wildcard (public).
             userACLs = userACLs.stream()
-                    .filter(aclBinding -> managedUsers.contains(aclBinding.entry().principal()))
+                    .filter(aclBinding ->
+                            managedUsers.contains(aclBinding.entry().principal()) ||
+                                    aclBinding.entry().principal().equals(PUBLIC_GRANTED_TO)
+                    )
                     .collect(Collectors.toList());
             log.debug("ACLs found on Broker (managed scope) : {}", userACLs.size());
         }
@@ -236,8 +247,9 @@ public class AccessControlEntryAsyncExecutor {
 
     /**
      * Convert Ns4Kafka topic/group ACL into Kafka ACL
+     *
      * @param accessControlEntry The Ns4Kafka ACL
-     * @param kafkaUser The ACL owner
+     * @param kafkaUser          The ACL owner
      * @return A list of Kafka ACLs
      */
     private List<AclBinding> buildAclBindingsFromAccessControlEntry(AccessControlEntry accessControlEntry, String kafkaUser) {
@@ -257,14 +269,26 @@ public class AccessControlEntryAsyncExecutor {
             targetAclOperations = List.of(AclOperation.fromString(accessControlEntry.getSpec().getPermission().toString()));
         }
 
+        final String aclUser = accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO) ?
+                PUBLIC_GRANTED_TO : kafkaUser;
         return targetAclOperations.stream().map(aclOperation ->
-                new AclBinding(resourcePattern, new org.apache.kafka.common.acl.AccessControlEntry("User:" + kafkaUser, "*", aclOperation, AclPermissionType.ALLOW)))
+                        new AclBinding(
+                                resourcePattern,
+                                new org.apache.kafka.common.acl.AccessControlEntry(
+                                        "User:" + aclUser,
+                                        "*",
+                                        aclOperation,
+                                        AclPermissionType.ALLOW
+                                )
+                        )
+                )
                 .collect(Collectors.toList());
     }
 
     /**
      * Convert Kafka Stream resource into Kafka ACL
-     * @param stream The Kafka Stream resource
+     *
+     * @param stream    The Kafka Stream resource
      * @param kafkaUser The ACL owner
      * @return A list of Kafka ACLs
      */
@@ -290,7 +314,8 @@ public class AccessControlEntryAsyncExecutor {
 
     /**
      * Convert Ns4Kafka connect ACL into Kafka ACL
-     * @param acl The Ns4Kafka ACL
+     *
+     * @param acl       The Ns4Kafka ACL
      * @param kafkaUser The ACL owner
      * @return A list of Kafka ACLs
      */
@@ -311,6 +336,7 @@ public class AccessControlEntryAsyncExecutor {
 
     /**
      * Get ACL operations from given resource type
+     *
      * @param resourceType The resource type
      * @return A list of ACL operations
      */
@@ -330,6 +356,7 @@ public class AccessControlEntryAsyncExecutor {
 
     /**
      * Delete a given list of ACLs
+     *
      * @param toDelete The list of ACLs to delete
      */
     private void deleteACLs(List<AclBinding> toDelete) {
@@ -338,22 +365,23 @@ public class AccessControlEntryAsyncExecutor {
                         .map(AclBinding::toFilter)
                         .collect(Collectors.toList()))
                 .values().forEach((key, value) -> {
-            try {
-                value.get(10, TimeUnit.SECONDS);
-                log.info("Success deleting ACL {} on {}", key, this.kafkaAsyncExecutorConfig.getName());
-            } catch (InterruptedException e) {
-                log.error("Error", e);
-                Thread.currentThread().interrupt();
-            } catch (Exception e) {
-                log.error(String.format("Error while deleting ACL %s on %s", key, this.kafkaAsyncExecutorConfig.getName()), e);
-            }
-        });
+                    try {
+                        value.get(10, TimeUnit.SECONDS);
+                        log.info("Success deleting ACL {} on {}", key, this.kafkaAsyncExecutorConfig.getName());
+                    } catch (InterruptedException e) {
+                        log.error("Error", e);
+                        Thread.currentThread().interrupt();
+                    } catch (Exception e) {
+                        log.error(String.format("Error while deleting ACL %s on %s", key, this.kafkaAsyncExecutorConfig.getName()), e);
+                    }
+                });
     }
 
     /**
      * Delete a given Ns4Kafka ACL
      * Convert Ns4Kafka ACL into Kafka ACLs before deletion
-     * @param namespace The namespace
+     *
+     * @param namespace   The namespace
      * @param ns4kafkaACL The Kafka ACL
      */
     public void deleteNs4KafkaACL(Namespace namespace, AccessControlEntry ns4kafkaACL) {
@@ -374,7 +402,8 @@ public class AccessControlEntryAsyncExecutor {
 
     /**
      * Delete a given Kafka Streams
-     * @param namespace The namespace
+     *
+     * @param namespace   The namespace
      * @param kafkaStream The Kafka Streams
      */
     public void deleteKafkaStreams(Namespace namespace, KafkaStream kafkaStream) {
@@ -385,6 +414,7 @@ public class AccessControlEntryAsyncExecutor {
 
     /**
      * Create a given list of ACLs
+     *
      * @param toCreate The list of ACLs to create
      */
     private void createACLs(List<AclBinding> toCreate) {
@@ -405,6 +435,7 @@ public class AccessControlEntryAsyncExecutor {
 
     /**
      * Getter for admin client service
+     *
      * @return The admin client
      */
     private Admin getAdminClient() {

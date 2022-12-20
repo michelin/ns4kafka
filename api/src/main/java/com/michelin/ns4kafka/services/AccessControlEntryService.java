@@ -16,6 +16,12 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class AccessControlEntryService {
+
+    /**
+     * The grantedTo value to define public topics.
+     */
+    public final static String PUBLIC_GRANTED_TO = "*";
+
     /**
      * The ACL repository
      */
@@ -30,8 +36,9 @@ public class AccessControlEntryService {
 
     /**
      * Validate a new ACL
+     *
      * @param accessControlEntry The ACL
-     * @param namespace The namespace
+     * @param namespace          The namespace
      * @return A list of validation errors
      */
     public List<String> validate(AccessControlEntry accessControlEntry, Namespace namespace) {
@@ -76,7 +83,7 @@ public class AccessControlEntryService {
         // GrantedTo Namespace exists ?
         NamespaceService namespaceService = applicationContext.getBean(NamespaceService.class);
         Optional<Namespace> grantedToNamespace = namespaceService.findByName(accessControlEntry.getSpec().getGrantedTo());
-        if (grantedToNamespace.isEmpty()) {
+        if (grantedToNamespace.isEmpty() && !accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO)) {
             validationErrors.add("Invalid value " + accessControlEntry.getSpec().getGrantedTo() + " for grantedTo: Namespace doesn't exist");
         }
 
@@ -96,8 +103,9 @@ public class AccessControlEntryService {
 
     /**
      * Validate a new ACL created by an admin
+     *
      * @param accessControlEntry The ACL
-     * @param namespace The namespace
+     * @param namespace          The namespace
      * @return A list of validation errors
      */
     public List<String> validateAsAdmin(AccessControlEntry accessControlEntry, Namespace namespace) {
@@ -147,8 +155,9 @@ public class AccessControlEntryService {
 
     /**
      * Is namespace owner of given ACL
+     *
      * @param accessControlEntry The ACL
-     * @param namespace The namespace
+     * @param namespace          The namespace
      * @return true if it is, false otherwise
      */
     public boolean isOwnerOfTopLevelAcl(AccessControlEntry accessControlEntry, Namespace namespace) {
@@ -190,6 +199,7 @@ public class AccessControlEntryService {
 
     /**
      * Create an ACL in internal topic
+     *
      * @param accessControlEntry The ACL
      * @return The created ACL
      */
@@ -199,6 +209,7 @@ public class AccessControlEntryService {
 
     /**
      * Delete an ACL from broker and from internal topic
+     *
      * @param accessControlEntry The ACL
      */
     public void delete(Namespace namespace, AccessControlEntry accessControlEntry) {
@@ -211,17 +222,34 @@ public class AccessControlEntryService {
 
     /**
      * Find all ACLs granted to given namespace
+     * Will also return public granted ACLs
+     *
      * @param namespace The namespace
      * @return A list of ACLs
      */
     public List<AccessControlEntry> findAllGrantedToNamespace(Namespace namespace) {
         return accessControlEntryRepository.findAll().stream()
-                .filter(accessControlEntry -> accessControlEntry.getSpec().getGrantedTo().equals(namespace.getMetadata().getName()))
+                .filter(accessControlEntry ->
+                        accessControlEntry.getSpec().getGrantedTo().equals(namespace.getMetadata().getName()) ||
+                                accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO)
+                )
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Find all public granted ACLs
+     *
+     * @return A list of ACLs
+     */
+    public List<AccessControlEntry> findAllPublicGrantedTo() {
+        return accessControlEntryRepository.findAll().stream()
+                .filter(accessControlEntry -> accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO))
                 .collect(Collectors.toList());
     }
 
     /**
      * Find all ACLs of given namespace
+     *
      * @param namespace The namespace
      * @return A list of ACLs
      */
@@ -233,6 +261,7 @@ public class AccessControlEntryService {
 
     /**
      * Find all ACLs of given cluster
+     *
      * @param cluster The cluster
      * @return A list of ACLs
      */
@@ -244,9 +273,10 @@ public class AccessControlEntryService {
 
     /**
      * Does given namespace is owner of the given resource ?
-     * @param namespace The namespace
+     *
+     * @param namespace    The namespace
      * @param resourceType The resource type to filter
-     * @param resource The resource name
+     * @param resource     The resource name
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceOwnerOfResource(String namespace, AccessControlEntry.ResourceType resourceType, String resource) {
@@ -268,8 +298,9 @@ public class AccessControlEntryService {
 
     /**
      * Find an ACL by name
+     *
      * @param namespace The namespace
-     * @param name The ACL name
+     * @param name      The ACL name
      * @return An optional ACL
      */
     public Optional<AccessControlEntry> findByName(String namespace, String name) {

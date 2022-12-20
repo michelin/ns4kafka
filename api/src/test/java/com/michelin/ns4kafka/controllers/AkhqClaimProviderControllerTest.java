@@ -249,14 +249,21 @@ public class AkhqClaimProviderControllerTest {
                         .resource("project3_topic")
                         .build())
                 .build();
+        AccessControlEntry pub_ace1 = AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .resource("public_t.")
+                        .build())
+                .build();
         Mockito.when(namespaceService.listAll())
                 .thenReturn(List.of(ns1, ns2, ns3, ns4, ns5));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns1))
-                .thenReturn(List.of(ns1_ace1, ns1_ace2));
+                .thenReturn(List.of(ns1_ace1, ns1_ace2, pub_ace1));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns2))
-                .thenReturn(List.of(ns2_ace1, ns2_ace2));
+                .thenReturn(List.of(ns2_ace1, ns2_ace2, pub_ace1));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns3))
-                .thenReturn(List.of(ns3_ace1));
+                .thenReturn(List.of(ns3_ace1, pub_ace1));
 
         AkhqClaimProviderController.AKHQClaimRequest request = AkhqClaimProviderController.AKHQClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1-SUPPORT", "GP-PROJECT2-SUPPORT"))
@@ -269,6 +276,7 @@ public class AkhqClaimProviderControllerTest {
         Mockito.verify(accessControlEntryService,Mockito.times(1)).findAllGrantedToNamespace(ns3);
         Mockito.verify(accessControlEntryService,Mockito.never()).findAllGrantedToNamespace(ns4);
         Mockito.verify(accessControlEntryService,Mockito.never()).findAllGrantedToNamespace(ns5);
+        Mockito.verify(accessControlEntryService,Mockito.times(1)).findAllPublicGrantedTo();
         Assertions.assertLinesMatch(
                 List.of(
                         "topic/read",
@@ -280,10 +288,11 @@ public class AkhqClaimProviderControllerTest {
                 ),
                 actual.getRoles()
         );
-        Assertions.assertEquals(3, actual.getAttributes().get("topicsFilterRegexp").size());
+        Assertions.assertEquals(4, actual.getAttributes().get("topicsFilterRegexp").size());
         Assertions.assertLinesMatch(
                 List.of(
                         "^\\Qproject1_t.\\E.*$",
+                        "^\\Qpublic_t.\\E.*$",
                         "^\\Qproject2_t.\\E.*$",
                         "^\\Qproject3_topic\\E$"
                 ),
@@ -384,14 +393,21 @@ public class AkhqClaimProviderControllerTest {
                         .resource("project3_topic")
                         .build())
                 .build();
+        AccessControlEntry pub_ace1 = AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .resource("public_t.")
+                        .build())
+                .build();
         Mockito.when(namespaceService.listAll())
                 .thenReturn(List.of(ns1, ns2, ns3, ns4, ns5));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns1))
-                .thenReturn(List.of(ns1_ace1, ns1_ace2));
+                .thenReturn(List.of(ns1_ace1, ns1_ace2, pub_ace1));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns2))
-                .thenReturn(List.of(ns2_ace1, ns2_ace2));
+                .thenReturn(List.of(ns2_ace1, ns2_ace2, pub_ace1));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns3))
-                .thenReturn(List.of(ns3_ace1));
+                .thenReturn(List.of(ns3_ace1, pub_ace1));
 
         AkhqClaimProviderController.AKHQClaimRequest request = AkhqClaimProviderController.AKHQClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1-SUPPORT", "GP-PROJECT2-SUPPORT"))
@@ -404,6 +420,7 @@ public class AkhqClaimProviderControllerTest {
         Mockito.verify(accessControlEntryService,Mockito.times(1)).findAllGrantedToNamespace(ns3);
         Mockito.verify(accessControlEntryService,Mockito.never()).findAllGrantedToNamespace(ns4);
         Mockito.verify(accessControlEntryService,Mockito.never()).findAllGrantedToNamespace(ns5);
+        Mockito.verify(accessControlEntryService,Mockito.times(1)).findAllPublicGrantedTo();
         Assertions.assertLinesMatch(
                 List.of(
                         "topic/read",
@@ -415,10 +432,11 @@ public class AkhqClaimProviderControllerTest {
                 ),
                 actual.getRoles()
         );
-        Assertions.assertEquals(3, actual.getTopicsFilterRegexp().size());
+        Assertions.assertEquals(4, actual.getTopicsFilterRegexp().size());
         Assertions.assertLinesMatch(
                 List.of(
                         "^\\Qproject1_t.\\E.*$",
+                        "^\\Qpublic_t.\\E.*$",
                         "^\\Qproject2_t.\\E.*$",
                         "^\\Qproject3_topic\\E$"
                 ),
