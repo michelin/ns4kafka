@@ -20,7 +20,7 @@ public class AccessControlEntryService {
     /**
      * The grantedTo value to define public topics.
      */
-    public final static String PUBLIC_GRANTED_TO = "*";
+    public static final String PUBLIC_GRANTED_TO = "*";
 
     /**
      * The ACL repository
