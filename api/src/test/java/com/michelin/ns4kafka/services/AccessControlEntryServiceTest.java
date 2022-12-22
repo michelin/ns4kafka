@@ -264,6 +264,47 @@ public class AccessControlEntryServiceTest {
     }
 
     @Test
+    void validate_AllowedPublicGrantedTo() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("acl-name")
+                        .namespace("namespace")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("main.sub")
+                        .grantedTo("*")
+                        .build())
+                .build();
+        Mockito.when(applicationContext.getBean(NamespaceService.class))
+                .thenReturn(namespaceService);
+        Mockito.when(namespaceService.findByName("*"))
+                .thenReturn(Optional.empty());
+        Mockito.when(accessControlEntryRepository.findAll())
+                .thenReturn(List.of(AccessControlEntry.builder()
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                .permission(AccessControlEntry.Permission.OWNER)
+                                .resource("main")
+                                .grantedTo("namespace")
+                                .build()
+                        )
+                        .build()
+                ));
+        List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
+        Assertions.assertTrue(actual.isEmpty());
+    }
+
+    @Test
     void validateAsAdmin_SuccessUpdatingExistingACL() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
                 .metadata(ObjectMeta.builder()
@@ -717,11 +758,32 @@ public class AccessControlEntryServiceTest {
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
         AccessControlEntry ace3 = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
+        AccessControlEntry ace4 = AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("*").build()).build();
 
         Mockito.when(accessControlEntryRepository.findAll())
-                .thenReturn(List.of(ace1, ace2, ace3));
+                .thenReturn(List.of(ace1, ace2, ace3, ace4));
         List<AccessControlEntry> actual = accessControlEntryService.findAllGrantedToNamespace(ns);
-        Assertions.assertEquals(2, actual.size());
+        Assertions.assertEquals(3, actual.size());
+    }
+
+    @Test
+    void findAllPublicGrantedTo() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder().name("namespace1").build()).build();
+        AccessControlEntry ace1 = AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
+        AccessControlEntry ace2 = AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
+        AccessControlEntry ace3 = AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
+        AccessControlEntry ace4 = AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("*").build()).build();
+
+        Mockito.when(accessControlEntryRepository.findAll())
+                .thenReturn(List.of(ace1, ace2, ace3, ace4));
+        List<AccessControlEntry> actual = accessControlEntryService.findAllPublicGrantedTo();
+        Assertions.assertEquals(1, actual.size());
     }
 
     @Test
