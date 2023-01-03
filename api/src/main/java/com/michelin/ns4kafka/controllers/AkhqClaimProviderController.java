@@ -23,15 +23,23 @@ import java.util.stream.Collectors;
 @Controller("/akhq-claim")
 public class AkhqClaimProviderController {
     private static final List<String> EMPTY_REGEXP = List.of("^none$");
+
     private static final List<String> ADMIN_REGEXP = List.of(".*");
+
     @Inject
     AkhqClaimProviderControllerConfig config;
+
     @Inject
     AccessControlEntryService accessControlEntryService;
+
     @Inject
     NamespaceService namespaceService;
 
-    // For AKHQ up to 0.19
+    /**
+     * Generate AKHQ claims up to v0.19
+     * @param request The AKHQ request
+     * @return The AKHQ claims
+     */
     @Post
     public AKHQClaimResponse generateClaim(@Valid @Body AKHQClaimRequest request) {
         if (request == null) {
@@ -39,18 +47,14 @@ public class AkhqClaimProviderController {
         }
 
         final List<String> groups = Optional.ofNullable(request.getGroups()).orElse(new ArrayList<>());
-
         if (groups.contains(config.getAdminGroup())) {
             return AKHQClaimResponse.ofAdmin(config.getAdminRoles());
         }
 
         List<AccessControlEntry> relatedACL = namespaceService.listAll()
                 .stream()
-                // keep namespaces with correct label
                 .filter(namespace -> namespace.getMetadata().getLabels() != null &&
-                        groups.contains(namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_"))
-                )
-                // find all ACL associated to these namespaces
+                        groups.contains(namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_")))
                 .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace).stream())
                 .collect(Collectors.toList());
 
@@ -69,7 +73,11 @@ public class AkhqClaimProviderController {
                 .build();
     }
 
-    // For AKHQ 0.20.0 and later
+    /**
+     * Generate AKHQ claims for v0.20 and higher
+     * @param request The AKHQ request
+     * @return The AKHQ claims
+     */
     @Post("/v2")
     public AKHQClaimResponseV2 generateClaimV2(@Valid @Body AKHQClaimRequest request) {
         if (request == null ) {
@@ -84,11 +92,8 @@ public class AkhqClaimProviderController {
 
         List<AccessControlEntry> relatedACL = namespaceService.listAll()
                 .stream()
-                // keep namespaces with correct label
                 .filter(namespace -> namespace.getMetadata().getLabels() != null &&
-                        groups.contains(namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_"))
-                )
-                // find all ACL associated to these namespaces
+                        groups.contains(namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_")))
                 .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace).stream())
                 .collect(Collectors.toList());
 
@@ -103,6 +108,12 @@ public class AkhqClaimProviderController {
                 .build();
     }
 
+    /**
+     * Compute AKHQ regex from given ACLs
+     * @param acls The ACLs
+     * @param resourceType The resource type
+     * @return A list of regex
+     */
     public List<String> computeAllowedRegexListForResourceType(List<AccessControlEntry> acls, AccessControlEntry.ResourceType resourceType) {
         List<String> allowedRegex = acls.stream()
                 .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == resourceType)
@@ -144,21 +155,18 @@ public class AkhqClaimProviderController {
                             //AKHQ considers empty list as "^.*$" so we must return something
                             "topicsFilterRegexp", EMPTY_REGEXP,
                             "connectsFilterRegexp", EMPTY_REGEXP,
-                            "consumerGroupsFilterRegexp", EMPTY_REGEXP
-                    ))
+                            "consumerGroupsFilterRegexp", EMPTY_REGEXP))
                     .build();
         }
 
         public static AKHQClaimResponse ofAdmin(List<String> roles) {
-
             return AKHQClaimResponse.builder()
                     .roles(roles)
                     .attributes(Map.of(
                             //AKHQ considers empty list as "^.*$" so we must return something
                             "topicsFilterRegexp", ADMIN_REGEXP,
                             "connectsFilterRegexp", ADMIN_REGEXP,
-                            "consumerGroupsFilterRegexp", ADMIN_REGEXP
-                    ))
+                            "consumerGroupsFilterRegexp", ADMIN_REGEXP))
                     .build();
         }
     }
@@ -182,7 +190,6 @@ public class AkhqClaimProviderController {
         }
 
         public static AKHQClaimResponseV2 ofAdmin(List<String> roles) {
-
             return AKHQClaimResponseV2.builder()
                     .roles(roles)
                     .topicsFilterRegexp(ADMIN_REGEXP)

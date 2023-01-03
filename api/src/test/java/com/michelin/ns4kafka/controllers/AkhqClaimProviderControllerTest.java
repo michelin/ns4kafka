@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.config.AkhqClaimProviderControllerConfig;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -26,6 +28,32 @@ class AkhqClaimProviderControllerTest {
 
     @InjectMocks
     AkhqClaimProviderController akhqClaimProviderController;
+
+    @Spy
+    AkhqClaimProviderControllerConfig akhqClaimProviderControllerConfig = getAkhqClaimProviderControllerConfig();
+
+    private AkhqClaimProviderControllerConfig getAkhqClaimProviderControllerConfig() {
+        AkhqClaimProviderControllerConfig config = new AkhqClaimProviderControllerConfig();
+        config.setGroupLabel("support-group");
+        config.setRoles(List.of(
+                "topic/read",
+                "topic/data/read",
+                "group/read",
+                "registry/read",
+                "connect/read",
+                "connect/state/update"
+        ));
+        config.setAdminGroup("GP-ADMIN");
+        config.setAdminRoles(List.of(
+                "topic/read",
+                "topic/data/read",
+                "group/read",
+                "registry/read",
+                "connect/read",
+                "connect/state/update"
+        ));
+        return config;
+    }
 
     @Test
     void computeAllowedRegexListTestEmpty(){
@@ -45,7 +73,7 @@ class AkhqClaimProviderControllerTest {
                                 .build())
                         .build()
         );
-        
+
         List<String> actual = akhqClaimProviderController.computeAllowedRegexListForResourceType(inputACLs, AccessControlEntry.ResourceType.CONNECT);
 
         Assertions.assertEquals(1, actual.size());
