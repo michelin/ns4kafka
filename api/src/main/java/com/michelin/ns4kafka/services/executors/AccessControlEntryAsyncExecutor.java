@@ -139,27 +139,23 @@ public class AccessControlEntryAsyncExecutor {
      * Whenever the permission is OWNER, create 2 entries (one READ and one WRITE)
      * This is necessary to translate ns4kafka grouped AccessControlEntry (OWNER, WRITE, READ)
      * into Kafka Atomic ACLs (READ and WRITE)
-     *
      * @return A list of ACLs
      */
     private List<AclBinding> collectNs4KafkaACLs() {
-        // TODO this returns only the default user with ACL "inherited" from the namespace
-        //  at some point we want to manage multiple users within a namespace, each having their own ACLs.
         List<Namespace> namespaces = namespaceRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName());
 
         // Converts topic and group Ns4kafka ACLs to topic and group Kafka AclBindings
-        Stream<AclBinding> aclBindingFromACLs = namespaces.stream()
+        Stream<AclBinding> aclBindingFromACLs = namespaces
+                .stream()
                 .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace)
                         .stream()
                         .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC ||
                                 accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.GROUP)
-                        //1-N ACE to List<AclBinding>
-                        .flatMap(accessControlEntry ->
-                                buildAclBindingsFromAccessControlEntry(accessControlEntry, namespace.getSpec().getKafkaUser()).stream())
-                        .distinct()
-                );
+                        .flatMap(accessControlEntry -> buildAclBindingsFromAccessControlEntry(accessControlEntry, namespace.getSpec().getKafkaUser())
+                                .stream())
+                        .distinct());
 
-        // Converts KafkaStream Resources to topic (CREATE/DELETE) AclBindings
+        // Converts KafkaStream resources to topic (CREATE/DELETE) AclBindings
         Stream<AclBinding> aclBindingFromKStream = namespaces.stream()
                 .flatMap(namespace -> streamService.findAllForNamespace(namespace)
                         .stream()
@@ -172,7 +168,6 @@ public class AccessControlEntryAsyncExecutor {
                         .stream()
                         .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT)
                         .filter(accessControlEntry -> accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
-                        //1-N ACE to List<AclBinding>
                         .flatMap(accessControlEntry ->
                                 buildAclBindingsFromConnector(accessControlEntry, namespace.getSpec().getKafkaUser()).stream()));
 
@@ -247,7 +242,6 @@ public class AccessControlEntryAsyncExecutor {
 
     /**
      * Convert Ns4Kafka topic/group ACL into Kafka ACL
-     *
      * @param accessControlEntry The Ns4Kafka ACL
      * @param kafkaUser          The ACL owner
      * @return A list of Kafka ACLs
@@ -256,9 +250,7 @@ public class AccessControlEntryAsyncExecutor {
         // Convert pattern, convert resource type from Ns4Kafka to org.apache.kafka.common types
         PatternType patternType = PatternType.fromString(accessControlEntry.getSpec().getResourcePatternType().toString());
         ResourceType resourceType = ResourceType.fromString(accessControlEntry.getSpec().getResourceType().toString());
-        ResourcePattern resourcePattern = new ResourcePattern(resourceType,
-                accessControlEntry.getSpec().getResource(),
-                patternType);
+        ResourcePattern resourcePattern = new ResourcePattern(resourceType, accessControlEntry.getSpec().getResource(), patternType);
 
         // Generate the required AclOperation based on ResourceType
         List<AclOperation> targetAclOperations;
@@ -269,25 +261,17 @@ public class AccessControlEntryAsyncExecutor {
             targetAclOperations = List.of(AclOperation.fromString(accessControlEntry.getSpec().getPermission().toString()));
         }
 
-        final String aclUser = accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO) ?
-                PUBLIC_GRANTED_TO : kafkaUser;
-        return targetAclOperations.stream().map(aclOperation ->
-                        new AclBinding(
-                                resourcePattern,
-                                new org.apache.kafka.common.acl.AccessControlEntry(
-                                        "User:" + aclUser,
-                                        "*",
-                                        aclOperation,
-                                        AclPermissionType.ALLOW
-                                )
-                        )
-                )
+        final String aclUser = accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO) ? PUBLIC_GRANTED_TO : kafkaUser;
+        return targetAclOperations
+                .stream()
+                .map(aclOperation ->
+                        new AclBinding(resourcePattern, new org.apache.kafka.common.acl.AccessControlEntry("User:" + aclUser,
+                                "*", aclOperation, AclPermissionType.ALLOW)))
                 .collect(Collectors.toList());
     }
 
     /**
      * Convert Kafka Stream resource into Kafka ACL
-     *
      * @param stream    The Kafka Stream resource
      * @param kafkaUser The ACL owner
      * @return A list of Kafka ACLs
