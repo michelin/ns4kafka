@@ -25,6 +25,7 @@ jobs:
           version: '21.1.0'
           java-version: '11'
           components: 'native-image'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Native Image
         run: gu install native-image
@@ -93,7 +94,8 @@ jobs:
           version: '20.3.2'
           java-version: '11'
           components: 'native-image'
-
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          
       - name: Install native image
         run: ${{ env.JAVA_HOME }}\bin\gu.cmd install native-image
 

@@ -138,7 +138,7 @@ public interface NamespacedResourceClient {
      * @param token The auth token
      * @return The change state response
      */
-    @Post("{namespace}/connects/{connector}/change-state")
+    @Post("{namespace}/connectors/{connector}/change-state")
     Resource changeConnectorState(
             String namespace,
             String connector,
