@@ -60,8 +60,6 @@ public class AccessControlListController extends NamespacedResourceController {
             case GRANTEE:
                 return accessControlEntryService.findAllGrantedToNamespace(ns)
                         .stream()
-                        // granted to me
-                        //.filter(accessControlEntry -> accessControlEntry.getSpec().getGrantedTo().equals(namespace))
                         .sorted(Comparator.comparing(o -> o.getMetadata().getNamespace()))
                         .collect(Collectors.toList());
             case GRANTOR:
