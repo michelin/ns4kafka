@@ -15,8 +15,10 @@ import lombok.Getter;
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -35,11 +37,13 @@ public class AkhqClaimProviderController {
     // For AKHQ up to 0.19
     @Post
     public AKHQClaimResponse generateClaim(@Valid @Body AKHQClaimRequest request) {
-        if (request == null || request.getGroups() == null || request.getGroups().isEmpty()) {
+        if (request == null) {
             return AKHQClaimResponse.ofEmpty(config.getRoles());
         }
 
-        if(request.getGroups().contains(config.getAdminGroup())){
+        final List<String> groups = Optional.ofNullable(request.getGroups()).orElse(new ArrayList<>());
+
+        if (groups.contains(config.getAdminGroup())) {
             return AKHQClaimResponse.ofAdmin(config.getAdminRoles());
         }
 
@@ -47,11 +51,14 @@ public class AkhqClaimProviderController {
                 .stream()
                 // keep namespaces with correct label
                 .filter(namespace -> namespace.getMetadata().getLabels() != null &&
-                        request.getGroups().contains(namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_"))
+                        groups.contains(namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_"))
                 )
                 // find all ACL associated to these namespaces
                 .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace).stream())
                 .collect(Collectors.toList());
+
+        // Add all public ACLs.
+        relatedACL.addAll(accessControlEntryService.findAllPublicGrantedTo());
 
         return AKHQClaimResponse.builder()
                 .roles(config.getRoles())
@@ -59,7 +66,7 @@ public class AkhqClaimProviderController {
                         Map.of(
                                 "topicsFilterRegexp", computeAllowedRegexListForResourceType(relatedACL, AccessControlEntry.ResourceType.TOPIC),
                                 "connectsFilterRegexp", computeAllowedRegexListForResourceType(relatedACL, AccessControlEntry.ResourceType.CONNECT),
-                                "consumerGroupsFilterRegexp", computeAllowedRegexListForResourceType(relatedACL, AccessControlEntry.ResourceType.GROUP)
+                                "consumerGroupsFilterRegexp", ADMIN_REGEXP
                         )
                 )
                 .build();
@@ -67,11 +74,13 @@ public class AkhqClaimProviderController {
     // For AKHQ 0.20.0 and later
     @Post("/v2")
     public AKHQClaimResponseV2 generateClaimV2(@Valid @Body AKHQClaimRequest request) {
-        if (request == null || request.getGroups() == null || request.getGroups().isEmpty()) {
+        if (request == null) {
             return AKHQClaimResponseV2.ofEmpty(config.getRoles());
         }
 
-        if(request.getGroups().contains(config.getAdminGroup())){
+        final List<String> groups = Optional.ofNullable(request.getGroups()).orElse(new ArrayList<>());
+
+        if (groups.contains(config.getAdminGroup())) {
             return AKHQClaimResponseV2.ofAdmin(config.getAdminRoles());
         }
 
@@ -79,17 +88,20 @@ public class AkhqClaimProviderController {
                 .stream()
                 // keep namespaces with correct label
                 .filter(namespace -> namespace.getMetadata().getLabels() != null &&
-                        request.getGroups().contains(namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_"))
+                        groups.contains(namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_"))
                 )
                 // find all ACL associated to these namespaces
                 .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace).stream())
                 .collect(Collectors.toList());
 
+        // Add all public ACLs.
+        relatedACL.addAll(accessControlEntryService.findAllPublicGrantedTo());
+
         return AKHQClaimResponseV2.builder()
                 .roles(config.getRoles())
                 .topicsFilterRegexp(computeAllowedRegexListForResourceType(relatedACL, AccessControlEntry.ResourceType.TOPIC))
                 .connectsFilterRegexp(computeAllowedRegexListForResourceType(relatedACL, AccessControlEntry.ResourceType.CONNECT))
-                .consumerGroupsFilterRegexp(computeAllowedRegexListForResourceType(relatedACL, AccessControlEntry.ResourceType.GROUP))
+                .consumerGroupsFilterRegexp(ADMIN_REGEXP)
                 .build();
     }
 

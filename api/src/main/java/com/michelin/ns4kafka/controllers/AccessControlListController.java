@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static com.michelin.ns4kafka.services.AccessControlEntryService.PUBLIC_GRANTED_TO;
+
 @Tag(name = "Cross Namespace Topic Grants",
         description = "APIs to handle cross namespace ACL")
 @Controller("/api/namespaces/{namespace}/acls")
@@ -58,8 +60,6 @@ public class AccessControlListController extends NamespacedResourceController {
             case GRANTEE:
                 return accessControlEntryService.findAllGrantedToNamespace(ns)
                         .stream()
-                        // granted to me
-                        .filter(accessControlEntry -> accessControlEntry.getSpec().getGrantedTo().equals(namespace))
                         .sorted(Comparator.comparing(o -> o.getMetadata().getNamespace()))
                         .collect(Collectors.toList());
             case GRANTOR:
@@ -78,6 +78,7 @@ public class AccessControlListController extends NamespacedResourceController {
                         .filter(accessControlEntry ->
                                 accessControlEntry.getMetadata().getNamespace().equals(namespace)
                                         || accessControlEntry.getSpec().getGrantedTo().equals(namespace)
+                                        || accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO)
                         )
                         .sorted(Comparator.comparing(o -> o.getMetadata().getNamespace()))
                         .collect(Collectors.toList());
