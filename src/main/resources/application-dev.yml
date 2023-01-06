@@ -1,0 +1,24 @@
+ns4kafka:
+  managed-clusters:
+    dev:
+      manage-users: false
+      manage-acls: false
+      manage-topics: true
+      manage-connectors: true
+      drop-unsync-acls: false
+      provider: "SELF_MANAGED"
+      config:
+        bootstrap.servers: "localhost:9092"
+      schema-registry:
+        url: "http://localhost:8081"
+        # url: "https://api.michelin.com/ccloud-schema-registry/dev"
+        # basicAuthUsername: "test"
+        # basicAuthPassword: "password"
+      connects:
+        "local":
+          url: "http://localhost:8083"
+        # "dsckgbl0-connect":
+        #  url: "http://mpllnx0722.mpl.michelin.com:8093"
+        #  basicAuthUsername: userConnect
+        #  basicAuthPassword: 4tN1gV8wlReaL+wQ
+
