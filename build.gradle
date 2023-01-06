@@ -45,8 +45,8 @@ application {
 }
 
 java {
-    sourceCompatibility = JavaVersion.toVersion('11')
-    targetCompatibility = JavaVersion.toVersion('11')
+    sourceCompatibility = JavaVersion.toVersion('17')
+    targetCompatibility = JavaVersion.toVersion('17')
 }
 
 run {
@@ -62,6 +62,10 @@ micronaut {
     }
 }
 
+dockerfile {
+    baseImage = "eclipse-temurin:17-jre-alpine"
+}
+
 dockerBuild {
     images = ["michelin/ns4kafka:"+version]
 }
@@ -69,7 +73,6 @@ dockerBuild {
 tasks.withType(JavaCompile) {
     options.fork = true
     options.forkOptions.jvmArgs << '-Dmicronaut.openapi.views.spec=rapidoc.enabled=true'
-
 }
 
 sonarqube {
