@@ -9,8 +9,8 @@ import com.michelin.ns4kafka.services.schema.client.KafkaSchemaRegistryClient;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
-import io.reactivex.Maybe;
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.Single;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,21 +27,12 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SchemaServiceTest {
-    /**
-     * The schema service
-     */
     @InjectMocks
     SchemaService schemaService;
 
-    /**
-     * The schema service
-     */
     @Mock
     AccessControlEntryService accessControlEntryService;
 
-    /**
-     * Kafka schema registry client
-     */
     @Mock
     KafkaSchemaRegistryClient kafkaSchemaRegistryClient;
 

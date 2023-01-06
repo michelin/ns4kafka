@@ -12,12 +12,12 @@ import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStatus;
 import io.micronaut.context.annotation.EachBean;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
-import io.reactivex.Single;
-import io.reactivex.internal.observers.ConsumerSingleObserver;
+import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.internal.observers.ConsumerSingleObserver;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -38,11 +38,6 @@ public class ConnectorAsyncExecutor {
     @Inject
     private ConnectClusterService connectClusterService;
 
-    /**
-     * Constructor
-     * Required to inject multiple
-     * @param kafkaAsyncExecutorConfig The managed clusters config
-     */
     public ConnectorAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
         this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
     }
@@ -62,8 +57,7 @@ public class ConnectorAsyncExecutor {
     private void synchronizeConnectors() {
         List<String> selfDeclaredConnectClusterNames = connectClusterService.findAll()
                 .stream()
-                .map(connectCluster -> connectCluster.getMetadata().getName())
-                .collect(Collectors.toList());
+                .map(connectCluster -> connectCluster.getMetadata().getName()).toList();
 
         Stream.concat(kafkaAsyncExecutorConfig.getConnects().keySet().stream(), selfDeclaredConnectClusterNames.stream())
                         .forEach(this::synchronizeConnectCluster);
@@ -83,7 +77,7 @@ public class ConnectorAsyncExecutor {
 
                     List<Connector> toCreate = ns4kafkaConnectors.stream()
                             .filter(connector -> brokerConnectors.stream().noneMatch(connector1 -> connector1.getMetadata().getName().equals(connector.getMetadata().getName())))
-                            .collect(Collectors.toList());
+                            .toList();
 
                     List<Connector> toUpdate = ns4kafkaConnectors.stream()
                             .filter(connector -> brokerConnectors.stream()
@@ -93,11 +87,11 @@ public class ConnectorAsyncExecutor {
                                         }
                                         return false;
                                     }))
-                            .collect(Collectors.toList());
+                            .toList();
 
                     List<Connector> toDelete = brokerConnectors.stream()
                             .filter(connector -> ns4kafkaConnectors.stream().noneMatch(connector1 -> connector1.getMetadata().getName().equals(connector.getMetadata().getName())))
-                            .collect(Collectors.toList());
+                            .toList();
 
                     if (log.isDebugEnabled()) {
                         toCreate.forEach(connector -> log.debug("Connector to create: " + connector.getMetadata().getName()));

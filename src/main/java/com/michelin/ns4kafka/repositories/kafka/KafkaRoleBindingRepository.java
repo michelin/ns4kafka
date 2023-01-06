@@ -4,10 +4,10 @@ import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
 import io.micronaut.configuration.kafka.annotation.*;
 import io.micronaut.context.annotation.Value;
+import jakarta.inject.Singleton;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-import javax.inject.Singleton;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;

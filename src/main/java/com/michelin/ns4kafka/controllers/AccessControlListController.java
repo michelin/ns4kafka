@@ -14,8 +14,8 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.security.authentication.Authentication;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.inject.Inject;
 
-import javax.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
 import java.util.Comparator;
@@ -30,15 +30,9 @@ import static com.michelin.ns4kafka.services.AccessControlEntryService.PUBLIC_GR
         description = "APIs to handle cross namespace ACL")
 @Controller("/api/namespaces/{namespace}/acls")
 public class AccessControlListController extends NamespacedResourceController {
-    /**
-     * The namespace service
-     */
     @Inject
     NamespaceService namespaceService;
 
-    /**
-     * The ACL service
-     */
     @Inject
     AccessControlEntryService accessControlEntryService;
 
@@ -83,7 +77,6 @@ public class AccessControlListController extends NamespacedResourceController {
                         .sorted(Comparator.comparing(o -> o.getMetadata().getNamespace()))
                         .collect(Collectors.toList());
         }
-
     }
 
     /**

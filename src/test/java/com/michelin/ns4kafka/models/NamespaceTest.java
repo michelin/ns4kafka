@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-public class NamespaceTest {
+class NamespaceTest {
     @Test
     void testEquals() {
         Namespace original = Namespace.builder()

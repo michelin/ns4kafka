@@ -32,33 +32,18 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ConsumerGroupControllerTest {
-    /**
-     * The mocked namespace service
-     */
     @Mock
     NamespaceService namespaceService;
 
-    /**
-     * The mocked consumer group service
-     */
     @Mock
     ConsumerGroupService consumerGroupService;
 
-    /**
-     * The mocked app event publisher
-     */
     @Mock
-    ApplicationEventPublisher applicationEventPublisher;
+    ApplicationEventPublisher<?> applicationEventPublisher;
 
-    /**
-     * The mocked security service
-     */
     @Mock
     SecurityService securityService;
 
-    /**
-     * The mocked consumer group controller
-     */
     @InjectMocks
     ConsumerGroupController consumerGroupController;
 

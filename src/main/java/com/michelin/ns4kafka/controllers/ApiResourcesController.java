@@ -9,12 +9,12 @@ import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecurityRule;
+import jakarta.inject.Inject;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
 import javax.annotation.security.RolesAllowed;
-import javax.inject.Inject;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;

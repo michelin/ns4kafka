@@ -6,9 +6,9 @@ import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.services.executors.AccessControlEntryAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -16,27 +16,16 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class AccessControlEntryService {
-
-    /**
-     * The grantedTo value to define public topics.
-     */
     public static final String PUBLIC_GRANTED_TO = "*";
 
-    /**
-     * The ACL repository
-     */
     @Inject
     AccessControlEntryRepository accessControlEntryRepository;
 
-    /**
-     * The application context
-     */
     @Inject
     ApplicationContext applicationContext;
 
     /**
      * Validate a new ACL
-     *
      * @param accessControlEntry The ACL
      * @param namespace          The namespace
      * @return A list of validation errors

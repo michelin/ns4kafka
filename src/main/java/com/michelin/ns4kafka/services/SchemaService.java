@@ -10,12 +10,12 @@ import com.michelin.ns4kafka.services.schema.client.KafkaSchemaRegistryClient;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaRequest;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
-import io.reactivex.Maybe;
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.Single;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -23,15 +23,9 @@ import java.util.stream.Collectors;
 @Slf4j
 @Singleton
 public class SchemaService {
-    /**
-     * ACLs service
-     */
     @Inject
     AccessControlEntryService accessControlEntryService;
 
-    /**
-     * Schema Registry client
-     */
     @Inject
     KafkaSchemaRegistryClient kafkaSchemaRegistryClient;
 
@@ -43,8 +37,7 @@ public class SchemaService {
     public Single<List<SchemaList>> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace).stream()
                 .filter(acl -> acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
-                .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC)
-                .collect(Collectors.toList());
+                .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC).toList();
 
         return kafkaSchemaRegistryClient
                 .getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())
@@ -53,15 +46,11 @@ public class SchemaService {
                         .filter(subject -> {
                             String underlyingTopicName = subject.replaceAll("(-key|-value)$","");
 
-                            return acls.stream().anyMatch(accessControlEntry -> {
-                                switch (accessControlEntry.getSpec().getResourcePatternType()) {
-                                    case PREFIXED:
-                                        return underlyingTopicName.startsWith(accessControlEntry.getSpec().getResource());
-                                    case LITERAL:
-                                        return underlyingTopicName.equals(accessControlEntry.getSpec().getResource());
-                                }
-
-                                return false;
+                            return acls.stream().anyMatch(accessControlEntry -> switch (accessControlEntry.getSpec().getResourcePatternType()) {
+                                case PREFIXED ->
+                                        underlyingTopicName.startsWith(accessControlEntry.getSpec().getResource());
+                                case LITERAL ->
+                                        underlyingTopicName.equals(accessControlEntry.getSpec().getResource());
                             });
                         })
                         .map(namespacedSubject -> SchemaList.builder()
@@ -85,37 +74,30 @@ public class SchemaService {
     public Maybe<Schema> getLatestSubject(Namespace namespace, String subject) {
         return kafkaSchemaRegistryClient
                 .getLatestSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), subject)
-                .map(Optional::of)
-                .defaultIfEmpty(Optional.empty())
-                .flatMap(latestSubjectOptional -> {
-                    if (latestSubjectOptional.isEmpty()) {
-                        return Maybe.empty();
-                    }
+                .flatMap(latestSubjectOptional -> kafkaSchemaRegistryClient
+                    .getCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), subject)
+                    .map(Optional::of)
+                    .defaultIfEmpty(Optional.empty())
+                    .map(currentCompatibilityOptional -> {
+                        Schema.Compatibility compatibility = currentCompatibilityOptional.isPresent() ? currentCompatibilityOptional.get().compatibilityLevel() : Schema.Compatibility.GLOBAL;
 
-                    return kafkaSchemaRegistryClient
-                            .getCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), subject)
-                            .map(Optional::of)
-                            .defaultIfEmpty(Optional.empty())
-                            .map(currentCompatibilityOptional -> {
-                                Schema.Compatibility compatibility = currentCompatibilityOptional.isPresent() ? currentCompatibilityOptional.get().compatibilityLevel() : Schema.Compatibility.GLOBAL;
-
-                                return Schema.builder()
-                                        .metadata(ObjectMeta.builder()
-                                                .cluster(namespace.getMetadata().getCluster())
-                                                .namespace(namespace.getMetadata().getName())
-                                                .name(latestSubjectOptional.get().subject())
-                                                .build())
-                                        .spec(Schema.SchemaSpec.builder()
-                                                .id(latestSubjectOptional.get().id())
-                                                .version(latestSubjectOptional.get().version())
-                                                .compatibility(compatibility)
-                                                .schema(latestSubjectOptional.get().schema())
-                                                .schemaType(latestSubjectOptional.get().schemaType() == null ? Schema.SchemaType.AVRO :
-                                                        Schema.SchemaType.valueOf(latestSubjectOptional.get().schemaType()))
-                                                .build())
-                                        .build();
-                            });
-                });
+                        return Schema.builder()
+                                .metadata(ObjectMeta.builder()
+                                        .cluster(namespace.getMetadata().getCluster())
+                                        .namespace(namespace.getMetadata().getName())
+                                        .name(latestSubjectOptional.subject())
+                                        .build())
+                                .spec(Schema.SchemaSpec.builder()
+                                        .id(latestSubjectOptional.id())
+                                        .version(latestSubjectOptional.version())
+                                        .compatibility(compatibility)
+                                        .schema(latestSubjectOptional.schema())
+                                        .schemaType(latestSubjectOptional.schemaType() == null ? Schema.SchemaType.AVRO :
+                                                Schema.SchemaType.valueOf(latestSubjectOptional.schemaType()))
+                                        .build())
+                                .build();
+                    })
+                    .toMaybe());
     }
 
     /**
@@ -166,17 +148,17 @@ public class SchemaService {
                         .build())
                 .map(Optional::of)
                 .defaultIfEmpty(Optional.empty())
-                .flatMapSingle(schemaCompatibilityCheckOptional -> {
-                            if (schemaCompatibilityCheckOptional.isEmpty()) {
-                                return Single.just(List.of());
-                            }
+                .map(schemaCompatibilityCheckOptional -> {
+                    if (schemaCompatibilityCheckOptional.isEmpty()) {
+                        return List.of();
+                    }
 
-                            if (!schemaCompatibilityCheckOptional.get().isCompatible()) {
-                                return Single.just(schemaCompatibilityCheckOptional.get().messages());
-                            } 
+                    if (!schemaCompatibilityCheckOptional.get().isCompatible()) {
+                        return schemaCompatibilityCheckOptional.get().messages();
+                    }
 
-                            return Single.just(List.of());
-                        });
+                    return List.of();
+                });
     }
 
     /**

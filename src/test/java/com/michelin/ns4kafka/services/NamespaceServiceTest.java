@@ -19,18 +19,22 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 @ExtendWith(MockitoExtension.class)
-public class NamespaceServiceTest {
-
+class NamespaceServiceTest {
     @Mock
     NamespaceRepository namespaceRepository;
+
     @Mock
     TopicService topicService;
+
     @Mock
     RoleBindingService roleBindingService;
+
     @Mock
     AccessControlEntryService accessControlEntryService;
+
     @Mock
     ConnectorService connectorService;
+
     @Mock
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigList;
 
@@ -39,7 +43,6 @@ public class NamespaceServiceTest {
 
     @Test
     void validationCreationNoClusterFail() {
-
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -193,17 +196,6 @@ public class NamespaceServiceTest {
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")
-                        .build())
-                .build();
-
-        Namespace ns2 = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace2")
-                        .cluster("local")
-                        .build())
-                .spec(NamespaceSpec.builder()
-                        .connectClusters(List.of("local-name"))
-                        .kafkaUser("user2")
                         .build())
                 .build();
 

@@ -9,11 +9,11 @@ import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.security.rules.SecurityRule;
+import jakarta.inject.Inject;
 import lombok.Builder;
 import lombok.Getter;
 
 import javax.annotation.security.RolesAllowed;
-import javax.inject.Inject;
 import javax.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,15 +26,23 @@ import java.util.stream.Collectors;
 @Controller("/akhq-claim")
 public class AkhqClaimProviderController {
     private static final List<String> EMPTY_REGEXP = List.of("^none$");
+
     private static final List<String> ADMIN_REGEXP = List.of(".*");
+
     @Inject
     AkhqClaimProviderControllerConfig config;
+
     @Inject
     AccessControlEntryService accessControlEntryService;
+
     @Inject
     NamespaceService namespaceService;
 
-    // For AKHQ up to 0.19
+    /**
+     * Generate AKHQ claims for AKHQ v0.19 and prior
+     * @param request The AKHQ request
+     * @return The AKHQ claims
+     */
     @Post
     public AKHQClaimResponse generateClaim(@Valid @Body AKHQClaimRequest request) {
         if (request == null) {
@@ -49,11 +57,8 @@ public class AkhqClaimProviderController {
 
         List<AccessControlEntry> relatedACL = namespaceService.listAll()
                 .stream()
-                // keep namespaces with correct label
                 .filter(namespace -> namespace.getMetadata().getLabels() != null &&
-                        groups.contains(namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_"))
-                )
-                // find all ACL associated to these namespaces
+                        groups.contains(namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_")))
                 .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace).stream())
                 .collect(Collectors.toList());
 
@@ -71,7 +76,12 @@ public class AkhqClaimProviderController {
                 )
                 .build();
     }
-    // For AKHQ 0.20.0 and later
+
+    /**
+     * Generate AKHQ claims for AKHQ v0.20 and later
+     * @param request The AKHQ request
+     * @return The AKHQ claims
+     */
     @Post("/v2")
     public AKHQClaimResponseV2 generateClaimV2(@Valid @Body AKHQClaimRequest request) {
         if (request == null) {
@@ -86,11 +96,8 @@ public class AkhqClaimProviderController {
 
         List<AccessControlEntry> relatedACL = namespaceService.listAll()
                 .stream()
-                // keep namespaces with correct label
                 .filter(namespace -> namespace.getMetadata().getLabels() != null &&
-                        groups.contains(namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_"))
-                )
-                // find all ACL associated to these namespaces
+                        groups.contains(namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_")))
                 .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace).stream())
                 .collect(Collectors.toList());
 
@@ -105,6 +112,12 @@ public class AkhqClaimProviderController {
                 .build();
     }
 
+    /**
+     * Compute AKHQ regexes from given ACLs
+     * @param acls The ACLs
+     * @param resourceType The resource type
+     * @return A list of regex
+     */
     public List<String> computeAllowedRegexListForResourceType(List<AccessControlEntry> acls, AccessControlEntry.ResourceType resourceType) {
         List<String> allowedRegex = acls.stream()
                 .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == resourceType)

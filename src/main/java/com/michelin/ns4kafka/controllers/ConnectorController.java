@@ -1,9 +1,9 @@
 package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
+import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.connector.ChangeConnectorState;
 import com.michelin.ns4kafka.models.connector.Connector;
-import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.services.ConnectorService;
 import com.michelin.ns4kafka.services.ResourceQuotaService;
 import com.michelin.ns4kafka.utils.enums.ApplyStatus;
@@ -14,10 +14,10 @@ import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Single;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.inject.Inject;
 
-import javax.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
 import java.util.Date;
@@ -29,20 +29,11 @@ import java.util.stream.Collectors;
 @Controller(value = "/api/namespaces/{namespace}/connectors")
 @ExecuteOn(TaskExecutors.IO)
 public class ConnectorController extends NamespacedResourceController {
-    /**
-     * Message threw when namespace is not owner of the given connector
-     */
     private static final String NAMESPACE_NOT_OWNER = "Namespace not owner of this connector %s.";
 
-    /**
-     * Connector service
-     */
     @Inject
     ConnectorService connectorService;
 
-    /**
-     * The resource quota service
-     */
     @Inject
     ResourceQuotaService resourceQuotaService;
 

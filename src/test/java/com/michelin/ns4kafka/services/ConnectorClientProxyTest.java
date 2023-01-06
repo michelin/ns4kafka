@@ -51,7 +51,7 @@ class ConnectorClientProxyTest {
                 .header("X-Unused", "123");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
@@ -71,7 +71,7 @@ class ConnectorClientProxyTest {
                 .header("X-Proxy-Secret", "123");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
@@ -91,7 +91,7 @@ class ConnectorClientProxyTest {
                 .header("X-Unused", "123");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
@@ -111,7 +111,7 @@ class ConnectorClientProxyTest {
                 .header(ConnectorClientProxy.PROXY_HEADER_KAFKA_CLUSTER, "local");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
@@ -134,7 +134,7 @@ class ConnectorClientProxyTest {
         Mockito.when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.empty());
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
@@ -160,7 +160,7 @@ class ConnectorClientProxyTest {
                 .thenReturn(Stream.of(config));
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
@@ -192,7 +192,7 @@ class ConnectorClientProxyTest {
                 .thenReturn(Publishers.just(HttpResponse.ok()));
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();
@@ -234,7 +234,7 @@ class ConnectorClientProxyTest {
                 .thenReturn("changeitchangeitchangeitchangeit");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitTerminalEvent();

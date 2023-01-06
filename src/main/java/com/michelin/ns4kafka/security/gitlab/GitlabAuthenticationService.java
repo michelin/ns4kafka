@@ -2,24 +2,18 @@ package com.michelin.ns4kafka.security.gitlab;
 
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
-import io.reactivex.Flowable;
-import io.reactivex.Maybe;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.Maybe;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
-import static io.micronaut.http.HttpRequest.GET;
 
 @Slf4j
 @Singleton
 public class GitlabAuthenticationService {
-    /**
-     * The GitLab HTTP client
-     */
     @Inject
     GitlabApiClient gitlabApiClient;
 
@@ -34,7 +28,7 @@ public class GitlabAuthenticationService {
                 response.body()
                         .stream()
                         .map(stringObjectMap -> stringObjectMap.get("full_path").toString())
-                        .collect(Collectors.toList())
+                        .toList()
             )
         );
     }

@@ -12,8 +12,8 @@ import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
-import io.reactivex.Maybe;
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.Single;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,35 +28,20 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SchemaControllerTest {
-    /**
-     * Namespace service
-     */
     @Mock
     NamespaceService namespaceService;
 
-    /**
-     * Schema service
-     */
     @Mock
     SchemaService schemaService;
 
-    /**
-     * Schema controller
-     */
     @InjectMocks
     SchemaController schemaController;
 
-    /**
-     * Security service
-     */
     @Mock
     SecurityService securityService;
 
-    /**
-     * App publisher
-     */
     @Mock
-    ApplicationEventPublisher applicationEventPublisher;
+    ApplicationEventPublisher<?> applicationEventPublisher;
 
     /**
      * Test the schema creation

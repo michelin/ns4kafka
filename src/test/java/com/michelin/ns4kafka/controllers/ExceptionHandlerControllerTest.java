@@ -4,9 +4,9 @@ import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthorizationException;
-import io.micronaut.security.authentication.DefaultAuthentication;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -57,7 +57,7 @@ class ExceptionHandlerControllerTest {
     @Test
     void authorizationForbiddenError() {
         var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local")
-                                                      ,new AuthorizationException(new DefaultAuthentication("user", Map.of())));
+                                                      ,new AuthorizationException(Authentication.build("user", Map.of())));
         var status = response.body();
 
         Assertions.assertEquals(HttpStatus.FORBIDDEN, response.getStatus());
@@ -83,5 +83,4 @@ class ExceptionHandlerControllerTest {
         Assertions.assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
         Assertions.assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.getCode(), status.getCode());
     }
-
 }

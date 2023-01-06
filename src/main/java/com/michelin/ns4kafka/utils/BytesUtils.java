@@ -1,7 +1,5 @@
 package com.michelin.ns4kafka.utils;
 
-import org.apache.commons.lang3.StringUtils;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
@@ -47,24 +45,24 @@ public class BytesUtils {
         long gibibyte = mebibyte * 1024;
 
         if (quota.endsWith(KIBIBYTE)) {
-            return BigDecimal.valueOf(Double.parseDouble(quota.replace(KIBIBYTE, StringUtils.EMPTY)) * kibibyte)
+            return BigDecimal.valueOf(Double.parseDouble(quota.replace(KIBIBYTE, "")) * kibibyte)
                     .setScale(0, RoundingMode.CEILING)
                     .longValue();
         }
 
         if (quota.endsWith(MEBIBYTE)) {
-            return BigDecimal.valueOf(Double.parseDouble(quota.replace(MEBIBYTE, StringUtils.EMPTY)) * mebibyte)
+            return BigDecimal.valueOf(Double.parseDouble(quota.replace(MEBIBYTE, "")) * mebibyte)
                     .setScale(0, RoundingMode.CEILING)
                     .longValue();
         }
 
         if (quota.endsWith(GIBIBYTE)) {
-            return BigDecimal.valueOf(Double.parseDouble(quota.replace(GIBIBYTE, StringUtils.EMPTY)) * gibibyte)
+            return BigDecimal.valueOf(Double.parseDouble(quota.replace(GIBIBYTE, "")) * gibibyte)
                     .setScale(0, RoundingMode.CEILING)
                     .longValue();
         }
 
-        return Long.parseLong(quota.replace(BYTE, StringUtils.EMPTY));
+        return Long.parseLong(quota.replace(BYTE, ""));
     }
 
     private BytesUtils() {}

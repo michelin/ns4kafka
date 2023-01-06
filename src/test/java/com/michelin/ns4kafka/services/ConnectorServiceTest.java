@@ -1,8 +1,11 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.models.*;
-import com.michelin.ns4kafka.models.connector.Connector;
+import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.ConnectCluster;
+import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
+import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import com.michelin.ns4kafka.services.connect.ConnectorClientProxy;
 import com.michelin.ns4kafka.services.connect.client.ConnectorClient;
@@ -15,8 +18,8 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.inject.qualifiers.Qualifiers;
-import io.reactivex.Maybe;
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.Single;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -845,8 +848,6 @@ class ConnectorServiceTest {
                                 .build()
                 ));
 
-        // partial number of topics exists into ns4kfk
-        // all connects exists into ns4kfk
         Mockito.when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1));
 

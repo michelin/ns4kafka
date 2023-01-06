@@ -5,6 +5,8 @@ import io.micronaut.context.ApplicationContext;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.TaskScheduler;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.Config;
@@ -20,8 +22,6 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.TopicExistsException;
 
 import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
@@ -33,9 +33,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
 public abstract class KafkaStore<T> {
-    @Inject ApplicationContext applicationContext;
+    @Inject
+    ApplicationContext applicationContext;
 
-    @Inject AdminClient adminClient;
+    @Inject
+    AdminClient adminClient;
 
     @Inject
     KafkaStoreConfig kafkaStoreConfig;

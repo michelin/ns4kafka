@@ -31,40 +31,21 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ConnectorControllerTest {
-    /**
-     * Connector service
-     */
     @Mock
     ConnectorService connectorService;
 
-    /**
-     * Namespace service
-     */
     @Mock
     NamespaceService namespaceService;
 
-    /**
-     * App service
-     */
     @Mock
-    ApplicationEventPublisher applicationEventPublisher;
+    ApplicationEventPublisher<?> applicationEventPublisher;
 
-    /**
-     * Security service
-     */
     @Mock
     SecurityService securityService;
 
-    /**
-     * Connector controller
-     */
     @InjectMocks
     ConnectorController connectorController;
 
-
-    /**
-     * The mocked resource quota service
-     */
     @Mock
     ResourceQuotaService resourceQuotaService;
 

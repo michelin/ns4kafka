@@ -1,8 +1,8 @@
 package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
-import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsetsResponse;
 import com.michelin.ns4kafka.services.ConsumerGroupService;
 import com.michelin.ns4kafka.utils.enums.ApplyStatus;
@@ -12,21 +12,20 @@ import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.inject.Inject;
 import org.apache.kafka.common.TopicPartition;
 
-import javax.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 @Tag(name = "Consumer Groups")
 @Controller("/api/namespaces/{namespace}/consumer-groups")
 public class ConsumerGroupController extends NamespacedResourceController {
-    /**
-     * The consumer group service
-     */
     @Inject
     ConsumerGroupService consumerGroupService;
 

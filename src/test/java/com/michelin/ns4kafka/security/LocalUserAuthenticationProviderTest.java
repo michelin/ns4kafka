@@ -3,10 +3,10 @@ package com.michelin.ns4kafka.security;
 import com.michelin.ns4kafka.config.SecurityConfig;
 import com.michelin.ns4kafka.security.local.LocalUser;
 import com.michelin.ns4kafka.security.local.LocalUserAuthenticationProvider;
+import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.authentication.AuthenticationResponse;
-import io.micronaut.security.authentication.UserDetails;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
-import io.reactivex.subscribers.TestSubscriber;
+import io.reactivex.rxjava3.subscribers.TestSubscriber;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,13 +18,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Publisher;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @ExtendWith(MockitoExtension.class)
-public class LocalUserAuthenticationProviderTest {
+class LocalUserAuthenticationProviderTest {
     @Mock
     SecurityConfig securityConfig;
+
     @Mock
     ResourceBasedSecurityRule resourceBasedSecurityRule;
+
     @InjectMocks
     LocalUserAuthenticationProvider localUserAuthenticationProvider;
 
@@ -35,18 +38,17 @@ public class LocalUserAuthenticationProviderTest {
         Mockito.when(securityConfig.getLocalUsers())
                 .thenReturn(List.of());
 
-        TestSubscriber<AuthenticationResponse> subscriber = new TestSubscriber();
+        TestSubscriber<AuthenticationResponse> subscriber = new TestSubscriber<>();
         Publisher<AuthenticationResponse> authenticationResponsePublisher = localUserAuthenticationProvider.authenticate(null, credentials);
 
         authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
-
-        //then
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertComplete();
         subscriber.assertNoErrors();
         subscriber.assertValueCount(0);
     }
+
     @Test
     void authenticateMatchUserNoMatchPassword() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
@@ -57,18 +59,17 @@ public class LocalUserAuthenticationProviderTest {
                         .password("invalid_sha256_signature")
                         .build()));
 
-        TestSubscriber<AuthenticationResponse> subscriber = new TestSubscriber();
+        TestSubscriber<AuthenticationResponse> subscriber = new TestSubscriber<>();
         Publisher<AuthenticationResponse> authenticationResponsePublisher = localUserAuthenticationProvider.authenticate(null, credentials);
 
         authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
-
-        //then
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertComplete();
         subscriber.assertNoErrors();
         subscriber.assertValueCount(0);
     }
+
     @Test
     void authenticateMatchUserMatchPassword() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
@@ -82,13 +83,11 @@ public class LocalUserAuthenticationProviderTest {
         Mockito.when(resourceBasedSecurityRule.computeRolesFromGroups(ArgumentMatchers.any()))
                 .thenReturn(List.of());
 
-        TestSubscriber<AuthenticationResponse> subscriber = new TestSubscriber();
+        TestSubscriber<AuthenticationResponse> subscriber = new TestSubscriber<>();
         Publisher<AuthenticationResponse> authenticationResponsePublisher = localUserAuthenticationProvider.authenticate(null, credentials);
 
         authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
-
-        //then
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertComplete();
         subscriber.assertNoErrors();
@@ -96,9 +95,9 @@ public class LocalUserAuthenticationProviderTest {
 
         AuthenticationResponse actual = subscriber.values().get(0);
         Assertions.assertTrue(actual.isAuthenticated());
-        Assertions.assertTrue(actual.getUserDetails().isPresent());
+        Assertions.assertTrue(actual.getAuthentication().isPresent());
 
-        UserDetails actualUserDetails = actual.getUserDetails().get();
-        Assertions.assertEquals("admin", actualUserDetails.getUsername());
+        Authentication actualUserDetails = actual.getAuthentication().get();
+        Assertions.assertEquals("admin", actualUserDetails.getName());
     }
 }

@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.controllers;
 
-
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.RoleBinding;
@@ -13,8 +12,8 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.inject.Inject;
 
-import javax.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
 import java.util.Date;
@@ -25,9 +24,6 @@ import java.util.Optional;
 @Controller(value = "/api/namespaces/{namespace}/role-bindings")
 @ExecuteOn(TaskExecutors.IO)
 public class RoleBindingController extends NamespacedResourceController {
-    /**
-     * The role binding service
-     */
     @Inject
     RoleBindingService roleBindingService;
 

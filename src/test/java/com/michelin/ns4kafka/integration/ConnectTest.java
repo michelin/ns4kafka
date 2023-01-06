@@ -10,7 +10,10 @@ import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.RoleBinding.*;
 import com.michelin.ns4kafka.models.connector.ChangeConnectorState;
 import com.michelin.ns4kafka.models.connector.Connector;
-import com.michelin.ns4kafka.services.connect.client.entities.*;
+import com.michelin.ns4kafka.services.connect.client.entities.ConnectorInfo;
+import com.michelin.ns4kafka.services.connect.client.entities.ConnectorSpecs;
+import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStateInfo;
+import com.michelin.ns4kafka.services.connect.client.entities.ServerInfo;
 import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.ConnectValidator;
@@ -20,15 +23,15 @@ import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.rxjava3.http.client.Rx3HttpClient;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
@@ -38,33 +41,18 @@ import java.util.Map;
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 class ConnectTest extends AbstractIntegrationConnectTest {
-    /**
-     * The HTTP client
-     */
     @Inject
     @Client("/")
-    RxHttpClient client;
+    Rx3HttpClient client;
 
-    /**
-     * The topic async executor list
-     */
     @Inject
     List<TopicAsyncExecutor> topicAsyncExecutorList;
 
-    /**
-     * The connector async executor list
-     */
     @Inject
     List<ConnectorAsyncExecutor> connectorAsyncExecutorList;
 
-    /**
-     * The authentication token
-     */
     private String token;
 
-    /**
-     * Init all integration tests
-     */
     @BeforeAll
     void init() {
         Namespace ns1 = Namespace.builder()
@@ -146,7 +134,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
      */
     @Test
     void createConnect() throws MalformedURLException {
-        RxHttpClient connectCli = RxHttpClient.create(new URL(connect.getUrl()));
+        Rx3HttpClient connectCli = Rx3HttpClient.create(new URL(connect.getUrl()));
         ServerInfo actual = connectCli.retrieve(HttpRequest.GET("/"), ServerInfo.class).blockingFirst();
         Assertions.assertEquals("6.2.0-ccs", actual.version());
     }
@@ -252,7 +240,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
         Thread.sleep(2000);
 
-        RxHttpClient connectCli = RxHttpClient.create(new URL(connect.getUrl()));
+        Rx3HttpClient connectCli = Rx3HttpClient.create(new URL(connect.getUrl()));
         ConnectorInfo actualConnectorWithNullParameter = connectCli.retrieve(HttpRequest.GET("/connectors/ns1-connectorWithNullParameter"), ConnectorInfo.class).blockingFirst();
         ConnectorInfo actualConnectorWithEmptyParameter = connectCli.retrieve(HttpRequest.GET("/connectors/ns1-connectorWithEmptyParameter"), ConnectorInfo.class).blockingFirst();
         ConnectorInfo actualConnectorWithFillParameter = connectCli.retrieve(HttpRequest.GET("/connectors/ns1-connectorWithFillParameter"), ConnectorInfo.class).blockingFirst();
@@ -317,7 +305,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                         .build())
                 .build();
 
-        RxHttpClient connectCli = RxHttpClient.create(new URL(connect.getUrl()));
+        Rx3HttpClient connectCli = Rx3HttpClient.create(new URL(connect.getUrl()));
         HttpResponse<ConnectorInfo> connectorInfo = connectCli.exchange(HttpRequest.PUT("/connectors/ns1-connector/config", connectorSpecs), ConnectorInfo.class).blockingFirst();
 
         // "File" property is present and fill
@@ -394,9 +382,8 @@ class ConnectTest extends AbstractIntegrationConnectTest {
      * @throws InterruptedException Any interrupted exception
      */
     @Test
-    void PauseAndResumeConnector() throws MalformedURLException, InterruptedException {
-
-        RxHttpClient connectCli = RxHttpClient.create(new URL(connect.getUrl()));
+    void pauseAndResumeConnector() throws MalformedURLException, InterruptedException {
+        Rx3HttpClient connectCli = Rx3HttpClient.create(new URL(connect.getUrl()));
         Topic to = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-to1")

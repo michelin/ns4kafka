@@ -3,10 +3,10 @@ package com.michelin.ns4kafka.services.executors;
 import io.micronaut.runtime.event.ApplicationStartupEvent;
 import io.micronaut.runtime.event.annotation.EventListener;
 import io.micronaut.scheduling.annotation.Scheduled;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -14,33 +14,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j
 @Singleton
 public class KafkaAsyncExecutorScheduler {
-    /**
-     * The topic async executor
-     */
     @Inject
     List<TopicAsyncExecutor> topicAsyncExecutors;
 
-    /**
-     * The ACL async executor
-     */
     @Inject
     List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutors;
 
-    /**
-     * The connector async executor
-     */
     @Inject
     List<ConnectorAsyncExecutor> connectorAsyncExecutors;
 
-    /**
-     * The user async executor
-     */
     @Inject
     List<UserAsyncExecutor> userAsyncExecutors;
 
-    /**
-     * Is the application ready
-     */
     private final AtomicBoolean ready = new AtomicBoolean(false);
 
     /**

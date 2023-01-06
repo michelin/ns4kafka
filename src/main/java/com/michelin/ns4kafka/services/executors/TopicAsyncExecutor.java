@@ -6,13 +6,13 @@ import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
 import io.micronaut.context.annotation.EachBean;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.ConfigResource;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.net.MalformedURLException;
 import java.time.Instant;
 import java.util.*;
@@ -32,7 +32,6 @@ public class TopicAsyncExecutor {
     @Inject
     TopicRepository topicRepository;
 
-
     public TopicAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) throws MalformedURLException {
         this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
     }
@@ -41,17 +40,16 @@ public class TopicAsyncExecutor {
         return kafkaAsyncExecutorConfig.getAdminClient();
     }
 
-    //TODO abstract synchronization process to handle different Kafka "models"
-    // ie : cloud API vs AdminClient
+    /**
+     * Start topic synchronization
+     */
     public void run(){
-
-        // execute topic changes
         if(this.kafkaAsyncExecutorConfig.isManageTopics()) {
             synchronizeTopics();
         }
     }
-    /**** TOPICS MANAGEMENT ***/
-    public void synchronizeTopics(){
+
+    public void synchronizeTopics() {
         log.debug("Starting topic collection for cluster {}",kafkaAsyncExecutorConfig.getName());
         try {
             // List topics from broker
@@ -67,7 +65,7 @@ public class TopicAsyncExecutor {
             List<Topic> toDelete = brokerTopicList.values()
                     .stream()
                     .filter(topic -> ns4kafkaTopicList.stream().noneMatch(topic1 -> topic1.getMetadata().getName().equals(topic.getMetadata().getName())))
-                    .collect(Collectors.toList());
+                    .toList();
 
             List<Topic> toCheckConf = ns4kafkaTopicList.stream()
                     .filter(topic -> brokerTopicList.containsKey(topic.getMetadata().getName()))
@@ -83,7 +81,7 @@ public class TopicAsyncExecutor {
                         }
                         return null;
                     })
-                    .filter(Objects::nonNull) //TODO can we avoid this filter ?
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
             if(log.isDebugEnabled()){
@@ -146,7 +144,7 @@ public class TopicAsyncExecutor {
                 .get(30, TimeUnit.SECONDS)
                 .stream()
                 .map(TopicListing::name)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public Map<String, Topic> collectBrokerTopicsFromNames(List<String> topicNames) throws InterruptedException, ExecutionException, TimeoutException {
@@ -156,8 +154,7 @@ public class TopicAsyncExecutor {
         return getAdminClient()
                 .describeConfigs(topicNames.stream()
                         .map(s -> new ConfigResource(ConfigResource.Type.TOPIC, s))
-                        .collect(Collectors.toList())
-                )
+                        .toList())
                 .all()
                 .get(30, TimeUnit.SECONDS)
                 .entrySet()
@@ -189,7 +186,6 @@ public class TopicAsyncExecutor {
     private void alterTopics(Map<ConfigResource, Collection<AlterConfigOp>> toUpdate, List<Topic> topics) {
         AlterConfigsResult alterConfigsResult = getAdminClient().incrementalAlterConfigs(toUpdate);
         alterConfigsResult.values().entrySet()
-                .stream()
                 .forEach(mapEntry -> {
                     Topic updatedTopic = topics.stream().filter(t -> t.getMetadata().getName().equals(mapEntry.getKey().name())).findFirst().get();
                     try {
@@ -212,6 +208,7 @@ public class TopicAsyncExecutor {
                     topicRepository.create(updatedTopic);
                 });
     }
+
     private void createTopics(List<Topic> topics) {
         List<NewTopic> newTopics = topics.stream()
                 .map(topic -> {
@@ -224,7 +221,6 @@ public class TopicAsyncExecutor {
                 .collect(Collectors.toList());
         CreateTopicsResult createTopicsResult = getAdminClient().createTopics(newTopics);
         createTopicsResult.values().entrySet()
-                .stream()
                 .forEach(mapEntry -> {
                     Topic createdTopic = topics.stream().filter(t -> t.getMetadata().getName().equals(mapEntry.getKey())).findFirst().get();
                     try {
@@ -249,12 +245,14 @@ public class TopicAsyncExecutor {
                 .stream()
                 .filter(expectedEntry -> !actual.containsKey(expectedEntry.getKey()))
                 .map(expectedEntry -> new AlterConfigOp(new ConfigEntry(expectedEntry.getKey(),expectedEntry.getValue()), AlterConfigOp.OpType.SET))
-                .collect(Collectors.toList());
+                .toList();
+
         List<AlterConfigOp> toDelete = actual.entrySet()
                 .stream()
                 .filter(actualEntry -> !expected.containsKey(actualEntry.getKey()))
                 .map(expectedEntry -> new AlterConfigOp(new ConfigEntry(expectedEntry.getKey(),expectedEntry.getValue()), AlterConfigOp.OpType.DELETE))
-                .collect(Collectors.toList());
+                .toList();
+
         List<AlterConfigOp> toChange = expected.entrySet()
                 .stream()
                 .filter(expectedEntry -> {
@@ -266,7 +264,7 @@ public class TopicAsyncExecutor {
                     return false;
                 })
                 .map(expectedEntry -> new AlterConfigOp(new ConfigEntry(expectedEntry.getKey(),expectedEntry.getValue()), AlterConfigOp.OpType.SET))
-                .collect(Collectors.toList());
+                .toList();
 
         List<AlterConfigOp> total = new ArrayList<>();
         total.addAll(toCreate);

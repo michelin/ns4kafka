@@ -2,12 +2,8 @@ package com.michelin.ns4kafka.controllers.generic;
 
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.services.NamespaceService;
+import jakarta.inject.Inject;
 
-import javax.inject.Inject;
-
-/**
- * Base Controller for all Namespaced resources
- */
 public abstract class NamespacedResourceController extends ResourceController {
     @Inject
     private NamespaceService namespaceService;

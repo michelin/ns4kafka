@@ -5,7 +5,7 @@ import com.michelin.ns4kafka.validation.ResourceValidator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class ResourceValidatorTest {
+class ResourceValidatorTest {
     @Test
     void testNonEmptyString() {
         ResourceValidator.Validator original = new ResourceValidator.NonEmptyString();

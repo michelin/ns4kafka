@@ -12,24 +12,12 @@ import java.util.Map;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AbstractIntegrationTest implements TestPropertyProvider {
-    /**
-     * The Confluent Platform version for the broker image
-     */
     public static final String CONFLUENT_VERSION = "6.2.0";
 
-    /**
-     * Container for Kafka broker
-     */
     public KafkaContainer kafka;
 
-    /**
-     * Container network
-     */
     public Network network;
 
-    /**
-     * Kafka admin client
-     */
     private Admin adminClient;
 
     /**

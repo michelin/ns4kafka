@@ -1,7 +1,10 @@
 package com.michelin.ns4kafka.integration;
 
 import com.michelin.ns4kafka.integration.TopicTest.BearerAccessRefreshToken;
-import com.michelin.ns4kafka.models.*;
+import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.models.schema.Schema;
 import com.michelin.ns4kafka.models.schema.SchemaCompatibilityState;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
@@ -12,16 +15,16 @@ import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.HttpClient;
-import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import io.micronaut.rxjava3.http.client.Rx3HttpClient;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
@@ -30,21 +33,12 @@ import java.util.Map;
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
-    /**
-     * The HTTP client
-     */
     @Inject
     @Client("/")
-    RxHttpClient client;
+    Rx3HttpClient client;
 
-    /**
-     * The Schema Registry client
-     */
     HttpClient schemaClient;
 
-    /**
-     * The authentication token
-     */
     private String token;
 
     /**

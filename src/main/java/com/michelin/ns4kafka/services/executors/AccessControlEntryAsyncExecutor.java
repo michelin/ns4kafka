@@ -10,6 +10,8 @@ import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.ConnectorService;
 import com.michelin.ns4kafka.services.StreamService;
 import io.micronaut.context.annotation.EachBean;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.acl.AclBinding;
@@ -20,8 +22,6 @@ import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.resource.ResourceType;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -37,40 +37,20 @@ import static com.michelin.ns4kafka.services.AccessControlEntryService.PUBLIC_GR
 @EachBean(KafkaAsyncExecutorConfig.class)
 @Singleton
 public class AccessControlEntryAsyncExecutor {
-    /**
-     * The managed clusters configuration
-     */
     private final KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
 
-    /**
-     * The ACL service
-     */
     @Inject
     AccessControlEntryService accessControlEntryService;
 
-    /**
-     * The Kafka Streams Service
-     */
     @Inject
     StreamService streamService;
 
-    /**
-     * The Kafka Connect service
-     */
     @Inject
     ConnectorService connectorService;
 
-    /**
-     * The namespace repository
-     */
     @Inject
     NamespaceRepository namespaceRepository;
 
-    /**
-     * Constructor
-     *
-     * @param kafkaAsyncExecutorConfig The managed clusters configuration
-     */
     public AccessControlEntryAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
         this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
     }

@@ -14,11 +14,11 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
-import io.reactivex.Maybe;
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.Single;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.inject.Inject;
 
-import javax.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
 import java.util.Date;
@@ -29,9 +29,6 @@ import java.util.Optional;
 @Controller(value = "/api/namespaces/{namespace}/schemas")
 @ExecuteOn(TaskExecutors.IO)
 public class SchemaController extends NamespacedResourceController {
-    /**
-     * The schema service
-     */
     @Inject
     SchemaService schemaService;
 
@@ -103,7 +100,7 @@ public class SchemaController extends NamespacedResourceController {
                             .getLatestSubject(ns, schema.getMetadata().getName())
                             .map(Optional::of)
                             .defaultIfEmpty(Optional.empty())
-                            .flatMapSingle(latestSubjectOptional -> schemaService
+                            .flatMap(latestSubjectOptional -> schemaService
                                     .register(ns, schema)
                                     .map(id -> {
                                         ApplyStatus status;
@@ -150,7 +147,7 @@ public class SchemaController extends NamespacedResourceController {
        return schemaService.getLatestSubject(ns, subject)
                .map(Optional::of)
                .defaultIfEmpty(Optional.empty())
-               .flatMapSingle(latestSubjectOptional -> {
+               .flatMap(latestSubjectOptional -> {
                    if (latestSubjectOptional.isEmpty()) {
                        return Single.just(HttpResponse.notFound());
                    }
@@ -191,7 +188,7 @@ public class SchemaController extends NamespacedResourceController {
         return schemaService.getLatestSubject(ns, subject)
                 .map(Optional::of)
                 .defaultIfEmpty(Optional.empty())
-                .flatMapSingle(latestSubjectOptional -> {
+                .flatMap(latestSubjectOptional -> {
                     if (latestSubjectOptional.isEmpty()) {
                         return Single.just(HttpResponse.notFound());
                     }

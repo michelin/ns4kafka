@@ -1,18 +1,18 @@
 package com.michelin.ns4kafka.services;
 
+import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.TopicRepository;
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import org.apache.kafka.clients.admin.RecordsToDelete;
 import org.apache.kafka.common.TopicPartition;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -22,27 +22,15 @@ import static org.apache.kafka.common.config.TopicConfig.*;
 
 @Singleton
 public class TopicService {
-    /**
-     * The topic repository
-     */
     @Inject
     TopicRepository topicRepository;
 
-    /**
-     * The ACL service
-     */
     @Inject
     AccessControlEntryService accessControlEntryService;
 
-    /**
-     * The application context
-     */
     @Inject
     ApplicationContext applicationContext;
 
-    /**
-     * The managed cluster config
-     */
     @Inject
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfig;
 

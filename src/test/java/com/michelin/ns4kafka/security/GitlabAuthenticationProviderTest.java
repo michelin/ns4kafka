@@ -9,8 +9,8 @@ import com.michelin.ns4kafka.services.RoleBindingService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.*;
-import io.reactivex.Flowable;
-import io.reactivex.Maybe;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.subscribers.TestSubscriber;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -26,33 +26,18 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class GitlabAuthenticationProviderTest {
-    /**
-     * The mocked GitLab authentication service
-     */
     @Mock
     GitlabAuthenticationService gitlabAuthenticationService;
 
-    /**
-     * The mocked resource security service
-     */
     @Mock
     ResourceBasedSecurityRule resourceBasedSecurityRule;
 
-    /**
-     * The role binding service
-     */
     @Mock
     RoleBindingService roleBindingService;
 
-    /**
-     * The NS4Kafka security config service
-     */
     @Mock
     SecurityConfig securityConfig;
 
-    /**
-     * The mocked Gitlab authentication provider
-     */
     @InjectMocks
     GitlabAuthenticationProvider gitlabAuthenticationProvider;
 
@@ -98,13 +83,12 @@ class GitlabAuthenticationProviderTest {
 
         AuthenticationResponse actual = subscriber.values().get(0);
         Assertions.assertTrue(actual.isAuthenticated());
-        Assertions.assertTrue(actual.getUserDetails().isPresent());
+        Assertions.assertTrue(actual.getAuthentication().isPresent());
 
-        UserDetails actualUserDetails = actual.getUserDetails().get();
-        Assertions.assertEquals("email", actualUserDetails.getUsername());
-        Assertions.assertIterableEquals(groups, (List<String>)actualUserDetails.getAttributes("roles","username").get( "groups"));
+        Authentication actualUserDetails = actual.getAuthentication().get();
+        Assertions.assertEquals("email", actualUserDetails.getName());
+        Assertions.assertIterableEquals(groups, (List<String>) actualUserDetails.getAttributes().get( "groups"));
         Assertions.assertIterableEquals(List.of(), actualUserDetails.getRoles(),"User has no custom roles");
-
     }
 
     /**
@@ -138,11 +122,11 @@ class GitlabAuthenticationProviderTest {
 
         AuthenticationResponse actual = subscriber.values().get(0);
         Assertions.assertTrue(actual.isAuthenticated());
-        Assertions.assertTrue(actual.getUserDetails().isPresent());
+        Assertions.assertTrue(actual.getAuthentication().isPresent());
 
-        UserDetails actualUserDetails = actual.getUserDetails().get();
-        Assertions.assertEquals("email", actualUserDetails.getUsername());
-        Assertions.assertIterableEquals(groups, (List<String>)actualUserDetails.getAttributes("roles","username").get("groups"));
+        Authentication  actualUserDetails = actual.getAuthentication().get();
+        Assertions.assertEquals("email", actualUserDetails.getName());
+        Assertions.assertIterableEquals(groups, (List<String>) actualUserDetails.getAttributes().get("groups"));
         Assertions.assertIterableEquals(List.of(ResourceBasedSecurityRule.IS_ADMIN), actualUserDetails.getRoles(),"User has custom roles");
     }
 

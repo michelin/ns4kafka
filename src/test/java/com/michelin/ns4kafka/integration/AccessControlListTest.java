@@ -15,10 +15,11 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.rxjava3.http.client.Rx3HttpClient;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import jakarta.inject.Inject;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.acl.*;
 import org.apache.kafka.common.resource.PatternType;
@@ -28,7 +29,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -37,22 +37,13 @@ import java.util.concurrent.ExecutionException;
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 class AccessControlListTest extends AbstractIntegrationTest {
-    /**
-     * The HTTP client
-     */
     @Inject
     @Client("/")
-    RxHttpClient client;
+    Rx3HttpClient client;
 
-    /**
-     * The ACL executors
-     */
     @Inject
     List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutorList;
 
-    /**
-     * The authentication token
-     */
     private String token;
 
     /**

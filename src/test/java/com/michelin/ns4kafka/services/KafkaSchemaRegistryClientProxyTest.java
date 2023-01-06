@@ -25,21 +25,12 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class KafkaSchemaRegistryClientProxyTest {
-    /**
-     * HTTP client
-     */
     @Mock
     ProxyHttpClient client;
 
-    /**
-     * Managed clusters configuration
-     */
     @Mock
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigs;
 
-    /**
-     * Kafka schema registry client proxy
-     */
     @InjectMocks
     KafkaSchemaRegistryClientProxy proxy;
 
@@ -52,7 +43,7 @@ class KafkaSchemaRegistryClientProxyTest {
                 .GET("http://localhost/schema-registry-proxy/noHeader");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitDone(1L, TimeUnit.SECONDS);
@@ -71,7 +62,7 @@ class KafkaSchemaRegistryClientProxyTest {
                 .header(KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET, "123");
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitDone(1L, TimeUnit.SECONDS);
@@ -90,7 +81,7 @@ class KafkaSchemaRegistryClientProxyTest {
                 .header(KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET, KafkaSchemaRegistryClientProxy.PROXY_SECRET);
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitDone(1L, TimeUnit.SECONDS);
@@ -112,7 +103,7 @@ class KafkaSchemaRegistryClientProxyTest {
         when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.empty());
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitDone(1L, TimeUnit.SECONDS);
@@ -133,7 +124,7 @@ class KafkaSchemaRegistryClientProxyTest {
         when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local")));
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitDone(1L, TimeUnit.SECONDS);
@@ -162,7 +153,7 @@ class KafkaSchemaRegistryClientProxyTest {
                 .thenReturn(just(HttpResponse.ok()));
 
         TestSubscriber<MutableHttpResponse<?>> subscriber = new TestSubscriber<>();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilterOnce(request, null);
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = proxy.doFilter(request, null);
 
         mutableHttpResponsePublisher.subscribe(subscriber);
         subscriber.awaitDone(1L, TimeUnit.SECONDS);
@@ -219,7 +210,7 @@ class KafkaSchemaRegistryClientProxyTest {
      * Implementation of a mutable HTTP request for tests
      * @param <B>
      */
-    public class MutableSimpleHttpRequest<B> extends SimpleHttpRequest<B> {
+    public static class MutableSimpleHttpRequest<B> extends SimpleHttpRequest<B> {
 
         @Override
         public MutableHttpRequest<B> mutate() {
