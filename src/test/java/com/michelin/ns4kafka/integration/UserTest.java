@@ -98,7 +98,7 @@ public class UserTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void updateUserFail_NotMatching() throws ExecutionException, InterruptedException {
+    void updateUserFail_NotMatching() {
         HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class, () -> client.retrieve(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/users/user2/reset-password").bearerAuth(token), KafkaUserResetPassword.class).blockingFirst());
 
         Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());

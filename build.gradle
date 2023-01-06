@@ -29,7 +29,8 @@ dependencies {
     implementation("io.micronaut.rxjava3:micronaut-rxjava3")
     implementation("io.micronaut.rxjava3:micronaut-rxjava3-http-client")
     implementation("io.micronaut.openapi:micronaut-openapi")
-    implementation("org.projectlombok:lombok")
+
+    compileOnly("org.projectlombok:lombok")
 
     runtimeOnly("ch.qos.logback:logback-classic")
 
@@ -39,10 +40,8 @@ dependencies {
     testImplementation("org.mockito:mockito-junit-jupiter:4.11.0")
     testImplementation("org.testcontainers:kafka:1.17.6")
 
-    //testImplementation ''
-    //testImplementation "org.testcontainers:junit-jupiter"
-    //testImplementation 'org.mockito:mockito-inline:3.7.7'
-    //
+    testAnnotationProcessor("org.projectlombok:lombok")
+    testCompileOnly("org.projectlombok:lombok")
 }
 
 application {
