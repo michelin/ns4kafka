@@ -12,4 +12,4 @@ out/
 .settings
 .classpath
 .factorypath
-
+src/main/resources/application-*.yml

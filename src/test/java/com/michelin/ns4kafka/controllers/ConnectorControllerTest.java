@@ -1,9 +1,9 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.models.connector.ChangeConnectorState;
-import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.connector.ChangeConnectorState;
+import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.ConnectorService;
 import com.michelin.ns4kafka.services.NamespaceService;
@@ -14,7 +14,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.utils.SecurityService;
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Single;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
