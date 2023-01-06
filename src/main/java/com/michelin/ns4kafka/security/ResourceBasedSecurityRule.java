@@ -39,22 +39,25 @@ public class ResourceBasedSecurityRule implements SecurityRule {
     @Inject
     NamespaceRepository namespaceRepository;
 
+    @Override
+    public Publisher<SecurityRuleResult> check(HttpRequest<?> request, RouteMatch<?> routeMatch, Authentication authentication) {
+        return Publishers.just(checkSecurity(request, authentication));
+    }
+
     /**
      * Check a user can access a given URL
      * @param request The current request
-     * @param routeMatch The matched route or empty if no route was matched. e.g. static resource.
-     * @param claims The claims from the token. Null if not authenticated
+     * @param authentication The claims from the token
      * @return A security rule allowing the user or not
      */
-    @Override
-    public Publisher<SecurityRuleResult> check(HttpRequest<?> request, @Nullable RouteMatch<?> routeMatch, @Nullable Authentication authentication) {
+    public SecurityRuleResult checkSecurity(HttpRequest<?> request, @Nullable Authentication authentication) {
         if (authentication == null) {
-            return Publishers.just(SecurityRuleResult.UNKNOWN);
+            return SecurityRuleResult.UNKNOWN;
         }
 
         if (!authentication.getAttributes().keySet().containsAll( List.of("groups", "sub", "roles"))) {
             log.debug("No authentication available for path [{}]. Returning unknown.",request.getPath());
-            return Publishers.just(SecurityRuleResult.UNKNOWN);
+            return SecurityRuleResult.UNKNOWN;
         }
 
         String sub = authentication.getName();
@@ -65,7 +68,7 @@ public class ResourceBasedSecurityRule implements SecurityRule {
         Matcher matcher = namespacedResourcePattern.matcher(request.getPath());
         if (!matcher.find()) {
             log.debug("Invalid namespaced resource for path [{}]. Returning unknown.",request.getPath());
-            return Publishers.just(SecurityRuleResult.UNKNOWN);
+            return SecurityRuleResult.UNKNOWN;
         }
 
         String namespace = matcher.group("namespace");
@@ -82,13 +85,13 @@ public class ResourceBasedSecurityRule implements SecurityRule {
         // Namespace doesn't exist
         if (namespaceRepository.findByName(namespace).isEmpty()) {
             log.debug("Namespace not found for user [{}] on path [{}]. Returning unknown.",sub,request.getPath());
-            return Publishers.just(SecurityRuleResult.UNKNOWN);
+            return SecurityRuleResult.UNKNOWN;
         }
 
         // Admin are allowed everything (provided that the namespace exists)
         if (roles.contains(IS_ADMIN)) {
             log.debug("Authorized admin user [{}] on path [{}]. Returning ALLOWED.",sub,request.getPath());
-            return Publishers.just(SecurityRuleResult.ALLOWED);
+            return SecurityRuleResult.ALLOWED;
         }
 
         // Collect all roleBindings for this user
@@ -106,7 +109,7 @@ public class ResourceBasedSecurityRule implements SecurityRule {
         // User not authorized to access requested resource
         if (authorizedRoleBindings.isEmpty()) {
             log.debug("No matching RoleBinding for user [{}] on path [{}]. Returning unknown.",sub,request.getPath());
-            return Publishers.just(SecurityRuleResult.UNKNOWN);
+            return SecurityRuleResult.UNKNOWN;
         }
 
         if (log.isDebugEnabled()) {
@@ -114,7 +117,7 @@ public class ResourceBasedSecurityRule implements SecurityRule {
             log.debug("Authorized user [{}] on path [{}]",sub,request.getPath());
         }
 
-        return Publishers.just(SecurityRuleResult.ALLOWED);
+        return SecurityRuleResult.ALLOWED;
     }
 
     @Override
