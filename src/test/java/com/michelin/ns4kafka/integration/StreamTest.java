@@ -36,7 +36,7 @@ import java.util.concurrent.ExecutionException;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
-public class StreamTest extends AbstractIntegrationTest {
+class StreamTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
     Rx3HttpClient client;
