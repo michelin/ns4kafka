@@ -11,7 +11,7 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.*;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Maybe;
-import io.reactivex.subscribers.TestSubscriber;
+import io.reactivex.rxjava3.subscribers.TestSubscriber;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Publisher;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.when;
 
@@ -75,7 +76,7 @@ class GitlabAuthenticationProviderTest {
         TestSubscriber<AuthenticationResponse> subscriber = new TestSubscriber<>();
         Publisher<AuthenticationResponse> authenticationResponsePublisher = gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
         authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertComplete();
         subscriber.assertNoErrors();
@@ -114,7 +115,7 @@ class GitlabAuthenticationProviderTest {
         Publisher<AuthenticationResponse> authenticationResponsePublisher = gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
 
         authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertComplete();
         subscriber.assertNoErrors();
@@ -144,7 +145,7 @@ class GitlabAuthenticationProviderTest {
         Publisher<AuthenticationResponse> authenticationResponsePublisher = gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
 
         authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertError(AuthenticationException.class);
         subscriber.assertValueCount(0);
@@ -171,7 +172,7 @@ class GitlabAuthenticationProviderTest {
         Publisher<AuthenticationResponse> authenticationResponsePublisher = gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
 
         authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitTerminalEvent();
+        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
         subscriber.assertError(AuthenticationException.class);
         subscriber.assertValueCount(0);
