@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.integration;
 
 import com.michelin.ns4kafka.testcontainers.KafkaConnectContainer;
+import io.micronaut.core.annotation.NonNull;
 import org.junit.jupiter.api.TestInstance;
 import org.testcontainers.utility.DockerImageName;
 
@@ -11,14 +12,15 @@ import java.util.Map;
 public abstract class AbstractIntegrationConnectTest extends AbstractIntegrationTest {
     public KafkaConnectContainer connect;
 
+    /**
+     * Starts the Kafka Connect container
+     * @return Properties enriched with the Kafka Connect URL
+     */
+    @NonNull
     @Override
     public Map<String, String> getProperties() {
-        Map<String, String> properties = new HashMap<>();
         Map<String, String> brokerProps = super.getProperties();
-
         if (connect == null || !connect.isRunning()) {
-            //registry = new SchemaRegistryContainer(DockerImageName.parse("confluentinc/cp-schema-registry:" + CONFLUENT_VERSION), "kafka:9092");
-            //registry.start();
             connect = new KafkaConnectContainer(DockerImageName.parse("confluentinc/cp-kafka-connect:" + CONFLUENT_VERSION),
                     "kafka:9092")
                     .withEnv("CONNECT_SASL_MECHANISM", "PLAIN")
@@ -27,7 +29,8 @@ public abstract class AbstractIntegrationConnectTest extends AbstractIntegration
                     .withNetwork(network);
             connect.start();
         }
-        properties.putAll(brokerProps);
+
+        Map<String, String> properties = new HashMap<>(brokerProps);
         properties.put("ns4kafka.managed-clusters.test-cluster.connects.test-connect.url", connect.getUrl());
         return properties;
     }

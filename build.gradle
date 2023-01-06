@@ -63,6 +63,9 @@ micronaut {
         incremental(true)
         annotations("com.michelin.ns4kafka.*")
     }
+    testResources {
+        sharedServer = true
+    }
 }
 
 dockerfile {

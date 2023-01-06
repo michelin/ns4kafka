@@ -68,7 +68,7 @@ public class ResourceBasedSecurityRule implements SecurityRule {
         Matcher matcher = namespacedResourcePattern.matcher(request.getPath());
         if (!matcher.find()) {
             log.debug("Invalid namespaced resource for path [{}]. Returning unknown.",request.getPath());
-            return SecurityRuleResult.UNKNOWN;
+            return Publishers.just(SecurityRuleResult.UNKNOWN);
         }
 
         String namespace = matcher.group("namespace");
@@ -85,13 +85,13 @@ public class ResourceBasedSecurityRule implements SecurityRule {
         // Namespace doesn't exist
         if (namespaceRepository.findByName(namespace).isEmpty()) {
             log.debug("Namespace not found for user [{}] on path [{}]. Returning unknown.",sub,request.getPath());
-            return SecurityRuleResult.UNKNOWN;
+            return Publishers.just(SecurityRuleResult.UNKNOWN);
         }
 
         // Admin are allowed everything (provided that the namespace exists)
         if (roles.contains(IS_ADMIN)) {
             log.debug("Authorized admin user [{}] on path [{}]. Returning ALLOWED.",sub,request.getPath());
-            return SecurityRuleResult.ALLOWED;
+            return Publishers.just(SecurityRuleResult.ALLOWED);
         }
 
         // Collect all roleBindings for this user
@@ -109,7 +109,7 @@ public class ResourceBasedSecurityRule implements SecurityRule {
         // User not authorized to access requested resource
         if (authorizedRoleBindings.isEmpty()) {
             log.debug("No matching RoleBinding for user [{}] on path [{}]. Returning unknown.",sub,request.getPath());
-            return SecurityRuleResult.UNKNOWN;
+            return Publishers.just(SecurityRuleResult.UNKNOWN);
         }
 
         if (log.isDebugEnabled()) {
