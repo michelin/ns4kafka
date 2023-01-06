@@ -1,3 +1,5 @@
+rootProject.name="ns4kafka"
+
 buildscript {
     repositories {
         maven {
@@ -11,6 +13,3 @@ buildscript {
 
 apply plugin: 'io.alcide.gradle-semantic-build-versioning'
 
-rootProject.name="ns4kafka"
-include 'cli'
-include 'api'
