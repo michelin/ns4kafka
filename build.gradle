@@ -4,8 +4,72 @@ plugins {
     id 'jacoco'
     id "org.sonarqube" version "3.1.1"
 }
-subprojects {
-    version = rootProject.version
+
+group = "com.michelin.ns4kafka"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compileOnly 'org.projectlombok:lombok:1.18.20'
+    annotationProcessor 'org.projectlombok:lombok:1.18.20'
+    annotationProcessor("io.micronaut.openapi:micronaut-openapi")
+    annotationProcessor("io.micronaut:micronaut-management")
+    annotationProcessor("io.micronaut.security:micronaut-security-annotations")
+    annotationProcessor("io.swagger.core.v3:swagger-annotations")
+
+    implementation("io.micronaut:micronaut-validation")
+    implementation("io.micronaut:micronaut-runtime")
+    implementation("javax.annotation:javax.annotation-api")
+    implementation("io.micronaut:micronaut-http-client")
+    implementation("io.micronaut.openapi:micronaut-openapi")
+    implementation("io.micronaut.security:micronaut-security")
+    implementation("io.micronaut.security:micronaut-security-jwt")
+    implementation("io.micronaut.security:micronaut-security-ldap")
+    implementation("io.micronaut.kafka:micronaut-kafka")
+
+    runtimeOnly("ch.qos.logback:logback-classic")
+
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.20'
+    testCompileOnly 'org.projectlombok:lombok:1.18.16'
+
+    testImplementation 'org.testcontainers:kafka:1.15.3'
+    testImplementation "org.testcontainers:junit-jupiter"
+    testImplementation 'org.mockito:mockito-inline:3.7.7'
+    testImplementation 'org.mockito:mockito-junit-jupiter:3.7.7'
+}
+
+application {
+    mainClass.set( "com.michelin.ns4kafka.Application")
+}
+
+java {
+    sourceCompatibility = JavaVersion.toVersion('11')
+    targetCompatibility = JavaVersion.toVersion('11')
+}
+
+run {
+    //environment( "MICRONAUT_ENVIRONMENTS","dev")
+}
+
+micronaut {
+    runtime("netty")
+    testRuntime("junit5")
+    processing {
+        incremental(true)
+        annotations("com.michelin.ns4kafka.*")
+    }
+}
+
+dockerBuild {
+    images = ["michelin/ns4kafka:"+version]
+}
+
+tasks.withType(JavaCompile) {
+    options.fork = true
+    options.forkOptions.jvmArgs << '-Dmicronaut.openapi.views.spec=rapidoc.enabled=true'
+
 }
 
 sonarqube {
@@ -16,10 +80,17 @@ sonarqube {
   }
 }
 
-application{
-    mainClass.set( "com.michelin.ns4kafka.Application")
+jacocoTestReport {
+    dependsOn test
+    reports {
+        html.enabled true
+        xml.enabled true
+    }
 }
 
-repositories {
-    mavenCentral()
+test {
+    reports {
+        html.enabled false
+    }
 }
+

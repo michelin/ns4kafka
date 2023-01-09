@@ -1,19 +1,26 @@
 {
   "categories": [
     {
-      "title": "## :rocket: New",
+      "title": "# :sparkles: News",
       "labels": ["feature"]
     },
     {
-      "title": "## :bug: Bugfixes",
-      "labels": ["fix"]
+      "title": "# :zap: Improvements",
+      "labels": ["enhancement"]
     },
     {
-      "title": "## :hammer: Other",
-      "labels": ["refactor", "test", "documentation"]
+      "title": "# :bug: Bugfixes",
+      "labels": ["bug"]
+    },
+    {
+      "title": "# :memo: Documentation",
+      "labels": ["documentation"]
+    },
+    {
+      "title": "# :hammer: Other",
+      "labels": ["refactor", "test"]
     }
   ],
   "template": "${{CHANGELOG}}\n\n<details>\n<summary>Uncategorized</summary>\n\n${{UNCATEGORIZED}}\n</details>",
   "pr_template": "- ${{TITLE}} #${{NUMBER}}"
-
 }
