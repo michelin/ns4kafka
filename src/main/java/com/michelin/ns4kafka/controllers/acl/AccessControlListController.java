@@ -1,4 +1,4 @@
-package com.michelin.ns4kafka.controllers;
+package com.michelin.ns4kafka.controllers.acl;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.AccessControlEntry;
