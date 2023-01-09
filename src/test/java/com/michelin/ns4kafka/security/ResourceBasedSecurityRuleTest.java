@@ -36,13 +36,13 @@ class ResourceBasedSecurityRuleTest {
     ResourceBasedSecurityRule resourceBasedSecurityRule;
 
     @Test
-    void CheckReturnsUnknownUnauthenticated(){
+    void checkReturnsUnknownUnauthenticated(){
         SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/anything"),null);
         Assertions.assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
     @Test
-    void CheckReturnsUnknownMissingClaims(){
+    void checkReturnsUnknownMissingClaims(){
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups);
         Authentication auth = Authentication.build("user", claims);
@@ -52,7 +52,7 @@ class ResourceBasedSecurityRuleTest {
     }
 
     @Test
-    void CheckReturnsUnknownInvalidResource(){
+    void checkReturnsUnknownInvalidResource(){
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
         Authentication auth = Authentication.build("user", claims);
@@ -62,7 +62,7 @@ class ResourceBasedSecurityRuleTest {
     }
 
     @Test
-    void CheckReturnsUnknownNoRoleBinding(){
+    void checkReturnsUnknownNoRoleBinding(){
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
         Authentication auth = Authentication.build("user", claims);
@@ -77,7 +77,7 @@ class ResourceBasedSecurityRuleTest {
     }
 
     @Test
-    void CheckReturnsUnknownInvalidNamespace(){
+    void checkReturnsUnknownInvalidNamespace(){
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
         Authentication auth = Authentication.build("user", claims);
@@ -90,7 +90,7 @@ class ResourceBasedSecurityRuleTest {
     }
 
     @Test
-    void CheckReturnsUnknownAdminNamespaceAsNotAdmin(){
+    void checkReturnsUnknownAdminNamespaceAsNotAdmin(){
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
         Authentication auth = Authentication.build("user", claims);
@@ -100,10 +100,10 @@ class ResourceBasedSecurityRuleTest {
     }
 
     @Test
-    void CheckReturnsUnknownInvalidNamespaceAsAdmin(){
+    void checkReturnsUnknownInvalidNamespaceAsAdmin(){
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of("isAdmin()"));
-        Authentication auth = Authentication.build("user", claims);
+        Authentication auth = Authentication.build("user", List.of("isAdmin()"), claims);
 
         Mockito.when(namespaceRepository.findByName("admin"))
                 .thenReturn(Optional.empty());
@@ -113,10 +113,10 @@ class ResourceBasedSecurityRuleTest {
     }
 
     @Test
-    void CheckReturnsAllowedNamespaceAsAdmin(){
+    void checkReturnsAllowedNamespaceAsAdmin(){
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of("isAdmin()"));
-        Authentication auth = Authentication.build("user", claims);
+        Authentication auth = Authentication.build("user", List.of("isAdmin()"), claims);
 
         Mockito.when(namespaceRepository.findByName("test"))
                 .thenReturn(Optional.of(Namespace.builder().build()));
