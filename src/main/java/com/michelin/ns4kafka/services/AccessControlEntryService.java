@@ -272,6 +272,14 @@ public class AccessControlEntryService {
     }
 
     /**
+     * Find all the ACLs on all clusters
+     * @return A list of ACLs
+     */
+    public List<AccessControlEntry> findAll() {
+        return new ArrayList<>(accessControlEntryRepository.findAll());
+    }
+
+    /**
      * Does given namespace is owner of the given resource ?
      *
      * @param namespace    The namespace
