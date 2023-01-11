@@ -84,7 +84,7 @@ public class TopicController extends NamespacedResourceController {
             if (!collidingTopics.isEmpty()) {
                 validationErrors.addAll(collidingTopics.stream()
                         .map(collidingTopic -> String.format("Topic %s collides with existing topics: %s.", topic.getMetadata().getName(), collidingTopic))
-                        .collect(Collectors.toList()));
+                        .toList();
             }
         } else {
             validationErrors.addAll(topicService.validateTopicUpdate(ns, existingTopic.get(), topic));
@@ -191,7 +191,7 @@ public class TopicController extends NamespacedResourceController {
                     sendEventLog("Topic", topic.getMetadata(), ApplyStatus.created, null, topic.getSpec());
                     return topicService.create(topic);
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

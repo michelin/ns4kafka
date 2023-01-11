@@ -60,7 +60,7 @@ public class TopicAsyncExecutor {
             // Compute toCreate, toDelete, and toUpdate lists
             List<Topic> toCreate = ns4kafkaTopicList.stream()
                     .filter(topic -> !brokerTopicList.containsKey(topic.getMetadata().getName()))
-                    .collect(Collectors.toList());
+                    .toList();
 
             List<Topic> toDelete = brokerTopicList.values()
                     .stream()
@@ -69,13 +69,14 @@ public class TopicAsyncExecutor {
 
             List<Topic> toCheckConf = ns4kafkaTopicList.stream()
                     .filter(topic -> brokerTopicList.containsKey(topic.getMetadata().getName()))
-                    .collect(Collectors.toList());
+                    .toList();
+
             Map<ConfigResource, Collection<AlterConfigOp>> toUpdate = toCheckConf.stream()
                     .map(topic -> {
                         Map<String,String> actualConf = brokerTopicList.get(topic.getMetadata().getName()).getSpec().getConfigs();
                         Map<String,String> expectedConf = topic.getSpec().getConfigs() == null ? Map.of() : topic.getSpec().getConfigs();
                         Collection<AlterConfigOp> topicConfigChanges = computeConfigChanges(expectedConf,actualConf);
-                        if(topicConfigChanges.size()>0){
+                        if(!topicConfigChanges.isEmpty()){
                             ConfigResource cr = new ConfigResource(ConfigResource.Type.TOPIC, topic.getMetadata().getName());
                             return Map.entry(cr,topicConfigChanges);
                         }
@@ -107,8 +108,8 @@ public class TopicAsyncExecutor {
             log.error("Error", e);
             Thread.currentThread().interrupt();
         }
-
     }
+
     private void deleteTopics(List<Topic> topics) {
         //TODO What's the best way to prevent delete __consumer_offsets and other internal topics ?
         // delete only topics that belongs to a namespace and ignore others ?
@@ -218,26 +219,26 @@ public class TopicAsyncExecutor {
                     log.debug("{}",newTopic);
                     return newTopic;
                 })
-                .collect(Collectors.toList());
+                .toList();
+
         CreateTopicsResult createTopicsResult = getAdminClient().createTopics(newTopics);
-        createTopicsResult.values().entrySet()
-                .forEach(mapEntry -> {
-                    Topic createdTopic = topics.stream().filter(t -> t.getMetadata().getName().equals(mapEntry.getKey())).findFirst().get();
-                    try {
-                        mapEntry.getValue().get(10, TimeUnit.SECONDS);
-                        createdTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                        createdTopic.getMetadata().setGeneration(1);
-                        createdTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic created"));
-                        log.info("Success creating topic {} on {}", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName());
-                    } catch (InterruptedException e) {
-                        log.error("Error", e);
-                        Thread.currentThread().interrupt();
-                    } catch (Exception e) {
-                        createdTopic.setStatus(Topic.TopicStatus.ofFailed("Error while creating topic: "+e.getMessage()));
-                        log.error(String.format("Error while creating topic %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()), e);
-                    }
-                    topicRepository.create(createdTopic);
-                });
+        createTopicsResult.values().forEach((key, value) -> {
+            Topic createdTopic = topics.stream().filter(t -> t.getMetadata().getName().equals(key)).findFirst().get();
+            try {
+                value.get(10, TimeUnit.SECONDS);
+                createdTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                createdTopic.getMetadata().setGeneration(1);
+                createdTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic created"));
+                log.info("Success creating topic {} on {}", key, this.kafkaAsyncExecutorConfig.getName());
+            } catch (InterruptedException e) {
+                log.error("Error", e);
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                createdTopic.setStatus(Topic.TopicStatus.ofFailed("Error while creating topic: " + e.getMessage()));
+                log.error(String.format("Error while creating topic %s on %s", key, this.kafkaAsyncExecutorConfig.getName()), e);
+            }
+            topicRepository.create(createdTopic);
+        });
     }
  
     private Collection<AlterConfigOp> computeConfigChanges(Map<String,String> expected, Map<String,String> actual){

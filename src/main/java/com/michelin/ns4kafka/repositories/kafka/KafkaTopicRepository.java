@@ -76,6 +76,6 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
         return getKafkaStore().values()
                 .stream()
                 .filter(topic -> topic.getMetadata().getCluster().equals(cluster))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

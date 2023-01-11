@@ -33,7 +33,7 @@ public class StreamService {
     public List<KafkaStream> findAllForNamespace(Namespace namespace) {
         return streamRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
             .filter(stream -> stream.getMetadata().getNamespace().equals(namespace.getMetadata().getName()))
-            .collect(Collectors.toList());
+                .toList();
     }
 
     /**

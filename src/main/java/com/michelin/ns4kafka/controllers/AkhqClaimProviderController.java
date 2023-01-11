@@ -130,7 +130,7 @@ public class AkhqClaimProviderController {
                     }
                 })
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
         //AKHQ considers empty list as "^.*$" so we must return something
         return !allowedRegex.isEmpty() ? allowedRegex : EMPTY_REGEXP;
     }

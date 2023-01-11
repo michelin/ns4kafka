@@ -161,11 +161,11 @@ public class ApiResourcesController {
         List<String> authorizedResources = roleBindings.stream()
                 .flatMap(roleBinding -> roleBinding.getSpec().getRole().getResourceTypes().stream())
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
 
         return all.stream()
                 .filter(resourceDefinition -> authorizedResources.contains(resourceDefinition.getPath()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Introspected

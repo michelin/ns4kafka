@@ -33,7 +33,7 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
     public List<ConnectCluster> findAllForCluster(String cluster) {
         return getKafkaStore().values().stream()
                 .filter(connectCluster -> connectCluster.getMetadata().getCluster().equals(cluster))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

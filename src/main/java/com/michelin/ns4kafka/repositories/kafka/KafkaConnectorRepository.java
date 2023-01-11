@@ -62,6 +62,6 @@ public class KafkaConnectorRepository extends KafkaStore<Connector> implements C
     public List<Connector> findAllForCluster(String cluster) {
         return getKafkaStore().values().stream()
                 .filter(connector -> connector.getMetadata().getCluster().equals(cluster))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

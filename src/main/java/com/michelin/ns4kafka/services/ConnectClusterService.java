@@ -75,7 +75,7 @@ public class ConnectClusterService {
                     case LITERAL ->
                             connector.getMetadata().getName().equals(accessControlEntry.getSpec().getResource());
                 }))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -94,7 +94,7 @@ public class ConnectClusterService {
                                 .password(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getPassword(), securityConfig.getAes256EncryptionKey()))
                                 .build())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

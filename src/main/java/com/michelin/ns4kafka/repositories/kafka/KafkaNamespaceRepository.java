@@ -51,7 +51,7 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
         return getKafkaStore().values()
                 .stream()
                 .filter(namespace -> namespace.getMetadata().getCluster().equals(cluster))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

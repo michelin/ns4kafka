@@ -139,7 +139,7 @@ public class AccessControlEntryService {
 
                 })
                 .map(ace -> String.format("AccessControlEntry overlaps with existing one: %s", ace))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -217,12 +217,11 @@ public class AccessControlEntryService {
      * @return A list of ACLs
      */
     public List<AccessControlEntry> findAllGrantedToNamespace(Namespace namespace) {
-        return accessControlEntryRepository.findAll().stream()
-                .filter(accessControlEntry ->
-                        accessControlEntry.getSpec().getGrantedTo().equals(namespace.getMetadata().getName()) ||
-                                accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO)
-                )
-                .collect(Collectors.toList());
+        return accessControlEntryRepository.findAll()
+                .stream()
+                .filter(accessControlEntry -> accessControlEntry.getSpec().getGrantedTo().equals(namespace.getMetadata().getName()) ||
+                                accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO))
+                .toList();
     }
 
     /**
@@ -231,9 +230,10 @@ public class AccessControlEntryService {
      * @return A list of ACLs
      */
     public List<AccessControlEntry> findAllPublicGrantedTo() {
-        return accessControlEntryRepository.findAll().stream()
+        return accessControlEntryRepository.findAll()
+                .stream()
                 .filter(accessControlEntry -> accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -245,7 +245,7 @@ public class AccessControlEntryService {
     public List<AccessControlEntry> findAllForNamespace(Namespace namespace) {
         return accessControlEntryRepository.findAll().stream()
                 .filter(accessControlEntry -> accessControlEntry.getMetadata().getNamespace().equals(namespace.getMetadata().getName()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -257,7 +257,7 @@ public class AccessControlEntryService {
     public List<AccessControlEntry> findAllForCluster(String cluster) {
         return accessControlEntryRepository.findAll().stream()
                 .filter(accessControlEntry -> accessControlEntry.getMetadata().getCluster().equals(cluster))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

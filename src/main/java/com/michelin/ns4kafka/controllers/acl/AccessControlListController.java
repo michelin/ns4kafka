@@ -55,7 +55,7 @@ public class AccessControlListController extends NamespacedResourceController {
                 return accessControlEntryService.findAllGrantedToNamespace(ns)
                         .stream()
                         .sorted(Comparator.comparing(o -> o.getMetadata().getNamespace()))
-                        .collect(Collectors.toList());
+                        .toList();
             case GRANTOR:
                 return accessControlEntryService.findAllForCluster(ns.getMetadata().getCluster())
                         .stream()
@@ -64,7 +64,7 @@ public class AccessControlListController extends NamespacedResourceController {
                         // without the granted to me
                         .filter(accessControlEntry -> !accessControlEntry.getSpec().getGrantedTo().equals(namespace))
                         .sorted(Comparator.comparing(o -> o.getSpec().getGrantedTo()))
-                        .collect(Collectors.toList());
+                        .toList();
             case ALL:
             default:
                 return accessControlEntryService.findAllForCluster(ns.getMetadata().getCluster())
@@ -75,7 +75,7 @@ public class AccessControlListController extends NamespacedResourceController {
                                         || accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO)
                         )
                         .sorted(Comparator.comparing(o -> o.getMetadata().getNamespace()))
-                        .collect(Collectors.toList());
+                        .toList();
         }
     }
 

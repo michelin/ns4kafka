@@ -261,7 +261,7 @@ public class ConnectorController extends NamespacedResourceController {
                             sendEventLog(connector.getKind(), connector.getMetadata(), ApplyStatus.created, null, connector.getSpec());
                             return connectorService.createOrUpdate(connector);
                         })
-                        .collect(Collectors.toList());
+                        .toList();
             });
     }
 }

@@ -22,10 +22,10 @@ ns4kafka:
       manage-acls: true
       manage-topics: true
       manage-connectors: true
+      connectsS:
+        test-connect: "toto"
       connects:
         test-connect:
-          url: "" #"http://localhost/kafka/connect/"
-          #basicAuthUsername: "user"
-          #basicAuthPassword: "password"
+          url: "localhost:8083"
       config:
         bootstrap.servers: "localhost:9092"

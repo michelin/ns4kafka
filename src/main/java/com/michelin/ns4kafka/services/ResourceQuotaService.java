@@ -264,7 +264,7 @@ public class ResourceQuotaService {
         return namespaceService.listAll()
                 .stream()
                 .map(namespace -> getUsedResourcesByQuotaByNamespace(namespace, findByNamespace(namespace.getMetadata().getName())))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

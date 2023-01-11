@@ -231,7 +231,7 @@ class TopicTest extends AbstractIntegrationTest {
         ConfigResource configResource = new ConfigResource(ConfigResource.Type.TOPIC,"ns1-topicFirstCreate");
         List<ConfigEntry> valueToVerify = kafkaClient.describeConfigs(List.of(configResource)).all().get().get(configResource).entries().stream()
             .filter(e -> configKey.contains(e.name()))
-            .collect(Collectors.toList());
+                .toList();
 
         Assertions.assertEquals(config.size(), valueToVerify.size());
         valueToVerify.forEach(entry -> Assertions.assertEquals(config.get(entry.name()), entry.value()));
@@ -300,7 +300,7 @@ class TopicTest extends AbstractIntegrationTest {
         ConfigResource configResource = new ConfigResource(ConfigResource.Type.TOPIC,"ns1-topic2Create");
         List<ConfigEntry> valueToVerify = kafkaClient.describeConfigs(List.of(configResource)).all().get().get(configResource).entries().stream()
             .filter(e -> configKey.contains(e.name()))
-            .collect(Collectors.toList());
+                .toList();
 
         Assertions.assertEquals(config.size(), valueToVerify.size());
         valueToVerify.forEach(entry -> {

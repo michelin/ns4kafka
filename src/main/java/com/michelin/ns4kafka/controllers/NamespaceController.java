@@ -101,7 +101,7 @@ public class NamespaceController extends NonNamespacedResourceController {
         if (!namespaceResources.isEmpty()) {
             var validationErrors = namespaceResources.stream()
                     .map(s -> "Namespace resource must be deleted first :" + s)
-                    .collect(Collectors.toList());
+                    .toList();
             throw new ResourceValidationException(validationErrors, "Namespace", namespace);
         }
 

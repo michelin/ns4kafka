@@ -133,7 +133,7 @@ public class ConnectorAsyncExecutor {
                             .values()
                             .stream()
                             .map(connectorStatus -> buildConnectorFromConnectorStatus(connectorStatus, connectCluster))
-                            .collect(Collectors.toList());
+                            .toList();
                 });
     }
 
@@ -165,7 +165,7 @@ public class ConnectorAsyncExecutor {
         List<Connector> connectorList = connectorRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName())
                 .stream()
                 .filter(connector -> connector.getSpec().getConnectCluster().equals(connectCluster))
-                .collect(Collectors.toList());
+                .toList();
         log.debug("Connectors found on Ns4kafka for Connect cluster {}: {}", connectCluster, connectorList.size());
         return connectorList;
     }

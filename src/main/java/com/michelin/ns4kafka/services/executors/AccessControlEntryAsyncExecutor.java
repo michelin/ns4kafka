@@ -79,11 +79,11 @@ public class AccessControlEntryAsyncExecutor {
 
             List<AclBinding> toCreate = ns4kafkaACLs.stream()
                     .filter(aclBinding -> !brokerACLs.contains(aclBinding))
-                    .collect(Collectors.toList());
+                    .toList();
 
             List<AclBinding> toDelete = brokerACLs.stream()
                     .filter(aclBinding -> !ns4kafkaACLs.contains(aclBinding))
-                    .collect(Collectors.toList());
+                    .toList();
 
             if (log.isDebugEnabled()) {
                 brokerACLs.stream()
@@ -153,7 +153,7 @@ public class AccessControlEntryAsyncExecutor {
 
         List<AclBinding> ns4kafkaACLs = Stream.of(aclBindingFromACLs, aclBindingFromKStream, aclBindingFromConnect)
                 .flatMap(Function.identity())
-                .collect(Collectors.toList());
+                .toList();
 
         if (log.isDebugEnabled()) {
             log.debug("ACLs found on ns4kafka : " + ns4kafkaACLs.size());
@@ -184,7 +184,7 @@ public class AccessControlEntryAsyncExecutor {
                 .values().get(10, TimeUnit.SECONDS)
                 .stream()
                 .filter(aclBinding -> validResourceTypes.contains(aclBinding.pattern().resourceType()))
-                .collect(Collectors.toList());
+                .toList();
 
         log.debug("{} ACLs found on broker", userACLs.size());
         if (log.isTraceEnabled()) {
@@ -200,16 +200,15 @@ public class AccessControlEntryAsyncExecutor {
                     //TODO managed user list should include not only "defaultKafkaUser" (MVP35)
                     //1-N Namespace to KafkaUser
                     .flatMap(namespace -> List.of("User:" + namespace.getSpec().getKafkaUser()).stream())
-                    .collect(Collectors.toList());
+                    .toList();
 
             // And then filter out the AclBinding to retain only those matching
             // or having principal equal to wildcard (public).
-            userACLs = userACLs.stream()
-                    .filter(aclBinding ->
-                            managedUsers.contains(aclBinding.entry().principal()) ||
-                                    aclBinding.entry().principal().equals(PUBLIC_GRANTED_TO)
-                    )
-                    .collect(Collectors.toList());
+            userACLs = userACLs
+                    .stream()
+                    .filter(aclBinding -> managedUsers.contains(aclBinding.entry().principal()) ||
+                            aclBinding.entry().principal().equals(PUBLIC_GRANTED_TO))
+                    .toList();
             log.debug("ACLs found on Broker (managed scope) : {}", userACLs.size());
         }
 
@@ -247,7 +246,7 @@ public class AccessControlEntryAsyncExecutor {
                 .map(aclOperation ->
                         new AclBinding(resourcePattern, new org.apache.kafka.common.acl.AccessControlEntry("User:" + aclUser,
                                 "*", aclOperation, AclPermissionType.ALLOW)))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

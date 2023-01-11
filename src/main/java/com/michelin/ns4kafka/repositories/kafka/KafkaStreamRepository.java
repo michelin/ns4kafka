@@ -34,7 +34,7 @@ public class KafkaStreamRepository extends KafkaStore<KafkaStream> implements St
         return getKafkaStore().values()
                 .stream()
                 .filter(stream -> stream.getMetadata().getCluster().equals(cluster))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

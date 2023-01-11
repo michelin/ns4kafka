@@ -65,7 +65,7 @@ public class ConnectorService {
                     }
                     return false;
                 }))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -78,7 +78,7 @@ public class ConnectorService {
         return connectorRepository.findAllForCluster(namespace.getMetadata().getCluster())
                 .stream()
                 .filter(connector -> connector.getSpec().getConnectCluster().equals(connectCluster))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -215,7 +215,7 @@ public class ConnectorService {
                         .filter(connector -> isNamespaceOwnerOfConnect(namespace, connector.getMetadata().getName()))
                         // And aren't in ns4kafka storage
                         .filter(connector -> findByName(namespace, connector.getMetadata().getName()).isEmpty()))
-                .collect(Collectors.toList());
+                .toList();
 
         return Observable.merge(connectors).toList();
     }

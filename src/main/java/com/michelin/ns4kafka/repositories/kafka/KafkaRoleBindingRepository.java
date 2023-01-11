@@ -75,12 +75,13 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
      */
     @Override
     public List<RoleBinding> findAllForGroups(Collection<String> groups) {
-        return getKafkaStore().values().stream().filter(roleBinding ->
-                groups.stream().anyMatch(group ->
-                        roleBinding.getSpec().getSubject().getSubjectType() == RoleBinding.SubjectType.GROUP
-                                && roleBinding.getSpec().getSubject().getSubjectName().equals(group)
-                )
-        ).collect(Collectors.toList());
+        return getKafkaStore().values()
+                .stream()
+                .filter(roleBinding -> groups
+                        .stream()
+                        .anyMatch(group -> roleBinding.getSpec().getSubject().getSubjectType() == RoleBinding.SubjectType.GROUP
+                                && roleBinding.getSpec().getSubject().getSubjectName().equals(group)))
+                .toList();
     }
 
     /**
@@ -90,8 +91,9 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
      */
     @Override
     public List<RoleBinding> findAllForNamespace(String namespace) {
-        return getKafkaStore().values().stream()
+        return getKafkaStore().values()
+                .stream()
                 .filter(roleBinding -> roleBinding.getMetadata().getNamespace().equals(namespace))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

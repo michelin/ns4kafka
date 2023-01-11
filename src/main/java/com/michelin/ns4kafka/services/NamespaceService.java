@@ -62,7 +62,7 @@ public class NamespaceService {
                 .stream()
                 .filter(connectCluster -> !connectClusterExists(namespace.getMetadata().getCluster(), connectCluster))
                 .map(s -> "Invalid value " + s + " for Connect Cluster: Connect Cluster doesn't exist")
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -93,7 +93,7 @@ public class NamespaceService {
         return kafkaAsyncExecutorConfigList.stream()
                 .map(KafkaAsyncExecutorConfig::getName)
                 .flatMap(s -> namespaceRepository.findAllForCluster(s).stream())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<String> listAllNamespaceResources(Namespace namespace){
@@ -112,6 +112,6 @@ public class NamespaceService {
                 )
                 .reduce(Stream::concat)
                 .orElseGet(Stream::empty)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

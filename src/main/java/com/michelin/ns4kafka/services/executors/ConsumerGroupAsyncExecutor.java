@@ -100,7 +100,7 @@ public class ConsumerGroupAsyncExecutor {
                 .partitions()
                 .stream()
                 .map(partitionInfo -> new TopicPartition(topicName, partitionInfo.partition()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -155,7 +155,7 @@ public class ConsumerGroupAsyncExecutor {
         List<TopicPartition> unsuccessfulPartitions = offsets.entrySet().stream()
                 .filter(e -> e.getValue() == -1L)
                 .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
+                .toList();
 
         // reprocess failed offsets to OffsetSpec.latest()
         Map<TopicPartition, Long> reprocessedUnsuccessfulOffsets = getLogEndOffsets(unsuccessfulPartitions);

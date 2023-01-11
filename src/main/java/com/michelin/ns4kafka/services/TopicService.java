@@ -66,7 +66,7 @@ public class TopicService {
                     }
                     return false;
                 }))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -133,7 +133,7 @@ public class TopicService {
                     // this topic could be created on ns4kafka during "import" step
                     .filter(clusterTopic -> !topic.getMetadata().getName().equals(clusterTopic))
                     .filter(clusterTopic -> hasCollision(clusterTopic, topic.getMetadata().getName()))
-                   .collect(Collectors.toList());
+                    .toList();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new InterruptedException(e.getMessage());
@@ -224,7 +224,7 @@ public class TopicService {
                 .filter(topic -> isNamespaceOwnerOfTopic(namespace.getMetadata().getName(), topic))
                 // ...and aren't in ns4kafka storage
                 .filter(topic -> findByName(namespace, topic).isEmpty())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
