@@ -807,6 +807,24 @@ public class AccessControlEntryServiceTest {
     }
 
     @Test
+    void findAll() {
+        AccessControlEntry ace1 = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder().namespace("namespace1").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
+        AccessControlEntry ace2 = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder().namespace("namespace2").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
+        AccessControlEntry ace3 = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder().namespace("namespace3").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace3").build()).build();
+
+        Mockito.when(accessControlEntryRepository.findAll())
+                .thenReturn(List.of(ace1, ace2, ace3));
+        List<AccessControlEntry> actual = accessControlEntryService.findAll();
+        Assertions.assertEquals(3, actual.size());
+    }
+
+    @Test
     void isNamespaceOwnerOfResource() {
         AccessControlEntry ace1 = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
