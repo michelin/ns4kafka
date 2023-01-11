@@ -36,7 +36,11 @@ dependencies {
     testImplementation("org.mockito:mockito-core")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:testcontainers")
-    testImplementation("org.testcontainers:kafka:1.15.3")
+    testImplementation("org.testcontainers:kafka") {
+        version {
+            strictly '1.15.3'
+        }
+    }
     testImplementation("org.mockito:mockito-junit-jupiter:4.11.0")
 
     testAnnotationProcessor("org.projectlombok:lombok")
