@@ -33,7 +33,6 @@ jobs:
           restore-keys: ${{ runner.os }}-gradle
 
       - name: Build and test
-        id: build_and_test
         run: ./gradlew build check
         
       - name: Publish test report
