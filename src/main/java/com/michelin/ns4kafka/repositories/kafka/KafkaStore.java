@@ -189,7 +189,7 @@ public abstract class KafkaStore<T> {
         }
 
         NewTopic schemaTopicRequest = new NewTopic(kafkaTopic, 1, (short) schemaTopicReplicationFactor);
-        schemaTopicRequest.configs(kafkaStoreConfig.getProperties());
+        schemaTopicRequest.configs(kafkaStoreConfig.getProps());
 
         try {
             adminClient.createTopics(Collections.singleton(schemaTopicRequest))
