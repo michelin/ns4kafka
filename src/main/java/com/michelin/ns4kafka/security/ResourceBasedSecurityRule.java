@@ -5,72 +5,64 @@ import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
 import io.micronaut.core.annotation.Nullable;
+import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
+import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.security.rules.SecurityRuleResult;
 import io.micronaut.web.router.RouteMatch;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
+import org.reactivestreams.Publisher;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
 public class ResourceBasedSecurityRule implements SecurityRule {
-    /**
-     * Admin role constant
-     */
     public static final String IS_ADMIN = "isAdmin()";
 
-    /**
-     * The namespaced resource URL pattern
-     */
     private final Pattern namespacedResourcePattern = Pattern.compile("^\\/api\\/namespaces\\/(?<namespace>[a-zA-Z0-9_-]+)\\/(?<resourceType>[a-z_-]+)(\\/([a-zA-Z0-9_.-]+)(\\/(?<resourceSubtype>[a-z-]+))?)?$");
 
-    /**
-     * Ns4Kafka security configuration
-     */
     @Inject
     SecurityConfig securityConfig;
 
-    /**
-     * The role bindings repository
-     */
     @Inject
     RoleBindingRepository roleBindingRepository;
 
-    /**
-     * The namespace repository
-     */
     @Inject
     NamespaceRepository namespaceRepository;
+
+    @Override
+    public Publisher<SecurityRuleResult> check(HttpRequest<?> request, RouteMatch<?> routeMatch, Authentication authentication) {
+        return Publishers.just(checkSecurity(request, authentication));
+    }
 
     /**
      * Check a user can access a given URL
      * @param request The current request
-     * @param routeMatch The matched route or empty if no route was matched. e.g. static resource.
-     * @param claims The claims from the token. Null if not authenticated
+     * @param authentication The claims from the token
      * @return A security rule allowing the user or not
      */
-    @Override
-    public SecurityRuleResult check(HttpRequest<?> request, @Nullable RouteMatch<?> routeMatch, @Nullable Map<String, Object> claims) {
-        // Unauthenticated request
-        if (claims == null || !claims.keySet().containsAll( List.of("groups", "sub", "roles"))) {
+    public SecurityRuleResult checkSecurity(HttpRequest<?> request, @Nullable Authentication authentication) {
+        if (authentication == null) {
+            return SecurityRuleResult.UNKNOWN;
+        }
+
+        if (!authentication.getAttributes().keySet().containsAll( List.of("groups", "sub", "roles"))) {
             log.debug("No authentication available for path [{}]. Returning unknown.",request.getPath());
             return SecurityRuleResult.UNKNOWN;
         }
 
-        String sub = claims.get("sub").toString();
-        List<String> groups = (List<String>) claims.get("groups");
-        List<String> roles = (List<String>) claims.get("roles");
+        String sub = authentication.getName();
+        List<String> groups = (List<String>) authentication.getAttributes().get("groups");
+        Collection<String> roles = authentication.getRoles();
 
         // Request to a URL that is not in the scope of this SecurityRule
         Matcher matcher = namespacedResourcePattern.matcher(request.getPath());
@@ -107,8 +99,12 @@ public class ResourceBasedSecurityRule implements SecurityRule {
         List<RoleBinding> authorizedRoleBindings = roleBindings.stream()
                 .filter(roleBinding -> roleBinding.getMetadata().getNamespace().equals(namespace))
                 .filter(roleBinding -> roleBinding.getSpec().getRole().getResourceTypes().contains(resourceType))
-                .filter(roleBinding -> roleBinding.getSpec().getRole().getVerbs().stream().map(Enum::name).collect(Collectors.toList()).contains(request.getMethodName()))
-                .collect(Collectors.toList());
+                .filter(roleBinding -> roleBinding.getSpec().getRole().getVerbs()
+                        .stream()
+                        .map(Enum::name)
+                        .toList()
+                        .contains(request.getMethodName()))
+                .toList();
 
         // User not authorized to access requested resource
         if (authorizedRoleBindings.isEmpty()) {
@@ -120,7 +116,6 @@ public class ResourceBasedSecurityRule implements SecurityRule {
             authorizedRoleBindings.forEach(roleBinding -> log.debug("Found matching RoleBinding : {}", roleBinding.toString()));
             log.debug("Authorized user [{}] on path [{}]",sub,request.getPath());
         }
-
 
         return SecurityRuleResult.ALLOWED;
     }

@@ -2,18 +2,15 @@ package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 @Singleton
 public class RoleBindingService {
-    /**
-     * The role binding repository
-     */
     @Inject
     RoleBindingRepository roleBindingRepository;
 

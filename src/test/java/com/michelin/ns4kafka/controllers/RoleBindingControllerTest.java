@@ -24,14 +24,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class RoleBindingControllerTest {
-
+class RoleBindingControllerTest {
     @Mock
     NamespaceService namespaceService;
+
     @Mock
     RoleBindingService roleBindingService;
+
     @Mock
-    ApplicationEventPublisher applicationEventPublisher;
+    ApplicationEventPublisher<?> applicationEventPublisher;
+
     @Mock
     SecurityService securityService;
 

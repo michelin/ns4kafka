@@ -3,8 +3,6 @@ package com.michelin.ns4kafka.utils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import static org.apache.commons.lang3.StringUtils.EMPTY;
-
 class EncryptionUtilsTest {
     /**
      * Validate encryption/decryption when given text is null
@@ -24,8 +22,8 @@ class EncryptionUtilsTest {
     void validateEncryptAndDecryptAES256GCMBlankText() {
         String keyEncryptionKey = "myKeyEncryptionKeyWrongSize";
 
-        String stillBlankText = EncryptionUtils.encryptAES256GCM(EMPTY, keyEncryptionKey);
-        Assertions.assertEquals(EMPTY, stillBlankText);
+        String stillBlankText = EncryptionUtils.encryptAES256GCM("", keyEncryptionKey);
+        Assertions.assertEquals("", stillBlankText);
     }
 
     /**

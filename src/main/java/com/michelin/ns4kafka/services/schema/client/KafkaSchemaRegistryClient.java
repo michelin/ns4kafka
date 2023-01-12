@@ -7,8 +7,8 @@ import com.michelin.ns4kafka.services.schema.client.entities.SchemaRequest;
 import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.client.annotation.Client;
-import io.reactivex.Maybe;
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.Single;
 
 import java.util.List;
 
@@ -16,12 +16,12 @@ import java.util.List;
 public interface KafkaSchemaRegistryClient {
     @Get("/subjects")
     Single<List<String>> getSubjects(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
-                             @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster);
+                                     @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster);
 
     @Get("/subjects/{subject}/versions/latest")
     Maybe<SchemaResponse> getLatestSubject(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,
-                                                      @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
-                                                      @PathVariable String subject);
+                                           @Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_KAFKA_CLUSTER) String cluster,
+                                           @PathVariable String subject);
 
     @Post("/subjects/{subject}/versions")
     Single<SchemaResponse> register(@Header(value = KafkaSchemaRegistryClientProxy.PROXY_HEADER_SECRET) String secret,

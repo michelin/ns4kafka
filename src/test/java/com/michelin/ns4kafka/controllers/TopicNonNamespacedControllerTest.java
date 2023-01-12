@@ -3,7 +3,6 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.controllers.topic.TopicNonNamespacedController;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
-import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.TopicService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -18,9 +17,6 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TopicNonNamespacedControllerTest {
-    @Mock
-    NamespaceService namespaceService;
-
     @Mock
     TopicService topicService;
 

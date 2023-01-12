@@ -1,9 +1,11 @@
 package com.michelin.ns4kafka.services.executors;
 
 import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
-import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
+import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.context.annotation.EachBean;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ScramCredentialInfo;
@@ -14,8 +16,6 @@ import org.apache.kafka.common.quota.ClientQuotaEntity;
 import org.apache.kafka.common.quota.ClientQuotaFilter;
 import org.apache.kafka.common.quota.ClientQuotaFilterComponent;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.List;
@@ -27,8 +27,8 @@ import java.util.stream.Collectors;
 @EachBean(KafkaAsyncExecutorConfig.class)
 @Singleton
 public class UserAsyncExecutor {
-
     private final KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
+
     private final AbstractUserSynchronizer userExecutor;
 
     @Inject
@@ -77,15 +77,13 @@ public class UserAsyncExecutor {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         if (log.isDebugEnabled()) {
-            log.debug("UserQuotas to create : " + toCreate.keySet().stream().collect(Collectors.joining(", ")));
+            log.debug("UserQuotas to create : " + String.join(", ", toCreate.keySet()));
             log.debug("UserQuotas to delete : " + toDelete.size());
             log.debug("UserQuotas to update : " + toUpdate.size());
         }
 
         createUserQuotas(toCreate);
-        deleteUserQuotas(toDelete);
         createUserQuotas(toUpdate);
-
     }
 
     public String resetPassword(String user) {
@@ -113,10 +111,6 @@ public class UserAsyncExecutor {
 
     private void createUserQuotas(Map<String, Map<String, Double>> toCreate) {
         toCreate.forEach(this.userExecutor::applyQuotas);
-    }
-
-    private void deleteUserQuotas(Map<String, Map<String, Double>> toDelete) {
-        // Not deleting quotas that could impact users not managed by ns4kafka.
     }
 
     interface AbstractUserSynchronizer {
@@ -193,9 +187,9 @@ public class UserAsyncExecutor {
         @Override
         public void applyQuotas(String user, Map<String, Double> quotas) {
             ClientQuotaEntity client = new ClientQuotaEntity(Map.of("user", user));
-            ClientQuotaAlteration.Op producer_quota = new ClientQuotaAlteration.Op("producer_byte_rate", 102400.0);
-            ClientQuotaAlteration.Op consumer_quota = new ClientQuotaAlteration.Op("consumer_byte_rate", 102400.0);
-            ClientQuotaAlteration clientQuota = new ClientQuotaAlteration(client, List.of(producer_quota, consumer_quota));
+            ClientQuotaAlteration.Op producerQuota = new ClientQuotaAlteration.Op("producer_byte_rate", 102400.0);
+            ClientQuotaAlteration.Op consumerQuota = new ClientQuotaAlteration.Op("consumer_byte_rate", 102400.0);
+            ClientQuotaAlteration clientQuota = new ClientQuotaAlteration(client, List.of(producerQuota, consumerQuota));
             try {
                 admin.alterClientQuotas(List.of(clientQuota)).all().get(10, TimeUnit.SECONDS);
                 log.info("Success applying quotas {} for user {}", quotas, user);

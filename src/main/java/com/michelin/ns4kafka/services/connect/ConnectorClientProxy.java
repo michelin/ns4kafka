@@ -15,12 +15,12 @@ import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.annotation.Filter;
 import io.micronaut.http.client.ProxyHttpClient;
-import io.micronaut.http.filter.OncePerRequestHttpServerFilter;
+import io.micronaut.http.filter.HttpServerFilter;
 import io.micronaut.http.filter.ServerFilterChain;
+import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 
-import javax.inject.Inject;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
@@ -28,31 +28,15 @@ import java.util.UUID;
 
 @Slf4j
 @Filter(ConnectorClientProxy.PROXY_PREFIX + "/**")
-public class ConnectorClientProxy extends OncePerRequestHttpServerFilter {
-    /**
-     * Prefix used to filter request to Connect clusters. It'll be replaced by
-     * the Connect cluster URL of the given cluster
-     */
+public class ConnectorClientProxy implements HttpServerFilter {
     public static final String PROXY_PREFIX = "/connect-proxy";
 
-    /**
-     * A header that contains the Kafka cluster
-     */
     public static final String PROXY_HEADER_KAFKA_CLUSTER = "X-Kafka-Cluster";
 
-    /**
-     * A header that contains the Connect cluster name
-     */
     public static final String PROXY_HEADER_CONNECT_CLUSTER = "X-Connect-Cluster";
 
-    /**
-     * A header that contains a secret for the request
-     */
     public static final String PROXY_HEADER_SECRET = "X-Proxy-Secret";
 
-    /**
-     * Generate a secret
-     */
     public static final String PROXY_SECRET = UUID.randomUUID().toString();
 
     @Inject
@@ -74,7 +58,7 @@ public class ConnectorClientProxy extends OncePerRequestHttpServerFilter {
      * @return A modified request
      */
     @Override
-    public Publisher<MutableHttpResponse<?>> doFilterOnce(HttpRequest<?> request, ServerFilterChain chain) {
+    public Publisher<MutableHttpResponse<?>> doFilter(HttpRequest<?> request, ServerFilterChain chain) {
         // Check call is initiated from Micronaut and not from outside
         if (!request.getHeaders().contains(ConnectorClientProxy.PROXY_HEADER_SECRET)) {
             return Publishers.just(new ResourceValidationException(List.of("Missing required header " + ConnectorClientProxy.PROXY_HEADER_SECRET), null, null));

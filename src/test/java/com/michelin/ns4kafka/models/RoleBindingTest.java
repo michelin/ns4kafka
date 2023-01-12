@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-public class RoleBindingTest {
+class RoleBindingTest {
     @Test
     void testEquals_Role() {
         RoleBinding.Role original = RoleBinding.Role.builder()

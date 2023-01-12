@@ -2,9 +2,9 @@ package com.michelin.ns4kafka.repositories.kafka;
 
 import io.micronaut.context.event.ApplicationEventListener;
 import io.micronaut.context.event.StartupEvent;
+import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.inject.Inject;
 import java.util.List;
 
 @Slf4j

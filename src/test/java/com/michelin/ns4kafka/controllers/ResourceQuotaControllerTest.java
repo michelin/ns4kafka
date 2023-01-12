@@ -43,7 +43,7 @@ class ResourceQuotaControllerTest {
     SecurityService securityService;
 
     @Mock
-    ApplicationEventPublisher applicationEventPublisher;
+    ApplicationEventPublisher<?> applicationEventPublisher;
 
     /**
      * Validate quota listing

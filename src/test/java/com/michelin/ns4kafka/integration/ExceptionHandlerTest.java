@@ -15,27 +15,26 @@ import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import io.micronaut.rxjava3.http.client.Rx3HttpClient;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
-public class ExceptionHandlerTest extends AbstractIntegrationTest {
-
+class ExceptionHandlerTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
-    RxHttpClient client;
+    Rx3HttpClient client;
 
     private String token;
 
@@ -84,7 +83,6 @@ public class ExceptionHandlerTest extends AbstractIntegrationTest {
                   .build())
             .build();
 
-
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin","admin");
         HttpResponse<BearerAccessRefreshToken> response = client.exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class).blockingFirst();
 
@@ -96,8 +94,7 @@ public class ExceptionHandlerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void invalidTopicName() throws InterruptedException, ExecutionException {
-
+    void invalidTopicName() {
         Topic topicFirstCreate = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-invalid-é")
@@ -123,7 +120,7 @@ public class ExceptionHandlerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void forbiddenTopic() throws InterruptedException, ExecutionException {
+    void forbiddenTopic() {
         HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,
                 () -> client.exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns2/topics")
                         .bearerAuth(token))
@@ -134,19 +131,17 @@ public class ExceptionHandlerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void UnauthorizedTopic() throws InterruptedException, ExecutionException {
-
+    void UnauthorizedTopic() {
         HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,
                 () -> client.exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/topics"))
                         .blockingFirst());
 
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
-        Assertions.assertEquals("Unauthorized", exception.getMessage());
+        Assertions.assertEquals("Client '/': Unauthorized", exception.getMessage());
     }
 
     @Test
-    void notFoundTopic() throws InterruptedException, ExecutionException {
-
+    void notFoundTopic() {
         HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,
                 () -> client.exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/topics/not-found-topic")
                         .bearerAuth(token))
@@ -157,8 +152,7 @@ public class ExceptionHandlerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void notValidMethodTopic() throws InterruptedException, ExecutionException {
-
+    void notValidMethodTopic() {
         HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,
                 () -> client.exchange(HttpRequest.create(HttpMethod.PUT,"/api/namespaces/ns1/topics/")
                         .bearerAuth(token))

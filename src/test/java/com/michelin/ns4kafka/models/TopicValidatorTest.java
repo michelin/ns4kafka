@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
-public class TopicValidatorTest {
+class TopicValidatorTest {
     @Test
     void testEquals() {
         TopicValidator original = TopicValidator.builder()

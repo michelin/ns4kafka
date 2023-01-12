@@ -9,9 +9,9 @@ import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.inject.Inject;
 
 import javax.annotation.security.RolesAllowed;
-import javax.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -101,7 +101,7 @@ public class NamespaceController extends NonNamespacedResourceController {
         if (!namespaceResources.isEmpty()) {
             var validationErrors = namespaceResources.stream()
                     .map(s -> "Namespace resource must be deleted first :" + s)
-                    .collect(Collectors.toList());
+                    .toList();
             throw new ResourceValidationException(validationErrors, "Namespace", namespace);
         }
 

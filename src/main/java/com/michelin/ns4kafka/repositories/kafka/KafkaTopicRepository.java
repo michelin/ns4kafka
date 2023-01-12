@@ -7,10 +7,10 @@ import io.micronaut.configuration.kafka.annotation.KafkaListener;
 import io.micronaut.configuration.kafka.annotation.OffsetReset;
 import io.micronaut.configuration.kafka.annotation.OffsetStrategy;
 import io.micronaut.context.annotation.Value;
+import jakarta.inject.Singleton;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -76,6 +76,6 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
         return getKafkaStore().values()
                 .stream()
                 .filter(topic -> topic.getMetadata().getCluster().equals(cluster))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

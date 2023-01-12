@@ -14,8 +14,8 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.security.authentication.Authentication;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.inject.Inject;
 
-import javax.inject.Inject;
 import javax.validation.Valid;
 import java.time.Instant;
 import java.util.Comparator;
@@ -30,15 +30,9 @@ import static com.michelin.ns4kafka.services.AccessControlEntryService.PUBLIC_GR
         description = "APIs to handle cross namespace ACL")
 @Controller("/api/namespaces/{namespace}/acls")
 public class AccessControlListController extends NamespacedResourceController {
-    /**
-     * The namespace service
-     */
     @Inject
     NamespaceService namespaceService;
 
-    /**
-     * The ACL service
-     */
     @Inject
     AccessControlEntryService accessControlEntryService;
 
@@ -61,7 +55,7 @@ public class AccessControlListController extends NamespacedResourceController {
                 return accessControlEntryService.findAllGrantedToNamespace(ns)
                         .stream()
                         .sorted(Comparator.comparing(o -> o.getMetadata().getNamespace()))
-                        .collect(Collectors.toList());
+                        .toList();
             case GRANTOR:
                 return accessControlEntryService.findAllForCluster(ns.getMetadata().getCluster())
                         .stream()
@@ -70,7 +64,7 @@ public class AccessControlListController extends NamespacedResourceController {
                         // without the granted to me
                         .filter(accessControlEntry -> !accessControlEntry.getSpec().getGrantedTo().equals(namespace))
                         .sorted(Comparator.comparing(o -> o.getSpec().getGrantedTo()))
-                        .collect(Collectors.toList());
+                        .toList();
             case ALL:
             default:
                 return accessControlEntryService.findAllForCluster(ns.getMetadata().getCluster())
@@ -81,9 +75,8 @@ public class AccessControlListController extends NamespacedResourceController {
                                         || accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO)
                         )
                         .sorted(Comparator.comparing(o -> o.getMetadata().getNamespace()))
-                        .collect(Collectors.toList());
+                        .toList();
         }
-
     }
 
     /**

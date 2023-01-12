@@ -17,8 +17,7 @@ import java.util.List;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class StreamServiceTest {
-
+class StreamServiceTest {
     @InjectMocks
     StreamService streamService;
 

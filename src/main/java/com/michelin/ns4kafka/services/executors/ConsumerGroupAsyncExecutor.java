@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.services.executors;
 
 import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 import io.micronaut.context.annotation.EachBean;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
@@ -9,7 +10,6 @@ import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
-import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -22,15 +22,8 @@ import java.util.stream.Collectors;
 @EachBean(KafkaAsyncExecutorConfig.class)
 @Singleton
 public class ConsumerGroupAsyncExecutor {
-    /**
-     * The managed clusters config
-     */
     private final KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
 
-    /**
-     * Constructor
-     * @param kafkaAsyncExecutorConfig The managed clusters config
-     */
     public ConsumerGroupAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
         this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
     }
@@ -107,7 +100,7 @@ public class ConsumerGroupAsyncExecutor {
                 .partitions()
                 .stream()
                 .map(partitionInfo -> new TopicPartition(topicName, partitionInfo.partition()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -162,7 +155,7 @@ public class ConsumerGroupAsyncExecutor {
         List<TopicPartition> unsuccessfulPartitions = offsets.entrySet().stream()
                 .filter(e -> e.getValue() == -1L)
                 .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
+                .toList();
 
         // reprocess failed offsets to OffsetSpec.latest()
         Map<TopicPartition, Long> reprocessedUnsuccessfulOffsets = getLogEndOffsets(unsuccessfulPartitions);

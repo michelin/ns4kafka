@@ -1,16 +1,16 @@
 package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets.ResetOffsetsMethod;
-import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.services.executors.ConsumerGroupAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import org.apache.kafka.common.TopicPartition;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -24,15 +24,9 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class ConsumerGroupService {
-    /**
-     * The application context
-     */
     @Inject
     ApplicationContext applicationContext;
 
-    /**
-     * The ACL service
-     */
     @Inject
     AccessControlEntryService accessControlEntryService;
 

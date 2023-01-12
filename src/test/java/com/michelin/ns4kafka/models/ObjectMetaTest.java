@@ -7,7 +7,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 
-public class ObjectMetaTest {
+class ObjectMetaTest {
     @Test
     void testEquals() {
         ObjectMeta original = ObjectMeta.builder()

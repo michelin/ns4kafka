@@ -4,14 +4,13 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import io.micronaut.configuration.kafka.annotation.*;
 import io.micronaut.context.annotation.Value;
+import jakarta.inject.Singleton;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-import javax.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
 
 @Singleton
 @KafkaListener(
@@ -52,7 +51,7 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
         return getKafkaStore().values()
                 .stream()
                 .filter(namespace -> namespace.getMetadata().getCluster().equals(cluster))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

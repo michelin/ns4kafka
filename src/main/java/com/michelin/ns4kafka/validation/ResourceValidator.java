@@ -140,7 +140,7 @@ public abstract class ResourceValidator {
             List<String> values = List.of(s); //default if no "," (most of the time)
             if(s.contains(",")){
                 //split and strip
-                values = Arrays.stream(s.split(",")).map(item -> item.strip()).collect(Collectors.toList());
+                values = Arrays.stream(s.split(",")).map(String::strip).toList();
             }
 
             for (String string : values) {

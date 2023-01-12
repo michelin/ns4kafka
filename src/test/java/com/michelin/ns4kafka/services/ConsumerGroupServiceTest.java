@@ -28,15 +28,9 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ConsumerGroupServiceTest {
-    /**
-     * The mocked application context
-     */
     @Mock
     ApplicationContext applicationContext;
 
-    /**
-     * The mocked consumer group service
-     */
     @InjectMocks
     ConsumerGroupService consumerGroupService;
 

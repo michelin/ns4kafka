@@ -7,6 +7,7 @@ import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
 import io.micronaut.http.HttpRequest;
+import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecurityRuleResult;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -35,77 +36,92 @@ class ResourceBasedSecurityRuleTest {
     ResourceBasedSecurityRule resourceBasedSecurityRule;
 
     @Test
-    void CheckReturnsUnknownUnauthenticated(){
-        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/anything"),null,null);
+    void checkReturnsUnknownUnauthenticated(){
+        SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/anything"),null);
         Assertions.assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
     @Test
-    void CheckReturnsUnknownMissingClaims(){
+    void checkReturnsUnknownMissingClaims(){
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups);
-        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/anything"),null,claims);
+        Authentication auth = Authentication.build("user", claims);
+
+        SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/anything"), auth);
         Assertions.assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
     @Test
-    void CheckReturnsUnknownInvalidResource(){
+    void checkReturnsUnknownInvalidResource(){
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
-        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/non-namespaced/resource"),null, claims);
+        Authentication auth = Authentication.build("user", claims);
+
+        SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/non-namespaced/resource"), auth);
         Assertions.assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
     @Test
-    void CheckReturnsUnknownNoRoleBinding(){
+    void checkReturnsUnknownNoRoleBinding(){
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
+        Authentication auth = Authentication.build("user", claims);
+
         Mockito.when(namespaceRepository.findByName("test"))
                 .thenReturn(Optional.of(Namespace.builder().build()));
         Mockito.when(roleBindingRepository.findAllForGroups(groups))
                 .thenReturn(List.of());
 
-        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/connectors"),null, claims);
+        SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/connectors"), auth);
         Assertions.assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
     @Test
-    void CheckReturnsUnknownInvalidNamespace(){
+    void checkReturnsUnknownInvalidNamespace(){
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
+        Authentication auth = Authentication.build("user", claims);
+
         Mockito.when(namespaceRepository.findByName("test"))
                 .thenReturn(Optional.empty());
 
-        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/connectors"),null, claims);
+        SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/connectors"), auth);
         Assertions.assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
+
     @Test
-    void CheckReturnsUnknownAdminNamespaceAsNotAdmin(){
+    void checkReturnsUnknownAdminNamespaceAsNotAdmin(){
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
+        Authentication auth = Authentication.build("user", claims);
 
-        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/admin/connectors"),null, claims);
+        SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/admin/connectors"), auth);
         Assertions.assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
     @Test
-    void CheckReturnsUnknownInvalidNamespaceAsAdmin(){
+    void checkReturnsUnknownInvalidNamespaceAsAdmin(){
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of("isAdmin()"));
+        Authentication auth = Authentication.build("user", List.of("isAdmin()"), claims);
+
         Mockito.when(namespaceRepository.findByName("admin"))
                 .thenReturn(Optional.empty());
 
-        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/admin/connectors"),null, claims);
+        SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/admin/connectors"), auth);
         Assertions.assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
+
     @Test
-    void CheckReturnsAllowedNamespaceAsAdmin(){
+    void checkReturnsAllowedNamespaceAsAdmin(){
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of("isAdmin()"));
+        Authentication auth = Authentication.build("user", List.of("isAdmin()"), claims);
+
         Mockito.when(namespaceRepository.findByName("test"))
                 .thenReturn(Optional.of(Namespace.builder().build()));
 
-        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/connectors"),null, claims);
+        SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/connectors"), auth);
         Assertions.assertEquals(SecurityRuleResult.ALLOWED, actual);
     }
 
@@ -113,6 +129,8 @@ class ResourceBasedSecurityRuleTest {
     void checkReturnsAllowed(){
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
+        Authentication auth = Authentication.build("user", claims);
+
         Mockito.when(roleBindingRepository.findAllForGroups(groups))
                 .thenReturn(List.of(RoleBinding.builder()
                         .metadata(ObjectMeta.builder().namespace("test")
@@ -129,7 +147,7 @@ class ResourceBasedSecurityRuleTest {
         Mockito.when(namespaceRepository.findByName("test"))
                 .thenReturn(Optional.of(Namespace.builder().build()));
 
-        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/connectors"),null, claims);
+        SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/connectors"), auth);
         Assertions.assertEquals(SecurityRuleResult.ALLOWED, actual);
     }
 
@@ -137,6 +155,8 @@ class ResourceBasedSecurityRuleTest {
     void CheckReturnsAllowedSubresource() {
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
+        Authentication auth = Authentication.build("user", claims);
+
         Mockito.when(roleBindingRepository.findAllForGroups(groups))
                 .thenReturn(List.of(RoleBinding.builder()
                         .metadata(ObjectMeta.builder().namespace("test")
@@ -153,10 +173,10 @@ class ResourceBasedSecurityRuleTest {
         Mockito.when(namespaceRepository.findByName("test"))
                 .thenReturn(Optional.of(Namespace.builder().build()));
 
-        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/connectors/name/restart"),null, claims);
+        SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/connectors/name/restart"), auth);
         Assertions.assertEquals(SecurityRuleResult.ALLOWED, actual);
 
-        actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/topics/name/delete-records"),null, claims);
+        actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/topics/name/delete-records"), auth);
         Assertions.assertEquals(SecurityRuleResult.ALLOWED, actual);
     }
 
@@ -164,6 +184,8 @@ class ResourceBasedSecurityRuleTest {
     void CheckReturnsAllowedResourceWithHyphen() {
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
+        Authentication auth = Authentication.build("user", claims);
+
         Mockito.when(roleBindingRepository.findAllForGroups(groups))
                 .thenReturn(List.of(RoleBinding.builder()
                         .metadata(ObjectMeta.builder().namespace("test")
@@ -180,7 +202,7 @@ class ResourceBasedSecurityRuleTest {
         Mockito.when(namespaceRepository.findByName("test"))
                 .thenReturn(Optional.of(Namespace.builder().build()));
 
-        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/role-bindings"),null, claims);
+        SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/role-bindings"), auth);
         Assertions.assertEquals(SecurityRuleResult.ALLOWED, actual);
     }
 
@@ -188,6 +210,8 @@ class ResourceBasedSecurityRuleTest {
     void CheckReturnsAllowedResourceNameWithDot() {
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
+        Authentication auth = Authentication.build("user", claims);
+
         Mockito.when(roleBindingRepository.findAllForGroups(groups))
                 .thenReturn(List.of(RoleBinding.builder()
                         .metadata(ObjectMeta.builder().namespace("test")
@@ -204,7 +228,7 @@ class ResourceBasedSecurityRuleTest {
         Mockito.when(namespaceRepository.findByName("test"))
                 .thenReturn(Optional.of(Namespace.builder().build()));
 
-        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/topics/topic.with.dots"),null, claims);
+        SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/topics/topic.with.dots"), auth);
         Assertions.assertEquals(SecurityRuleResult.ALLOWED, actual);
     }
 
@@ -212,9 +236,11 @@ class ResourceBasedSecurityRuleTest {
     void CheckReturnsUnknownSubResource(){
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
+        Authentication auth = Authentication.build("user", claims);
+
         Mockito.when(namespaceRepository.findByName("test"))
                 .thenReturn(Optional.of(Namespace.builder().build()));
-      Mockito.when(roleBindingRepository.findAllForGroups(groups))
+        Mockito.when(roleBindingRepository.findAllForGroups(groups))
               .thenReturn(List.of(RoleBinding.builder()
                       .metadata(ObjectMeta.builder().namespace("test")
                               .build())
@@ -228,7 +254,7 @@ class ResourceBasedSecurityRuleTest {
                               .build())
                       .build()));
 
-        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/connectors/name/restart"),null, claims);
+        SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/connectors/name/restart"), auth);
         Assertions.assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
@@ -236,6 +262,8 @@ class ResourceBasedSecurityRuleTest {
     void CheckReturnsUnknownSubResourceWithDot(){
         List<String> groups = List.of("group1");
         Map<String,Object> claims = Map.of("sub","user", "groups", groups, "roles", List.of());
+        Authentication auth = Authentication.build("user", claims);
+
         Mockito.when(namespaceRepository.findByName("test"))
                 .thenReturn(Optional.of(Namespace.builder().build()));
         Mockito.when(roleBindingRepository.findAllForGroups(groups))
@@ -252,12 +280,12 @@ class ResourceBasedSecurityRuleTest {
                                 .build())
                         .build()));
 
-        SecurityRuleResult actual = resourceBasedSecurityRule.check(HttpRequest.GET("/api/namespaces/test/connectors/name.with.dots/restart"),null, claims);
+        SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/connectors/name.with.dots/restart"), auth);
         Assertions.assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
     @Test
-    void ComputeRolesNoAdmin(){
+    void ComputeRolesNoAdmin() {
         Mockito.when(securityConfig.getAdminGroup())
                 .thenReturn("admin-group");
         List<String> actual = resourceBasedSecurityRule.computeRolesFromGroups(List.of("not-admin"));
@@ -266,7 +294,7 @@ class ResourceBasedSecurityRuleTest {
     }
 
     @Test
-    void ComputeRolesAdmin(){
+    void ComputeRolesAdmin() {
         Mockito.when(securityConfig.getAdminGroup())
                 .thenReturn("admin-group");
         List<String> actual = resourceBasedSecurityRule.computeRolesFromGroups(List.of("admin-group"));

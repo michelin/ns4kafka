@@ -1,8 +1,8 @@
 plugins {
-    id("com.github.johnrengelman.shadow") version "7.0.0"
-    id("io.micronaut.application") version "1.5.0"
-    id 'jacoco'
-    id "org.sonarqube" version "3.1.1"
+    id("com.github.johnrengelman.shadow") version "7.1.2"
+    id("io.micronaut.application") version "3.6.7"
+    id "jacoco"
+    id "org.sonarqube" version "3.5.0.2730"
 }
 
 group = "com.michelin.ns4kafka"
@@ -12,32 +12,39 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'org.projectlombok:lombok:1.18.20'
-    annotationProcessor 'org.projectlombok:lombok:1.18.20'
+    annotationProcessor("org.projectlombok:lombok")
+    annotationProcessor("io.micronaut:micronaut-http-validation")
     annotationProcessor("io.micronaut.openapi:micronaut-openapi")
-    annotationProcessor("io.micronaut:micronaut-management")
     annotationProcessor("io.micronaut.security:micronaut-security-annotations")
-    annotationProcessor("io.swagger.core.v3:swagger-annotations")
 
-    implementation("io.micronaut:micronaut-validation")
-    implementation("io.micronaut:micronaut-runtime")
-    implementation("javax.annotation:javax.annotation-api")
     implementation("io.micronaut:micronaut-http-client")
-    implementation("io.micronaut.openapi:micronaut-openapi")
+    implementation("io.micronaut:micronaut-jackson-databind")
+    implementation("io.micronaut.kafka:micronaut-kafka")
     implementation("io.micronaut.security:micronaut-security")
     implementation("io.micronaut.security:micronaut-security-jwt")
     implementation("io.micronaut.security:micronaut-security-ldap")
-    implementation("io.micronaut.kafka:micronaut-kafka")
+    implementation("io.swagger.core.v3:swagger-annotations")
+    implementation("jakarta.annotation:jakarta.annotation-api")
+    implementation("io.micronaut.rxjava3:micronaut-rxjava3")
+    implementation("io.micronaut.rxjava3:micronaut-rxjava3-http-client")
+    implementation("io.micronaut.openapi:micronaut-openapi")
+
+    compileOnly("org.projectlombok:lombok")
 
     runtimeOnly("ch.qos.logback:logback-classic")
 
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.20'
-    testCompileOnly 'org.projectlombok:lombok:1.18.16'
+    testImplementation("org.mockito:mockito-core")
+    testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.testcontainers:testcontainers")
+    testImplementation("org.testcontainers:kafka") {
+        version {
+            strictly '1.15.3'
+        }
+    }
+    testImplementation("org.mockito:mockito-junit-jupiter:4.11.0")
 
-    testImplementation 'org.testcontainers:kafka:1.15.3'
-    testImplementation "org.testcontainers:junit-jupiter"
-    testImplementation 'org.mockito:mockito-inline:3.7.7'
-    testImplementation 'org.mockito:mockito-junit-jupiter:3.7.7'
+    testAnnotationProcessor("org.projectlombok:lombok")
+    testCompileOnly("org.projectlombok:lombok")
 }
 
 application {
@@ -45,12 +52,12 @@ application {
 }
 
 java {
-    sourceCompatibility = JavaVersion.toVersion('11')
-    targetCompatibility = JavaVersion.toVersion('11')
+    sourceCompatibility = JavaVersion.toVersion('17')
+    targetCompatibility = JavaVersion.toVersion('17')
 }
 
 run {
-    //environment( "MICRONAUT_ENVIRONMENTS","dev")
+    //environment("MICRONAUT_ENVIRONMENTS","dev")
 }
 
 micronaut {
@@ -62,6 +69,10 @@ micronaut {
     }
 }
 
+dockerfile {
+    baseImage = "eclipse-temurin:17-jre-alpine"
+}
+
 dockerBuild {
     images = ["michelin/ns4kafka:"+version]
 }
@@ -69,7 +80,6 @@ dockerBuild {
 tasks.withType(JavaCompile) {
     options.fork = true
     options.forkOptions.jvmArgs << '-Dmicronaut.openapi.views.spec=rapidoc.enabled=true'
-
 }
 
 sonarqube {
