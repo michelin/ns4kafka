@@ -34,10 +34,8 @@ jobs:
 
       - name: Build and test
         id: build_and_test
-        run: |
-          ./gradlew build check
-          echo ::set-output name=current_version::$(echo $(./gradlew properties --no-daemon --console=plain -q | grep "^version:" | awk '{printf $2}'))
-
+        run: ./gradlew build check
+        
       - name: Publish test report
         if: always()
         uses: mikepenz/action-junit-report@v3
