@@ -36,7 +36,7 @@ jobs:
       - name: Build and test
         id: build_and_test
         run: |
-          ./gradlew build check -Prelease
+          ./gradlew build check
           echo ::set-output name=current_version::$(echo $(./gradlew properties --no-daemon --console=plain -q | grep "^version:" | awk '{printf $2}'))
 
       - name: Publish test report
