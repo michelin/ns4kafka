@@ -21,8 +21,8 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void resourceValidationError() {
-        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local")
-                                                      ,new ResourceValidationException(List.of("Error1", "Error2"),"Topic", "Name"));
+        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
+                new ResourceValidationException(List.of("Error1", "Error2"),"Topic", "Name"));
         var status = response.body();
 
         Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatus());
@@ -36,8 +36,8 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void constraintViolationError() {
-        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local")
-                                                      ,new ConstraintViolationException(Set.of()));
+        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
+                new ConstraintViolationException(Set.of()));
         var status = response.body();
 
         Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatus());
@@ -46,8 +46,8 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void authorizationUnauthorizedError() {
-        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local")
-                                                      ,new AuthorizationException(null));
+        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
+                new AuthorizationException(null));
         var status = response.body();
 
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, response.getStatus());
@@ -56,8 +56,8 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void authorizationForbiddenError() {
-        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local")
-                                                      ,new AuthorizationException(Authentication.build("user", Map.of())));
+        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
+                new AuthorizationException(Authentication.build("user", Map.of())));
         var status = response.body();
 
         Assertions.assertEquals(HttpStatus.FORBIDDEN, response.getStatus());
@@ -66,8 +66,8 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void authenticationError() {
-        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local")
-                                                      ,new AuthenticationException());
+        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
+                new AuthenticationException());
         var status = response.body();
 
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, response.getStatus());
@@ -76,8 +76,8 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void anyError() {
-        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local")
-                                                      ,new Exception());
+        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
+                new Exception());
         var status = response.body();
 
         Assertions.assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
