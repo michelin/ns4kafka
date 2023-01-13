@@ -7,9 +7,9 @@ import lombok.*;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
-@Introspected
 @Builder
 @Getter
+@Introspected
 @NoArgsConstructor
 @AllArgsConstructor
 public class SchemaCompatibilityState {
@@ -24,12 +24,12 @@ public class SchemaCompatibilityState {
     @NotNull
     private SchemaCompatibilityState.SchemaCompatibilityStateSpec spec;
 
-    @Introspected
+    @Getter
     @Builder
+    @ToString
+    @Introspected
     @AllArgsConstructor
     @NoArgsConstructor
-    @Getter
-    @ToString
     public static class SchemaCompatibilityStateSpec {
         @Builder.Default
         private final Schema.Compatibility compatibility = Schema.Compatibility.GLOBAL;

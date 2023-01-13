@@ -7,11 +7,11 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
-@Introspected
+@Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
+@Introspected
 public class AccessControlEntry {
     private final String apiVersion = "v1";
     private final String kind = "AccessControlEntry";

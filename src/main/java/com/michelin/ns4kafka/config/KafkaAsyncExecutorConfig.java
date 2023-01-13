@@ -40,7 +40,6 @@ public class KafkaAsyncExecutorConfig {
 
     @Getter
     @Setter
-    @Introspected
     public static class ConnectConfig {
         String url;
         String basicAuthUsername;

@@ -22,8 +22,8 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-@RolesAllowed(SecurityRule.IS_ANONYMOUS)
 @Controller("/akhq-claim")
+@RolesAllowed(SecurityRule.IS_ANONYMOUS)
 public class AkhqClaimProviderController {
     private static final List<String> EMPTY_REGEXP = List.of("^none$");
 
@@ -135,7 +135,6 @@ public class AkhqClaimProviderController {
         return !allowedRegex.isEmpty() ? allowedRegex : EMPTY_REGEXP;
     }
 
-    @Introspected
     @Builder
     @Getter
     public static class AKHQClaimRequest {
@@ -145,7 +144,6 @@ public class AkhqClaimProviderController {
         List<String> groups;
     }
 
-    @Introspected
     @Builder
     @Getter
     public static class AKHQClaimResponse {
@@ -176,7 +174,7 @@ public class AkhqClaimProviderController {
                     .build();
         }
     }
-    @Introspected
+
     @Builder
     @Getter
     public static class AKHQClaimResponseV2 {

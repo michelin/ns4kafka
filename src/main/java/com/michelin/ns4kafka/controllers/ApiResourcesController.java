@@ -168,10 +168,9 @@ public class ApiResourcesController {
                 .toList();
     }
 
-    @Introspected
-    @Builder
     @Getter
     @Setter
+    @Builder
     public static class ResourceDefinition {
         private String kind;
         private boolean namespaced;

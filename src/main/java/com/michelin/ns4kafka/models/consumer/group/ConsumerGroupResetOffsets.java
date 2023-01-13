@@ -8,11 +8,11 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
-@Introspected
+@Data
 @Builder
+@Introspected
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
 public class ConsumerGroupResetOffsets {
     private final String apiVersion = "v1";
     private final String kind = "ConsumerGroupResetOffsets";
@@ -25,13 +25,13 @@ public class ConsumerGroupResetOffsets {
     @NotNull
     private ConsumerGroupResetOffsetsSpec spec;
 
-    @Introspected
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Getter
     @Setter
+    @Builder
     @ToString
+    @Introspected
+    @AllArgsConstructor
+    @NoArgsConstructor
     public static class ConsumerGroupResetOffsetsSpec {
         @NotNull
         @NotBlank
@@ -42,7 +42,6 @@ public class ConsumerGroupResetOffsets {
         private String options;
     }
 
-    @Introspected
     public enum ResetOffsetsMethod {
         TO_EARLIEST,
         TO_LATEST,
