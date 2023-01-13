@@ -71,6 +71,11 @@ micronaut {
     }
 }
 
+shadowJar {
+    archiveClassifier.set('')
+    dependsOn(distTar, distZip)
+}
+
 dockerfile {
     baseImage = "eclipse-temurin:17-jre-alpine"
 }

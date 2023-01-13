@@ -40,10 +40,13 @@ jobs:
           restore-keys: ${{ runner.os }}-gradle
 
       - name: Build and analyze
+        id: build_jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: ./gradlew build jacocoTestReport sonarqube --info
+        run: |
+          ./gradlew build jacocoTestReport sonarqube --info
+          echo ::set-output name=current_version::$(echo $(./gradlew properties --no-daemon --console=plain -q | grep "^version:" | awk '{printf $2}'))
 
       - name: Publish test report
         if: always()
@@ -58,4 +61,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ns4kafka
-          path: ${{ github.workspace }}/build/libs/ns4kafka-*-all.jar
+          path: ${{ github.workspace }}/build/libs/ns4kafka-${{ steps.build_jar.outputs.current_version }}.jar

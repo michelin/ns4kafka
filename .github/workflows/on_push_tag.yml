@@ -33,8 +33,11 @@ jobs:
           restore-keys: ${{ runner.os }}-gradle
 
       - name: Build and test
-        run: ./gradlew build check
-        
+        id: build_jar
+        run: |
+          ./gradlew build check
+          echo ::set-output name=current_version::$(echo $(./gradlew properties --no-daemon --console=plain -q | grep "^version:" | awk '{printf $2}'))
+
       - name: Publish test report
         if: always()
         uses: mikepenz/action-junit-report@v3
@@ -57,7 +60,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           body: ${{ steps.build_changelog.outputs.changelog }}
-          artifacts: ${{ github.workspace }}/build/libs/ns4kafka-*-all.jar
+          artifacts: ${{ github.workspace }}/build/libs/ns4kafka-${{ steps.build_jar.outputs.current_version }}.jar
           draft: true
           prerelease: true
           allowUpdates: true
