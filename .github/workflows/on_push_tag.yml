@@ -52,8 +52,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload
-        uses: actions/upload-artifact@v3
+      - name: Create release
+        uses: ncipollo/release-action@v1
         with:
-          name: ns4kafka
-          path: ${{ github.workspace }}/build/libs/ns4kafka-*-all.jar
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: ${{ steps.build_changelog.outputs.changelog }}
+          artifacts: ${{ github.workspace }}/build/libs/ns4kafka-*-all.jar
+          draft: true
+          prerelease: true
+          allowUpdates: true

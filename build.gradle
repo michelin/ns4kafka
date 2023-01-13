@@ -76,7 +76,7 @@ dockerfile {
 }
 
 dockerBuild {
-    images = ["michelin/ns4kafka:"+version]
+    images = ["michelin/ns4kafka:" + version]
 }
 
 tasks.withType(JavaCompile) {
