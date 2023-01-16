@@ -42,6 +42,7 @@ public class ConsumerGroupResetOffsets {
         private String options;
     }
 
+    @Introspected
     public enum ResetOffsetsMethod {
         TO_EARLIEST,
         TO_LATEST,
