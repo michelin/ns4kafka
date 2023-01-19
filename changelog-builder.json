@@ -17,7 +17,7 @@
       "labels": ["documentation"]
     },
     {
-      "title": "# :hammer: Other",
+      "title": "# :speech_balloon: Other",
       "labels": ["refactor", "test"]
     }
   ],
