@@ -48,7 +48,7 @@ class ConnectClusterControllerTest {
     ConnectClusterController connectClusterController;
 
     @Mock
-    ApplicationEventPublisher applicationEventPublisher;
+    ApplicationEventPublisher<?> applicationEventPublisher;
 
     /**
      * Test connect clusters listing when namespace is empty

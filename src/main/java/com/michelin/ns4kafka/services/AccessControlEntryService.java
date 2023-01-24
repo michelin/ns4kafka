@@ -6,9 +6,9 @@ import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import com.michelin.ns4kafka.services.executors.AccessControlEntryAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -16,27 +16,16 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class AccessControlEntryService {
-
-    /**
-     * The grantedTo value to define public topics.
-     */
     public static final String PUBLIC_GRANTED_TO = "*";
 
-    /**
-     * The ACL repository
-     */
     @Inject
     AccessControlEntryRepository accessControlEntryRepository;
 
-    /**
-     * The application context
-     */
     @Inject
     ApplicationContext applicationContext;
 
     /**
      * Validate a new ACL
-     *
      * @param accessControlEntry The ACL
      * @param namespace          The namespace
      * @return A list of validation errors
@@ -150,7 +139,7 @@ public class AccessControlEntryService {
 
                 })
                 .map(ace -> String.format("AccessControlEntry overlaps with existing one: %s", ace))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -228,12 +217,11 @@ public class AccessControlEntryService {
      * @return A list of ACLs
      */
     public List<AccessControlEntry> findAllGrantedToNamespace(Namespace namespace) {
-        return accessControlEntryRepository.findAll().stream()
-                .filter(accessControlEntry ->
-                        accessControlEntry.getSpec().getGrantedTo().equals(namespace.getMetadata().getName()) ||
-                                accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO)
-                )
-                .collect(Collectors.toList());
+        return accessControlEntryRepository.findAll()
+                .stream()
+                .filter(accessControlEntry -> accessControlEntry.getSpec().getGrantedTo().equals(namespace.getMetadata().getName()) ||
+                                accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO))
+                .toList();
     }
 
     /**
@@ -242,9 +230,10 @@ public class AccessControlEntryService {
      * @return A list of ACLs
      */
     public List<AccessControlEntry> findAllPublicGrantedTo() {
-        return accessControlEntryRepository.findAll().stream()
+        return accessControlEntryRepository.findAll()
+                .stream()
                 .filter(accessControlEntry -> accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -256,7 +245,7 @@ public class AccessControlEntryService {
     public List<AccessControlEntry> findAllForNamespace(Namespace namespace) {
         return accessControlEntryRepository.findAll().stream()
                 .filter(accessControlEntry -> accessControlEntry.getMetadata().getNamespace().equals(namespace.getMetadata().getName()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -268,7 +257,7 @@ public class AccessControlEntryService {
     public List<AccessControlEntry> findAllForCluster(String cluster) {
         return accessControlEntryRepository.findAll().stream()
                 .filter(accessControlEntry -> accessControlEntry.getMetadata().getCluster().equals(cluster))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

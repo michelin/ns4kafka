@@ -1,19 +1,19 @@
 package com.michelin.ns4kafka.security.gitlab;
 
-import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.config.SecurityConfig;
+import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.RoleBindingService;
-import edu.umd.cs.findbugs.annotations.Nullable;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.*;
-import io.reactivex.BackpressureStrategy;
-import io.reactivex.Flowable;
-import io.reactivex.schedulers.Schedulers;
+import io.reactivex.rxjava3.core.BackpressureStrategy;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.List;
 import java.util.Map;
 
@@ -21,34 +21,20 @@ import java.util.Map;
 @Slf4j
 @Singleton
 public class GitlabAuthenticationProvider implements AuthenticationProvider {
-
-    /**
-     * The Gitlab authentication service
-     */
     @Inject
     GitlabAuthenticationService gitlabAuthenticationService;
 
-    /**
-     * The resource security service
-     */
     @Inject
     ResourceBasedSecurityRule resourceBasedSecurityRule;
 
-    /**
-     * The role binding service
-     */
     @Inject
     RoleBindingService roleBindingService;
 
-    /**
-     * The NS4Kafka security config service
-     */
     @Inject
     SecurityConfig securityConfig;
 
     /**
      * Perform user authentication with GitLab
-     *
      * @param httpRequest The HTTP request
      * @param authenticationRequest The authentication request
      * @return An authentication response with the user details
@@ -68,7 +54,7 @@ public class GitlabAuthenticationProvider implements AuthenticationProvider {
                     log.debug("Error during authentication: user groups not found in any namespace");
                     emitter.onError(new AuthenticationException(new AuthenticationFailed("User groups not found in any namespace. There may be an error on the GitLab group of your namespace.")));
                 } else {
-                    UserDetails user = new UserDetails(username, resourceBasedSecurityRule.computeRolesFromGroups(groups), Map.of("groups", groups));
+                    AuthenticationResponse user = AuthenticationResponse.success(username, resourceBasedSecurityRule.computeRolesFromGroups(groups), Map.of("groups", groups));
                     emitter.onNext(user);
                     emitter.onComplete();
                 }

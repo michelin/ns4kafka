@@ -11,11 +11,11 @@ import lombok.NoArgsConstructor;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
-@Introspected
+@Data
 @Builder
+@Introspected
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
 public class ChangeConnectorState {
     private final String apiVersion = "v1";
     private final String kind = "ChangeConnectorState";
@@ -29,21 +29,21 @@ public class ChangeConnectorState {
     private ChangeConnectorStateSpec spec;
     private ChangeConnectorStateStatus status;
 
-    @Introspected
+    @Data
     @Builder
+    @Introspected
     @AllArgsConstructor
     @NoArgsConstructor
-    @Data
     public static class ChangeConnectorStateSpec {
         @NotNull
         private ConnectorAction action;
     }
 
-    @Introspected
+    @Data
     @Builder
+    @Introspected
     @AllArgsConstructor
     @NoArgsConstructor
-    @Data
     public static class ChangeConnectorStateStatus {
         private boolean success;
         private HttpStatus code;

@@ -50,7 +50,7 @@ public class ExceptionHandlerController {
                 .message("Invalid Resource")
                 .reason(StatusReason.Invalid)
                 .details(StatusDetails.builder()
-                        .causes(exception.getConstraintViolations().stream().map(this::formatViolation).collect(Collectors.toList()))
+                        .causes(exception.getConstraintViolations().stream().map(this::formatViolation).toList())
                         .build())
                 .code(HttpStatus.UNPROCESSABLE_ENTITY.getCode())
                 .build();

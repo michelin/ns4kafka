@@ -26,33 +26,18 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class StreamControllerTest {
-    /**
-     * The mocked namespace service
-     */
     @Mock
     NamespaceService namespaceService;
 
-    /**
-     * The mocked stream service
-     */
     @Mock
     StreamService streamService;
 
-    /**
-     * The mocked app event publisher
-     */
     @Mock
-    ApplicationEventPublisher applicationEventPublisher;
+    ApplicationEventPublisher<?> applicationEventPublisher;
 
-    /**
-     * The mocked security service
-     */
     @Mock
     SecurityService securityService;
 
-    /**
-     * The mocked Kafka Streams controller
-     */
     @InjectMocks
     StreamController streamController;
 

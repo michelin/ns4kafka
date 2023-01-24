@@ -4,8 +4,8 @@ import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.AESDecrypter;
 import com.nimbusds.jose.crypto.AESEncrypter;
 import com.nimbusds.jose.util.Base64URL;
+import io.micronaut.core.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKeyFactory;
@@ -35,7 +35,7 @@ public class EncryptionUtils {
      */
     public static String encryptAES256GCM(String clearText, String key) {
         try {
-            if (!StringUtils.isNotBlank(clearText)) {
+            if (!StringUtils.hasText(clearText)) {
                 return clearText;
             }
 
@@ -66,7 +66,7 @@ public class EncryptionUtils {
      */
     public static String decryptAES256GCM(String encryptedText, String key) {
         try {
-            if (!StringUtils.isNotBlank(encryptedText)) {
+            if (!StringUtils.hasText(encryptedText)) {
                 return encryptedText;
             }
 

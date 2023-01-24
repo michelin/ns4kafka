@@ -8,6 +8,7 @@ import com.michelin.ns4kafka.services.ConnectClusterService;
 import com.michelin.ns4kafka.services.ConnectorService;
 import com.michelin.ns4kafka.utils.enums.ApplyStatus;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
+import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -15,7 +16,6 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -156,7 +156,7 @@ public class ConnectClusterController extends NamespacedResourceController {
         final Namespace ns = getNamespace(namespace);
         return this.connectClusterService.findAllByNamespaceWrite(ns)
                 .stream()
-                .filter(connectCluster -> StringUtils.isNotBlank(connectCluster.getSpec().getAes256Key()))
+                .filter(connectCluster -> StringUtils.hasText(connectCluster.getSpec().getAes256Key()))
                 .collect(Collectors.toList());
     }
 

@@ -13,11 +13,11 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-@Introspected
+@Data
 @Builder
+@Introspected
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
 public class Connector {
     private final String apiVersion = "v1";
     private final String kind = "Connector";

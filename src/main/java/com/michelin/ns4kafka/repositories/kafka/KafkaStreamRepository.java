@@ -1,22 +1,15 @@
 package com.michelin.ns4kafka.repositories.kafka;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import javax.inject.Singleton;
-
 import com.michelin.ns4kafka.models.KafkaStream;
 import com.michelin.ns4kafka.repositories.StreamRepository;
-
+import io.micronaut.configuration.kafka.annotation.*;
+import io.micronaut.context.annotation.Value;
+import jakarta.inject.Singleton;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-import io.micronaut.configuration.kafka.annotation.KafkaClient;
-import io.micronaut.configuration.kafka.annotation.KafkaListener;
-import io.micronaut.configuration.kafka.annotation.OffsetReset;
-import io.micronaut.configuration.kafka.annotation.OffsetStrategy;
-import io.micronaut.configuration.kafka.annotation.Topic;
-import io.micronaut.context.annotation.Value;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Singleton
 @KafkaListener(
@@ -41,7 +34,7 @@ public class KafkaStreamRepository extends KafkaStore<KafkaStream> implements St
         return getKafkaStore().values()
                 .stream()
                 .filter(stream -> stream.getMetadata().getCluster().equals(cluster))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

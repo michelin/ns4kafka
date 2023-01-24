@@ -1,8 +1,8 @@
 package com.michelin.ns4kafka.services;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
-import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import com.michelin.ns4kafka.services.connect.ConnectorClientProxy;
 import com.michelin.ns4kafka.services.connect.client.ConnectorClient;
@@ -12,12 +12,12 @@ import io.micronaut.context.ApplicationContext;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.inject.qualifiers.Qualifiers;
-import io.reactivex.Observable;
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Single;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -65,7 +65,7 @@ public class ConnectorService {
                     }
                     return false;
                 }))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -78,7 +78,7 @@ public class ConnectorService {
         return connectorRepository.findAllForCluster(namespace.getMetadata().getCluster())
                 .stream()
                 .filter(connector -> connector.getSpec().getConnectCluster().equals(connectCluster))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -104,8 +104,7 @@ public class ConnectorService {
         // Check whether target Connect Cluster is allowed for this namespace
         List<String> selfDeployedConnectClusters = connectClusterService.findAllByNamespaceWrite(namespace)
                 .stream()
-                .map(connectCluster -> connectCluster.getMetadata().getName())
-                .collect(Collectors.toList());
+                .map(connectCluster -> connectCluster.getMetadata().getName()).toList();
 
         if (!namespace.getSpec().getConnectClusters().contains(connector.getSpec().getConnectCluster()) &&
                 !selfDeployedConnectClusters.contains(connector.getSpec().getConnectCluster())) {
@@ -185,7 +184,7 @@ public class ConnectorService {
         return connectorClient.delete(ConnectorClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(), connector.getMetadata().getName())
                 .defaultIfEmpty(HttpResponse.noContent())
-                .flatMapSingle(httpResponse -> {
+                .map(httpResponse -> {
                     connectorRepository.delete(connector);
 
                     if (log.isInfoEnabled()) {
@@ -194,7 +193,7 @@ public class ConnectorService {
                                 "] Connect [" + connector.getSpec().getConnectCluster() + "]");
                     }
 
-                    return Single.just(httpResponse);
+                    return httpResponse;
                 });
     }
 
@@ -216,7 +215,7 @@ public class ConnectorService {
                         .filter(connector -> isNamespaceOwnerOfConnect(namespace, connector.getMetadata().getName()))
                         // And aren't in ns4kafka storage
                         .filter(connector -> findByName(namespace, connector.getMetadata().getName()).isEmpty()))
-                .collect(Collectors.toList());
+                .toList();
 
         return Observable.merge(connectors).toList();
     }

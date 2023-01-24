@@ -10,10 +10,10 @@ import com.michelin.ns4kafka.repositories.ConnectClusterRepository;
 import com.nimbusds.jose.JOSEException;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MutableHttpRequest;
-import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientException;
-import io.reactivex.Flowable;
+import io.micronaut.rxjava3.http.client.Rx3HttpClient;
+import io.reactivex.rxjava3.core.Flowable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,7 +50,7 @@ class ConnectClusterServiceTest {
 
     @Mock
     @Client("/")
-    RxHttpClient httpClient;
+    Rx3HttpClient httpClient;
 
     /**
      * Test find all
@@ -328,7 +328,8 @@ class ConnectClusterServiceTest {
         KafkaAsyncExecutorConfig kafka = new KafkaAsyncExecutorConfig("local");
         kafka.setConnects(Map.of("test-connect", new KafkaAsyncExecutorConfig.ConnectConfig()));
         when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of(kafka));
-        when(httpClient.exchange(any(MutableHttpRequest.class))).thenReturn(Flowable.just(HttpResponse.ok()));
+        when(httpClient.exchange(any(MutableHttpRequest.class)))
+                .thenReturn(Flowable.just(HttpResponse.ok()));
 
         List<String> errors = connectClusterService.validateConnectClusterCreation(connectCluster);
 

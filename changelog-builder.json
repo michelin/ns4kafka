@@ -17,8 +17,12 @@
       "labels": ["documentation"]
     },
     {
-      "title": "# :hammer: Other",
-      "labels": ["refactor", "test"]
+      "title": "# :arrow_up: Dependency Updates",
+      "labels": ["dependencies"]
+    },
+    {
+      "title": "# :speech_balloon: Other",
+      "labels": ["security"]
     }
   ],
   "template": "${{CHANGELOG}}\n\n<details>\n<summary>Uncategorized</summary>\n\n${{UNCATEGORIZED}}\n</details>",

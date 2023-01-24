@@ -4,10 +4,10 @@ import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
 import io.micronaut.configuration.kafka.annotation.*;
 import io.micronaut.context.annotation.Value;
+import jakarta.inject.Singleton;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-import javax.inject.Singleton;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -75,12 +75,13 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
      */
     @Override
     public List<RoleBinding> findAllForGroups(Collection<String> groups) {
-        return getKafkaStore().values().stream().filter(roleBinding ->
-                groups.stream().anyMatch(group ->
-                        roleBinding.getSpec().getSubject().getSubjectType() == RoleBinding.SubjectType.GROUP
-                                && roleBinding.getSpec().getSubject().getSubjectName().equals(group)
-                )
-        ).collect(Collectors.toList());
+        return getKafkaStore().values()
+                .stream()
+                .filter(roleBinding -> groups
+                        .stream()
+                        .anyMatch(group -> roleBinding.getSpec().getSubject().getSubjectType() == RoleBinding.SubjectType.GROUP
+                                && roleBinding.getSpec().getSubject().getSubjectName().equals(group)))
+                .toList();
     }
 
     /**
@@ -90,8 +91,9 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
      */
     @Override
     public List<RoleBinding> findAllForNamespace(String namespace) {
-        return getKafkaStore().values().stream()
+        return getKafkaStore().values()
+                .stream()
                 .filter(roleBinding -> roleBinding.getMetadata().getNamespace().equals(namespace))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

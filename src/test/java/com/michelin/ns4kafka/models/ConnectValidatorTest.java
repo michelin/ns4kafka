@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
-public class ConnectValidatorTest {
+class ConnectValidatorTest {
     @Test
     void testEquals(){
         ConnectValidator original = ConnectValidator.builder()

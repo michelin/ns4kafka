@@ -4,9 +4,8 @@ import com.michelin.ns4kafka.models.AuditLog;
 import io.micronaut.context.annotation.Requires;
 import io.micronaut.context.event.ApplicationEventListener;
 import io.micronaut.core.util.StringUtils;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Singleton;
 
 @Slf4j
 @Singleton

@@ -1,33 +1,27 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.models.*;
+import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.KafkaStream;
+import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.StreamRepository;
 import com.michelin.ns4kafka.services.executors.AccessControlEntryAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Singleton
 public class StreamService {
-    /**
-     * The Kafka Streams repository
-     */
     @Inject
     StreamRepository streamRepository;
 
-    /**
-     * The ACL service
-     */
     @Inject
     AccessControlEntryService accessControlEntryService;
 
-    /**
-     * The application context
-     */
     @Inject
     ApplicationContext applicationContext;
 
@@ -39,7 +33,7 @@ public class StreamService {
     public List<KafkaStream> findAllForNamespace(Namespace namespace) {
         return streamRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
             .filter(stream -> stream.getMetadata().getNamespace().equals(namespace.getMetadata().getName()))
-            .collect(Collectors.toList());
+                .toList();
     }
 
     /**

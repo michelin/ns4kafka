@@ -10,7 +10,6 @@ import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.RoleBinding.*;
 import com.michelin.ns4kafka.models.Topic.TopicSpec;
-import com.michelin.ns4kafka.services.TopicService;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.annotation.Property;
@@ -19,11 +18,12 @@ import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import io.micronaut.rxjava3.http.client.Rx3HttpClient;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import jakarta.inject.Inject;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -35,7 +35,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -48,28 +47,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 class TopicTest extends AbstractIntegrationTest {
-    /**
-     * The HTTP client
-     */
     @Inject
     @Client("/")
-    RxHttpClient client;
+    Rx3HttpClient client;
 
-    /**
-     * The topic sync executor
-     */
     @Inject
     List<TopicAsyncExecutor> topicAsyncExecutorList;
 
-    /**
-     * The topic service
-     */
-    @Inject
-    TopicService topicService;
-
-    /**
-     * The Authentication token
-     */
     private String token;
 
     /**
@@ -247,7 +231,7 @@ class TopicTest extends AbstractIntegrationTest {
         ConfigResource configResource = new ConfigResource(ConfigResource.Type.TOPIC,"ns1-topicFirstCreate");
         List<ConfigEntry> valueToVerify = kafkaClient.describeConfigs(List.of(configResource)).all().get().get(configResource).entries().stream()
             .filter(e -> configKey.contains(e.name()))
-            .collect(Collectors.toList());
+                .toList();
 
         Assertions.assertEquals(config.size(), valueToVerify.size());
         valueToVerify.forEach(entry -> Assertions.assertEquals(config.get(entry.name()), entry.value()));
@@ -316,7 +300,7 @@ class TopicTest extends AbstractIntegrationTest {
         ConfigResource configResource = new ConfigResource(ConfigResource.Type.TOPIC,"ns1-topic2Create");
         List<ConfigEntry> valueToVerify = kafkaClient.describeConfigs(List.of(configResource)).all().get().get(configResource).entries().stream()
             .filter(e -> configKey.contains(e.name()))
-            .collect(Collectors.toList());
+                .toList();
 
         Assertions.assertEquals(config.size(), valueToVerify.size());
         valueToVerify.forEach(entry -> {

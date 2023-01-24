@@ -46,7 +46,7 @@ class TopicControllerTest {
     TopicService topicService;
 
     @Mock
-    ApplicationEventPublisher applicationEventPublisher;
+    ApplicationEventPublisher<?> applicationEventPublisher;
 
     @Mock
     SecurityService securityService;

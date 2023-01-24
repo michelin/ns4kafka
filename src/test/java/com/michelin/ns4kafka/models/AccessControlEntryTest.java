@@ -3,7 +3,7 @@ package com.michelin.ns4kafka.models;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class AccessControlEntryTest {
+class AccessControlEntryTest {
     @Test
     void testEquals() {
         AccessControlEntry original = AccessControlEntry.builder()

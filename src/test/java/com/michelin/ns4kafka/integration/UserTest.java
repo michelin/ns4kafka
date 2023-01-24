@@ -11,11 +11,12 @@ import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import io.micronaut.rxjava3.http.client.Rx3HttpClient;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import jakarta.inject.Inject;
 import org.apache.kafka.clients.admin.ScramMechanism;
 import org.apache.kafka.clients.admin.UserScramCredentialsDescription;
 import org.apache.kafka.common.quota.ClientQuotaEntity;
@@ -25,7 +26,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -35,7 +35,7 @@ import java.util.concurrent.ExecutionException;
 public class UserTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
-    RxHttpClient client;
+    Rx3HttpClient client;
 
     @Inject
     List<UserAsyncExecutor> userAsyncExecutors;
@@ -43,7 +43,7 @@ public class UserTest extends AbstractIntegrationTest {
     private String token;
 
     @BeforeAll
-    void init() throws ExecutionException, InterruptedException {
+    void init() {
         Namespace ns1 = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1")
@@ -98,7 +98,7 @@ public class UserTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void updateUserFail_NotMatching() throws ExecutionException, InterruptedException {
+    void updateUserFail_NotMatching() {
         HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class, () -> client.retrieve(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/users/user2/reset-password").bearerAuth(token), KafkaUserResetPassword.class).blockingFirst());
 
         Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());

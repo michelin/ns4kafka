@@ -8,18 +8,18 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.ConnectClusterRepository;
 import com.michelin.ns4kafka.utils.EncryptionUtils;
 import com.nimbusds.jose.JOSEException;
+import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MutableHttpRequest;
-import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientException;
+import io.micronaut.rxjava3.http.client.Rx3HttpClient;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -51,7 +51,7 @@ public class ConnectClusterService {
 
     @Inject
     @Client("/")
-    RxHttpClient httpClient;
+    Rx3HttpClient httpClient;
 
     /**
      * Find all self deployed Connect clusters
@@ -72,22 +72,18 @@ public class ConnectClusterService {
     public List<ConnectCluster> findAllByNamespace(Namespace namespace, List<AccessControlEntry.Permission> permissions) {
         List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace).stream()
                 .filter(acl -> permissions.contains(acl.getSpec().getPermission()))
-                .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT_CLUSTER)
-                .collect(Collectors.toList());
+                .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT_CLUSTER).toList();
 
         return connectClusterRepository.findAllForCluster(namespace.getMetadata().getCluster())
                 .stream()
-                .filter(connector -> acls.stream().anyMatch(accessControlEntry -> {
-                    switch (accessControlEntry.getSpec().getResourcePatternType()) {
-                        case PREFIXED:
-                            return connector.getMetadata().getName().startsWith(accessControlEntry.getSpec().getResource());
-                        case LITERAL:
-                            return connector.getMetadata().getName().equals(accessControlEntry.getSpec().getResource());
-                    }
-
-                    return false;
+                .filter(connector -> acls.stream().anyMatch(accessControlEntry ->
+                        switch (accessControlEntry.getSpec().getResourcePatternType()) {
+                    case PREFIXED ->
+                            connector.getMetadata().getName().startsWith(accessControlEntry.getSpec().getResource());
+                    case LITERAL ->
+                            connector.getMetadata().getName().equals(accessControlEntry.getSpec().getResource());
                 }))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -110,7 +106,7 @@ public class ConnectClusterService {
                                 .aes256Format(connectCluster.getSpec().getAes256Format())
                                 .build())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -144,20 +140,19 @@ public class ConnectClusterService {
      * @return The created connect worker
      */
     public ConnectCluster create(ConnectCluster connectCluster) throws IOException, JOSEException {
-        // encrypt password if present
-        if (StringUtils.isNotBlank(connectCluster.getSpec().getPassword())) {
+        if (StringUtils.hasText(connectCluster.getSpec().getPassword())) {
             connectCluster.getSpec()
                     .setPassword(EncryptionUtils.encryptAES256GCM(connectCluster.getSpec().getPassword(), securityConfig.getAes256EncryptionKey()));
         }
 
         // encrypt aes256 key if present
-        if (StringUtils.isNotBlank(connectCluster.getSpec().getAes256Key())) {
+        if (StringUtils.hasText(connectCluster.getSpec().getAes256Key())) {
             connectCluster.getSpec()
                     .setAes256Key(EncryptionUtils.encryptAES256GCM(connectCluster.getSpec().getAes256Key(), securityConfig.getAes256EncryptionKey()));
         }
 
         // encrypt aes256 salt if present
-        if (StringUtils.isNotBlank(connectCluster.getSpec().getAes256Salt())) {
+        if (StringUtils.hasText(connectCluster.getSpec().getAes256Salt())) {
             connectCluster.getSpec()
                     .setAes256Salt(EncryptionUtils.encryptAES256GCM(connectCluster.getSpec().getAes256Salt(), securityConfig.getAes256EncryptionKey()));
         }
@@ -181,7 +176,7 @@ public class ConnectClusterService {
 
         try {
             MutableHttpRequest<?> request = HttpRequest.GET(new URL(connectCluster.getSpec().getUrl()) + "/connectors?expand=info&expand=status");
-            if (StringUtils.isNotBlank(connectCluster.getSpec().getUsername()) && StringUtils.isNotBlank(connectCluster.getSpec().getPassword())) {
+            if (StringUtils.hasText(connectCluster.getSpec().getUsername()) && StringUtils.hasText(connectCluster.getSpec().getPassword())){
                 request.basicAuth(connectCluster.getSpec().getUsername(), connectCluster.getSpec().getPassword());
             }
             HttpResponse<?> response = httpClient.exchange(request).blockingFirst();
@@ -301,7 +296,7 @@ public class ConnectClusterService {
 
         final String aes256Key = EncryptionUtils.decryptAES256GCM(kafkaConnect.get().getSpec().getAes256Key(), securityConfig.getAes256EncryptionKey());
         final String aes256Salt = EncryptionUtils.decryptAES256GCM(kafkaConnect.get().getSpec().getAes256Salt(), securityConfig.getAes256EncryptionKey());
-        final String aes256Format = kafkaConnect.get().getSpec().getAes256Format() != null && !kafkaConnect.get().getSpec().getAes256Format().isEmpty() ?
+        final String aes256Format = StringUtils.hasText(kafkaConnect.get().getSpec().getAes256Format()) ?
                 kafkaConnect.get().getSpec().getAes256Format() : DEFAULT_FORMAT;
         return String.format(aes256Format, EncryptionUtils.encryptAES256(password, aes256Key, aes256Salt));
     }

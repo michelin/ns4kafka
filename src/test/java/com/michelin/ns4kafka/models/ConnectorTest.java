@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
-public class ConnectorTest {
+class ConnectorTest {
     @Test
     void testEquals() {
         Connector original = Connector.builder()

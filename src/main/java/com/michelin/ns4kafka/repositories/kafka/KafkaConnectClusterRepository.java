@@ -4,10 +4,10 @@ import com.michelin.ns4kafka.models.ConnectCluster;
 import com.michelin.ns4kafka.repositories.ConnectClusterRepository;
 import io.micronaut.configuration.kafka.annotation.*;
 import io.micronaut.context.annotation.Value;
+import jakarta.inject.Singleton;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,7 +33,7 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
     public List<ConnectCluster> findAllForCluster(String cluster) {
         return getKafkaStore().values().stream()
                 .filter(connectCluster -> connectCluster.getMetadata().getCluster().equals(cluster))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
