@@ -7,22 +7,30 @@ import com.nimbusds.jose.util.Base64URL;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
+import javax.crypto.Cipher;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
 
 @Slf4j
 public class EncryptionUtils {
     /**
      * Constructor
      */
-    private EncryptionUtils() { }
+    private EncryptionUtils() {
+    }
 
     /**
      * Encrypt given text with the given key to AES256 GCM then encode it to Base64
+     *
      * @param clearText The text to encrypt
-     * @param key The key encryption key (KEK)
+     * @param key       The key encryption key (KEK)
      * @return The encrypted password
      */
     public static String encryptAES256GCM(String clearText, String key) {
@@ -51,8 +59,9 @@ public class EncryptionUtils {
 
     /**
      * Decrypt given text with the given key from AES256 GCM
+     *
      * @param encryptedText The text to decrypt
-     * @param key The key encryption key (KEK)
+     * @param key           The key encryption key (KEK)
      * @return The decrypted text
      */
     public static String decryptAES256GCM(String encryptedText, String key) {
@@ -78,5 +87,29 @@ public class EncryptionUtils {
         }
 
         return encryptedText;
+    }
+
+    /**
+     * Encrypt clear text with the given key and salt to AES256 encrypted text.
+     *
+     * @param clearText The text to encrypt.
+     * @param key       The encryption key.
+     * @param salt      The encryption salt.
+     * @return The encrypted password.
+     */
+    public static String encryptAES256(final String clearText, final String key, final String salt) {
+        try {
+            byte[] iv = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+            final var ivSpec = new IvParameterSpec(iv);
+            final var factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+            final var spec = new PBEKeySpec(key.toCharArray(), salt.getBytes(), 65536, 256);
+            final var secret = factory.generateSecret(spec);
+            final var secretKey = new SecretKeySpec(secret.getEncoded(), "AES");
+            final var cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivSpec);
+            return Base64.getEncoder().encodeToString(cipher.doFinal(clearText.getBytes(StandardCharsets.UTF_8)));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

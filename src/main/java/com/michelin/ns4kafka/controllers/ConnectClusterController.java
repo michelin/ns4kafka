@@ -10,10 +10,12 @@ import com.michelin.ns4kafka.utils.enums.ApplyStatus;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -36,6 +38,7 @@ public class ConnectClusterController extends NamespacedResourceController {
 
     /**
      * Get all the Connect workers by namespace
+     *
      * @param namespace The namespace
      * @return A list of connectors
      */
@@ -46,7 +49,8 @@ public class ConnectClusterController extends NamespacedResourceController {
 
     /**
      * Get the last version of a connector by namespace and name
-     * @param namespace The namespace
+     *
+     * @param namespace      The namespace
      * @param connectCluster The name
      * @return A Connect worker
      */
@@ -57,9 +61,10 @@ public class ConnectClusterController extends NamespacedResourceController {
 
     /**
      * Publish a Connect worker
-     * @param namespace The namespace
+     *
+     * @param namespace      The namespace
      * @param connectCluster The connect worker
-     * @param dryrun Does the creation is a dry run
+     * @param dryrun         Does the creation is a dry run
      * @return The created role binding
      */
     @Post("/{?dryrun}")
@@ -99,9 +104,10 @@ public class ConnectClusterController extends NamespacedResourceController {
 
     /**
      * Delete Connect cluster by the given name
-     * @param namespace The current namespace
+     *
+     * @param namespace      The current namespace
      * @param connectCluster The current connect cluster name to delete
-     * @param dryrun Run in dry mode or not
+     * @param dryrun         Run in dry mode or not
      * @return A HTTP response
      */
     @Status(HttpStatus.NO_CONTENT)
@@ -138,5 +144,62 @@ public class ConnectClusterController extends NamespacedResourceController {
 
         connectClusterService.delete(connectClusterToDelete);
         return HttpResponse.noContent();
+    }
+
+    /**
+     * Gets the list of available Kafka Connect vaults for a namespace
+     *
+     * @return The list of the available Kafka Connect vaults.
+     */
+    @Get("/vaults")
+    List<ConnectCluster> listVaults(final String namespace) {
+        final Namespace ns = getNamespace(namespace);
+        return this.connectClusterService.findAllByNamespaceWrite(ns)
+                .stream()
+                .filter(connectCluster -> StringUtils.isNotBlank(connectCluster.getSpec().getAes256Key()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Encrypt a password for a specific Kafka Connect cluster.
+     *
+     * @param namespace      The namespace.
+     * @param connectCluster The name of the Kafka Connect cluster.
+     * @param password       The password to encrypt.
+     * @return The encrypted password.
+     */
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.TEXT_PLAIN)
+    @Post("/vaults/{connectCluster}")
+    public String vaultPasswordPlainText(final String namespace, final String connectCluster, @Body final String password) {
+        final var ns = getNamespace(namespace);
+
+        final var validationErrors = new ArrayList<String>();
+        if (!connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectCluster)) {
+            validationErrors.add(String.format("Namespace is not allowed to use this Connect cluster %s.", connectCluster));
+        }
+
+        validationErrors.addAll(connectClusterService.validateConnectClusterVault(ns, connectCluster));
+
+        if (!validationErrors.isEmpty()) {
+            throw new ResourceValidationException(validationErrors, "ConnectCluster", connectCluster);
+        }
+
+        return connectClusterService.vaultPassword(ns, connectCluster, password);
+    }
+
+    /**
+     * Encrypt a password for a specific Kafka Connect cluster.
+     *
+     * @param namespace      The namespace.
+     * @param connectCluster The name of the Kafka Connect cluster.
+     * @param password       The password to encrypt.
+     * @return The encrypted password.
+     */
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.TEXT_PLAIN)
+    @Post("/vaults/{connectCluster}")
+    public String vaultPasswordJson(final String namespace, final String connectCluster, final String password) {
+        return this.vaultPasswordPlainText(namespace, connectCluster, password);
     }
 }
