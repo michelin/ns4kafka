@@ -176,6 +176,7 @@ class NamespaceControllerTest {
         Namespace existing = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
+                        .namespace("namespace")
                         .cluster("local")
                         .build())
                 .spec(Namespace.NamespaceSpec.builder()
