@@ -52,9 +52,10 @@ class NamespaceControllerTest {
         Mockito.when(namespaceService.validateCreation(toCreate))
                 .thenReturn(List.of("OneError"));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,()->namespaceController.apply(toCreate, false));
+        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,() -> namespaceController.apply(toCreate, false));
         Assertions.assertEquals(1, actual.getValidationErrors().size());
     }
+
     @Test
     void applyCreateSuccess(){
         Namespace toCreate = Namespace.builder()
@@ -79,6 +80,7 @@ class NamespaceControllerTest {
         Assertions.assertEquals("new-namespace", actual.getMetadata().getName());
         Assertions.assertEquals("local", actual.getMetadata().getCluster());
     }
+
     @Test
     void applyCreateDryRun(){
         Namespace toCreate = Namespace.builder()
@@ -93,10 +95,10 @@ class NamespaceControllerTest {
                 .thenReturn(List.of());
 
         var response = namespaceController.apply(toCreate, true);
-        Namespace actual = response.body();
         Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(namespaceService, never()).createOrUpdate(toCreate);
     }
+
     @Test
     void applyUpdateInvalid(){
         Namespace existing = Namespace.builder()
@@ -128,6 +130,7 @@ class NamespaceControllerTest {
                         "Invalid value user-change for kafkaUser: Value is immutable (user)"),
                 actual.getValidationErrors());
     }
+
     @Test
     void applyUpdateSuccess(){
         Namespace existing = Namespace.builder()
@@ -160,10 +163,14 @@ class NamespaceControllerTest {
         var response = namespaceController.apply(toUpdate, false);
         Namespace actual = response.body();
         Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
+        Assertions.assertNotNull(actual);
+        Assertions.assertEquals("namespace", actual.getMetadata().getName());
+        Assertions.assertEquals("namespace", actual.getMetadata().getNamespace());
         Assertions.assertEquals("namespace", actual.getMetadata().getName());
         Assertions.assertEquals("local", actual.getMetadata().getCluster());
         Assertions.assertEquals("label", actual.getMetadata().getLabels().get("new"));
     }
+
     @Test
     void applyUpdateSuccess_AlreadyExists(){
         Namespace existing = Namespace.builder()
@@ -193,6 +200,7 @@ class NamespaceControllerTest {
         Assertions.assertEquals(existing, actual);
         verify(namespaceService,never()).createOrUpdate(ArgumentMatchers.any());
     }
+
     @Test
     void applyUpdateDryRun(){
         Namespace existing = Namespace.builder()
@@ -218,13 +226,12 @@ class NamespaceControllerTest {
                 .thenReturn(Optional.of(existing));
 
         var response = namespaceController.apply(toUpdate, true);
-        Namespace actual = response.body();
         Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
         verify(namespaceService, never()).createOrUpdate(toUpdate);
     }
 
     @Test
-    void deleteSucess() {
+    void deleteSuccess() {
         Namespace existing = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -247,7 +254,7 @@ class NamespaceControllerTest {
     }
 
     @Test
-    void deleteSucessDryRun() {
+    void deleteSuccessDryRun() {
         Namespace existing = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -297,7 +304,5 @@ class NamespaceControllerTest {
                 .thenReturn(List.of("Topic/topic1"));
         Assertions.assertThrows(ResourceValidationException.class,() -> namespaceController.delete("namespace", false));
         verify(namespaceService, never()).delete(any());
-
     }
-
 }
