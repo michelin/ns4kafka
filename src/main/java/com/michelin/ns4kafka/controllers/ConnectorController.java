@@ -23,7 +23,6 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Tag(name = "Connectors")
 @Controller(value = "/api/namespaces/{namespace}/connectors")
@@ -48,7 +47,7 @@ public class ConnectorController extends NamespacedResourceController {
     }
 
     /**
-     * Get the last version of a connector by namespace and name
+     * Get a connector by namespace and name
      * @param namespace The namespace
      * @param connector The name
      * @return A connector
@@ -102,7 +101,7 @@ public class ConnectorController extends NamespacedResourceController {
      * @param namespace The namespace
      * @param connector  The connector to create
      * @param dryrun Does the creation is a dry run
-     * @return The created schema
+     * @return The created connector
      */
     @Post("{?dryrun}")
     public Single<HttpResponse<Connector>> apply(String namespace, @Valid @Body Connector connector, @QueryValue(defaultValue = "false") boolean dryrun) {

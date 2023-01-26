@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 @Tag(name = "Namespaces")
@@ -27,23 +26,36 @@ public class NamespaceController extends NonNamespacedResourceController {
     @Inject
     NamespaceService namespaceService;
 
+    /**
+     * Get all the namespaces
+     * @return A list of namespaces
+     */
     @Get("/")
     public List<Namespace> list() {
         return namespaceService.listAll();
     }
 
+    /**
+     * Get a namespace by name
+     * @param namespace The namespace
+     * @return A namespace
+     */
     @Get("/{namespace}")
     public Optional<Namespace> get(String namespace) {
         return namespaceService.findByName(namespace);
     }
 
+    /**
+     * Publish a namespace
+     * @param namespace The namespace
+     * @param dryrun Does the creation is a dry run
+     * @return The created namespace
+     */
     @Post("{?dryrun}")
     public HttpResponse<Namespace> apply(@Valid @Body Namespace namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
-
         Optional<Namespace> existingNamespace = namespaceService.findByName(namespace.getMetadata().getName());
 
         List<String> validationErrors = new ArrayList<>();
-
         if (existingNamespace.isEmpty()) {
             // New Namespace checks
             validationErrors.addAll(namespaceService.validateCreation(namespace));
@@ -67,7 +79,8 @@ public class NamespaceController extends NonNamespacedResourceController {
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors, namespace.getKind(), namespace.getMetadata().getName());
         }
-        //augment
+
+        namespace.getMetadata().setNamespace(namespace.getMetadata().getName());
         namespace.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
 
         if (existingNamespace.isPresent() && existingNamespace.get().equals(namespace)) {
@@ -76,7 +89,6 @@ public class NamespaceController extends NonNamespacedResourceController {
 
         ApplyStatus status = existingNamespace.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
 
-        //dryrun checks
         if (dryrun) {
             return formatHttpResponse(namespace, status);
         }
@@ -84,22 +96,28 @@ public class NamespaceController extends NonNamespacedResourceController {
         sendEventLog(namespace.getKind(),
                 namespace.getMetadata(),
                 status,
-                existingNamespace.isPresent() ? existingNamespace.get().getSpec() : null,
+                existingNamespace.<Object>map(Namespace::getSpec).orElse(null),
                 namespace.getSpec());
-        return formatHttpResponse(namespaceService.createOrUpdate(namespace), status);
 
+        return formatHttpResponse(namespaceService.createOrUpdate(namespace), status);
     }
 
+    /**
+     * Delete a namespace
+     * @param namespace The namespace
+     * @param dryrun Is dry run mode or not ?
+     * @return An HTTP response
+     */
     @Delete("/{namespace}{?dryrun}")
-    public HttpResponse<?> delete(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
-        // exists ?
+    public HttpResponse<Void> delete(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
         Optional<Namespace> optionalNamespace = namespaceService.findByName(namespace);
-        if (optionalNamespace.isEmpty())
+        if (optionalNamespace.isEmpty()) {
             return HttpResponse.notFound();
-        // check existing resources
+        }
+
         List<String> namespaceResources = namespaceService.listAllNamespaceResources(optionalNamespace.get());
         if (!namespaceResources.isEmpty()) {
-            var validationErrors = namespaceResources.stream()
+            List<String> validationErrors = namespaceResources.stream()
                     .map(s -> "Namespace resource must be deleted first :" + s)
                     .toList();
             throw new ResourceValidationException(validationErrors, "Namespace", namespace);
@@ -118,5 +136,4 @@ public class NamespaceController extends NonNamespacedResourceController {
         namespaceService.delete(optionalNamespace.get());
         return HttpResponse.noContent();
     }
-
 }
