@@ -159,7 +159,7 @@ public class ConnectClusterController extends NamespacedResourceController {
         return this.connectClusterService.findAllByNamespaceWrite(ns)
                 .stream()
                 .filter(connectCluster -> StringUtils.hasText(connectCluster.getSpec().getAes256Key()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
