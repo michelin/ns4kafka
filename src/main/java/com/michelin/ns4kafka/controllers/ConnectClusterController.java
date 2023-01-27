@@ -8,6 +8,7 @@ import com.michelin.ns4kafka.services.ConnectClusterService;
 import com.michelin.ns4kafka.services.ConnectorService;
 import com.michelin.ns4kafka.utils.enums.ApplyStatus;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
+import com.nimbusds.jose.JOSEException;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -16,9 +17,10 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.inject.Inject;
 
-import javax.inject.Inject;
 import javax.validation.Valid;
+import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
@@ -68,7 +70,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @return The created role binding
      */
     @Post("/{?dryrun}")
-    HttpResponse<ConnectCluster> apply(String namespace, @Body @Valid ConnectCluster connectCluster, @QueryValue(defaultValue = "false") boolean dryrun) throws Exception {
+    HttpResponse<ConnectCluster> apply(String namespace, @Body @Valid ConnectCluster connectCluster, @QueryValue(defaultValue = "false") boolean dryrun) throws IOException, JOSEException {
         Namespace ns = getNamespace(namespace);
 
         List<String> validationErrors = new ArrayList<>();
@@ -152,7 +154,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @return The list of the available Kafka Connect vaults.
      */
     @Get("/vaults")
-    List<ConnectCluster> listVaults(final String namespace) {
+    public List<ConnectCluster> listVaults(final String namespace) {
         final Namespace ns = getNamespace(namespace);
         return this.connectClusterService.findAllByNamespaceWrite(ns)
                 .stream()
@@ -170,7 +172,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      */
     @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.TEXT_PLAIN)
-    @Post("/vaults/{connectCluster}")
+    @Post("/{connectCluster}/vault")
     public String vaultPasswordPlainText(final String namespace, final String connectCluster, @Body final String password) {
         final var ns = getNamespace(namespace);
 
@@ -198,7 +200,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      */
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.TEXT_PLAIN)
-    @Post("/vaults/{connectCluster}")
+    @Post("/{connectCluster}/vault")
     public String vaultPasswordJson(final String namespace, final String connectCluster, final String password) {
         return this.vaultPasswordPlainText(namespace, connectCluster, password);
     }

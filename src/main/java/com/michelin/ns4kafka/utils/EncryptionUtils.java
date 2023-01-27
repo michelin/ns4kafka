@@ -8,6 +8,7 @@ import io.micronaut.core.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.crypto.Cipher;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
@@ -15,6 +16,10 @@ import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.Base64;
 
@@ -98,18 +103,61 @@ public class EncryptionUtils {
      * @return The encrypted password.
      */
     public static String encryptAES256(final String clearText, final String key, final String salt) {
+        if (!StringUtils.hasText(clearText)) {
+            return clearText;
+        }
+
         try {
-            byte[] iv = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            final var ivSpec = new IvParameterSpec(iv);
-            final var factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-            final var spec = new PBEKeySpec(key.toCharArray(), salt.getBytes(), 65536, 256);
-            final var secret = factory.generateSecret(spec);
-            final var secretKey = new SecretKeySpec(secret.getEncoded(), "AES");
-            final var cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivSpec);
+            final var cipher = getAES256Cipher(Cipher.ENCRYPT_MODE, key, salt);
             return Base64.getEncoder().encodeToString(cipher.doFinal(clearText.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            log.error("An error occurred during Connect cluster AES256 string encryption", e);
         }
+
+        return clearText;
+    }
+
+    /**
+     * Decrypt text with the given key and salt from AES256 encrypted text.
+     *
+     * @param encryptedText The text to decrypt.
+     * @param key           The encryption key.
+     * @param salt          The encryption salt.
+     * @return The encrypted password.
+     */
+    public static String decryptAES256(final String encryptedText, final String key, final String salt) {
+        if (!StringUtils.hasText(encryptedText)) {
+            return encryptedText;
+        }
+
+        try {
+            final var cipher = getAES256Cipher(Cipher.DECRYPT_MODE, key, salt);
+            return new String(cipher.doFinal(Base64.getDecoder().decode(encryptedText)));
+        } catch (Exception e) {
+            log.error("An error occurred during Connect cluster AES256 string decryption", e);
+        }
+
+        return encryptedText;
+    }
+
+    /**
+     * Get AES256 Cipher for encryption or decryption.
+     *
+     * @param encryptMode The encryption mode.
+     * @param key         The encryption key.
+     * @param salt        The encryption salt.
+     * @return The AES256 cipher.
+     */
+    private static Cipher getAES256Cipher(final int encryptMode, final String key, final String salt)
+            throws NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
+        byte[] iv = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        final var ivSpec = new IvParameterSpec(iv);
+        final var factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+        final var spec = new PBEKeySpec(key.toCharArray(), salt.getBytes(), 65536, 256);
+        final var secret = factory.generateSecret(spec);
+        final var secretKey = new SecretKeySpec(secret.getEncoded(), "AES");
+        final var cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        cipher.init(encryptMode, secretKey, ivSpec);
+        return cipher;
     }
 }

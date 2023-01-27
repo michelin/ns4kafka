@@ -7,6 +7,7 @@ import com.michelin.ns4kafka.models.ConnectCluster;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.ConnectClusterRepository;
+import com.michelin.ns4kafka.utils.EncryptionUtils;
 import com.nimbusds.jose.JOSEException;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MutableHttpRequest;
@@ -301,6 +302,8 @@ class ConnectClusterServiceTest {
                         .url("https://after")
                         .username("myUsername")
                         .password("myPassword")
+                        .aes256Key("myAES256Key")
+                        .aes256Salt("myAES256Salt")
                         .build())
                 .build();
 
@@ -309,6 +312,8 @@ class ConnectClusterServiceTest {
 
         connectClusterService.create(connectCluster);
         Assertions.assertNotEquals("myPassword", connectCluster.getSpec().getPassword());
+        Assertions.assertNotEquals("myAES256Key", connectCluster.getSpec().getAes256Key());
+        Assertions.assertNotEquals("myAES256Salt", connectCluster.getSpec().getAes256Salt());
     }
 
     /**
@@ -403,5 +408,329 @@ class ConnectClusterServiceTest {
 
         Assertions.assertEquals(1L, errors.size());
         Assertions.assertEquals("The following error occurred trying to check the Connect cluster test-connect health: Error.", errors.get(0));
+    }
+
+    /**
+     * Test validate connect cluster creation when aes 256 configuration missing salt.
+     */
+    @Test
+    void validateConnectClusterCreationBadAES256MissingSalt() {
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("test-connect")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .url("https://after")
+                        .username("username")
+                        .password("password")
+                        .aes256Key("aes256Key")
+                        .build())
+                .build();
+
+        when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of());
+        when(httpClient.exchange(any(MutableHttpRequest.class))).thenReturn(Flowable.just(HttpResponse.ok()));
+
+        List<String> errors = connectClusterService.validateConnectClusterCreation(connectCluster);
+
+        Assertions.assertEquals(1L, errors.size());
+        Assertions.assertEquals("The Connect cluster \"test-connect\" \"aes256Key\" and \"aes256Salt\" spec are required to activate the encryption.", errors.get(0));
+    }
+
+    /**
+     * Test validate connect cluster creation when aes 256 configuration missing key.
+     */
+    @Test
+    void validateConnectClusterCreationBadAES256MissingKey() {
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("test-connect")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .url("https://after")
+                        .username("username")
+                        .password("password")
+                        .aes256Salt("aes256Salt")
+                        .build())
+                .build();
+
+        when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of());
+        when(httpClient.exchange(any(MutableHttpRequest.class))).thenReturn(Flowable.just(HttpResponse.ok()));
+
+        List<String> errors = connectClusterService.validateConnectClusterCreation(connectCluster);
+
+        Assertions.assertEquals(1L, errors.size());
+        Assertions.assertEquals("The Connect cluster \"test-connect\" \"aes256Key\" and \"aes256Salt\" spec are required to activate the encryption.", errors.get(0));
+    }
+
+    /**
+     * Test validate connect cluster vault when Connect cluster does not exists
+     */
+    @Test
+    void validateConnectClusterVaultConnectNotExists() {
+        Namespace namespace = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("prefix.connect-cluster")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .aes256Key("aes256Key")
+                        .build())
+                .build();
+
+        when(connectClusterRepository.findAllForCluster("local"))
+                .thenReturn(List.of(connectCluster));
+
+        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+                .thenReturn(List.of(
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.WRITE)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
+                                        .resource("prefix.")
+                                        .build())
+                                .build()
+                ));
+
+        when(connectClusterService.findAllByNamespaceWrite(namespace)).thenReturn(List.of(connectCluster));
+
+        List<String> errors = connectClusterService.validateConnectClusterVault(namespace, "prefix.fake-connect-cluster");
+
+        Assertions.assertEquals(1L, errors.size());
+        Assertions.assertEquals("No Connect cluster exists with the name prefix.fake-connect-cluster. Please provide a different name.", errors.get(0));
+    }
+
+    /**
+     * Test validate connect cluster vault when AES256 config is bad.
+     */
+    @Test
+    void validateConnectClusterVaultBadAES256Config() {
+        Namespace namespace = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("prefix.connect-cluster")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .build())
+                .build();
+
+        when(connectClusterRepository.findAllForCluster("local"))
+                .thenReturn(List.of(connectCluster));
+
+        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+                .thenReturn(List.of(
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.WRITE)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
+                                        .resource("prefix.")
+                                        .build())
+                                .build()
+                ));
+
+        List<String> errors = connectClusterService.validateConnectClusterVault(namespace, "prefix.connect-cluster");
+
+        Assertions.assertEquals(2L, errors.size());
+        Assertions.assertEquals("The Connect cluster \"prefix.connect-cluster\" does not contain any aes 256 key in its configuration.", errors.get(0));
+        Assertions.assertEquals("The Connect cluster \"prefix.connect-cluster\" does not contain any aes 256 salt in its configuration.", errors.get(1));
+    }
+
+    /**
+     * Test validate connect cluster vault.
+     */
+    @Test
+    void validateConnectClusterVault() {
+        Namespace namespace = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("prefix.connect-cluster")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .aes256Key("aes256Key")
+                        .aes256Salt("aes256Salt")
+                        .build())
+                .build();
+
+        when(connectClusterRepository.findAllForCluster("local"))
+                .thenReturn(List.of(connectCluster));
+
+        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+                .thenReturn(List.of(
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.WRITE)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
+                                        .resource("prefix.")
+                                        .build())
+                                .build()
+                ));
+
+        List<String> errors = connectClusterService.validateConnectClusterVault(namespace, "prefix.connect-cluster");
+
+        Assertions.assertEquals(0L, errors.size());
+    }
+
+    /**
+     * Test vault password if no connect cluster with aes256 config define.
+     */
+    @Test
+    void vaultPasswordNoConnectClusterWithAes256Config() {
+        Namespace namespace = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("prefix.connect-cluster")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .aes256Key("aes256Key")
+                        .build())
+                .build();
+
+        when(connectClusterRepository.findAllForCluster("local"))
+                .thenReturn(List.of(connectCluster));
+
+        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+                .thenReturn(List.of(
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.WRITE)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
+                                        .resource("prefix.")
+                                        .build())
+                                .build()
+                ));
+
+        String actual = connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", "secret");
+
+        Assertions.assertEquals("secret", actual);
+    }
+
+    /**
+     * Test vault password if no connect cluster with aes256 config define.
+     */
+    @Test
+    void vaultPasswordWithoutFormat() {
+        String encryptionKey = "changeitchangeitchangeitchangeit";
+
+        Namespace namespace = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("prefix.connect-cluster")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .aes256Key(EncryptionUtils.encryptAES256GCM("aes256Key", encryptionKey))
+                        .aes256Salt(EncryptionUtils.encryptAES256GCM("aes256Salt", encryptionKey))
+                        .build())
+                .build();
+
+        when(connectClusterRepository.findAllForCluster("local"))
+                .thenReturn(List.of(connectCluster));
+
+        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+                .thenReturn(List.of(
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.WRITE)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
+                                        .resource("prefix.")
+                                        .build())
+                                .build()
+                ));
+
+        when(securityConfig.getAes256EncryptionKey()).thenReturn("changeitchangeitchangeitchangeit");
+
+        String actual = connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", "secret");
+
+        Assertions.assertEquals("${aes256:YoVMI61x1ElgvvIKko/usw==}", actual);
+    }
+
+    /**
+     * Test vault password if no connect cluster with aes256 config define and format.
+     */
+    @Test
+    void vaultPasswordWithFormat() {
+        String encryptionKey = "changeitchangeitchangeitchangeit";
+
+        Namespace namespace = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("prefix.connect-cluster")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .aes256Key(EncryptionUtils.encryptAES256GCM("aes256Key", encryptionKey))
+                        .aes256Salt(EncryptionUtils.encryptAES256GCM("aes256Salt", encryptionKey))
+                        .aes256Format("%s")
+                        .build())
+                .build();
+
+        when(connectClusterRepository.findAllForCluster("local"))
+                .thenReturn(List.of(connectCluster));
+
+        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+                .thenReturn(List.of(
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.WRITE)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
+                                        .resource("prefix.")
+                                        .build())
+                                .build()
+                ));
+
+        when(securityConfig.getAes256EncryptionKey()).thenReturn("changeitchangeitchangeitchangeit");
+
+        String actual = connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", "secret");
+
+        Assertions.assertEquals("YoVMI61x1ElgvvIKko/usw==", actual);
     }
 }

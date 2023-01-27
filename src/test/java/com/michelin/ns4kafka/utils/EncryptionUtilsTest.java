@@ -47,4 +47,39 @@ class EncryptionUtilsTest {
 
         Assertions.assertEquals(clearText, clearTextDecrypted);
     }
+
+    /**
+     * Validate encryption when given text is blank
+     */
+    @Test
+    void validateEncryptAndDecryptAES256lankText() {
+        final String encryptionKey = "myKeyEncryption";
+        final String encryptionSalt = "mySaltEncryption";
+
+        final String stillBlankText = EncryptionUtils.encryptAES256("", encryptionKey, encryptionSalt);
+        Assertions.assertEquals("", stillBlankText);
+    }
+
+    /**
+     * Validate encryption when given text is blank
+     */
+    @Test
+    void validateEncryptAndDecryptAES256NullText() {
+        final String encryptionKey = "myKeyEncryption";
+        final String encryptionSalt = "p8t42EhY9z2eSUdpGeq7HX7RboMrsJAhUnu3EEJJVS";
+
+        final String stillBlankText = EncryptionUtils.encryptAES256(null, encryptionKey, encryptionSalt);
+        Assertions.assertEquals(null, stillBlankText);
+    }
+
+    @Test
+    void validateEncryptAndDecryptAES256() {
+        String clearText = "myClearText";
+        String encryptionKey = "myKeyEncryption";
+        String encryptionSalt = "p8t42EhY9z2eSUdpGeq7HX7RboMrsJAhUnu3EEJJVS";
+        String encryptedText = EncryptionUtils.encryptAES256(clearText, encryptionKey, encryptionSalt);
+        String clearTextDecrypted = EncryptionUtils.decryptAES256(encryptedText, encryptionKey, encryptionSalt);
+
+        Assertions.assertEquals(clearText, clearTextDecrypted);
+    }
 }
