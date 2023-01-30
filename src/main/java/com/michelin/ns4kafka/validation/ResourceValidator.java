@@ -1,23 +1,25 @@
 package com.michelin.ns4kafka.validation;
 
-
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
+@Data
+@SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
 public abstract class ResourceValidator {
-
-    protected Map<String,Validator> validationConstraints;
+    @Builder.Default
+    protected Map<String,Validator> validationConstraints = new HashMap<>();
 
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,
-            include = JsonTypeInfo.As.PROPERTY,
             property = "validation-type")
     @JsonSubTypes({
             @JsonSubTypes.Type(value = Range.class, name = "Range"),

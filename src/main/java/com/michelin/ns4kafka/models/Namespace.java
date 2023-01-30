@@ -37,6 +37,7 @@ public class Namespace {
     public static class NamespaceSpec {
         @NotBlank
         private String kafkaUser;
+        @Builder.Default
         private List<String> connectClusters = List.of();
         private TopicValidator topicValidator;
         private ConnectValidator connectValidator;

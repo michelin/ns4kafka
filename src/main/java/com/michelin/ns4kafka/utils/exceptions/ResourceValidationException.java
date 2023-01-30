@@ -20,5 +20,4 @@ public class ResourceValidationException extends RuntimeException {
         this.kind = kind;
         this.name = name;
     }
-
 }

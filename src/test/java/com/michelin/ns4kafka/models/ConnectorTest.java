@@ -46,6 +46,7 @@ class ConnectorTest {
                                 "k2", "v2"))
                         .build())
                 .build();
+
         Connector differentByConfig = Connector.builder()
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("cluster2")
@@ -54,6 +55,7 @@ class ConnectorTest {
                                 "k3", "v3"))
                         .build())
                 .build();
+
         Connector differentByMetadata = Connector.builder()
                 .metadata(ObjectMeta.builder()
                         .name("connect2")
@@ -74,6 +76,5 @@ class ConnectorTest {
         Assertions.assertNotEquals(original, differentByConnectCluster);
         Assertions.assertNotEquals(original, differentByConfig);
         Assertions.assertNotEquals(original, differentByMetadata);
-
     }
 }

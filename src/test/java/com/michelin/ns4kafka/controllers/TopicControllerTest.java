@@ -283,6 +283,49 @@ class TopicControllerTest {
         assertEquals("test.topic", actual.getMetadata().getName());
     }
 
+    @Test
+    void shouldCreateNewTopicWithNoConstraint() throws InterruptedException, ExecutionException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.builder()
+                                .build())
+                        .build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test.topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","delete",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
+        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
+        when(resourceQuotaService.validateTopicQuota(ns, Optional.empty(), topic)).thenReturn(List.of());
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        when(topicService.create(topic)).thenReturn(topic);
+
+        var response = topicController.apply("test", topic, false);
+        Topic actual = response.body();
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("test.topic", actual.getMetadata().getName());
+    }
+
     /**
      * Validate topic update
      * @throws InterruptedException Any interrupted exception
