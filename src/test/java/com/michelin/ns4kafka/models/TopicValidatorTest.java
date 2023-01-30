@@ -149,4 +149,18 @@ class TopicValidatorTest {
         validationErrors = nameValidator.validate(invalidTopic);
         Assertions.assertEquals(1, validationErrors.size());
     }
+
+    @Test
+    void shouldValidateWithNoValidationConstraint() {
+        TopicValidator topicValidator = TopicValidator.builder()
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("").build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        List<String> actual = topicValidator.validate(topic);
+        Assertions.assertTrue(actual.isEmpty());
+    }
 }
