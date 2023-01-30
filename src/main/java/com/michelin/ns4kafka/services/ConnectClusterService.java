@@ -284,6 +284,6 @@ public class ConnectClusterService {
         final String aes256Salt = EncryptionUtils.decryptAES256GCM(kafkaConnect.get().getSpec().getAes256Salt(), securityConfig.getAes256EncryptionKey());
         final String aes256Format = StringUtils.hasText(kafkaConnect.get().getSpec().getAes256Format()) ?
                 kafkaConnect.get().getSpec().getAes256Format() : DEFAULT_FORMAT;
-        return String.format(aes256Format, EncryptionUtils.encryptAES256(password, aes256Key, aes256Salt));
+        return String.format(aes256Format, EncryptionUtils.encryptAESWithPrefix(password, aes256Key, aes256Salt));
     }
 }

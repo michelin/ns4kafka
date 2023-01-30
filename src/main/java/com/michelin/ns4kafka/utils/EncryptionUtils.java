@@ -8,23 +8,44 @@ import io.micronaut.core.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.Base64;
 
 @Slf4j
 public class EncryptionUtils {
+
+    /**
+     * The AES encryption algorithm.
+     */
+    private static final String ENCRYPT_ALGO = "AES/GCM/NoPadding";
+
+    /**
+     * The authentication tag length.
+     */
+    private static final int TAG_LENGTH_BIT = 128;
+
+    /**
+     * The Initial Value length.
+     */
+    private static final int IV_LENGTH_BYTE = 12;
+
+    /**
+     * The NS4KAFKA prefix.
+     */
+    private static final String NS4KAFKA_PREFIX = "NS4K";
+
     /**
      * Constructor
      */
@@ -102,14 +123,24 @@ public class EncryptionUtils {
      * @param salt      The encryption salt.
      * @return The encrypted password.
      */
-    public static String encryptAES256(final String clearText, final String key, final String salt) {
+    public static String encryptAESWithPrefix(final String clearText, final String key, final String salt) {
         if (!StringUtils.hasText(clearText)) {
             return clearText;
         }
 
         try {
-            final var cipher = getAES256Cipher(Cipher.ENCRYPT_MODE, key, salt);
-            return Base64.getEncoder().encodeToString(cipher.doFinal(clearText.getBytes(StandardCharsets.UTF_8)));
+            final var secret = getAESSecretKey(key, salt);
+            final var iv = getRandomIV();
+            final var cipher = Cipher.getInstance(ENCRYPT_ALGO);
+            cipher.init(Cipher.ENCRYPT_MODE, secret, new GCMParameterSpec(TAG_LENGTH_BIT, iv));
+            final var cipherText = cipher.doFinal(clearText.getBytes(StandardCharsets.UTF_8));
+            final var prefix = NS4KAFKA_PREFIX.getBytes(StandardCharsets.UTF_8);
+            final var cipherTextWithIv = ByteBuffer.allocate(prefix.length + iv.length + cipherText.length)
+                    .put(prefix)
+                    .put(iv)
+                    .put(cipherText)
+                    .array();
+            return Base64.getEncoder().encodeToString(cipherTextWithIv);
         } catch (Exception e) {
             log.error("An error occurred during Connect cluster AES256 string encryption", e);
         }
@@ -125,14 +156,26 @@ public class EncryptionUtils {
      * @param salt          The encryption salt.
      * @return The encrypted password.
      */
-    public static String decryptAES256(final String encryptedText, final String key, final String salt) {
+    public static String decryptAESWithPrefix(final String encryptedText, final String key, final String salt) {
         if (!StringUtils.hasText(encryptedText)) {
             return encryptedText;
         }
 
         try {
-            final var cipher = getAES256Cipher(Cipher.DECRYPT_MODE, key, salt);
-            return new String(cipher.doFinal(Base64.getDecoder().decode(encryptedText)));
+            // Get IV and cipherText from encrypted text.
+            final var prefix = NS4KAFKA_PREFIX.getBytes(StandardCharsets.UTF_8);
+            final var byteBuffer = ByteBuffer.wrap(Base64.getDecoder().decode(encryptedText));
+            final var iv = new byte[IV_LENGTH_BYTE];
+            byteBuffer.position(prefix.length);
+            byteBuffer.get(iv);
+            final var cipherText = new byte[byteBuffer.remaining()];
+            byteBuffer.get(cipherText);
+
+            // decrypt the cipher text.
+            final var secret = getAESSecretKey(key, salt);
+            final var cipher = Cipher.getInstance(ENCRYPT_ALGO);
+            cipher.init(Cipher.DECRYPT_MODE, secret, new GCMParameterSpec(TAG_LENGTH_BIT, iv));
+            return new String(cipher.doFinal(cipherText), StandardCharsets.UTF_8);
         } catch (Exception e) {
             log.error("An error occurred during Connect cluster AES256 string decryption", e);
         }
@@ -140,24 +183,31 @@ public class EncryptionUtils {
         return encryptedText;
     }
 
+
     /**
-     * Get AES256 Cipher for encryption or decryption.
+     * Gets the secret key derived AES 256 bits key
      *
-     * @param encryptMode The encryption mode.
-     * @param key         The encryption key.
-     * @param salt        The encryption salt.
-     * @return The AES256 cipher.
+     * @param key  The encryption key
+     * @param salt The encryption salt
+     * @return The encryption secret key.
+     * @throws NoSuchAlgorithmException No such algorithm exception.
+     * @throws InvalidKeySpecException  Invalid key spec exception.
      */
-    private static Cipher getAES256Cipher(final int encryptMode, final String key, final String salt)
-            throws NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
-        byte[] iv = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-        final var ivSpec = new IvParameterSpec(iv);
-        final var factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-        final var spec = new PBEKeySpec(key.toCharArray(), salt.getBytes(), 65536, 256);
-        final var secret = factory.generateSecret(spec);
-        final var secretKey = new SecretKeySpec(secret.getEncoded(), "AES");
-        final var cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        cipher.init(encryptMode, secretKey, ivSpec);
-        return cipher;
+    private static SecretKey getAESSecretKey(final String key, final String salt)
+            throws NoSuchAlgorithmException, InvalidKeySpecException {
+        var factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+        var spec = new PBEKeySpec(key.toCharArray(), salt.getBytes(StandardCharsets.UTF_8), 65536, 256);
+        return new SecretKeySpec(factory.generateSecret(spec).getEncoded(), "AES");
+    }
+
+    /**
+     * Get a random Initial Value byte array.
+     *
+     * @return The random IV.
+     */
+    private static byte[] getRandomIV() {
+        final byte[] iv = new byte[IV_LENGTH_BYTE];
+        new SecureRandom().nextBytes(iv);
+        return iv;
     }
 }

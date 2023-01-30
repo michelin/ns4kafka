@@ -682,7 +682,7 @@ class ConnectClusterServiceTest {
 
         String actual = connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", "secret");
 
-        Assertions.assertEquals("${aes256:YoVMI61x1ElgvvIKko/usw==}", actual);
+        Assertions.assertTrue(actual.matches("^\\$\\{aes256\\:.*\\}"));
     }
 
     /**
@@ -731,6 +731,6 @@ class ConnectClusterServiceTest {
 
         String actual = connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", "secret");
 
-        Assertions.assertEquals("YoVMI61x1ElgvvIKko/usw==", actual);
+        Assertions.assertFalse(actual.matches("^\\$\\{aes256\\:.*\\}"));
     }
 }

@@ -56,7 +56,7 @@ class EncryptionUtilsTest {
         final String encryptionKey = "myKeyEncryption";
         final String encryptionSalt = "mySaltEncryption";
 
-        final String stillBlankText = EncryptionUtils.encryptAES256("", encryptionKey, encryptionSalt);
+        final String stillBlankText = EncryptionUtils.encryptAESWithPrefix("", encryptionKey, encryptionSalt);
         Assertions.assertEquals("", stillBlankText);
     }
 
@@ -68,7 +68,7 @@ class EncryptionUtilsTest {
         final String encryptionKey = "myKeyEncryption";
         final String encryptionSalt = "p8t42EhY9z2eSUdpGeq7HX7RboMrsJAhUnu3EEJJVS";
 
-        final String stillBlankText = EncryptionUtils.encryptAES256(null, encryptionKey, encryptionSalt);
+        final String stillBlankText = EncryptionUtils.encryptAESWithPrefix(null, encryptionKey, encryptionSalt);
         Assertions.assertEquals(null, stillBlankText);
     }
 
@@ -77,9 +77,24 @@ class EncryptionUtilsTest {
         String clearText = "myClearText";
         String encryptionKey = "myKeyEncryption";
         String encryptionSalt = "p8t42EhY9z2eSUdpGeq7HX7RboMrsJAhUnu3EEJJVS";
-        String encryptedText = EncryptionUtils.encryptAES256(clearText, encryptionKey, encryptionSalt);
-        String clearTextDecrypted = EncryptionUtils.decryptAES256(encryptedText, encryptionKey, encryptionSalt);
+        String encryptedText = EncryptionUtils.encryptAESWithPrefix(clearText, encryptionKey, encryptionSalt);
+        String clearTextDecrypted = EncryptionUtils.decryptAESWithPrefix(encryptedText, encryptionKey, encryptionSalt);
 
         Assertions.assertEquals(clearText, clearTextDecrypted);
+    }
+
+    @Test
+    void validateEncryptNEverSameValue() {
+        String clearText = "myClearText";
+        String encryptionKey = "myKeyEncryption";
+        String encryptionSalt = "p8t42EhY9z2eSUdpGeq7HX7RboMrsJAhUnu3EEJJVS";
+        String encryptedText = EncryptionUtils.encryptAESWithPrefix(clearText, encryptionKey, encryptionSalt);
+        String encryptedText2 = EncryptionUtils.encryptAESWithPrefix(clearText, encryptionKey, encryptionSalt);
+        String clearTextDecrypted = EncryptionUtils.decryptAESWithPrefix(encryptedText, encryptionKey, encryptionSalt);
+        String clearTextDecrypted2 = EncryptionUtils.decryptAESWithPrefix(encryptedText2, encryptionKey, encryptionSalt);
+
+        Assertions.assertEquals(clearText, clearTextDecrypted);
+        Assertions.assertNotEquals(encryptedText2, encryptedText);
+        Assertions.assertEquals(clearText, clearTextDecrypted2);
     }
 }
