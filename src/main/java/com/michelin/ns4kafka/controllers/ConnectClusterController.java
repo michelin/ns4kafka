@@ -153,10 +153,10 @@ public class ConnectClusterController extends NamespacedResourceController {
      *
      * @return The list of the available Kafka Connect vaults.
      */
-    @Get("/vaults")
+    @Get("/_/vaults")
     public List<ConnectCluster> listVaults(final String namespace) {
         final Namespace ns = getNamespace(namespace);
-        return this.connectClusterService.findAllByNamespaceWrite(ns)
+        return connectClusterService.findAllByNamespaceWrite(ns)
                 .stream()
                 .filter(connectCluster -> StringUtils.hasText(connectCluster.getSpec().getAes256Key()))
                 .toList();
@@ -170,11 +170,11 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @param password       The password to encrypt.
      * @return The encrypted password.
      */
-    @Consumes(MediaType.TEXT_PLAIN)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.TEXT_PLAIN)
-    @Post("/{connectCluster}/vault")
-    public String vaultPasswordPlainText(final String namespace, final String connectCluster, @Body final String password) {
-        final var ns = getNamespace(namespace);
+    @Post("/{connectCluster}/vaults")
+    public String vaultPasswordJson(final String namespace, final String connectCluster, final String password) {
+        final Namespace ns = getNamespace(namespace);
 
         final var validationErrors = new ArrayList<String>();
         if (!connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectCluster)) {
@@ -188,20 +188,5 @@ public class ConnectClusterController extends NamespacedResourceController {
         }
 
         return connectClusterService.vaultPassword(ns, connectCluster, password);
-    }
-
-    /**
-     * Encrypt a password for a specific Kafka Connect cluster.
-     *
-     * @param namespace      The namespace.
-     * @param connectCluster The name of the Kafka Connect cluster.
-     * @param password       The password to encrypt.
-     * @return The encrypted password.
-     */
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.TEXT_PLAIN)
-    @Post("/{connectCluster}/vault")
-    public String vaultPasswordJson(final String namespace, final String connectCluster, final String password) {
-        return this.vaultPasswordPlainText(namespace, connectCluster, password);
     }
 }

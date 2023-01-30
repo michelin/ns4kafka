@@ -203,7 +203,7 @@ public class ConnectClusterService {
     public List<String> validateConnectClusterVault(final Namespace namespace, final String connectCluster) {
         final var errors = new ArrayList<String>();
 
-        var kafkaConnect = this.findAllByNamespaceWrite(namespace)
+        final Optional<ConnectCluster> kafkaConnect = findAllByNamespaceWrite(namespace)
                 .stream()
                 .filter(cc -> cc.getMetadata().getName().equals(connectCluster))
                 .findFirst();
@@ -254,7 +254,7 @@ public class ConnectClusterService {
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceAllowedForConnectCluster(Namespace namespace, String connectCluster) {
-        return this.findAllByNamespaceWrite(namespace)
+        return findAllByNamespaceWrite(namespace)
                 .stream()
                 .anyMatch(kafkaConnect -> kafkaConnect.getMetadata().getName().equals(connectCluster));
     }
@@ -268,7 +268,7 @@ public class ConnectClusterService {
      * @return The encrypted password.
      */
     public String vaultPassword(final Namespace namespace, final String connectCluster, final String password) {
-        var kafkaConnect = this.findAllByNamespaceWrite(namespace)
+        final Optional<ConnectCluster> kafkaConnect = findAllByNamespaceWrite(namespace)
                 .stream()
                 .filter(cc ->
                         cc.getMetadata().getName().equals(connectCluster) &&
