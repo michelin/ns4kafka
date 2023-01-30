@@ -26,7 +26,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -70,7 +69,7 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        Mockito.when(connectorRepository.findAllForCluster("local"))
+        when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of());
 
         List<Connector> actual = connectorService.findAllForNamespace(ns);
@@ -109,7 +108,7 @@ class ConnectorServiceTest {
                 .metadata(ObjectMeta.builder().name("ns2-connect1").build())
                 .build();
 
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(
                         AccessControlEntry.builder()
                                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -158,7 +157,7 @@ class ConnectorServiceTest {
                                 .build()
                 ));
 
-        Mockito.when(connectorRepository.findAllForCluster("local"))
+        when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1, c2, c3, c4, c5));
 
         List<Connector> actual = connectorService.findAllForNamespace(ns);
@@ -189,7 +188,7 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        Mockito.when(connectorRepository.findAllForCluster("local"))
+        when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of());
 
         Optional<Connector> actual = connectorService.findByName(ns, "ns-connect1");
@@ -220,7 +219,8 @@ class ConnectorServiceTest {
         Connector c3 = Connector.builder()
                 .metadata(ObjectMeta.builder().name("other-connect1").build())
                 .build();
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
+
+        when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(
                         AccessControlEntry.builder()
                                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -250,7 +250,8 @@ class ConnectorServiceTest {
                                         .build())
                                 .build()
                 ));
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
+
+        when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(AccessControlEntry.builder()
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .permission(AccessControlEntry.Permission.OWNER)
@@ -260,7 +261,8 @@ class ConnectorServiceTest {
                                 .resource("ns-")
                                 .build())
                         .build()));
-        Mockito.when(connectorRepository.findAllForCluster("local"))
+
+        when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1, c2, c3));
 
         Optional<Connector> actual = connectorService.findByName(ns, "ns-connect1");
@@ -319,7 +321,7 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        Mockito.when(connectorRepository.findAllForCluster("local"))
+        when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1, c2, c3, c4, c5));
 
         List<Connector> actual = connectorService.findAllByConnectCluster(ns, "connect-cluster");
@@ -413,7 +415,8 @@ class ConnectorServiceTest {
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
-        Mockito.when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
+
+        when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
                 .thenReturn(Single.just(List.of()));
 
         connectorService.validateLocally(ns, connector)
@@ -449,7 +452,8 @@ class ConnectorServiceTest {
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
-        Mockito.when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
+
+        when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
                 .thenReturn(Single.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
 
         connectorService.validateLocally(ns, connector)
@@ -485,7 +489,101 @@ class ConnectorServiceTest {
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
-        Mockito.when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
+
+        when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
+                .thenReturn(Single.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
+
+        connectorService.validateLocally(ns, connector)
+                .test()
+                .assertValue(List::isEmpty);
+    }
+
+    @Test
+    void validateLocallySuccessWithNoConstraint() {
+        Connector connector = Connector.builder()
+                .metadata(ObjectMeta.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("local-name")
+                        .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector"))
+                        .build())
+                .build();
+
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
+                .thenReturn(Single.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
+
+        connectorService.validateLocally(ns, connector)
+                .test()
+                .assertValue(List::isEmpty);
+    }
+
+    @Test
+    void validateLocallySuccessWithNoValidationConstraint() {
+        Connector connector = Connector.builder()
+                .metadata(ObjectMeta.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("local-name")
+                        .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector"))
+                        .build())
+                .build();
+
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectValidator(ConnectValidator.builder()
+                                .classValidationConstraints(Map.of())
+                                .sinkValidationConstraints(Map.of())
+                                .sourceValidationConstraints(Map.of())
+                                .build())
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
+                .thenReturn(Single.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
+
+        connectorService.validateLocally(ns, connector)
+                .test()
+                .assertValue(List::isEmpty);
+    }
+
+    @Test
+    void validateLocallySuccessNoSinkValidationConstraint() {
+        Connector connector = Connector.builder()
+                .metadata(ObjectMeta.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("local-name")
+                        .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector"))
+                        .build())
+                .build();
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectValidator(ConnectValidator.builder()
+                                .classValidationConstraints(Map.of())
+                                .sourceValidationConstraints(Map.of())
+                                .validationConstraints(Map.of())
+                                .build())
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
                 .thenReturn(Single.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
 
         connectorService.validateLocally(ns, connector)
@@ -562,7 +660,7 @@ class ConnectorServiceTest {
                 List.of(new ConfigInfo(new ConfigKeyInfo(null, null, false, null, null, null, null, 0, null, null, null),
                         new ConfigValueInfo(null, null, null, List.of("error_message"), true))));
 
-        Mockito.when(connectorClient.validate(
+        when(connectorClient.validate(
                 ArgumentMatchers.anyString(),
                 ArgumentMatchers.eq("local"),
                 ArgumentMatchers.eq("local-name"),
@@ -600,7 +698,8 @@ class ConnectorServiceTest {
                 .build();
 
         ConfigInfos configInfos = new ConfigInfos("name", 1, List.of(), List.of());
-        Mockito.when(connectorClient.validate(
+
+        when(connectorClient.validate(
                 ArgumentMatchers.anyString(),
                 ArgumentMatchers.eq("local"),
                 ArgumentMatchers.eq("local-name"),
@@ -630,8 +729,8 @@ class ConnectorServiceTest {
                 .build();
 
         // init connectorAsyncExecutor
-        ConnectorAsyncExecutor connectorAsyncExecutor = Mockito.mock(ConnectorAsyncExecutor.class);
-        Mockito.when(applicationContext.getBean(ConnectorAsyncExecutor.class,
+        ConnectorAsyncExecutor connectorAsyncExecutor = mock(ConnectorAsyncExecutor.class);
+        when(applicationContext.getBean(ConnectorAsyncExecutor.class,
                 Qualifiers.byName(ns.getMetadata().getCluster()))).thenReturn(connectorAsyncExecutor);
 
         // list of existing broker connectors
@@ -647,20 +746,20 @@ class ConnectorServiceTest {
         Connector c4 = Connector.builder()
                 .metadata(ObjectMeta.builder().name("ns2-connect1").build())
                 .build();
-        Mockito.when(connectorAsyncExecutor.collectBrokerConnectors("local-name")).thenReturn(Single.just(List.of(
+        when(connectorAsyncExecutor.collectBrokerConnectors("local-name")).thenReturn(Single.just(List.of(
                 c1, c2, c3, c4)));
 
         // list of existing Ns4Kafka access control entries
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
-                .thenReturn(true);
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect2"))
-                .thenReturn(true);
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
-                .thenReturn(true);
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
+        .thenReturn(true);
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect2"))
+        .thenReturn(true);
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
+        .thenReturn(true);
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
                 .thenReturn(false);
 
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(
                         AccessControlEntry.builder()
                                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -682,7 +781,7 @@ class ConnectorServiceTest {
                                 .build()));
 
         // no connects exists into Ns4Kafka
-        Mockito.when(connectorRepository.findAllForCluster("local"))
+        when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of());
 
         connectorService.listUnsynchronizedConnectors(ns)
@@ -710,8 +809,8 @@ class ConnectorServiceTest {
                 .build();
 
         // init connectorAsyncExecutor
-        ConnectorAsyncExecutor connectorAsyncExecutor = Mockito.mock(ConnectorAsyncExecutor.class);
-        Mockito.when(applicationContext.getBean(ConnectorAsyncExecutor.class,
+        ConnectorAsyncExecutor connectorAsyncExecutor = mock(ConnectorAsyncExecutor.class);
+        when(applicationContext.getBean(ConnectorAsyncExecutor.class,
                 Qualifiers.byName(ns.getMetadata().getCluster()))).thenReturn(connectorAsyncExecutor);
 
         // list of existing broker connectors
@@ -727,24 +826,24 @@ class ConnectorServiceTest {
         Connector c4 = Connector.builder()
                 .metadata(ObjectMeta.builder().name("ns2-connect1").build())
                 .build();
-        Mockito.when(connectorAsyncExecutor.collectBrokerConnectors("local-name")).thenReturn(Single.just(List.of(
+        when(connectorAsyncExecutor.collectBrokerConnectors("local-name")).thenReturn(Single.just(List.of(
                 c1, c2, c3, c4)));
 
         // list of existing broker connects
-        Mockito.when(connectorRepository.findAllForCluster("local"))
+        when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1, c2, c3, c4));
 
         // list of existing Ns4Kafka access control entries
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
                 .thenReturn(true);
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect2"))
-                .thenReturn(true);
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
-                .thenReturn(true);
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
-                .thenReturn(false);
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect2"))
+            .thenReturn(true);
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
+            .thenReturn(true);
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
+            .thenReturn(false);
 
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(
                         AccessControlEntry.builder()
                                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -766,7 +865,7 @@ class ConnectorServiceTest {
                                 .build()
                 ));
 
-        Mockito.when(connectorRepository.findAllForCluster("local"))
+        when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1, c2, c3, c4));
 
         connectorService.listUnsynchronizedConnectors(ns)
@@ -790,8 +889,8 @@ class ConnectorServiceTest {
                 .build();
 
         // init connectorAsyncExecutor
-        ConnectorAsyncExecutor connectorAsyncExecutor = Mockito.mock(ConnectorAsyncExecutor.class);
-        Mockito.when(applicationContext.getBean(ConnectorAsyncExecutor.class,
+        ConnectorAsyncExecutor connectorAsyncExecutor = mock(ConnectorAsyncExecutor.class);
+        when(applicationContext.getBean(ConnectorAsyncExecutor.class,
                 Qualifiers.byName(ns.getMetadata().getCluster()))).thenReturn(connectorAsyncExecutor);
         
         // list of existing broker connectors
@@ -808,25 +907,25 @@ class ConnectorServiceTest {
                 .metadata(ObjectMeta.builder().name("ns2-connect1").build())
                 .build();
         
-        Mockito.when(connectorAsyncExecutor.collectBrokerConnectors("local-name")).thenReturn(Single.just(List.of(
+        when(connectorAsyncExecutor.collectBrokerConnectors("local-name")).thenReturn(Single.just(List.of(
                 c1, c2, c3, c4)));
         
         // list of existing broker connects
-        Mockito.when(connectorRepository.findAllForCluster("local"))
+        when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1, c2, c3, c4));
 
 
         // list of existing Ns4Kafka access control entries
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
-                .thenReturn(true);
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect2"))
-                .thenReturn(true);
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
-                .thenReturn(true);
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
+            .thenReturn(true);
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect2"))
+            .thenReturn(true);
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
+            .thenReturn(true);
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
                 .thenReturn(false);
 
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(
                         AccessControlEntry.builder()
                                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -848,7 +947,7 @@ class ConnectorServiceTest {
                                 .build()
                 ));
 
-        Mockito.when(connectorRepository.findAllForCluster("local"))
+        when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1));
 
         connectorService.listUnsynchronizedConnectors(ns)

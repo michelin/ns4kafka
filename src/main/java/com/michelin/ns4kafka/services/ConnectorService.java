@@ -24,6 +24,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.michelin.ns4kafka.utils.config.ConnectorConfig.CONNECTOR_CLASS;
+
 @Slf4j
 @Singleton
 public class ConnectorService {
@@ -114,7 +116,7 @@ public class ConnectorService {
         }
 
         // If class doesn't exist, no need to go further
-        if (StringUtils.isEmpty(connector.getSpec().getConfig().get("connector.class"))) {
+        if (StringUtils.isEmpty(connector.getSpec().getConfig().get(CONNECTOR_CLASS))) {
             return Single.just(List.of("Invalid value for spec.config.'connector.class': Value must be non-null"));
         }
 
@@ -124,16 +126,17 @@ public class ConnectorService {
                 .map(connectorPluginInfos -> {
                     Optional<String> connectorType = connectorPluginInfos
                             .stream()
-                            .filter(connectPluginItem -> connectPluginItem.className().equals(connector.getSpec().getConfig().get("connector.class")))
+                            .filter(connectPluginItem -> connectPluginItem.className().equals(connector.getSpec().getConfig().get(CONNECTOR_CLASS)))
                             .map(connectorPluginInfo -> connectorPluginInfo.type().toString().toLowerCase(Locale.ROOT))
                             .findFirst();
 
                     if (connectorType.isEmpty()) {
                         return List.of("Failed to find any class that implements Connector and which name matches " +
-                                connector.getSpec().getConfig().get("connector.class"));
+                                connector.getSpec().getConfig().get(CONNECTOR_CLASS));
                     }
 
-                    return namespace.getSpec().getConnectValidator().validate(connector, connectorType.get());
+                    return namespace.getSpec().getConnectValidator() != null ? namespace.getSpec().getConnectValidator().validate(connector, connectorType.get())
+                            : List.of();
                 });
     }
 
@@ -155,7 +158,7 @@ public class ConnectorService {
      */
     public Single<List<String>> validateRemotely(Namespace namespace, Connector connector) {
         return connectorClient.validate(ConnectorClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
-                        connector.getSpec().getConnectCluster(), connector.getSpec().getConfig().get("connector.class"),
+                        connector.getSpec().getConnectCluster(), connector.getSpec().getConfig().get(CONNECTOR_CLASS),
                 ConnectorSpecs.builder()
                         .config(connector.getSpec().getConfig())
                         .build())

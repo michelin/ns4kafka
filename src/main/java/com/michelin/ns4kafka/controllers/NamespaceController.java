@@ -57,11 +57,8 @@ public class NamespaceController extends NonNamespacedResourceController {
 
         List<String> validationErrors = new ArrayList<>();
         if (existingNamespace.isEmpty()) {
-            // New Namespace checks
             validationErrors.addAll(namespaceService.validateCreation(namespace));
         } else {
-            // Update checks
-            //Immutable data
             if (!namespace.getMetadata().getCluster().equals(existingNamespace.get().getMetadata().getCluster())) {
                 validationErrors.add("Invalid value " + namespace.getMetadata().getCluster()
                         + " for cluster: Value is immutable ("
@@ -73,7 +70,7 @@ public class NamespaceController extends NonNamespacedResourceController {
                         + existingNamespace.get().getSpec().getKafkaUser() + ")");
             }
         }
-        // connect cluster check
+
         validationErrors.addAll(namespaceService.validate(namespace));
 
         if (!validationErrors.isEmpty()) {

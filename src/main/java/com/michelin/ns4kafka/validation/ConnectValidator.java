@@ -1,87 +1,88 @@
 package com.michelin.ns4kafka.validation;
 
 import com.michelin.ns4kafka.models.connector.Connector;
-import lombok.*;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@NoArgsConstructor
+import static com.michelin.ns4kafka.utils.config.ConnectorConfig.CONNECTOR_CLASS;
+
 @Data
+@SuperBuilder
+@NoArgsConstructor
 @EqualsAndHashCode(callSuper=true)
-public class ConnectValidator extends ResourceValidator{
+public class ConnectValidator extends ResourceValidator {
+    @Builder.Default
+    private Map<String, Validator> sourceValidationConstraints = new HashMap<>();
 
-    //constraints applies to all connectors
-    // key.converter
-    // value.converter
-    //Map<String, Validator> globalValidationConstraints;
-    Map<String, Validator> sourceValidationConstraints;
-    // For Sinks, error handling is probably a good mandatory choice :
-    // - errors.tolerance non null
-    // - errors.deadletterqueue.topic.name non blank
-    // Override user is probably a good choice too :
-    // - consumer.override.sasl.jaas.config
-    Map<String, Validator> sinkValidationConstraints;
+    @Builder.Default
+    private Map<String, Validator> sinkValidationConstraints = new HashMap<>();
 
-    // validation step for class specific Connectors
-    // ie. for io.confluent.connect.jdbc.JdbcSinkConnector :
-    // - db.timezone non Blank before they complain that time is not right in their DBcap
-    Map<String,Map<String, Validator>> classValidationConstraints;
+    @Builder.Default
+    private Map<String, Map<String, Validator>> classValidationConstraints = new HashMap<>();
 
-    @Builder
-    public ConnectValidator(Map<String, Validator> validationConstraints,
-                            Map<String, Validator> sourceValidationConstraints,
-                            Map<String, Validator> sinkValidationConstraints,
-                            Map<String,Map<String, Validator>> classValidationConstraints
-    ){
-        super(validationConstraints);
-        this.sourceValidationConstraints = sourceValidationConstraints;
-        this.sinkValidationConstraints = sinkValidationConstraints;
-        this.classValidationConstraints = classValidationConstraints;
-    }
-
-    public List<String> validate(Connector connector, String connectorType){
+    /**
+     * Validate a given connector
+     * @param connector The connector
+     * @param connectorType The connector type
+     * @return A list of validation errors
+     */
+    public List<String> validate(Connector connector, String connectorType) {
         List<String> validationErrors = new ArrayList<>();
 
-        if(connector.getMetadata().getName().isEmpty())
+        if (connector.getMetadata().getName().isEmpty()) {
             validationErrors.add("Invalid value " + connector.getMetadata().getName() + " for name: Value must not be empty");
-        if (connector.getMetadata().getName().length() > 249)
+        }
+
+        if (connector.getMetadata().getName().length() > 249) {
             validationErrors.add("Invalid value " + connector.getMetadata().getName() + " for name: Value must not be longer than 249");
-        if (!connector.getMetadata().getName().matches("[a-zA-Z0-9._-]+"))
+        }
+
+        if (!connector.getMetadata().getName().matches("[a-zA-Z0-9._-]+")) {
             validationErrors.add("Invalid value " + connector.getMetadata().getName() + " for name: Value must only contain " +
                     "ASCII alphanumerics, '.', '_' or '-'");
+        }
 
-        //validate constraints
-        validationConstraints.entrySet().stream().forEach(entry -> {
+        validationConstraints.forEach((key, value) -> {
             try {
-                entry.getValue().ensureValid(entry.getKey(), connector.getSpec().getConfig().get(entry.getKey()));
-            } catch (FieldValidationException e){
+                value.ensureValid(key, connector.getSpec().getConfig().get(key));
+            } catch (FieldValidationException e) {
                 validationErrors.add(e.getMessage());
             }
         });
-        if(connectorType.equals("sink")){
-            sinkValidationConstraints.entrySet().stream().forEach(entry -> {
+
+        if (connectorType.equals("sink")) {
+            sinkValidationConstraints.forEach((key, value) -> {
                 try {
-                    entry.getValue().ensureValid(entry.getKey(), connector.getSpec().getConfig().get(entry.getKey()));
-                } catch (FieldValidationException e){
+                    value.ensureValid(key, connector.getSpec().getConfig().get(key));
+                } catch (FieldValidationException e) {
                     validationErrors.add(e.getMessage());
                 }
             });
         }
-        if(connectorType.equals("source"))
-            sourceValidationConstraints.entrySet().stream().forEach(entry -> {
+
+        if (connectorType.equals("source")) {
+            sourceValidationConstraints.forEach((key, value) -> {
                 try {
-                    entry.getValue().ensureValid(entry.getKey(), connector.getSpec().getConfig().get(entry.getKey()));
-                } catch (FieldValidationException e){
+                    value.ensureValid(key, connector.getSpec().getConfig().get(key));
+                } catch (FieldValidationException e) {
                     validationErrors.add(e.getMessage());
                 }
             });
-        if(classValidationConstraints.containsKey(connector.getSpec().getConfig().get("connector.class"))){
-            classValidationConstraints.get(connector.getSpec().getConfig().get("connector.class")).entrySet().stream().forEach(entry -> {
+        }
+
+        if (classValidationConstraints.containsKey(connector.getSpec().getConfig().get(CONNECTOR_CLASS))) {
+            classValidationConstraints.get(connector.getSpec().getConfig().get(CONNECTOR_CLASS)).forEach((key, value) -> {
                 try {
-                    entry.getValue().ensureValid(entry.getKey(), connector.getSpec().getConfig().get(entry.getKey()));
-                } catch (FieldValidationException e){
+                    value.ensureValid(key, connector.getSpec().getConfig().get(key));
+                } catch (FieldValidationException e) {
                     validationErrors.add(e.getMessage());
                 }
             });
@@ -89,13 +90,12 @@ public class ConnectValidator extends ResourceValidator{
         return validationErrors;
     }
 
-    //TODO makeDefault from conf or template namespace ?
-    public static ConnectValidator makeDefault(){
+    public static ConnectValidator makeDefault() {
         return ConnectValidator.builder()
                 .validationConstraints(Map.of(
                         "key.converter", new ResourceValidator.NonEmptyString(),
                         "value.converter", new ResourceValidator.NonEmptyString(),
-                        "connector.class", new ResourceValidator.ValidString(
+                        CONNECTOR_CLASS, new ResourceValidator.ValidString(
                                 List.of("io.confluent.connect.jdbc.JdbcSourceConnector",
                                         "io.confluent.connect.jdbc.JdbcSinkConnector",
                                         "com.splunk.kafka.connect.SplunkSinkConnector",
