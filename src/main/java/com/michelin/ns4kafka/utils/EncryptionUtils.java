@@ -129,13 +129,13 @@ public class EncryptionUtils {
         }
 
         try {
-            final var secret = getAESSecretKey(key, salt);
-            final var iv = getRandomIV();
+            final SecretKey secret = getAESSecretKey(key, salt);
+            final byte[] iv = getRandomIV();
             final var cipher = Cipher.getInstance(ENCRYPT_ALGO);
             cipher.init(Cipher.ENCRYPT_MODE, secret, new GCMParameterSpec(TAG_LENGTH_BIT, iv));
-            final var cipherText = cipher.doFinal(clearText.getBytes(StandardCharsets.UTF_8));
-            final var prefix = NS4KAFKA_PREFIX.getBytes(StandardCharsets.UTF_8);
-            final var cipherTextWithIv = ByteBuffer.allocate(prefix.length + iv.length + cipherText.length)
+            final byte[] cipherText = cipher.doFinal(clearText.getBytes(StandardCharsets.UTF_8));
+            final byte[] prefix = NS4KAFKA_PREFIX.getBytes(StandardCharsets.UTF_8);
+            final byte[] cipherTextWithIv = ByteBuffer.allocate(prefix.length + iv.length + cipherText.length)
                     .put(prefix)
                     .put(iv)
                     .put(cipherText)
@@ -163,16 +163,16 @@ public class EncryptionUtils {
 
         try {
             // Get IV and cipherText from encrypted text.
-            final var prefix = NS4KAFKA_PREFIX.getBytes(StandardCharsets.UTF_8);
+            final byte[] prefix = NS4KAFKA_PREFIX.getBytes(StandardCharsets.UTF_8);
             final var byteBuffer = ByteBuffer.wrap(Base64.getDecoder().decode(encryptedText));
-            final var iv = new byte[IV_LENGTH_BYTE];
+            final byte[] iv = new byte[IV_LENGTH_BYTE];
             byteBuffer.position(prefix.length);
             byteBuffer.get(iv);
-            final var cipherText = new byte[byteBuffer.remaining()];
+            final byte[] cipherText = new byte[byteBuffer.remaining()];
             byteBuffer.get(cipherText);
 
             // decrypt the cipher text.
-            final var secret = getAESSecretKey(key, salt);
+            final SecretKey secret = getAESSecretKey(key, salt);
             final var cipher = Cipher.getInstance(ENCRYPT_ALGO);
             cipher.init(Cipher.DECRYPT_MODE, secret, new GCMParameterSpec(TAG_LENGTH_BIT, iv));
             return new String(cipher.doFinal(cipherText), StandardCharsets.UTF_8);
