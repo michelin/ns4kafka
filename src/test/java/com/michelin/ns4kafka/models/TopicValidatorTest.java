@@ -156,8 +156,14 @@ class TopicValidatorTest {
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(ObjectMeta.builder().name("").build())
-                .spec(Topic.TopicSpec.builder().build())
+                .metadata(ObjectMeta.builder().name("validName").build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy", "delete",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
                 .build();
 
         List<String> actual = topicValidator.validate(topic);
