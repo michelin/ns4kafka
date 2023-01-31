@@ -24,6 +24,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
@@ -188,7 +189,7 @@ public class ConnectClusterService {
 
         // If properties "aes256Key" or aes256Salt is present, both properties are required.
         if (StringUtils.hasText(connectCluster.getSpec().getAes256Key()) ^ StringUtils.hasText(connectCluster.getSpec().getAes256Salt())) {
-            errors.add(String.format("The Connect cluster \"%s\" \"aes256Key\" and \"aes256Salt\" spec are required to activate the encryption.", connectCluster.getMetadata().getName()));
+            errors.add(String.format("The Connect cluster \"%s\" \"aes256Key\" and \"aes256Salt\" specs are required to activate the encryption.", connectCluster.getMetadata().getName()));
         }
 
         return errors;
@@ -203,23 +204,32 @@ public class ConnectClusterService {
     public List<String> validateConnectClusterVault(final Namespace namespace, final String connectCluster) {
         final var errors = new ArrayList<String>();
 
-        final Optional<ConnectCluster> kafkaConnect = findAllByNamespaceWrite(namespace)
-                .stream()
-                .filter(cc -> cc.getMetadata().getName().equals(connectCluster))
-                .findFirst();
+        final List<ConnectCluster> kafkaConnects = findAllByNamespaceWrite(namespace);
 
-        if (kafkaConnect.isEmpty()) {
-            errors.add(String.format("No Connect cluster exists with the name %s. Please provide a different name.", connectCluster));
+        if (kafkaConnects.isEmpty()) {
+            errors.add("No Connect Cluster available.");
             return errors;
         }
 
-        // If properties "aes256Key" or aes256Salt is present, both properties are required.
-        if (!StringUtils.hasText(kafkaConnect.get().getSpec().getAes256Key())) {
-            errors.add(String.format("The Connect cluster \"%s\" does not contain any aes 256 key in its configuration.", connectCluster));
+        if (kafkaConnects.stream().noneMatch(cc -> StringUtils.hasText(cc.getSpec().getAes256Key()) &&
+                StringUtils.hasText(cc.getSpec().getAes256Salt()))) {
+            errors.add("No Connect cluster available with valid aes256 specs configuration.");
+            return errors;
         }
 
-        if (!StringUtils.hasText(kafkaConnect.get().getSpec().getAes256Salt())) {
-            errors.add(String.format("The Connect cluster \"%s\" does not contain any aes 256 salt in its configuration.", connectCluster));
+        final Optional<ConnectCluster> kafkaConnect = kafkaConnects.stream()
+                .filter(cc -> cc.getMetadata().getName().equals(connectCluster) &&
+                        StringUtils.hasText(cc.getSpec().getAes256Key()) &&
+                        StringUtils.hasText(cc.getSpec().getAes256Salt()))
+                .findFirst();
+
+        if (kafkaConnect.isEmpty()) {
+            final String allowedConnectClusters = kafkaConnects.stream()
+                    .filter(cc -> StringUtils.hasText(cc.getSpec().getAes256Key()) && StringUtils.hasText(cc.getSpec().getAes256Salt()))
+                    .map(cc -> cc.getMetadata().getName())
+                    .collect(Collectors.joining(", "));
+            errors.add("Invalid value \"" + connectCluster + "\" for Connect Cluster: Value must be one of [" + allowedConnectClusters + "].");
+            return errors;
         }
 
         return errors;

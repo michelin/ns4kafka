@@ -86,8 +86,8 @@ class EncryptionUtilsTest {
     @Test
     void validateEncryptNEverSameValue() {
         String clearText = "myClearText";
-        String encryptionKey = "myKeyEncryption";
-        String encryptionSalt = "p8t42EhY9z2eSUdpGeq7HX7RboMrsJAhUnu3EEJJVS";
+        String encryptionKey = "myKey";
+        String encryptionSalt = "toto";
         String encryptedText = EncryptionUtils.encryptAESWithPrefix(clearText, encryptionKey, encryptionSalt);
         String encryptedText2 = EncryptionUtils.encryptAESWithPrefix(clearText, encryptionKey, encryptionSalt);
         String clearTextDecrypted = EncryptionUtils.decryptAESWithPrefix(encryptedText, encryptionKey, encryptionSalt);
