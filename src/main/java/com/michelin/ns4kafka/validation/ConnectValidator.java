@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.validation;
 
 import com.michelin.ns4kafka.models.connector.Connector;
+import io.micronaut.core.util.StringUtils;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -37,8 +38,8 @@ public class ConnectValidator extends ResourceValidator {
     public List<String> validate(Connector connector, String connectorType) {
         List<String> validationErrors = new ArrayList<>();
 
-        if (connector.getMetadata().getName().isEmpty()) {
-            validationErrors.add("Invalid value " + connector.getMetadata().getName() + " for name: Value must not be empty");
+        if (!StringUtils.hasText(connector.getMetadata().getName())) {
+            return List.of("Invalid value " + connector.getMetadata().getName() + " for name: Value must not be empty");
         }
 
         if (connector.getMetadata().getName().length() > 249) {
