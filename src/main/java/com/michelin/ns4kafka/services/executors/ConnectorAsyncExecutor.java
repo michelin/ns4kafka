@@ -20,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -55,8 +54,11 @@ public class ConnectorAsyncExecutor {
      * For each connect cluster, start the synchronization of connectors
      */
     private void synchronizeConnectors() {
+        log.debug("Starting Connect cluster collection for cluster {}", kafkaAsyncExecutorConfig.getName());
+
         List<String> selfDeclaredConnectClusterNames = connectClusterService.findAll()
                 .stream()
+                .filter(connectCluster -> connectCluster.getMetadata().getCluster().equals(kafkaAsyncExecutorConfig.getName()))
                 .map(connectCluster -> connectCluster.getMetadata().getName()).toList();
 
         Stream.concat(kafkaAsyncExecutorConfig.getConnects().keySet().stream(), selfDeclaredConnectClusterNames.stream())
@@ -68,7 +70,7 @@ public class ConnectorAsyncExecutor {
      * @param connectCluster The connect cluster
      */
     private void synchronizeConnectCluster(String connectCluster) {
-        log.debug("Starting Connector synchronization for Kafka cluster {} and Connect cluster {}",
+        log.debug("Starting connector collection for Kafka cluster {} and Connect cluster {}",
                 kafkaAsyncExecutorConfig.getName(), connectCluster);
 
         collectBrokerConnectors(connectCluster)
@@ -89,14 +91,9 @@ public class ConnectorAsyncExecutor {
                                     }))
                             .toList();
 
-                    List<Connector> toDelete = brokerConnectors.stream()
-                            .filter(connector -> ns4kafkaConnectors.stream().noneMatch(connector1 -> connector1.getMetadata().getName().equals(connector.getMetadata().getName())))
-                            .toList();
-
                     if (log.isDebugEnabled()) {
                         toCreate.forEach(connector -> log.debug("Connector to create: " + connector.getMetadata().getName()));
                         toUpdate.forEach(connector -> log.debug("Connector to update: " + connector.getMetadata().getName()));
-                        log.debug("Connectors not in ns4kafka: " + toDelete.size());
                     }
 
                     toCreate.forEach(this::deployConnector);
@@ -127,7 +124,7 @@ public class ConnectorAsyncExecutor {
     public Single<List<Connector>> collectBrokerConnectors(String connectCluster) {
         return connectorClient.listAll(ConnectorClientProxy.PROXY_SECRET, kafkaAsyncExecutorConfig.getName(), connectCluster)
                 .map(connectors -> {
-                    log.debug("Connectors found on Connect cluster {} : {}", connectCluster, connectors.size());
+                    log.debug("Connectors found on Connect cluster {} of Kafka cluster {}: {}", connectCluster, kafkaAsyncExecutorConfig.getName(), connectors.size());
 
                     return connectors
                             .values()
@@ -166,7 +163,7 @@ public class ConnectorAsyncExecutor {
                 .stream()
                 .filter(connector -> connector.getSpec().getConnectCluster().equals(connectCluster))
                 .toList();
-        log.debug("Connectors found on Ns4kafka for Connect cluster {}: {}", connectCluster, connectorList.size());
+        log.debug("Connectors found in Ns4kafka for Connect cluster {} of Kafka cluster {}: {}", connectCluster, kafkaAsyncExecutorConfig.getName(), connectorList.size());
         return connectorList;
     }
 

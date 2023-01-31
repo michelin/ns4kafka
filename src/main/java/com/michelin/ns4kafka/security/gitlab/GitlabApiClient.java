@@ -17,7 +17,7 @@ public interface GitlabApiClient {
      * @param page The current page to fetch groups
      * @return The groups
      */
-    @Get("/api/v4/groups?min_access_level=10&sort=asc&page={page}")
+    @Get("/api/v4/groups?min_access_level=10&sort=asc&page={page}&per_page=100")
     Flowable<HttpResponse<List<Map<String, Object>>>> getGroupsPage(@Header(value = "PRIVATE-TOKEN") String token, int page);
 
     /**

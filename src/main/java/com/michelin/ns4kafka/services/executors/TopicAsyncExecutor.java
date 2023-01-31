@@ -44,13 +44,14 @@ public class TopicAsyncExecutor {
      * Start topic synchronization
      */
     public void run(){
-        if(this.kafkaAsyncExecutorConfig.isManageTopics()) {
+        if (this.kafkaAsyncExecutorConfig.isManageTopics()) {
             synchronizeTopics();
         }
     }
 
     public void synchronizeTopics() {
-        log.debug("Starting topic collection for cluster {}",kafkaAsyncExecutorConfig.getName());
+        log.debug("Starting topic collection for cluster {}", kafkaAsyncExecutorConfig.getName());
+
         try {
             // List topics from broker
             Map<String, Topic> brokerTopicList = collectBrokerTopics();
@@ -86,9 +87,9 @@ public class TopicAsyncExecutor {
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
             if(log.isDebugEnabled()){
-                log.debug("Topics to create: " + toCreate.stream().map(t -> t.getMetadata().getName()).collect(Collectors.joining(", ")));
-                log.debug("Topics to delete: " + toDelete.size());
-                log.debug("Topics to update: " + toUpdate.size());
+                log.debug("Number of topics to create: " + toCreate.size());
+                log.debug("Number of topics to delete: " + toDelete.size());
+                log.debug("Number of topics to update: " + toUpdate.size());
                 for (Map.Entry<ConfigResource,Collection<AlterConfigOp>> e : toUpdate.entrySet()) {
                     for (AlterConfigOp op : e.getValue()) {
                         log.debug(e.getKey().name()+" "+op.opType().toString()+" " +op.configEntry().name()+"("+op.configEntry().value()+")");
