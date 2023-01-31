@@ -75,7 +75,7 @@ class TopicValidatorTest {
 
     @Test
     void testEnsureValidGlobal() {
-        TopicValidator globalValidator = TopicValidator.builder()
+        TopicValidator topicValidator = TopicValidator.builder()
                 .validationConstraints(
                         Map.of("replication.factor", ResourceValidator.Range.between(3, 3),
                                 "partitions", ResourceValidator.Range.between(3, 6),
@@ -95,7 +95,7 @@ class TopicValidatorTest {
                         .build())
                 .build();
 
-        List<String> actual = globalValidator.validate(success);
+        List<String> actual = topicValidator.validate(success);
         Assertions.assertTrue(actual.isEmpty());
     }
 
@@ -146,6 +146,7 @@ class TopicValidatorTest {
         invalidTopic = Topic.builder()
                 .metadata(ObjectMeta.builder().name("topicname<invalid").build())
                 .spec(Topic.TopicSpec.builder().build()).build();
+
         validationErrors = nameValidator.validate(invalidTopic);
         Assertions.assertEquals(1, validationErrors.size());
     }
@@ -168,5 +169,76 @@ class TopicValidatorTest {
 
         List<String> actual = topicValidator.validate(topic);
         Assertions.assertTrue(actual.isEmpty());
+    }
+
+    @Test
+    void shouldValidateWithNoValidationConstraintAndNoConfig() {
+        TopicValidator topicValidator = TopicValidator.builder()
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("validName").build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .build())
+                .build();
+
+        List<String> actual = topicValidator.validate(topic);
+        Assertions.assertTrue(actual.isEmpty());
+    }
+
+    @Test
+    void shouldValidateWithNoConfig() {
+        TopicValidator topicValidator = TopicValidator.builder()
+                .validationConstraints(
+                        Map.of("replication.factor", ResourceValidator.Range.between(3, 3),
+                                "partitions", ResourceValidator.Range.between(3, 6),
+                                "cleanup.policy", ResourceValidator.ValidList.in("delete", "compact"),
+                                "min.insync.replicas", ResourceValidator.Range.between(2, 2),
+                                "retention.ms", ResourceValidator.Range.between(60000, 604800000)))
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("validName").build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .build())
+                .build();
+
+        List<String> actual = topicValidator.validate(topic);
+        Assertions.assertEquals(3, actual.size());
+        Assertions.assertTrue(actual.contains("Invalid value null for configuration min.insync.replicas: Value must be non-null"));
+        Assertions.assertTrue(actual.contains("Invalid value null for configuration retention.ms: Value must be non-null"));
+        Assertions.assertTrue(actual.contains("Invalid value null for configuration cleanup.policy: Value must be non-null"));
+    }
+
+    @Test
+    void shouldNotValidateBecauseConfigWithoutConstraint() {
+        TopicValidator topicValidator = TopicValidator.builder()
+                .validationConstraints(
+                        Map.of("replication.factor", ResourceValidator.Range.between(3, 3),
+                                "partitions", ResourceValidator.Range.between(3, 6),
+                                "cleanup.policy", ResourceValidator.ValidList.in("delete", "compact"),
+                                "min.insync.replicas", ResourceValidator.Range.between(2, 2),
+                                "retention.ms", ResourceValidator.Range.between(60000, 604800000)))
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("validName").build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy", "delete",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000",
+                                "retention.bytes", "50"))
+                        .build())
+                .build();
+
+        List<String> actual = topicValidator.validate(topic);
+        Assertions.assertEquals(1, actual.size());
+        Assertions.assertEquals("Configurations [retention.bytes] are not allowed", actual.get(0));
     }
 }
