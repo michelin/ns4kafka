@@ -491,4 +491,153 @@ class ConnectClusterControllerTest {
         Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(connectClusterService, never()).create(connectCluster);
     }
+
+    /**
+     * List available vault for connect clusters allowed without any vault config.
+     */
+    @Test
+    void listVaultNoConnectClusterAllowedWithAes256Config() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("connect-cluster")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder().build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectClusterService.findAllByNamespaceWrite(ns)).thenReturn(List.of(connectCluster));
+
+        List<ConnectCluster> actual = connectClusterController.listVaults("test");
+        Assertions.assertTrue(actual.isEmpty());
+    }
+
+    /**
+     * List available vault for connect clusters allowed with vault config.
+     */
+    @Test
+    void listVaultConnectClusterAllowedWithAes256Config() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("connect-cluster")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder().build())
+                .build();
+        ConnectCluster connectClusterAes256 = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("connect-cluster-aes256")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .aes256Key("myKeyEncryption")
+                        .aes256Salt("p8t42EhY9z2eSUdpGeq7HX7RboMrsJAhUnu3EEJJVS")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectClusterService.findAllByNamespaceWrite(ns)).thenReturn(List.of(connectCluster, connectClusterAes256));
+
+        List<ConnectCluster> actual = connectClusterController.listVaults("test");
+        Assertions.assertEquals(1, actual.size());
+    }
+
+    /**
+     * Vault password on not allowed kafka connect cluster.
+     */
+    @Test
+    void vaultOnNonAllowedConnectCluster() {
+        String connectClusterName = "connect-cluster-na";
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectClusterName)).thenReturn(false);
+        when(connectClusterService.validateConnectClusterVault(ns, connectClusterName)).thenReturn(List.of());
+
+        ResourceValidationException result = Assertions.assertThrows(ResourceValidationException.class,
+                () -> connectClusterController.vaultPasswordJson("test", connectClusterName, "secret"));
+        Assertions.assertEquals(1, result.getValidationErrors().size());
+        Assertions.assertEquals("Namespace is not allowed to use this Connect cluster connect-cluster-na.", result.getValidationErrors().get(0));
+    }
+
+    /**
+     * Vault password on not valid kafka connect cluster aes256 config.
+     */
+    @Test
+    void vaultOnNotValidAES256ConnectCluster() {
+        String connectClusterName = "connect-cluster-aes256";
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectClusterName)).thenReturn(true);
+        when(connectClusterService.validateConnectClusterVault(ns, connectClusterName)).thenReturn(List.of("Error config."));
+
+        ResourceValidationException result = Assertions.assertThrows(ResourceValidationException.class,
+                () -> connectClusterController.vaultPasswordJson("test", connectClusterName, "secret"));
+        Assertions.assertEquals(1, result.getValidationErrors().size());
+        Assertions.assertEquals("Error config.", result.getValidationErrors().get(0));
+    }
+
+    /**
+     * Vault password on not valid kafka connect cluster aes256 config.
+     */
+    @Test
+    void vaultOnValidAES256ConnectCluster() {
+        String connectClusterName = "connect-cluster-aes256";
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+        ConnectCluster connectClusterAes256 = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name(connectClusterName)
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .aes256Key("myKeyEncryption")
+                        .aes256Salt("p8t42EhY9z2eSUdpGeq7HX7RboMrsJAhUnu3EEJJVS")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectClusterName)).thenReturn(true);
+        when(connectClusterService.validateConnectClusterVault(ns, connectClusterName)).thenReturn(List.of());
+        when(connectClusterService.vaultPassword(ns, connectClusterName, "secret")).thenReturn("encryptedSecret");
+
+        final String actual = connectClusterController.vaultPasswordJson("test", connectClusterName, "secret");
+        Assertions.assertEquals("encryptedSecret", actual);
+    }
 }
