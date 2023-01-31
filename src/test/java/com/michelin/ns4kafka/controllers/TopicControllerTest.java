@@ -23,7 +23,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -69,7 +68,7 @@ class TopicControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of());
@@ -90,7 +89,7 @@ class TopicControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(
@@ -117,7 +116,7 @@ class TopicControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "topic.notfound"))
                 .thenReturn(Optional.empty());
@@ -139,7 +138,7 @@ class TopicControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "topic.found"))
                 .thenReturn(Optional.of(
@@ -167,7 +166,7 @@ class TopicControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         Optional<Topic> toDelete = Optional.of(
                 Topic.builder().metadata(ObjectMeta.builder().name("topic.delete").build()).build());
@@ -200,7 +199,7 @@ class TopicControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         Optional<Topic> toDelete = Optional.of(
                 Topic.builder().metadata(ObjectMeta.builder().name("topic.delete").build()).build());
@@ -226,7 +225,7 @@ class TopicControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "topic.delete"))
                 .thenReturn(false);
@@ -561,7 +560,7 @@ class TopicControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
@@ -570,6 +569,73 @@ class TopicControllerTest {
                 () -> topicController.apply("test", topic, false));
         Assertions.assertEquals(1, actual.getValidationErrors().size());
         Assertions.assertLinesMatch(List.of(".*replication\\.factor.*"), actual.getValidationErrors());
+    }
+
+    @Test
+    void shouldNotFailWhenCreatingNewTopicWithNoValidator() throws ExecutionException, InterruptedException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .topicValidator(null)
+                        .build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("test.topic").build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(1)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","delete",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
+        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
+
+        var response = topicController.apply("test", topic, true);
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+        verify(topicService, never()).create(topic);
+    }
+
+    @Test
+    void shouldNotFailWhenCreatingNewTopicWithNoValidationConstraint() throws ExecutionException, InterruptedException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.builder()
+                                .build())
+                        .build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("test.topic").build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(1)
+                        .partitions(3)
+                        .configs(Map.of("cleanup.policy","delete",
+                                "min.insync.replicas", "2",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
+        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
+
+        var response = topicController.apply("test", topic, true);
+        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+        verify(topicService, never()).create(topic);
     }
 
     /**
@@ -776,7 +842,7 @@ class TopicControllerTest {
                 new TopicPartition("topic.empty",0), 100L,
                 new TopicPartition("topic.empty", 1), 101L);
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test","topic.empty"))
                 .thenReturn(true);
@@ -830,7 +896,7 @@ class TopicControllerTest {
 
         Topic toEmpty = Topic.builder().metadata(ObjectMeta.builder().name("topic.empty").build()).build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test","topic.empty"))
                 .thenReturn(true);
@@ -867,7 +933,7 @@ class TopicControllerTest {
                 new TopicPartition("topic.empty",0), 100L,
                 new TopicPartition("topic.empty", 1), 101L);
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test","topic.empty"))
                 .thenReturn(true);
@@ -919,7 +985,7 @@ class TopicControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test","topic.empty"))
                 .thenReturn(false);
@@ -944,7 +1010,7 @@ class TopicControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test","topic.empty"))
                 .thenReturn(true);

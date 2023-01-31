@@ -17,10 +17,7 @@ import org.apache.kafka.common.TopicPartition;
 
 import javax.validation.Valid;
 import java.time.Instant;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -71,7 +68,8 @@ public class TopicController extends NamespacedResourceController {
         Optional<Topic> existingTopic = topicService.findByName(ns, topic.getMetadata().getName());
 
         // Request is valid ?
-        List<String> validationErrors = ns.getSpec().getTopicValidator().validate(topic);
+        List<String> validationErrors = ns.getSpec().getTopicValidator() != null ? ns.getSpec().getTopicValidator().validate(topic)
+                : new ArrayList<>();
 
         if (existingTopic.isEmpty()) {
             // Topic namespace ownership validation

@@ -10,6 +10,8 @@ import lombok.experimental.SuperBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.michelin.ns4kafka.utils.config.TopicConfig.PARTITIONS;
 import static com.michelin.ns4kafka.utils.config.TopicConfig.REPLICATION_FACTOR;
@@ -46,6 +48,16 @@ public class TopicValidator extends ResourceValidator {
                     "ASCII alphanumerics, '.', '_' or '-'");
         }
 
+        if (!validationConstraints.isEmpty() && topic.getSpec().getConfigs() != null) {
+            Set<String> configsWithoutConstraints = topic.getSpec().getConfigs().keySet()
+                    .stream()
+                    .filter(s -> !validationConstraints.containsKey(s))
+                    .collect(Collectors.toSet());
+            if (!configsWithoutConstraints.isEmpty()) {
+                validationErrors.add("Configurations [" + String.join(",", configsWithoutConstraints) + "] are not allowed");
+            }
+        }
+
         validationConstraints.forEach((key, value) -> {
             try {
                 if (key.equals(PARTITIONS)) {
@@ -66,7 +78,7 @@ public class TopicValidator extends ResourceValidator {
         return validationErrors;
     }
 
-    public static TopicValidator makeDefault(){
+    public static TopicValidator makeDefault() {
         return TopicValidator.builder()
                 .validationConstraints(
                         Map.of( "replication.factor", ResourceValidator.Range.between(3,3),
