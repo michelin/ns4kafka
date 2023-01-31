@@ -187,6 +187,5 @@ public class ConsumerGroupService {
         ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = applicationContext.getBean(ConsumerGroupAsyncExecutor.class,
                 Qualifiers.byName(namespace.getMetadata().getCluster()));
         consumerGroupAsyncExecutor.alterConsumerGroupOffsets(consumerGroupId, preparedOffsets);
-
     }
 }
