@@ -18,6 +18,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -136,7 +137,7 @@ public class ConnectorService {
                     }
 
                     return namespace.getSpec().getConnectValidator() != null ? namespace.getSpec().getConnectValidator().validate(connector, connectorType.get())
-                            : List.of();
+                            : Collections.emptyList();
                 });
     }
 

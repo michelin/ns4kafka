@@ -10,6 +10,8 @@ import lombok.experimental.SuperBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.michelin.ns4kafka.utils.config.TopicConfig.PARTITIONS;
 import static com.michelin.ns4kafka.utils.config.TopicConfig.REPLICATION_FACTOR;
@@ -44,6 +46,16 @@ public class TopicValidator extends ResourceValidator {
         if (!topic.getMetadata().getName().matches("[a-zA-Z0-9._-]+")) {
             validationErrors.add("Invalid value " + topic.getMetadata().getName() + " for name: Value must only contain " +
                     "ASCII alphanumerics, '.', '_' or '-'");
+        }
+
+        if (!validationConstraints.isEmpty() && topic.getSpec().getConfigs() != null) {
+            Set<String> configsWithoutConstraints = topic.getSpec().getConfigs().keySet()
+                    .stream()
+                    .filter(s -> !validationConstraints.containsKey(s))
+                    .collect(Collectors.toSet());
+            if (!configsWithoutConstraints.isEmpty()) {
+                validationErrors.add("Configurations [" + String.join(",", configsWithoutConstraints) + "] are not allowed");
+            }
         }
 
         validationConstraints.forEach((key, value) -> {
