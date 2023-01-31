@@ -8,7 +8,6 @@ import com.michelin.ns4kafka.services.ConnectClusterService;
 import com.michelin.ns4kafka.services.ConnectorService;
 import com.michelin.ns4kafka.utils.enums.ApplyStatus;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
-import com.nimbusds.jose.JOSEException;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -20,7 +19,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
 
 import javax.validation.Valid;
-import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
@@ -70,7 +68,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @return The created role binding
      */
     @Post("/{?dryrun}")
-    HttpResponse<ConnectCluster> apply(String namespace, @Body @Valid ConnectCluster connectCluster, @QueryValue(defaultValue = "false") boolean dryrun) throws IOException, JOSEException {
+    HttpResponse<ConnectCluster> apply(String namespace, @Body @Valid ConnectCluster connectCluster, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         List<String> validationErrors = new ArrayList<>();
