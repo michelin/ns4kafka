@@ -69,7 +69,7 @@ public class TopicController extends NamespacedResourceController {
 
         // Request is valid ?
         List<String> validationErrors = ns.getSpec().getTopicValidator() != null ? ns.getSpec().getTopicValidator().validate(topic)
-                : Collections.emptyList();
+                : new ArrayList<>();
 
         if (existingTopic.isEmpty()) {
             // Topic namespace ownership validation

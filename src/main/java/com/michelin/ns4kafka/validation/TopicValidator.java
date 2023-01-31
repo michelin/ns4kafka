@@ -78,7 +78,7 @@ public class TopicValidator extends ResourceValidator {
         return validationErrors;
     }
 
-    public static TopicValidator makeDefault(){
+    public static TopicValidator makeDefault() {
         return TopicValidator.builder()
                 .validationConstraints(
                         Map.of( "replication.factor", ResourceValidator.Range.between(3,3),
