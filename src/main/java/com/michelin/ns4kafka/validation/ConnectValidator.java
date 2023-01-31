@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.michelin.ns4kafka.utils.ValidationErrorUtils.INVALID_VALUE;
 import static com.michelin.ns4kafka.utils.config.ConnectorConfig.CONNECTOR_CLASS;
 
 @Data
@@ -39,15 +40,15 @@ public class ConnectValidator extends ResourceValidator {
         List<String> validationErrors = new ArrayList<>();
 
         if (!StringUtils.hasText(connector.getMetadata().getName())) {
-            return List.of("Invalid value " + connector.getMetadata().getName() + " for name: Value must not be empty");
+            return List.of(INVALID_VALUE + connector.getMetadata().getName() + " for name: Value must not be empty");
         }
 
         if (connector.getMetadata().getName().length() > 249) {
-            validationErrors.add("Invalid value " + connector.getMetadata().getName() + " for name: Value must not be longer than 249");
+            validationErrors.add(INVALID_VALUE + connector.getMetadata().getName() + " for name: Value must not be longer than 249");
         }
 
         if (!connector.getMetadata().getName().matches("[a-zA-Z0-9._-]+")) {
-            validationErrors.add("Invalid value " + connector.getMetadata().getName() + " for name: Value must only contain " +
+            validationErrors.add(INVALID_VALUE + connector.getMetadata().getName() + " for name: Value must only contain " +
                     "ASCII alphanumerics, '.', '_' or '-'");
         }
 
