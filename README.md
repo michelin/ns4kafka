@@ -70,7 +70,8 @@ java -Dmicronaut.config.file=application.yml -jar ns4kafka.jar
 Or
 
 ````console
-MICRONAUT_CONFIG_FILE=application.yml java -jar api.jar
+MICRONAUT_CONFIG_FILE=application.yml 
+java -jar ns4kafka.jar
 ````
 
 # Configuration 
