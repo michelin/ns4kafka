@@ -750,6 +750,81 @@ class ConnectClusterServiceTest {
      * Test vault password if no connect cluster with aes256 config define.
      */
     @Test
+    void findAllByNamespaceWriteAsOwner() {
+        String encryptKey = "changeitchangeitchangeitchangeit";
+        Namespace namespace = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("prefix.connect-cluster")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .password(EncryptionUtils.encryptAES256GCM("password", encryptKey))
+                        .aes256Key(EncryptionUtils.encryptAES256GCM("aes256Key", encryptKey))
+                        .aes256Salt(EncryptionUtils.encryptAES256GCM("aes256Salt", encryptKey))
+                        .build())
+                .build();
+
+        ConnectCluster connectClusterOwner = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("owner.connect-cluster")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .password(EncryptionUtils.encryptAES256GCM("password", encryptKey))
+                        .aes256Key(EncryptionUtils.encryptAES256GCM("aes256Key", encryptKey))
+                        .aes256Salt(EncryptionUtils.encryptAES256GCM("aes256Salt", encryptKey))
+                        .build())
+                .build();
+
+        when(connectClusterRepository.findAllForCluster("local"))
+                .thenReturn(List.of(connectCluster, connectClusterOwner));
+
+        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+                .thenReturn(List.of(
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.WRITE)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
+                                        .resource("prefix.")
+                                        .build())
+                                .build(),
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
+                                        .resource("owner.")
+                                        .build())
+                                .build()
+                ));
+
+        when(securityConfig.getAes256EncryptionKey()).thenReturn(encryptKey);
+        List<ConnectCluster> actual = connectClusterService.findAllByNamespaceWrite(namespace);
+
+        Assertions.assertEquals(2, actual.size());
+        // 1rts is for owner with decrypted values
+        Assertions.assertTrue(actual.get(0).getSpec().getPassword().equals("password"));
+        Assertions.assertTrue(actual.get(0).getSpec().getAes256Key().equals("aes256Key"));
+        Assertions.assertTrue(actual.get(0).getSpec().getAes256Salt().equals("aes256Salt"));
+
+        // second is only for write with wildcards
+        Assertions.assertTrue(actual.get(1).getSpec().getPassword().equals("*****"));
+        Assertions.assertTrue(actual.get(1).getSpec().getAes256Key().equals("*****"));
+        Assertions.assertTrue(actual.get(1).getSpec().getAes256Salt().equals("*****"));
+    }
+
+    /**
+     * Test vault password if no connect cluster with aes256 config define.
+     */
+    @Test
     void vaultPasswordWithoutFormat() {
         String encryptionKey = "changeitchangeitchangeitchangeit";
 

@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Singleton
@@ -34,6 +35,8 @@ public class ConnectClusterService {
      * The default format string for aes 256 convertion.
      */
     private static final String DEFAULT_FORMAT = "${aes256:%s}";
+
+    private static final String WILDCARD_SECRET = "*****";
 
     @Inject
     AccessControlEntryService accessControlEntryService;
@@ -114,7 +117,21 @@ public class ConnectClusterService {
      * @return The list of Connect cluster with write access
      */
     public List<ConnectCluster> findAllByNamespaceWrite(Namespace namespace) {
-        return findAllByNamespace(namespace, List.of(AccessControlEntry.Permission.OWNER, AccessControlEntry.Permission.WRITE));
+        return Stream.concat(
+                this.findAllByNamespaceOwner(namespace).stream(),
+                this.findAllByNamespace(namespace, List.of(AccessControlEntry.Permission.WRITE)).stream()
+                        .map(connectCluster -> ConnectCluster.builder()
+                                .metadata(connectCluster.getMetadata())
+                                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                                        .url(connectCluster.getSpec().getUrl())
+                                        .username(connectCluster.getSpec().getUsername())
+                                        .password(WILDCARD_SECRET)
+                                        .aes256Key(WILDCARD_SECRET)
+                                        .aes256Salt(WILDCARD_SECRET)
+                                        .aes256Format(connectCluster.getSpec().getAes256Format())
+                                        .build())
+                                .build())
+        ).toList();
     }
 
     /**
