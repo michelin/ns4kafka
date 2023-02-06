@@ -1,8 +1,9 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.models.ConnectCluster;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
+import com.michelin.ns4kafka.models.connect.cluster.VaultResponse;
 import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.ConnectClusterService;
@@ -184,7 +185,7 @@ class ConnectClusterControllerTest {
                 .thenReturn(Optional.of(ns));
         Mockito.when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
                 .thenReturn(true);
-        Mockito.when(connectClusterService.findByNamespaceAndNameOwner(ns,"connect-cluster"))
+        Mockito.when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster"))
                 .thenReturn(Optional.empty());
 
         HttpResponse<Void> actual = connectClusterController.delete("test", "connect-cluster", false);
@@ -212,9 +213,9 @@ class ConnectClusterControllerTest {
                 .thenReturn(Optional.of(ns));
         Mockito.when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
                 .thenReturn(true);
-        Mockito.when(connectorService.findAllByConnectCluster(ns,"connect-cluster"))
+        Mockito.when(connectorService.findAllByConnectCluster(ns, "connect-cluster"))
                 .thenReturn(List.of());
-        Mockito.when(connectClusterService.findByNamespaceAndNameOwner(ns,"connect-cluster"))
+        Mockito.when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster"))
                 .thenReturn(Optional.of(connectCluster));
         doNothing().when(connectClusterService).delete(connectCluster);
         when(securityService.username()).thenReturn(Optional.of("test-user"));
@@ -246,9 +247,9 @@ class ConnectClusterControllerTest {
                 .thenReturn(Optional.of(ns));
         Mockito.when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
                 .thenReturn(true);
-        Mockito.when(connectorService.findAllByConnectCluster(ns,"connect-cluster"))
+        Mockito.when(connectorService.findAllByConnectCluster(ns, "connect-cluster"))
                 .thenReturn(List.of());
-        Mockito.when(connectClusterService.findByNamespaceAndNameOwner(ns,"connect-cluster"))
+        Mockito.when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster"))
                 .thenReturn(Optional.of(connectCluster));
 
         HttpResponse<Void> actual = connectClusterController.delete("test", "connect-cluster", true);
@@ -275,7 +276,7 @@ class ConnectClusterControllerTest {
                 .thenReturn(Optional.of(ns));
         Mockito.when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
                 .thenReturn(true);
-        Mockito.when(connectorService.findAllByConnectCluster(ns,"connect-cluster"))
+        Mockito.when(connectorService.findAllByConnectCluster(ns, "connect-cluster"))
                 .thenReturn(List.of(connector));
 
         ResourceValidationException result = Assertions.assertThrows(ResourceValidationException.class,
@@ -577,7 +578,7 @@ class ConnectClusterControllerTest {
         when(connectClusterService.validateConnectClusterVault(ns, connectClusterName)).thenReturn(List.of());
 
         ResourceValidationException result = Assertions.assertThrows(ResourceValidationException.class,
-                () -> connectClusterController.vaultPasswordJson("test", connectClusterName, "secret"));
+                () -> connectClusterController.vaultPassword("test", connectClusterName, List.of("secret")));
         Assertions.assertEquals(1, result.getValidationErrors().size());
         Assertions.assertEquals("Namespace is not allowed to use this Connect cluster connect-cluster-na.", result.getValidationErrors().get(0));
     }
@@ -603,7 +604,7 @@ class ConnectClusterControllerTest {
         when(connectClusterService.validateConnectClusterVault(ns, connectClusterName)).thenReturn(List.of("Error config."));
 
         ResourceValidationException result = Assertions.assertThrows(ResourceValidationException.class,
-                () -> connectClusterController.vaultPasswordJson("test", connectClusterName, "secret"));
+                () -> connectClusterController.vaultPassword("test", connectClusterName, List.of("secret")));
         Assertions.assertEquals(1, result.getValidationErrors().size());
         Assertions.assertEquals("Error config.", result.getValidationErrors().get(0));
     }
@@ -635,9 +636,17 @@ class ConnectClusterControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectClusterName)).thenReturn(true);
         when(connectClusterService.validateConnectClusterVault(ns, connectClusterName)).thenReturn(List.of());
-        when(connectClusterService.vaultPassword(ns, connectClusterName, "secret")).thenReturn("encryptedSecret");
+        when(connectClusterService.vaultPassword(ns, connectClusterName, List.of("secret")))
+                .thenReturn(List.of(VaultResponse.builder()
+                        .spec(VaultResponse.VaultResponseSpec.builder()
+                                .clearText("secret")
+                                .encrypted("encryptedSecret")
+                                .build())
+                        .build()
+                ));
 
-        final String actual = connectClusterController.vaultPasswordJson("test", connectClusterName, "secret");
-        Assertions.assertEquals("encryptedSecret", actual);
+        final List<VaultResponse> actual = connectClusterController.vaultPassword("test", connectClusterName, List.of("secret"));
+        Assertions.assertEquals("secret", actual.get(0).getSpec().getClearText());
+        Assertions.assertEquals("encryptedSecret", actual.get(0).getSpec().getEncrypted());
     }
 }

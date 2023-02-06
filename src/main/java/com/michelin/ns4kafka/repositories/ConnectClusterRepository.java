@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.repositories;
 
-import com.michelin.ns4kafka.models.ConnectCluster;
+import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
 
 import java.util.List;
 

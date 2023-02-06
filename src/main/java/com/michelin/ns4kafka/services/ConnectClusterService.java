@@ -3,8 +3,9 @@ package com.michelin.ns4kafka.services;
 import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.config.SecurityConfig;
 import com.michelin.ns4kafka.models.AccessControlEntry;
-import com.michelin.ns4kafka.models.ConnectCluster;
 import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
+import com.michelin.ns4kafka.models.connect.cluster.VaultResponse;
 import com.michelin.ns4kafka.repositories.ConnectClusterRepository;
 import com.michelin.ns4kafka.utils.EncryptionUtils;
 import io.micronaut.core.util.StringUtils;
@@ -221,7 +222,7 @@ public class ConnectClusterService {
     public List<String> validateConnectClusterVault(final Namespace namespace, final String connectCluster) {
         final var errors = new ArrayList<String>();
 
-        final List<ConnectCluster> kafkaConnects = findAllByNamespaceWrite(namespace);
+        final List<ConnectCluster> kafkaConnects = findAllByNamespace(namespace, List.of(AccessControlEntry.Permission.OWNER, AccessControlEntry.Permission.WRITE));
 
         if (kafkaConnects.isEmpty()) {
             errors.add("No Connect Cluster available.");
@@ -291,11 +292,11 @@ public class ConnectClusterService {
      *
      * @param namespace      The namespace that need an encrypted password.
      * @param connectCluster The kafka connect cluster for which to encrypt the password.
-     * @param password       The password to encrypt.
+     * @param passwords      The passwords list to encrypt.
      * @return The encrypted password.
      */
-    public String vaultPassword(final Namespace namespace, final String connectCluster, final String password) {
-        final Optional<ConnectCluster> kafkaConnect = findAllByNamespaceWrite(namespace)
+    public List<VaultResponse> vaultPassword(final Namespace namespace, final String connectCluster, final List<String> passwords) {
+        final Optional<ConnectCluster> kafkaConnect = findAllByNamespace(namespace, List.of(AccessControlEntry.Permission.OWNER, AccessControlEntry.Permission.WRITE))
                 .stream()
                 .filter(cc ->
                         cc.getMetadata().getName().equals(connectCluster) &&
@@ -304,13 +305,28 @@ public class ConnectClusterService {
                 )
                 .findFirst();
         if (kafkaConnect.isEmpty()) {
-            return password;
+            return passwords.stream()
+                    .map(password -> VaultResponse.builder()
+                            .spec(VaultResponse.VaultResponseSpec.builder()
+                                    .clearText(password)
+                                    .encrypted(password)
+                                    .build())
+                            .build())
+                    .toList();
         }
 
         final String aes256Key = EncryptionUtils.decryptAES256GCM(kafkaConnect.get().getSpec().getAes256Key(), securityConfig.getAes256EncryptionKey());
         final String aes256Salt = EncryptionUtils.decryptAES256GCM(kafkaConnect.get().getSpec().getAes256Salt(), securityConfig.getAes256EncryptionKey());
         final String aes256Format = StringUtils.hasText(kafkaConnect.get().getSpec().getAes256Format()) ?
                 kafkaConnect.get().getSpec().getAes256Format() : DEFAULT_FORMAT;
-        return String.format(aes256Format, EncryptionUtils.encryptAESWithPrefix(password, aes256Key, aes256Salt));
+
+        return passwords.stream()
+                .map(password -> VaultResponse.builder()
+                        .spec(VaultResponse.VaultResponseSpec.builder()
+                                .clearText(password)
+                                .encrypted(String.format(aes256Format, EncryptionUtils.encryptAESWithPrefix(password, aes256Key, aes256Salt)))
+                                .build())
+                        .build())
+                .toList();
     }
 }

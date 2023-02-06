@@ -3,9 +3,10 @@ package com.michelin.ns4kafka.services;
 import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.config.SecurityConfig;
 import com.michelin.ns4kafka.models.AccessControlEntry;
-import com.michelin.ns4kafka.models.ConnectCluster;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
+import com.michelin.ns4kafka.models.connect.cluster.VaultResponse;
 import com.michelin.ns4kafka.repositories.ConnectClusterRepository;
 import com.michelin.ns4kafka.utils.EncryptionUtils;
 import com.nimbusds.jose.JOSEException;
@@ -741,9 +742,9 @@ class ConnectClusterServiceTest {
                                 .build()
                 ));
 
-        String actual = connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", "secret");
+        List<VaultResponse> actual = connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", List.of("secret"));
 
-        Assertions.assertEquals("secret", actual);
+        Assertions.assertEquals("secret", actual.get(0).getSpec().getEncrypted());
     }
 
     /**
@@ -864,9 +865,9 @@ class ConnectClusterServiceTest {
 
         when(securityConfig.getAes256EncryptionKey()).thenReturn("changeitchangeitchangeitchangeit");
 
-        String actual = connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", "secret");
+        List<VaultResponse> actual = connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", List.of("secret"));
 
-        Assertions.assertTrue(actual.matches("^\\$\\{aes256\\:.*\\}"));
+        Assertions.assertTrue(actual.get(0).getSpec().getEncrypted().matches("^\\$\\{aes256\\:.*\\}"));
     }
 
     /**
@@ -913,8 +914,8 @@ class ConnectClusterServiceTest {
 
         when(securityConfig.getAes256EncryptionKey()).thenReturn("changeitchangeitchangeitchangeit");
 
-        String actual = connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", "secret");
+        List<VaultResponse> actual = connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", List.of("secret"));
 
-        Assertions.assertFalse(actual.matches("^\\$\\{aes256\\:.*\\}"));
+        Assertions.assertFalse(actual.get(0).getSpec().getEncrypted().matches("^\\$\\{aes256\\:.*\\}"));
     }
 }

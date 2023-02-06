@@ -3,7 +3,7 @@ package com.michelin.ns4kafka.services.connect;
 import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig.ConnectConfig;
 import com.michelin.ns4kafka.config.SecurityConfig;
-import com.michelin.ns4kafka.models.ConnectCluster;
+import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
 import com.michelin.ns4kafka.services.ConnectClusterService;
 import com.michelin.ns4kafka.utils.EncryptionUtils;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;

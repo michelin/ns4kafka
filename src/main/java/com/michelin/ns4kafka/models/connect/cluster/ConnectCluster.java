@@ -1,5 +1,6 @@
-package com.michelin.ns4kafka.models;
+package com.michelin.ns4kafka.models.connect.cluster;
 
+import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

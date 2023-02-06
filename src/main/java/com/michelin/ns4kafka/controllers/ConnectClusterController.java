@@ -1,8 +1,9 @@
 package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
-import com.michelin.ns4kafka.models.ConnectCluster;
 import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
+import com.michelin.ns4kafka.models.connect.cluster.VaultResponse;
 import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.services.ConnectClusterService;
 import com.michelin.ns4kafka.services.ConnectorService;
@@ -11,7 +12,6 @@ import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
@@ -161,17 +161,15 @@ public class ConnectClusterController extends NamespacedResourceController {
     }
 
     /**
-     * Encrypt a password for a specific Kafka Connect cluster.
+     * Encrypt a password list for a specific Kafka Connect cluster.
      *
      * @param namespace      The namespace.
      * @param connectCluster The name of the Kafka Connect cluster.
-     * @param password       The password to encrypt.
+     * @param passwords      The passwords to encrypt.
      * @return The encrypted password.
      */
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.TEXT_PLAIN)
     @Post("/{connectCluster}/vaults")
-    public String vaultPasswordJson(final String namespace, final String connectCluster, final String password) {
+    public List<VaultResponse> vaultPassword(final String namespace, final String connectCluster, @Body final List<String> passwords) {
         final Namespace ns = getNamespace(namespace);
 
         final var validationErrors = new ArrayList<String>();
@@ -185,6 +183,6 @@ public class ConnectClusterController extends NamespacedResourceController {
             throw new ResourceValidationException(validationErrors, "ConnectCluster", connectCluster);
         }
 
-        return connectClusterService.vaultPassword(ns, connectCluster, password);
+        return connectClusterService.vaultPassword(ns, connectCluster, passwords);
     }
 }
