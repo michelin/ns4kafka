@@ -812,14 +812,14 @@ class ConnectClusterServiceTest {
 
         Assertions.assertEquals(2, actual.size());
         // 1rts is for owner with decrypted values
-        Assertions.assertTrue(actual.get(0).getSpec().getPassword().equals("password"));
-        Assertions.assertTrue(actual.get(0).getSpec().getAes256Key().equals("aes256Key"));
-        Assertions.assertTrue(actual.get(0).getSpec().getAes256Salt().equals("aes256Salt"));
+        Assertions.assertEquals("password", actual.get(0).getSpec().getPassword());
+        Assertions.assertEquals("aes256Key", actual.get(0).getSpec().getAes256Key());
+        Assertions.assertEquals("aes256Salt", actual.get(0).getSpec().getAes256Salt());
 
         // second is only for write with wildcards
-        Assertions.assertTrue(actual.get(1).getSpec().getPassword().equals("*****"));
-        Assertions.assertTrue(actual.get(1).getSpec().getAes256Key().equals("*****"));
-        Assertions.assertTrue(actual.get(1).getSpec().getAes256Salt().equals("*****"));
+        Assertions.assertEquals("*****", actual.get(1).getSpec().getPassword());
+        Assertions.assertEquals("*****", actual.get(1).getSpec().getAes256Key());
+        Assertions.assertEquals("*****", actual.get(1).getSpec().getAes256Salt());
     }
 
     /**

@@ -577,8 +577,9 @@ class ConnectClusterControllerTest {
         when(connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectClusterName)).thenReturn(false);
         when(connectClusterService.validateConnectClusterVault(ns, connectClusterName)).thenReturn(List.of());
 
+        var secrets = List.of("secret");
         ResourceValidationException result = Assertions.assertThrows(ResourceValidationException.class,
-                () -> connectClusterController.vaultPassword("test", connectClusterName, List.of("secret")));
+                () -> connectClusterController.vaultPassword("test", connectClusterName, secrets));
         Assertions.assertEquals(1, result.getValidationErrors().size());
         Assertions.assertEquals("Namespace is not allowed to use this Connect cluster connect-cluster-na.", result.getValidationErrors().get(0));
     }
@@ -603,8 +604,9 @@ class ConnectClusterControllerTest {
         when(connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectClusterName)).thenReturn(true);
         when(connectClusterService.validateConnectClusterVault(ns, connectClusterName)).thenReturn(List.of("Error config."));
 
+        var secrets = List.of("secret");
         ResourceValidationException result = Assertions.assertThrows(ResourceValidationException.class,
-                () -> connectClusterController.vaultPassword("test", connectClusterName, List.of("secret")));
+                () -> connectClusterController.vaultPassword("test", connectClusterName, secrets));
         Assertions.assertEquals(1, result.getValidationErrors().size());
         Assertions.assertEquals("Error config.", result.getValidationErrors().get(0));
     }
