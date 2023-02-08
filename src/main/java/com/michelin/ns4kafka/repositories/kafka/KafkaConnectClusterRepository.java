@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.repositories.kafka;
 
-import com.michelin.ns4kafka.models.ConnectCluster;
+import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
 import com.michelin.ns4kafka.repositories.ConnectClusterRepository;
 import io.micronaut.configuration.kafka.annotation.*;
 import io.micronaut.context.annotation.Value;
@@ -10,7 +10,6 @@ import org.apache.kafka.clients.producer.Producer;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Singleton
 @KafkaListener(
