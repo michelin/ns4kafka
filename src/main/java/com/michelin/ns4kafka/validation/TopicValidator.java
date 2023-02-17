@@ -1,10 +1,7 @@
 package com.michelin.ns4kafka.validation;
 
 import com.michelin.ns4kafka.models.Topic;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.util.ArrayList;
@@ -31,7 +28,7 @@ public class TopicValidator extends ResourceValidator {
     public List<String> validate(Topic topic) {
         List<String> validationErrors = new ArrayList<>();
 
-        if(topic.getMetadata().getName().isEmpty()) {
+        if (topic.getMetadata().getName().isEmpty()) {
             validationErrors.add("Invalid value " + topic.getMetadata().getName() + " for name: Value must not be empty");
         }
 

@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.validation;
 
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
 import com.michelin.ns4kafka.models.connector.Connector;
 import io.micronaut.core.util.StringUtils;
 import lombok.Builder;
@@ -22,12 +24,15 @@ import static com.michelin.ns4kafka.utils.config.ConnectorConfig.CONNECTOR_CLASS
 @EqualsAndHashCode(callSuper=true)
 public class ConnectValidator extends ResourceValidator {
     @Builder.Default
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
     private Map<String, Validator> sourceValidationConstraints = new HashMap<>();
 
     @Builder.Default
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
     private Map<String, Validator> sinkValidationConstraints = new HashMap<>();
 
     @Builder.Default
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
     private Map<String, Map<String, Validator>> classValidationConstraints = new HashMap<>();
 
     /**

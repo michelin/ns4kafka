@@ -58,7 +58,7 @@ public class GitlabAuthenticationProvider implements AuthenticationProvider {
                     emitter.onNext(user);
                     emitter.onComplete();
                 }
-            } catch (Exception e){
+            } catch (Exception e) {
                 log.debug("Exception during authentication: {}", e.getMessage());
                 emitter.onError(new AuthenticationException(new AuthenticationFailed(AuthenticationFailureReason.CREDENTIALS_DO_NOT_MATCH)));
             }
