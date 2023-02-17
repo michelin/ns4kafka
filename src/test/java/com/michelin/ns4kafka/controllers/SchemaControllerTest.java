@@ -157,21 +157,38 @@ class SchemaControllerTest {
                         .equals("Namespace not owner of this schema prefix.subject-value."));
     }
 
-    /**
-     * Test the schema creation in dry mode
-     */
     @Test
-    void applyDryRun() {
+    void applyDryRunCreated() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
         when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Single.just(List.of()));
+        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Maybe.empty());
 
         schemaController.apply("myNamespace", schema, true)
                 .test()
-                .assertValue(response -> response.header("X-Ns4kafka-Result") == null)
+                .assertValue(response -> Objects.equals(response.header("X-Ns4kafka-Result"), "created"))
+                .assertValue(response -> response.getBody().isPresent()
+                        && response.getBody().get().getMetadata().getName().equals("prefix.subject-value"));
+
+        verify(schemaService, never()).register(namespace, schema);
+    }
+
+    @Test
+    void applyDryRunChanged() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+
+        when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
+        when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
+        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Single.just(List.of()));
+        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Maybe.just(schema));
+
+        schemaController.apply("myNamespace", schema, true)
+                .test()
+                .assertValue(response -> Objects.equals(response.header("X-Ns4kafka-Result"), "changed"))
                 .assertValue(response -> response.getBody().isPresent()
                         && response.getBody().get().getMetadata().getName().equals("prefix.subject-value"));
 

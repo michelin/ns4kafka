@@ -91,37 +91,40 @@ public class SchemaController extends NamespacedResourceController {
                         return Single.error(new ResourceValidationException(validationErrors, schema.getKind(), schema.getMetadata().getName()));
                     }
 
-                    if (dryrun) {
-                        // Cannot compute the "apply" status before the registration
-                        return Single.just(HttpResponse.ok(schema));
-                    }
-
                     return schemaService
                             .getLatestSubject(ns, schema.getMetadata().getName())
                             .map(Optional::of)
                             .defaultIfEmpty(Optional.empty())
-                            .flatMap(latestSubjectOptional -> schemaService
-                                    .register(ns, schema)
-                                    .map(id -> {
-                                        ApplyStatus status;
+                            .flatMap(latestSubjectOptional -> {
+                                if (dryrun) {
+                                    // Cannot compute the "unchanged" apply status before getting the ID at registration
+                                    return Single.just(formatHttpResponse(schema,
+                                            latestSubjectOptional.isPresent() ? ApplyStatus.changed : ApplyStatus.created));
+                                }
 
-                                        schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                                        schema.getMetadata().setCluster(ns.getMetadata().getCluster());
-                                        schema.getMetadata().setNamespace(ns.getMetadata().getName());
+                                return schemaService
+                                        .register(ns, schema)
+                                        .map(id -> {
+                                            ApplyStatus status;
 
-                                        if (latestSubjectOptional.isEmpty()) {
-                                            status = ApplyStatus.created;
-                                            sendEventLog(schema.getKind(), schema.getMetadata(), status, null, schema.getSpec());
-                                        } else if (!id.equals(latestSubjectOptional.get().getSpec().getId())) {
-                                            status = ApplyStatus.changed;
-                                            sendEventLog(schema.getKind(), schema.getMetadata(), status, latestSubjectOptional.get().getSpec(),
-                                                    schema.getSpec());
-                                        } else {
-                                            status = ApplyStatus.unchanged;
-                                        }
+                                            schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                                            schema.getMetadata().setCluster(ns.getMetadata().getCluster());
+                                            schema.getMetadata().setNamespace(ns.getMetadata().getName());
 
-                                        return formatHttpResponse(schema, status);
-                                    }));
+                                            if (latestSubjectOptional.isEmpty()) {
+                                                status = ApplyStatus.created;
+                                                sendEventLog(schema.getKind(), schema.getMetadata(), status, null, schema.getSpec());
+                                            } else if (!id.equals(latestSubjectOptional.get().getSpec().getId())) {
+                                                status = ApplyStatus.changed;
+                                                sendEventLog(schema.getKind(), schema.getMetadata(), status, latestSubjectOptional.get().getSpec(),
+                                                        schema.getSpec());
+                                            } else {
+                                                status = ApplyStatus.unchanged;
+                                            }
+
+                                            return formatHttpResponse(schema, status);
+                                        });
+                            });
                 });
     }
 
