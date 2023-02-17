@@ -42,10 +42,10 @@ public class Schema {
         private List<Reference> references;
 
         @Builder
-        @AllArgsConstructor
-        @NoArgsConstructor
         @Getter
         @Setter
+        @AllArgsConstructor
+        @NoArgsConstructor
         public static class Reference {
             private String name;
             private String subject;
