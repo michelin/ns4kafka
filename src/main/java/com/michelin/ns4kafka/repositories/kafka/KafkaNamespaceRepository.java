@@ -10,7 +10,6 @@ import org.apache.kafka.clients.producer.Producer;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Singleton
 @KafkaListener(
@@ -44,7 +43,6 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
     void receive(ConsumerRecord<String, Namespace> record) {
         super.receive(record);
     }
-
 
     @Override
     public List<Namespace> findAllForCluster(String cluster) {

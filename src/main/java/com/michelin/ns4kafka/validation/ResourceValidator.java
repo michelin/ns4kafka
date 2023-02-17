@@ -1,7 +1,9 @@
 package com.michelin.ns4kafka.validation;
 
+import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.Nulls;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,6 +18,7 @@ import java.util.*;
 @NoArgsConstructor
 public abstract class ResourceValidator {
     @Builder.Default
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
     protected Map<String,Validator> validationConstraints = new HashMap<>();
 
     @JsonTypeInfo(
