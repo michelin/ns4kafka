@@ -331,7 +331,6 @@ class AccessControlListTest extends AbstractIntegrationTest {
         Assertions.assertEquals(7, results.size());
         Assertions.assertTrue(results.containsAll(List.of(ac1, ac2, ac3, ac4, ac5, ac6, ac7)));
 
-
         // DELETE the Stream & ACL and verify
         client.exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/streams/ns1-stream1").bearerAuth(token).body(aclTopic)).blockingFirst();
         client.exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-topic").bearerAuth(token).body(aclTopic)).blockingFirst();
@@ -375,9 +374,14 @@ class AccessControlListTest extends AbstractIntegrationTest {
                 new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID, "ns1-", PatternType.PREFIXED),
                 new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.WRITE, AclPermissionType.ALLOW));
 
-        Assertions.assertEquals(1, results.size());
-        Assertions.assertEquals(expected, results.stream().findFirst().get());
+        AclBinding expected2 = new AclBinding(
+                new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID, "ns1-", PatternType.PREFIXED),
+                new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.DESCRIBE, AclPermissionType.ALLOW));
 
+
+        Assertions.assertEquals(2, results.size());
+        Assertions.assertTrue(results.containsAll(List.of(expected, expected2)));
+ 
         // DELETE the ACL and verify
         client.exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-transactional-id").bearerAuth(token).body(aclTopic)).blockingFirst();
 
