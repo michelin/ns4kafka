@@ -297,13 +297,17 @@ public class AccessControlEntryAsyncExecutor {
      * @return A list of ACL operations
      */
     private List<AclOperation> computeAclOperationForOwner(ResourceType resourceType) {
-        return switch (resourceType) {
-            case TOPIC -> List.of(AclOperation.WRITE, AclOperation.READ, AclOperation.DESCRIBE_CONFIGS);
-            case GROUP -> List.of(AclOperation.READ);
-            case TRANSACTIONAL_ID -> List.of(AclOperation.DESCRIBE, AclOperation.WRITE);
-            case CLUSTER, DELEGATION_TOKEN, default ->
-                    throw new IllegalArgumentException("Not implemented yet: " + resourceType);
-        };
+        switch (resourceType) {
+            case TOPIC:
+                return List.of(AclOperation.WRITE, AclOperation.READ, AclOperation.DESCRIBE_CONFIGS);
+            case GROUP:
+                return List.of(AclOperation.READ);
+            case TRANSACTIONAL_ID:
+                return List.of(AclOperation.DESCRIBE, AclOperation.WRITE);
+            case CLUSTER,DELEGATION_TOKEN:
+            default:
+                throw new IllegalArgumentException("Not implemented yet: " + resourceType);
+        }
     }
 
     /**

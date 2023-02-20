@@ -71,8 +71,7 @@ public class AccessControlListController extends NamespacedResourceController {
                         .filter(accessControlEntry ->
                                 accessControlEntry.getMetadata().getNamespace().equals(namespace)
                                         || accessControlEntry.getSpec().getGrantedTo().equals(namespace)
-                                        || accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO)
-                        )
+                                        || accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO))
                         .sorted(Comparator.comparing(o -> o.getMetadata().getNamespace()))
                         .toList();
         }
@@ -168,7 +167,7 @@ public class AccessControlListController extends NamespacedResourceController {
         AccessControlEntry accessControlEntry = accessControlEntryService
                 .findByName(namespace, name)
                 .orElseThrow(() -> new ResourceValidationException(
-                        List.of("Invalid value " + name + ": ACL does not exist in this namespace."),
+                        List.of("Invalid value " + name + " for name: ACL does not exist in this namespace."),
                         "AccessControlEntry", name));
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
