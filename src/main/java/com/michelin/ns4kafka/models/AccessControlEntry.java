@@ -53,7 +53,8 @@ public class AccessControlEntry {
         GROUP,
         CONNECT,
         CONNECT_CLUSTER,
-        SCHEMA
+        SCHEMA,
+        TRANSACTIONAL_ID
     }
 
     public enum ResourcePatternType {

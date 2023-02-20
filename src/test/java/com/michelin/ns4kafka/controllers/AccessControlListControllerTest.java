@@ -615,7 +615,7 @@ class AccessControlListControllerTest {
         ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
                 () -> accessControlListController.delete(auth,"test", "ace1", false));
 
-        Assertions.assertLinesMatch(List.of("Invalid value ace1 for name : AccessControlEntry doesn't exist in this namespace"), actual.getValidationErrors());
+        Assertions.assertLinesMatch(List.of("Invalid value ace1 for name: ACL does not exist in this namespace."), actual.getValidationErrors());
     }
 
     /**

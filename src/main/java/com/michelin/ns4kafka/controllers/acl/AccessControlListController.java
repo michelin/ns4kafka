@@ -22,7 +22,6 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static com.michelin.ns4kafka.services.AccessControlEntryService.PUBLIC_GRANTED_TO;
 
@@ -72,8 +71,7 @@ public class AccessControlListController extends NamespacedResourceController {
                         .filter(accessControlEntry ->
                                 accessControlEntry.getMetadata().getNamespace().equals(namespace)
                                         || accessControlEntry.getSpec().getGrantedTo().equals(namespace)
-                                        || accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO)
-                        )
+                                        || accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO))
                         .sorted(Comparator.comparing(o -> o.getMetadata().getNamespace()))
                         .toList();
         }
@@ -169,10 +167,8 @@ public class AccessControlListController extends NamespacedResourceController {
         AccessControlEntry accessControlEntry = accessControlEntryService
                 .findByName(namespace, name)
                 .orElseThrow(() -> new ResourceValidationException(
-                        List.of("Invalid value " + name + " for name : AccessControlEntry doesn't exist in this namespace"),
-                        "AccessControlEntry",
-                        name)
-                );
+                        List.of("Invalid value " + name + " for name: ACL does not exist in this namespace."),
+                        "AccessControlEntry", name));
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
         boolean isAdmin = roles.contains(ResourceBasedSecurityRule.IS_ADMIN);
@@ -181,11 +177,7 @@ public class AccessControlListController extends NamespacedResourceController {
 
         if (isSelfAssignedACL && !isAdmin) {
             // Prevent delete
-            throw new ResourceValidationException(
-                    List.of("Only admins can delete this AccessControlEntry"),
-                    "AccessControlEntry",
-                    name
-            );
+            throw new ResourceValidationException(List.of("Only admins can delete this ACL."), "AccessControlEntry", name);
         }
 
         if (dryrun) {
