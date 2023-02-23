@@ -56,6 +56,31 @@ public class UserTest extends AbstractIntegrationTest {
                         .topicValidator(TopicValidator.makeDefaultOneBroker())
                         .build())
                 .build();
+        Namespace ns2 = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns2")
+                        .cluster("test-cluster")
+                        .labels(Map.of("support-group", "LDAP-GROUP-2"))
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user2")
+                        .kafkaUserQuota(Map.of("producer_byte_rate", 204800.0, "consumer_byte_rate", 409600.0))
+                        .connectClusters(List.of("test-connect"))
+                        .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .build())
+                .build();
+        Namespace ns3 = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns3")
+                        .cluster("test-cluster")
+                        .labels(Map.of("support-group", "LDAP-GROUP-3"))
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user3")
+                        .connectClusters(List.of("test-connect"))
+                        .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .build())
+                .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
         HttpResponse<TopicTest.BearerAccessRefreshToken> response = client.exchange(HttpRequest.POST("/login", credentials), TopicTest.BearerAccessRefreshToken.class).blockingFirst();
@@ -63,6 +88,8 @@ public class UserTest extends AbstractIntegrationTest {
         token = response.getBody().get().getAccessToken();
 
         client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns2)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns3)).blockingFirst();
 
         //force User Sync
         userAsyncExecutors.forEach(UserAsyncExecutor::run);
@@ -70,7 +97,7 @@ public class UserTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void checkQuotas() throws ExecutionException, InterruptedException {
+    void checkDefaultQuotas() throws ExecutionException, InterruptedException {
         Map<ClientQuotaEntity, Map<String, Double>> mapQuota = getAdminClient()
                 .describeClientQuotas(ClientQuotaFilter.containsOnly(
                         List.of(ClientQuotaFilterComponent.ofEntity("user", "user1")))
@@ -82,6 +109,43 @@ public class UserTest extends AbstractIntegrationTest {
         Assertions.assertEquals(102400.0, quotas.get("producer_byte_rate"));
         Assertions.assertTrue(quotas.containsKey("consumer_byte_rate"));
         Assertions.assertEquals(102400.0, quotas.get("consumer_byte_rate"));
+    }
+    @Test
+    void checkCustomQuotas() throws ExecutionException, InterruptedException {
+        Map<ClientQuotaEntity, Map<String, Double>> mapQuota = getAdminClient()
+                .describeClientQuotas(ClientQuotaFilter.containsOnly(
+                        List.of(ClientQuotaFilterComponent.ofEntity("user", "user2")))
+                ).entities().get();
+
+        Assertions.assertEquals(1, mapQuota.entrySet().size());
+        Map<String, Double> quotas = mapQuota.entrySet().stream().findFirst().get().getValue();
+        Assertions.assertTrue(quotas.containsKey("producer_byte_rate"));
+        Assertions.assertEquals(204800.0, quotas.get("producer_byte_rate"));
+        Assertions.assertTrue(quotas.containsKey("consumer_byte_rate"));
+        Assertions.assertEquals(409600.0, quotas.get("consumer_byte_rate"));
+    }
+    @Test
+    void checkUpdateQuotas() throws ExecutionException, InterruptedException {
+        Namespace ns3 = client.retrieve(HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns3").bearerAuth(token), Namespace.class).blockingFirst();
+        // Update the namespace quota
+        ns3.getSpec().setKafkaUserQuota(Map.of("producer_byte_rate", 204800.0, "consumer_byte_rate", 409600.0));
+        // Update the namespace
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns3)).blockingFirst();
+
+        // Force user sync to force the quota update
+        userAsyncExecutors.forEach(UserAsyncExecutor::run);
+
+        Map<ClientQuotaEntity, Map<String, Double>> mapQuota = getAdminClient()
+                .describeClientQuotas(ClientQuotaFilter.containsOnly(
+                        List.of(ClientQuotaFilterComponent.ofEntity("user", "user2")))
+                ).entities().get();
+
+        Assertions.assertEquals(1, mapQuota.entrySet().size());
+        Map<String, Double> quotas = mapQuota.entrySet().stream().findFirst().get().getValue();
+        Assertions.assertTrue(quotas.containsKey("producer_byte_rate"));
+        Assertions.assertEquals(204800.0, quotas.get("producer_byte_rate"));
+        Assertions.assertTrue(quotas.containsKey("consumer_byte_rate"));
+        Assertions.assertEquals(409600.0, quotas.get("consumer_byte_rate"));
     }
 
     @Test

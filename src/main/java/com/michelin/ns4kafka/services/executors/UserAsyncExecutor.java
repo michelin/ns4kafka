@@ -73,7 +73,7 @@ public class UserAsyncExecutor {
         Map<String, Map<String, Double>> toUpdate = ns4kafkaUserQuotas.entrySet()
                 .stream()
                 .filter(entry -> brokerUserQuotas.containsKey(entry.getKey()))
-                .filter(entry -> entry.getValue().equals(brokerUserQuotas.get(entry.getKey())))
+                .filter(entry -> !entry.getValue().isEmpty() && !entry.getValue().equals(brokerUserQuotas.get(entry.getKey())))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         if (log.isDebugEnabled()) {
@@ -103,9 +103,7 @@ public class UserAsyncExecutor {
                 .stream()
                 .map(namespace -> Map.entry(
                         namespace.getSpec().getKafkaUser(),
-                        Map.of(
-                                "producer_byte_rate", 102400.0,
-                                "consumer_byte_rate", 102400.0)))
+                        namespace.getSpec().getKafkaUserQuota()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
@@ -187,8 +185,8 @@ public class UserAsyncExecutor {
         @Override
         public void applyQuotas(String user, Map<String, Double> quotas) {
             ClientQuotaEntity client = new ClientQuotaEntity(Map.of("user", user));
-            ClientQuotaAlteration.Op producerQuota = new ClientQuotaAlteration.Op("producer_byte_rate", 102400.0);
-            ClientQuotaAlteration.Op consumerQuota = new ClientQuotaAlteration.Op("consumer_byte_rate", 102400.0);
+            ClientQuotaAlteration.Op producerQuota = new ClientQuotaAlteration.Op("producer_byte_rate", quotas.getOrDefault("producer_byte_rate", 102400.0));
+            ClientQuotaAlteration.Op consumerQuota = new ClientQuotaAlteration.Op("consumer_byte_rate", quotas.getOrDefault("consumer_byte_rate", 102400.0));
             ClientQuotaAlteration clientQuota = new ClientQuotaAlteration(client, List.of(producerQuota, consumerQuota));
             try {
                 admin.alterClientQuotas(List.of(clientQuota)).all().get(10, TimeUnit.SECONDS);
