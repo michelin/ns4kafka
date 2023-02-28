@@ -32,7 +32,9 @@ public class ResourceQuota {
         COUNT_TOPICS("count/topics"),
         COUNT_PARTITIONS("count/partitions"),
         DISK_TOPICS("disk/topics"),
-        COUNT_CONNECTORS("count/connectors");
+        COUNT_CONNECTORS("count/connectors"),
+        USER_PRODUCER_BYTE_RATE("user/producer_byte_rate"),
+        USER_CONSUMER_BYTE_RATE("user/consumer_byte_rate");
 
         private final String key;
 

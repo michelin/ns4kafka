@@ -1,7 +1,9 @@
 package com.michelin.ns4kafka.services.executors;
 
 import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
+import com.michelin.ns4kafka.repositories.ResourceQuotaRepository;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Inject;
@@ -17,9 +19,7 @@ import org.apache.kafka.common.quota.ClientQuotaFilter;
 import org.apache.kafka.common.quota.ClientQuotaFilterComponent;
 
 import java.security.SecureRandom;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -33,6 +33,9 @@ public class UserAsyncExecutor {
 
     @Inject
     NamespaceRepository namespaceRepository;
+
+    @Inject
+    ResourceQuotaRepository quotaRepository;
 
     public UserAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
         this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
@@ -91,19 +94,28 @@ public class UserAsyncExecutor {
             return this.userExecutor.resetPassword(user);
         } else {
             throw new ResourceValidationException(
-                    List.of("Password reset is not available with provider "+kafkaAsyncExecutorConfig.getProvider()),
+                    List.of("Password reset is not available with provider " + kafkaAsyncExecutorConfig.getProvider()),
                     "KafkaUserResetPassword",
                     user);
         }
     }
 
     private Map<String, Map<String, Double>> collectNs4kafkaQuotas() {
-        // TODO fetch data from QuotaRepository when available
         return namespaceRepository.findAllForCluster(this.kafkaAsyncExecutorConfig.getName())
                 .stream()
-                .map(namespace -> Map.entry(
-                        namespace.getSpec().getKafkaUser(),
-                        namespace.getSpec().getKafkaUserQuota()))
+                .map(namespace -> {
+                    Optional<ResourceQuota> quota = quotaRepository.findForNamespace(namespace.getMetadata().getName());
+                    Map<String, Double> userQuota = new HashMap<>();
+
+                    quota.ifPresent(resourceQuota -> resourceQuota.getSpec().entrySet()
+                            .stream()
+                            .filter(q -> q.getKey().startsWith("user/"))
+                            .forEach(q -> userQuota.put(
+                                    q.getKey().replaceAll("user/", ""),
+                                    Double.parseDouble(q.getValue()))));
+
+                    return Map.entry(namespace.getSpec().getKafkaUser(), userQuota);
+                })
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
@@ -190,7 +202,7 @@ public class UserAsyncExecutor {
             ClientQuotaAlteration clientQuota = new ClientQuotaAlteration(client, List.of(producerQuota, consumerQuota));
             try {
                 admin.alterClientQuotas(List.of(clientQuota)).all().get(10, TimeUnit.SECONDS);
-                log.info("Success applying quotas {} for user {}", quotas, user);
+                log.info("Success applying quotas {} for user {}", clientQuota.ops(), user);
             } catch (InterruptedException e) {
                 log.error("Error", e);
                 Thread.currentThread().interrupt();

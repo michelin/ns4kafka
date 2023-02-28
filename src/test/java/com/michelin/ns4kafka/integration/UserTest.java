@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.models.KafkaUserResetPassword;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Status;
+import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.services.executors.UserAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.annotation.Property;
@@ -64,7 +65,6 @@ public class UserTest extends AbstractIntegrationTest {
                         .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .kafkaUser("user2")
-                        .kafkaUserQuota(Map.of("producer_byte_rate", 204800.0, "consumer_byte_rate", 409600.0))
                         .connectClusters(List.of("test-connect"))
                         .topicValidator(TopicValidator.makeDefaultOneBroker())
                         .build())
@@ -82,13 +82,26 @@ public class UserTest extends AbstractIntegrationTest {
                         .build())
                 .build();
 
+        ResourceQuota rqNs2 = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("rqNs2")
+                        .namespace("ns2")
+                        .build())
+                .spec(Map.of(
+                        ResourceQuota.ResourceQuotaSpecKey.USER_PRODUCER_BYTE_RATE.getKey(), "204800.0",
+                        ResourceQuota.ResourceQuotaSpecKey.USER_CONSUMER_BYTE_RATE.getKey(), "409600.0"))
+                .build();
+
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
         HttpResponse<TopicTest.BearerAccessRefreshToken> response = client.exchange(HttpRequest.POST("/login", credentials), TopicTest.BearerAccessRefreshToken.class).blockingFirst();
 
         token = response.getBody().get().getAccessToken();
 
         client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1)).blockingFirst();
+
         client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns2)).blockingFirst();
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns2/resource-quotas").bearerAuth(token).body(rqNs2)).blockingFirst();
+
         client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns3)).blockingFirst();
 
         //force User Sync
@@ -126,18 +139,25 @@ public class UserTest extends AbstractIntegrationTest {
     }
     @Test
     void checkUpdateQuotas() throws ExecutionException, InterruptedException {
-        Namespace ns3 = client.retrieve(HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns3").bearerAuth(token), Namespace.class).blockingFirst();
-        // Update the namespace quota
-        ns3.getSpec().setKafkaUserQuota(Map.of("producer_byte_rate", 204800.0, "consumer_byte_rate", 409600.0));
-        // Update the namespace
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns3)).blockingFirst();
+        // Update the namespace user quotas
+        ResourceQuota rq3 = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("rqNs3")
+                        .namespace("ns3")
+                        .build())
+                .spec(Map.of(
+                        ResourceQuota.ResourceQuotaSpecKey.USER_PRODUCER_BYTE_RATE.getKey(), "204800.0",
+                        ResourceQuota.ResourceQuotaSpecKey.USER_CONSUMER_BYTE_RATE.getKey(), "409600.0"))
+                .build();
+
+        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns3/resource-quotas").bearerAuth(token).body(rq3)).blockingFirst();
 
         // Force user sync to force the quota update
         userAsyncExecutors.forEach(UserAsyncExecutor::run);
 
         Map<ClientQuotaEntity, Map<String, Double>> mapQuota = getAdminClient()
                 .describeClientQuotas(ClientQuotaFilter.containsOnly(
-                        List.of(ClientQuotaFilterComponent.ofEntity("user", "user2")))
+                        List.of(ClientQuotaFilterComponent.ofEntity("user", "user3")))
                 ).entities().get();
 
         Assertions.assertEquals(1, mapQuota.entrySet().size());

@@ -12,7 +12,6 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.util.List;
-import java.util.Map;
 
 @Data
 @Builder
@@ -38,8 +37,6 @@ public class Namespace {
     public static class NamespaceSpec {
         @NotBlank
         private String kafkaUser;
-        @Builder.Default
-        private Map<String, Double> kafkaUserQuota = Map.of();
         @Builder.Default
         private List<String> connectClusters = List.of();
         private TopicValidator topicValidator;
