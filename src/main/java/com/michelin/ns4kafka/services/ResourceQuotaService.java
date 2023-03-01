@@ -15,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static com.michelin.ns4kafka.models.quota.ResourceQuota.ResourceQuotaSpecKey.*;
 import static com.michelin.ns4kafka.utils.BytesUtils.*;
@@ -25,6 +24,7 @@ import static org.apache.kafka.common.config.TopicConfig.RETENTION_BYTES_CONFIG;
 @Singleton
 public class ResourceQuotaService {
     private static final String QUOTA_ALREADY_EXCEEDED_ERROR = "Quota already exceeded for %s: %s/%s (used/limit)";
+    private static final String QUOTA_PARSE_ERROR = "Number expected for %s (%s given)";
 
     private static final String QUOTA_RESPONSE_FORMAT = "%s/%s";
 
@@ -124,6 +124,24 @@ public class ResourceQuotaService {
             long limit = Long.parseLong(resourceQuota.getSpec().get(COUNT_CONNECTORS.getKey()));
             if (used > limit) {
                 errors.add(String.format(QUOTA_ALREADY_EXCEEDED_ERROR, COUNT_CONNECTORS, used, limit));
+            }
+        }
+
+        String producerByteRate = resourceQuota.getSpec().get(USER_PRODUCER_BYTE_RATE.getKey());
+        if (StringUtils.hasText(producerByteRate)) {
+            try {
+                Double.parseDouble(producerByteRate);
+            } catch (NumberFormatException e) {
+                errors.add(String.format(QUOTA_PARSE_ERROR, USER_PRODUCER_BYTE_RATE, producerByteRate));
+            }
+        }
+
+        String consumerByteRate = resourceQuota.getSpec().get(USER_CONSUMER_BYTE_RATE.getKey());
+        if (StringUtils.hasText(consumerByteRate)) {
+            try {
+                Double.parseDouble(consumerByteRate);
+            } catch (NumberFormatException e) {
+                errors.add(String.format(QUOTA_PARSE_ERROR, USER_CONSUMER_BYTE_RATE, consumerByteRate));
             }
         }
 

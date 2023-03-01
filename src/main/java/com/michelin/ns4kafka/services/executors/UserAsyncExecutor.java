@@ -27,6 +27,8 @@ import java.util.stream.Collectors;
 @EachBean(KafkaAsyncExecutorConfig.class)
 @Singleton
 public class UserAsyncExecutor {
+    private static final String USER_QUOTA_PREFIX = "user/";
+
     private final KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
 
     private final AbstractUserSynchronizer userExecutor;
@@ -109,9 +111,9 @@ public class UserAsyncExecutor {
 
                     quota.ifPresent(resourceQuota -> resourceQuota.getSpec().entrySet()
                             .stream()
-                            .filter(q -> q.getKey().startsWith("user/"))
+                            .filter(q -> q.getKey().startsWith(USER_QUOTA_PREFIX))
                             .forEach(q -> userQuota.put(
-                                    q.getKey().replaceAll("user/", ""),
+                                    q.getKey().replaceAll(USER_QUOTA_PREFIX, ""),
                                     Double.parseDouble(q.getValue()))));
 
                     return Map.entry(namespace.getSpec().getKafkaUser(), userQuota);
