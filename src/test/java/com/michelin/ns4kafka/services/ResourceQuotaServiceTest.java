@@ -494,6 +494,58 @@ class ResourceQuotaServiceTest {
     }
 
     /**
+     * Test validation errors when creating quota on user/consumer_byte_rate with string instead of number
+     */
+    @Test
+    void validateUserQuotaFormatError() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(USER_PRODUCER_BYTE_RATE.toString(), "producer", USER_CONSUMER_BYTE_RATE.toString(), "consumer"))
+                .build();
+
+        List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
+
+        Assertions.assertEquals(2, validationErrors.size());
+        Assertions.assertEquals("Number expected for user/producer_byte_rate (producer given)", validationErrors.get(0));
+        Assertions.assertEquals("Number expected for user/consumer_byte_rate (consumer given)", validationErrors.get(1));
+    }
+
+    /**
+     * Test validation when creating quota on user/consumer_byte_rate
+     */
+    @Test
+    void validateUserQuotaFormatSuccess() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+                .metadata(ObjectMeta.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
+                .spec(Map.of(USER_PRODUCER_BYTE_RATE.toString(), "102400", USER_CONSUMER_BYTE_RATE.toString(), "102400"))
+                .build();
+
+        List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
+
+        Assertions.assertEquals(0, validationErrors.size());
+    }
+
+    /**
      * Test get current used resource for count topics
      */
     @Test

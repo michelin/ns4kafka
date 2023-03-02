@@ -35,5 +35,7 @@ public class ResourceQuotaResponse {
         private String countPartition;
         private String diskTopic;
         private String countConnector;
+        private String consumerByteRate;
+        private String producerByteRate;
     }
 }

@@ -27,6 +27,8 @@ import java.util.stream.Collectors;
 @EachBean(KafkaAsyncExecutorConfig.class)
 @Singleton
 public class UserAsyncExecutor {
+    public static final double BYTE_RATE_DEFAULT_VALUE = 102400.0;
+
     private static final String USER_QUOTA_PREFIX = "user/";
 
     private final KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
@@ -199,8 +201,8 @@ public class UserAsyncExecutor {
         @Override
         public void applyQuotas(String user, Map<String, Double> quotas) {
             ClientQuotaEntity client = new ClientQuotaEntity(Map.of("user", user));
-            ClientQuotaAlteration.Op producerQuota = new ClientQuotaAlteration.Op("producer_byte_rate", quotas.getOrDefault("producer_byte_rate", 102400.0));
-            ClientQuotaAlteration.Op consumerQuota = new ClientQuotaAlteration.Op("consumer_byte_rate", quotas.getOrDefault("consumer_byte_rate", 102400.0));
+            ClientQuotaAlteration.Op producerQuota = new ClientQuotaAlteration.Op("producer_byte_rate", quotas.getOrDefault("producer_byte_rate", BYTE_RATE_DEFAULT_VALUE));
+            ClientQuotaAlteration.Op consumerQuota = new ClientQuotaAlteration.Op("consumer_byte_rate", quotas.getOrDefault("consumer_byte_rate", BYTE_RATE_DEFAULT_VALUE));
             ClientQuotaAlteration clientQuota = new ClientQuotaAlteration(client, List.of(producerQuota, consumerQuota));
             try {
                 admin.alterClientQuotas(List.of(clientQuota)).all().get(10, TimeUnit.SECONDS);

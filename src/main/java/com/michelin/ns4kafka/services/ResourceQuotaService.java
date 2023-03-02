@@ -6,6 +6,7 @@ import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.models.quota.ResourceQuotaResponse;
 import com.michelin.ns4kafka.repositories.ResourceQuotaRepository;
+import com.michelin.ns4kafka.services.executors.UserAsyncExecutor;
 import com.michelin.ns4kafka.utils.BytesUtils;
 import io.micronaut.core.util.StringUtils;
 import jakarta.inject.Inject;
@@ -27,6 +28,7 @@ public class ResourceQuotaService {
     private static final String QUOTA_PARSE_ERROR = "Number expected for %s (%s given)";
 
     private static final String QUOTA_RESPONSE_FORMAT = "%s/%s";
+    private static final String USER_QUOTA_RESPONSE_FORMAT = "%sB/s";
 
     private static final String NO_QUOTA_RESPONSE_FORMAT = "%s";
 
@@ -329,6 +331,14 @@ public class ResourceQuotaService {
                 String.format(QUOTA_RESPONSE_FORMAT, currentCountConnector, resourceQuota.get().getSpec().get(COUNT_CONNECTORS.getKey())) :
                 String.format(NO_QUOTA_RESPONSE_FORMAT, currentCountConnector);
 
+        String consumerByteRate = resourceQuota.isPresent() && StringUtils.hasText(resourceQuota.get().getSpec().get(USER_CONSUMER_BYTE_RATE.getKey())) ?
+                String.format(USER_QUOTA_RESPONSE_FORMAT, resourceQuota.get().getSpec().get(USER_CONSUMER_BYTE_RATE.getKey())) :
+                String.format(USER_QUOTA_RESPONSE_FORMAT, UserAsyncExecutor.BYTE_RATE_DEFAULT_VALUE);
+
+        String producerByteRate = resourceQuota.isPresent() && StringUtils.hasText(resourceQuota.get().getSpec().get(USER_PRODUCER_BYTE_RATE.getKey())) ?
+                String.format(USER_QUOTA_RESPONSE_FORMAT, resourceQuota.get().getSpec().get(USER_PRODUCER_BYTE_RATE.getKey())) :
+                String.format(USER_QUOTA_RESPONSE_FORMAT, UserAsyncExecutor.BYTE_RATE_DEFAULT_VALUE);
+
         return ResourceQuotaResponse.builder()
                 .metadata(resourceQuota.map(ResourceQuota::getMetadata).orElse(ObjectMeta.builder()
                         .namespace(namespace.getMetadata().getName())
@@ -339,6 +349,8 @@ public class ResourceQuotaService {
                         .countPartition(countPartition)
                         .diskTopic(diskTopic)
                         .countConnector(countConnector)
+                        .consumerByteRate(consumerByteRate)
+                        .producerByteRate(producerByteRate)
                         .build())
                 .build();
     }
