@@ -6,6 +6,7 @@ import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.models.quota.ResourceQuotaResponse;
 import com.michelin.ns4kafka.repositories.ResourceQuotaRepository;
+import com.michelin.ns4kafka.services.executors.UserAsyncExecutor;
 import com.michelin.ns4kafka.utils.BytesUtils;
 import io.micronaut.core.util.StringUtils;
 import jakarta.inject.Inject;
@@ -15,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static com.michelin.ns4kafka.models.quota.ResourceQuota.ResourceQuotaSpecKey.*;
 import static com.michelin.ns4kafka.utils.BytesUtils.*;
@@ -25,8 +25,10 @@ import static org.apache.kafka.common.config.TopicConfig.RETENTION_BYTES_CONFIG;
 @Singleton
 public class ResourceQuotaService {
     private static final String QUOTA_ALREADY_EXCEEDED_ERROR = "Quota already exceeded for %s: %s/%s (used/limit)";
+    private static final String QUOTA_PARSE_ERROR = "Number expected for %s (%s given)";
 
     private static final String QUOTA_RESPONSE_FORMAT = "%s/%s";
+    private static final String USER_QUOTA_RESPONSE_FORMAT = "%sB/s";
 
     private static final String NO_QUOTA_RESPONSE_FORMAT = "%s";
 
@@ -124,6 +126,24 @@ public class ResourceQuotaService {
             long limit = Long.parseLong(resourceQuota.getSpec().get(COUNT_CONNECTORS.getKey()));
             if (used > limit) {
                 errors.add(String.format(QUOTA_ALREADY_EXCEEDED_ERROR, COUNT_CONNECTORS, used, limit));
+            }
+        }
+
+        String producerByteRate = resourceQuota.getSpec().get(USER_PRODUCER_BYTE_RATE.getKey());
+        if (StringUtils.hasText(producerByteRate)) {
+            try {
+                Double.parseDouble(producerByteRate);
+            } catch (NumberFormatException e) {
+                errors.add(String.format(QUOTA_PARSE_ERROR, USER_PRODUCER_BYTE_RATE, producerByteRate));
+            }
+        }
+
+        String consumerByteRate = resourceQuota.getSpec().get(USER_CONSUMER_BYTE_RATE.getKey());
+        if (StringUtils.hasText(consumerByteRate)) {
+            try {
+                Double.parseDouble(consumerByteRate);
+            } catch (NumberFormatException e) {
+                errors.add(String.format(QUOTA_PARSE_ERROR, USER_CONSUMER_BYTE_RATE, consumerByteRate));
             }
         }
 
@@ -311,6 +331,14 @@ public class ResourceQuotaService {
                 String.format(QUOTA_RESPONSE_FORMAT, currentCountConnector, resourceQuota.get().getSpec().get(COUNT_CONNECTORS.getKey())) :
                 String.format(NO_QUOTA_RESPONSE_FORMAT, currentCountConnector);
 
+        String consumerByteRate = resourceQuota.isPresent() && StringUtils.hasText(resourceQuota.get().getSpec().get(USER_CONSUMER_BYTE_RATE.getKey())) ?
+                String.format(USER_QUOTA_RESPONSE_FORMAT, resourceQuota.get().getSpec().get(USER_CONSUMER_BYTE_RATE.getKey())) :
+                String.format(USER_QUOTA_RESPONSE_FORMAT, UserAsyncExecutor.BYTE_RATE_DEFAULT_VALUE);
+
+        String producerByteRate = resourceQuota.isPresent() && StringUtils.hasText(resourceQuota.get().getSpec().get(USER_PRODUCER_BYTE_RATE.getKey())) ?
+                String.format(USER_QUOTA_RESPONSE_FORMAT, resourceQuota.get().getSpec().get(USER_PRODUCER_BYTE_RATE.getKey())) :
+                String.format(USER_QUOTA_RESPONSE_FORMAT, UserAsyncExecutor.BYTE_RATE_DEFAULT_VALUE);
+
         return ResourceQuotaResponse.builder()
                 .metadata(resourceQuota.map(ResourceQuota::getMetadata).orElse(ObjectMeta.builder()
                         .namespace(namespace.getMetadata().getName())
@@ -321,6 +349,8 @@ public class ResourceQuotaService {
                         .countPartition(countPartition)
                         .diskTopic(diskTopic)
                         .countConnector(countConnector)
+                        .consumerByteRate(consumerByteRate)
+                        .producerByteRate(producerByteRate)
                         .build())
                 .build();
     }

@@ -1,7 +1,9 @@
 package com.michelin.ns4kafka.services.executors;
 
 import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
+import com.michelin.ns4kafka.repositories.ResourceQuotaRepository;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Inject;
@@ -17,9 +19,7 @@ import org.apache.kafka.common.quota.ClientQuotaFilter;
 import org.apache.kafka.common.quota.ClientQuotaFilterComponent;
 
 import java.security.SecureRandom;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -27,12 +27,19 @@ import java.util.stream.Collectors;
 @EachBean(KafkaAsyncExecutorConfig.class)
 @Singleton
 public class UserAsyncExecutor {
+    public static final double BYTE_RATE_DEFAULT_VALUE = 102400.0;
+
+    private static final String USER_QUOTA_PREFIX = "user/";
+
     private final KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
 
     private final AbstractUserSynchronizer userExecutor;
 
     @Inject
     NamespaceRepository namespaceRepository;
+
+    @Inject
+    ResourceQuotaRepository quotaRepository;
 
     public UserAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
         this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
@@ -73,7 +80,7 @@ public class UserAsyncExecutor {
         Map<String, Map<String, Double>> toUpdate = ns4kafkaUserQuotas.entrySet()
                 .stream()
                 .filter(entry -> brokerUserQuotas.containsKey(entry.getKey()))
-                .filter(entry -> entry.getValue().equals(brokerUserQuotas.get(entry.getKey())))
+                .filter(entry -> !entry.getValue().isEmpty() && !entry.getValue().equals(brokerUserQuotas.get(entry.getKey())))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         if (log.isDebugEnabled()) {
@@ -91,21 +98,28 @@ public class UserAsyncExecutor {
             return this.userExecutor.resetPassword(user);
         } else {
             throw new ResourceValidationException(
-                    List.of("Password reset is not available with provider "+kafkaAsyncExecutorConfig.getProvider()),
+                    List.of("Password reset is not available with provider " + kafkaAsyncExecutorConfig.getProvider()),
                     "KafkaUserResetPassword",
                     user);
         }
     }
 
     private Map<String, Map<String, Double>> collectNs4kafkaQuotas() {
-        // TODO fetch data from QuotaRepository when available
         return namespaceRepository.findAllForCluster(this.kafkaAsyncExecutorConfig.getName())
                 .stream()
-                .map(namespace -> Map.entry(
-                        namespace.getSpec().getKafkaUser(),
-                        Map.of(
-                                "producer_byte_rate", 102400.0,
-                                "consumer_byte_rate", 102400.0)))
+                .map(namespace -> {
+                    Optional<ResourceQuota> quota = quotaRepository.findForNamespace(namespace.getMetadata().getName());
+                    Map<String, Double> userQuota = new HashMap<>();
+
+                    quota.ifPresent(resourceQuota -> resourceQuota.getSpec().entrySet()
+                            .stream()
+                            .filter(q -> q.getKey().startsWith(USER_QUOTA_PREFIX))
+                            .forEach(q -> userQuota.put(
+                                    q.getKey().replaceAll(USER_QUOTA_PREFIX, ""),
+                                    Double.parseDouble(q.getValue()))));
+
+                    return Map.entry(namespace.getSpec().getKafkaUser(), userQuota);
+                })
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
@@ -187,12 +201,12 @@ public class UserAsyncExecutor {
         @Override
         public void applyQuotas(String user, Map<String, Double> quotas) {
             ClientQuotaEntity client = new ClientQuotaEntity(Map.of("user", user));
-            ClientQuotaAlteration.Op producerQuota = new ClientQuotaAlteration.Op("producer_byte_rate", 102400.0);
-            ClientQuotaAlteration.Op consumerQuota = new ClientQuotaAlteration.Op("consumer_byte_rate", 102400.0);
+            ClientQuotaAlteration.Op producerQuota = new ClientQuotaAlteration.Op("producer_byte_rate", quotas.getOrDefault("producer_byte_rate", BYTE_RATE_DEFAULT_VALUE));
+            ClientQuotaAlteration.Op consumerQuota = new ClientQuotaAlteration.Op("consumer_byte_rate", quotas.getOrDefault("consumer_byte_rate", BYTE_RATE_DEFAULT_VALUE));
             ClientQuotaAlteration clientQuota = new ClientQuotaAlteration(client, List.of(producerQuota, consumerQuota));
             try {
                 admin.alterClientQuotas(List.of(clientQuota)).all().get(10, TimeUnit.SECONDS);
-                log.info("Success applying quotas {} for user {}", quotas, user);
+                log.info("Success applying quotas {} for user {}", clientQuota.ops(), user);
             } catch (InterruptedException e) {
                 log.error("Error", e);
                 Thread.currentThread().interrupt();
