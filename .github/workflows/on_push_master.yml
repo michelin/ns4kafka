@@ -55,7 +55,7 @@ jobs:
           report_paths: '**/build/test-results/test/TEST-*.xml'
 
       - name: Docker
-        run: ./gradlew dockerBuild --tag latest dockerPush
+        run: ./gradlew dockerBuild --tag=latest dockerPush
 
       - name: Upload
         uses: actions/upload-artifact@v3
