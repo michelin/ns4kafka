@@ -55,7 +55,7 @@ jobs:
           report_paths: '**/build/test-results/test/TEST-*.xml'
 
       - name: Docker
-        run: ./gradlew dockerBuild --imageName=michelin/ns4kafka:latest dockerPush
+        run: ./gradlew dockerBuild dockerPush -Prelease
 
       - name: Upload
         uses: actions/upload-artifact@v3
