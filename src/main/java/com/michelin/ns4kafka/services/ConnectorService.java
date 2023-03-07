@@ -211,8 +211,11 @@ public class ConnectorService {
                 Qualifiers.byName(namespace.getMetadata().getCluster()));
 
         // Get all connectors from all connect clusters
-        List<Observable<Connector>> connectors = namespace.getSpec().getConnectClusters().stream()
-                .map(connectCluster -> connectorAsyncExecutor.collectBrokerConnectors(connectCluster)
+        List<Observable<Connector>> connectors = Stream.concat(namespace.getSpec().getConnectClusters().stream(),
+                connectClusterService.findAllByNamespaceWrite(namespace)
+                        .stream()
+                        .map(connectCluster -> connectCluster.getMetadata().getName()))
+                .map(connectClusterName -> connectorAsyncExecutor.collectBrokerConnectors(connectClusterName)
                         .toObservable()
                         .flatMapIterable(brokerConnectors -> brokerConnectors)
                         // That belongs to this namespace

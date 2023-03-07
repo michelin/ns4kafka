@@ -717,7 +717,6 @@ class ConnectorServiceTest {
      */
     @Test
     void listUnsynchronizedNoExistingConnectors() {
-        // init Ns4Kafka namespace
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -728,12 +727,14 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        // init connectorAsyncExecutor
         ConnectorAsyncExecutor connectorAsyncExecutor = mock(ConnectorAsyncExecutor.class);
         when(applicationContext.getBean(ConnectorAsyncExecutor.class,
                 Qualifiers.byName(ns.getMetadata().getCluster()))).thenReturn(connectorAsyncExecutor);
 
-        // list of existing broker connectors
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("ns-connect-cluster").build())
+                .build();
+
         Connector c1 = Connector.builder()
                 .metadata(ObjectMeta.builder().name("ns-connect1").build())
                 .build();
@@ -746,16 +747,26 @@ class ConnectorServiceTest {
         Connector c4 = Connector.builder()
                 .metadata(ObjectMeta.builder().name("ns2-connect1").build())
                 .build();
-        when(connectorAsyncExecutor.collectBrokerConnectors("local-name")).thenReturn(Single.just(List.of(
-                c1, c2, c3, c4)));
+        Connector c5 = Connector.builder()
+                .metadata(ObjectMeta.builder().name("ns1-connect2").build())
+                .build();
+
+        when(connectClusterService.findAllByNamespaceWrite(ns))
+                .thenReturn(List.of(connectCluster));
+        when(connectorAsyncExecutor.collectBrokerConnectors("local-name"))
+                .thenReturn(Single.just(List.of(c1, c2, c3, c4)));
+        when(connectorAsyncExecutor.collectBrokerConnectors("ns-connect-cluster"))
+                .thenReturn(Single.just(List.of(c5)));
 
         // list of existing Ns4Kafka access control entries
         when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
-        .thenReturn(true);
+                .thenReturn(true);
         when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect2"))
-        .thenReturn(true);
+                .thenReturn(true);
         when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
-        .thenReturn(true);
+                .thenReturn(true);
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect2"))
+                .thenReturn(true);
         when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
                 .thenReturn(false);
 
@@ -786,10 +797,11 @@ class ConnectorServiceTest {
 
         connectorService.listUnsynchronizedConnectors(ns)
                 .test()
-                .assertValue(response -> response.size() == 3)
+                .assertValue(response -> response.size() == 4)
                 .assertValue(response -> response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")))
                 .assertValue(response -> response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect2")))
                 .assertValue(response -> response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns1-connect1")))
+                .assertValue(response -> response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns1-connect2")))
                 .assertValue(response -> response.stream().noneMatch(connector -> connector.getMetadata().getName().equals("ns2-connect1")));
     }
 
@@ -808,12 +820,15 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        // init connectorAsyncExecutor
         ConnectorAsyncExecutor connectorAsyncExecutor = mock(ConnectorAsyncExecutor.class);
         when(applicationContext.getBean(ConnectorAsyncExecutor.class,
                 Qualifiers.byName(ns.getMetadata().getCluster()))).thenReturn(connectorAsyncExecutor);
 
-        // list of existing broker connectors
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("ns-connect-cluster").build())
+                .build();
+
         Connector c1 = Connector.builder()
                 .metadata(ObjectMeta.builder().name("ns-connect1").build())
                 .build();
@@ -826,12 +841,18 @@ class ConnectorServiceTest {
         Connector c4 = Connector.builder()
                 .metadata(ObjectMeta.builder().name("ns2-connect1").build())
                 .build();
-        when(connectorAsyncExecutor.collectBrokerConnectors("local-name")).thenReturn(Single.just(List.of(
-                c1, c2, c3, c4)));
+        Connector c5 = Connector.builder()
+                .metadata(ObjectMeta.builder().name("ns1-connect2").build())
+                .build();
 
-        // list of existing broker connects
+        when(connectClusterService.findAllByNamespaceWrite(ns))
+                .thenReturn(List.of(connectCluster));
+        when(connectorAsyncExecutor.collectBrokerConnectors("local-name"))
+                .thenReturn(Single.just(List.of(c1, c2, c3, c4)));
+        when(connectorAsyncExecutor.collectBrokerConnectors("ns-connect-cluster"))
+                .thenReturn(Single.just(List.of(c5)));
         when(connectorRepository.findAllForCluster("local"))
-                .thenReturn(List.of(c1, c2, c3, c4));
+                .thenReturn(List.of(c1, c2, c3, c4, c5));
 
         // list of existing Ns4Kafka access control entries
         when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
@@ -840,6 +861,8 @@ class ConnectorServiceTest {
             .thenReturn(true);
         when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
             .thenReturn(true);
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect2"))
+                .thenReturn(true);
         when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
             .thenReturn(false);
 
@@ -862,11 +885,17 @@ class ConnectorServiceTest {
                                         .resourceType(AccessControlEntry.ResourceType.CONNECT)
                                         .resource("ns1-connect1")
                                         .build())
+                                .build(),
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                                        .resource("ns1-connect2")
+                                        .build())
                                 .build()
                 ));
-
-        when(connectorRepository.findAllForCluster("local"))
-                .thenReturn(List.of(c1, c2, c3, c4));
 
         connectorService.listUnsynchronizedConnectors(ns)
                 .test()
