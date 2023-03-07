@@ -80,8 +80,14 @@ dockerfile {
     baseImage = "eclipse-temurin:17-jre-alpine"
 }
 
-dockerBuild {
-    images = ["michelin/ns4kafka:" + version]
+if (project.hasProperty("release")) {
+    dockerBuild {
+        images = ["michelin/ns4kafka:" + version, "michelin/ns4kafka:latest"]
+    }
+} else {
+    dockerBuild {
+        images = ["michelin/ns4kafka:" + version]
+    }
 }
 
 tasks.withType(JavaCompile) {
