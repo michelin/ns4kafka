@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.models.AuditLog;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.schema.Schema;
@@ -41,7 +42,7 @@ class SchemaControllerTest {
     SecurityService securityService;
 
     @Mock
-    ApplicationEventPublisher<?> applicationEventPublisher;
+    ApplicationEventPublisher<AuditLog> applicationEventPublisher;
 
     /**
      * Test the schema creation

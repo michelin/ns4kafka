@@ -1,11 +1,8 @@
 package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.controllers.topic.TopicController;
-import com.michelin.ns4kafka.models.DeleteRecordsResponse;
-import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
-import com.michelin.ns4kafka.models.ObjectMeta;
-import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.ResourceQuotaService;
@@ -45,7 +42,7 @@ class TopicControllerTest {
     TopicService topicService;
 
     @Mock
-    ApplicationEventPublisher<?> applicationEventPublisher;
+    ApplicationEventPublisher<AuditLog> applicationEventPublisher;
 
     @Mock
     SecurityService securityService;
