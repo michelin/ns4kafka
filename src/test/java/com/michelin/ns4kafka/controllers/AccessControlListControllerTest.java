@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.controllers.acl.AccessControlListController;
 import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.AuditLog;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
@@ -38,7 +39,7 @@ class AccessControlListControllerTest {
     NamespaceService namespaceService;
 
     @Mock
-    ApplicationEventPublisher<?> applicationEventPublisher;
+    ApplicationEventPublisher<AuditLog> applicationEventPublisher;
 
     @Mock
     SecurityService securityService;

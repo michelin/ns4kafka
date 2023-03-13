@@ -19,17 +19,15 @@ public abstract class ResourceController {
     public SecurityService securityService;
 
     @Inject
-    public ApplicationEventPublisher applicationEventPublisher;
+    public ApplicationEventPublisher<AuditLog> applicationEventPublisher;
 
     public <T> HttpResponse<T> formatHttpResponse(T body, ApplyStatus status) {
         return HttpResponse.ok(body).header(STATUS_HEADER, status.toString());
     }
 
     public void sendEventLog(String kind, ObjectMeta metadata, ApplyStatus operation, Object before, Object after) {
-        var auditLog = new AuditLog(
-                securityService.username().orElse(""),
-                securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN),
-                Date.from(Instant.now()),
+        AuditLog auditLog = new AuditLog(securityService.username().orElse(""),
+                securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN), Date.from(Instant.now()),
                 kind, metadata, operation, before, after);
         applicationEventPublisher.publishEvent(auditLog);
     }
