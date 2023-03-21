@@ -10,7 +10,7 @@
 [![SonarCloud Coverage](https://img.shields.io/sonar/coverage/michelin_ns4kafka?logo=sonarcloud&server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge)](https://sonarcloud.io/component_measures?id=michelin_ns4kafka&metric=coverage&view=list)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?logo=apache&style=for-the-badge)](https://opensource.org/licenses/Apache-2.0)
 
-Ns4Kafka brings namespaces to Apache Kafka and a new deployment model for your Kafka resources with [Kafkactl](https://github.com/michelin/kafkactl) following the best practices from Kubernetes.
+Ns4Kafka introduces namespace functionality to Apache Kafka, as well as a new deployment model for Kafka resources using [Kafkactl](https://github.com/michelin/kafkactl), which follows best practices from Kubernetes.
 
 # Table of Contents
 
@@ -28,46 +28,43 @@ Ns4Kafka brings namespaces to Apache Kafka and a new deployment model for your K
 
 # Principles
 
-Ns4Kafka is an API that exposes all the required controllers to list, create and delete Kafka resources such as topics, connectors, schemas, Kafka Connect clusters and so on... 
-
-The solution is based on several principles.
+Ns4Kafka is an API that provides controllers for listing, creating, and deleting various Kafka resources, including topics, connectors, schemas, and Kafka Connect clusters. The solution is built on several principles.
 
 ## Namespace Isolation
 
-Ns4Kafka implements the concept of namespace. Kafka resources are encapsulated in your namespace and you cannot see resources managed by other namespaces. The isolation is provided by granting ownership on names and prefixes to namespaces.
+Ns4Kafka implements the concept of namespaces, which enable encapsulation of Kafka resources within specific namespaces. Each namespace can only view and manage the resources that belong to it, with other namespaces being isolated from each other. This isolation is achieved by assigning ownership of names and prefixes to specific namespaces.
 
 ## Desired State
 
-When you deploy a Kafka resource, Ns4Kafka saves it into a dedicated topic and alignes the Kafka cluster with the desired state of the resource.
+Whenever you deploy a Kafka resource using Ns4Kafka, the solution saves it to a dedicated topic and synchronizes the Kafka cluster to ensure that the resource's desired state is achieved.
 
 ## Server Side Validation
 
-Ns4Kafka applies customizable validation rules to enforce values on the configuration of your resources.
+Ns4Kafka allows you to apply customizable validation rules to ensure that your resources are configured with the appropriate values.
 
 ## CLI
 
-Ns4Kafka comes with [Kafkactl](https://github.com/michelin/kafkactl), a CLI that lets you deploy your Kafka resources "as code" within your namespace using YAML descriptors. It can be used in CI/CD.
+Ns4Kafka includes [Kafkactl](https://github.com/michelin/kafkactl), a command-line interface (CLI) that enables you to deploy your Kafka resources 'as code' within your namespace using YAML descriptors. This tool can also be used in continuous integration/continuous delivery (CI/CD) pipelines.
 
 # Download
 
-Ns4Kafka can be downloaded at https://github.com/michelin/ns4kafka/releases and is available as a fat jar.
+You can download Ns4Kafka as a fat jar from the project's releases page on GitHub at https://github.com/michelin/ns4kafka/releases.
 
-A Docker image is available at [https://hub.docker.com/repository/docker/michelin/ns4kafka](https://hub.docker.com/repository/docker/michelin/ns4kafka).
+Additionally, a Docker image of the solution is available at https://hub.docker.com/repository/docker/michelin/ns4kafka.
 
 # Install
 
-Ns4Kafka needs a Kafka broker to store data and GitLab to authenticate users.
+To operate, Ns4Kafka requires a Kafka broker for data storage and GitLab for user authentication.
 
-The project is based on [Micronaut](https://micronaut.io/) and can be configured with a Micronaut configuration file.
-There is an example of configuration file in `src/main/ressource/application.yml`.
+The solution is built on the [Micronaut framework](https://micronaut.io/) and can be configured using a Micronaut configuration file, which includes a sample file located at `src/main/resources/application.yml`.
 
-If needed, properties from default application.yml can be overrided:
+If necessary, you can override the properties from the default `application.yml` file by setting the `micronaut.config.file` system property when running the fat jar file, like so:
 
 ````console
 java -Dmicronaut.config.file=application.yml -jar ns4kafka.jar
 ````
 
-Or
+Alternatively, you can set the `MICRONAUT_CONFIG_FILE` environment variable and then run the jar file without additional parameters, as shown below:
 
 ````console
 MICRONAUT_CONFIG_FILE=application.yml 
@@ -78,9 +75,9 @@ java -jar ns4kafka.jar
 
 ## Managed clusters
 
-Managed clusters are the clusters where namespaces take place, and resources are deployed.
+Managed clusters are the clusters where Ns4Kafka namespaces are deployed, and Kafka resources are managed. 
 
-This is how to configure your managed clusters:
+To configure your managed clusters, follow these steps:
 
 ```yaml
 ns4kafka:
@@ -106,7 +103,7 @@ ns4kafka:
         connect2:
 ```
 
-- The name for each managed cluster has to be unique. This is this name you have to set in the field **metadata.cluster** of your namespace descriptors.
+- Each managed cluster must have a unique name, which you should set in the `metadata.cluster` field of your namespace descriptors.
 
 | Property                                | type    | description                                        |
 | -----                                   | -----   | -----                                              |
@@ -125,7 +122,7 @@ ns4kafka:
 
 ## Admin account
 
-This is where you configure the admin user
+To configure the admin user, follow these steps:
 
 ```yaml
 micronaut:
@@ -157,9 +154,8 @@ ns4kafka:
 | ns4kafka.security.local-users.password | string          | Password of the localusers encrypted in SHA-256   |
 | ns4kafka.security.local-users.groups   | list<string>    | Names of the groups of this local user            |
 
-The group as to be set up on GitLab. 
-So, if the admin group is "admin", a user will be admin if he belongs to the GitLab group "admin".
+To set up the admin user, you must create a group in GitLab. For example, if the group name is `admin`, a user will be granted admin privileges if they belong to the `admin` group in GitLab.
 
 # Administration
 
-It is up to Ns4Kafka administrators to set up namespaces, owner ACLs, role bindings and quotas as these resources defined the context in which project teams will work. To create your first namespace, check the [Kafkactl documentation](https://github.com/michelin/kafkactl/blob/main/README.md#administrator).
+The setup of namespaces, owner ACLs, role bindings, and quotas is the responsibility of Ns4Kafka administrators, as these resources define the context in which project teams will work. To create your first namespace, please refer to the [Kafkactl documentation](https://github.com/michelin/kafkactl/blob/main/README.md#administrator).
