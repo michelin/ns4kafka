@@ -12,7 +12,7 @@
 
 Ns4Kafka introduces namespace functionality to Apache Kafka, as well as a new deployment model for Kafka resources using [Kafkactl](https://github.com/michelin/kafkactl), which follows best practices from Kubernetes.
 
-# Table of Contents
+## Table of Contents
 
 * [Principles](#principles)
   * [Namespace Isolation](#namespace-isolation)
@@ -25,34 +25,35 @@ Ns4Kafka introduces namespace functionality to Apache Kafka, as well as a new de
   * [Managed clusters](#managed-clusters)
   * [Admin account](#admin-account)
 * [Administration](#administration)
+* [Contribution](#contribution)
 
-# Principles
+## Principles
 
 Ns4Kafka is an API that provides controllers for listing, creating, and deleting various Kafka resources, including topics, connectors, schemas, and Kafka Connect clusters. The solution is built on several principles.
 
-## Namespace Isolation
+### Namespace Isolation
 
 Ns4Kafka implements the concept of namespaces, which enable encapsulation of Kafka resources within specific namespaces. Each namespace can only view and manage the resources that belong to it, with other namespaces being isolated from each other. This isolation is achieved by assigning ownership of names and prefixes to specific namespaces.
 
-## Desired State
+### Desired State
 
 Whenever you deploy a Kafka resource using Ns4Kafka, the solution saves it to a dedicated topic and synchronizes the Kafka cluster to ensure that the resource's desired state is achieved.
 
-## Server Side Validation
+### Server Side Validation
 
 Ns4Kafka allows you to apply customizable validation rules to ensure that your resources are configured with the appropriate values.
 
-## CLI
+### CLI
 
 Ns4Kafka includes [Kafkactl](https://github.com/michelin/kafkactl), a command-line interface (CLI) that enables you to deploy your Kafka resources 'as code' within your namespace using YAML descriptors. This tool can also be used in continuous integration/continuous delivery (CI/CD) pipelines.
 
-# Download
+## Download
 
 You can download Ns4Kafka as a fat jar from the project's releases page on GitHub at https://github.com/michelin/ns4kafka/releases.
 
 Additionally, a Docker image of the solution is available at https://hub.docker.com/repository/docker/michelin/ns4kafka.
 
-# Install
+## Install
 
 To operate, Ns4Kafka requires a Kafka broker for data storage and GitLab for user authentication.
 
@@ -71,9 +72,9 @@ MICRONAUT_CONFIG_FILE=application.yml
 java -jar ns4kafka.jar
 ````
 
-# Configuration 
+## Configuration 
 
-## Managed clusters
+### Managed clusters
 
 Managed clusters are the clusters where Ns4Kafka namespaces are deployed, and Kafka resources are managed. 
 
@@ -120,7 +121,7 @@ ns4kafka:
 | connects.connect-name.basicAuthUsername | string  | Basic authentication username to the kafka connect |
 | connects.connect-name.basicAuthPassword | string  | Basic authentication password to the kafka connect |
 
-## Admin account
+### Admin account
 
 To configure the admin user, follow these steps:
 
@@ -156,6 +157,10 @@ ns4kafka:
 
 To set up the admin user, you must create a group in GitLab. For example, if the group name is `admin`, a user will be granted admin privileges if they belong to the `admin` group in GitLab.
 
-# Administration
+## Administration
 
 The setup of namespaces, owner ACLs, role bindings, and quotas is the responsibility of Ns4Kafka administrators, as these resources define the context in which project teams will work. To create your first namespace, please refer to the [Kafkactl documentation](https://github.com/michelin/kafkactl/blob/main/README.md#administrator).
+
+## Contribution
+ 
+We welcome contributions from the community! Before you get started, please take a look at our [contribution guide](https://github.com/michelin/ns4kafka/blob/master/CONTRIBUTING.md) to learn about our guidelines and best practices. We appreciate your help in making Ns4Kafka a better tool for everyone.
