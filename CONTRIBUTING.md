@@ -1,4 +1,4 @@
-# Contributing to Ns4kafka
+# Contributing to Ns4Kafka
 
 Welcome and thank you for considering contributing to Ns4kafka!
 
