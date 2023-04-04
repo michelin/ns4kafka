@@ -509,4 +509,71 @@ class AkhqClaimProviderControllerTest {
         Assertions.assertLinesMatch(List.of(".*$"), actual.getConnectsFilterRegexp());
         Assertions.assertLinesMatch(List.of(".*$"), actual.getConsumerGroupsFilterRegexp());
     }
+
+    @Test
+    void computeAllowedRegexListTestSuccessFilterStartWith(){
+        List<AccessControlEntry> inputACLs = List.of(
+                AccessControlEntry.builder()
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                .resource("project1.")
+                                .build())
+                        .build(),
+                AccessControlEntry.builder()
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                .resource("project1.topic1")
+                                .build())
+                        .build(),
+                AccessControlEntry.builder()
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                .resource("project2.topic2")
+                                .build())
+                        .build(),
+                AccessControlEntry.builder()
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                .resource("project2.topic3")
+                                .build())
+                        .build(),
+                AccessControlEntry.builder()
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                .resource("project3.topic4")
+                                .build())
+                        .build(),
+                AccessControlEntry.builder()
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                .resource("project3.topic5")
+                                .build())
+                        .build(),
+                AccessControlEntry.builder()
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                .resource("project3.")
+                                .build())
+                        .build()
+        );
+        List<String> actual = akhqClaimProviderController.computeAllowedRegexListForResourceType(inputACLs, AccessControlEntry.ResourceType.TOPIC);
+
+        Assertions.assertEquals(4, actual.size());
+        Assertions.assertLinesMatch(
+                List.of(
+                        "^\\Qproject1.\\E.*$",
+                        "^\\Qproject2.topic2\\E$",
+                        "^\\Qproject2.topic3\\E$",
+                        "^\\Qproject3.\\E.*$"
+                ),
+                actual
+        );
+    }
 }
