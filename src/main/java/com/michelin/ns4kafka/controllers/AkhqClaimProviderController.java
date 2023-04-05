@@ -119,8 +119,14 @@ public class AkhqClaimProviderController {
      * @return A list of regex
      */
     public List<String> computeAllowedRegexListForResourceType(List<AccessControlEntry> acls, AccessControlEntry.ResourceType resourceType) {
+
         List<String> allowedRegex = acls.stream()
                 .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == resourceType)
+                .filter(accessControlEntry ->
+                        acls.stream()
+                                .filter(accessControlEntryOther -> !accessControlEntryOther.getSpec().getResource().equals(accessControlEntry.getSpec().getResource()))
+                                .map(accessControlEntryOther -> accessControlEntryOther.getSpec().getResource())
+                                .noneMatch(escapedString -> accessControlEntry.getSpec().getResource().startsWith(escapedString)))
                 .map(accessControlEntry -> {
                     String escapedString = Pattern.quote(accessControlEntry.getSpec().getResource());
                     if (accessControlEntry.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.PREFIXED) {
