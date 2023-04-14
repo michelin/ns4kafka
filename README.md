@@ -61,20 +61,20 @@ To operate, Ns4Kafka requires a Kafka broker for data storage and GitLab for use
 
 The solution is built on the [Micronaut framework](https://micronaut.io/) and can be configured with any [Micronaut property source loader](https://docs.micronaut.io/1.3.0.M1/guide/index.html#_included_propertysource_loaders).
 
-For example, you can override the properties from the default `application.yml` file by setting the `micronaut.config.file` system property when running the fat jar file, like so:
+To override the default properties from the `application.yml` file, you can set the `micronaut.config.file` system property when running the fat jar file, like so:
 
 ```console
 java -Dmicronaut.config.file=application.yml -jar ns4kafka.jar
 ```
 
-Or you can set the `MICRONAUT_CONFIG_FILE` environment variable and then run the jar file without additional parameters, as shown below:
+Alternatively, you can set the `MICRONAUT_CONFIG_FILE` environment variable and then run the jar file without additional parameters, as shown below:
 
 ```console
 MICRONAUT_CONFIG_FILE=application.yml 
 java -jar ns4kafka.jar
 ```
 
-Alternatively, you can use the provided docker-compose file to run the application and use a volume to override the default properties:
+You can also use the provided `docker-compose` file to run the application and use a volume to override the default properties:
 
 ```console
 docker-compose up -d
@@ -82,9 +82,9 @@ docker-compose up -d
 
 ## Configuration 
 
-## GitLab Authentication
+### GitLab Authentication
 
-The authentication with GitLab can be set up with the following configuration:
+To set up authentication with GitLab, you can use the following configuration:
 
 ```yaml
 micronaut:
@@ -101,9 +101,9 @@ micronaut:
               secret: "changeit"
 ```
 
-### Admin account
+#### Admin account
 
-This is where you configure the admin user
+To configure the admin user, you can use the following:
 
 ```yaml
 ns4kafka:
@@ -111,11 +111,11 @@ ns4kafka:
     admin-group: "MY_ADMIN_GROUP"
 ```
 
-If the admin group is "MY_ADMIN_GROUP", a user will be admin if he belongs to the GitLab group "MY_ADMIN_GROUP".
+If the admin group is set to "MY_ADMIN_GROUP", a user will be granted admin privileges if they belong to the GitLab group "MY_ADMIN_GROUP".
 
-## Kafka Broker Authentication
+### Kafka Broker Authentication
 
-The authentication to the Kafka brokers can be configured with the following:
+You can configure authentication to the Kafka brokers using the following:
 
 ```yaml
 kafka:
@@ -123,11 +123,11 @@ kafka:
   ...
 ```
 
-## Managed clusters
+### Managed clusters
 
-Managed clusters are the clusters where Ns4Kafka namespaces are deployed, and Kafka resources are managed. 
+Managed clusters are the clusters where Ns4Kafka namespaces are deployed, and Kafka resources are managed.
 
-To configure your managed clusters, follow these steps:
+You can configure your managed clusters with the following properties:
 
 ```yaml
 ns4kafka:
