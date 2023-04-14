@@ -1,0 +1,34 @@
+micronaut:
+  security:
+    enabled: true
+    gitlab:
+      enabled: true
+      url: https://gitlab.com
+    token:
+      jwt:
+        signatures:
+          secret:
+            generator:
+              secret: "changeit"
+
+kafka:
+  bootstrap.servers: "localhost:9092"
+
+ns4kafka:
+  security:
+    admin-group: "MY_ADMIN_GROUP"
+  managed-clusters:
+    local:
+      manage-users: false
+      manage-acls: false
+      manage-topics: true
+      manage-connect: true
+      drop-unsync-acls: false
+      provider: "SELF_MANAGED"
+      config:
+        bootstrap.servers: "localhost:9092"
+      schema-registry:
+        url: "http://localhost:8081"
+      connects:
+        local:
+          url: "http://localhost:8083"

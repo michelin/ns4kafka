@@ -22,8 +22,10 @@ Ns4Kafka brings namespaces to Apache Kafka and a new deployment model for your K
 * [Download](#download)
 * [Install](#install)
 * [Configuration](#configuration)
+  * [GitLab Authentication](#gitlab-authentication)
+    * [Admin account](#admin-account)
+  * [Kafka Broker Authentication](#kafka-broker-authentication)
   * [Managed clusters](#managed-clusters)
-  * [Admin account](#admin-account)
 * [Administration](#administration)
 
 # Principles
@@ -58,23 +60,69 @@ A Docker image is available at [https://hub.docker.com/repository/docker/micheli
 
 Ns4Kafka needs a Kafka broker to store data and GitLab to authenticate users.
 
-The project is based on [Micronaut](https://micronaut.io/) and can be configured with a Micronaut configuration file.
-There is an example of configuration file in `src/main/ressource/application.yml`.
+The project is based on [Micronaut](https://micronaut.io/) and can be configured with any [Micronaut property source loader](https://docs.micronaut.io/1.3.0.M1/guide/index.html#_included_propertysource_loaders).
 
-If needed, properties from default application.yml can be overrided:
+For example, properties from the default `application.yml` can be overridden with an additional custom `application.yml`:
 
-````console
+```console
 java -Dmicronaut.config.file=application.yml -jar ns4kafka.jar
-````
+```
 
 Or
 
-````console
+```console
 MICRONAUT_CONFIG_FILE=application.yml 
 java -jar ns4kafka.jar
-````
+```
+
+Alternatively, you can use the provided docker-compose file to run the application and use a volume to override the default properties:
+
+```console
+docker-compose up -d
+```
 
 # Configuration 
+
+## GitLab Authentication
+
+The authentication with GitLab can be set up with the following configuration:
+
+```yaml
+micronaut:
+  security:
+    enabled: true
+    gitlab:
+      enabled: true
+      url: https://gitlab.com
+    token:
+      jwt:
+        signatures:
+          secret:
+            generator:
+              secret: "changeit"
+```
+
+### Admin account
+
+This is where you configure the admin user
+
+```yaml
+ns4kafka:
+  security:
+    admin-group: "MY_ADMIN_GROUP"
+```
+
+If the admin group is "MY_ADMIN_GROUP", a user will be admin if he belongs to the GitLab group "MY_ADMIN_GROUP".
+
+## Kafka Broker Authentication
+
+The authentication to the Kafka brokers can be configured with the following:
+
+```yaml
+kafka:
+  bootstrap.servers: "localhost:9092"
+  ...
+```
 
 ## Managed clusters
 
@@ -89,8 +137,7 @@ ns4kafka:
       manage-users: false
       manage-acls: false
       manage-topics: true
-      manage-connect: false
-      manage-role-bindings: false
+      manage-connect: true
       drop-unsync-acls: false
       config:
         bootstrap.servers: "localhost:9092"
@@ -103,62 +150,24 @@ ns4kafka:
           url: "http://localhost:8083"
           basicAuthUsername: "user"
           basicAuthPassword: "password"
-        connect2:
 ```
 
-- The name for each managed cluster has to be unique. This is this name you have to set in the field **metadata.cluster** of your namespace descriptors.
+The name for each managed cluster has to be unique. This is this name you have to set in the field **metadata.cluster** of your namespace descriptors.
 
-| Property                                | type    | description                                        |
-| -----                                   | -----   | -----                                              |
-| manage-users                            | boolean | Does the cluster manages users ?                          |
-| manage-acls                             | boolean | Does the cluster manages access control entries ?        |
-| manage-topics                           | boolean | Does the cluster manages topics ?                      |
-| manage-connect                          | boolean | Does the cluster manages connects ?                     |
-| drop-unsync-acls                        | boolean | Should Ns4Kafka drop unsynchronized ACLs                  |
-| config.bootstrap.servers                | string  | The location of the clusters servers               |
+| Property                                | type    | description                                          |
+|-----------------------------------------|---------|------------------------------------------------------|
+| manage-users                            | boolean | Does the cluster manages users ?                     |
+| manage-acls                             | boolean | Does the cluster manages access control entries ?    |
+| manage-topics                           | boolean | Does the cluster manages topics ?                    |
+| manage-connect                          | boolean | Does the cluster manages connects ?                  |
+| drop-unsync-acls                        | boolean | Should Ns4Kafka drop unsynchronized ACLs             |
+| config.bootstrap.servers                | string  | The location of the clusters servers                 |
 | schema-registry.url                     | string  | The location of the Schema Registry                  |
 | schema-registry.basicAuthUsername       | string  | Basic authentication username to the Schema Registry |
 | schema-registry.basicAuthPassword       | string  | Basic authentication password to the Schema Registry |
-| connects.connect-name.url               | string  | The location of the kafka connect                  |
-| connects.connect-name.basicAuthUsername | string  | Basic authentication username to the kafka connect |
-| connects.connect-name.basicAuthPassword | string  | Basic authentication password to the kafka connect |
-
-## Admin account
-
-This is where you configure the admin user
-
-```yaml
-micronaut:
-  security:
-    enabled: true
-    authentication: bearer
-    gitlab:
-      enabled: true
-      url: https://gitlab.com
-ns4kafka:
-  security:
-    admin-group: test-ns4kafka
-    local-users: # Not for production use.
-      - username: admin
-        # SHA-256 password.
-        password: 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
-        groups:
-          - "admin"
-```
-
-| Property                               | type            | description                                       |
-| -----                                  | -----           | -----                                             |
-| micronaut.security.enabled             | boolean         | Enabled the security of the API                   |
-| micronaut.security.authentication      | string (Bearer) | Type of security, for now Bearer only             |
-| micronaut.security.gitlab.enabled      | boolean         | Enabled the security of the API via Gitlab groups |
-| micronaut.security.gitlab.url          | string          | Url of the GitLab instance                        |
-| ns4kafka.security.admin-group          | string          | Name of the GitLab group of the admins            |
-| ns4kafka.security.local-users.username | string          | Username of the localusers                        |
-| ns4kafka.security.local-users.password | string          | Password of the localusers encrypted in SHA-256   |
-| ns4kafka.security.local-users.groups   | list<string>    | Names of the groups of this local user            |
-
-The group as to be set up on GitLab. 
-So, if the admin group is "admin", a user will be admin if he belongs to the GitLab group "admin".
+| connects.connect-name.url               | string  | The location of the kafka connect                    |
+| connects.connect-name.basicAuthUsername | string  | Basic authentication username to the kafka connect   |
+| connects.connect-name.basicAuthPassword | string  | Basic authentication password to the kafka connect   |
 
 # Administration
 
