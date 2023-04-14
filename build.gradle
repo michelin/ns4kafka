@@ -1,9 +1,9 @@
 plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
-    id("io.micronaut.application") version "3.7.4"
+    id("io.micronaut.application") version "3.7.7"
     id("jacoco")
     id("org.sonarqube") version "4.0.0.2929"
-    id("pl.allegro.tech.build.axion-release") version "1.14.4"
+    id("pl.allegro.tech.build.axion-release") version "1.15.0"
 }
 
 version = scmVersion.version
@@ -43,7 +43,7 @@ dependencies {
             strictly '1.15.3'
         }
     }
-    testImplementation("org.mockito:mockito-junit-jupiter:5.1.1")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.2.0")
 
     testAnnotationProcessor("org.projectlombok:lombok")
     testCompileOnly("org.projectlombok:lombok")

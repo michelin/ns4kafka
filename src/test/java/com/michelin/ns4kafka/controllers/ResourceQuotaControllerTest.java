@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.controllers;
 
 import com.michelin.ns4kafka.controllers.quota.ResourceQuotaController;
+import com.michelin.ns4kafka.models.AuditLog;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
@@ -43,7 +44,7 @@ class ResourceQuotaControllerTest {
     SecurityService securityService;
 
     @Mock
-    ApplicationEventPublisher<?> applicationEventPublisher;
+    ApplicationEventPublisher<AuditLog> applicationEventPublisher;
 
     /**
      * Validate quota listing

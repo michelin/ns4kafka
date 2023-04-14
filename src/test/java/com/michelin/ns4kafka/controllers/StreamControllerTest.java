@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.models.AuditLog;
 import com.michelin.ns4kafka.models.KafkaStream;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
@@ -33,7 +34,7 @@ class StreamControllerTest {
     StreamService streamService;
 
     @Mock
-    ApplicationEventPublisher<?> applicationEventPublisher;
+    ApplicationEventPublisher<AuditLog> applicationEventPublisher;
 
     @Mock
     SecurityService securityService;

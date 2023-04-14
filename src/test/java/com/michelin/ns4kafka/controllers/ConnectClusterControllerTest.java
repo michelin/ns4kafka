@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.models.AuditLog;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
@@ -49,7 +50,7 @@ class ConnectClusterControllerTest {
     ConnectClusterController connectClusterController;
 
     @Mock
-    ApplicationEventPublisher<?> applicationEventPublisher;
+    ApplicationEventPublisher<AuditLog> applicationEventPublisher;
 
     /**
      * Test connect clusters listing when namespace is empty

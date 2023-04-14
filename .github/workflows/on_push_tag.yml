@@ -48,7 +48,7 @@ jobs:
         run: ./gradlew dockerBuild dockerPush -Prelease
 
       - name: Generate release changelog
-        uses: mikepenz/release-changelog-builder-action@v3.7.0
+        uses: mikepenz/release-changelog-builder-action@v3.7.1
         id: build_changelog
         with:
           configuration: "changelog-builder.json"

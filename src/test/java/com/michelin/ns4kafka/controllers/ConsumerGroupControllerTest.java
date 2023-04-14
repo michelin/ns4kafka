@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.models.AuditLog;
 import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets.ConsumerGroupResetOffsetsSpec;
 import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets.ResetOffsetsMethod;
@@ -39,7 +40,7 @@ class ConsumerGroupControllerTest {
     ConsumerGroupService consumerGroupService;
 
     @Mock
-    ApplicationEventPublisher<?> applicationEventPublisher;
+    ApplicationEventPublisher<AuditLog> applicationEventPublisher;
 
     @Mock
     SecurityService securityService;
