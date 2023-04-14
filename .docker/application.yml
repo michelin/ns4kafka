@@ -9,7 +9,7 @@ micronaut:
         signatures:
           secret:
             generator:
-              secret: "changeit"
+              secret: "pleaseChangeThisSecretForANewOne"
 
 kafka:
   bootstrap.servers: "broker:29092"
