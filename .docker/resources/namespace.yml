@@ -1,0 +1,151 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: myNamespace
+  cluster: local
+  labels:
+    contacts: namespace.owner@example.com
+spec:
+  kafkaUser: kafkaAccountId
+  connectClusters:
+    - local
+  topicValidator:
+    validationConstraints:
+      partitions:
+        validation-type: Range
+        min: 1
+        max: 6
+      replication.factor:
+        validation-type: Range
+        min: 1
+        max: 3
+      min.insync.replicas:
+        validation-type: Range
+        min: 1
+        max: 2
+      retention.ms:
+        optional: true
+        validation-type: Range
+        min: 60000
+        max: 604800000
+      cleanup.policy:
+        validation-type: ValidList
+        validStrings:
+          - delete
+          - compact
+  connectValidator:
+    validationConstraints:
+      key.converter:
+        validation-type: NonEmptyString
+      value.converter:
+        validation-type: NonEmptyString
+      connector.class:
+        validation-type: ValidString
+        validStrings:
+          - io.confluent.connect.jdbc.JdbcSinkConnector
+          - io.confluent.connect.jdbc.JdbcSourceConnector
+    sourceValidationConstraints:
+      producer.override.sasl.jaas.config:
+        validation-type: NonEmptyString
+    sinkValidationConstraints:
+      connector.class:
+        validation-type: NonEmptyString
+    classValidationConstraints:
+      io.confluent.connect.jdbc.JdbcSourceConnector:
+        db.timezone:
+          validation-type: NonEmptyString
+      io.confluent.connect.jdbc.JdbcSinkConnector:
+        db.timezone:
+          validation-type: NonEmptyString
+---
+apiVersion: v1
+kind: RoleBinding
+metadata:
+  name: myRoleBinding1
+  namespace: myNamespace
+spec:
+  role:
+    resourceTypes:
+    - schemas
+    - schemas/config
+    - topics
+    - topics/delete-records
+    - connectors
+    - connectors/change-state
+    - connect-clusters
+    - connect-clusters/vaults
+    - acls
+    - consumer-groups/reset
+    - streams
+    verbs:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+  subject:
+    subjectType: GROUP
+    subjectName: MY_GROUP
+---
+apiVersion: v1
+kind: RoleBinding
+metadata:
+  name: myRoleBinding2
+  namespace: myNamespace
+spec:
+  role:
+    resourceTypes:
+    - quota
+    verbs:
+    - GET
+  subject:
+    subjectType: GROUP
+    subjectName: MY_GROUP
+---
+apiVersion: v1
+kind: AccessControlEntry
+metadata:
+  name: myTopicAcl
+  namespace: myNamespace
+spec:
+  resourceType: TOPIC
+  resource: prefix.
+  resourcePatternType: PREFIXED
+  permission: OWNER
+  grantedTo: myNamespace
+---
+apiVersion: v1
+kind: AccessControlEntry
+metadata:
+  name: myGroupAcl
+  namespace: myNamespace
+spec:
+  resourceType: GROUP
+  resource: prefix.
+  resourcePatternType: PREFIXED
+  permission: OWNER
+  grantedTo: myNamespace
+---
+apiVersion: v1
+kind: AccessControlEntry
+metadata:
+  name: myConnectAcl
+  namespace: myNamespace
+spec:
+  resourceType: CONNECT
+  resource: prefix.
+  resourcePatternType: PREFIXED
+  permission: OWNER
+  grantedTo: myNamespace
+---
+apiVersion: v1
+kind: AccessControlEntry
+metadata:
+  name: myConnectClusterAcl
+  namespace: myNamespace
+spec:
+  resourceType: CONNECT_CLUSTER
+  resource: prefix.
+  resourcePatternType: PREFIXED
+  permission: OWNER
+  grantedTo: myNamespace

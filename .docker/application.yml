@@ -12,7 +12,7 @@ micronaut:
               secret: "changeit"
 
 kafka:
-  bootstrap.servers: "localhost:9092"
+  bootstrap.servers: "broker:29092"
 
 ns4kafka:
   security:
@@ -26,9 +26,9 @@ ns4kafka:
       drop-unsync-acls: false
       provider: "SELF_MANAGED"
       config:
-        bootstrap.servers: "localhost:9092"
+        bootstrap.servers: "broker:29092"
       schema-registry:
-        url: "http://localhost:8081"
+        url: "http://schema-registry:8081"
       connects:
         local:
-          url: "http://localhost:8083"
+          url: "http://connect:8083"
