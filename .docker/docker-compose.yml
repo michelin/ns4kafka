@@ -104,7 +104,7 @@ services:
       PORT: 9021
 
   ns4kafka:
-    image: docker.artifactory.michelin.com/michelin/ns4kafka
+    image: michelin/ns4kafka
     hostname: ns4kafka
     container_name: ns4kafka
     depends_on:
@@ -121,7 +121,7 @@ services:
       - MICRONAUT_CONFIG_FILES=/home/app/application.yml
 
   kafkactl:
-    image: docker.artifactory.michelin.com/michelin/kafkactl
+    image: michelin/kafkactl
     hostname: kafkactl
     container_name: kafkactl
     depends_on:
