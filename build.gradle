@@ -43,7 +43,7 @@ dependencies {
             strictly '1.15.3'
         }
     }
-    testImplementation("org.mockito:mockito-junit-jupiter:5.3.0")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.3.1")
 
     testAnnotationProcessor("org.projectlombok:lombok")
     testCompileOnly("org.projectlombok:lombok")
