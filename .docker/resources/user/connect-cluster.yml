@@ -1,0 +1,7 @@
+---
+apiVersion: v1
+kind: ConnectCluster
+metadata:
+  name: abc.myConnectCluster
+spec:
+  url: http://connect:8083

@@ -69,7 +69,7 @@ class EncryptionUtilsTest {
         final String encryptionSalt = "p8t42EhY9z2eSUdpGeq7HX7RboMrsJAhUnu3EEJJVS";
 
         final String stillBlankText = EncryptionUtils.encryptAESWithPrefix(null, encryptionKey, encryptionSalt);
-        Assertions.assertEquals(null, stillBlankText);
+        Assertions.assertNull(stillBlankText);
     }
 
     @Test

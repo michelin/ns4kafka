@@ -45,7 +45,7 @@ jobs:
           report_paths: '**/build/test-results/test/TEST-*.xml'
 
       - name: Docker
-        run: ./gradlew dockerBuild dockerPush -Prelease
+        run: ./gradlew dockerBuild dockerPush -PreleaseLatest
 
       - name: Generate release changelog
         uses: mikepenz/release-changelog-builder-action@v3.7.2

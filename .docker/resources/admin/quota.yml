@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: myQuota
+  namespace: myNamespace
+spec:
+  count/topics: 10
+  count/partitions: 60
+  count/connectors: 5
+  disk/topics: 500MiB
+  user/consumer_byte_rate: 204800
+  user/producer_byte_rate: 204800

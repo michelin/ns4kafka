@@ -21,9 +21,13 @@ Ns4Kafka introduces namespace functionality to Apache Kafka, as well as a new de
   * [CLI](#cli)
 * [Download](#download)
 * [Install](#install)
+* [Demo Environment](#demo-environment)
 * [Configuration](#configuration)
+  * [GitLab Authentication](#gitlab-authentication)
+    * [Admin Account](#admin-account)
+  * [Kafka Broker Authentication](#kafka-broker-authentication)
   * [Managed clusters](#managed-clusters)
-  * [Admin account](#admin-account)
+  * [AKHQ](#akhq)
 * [Administration](#administration)
 * [Contribution](#contribution)
 
@@ -57,41 +61,113 @@ Additionally, a Docker image of the solution is available at https://hub.docker.
 
 To operate, Ns4Kafka requires a Kafka broker for data storage and GitLab for user authentication.
 
-The solution is built on the [Micronaut framework](https://micronaut.io/) and can be configured using a Micronaut configuration file, which includes a sample file located at `src/main/resources/application.yml`.
+The solution is built on the [Micronaut framework](https://micronaut.io/) and can be configured with any [Micronaut property source loader](https://docs.micronaut.io/1.3.0.M1/guide/index.html#_included_propertysource_loaders).
 
-If necessary, you can override the properties from the default `application.yml` file by setting the `micronaut.config.file` system property when running the fat jar file, like so:
+To override the default properties from the `application.yml` file, you can set the `micronaut.config.file` system property when running the fat jar file, like so:
 
-````console
+```console
 java -Dmicronaut.config.file=application.yml -jar ns4kafka.jar
-````
+```
 
 Alternatively, you can set the `MICRONAUT_CONFIG_FILE` environment variable and then run the jar file without additional parameters, as shown below:
 
-````console
+```console
 MICRONAUT_CONFIG_FILE=application.yml 
 java -jar ns4kafka.jar
-````
+```
+
+## Demo Environment
+
+To run and try out the application, you can use the provided `docker-compose` file located in the `.docker` directory.
+
+```console
+docker-compose up -d
+```
+
+This command will start multiple containers, including:
+- 1 Zookeeper
+- 1 Kafka broker
+- 1 Schema registry
+- 1 Kafka Connect
+- 1 Control Center
+- Ns4Kafka, with customizable `config.yml` and `logback.xml` files
+- Kafkactl, with multiple deployable resources in `/resources`
+
+Please note that SASL/SCRAM authentication and authorization using ACLs are enabled on the broker.
+
+To get started, you'll need to perform the following steps:
+1. Define a GitLab admin group for Ns4Kafka in the `application.yml` file. You can find an example [here](#admin-account). It is recommended to choose a GitLab group you belong to in order to have admin rights.
+2. Define a GitLab token for Kafkactl in the `config.yml` file. You can refer to the installation instructions [here](https://github.com/michelin/kafkactl#install).
+3. Define a GitLab group you belong to in the role bindings of the `resources/admin/namespace.yml` file. This is demonstrated in the example [here](https://github.com/michelin/kafkactl#role-binding).
 
 ## Configuration 
 
+### GitLab Authentication
+
+To set up authentication with GitLab, you can use the following configuration:
+
+```yaml
+micronaut:
+  security:
+    enabled: true
+    gitlab:
+      enabled: true
+      url: https://gitlab.com
+    token:
+      jwt:
+        signatures:
+          secret:
+            generator:
+              secret: "changeit"
+```
+
+#### Admin Account
+
+To configure the admin user, you can use the following:
+
+```yaml
+ns4kafka:
+  security:
+    admin-group: "MY_ADMIN_GROUP"
+```
+
+If the admin group is set to "MY_ADMIN_GROUP", users will be granted admin privileges if they belong to the GitLab group "MY_ADMIN_GROUP".
+
+### Kafka Broker Authentication
+
+You can configure authentication to the Kafka brokers using the following:
+
+```yaml
+kafka:
+  bootstrap.servers: "localhost:9092"
+  sasl.mechanism: "PLAIN"
+  security.protocol: "SASL_PLAINTEXT"
+  sasl.jaas.config: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"admin\";"
+```
+
+The configuration will depend on the authentication method selected for your broker.
+
 ### Managed clusters
 
-Managed clusters are the clusters where Ns4Kafka namespaces are deployed, and Kafka resources are managed. 
+Managed clusters are the clusters where Ns4Kafka namespaces are deployed, and Kafka resources are managed.
 
-To configure your managed clusters, follow these steps:
+You can configure your managed clusters with the following properties:
 
 ```yaml
 ns4kafka:
   managed-clusters:
     clusterNameOne:
-      manage-users: false
-      manage-acls: false
+      manage-users: true
+      manage-acls: true
       manage-topics: true
-      manage-connect: false
-      manage-role-bindings: false
-      drop-unsync-acls: false
+      manage-connectors: true
+      drop-unsync-acls: true
+      provider: "SELF_MANAGED"
       config:
         bootstrap.servers: "localhost:9092"
+        sasl.mechanism: "PLAIN"
+        security.protocol: "SASL_PLAINTEXT"
+        sasl.jaas.config: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"admin\";"
       schema-registry:
         url: "http://localhost:8081"
         basicAuthUsername: "user"
@@ -101,61 +177,86 @@ ns4kafka:
           url: "http://localhost:8083"
           basicAuthUsername: "user"
           basicAuthPassword: "password"
-        connect2:
 ```
 
-- Each managed cluster must have a unique name, which you should set in the `metadata.cluster` field of your namespace descriptors.
+The name for each managed cluster has to be unique. This is this name you have to set in the field **metadata.cluster** of your namespace descriptors.
 
-| Property                                | type    | description                                        |
-| -----                                   | -----   | -----                                              |
-| manage-users                            | boolean | Does the cluster manages users ?                          |
-| manage-acls                             | boolean | Does the cluster manages access control entries ?        |
-| manage-topics                           | boolean | Does the cluster manages topics ?                      |
-| manage-connect                          | boolean | Does the cluster manages connects ?                     |
-| drop-unsync-acls                        | boolean | Should Ns4Kafka drop unsynchronized ACLs                  |
-| config.bootstrap.servers                | string  | The location of the clusters servers               |
-| schema-registry.url                     | string  | The location of the Schema Registry                  |
-| schema-registry.basicAuthUsername       | string  | Basic authentication username to the Schema Registry |
-| schema-registry.basicAuthPassword       | string  | Basic authentication password to the Schema Registry |
-| connects.connect-name.url               | string  | The location of the kafka connect                  |
-| connects.connect-name.basicAuthUsername | string  | Basic authentication username to the kafka connect |
-| connects.connect-name.basicAuthPassword | string  | Basic authentication password to the kafka connect |
+| Property                                | type    | description                                                 |
+|-----------------------------------------|---------|-------------------------------------------------------------|
+| manage-users                            | boolean | Does the cluster manages users ?                            |
+| manage-acls                             | boolean | Does the cluster manages access control entries ?           |
+| manage-topics                           | boolean | Does the cluster manages topics ?                           |
+| manage-connectors                       | boolean | Does the cluster manages connects ?                         |
+| drop-unsync-acls                        | boolean | Should Ns4Kafka drop unsynchronized ACLs                    |
+| provider                                | boolean | The kind of cluster. Either SELF_MANAGED or CONFLUENT_CLOUD |
+| config.bootstrap.servers                | string  | The location of the clusters servers                        |
+| schema-registry.url                     | string  | The location of the Schema Registry                         |
+| schema-registry.basicAuthUsername       | string  | Basic authentication username to the Schema Registry        |
+| schema-registry.basicAuthPassword       | string  | Basic authentication password to the Schema Registry        |
+| connects.connect-name.url               | string  | The location of the kafka connect                           |
+| connects.connect-name.basicAuthUsername | string  | Basic authentication username to the Kafka Connect          |
+| connects.connect-name.basicAuthPassword | string  | Basic authentication password to the Kafka Connect          |
 
-### Admin account
+The configuration will depend on the authentication method selected for your broker, schema registry and Kafka Connect.
 
-To configure the admin user, follow these steps:
+### AKHQ
+
+[AKHQ](https://github.com/tchiotludo/akhq) can be integrated with Ns4Kafka to provide access to resources within your namespace during the authentication process.
+
+To enable this integration, follow these steps:
+1. Configure LDAP authentication in AKHQ.
+2. Add the Ns4Kafka claim endpoint to AKHQ's configuration:
 
 ```yaml
-micronaut:
+akhq:
   security:
-    enabled: true
-    authentication: bearer
-    gitlab:
+    rest:
       enabled: true
-      url: https://gitlab.com
-ns4kafka:
-  security:
-    admin-group: test-ns4kafka
-    local-users: # Not for production use.
-      - username: admin
-        # SHA-256 password.
-        password: 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
-        groups:
-          - "admin"
+      url: https://ns4kafka/akhq-claim/v2
 ```
 
-| Property                               | type            | description                                       |
-| -----                                  | -----           | -----                                             |
-| micronaut.security.enabled             | boolean         | Enabled the security of the API                   |
-| micronaut.security.authentication      | string (Bearer) | Type of security, for now Bearer only             |
-| micronaut.security.gitlab.enabled      | boolean         | Enabled the security of the API via Gitlab groups |
-| micronaut.security.gitlab.url          | string          | Url of the GitLab instance                        |
-| ns4kafka.security.admin-group          | string          | Name of the GitLab group of the admins            |
-| ns4kafka.security.local-users.username | string          | Username of the localusers                        |
-| ns4kafka.security.local-users.password | string          | Password of the localusers encrypted in SHA-256   |
-| ns4kafka.security.local-users.groups   | list<string>    | Names of the groups of this local user            |
+For AKHQ versions prior to v0.20, use the `/akhq-claim/v1` endpoint.
 
-To set up the admin user, you must create a group in GitLab. For example, if the group name is `admin`, a user will be granted admin privileges if they belong to the `admin` group in GitLab.
+3. In your Ns4Kafka configuration, specify the following settings for AKHQ:
+
+```yaml
+ns4kafka:
+  akhq:
+    admin-group: LDAP-ADMIN-GROUP
+    admin-roles:
+    - topic/read
+    - topic/data/read
+    - group/read
+    - registry/read
+    - connect/read
+    - connect/state/update
+    - users/reset-password
+    group-label: support-group
+    roles:
+      - topic/read
+      - topic/data/read
+      - group/read
+      - registry/read
+      - connect/read
+      - connect/state/update
+```
+
+If the admin group is set to "LDAP-ADMIN-GROUP", users belonging to this LDAP group will be granted admin privileges.
+
+4. In your namespace configuration, define an LDAP group:
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: myNamespace
+  cluster: local
+  labels:
+    contacts: namespace.owner@example.com
+    support-group: NAMESPACE-LDAP-GROUP
+```
+
+Once the configuration is in place, after successful authentication in AKHQ, users belonging to the `NAMESPACE-LDAP-GROUP` will be able to access the resources within the `myNamespace` namespace.
 
 ## Administration
 
