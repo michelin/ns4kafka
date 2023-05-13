@@ -13,20 +13,26 @@ micronaut:
 
 kafka:
   bootstrap.servers: "broker:29092"
+  sasl.mechanism: "SCRAM-SHA-512"
+  security.protocol: "SASL_PLAINTEXT"
+  sasl.jaas.config: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"admin\";"
 
 ns4kafka:
   security:
     admin-group: "MY_ADMIN_GROUP"
   managed-clusters:
     local:
-      manage-users: false
-      manage-acls: false
+      manage-users: true
+      manage-acls: true
       manage-topics: true
-      manage-connect: true
-      drop-unsync-acls: false
+      manage-connectors: true
+      drop-unsync-acls: true
       provider: "SELF_MANAGED"
       config:
         bootstrap.servers: "broker:29092"
+        sasl.mechanism: "SCRAM-SHA-512"
+        security.protocol: "SASL_PLAINTEXT"
+        sasl.jaas.config: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"admin\";"
       schema-registry:
         url: "http://schema-registry:8081"
       connects:
