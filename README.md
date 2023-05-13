@@ -27,6 +27,7 @@ Ns4Kafka introduces namespace functionality to Apache Kafka, as well as a new de
     * [Admin Account](#admin-account)
   * [Kafka Broker Authentication](#kafka-broker-authentication)
   * [Managed clusters](#managed-clusters)
+  * [AKHQ](#akhq)
 * [Administration](#administration)
 * [Contribution](#contribution)
 
@@ -130,7 +131,7 @@ ns4kafka:
     admin-group: "MY_ADMIN_GROUP"
 ```
 
-If the admin group is set to "MY_ADMIN_GROUP", a user will be granted admin privileges if they belong to the GitLab group "MY_ADMIN_GROUP".
+If the admin group is set to "MY_ADMIN_GROUP", users will be granted admin privileges if they belong to the GitLab group "MY_ADMIN_GROUP".
 
 ### Kafka Broker Authentication
 
@@ -197,6 +198,65 @@ The name for each managed cluster has to be unique. This is this name you have t
 | connects.connect-name.basicAuthPassword | string  | Basic authentication password to the Kafka Connect          |
 
 The configuration will depend on the authentication method selected for your broker, schema registry and Kafka Connect.
+
+### AKHQ
+
+[AKHQ](https://github.com/tchiotludo/akhq) can be integrated with Ns4Kafka to provide access to resources within your namespace during the authentication process.
+
+To enable this integration, follow these steps:
+1. Configure LDAP authentication in AKHQ.
+2. Add the Ns4Kafka claim endpoint to AKHQ's configuration:
+
+```yaml
+akhq:
+  security:
+    rest:
+      enabled: true
+      url: https://ns4kafka/akhq-claim/v2
+```
+
+For AKHQ versions prior to v0.20, use the `/akhq-claim/v1` endpoint.
+
+3. In your Ns4Kafka configuration, specify the following settings for AKHQ:
+
+```yaml
+ns4kafka:
+  akhq:
+    admin-group: LDAP-ADMIN-GROUP
+    admin-roles:
+    - topic/read
+    - topic/data/read
+    - group/read
+    - registry/read
+    - connect/read
+    - connect/state/update
+    - users/reset-password
+    group-label: support-group
+    roles:
+      - topic/read
+      - topic/data/read
+      - group/read
+      - registry/read
+      - connect/read
+      - connect/state/update
+```
+
+If the admin group is set to "LDAP-ADMIN-GROUP", users belonging to this LDAP group will be granted admin privileges.
+
+4. In your namespace configuration, define an LDAP group:
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: myNamespace
+  cluster: local
+  labels:
+    contacts: namespace.owner@example.com
+    support-group: NAMESPACE-LDAP-GROUP
+```
+
+Once the configuration is in place, after successful authentication in AKHQ, users belonging to the `NAMESPACE-LDAP-GROUP` will be able to access the resources within the `myNamespace` namespace.
 
 ## Administration
 
