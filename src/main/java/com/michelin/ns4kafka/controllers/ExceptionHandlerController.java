@@ -20,7 +20,6 @@ import javax.validation.ElementKind;
 import javax.validation.Path;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Controller("/errors")
@@ -127,7 +126,8 @@ public class ExceptionHandlerController {
 
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, Exception exception) {
-        log.error("An error occurred on API endpoint {} {}: {}", request.getMethodName(), request.getUri(), exception.getMessage());
+        log.error("An error occurred on API endpoint {} {}: {}", request.getMethodName(),
+                request.getUri(), exception.getMessage(), exception);
 
         Status status = Status.builder()
                 .status(StatusPhase.Failed)

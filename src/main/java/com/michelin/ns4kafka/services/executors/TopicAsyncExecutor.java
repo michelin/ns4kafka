@@ -13,7 +13,6 @@ import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.ConfigResource;
 
-import java.net.MalformedURLException;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CancellationException;
@@ -32,7 +31,7 @@ public class TopicAsyncExecutor {
     @Inject
     TopicRepository topicRepository;
 
-    public TopicAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) throws MalformedURLException {
+    public TopicAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
         this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
     }
 
@@ -43,41 +42,37 @@ public class TopicAsyncExecutor {
     /**
      * Start topic synchronization
      */
-    public void run(){
+    public void run() {
         if (this.kafkaAsyncExecutorConfig.isManageTopics()) {
             synchronizeTopics();
         }
     }
 
+    /**
+     * Start the synchronization of topics
+     */
     public void synchronizeTopics() {
         log.debug("Starting topic collection for cluster {}", kafkaAsyncExecutorConfig.getName());
 
         try {
-            // List topics from broker
-            Map<String, Topic> brokerTopicList = collectBrokerTopics();
-            // List topics from ns4kafka Repository
-            List<Topic> ns4kafkaTopicList = topicRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName());
+            Map<String, Topic> brokerTopics = collectBrokerTopics();
+            List<Topic> ns4kafkaTopics = topicRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName());
 
             // Compute toCreate, toDelete, and toUpdate lists
-            List<Topic> toCreate = ns4kafkaTopicList.stream()
-                    .filter(topic -> !brokerTopicList.containsKey(topic.getMetadata().getName()))
+            List<Topic> toCreate = ns4kafkaTopics.stream()
+                    .filter(topic -> !brokerTopics.containsKey(topic.getMetadata().getName()))
                     .toList();
 
-            List<Topic> toDelete = brokerTopicList.values()
-                    .stream()
-                    .filter(topic -> ns4kafkaTopicList.stream().noneMatch(topic1 -> topic1.getMetadata().getName().equals(topic.getMetadata().getName())))
-                    .toList();
-
-            List<Topic> toCheckConf = ns4kafkaTopicList.stream()
-                    .filter(topic -> brokerTopicList.containsKey(topic.getMetadata().getName()))
+            List<Topic> toCheckConf = ns4kafkaTopics.stream()
+                    .filter(topic -> brokerTopics.containsKey(topic.getMetadata().getName()))
                     .toList();
 
             Map<ConfigResource, Collection<AlterConfigOp>> toUpdate = toCheckConf.stream()
                     .map(topic -> {
-                        Map<String,String> actualConf = brokerTopicList.get(topic.getMetadata().getName()).getSpec().getConfigs();
+                        Map<String,String> actualConf = brokerTopics.get(topic.getMetadata().getName()).getSpec().getConfigs();
                         Map<String,String> expectedConf = topic.getSpec().getConfigs() == null ? Map.of() : topic.getSpec().getConfigs();
                         Collection<AlterConfigOp> topicConfigChanges = computeConfigChanges(expectedConf,actualConf);
-                        if(!topicConfigChanges.isEmpty()){
+                        if (!topicConfigChanges.isEmpty()) {
                             ConfigResource cr = new ConfigResource(ConfigResource.Type.TOPIC, topic.getMetadata().getName());
                             return Map.entry(cr,topicConfigChanges);
                         }
@@ -86,23 +81,18 @@ public class TopicAsyncExecutor {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-            if(log.isDebugEnabled()){
-                log.debug("Number of topics to create: " + toCreate.size());
-                log.debug("Number of topics to delete: " + toDelete.size());
-                log.debug("Number of topics to update: " + toUpdate.size());
+            if (log.isDebugEnabled()) {
+                log.debug("Topics to create: " + toCreate);
+                log.debug("Topics to update: " + toUpdate);
                 for (Map.Entry<ConfigResource,Collection<AlterConfigOp>> e : toUpdate.entrySet()) {
                     for (AlterConfigOp op : e.getValue()) {
                         log.debug(e.getKey().name()+" "+op.opType().toString()+" " +op.configEntry().name()+"("+op.configEntry().value()+")");
                     }
                 }
             }
-            //creating topics
-            createTopics(toCreate);
-            //delete
-            deleteTopics(toDelete);
-            //alter
-            alterTopics(toUpdate, toCheckConf);
 
+            createTopics(toCreate);
+            alterTopics(toUpdate, toCheckConf);
         } catch (ExecutionException | TimeoutException | CancellationException | KafkaStoreException e) {
             log.error("Error", e);
         } catch (InterruptedException e) {
@@ -111,36 +101,27 @@ public class TopicAsyncExecutor {
         }
     }
 
-    private void deleteTopics(List<Topic> topics) {
-        //TODO What's the best way to prevent delete __consumer_offsets and other internal topics ?
-        // delete only topics that belongs to a namespace and ignore others ?
-        // create a technical namespace with internal topics ? risky
-        // delete synchronously from DELETE API calls ?
-        // other ?
-        /*
-        DeleteTopicsResult deleteTopicsResult = getAdminClient().deleteTopics(topics.stream().map(topic -> topic.getMetadata().getName()).collect(Collectors.toList()));
-        deleteTopicsResult.values().entrySet()
-                .stream()
-                .forEach(mapEntry -> mapEntry.getValue()
-                        .whenComplete((unused, throwable) ->{
-                            Topic deleted = topics.stream().filter(t -> t.getMetadata().getName().equals(mapEntry.getKey())).findFirst().get();
-                            if(throwable!=null){
-                                LOG.error(String.format("Error while deleting topic %s on %s", mapEntry.getKey(),this.kafkaAsyncExecutorConfig.getName()), throwable);
-                            }else{
-                                LOG.info(String.format("Success deleting topic %s on %s : [%s]", mapEntry.getKey(), this.kafkaAsyncExecutorConfig.getName()));
-                            }
-                        })
-                );
-         */
-    }
+    /**
+     * Delete a topic
+     * @param topic The topic to delete
+     */
     public void deleteTopic(Topic topic) throws InterruptedException, ExecutionException, TimeoutException {
         getAdminClient().deleteTopics(List.of(topic.getMetadata().getName())).all().get(30, TimeUnit.SECONDS);
         log.info("Success deleting topic {} on {}", topic.getMetadata().getName(), this.kafkaAsyncExecutorConfig.getName());
     }
 
+    /**
+     * Collect all topics on broker
+     * @return All topics by name
+     */
     public Map<String, Topic> collectBrokerTopics() throws ExecutionException, InterruptedException, TimeoutException {
         return collectBrokerTopicsFromNames(listBrokerTopicNames());
     }
+
+    /**
+     * List all topic names on broker
+     * @return All topic names
+     */
     public List<String> listBrokerTopicNames() throws InterruptedException, ExecutionException, TimeoutException {
         return getAdminClient().listTopics().listings()
                 .get(30, TimeUnit.SECONDS)
@@ -162,9 +143,8 @@ public class TopicAsyncExecutor {
                 .entrySet()
                 .stream()
                 .collect(Collectors.toMap(
-                        configResourceConfigEntry -> configResourceConfigEntry.getKey().name()
-                        , configResourceConfigEntry ->
-                                configResourceConfigEntry.getValue().entries()
+                        configResourceConfigEntry -> configResourceConfigEntry.getKey().name(),
+                        configResourceConfigEntry -> configResourceConfigEntry.getValue().entries()
                                         .stream()
                                         .filter( configEntry -> configEntry.source() == ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG)
                                         .collect(Collectors.toMap(ConfigEntry::name, ConfigEntry::value))
@@ -185,30 +165,30 @@ public class TopicAsyncExecutor {
                 )
                 .collect(Collectors.toMap( topic -> topic.getMetadata().getName(), Function.identity()));
     }
+
     private void alterTopics(Map<ConfigResource, Collection<AlterConfigOp>> toUpdate, List<Topic> topics) {
         AlterConfigsResult alterConfigsResult = getAdminClient().incrementalAlterConfigs(toUpdate);
-        alterConfigsResult.values().entrySet()
-                .forEach(mapEntry -> {
-                    Topic updatedTopic = topics.stream().filter(t -> t.getMetadata().getName().equals(mapEntry.getKey().name())).findFirst().get();
-                    try {
-                        mapEntry.getValue().get(10, TimeUnit.SECONDS);
-                        Collection<AlterConfigOp> ops = toUpdate.get(mapEntry.getKey());
-                        updatedTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                        updatedTopic.getMetadata().setGeneration(updatedTopic.getMetadata().getGeneration()+1);
-                        updatedTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic configs updated"));
-                        log.info("Success updating topic configs {} on {}: [{}]",
-                                mapEntry.getKey().name(),
-                                kafkaAsyncExecutorConfig.getName(),
-                                ops.stream().map(AlterConfigOp::toString).collect(Collectors.joining(",")));
-                    } catch (InterruptedException e) {
-                        log.error("Error", e);
-                        Thread.currentThread().interrupt();
-                    } catch (Exception e){
-                        updatedTopic.setStatus(Topic.TopicStatus.ofFailed("Error while updating topic configs: "+e.getMessage()));
-                        log.error(String.format("Error while updating topic configs %s on %s", mapEntry.getKey().name(),this.kafkaAsyncExecutorConfig.getName()), e);
-                    }
-                    topicRepository.create(updatedTopic);
-                });
+        alterConfigsResult.values().forEach((key, value) -> {
+            Topic updatedTopic = topics.stream().filter(t -> t.getMetadata().getName().equals(key.name())).findFirst().get();
+            try {
+                value.get(10, TimeUnit.SECONDS);
+                Collection<AlterConfigOp> ops = toUpdate.get(key);
+                updatedTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                updatedTopic.getMetadata().setGeneration(updatedTopic.getMetadata().getGeneration() + 1);
+                updatedTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic configs updated"));
+                log.info("Success updating topic configs {} on {}: [{}]",
+                        key.name(),
+                        kafkaAsyncExecutorConfig.getName(),
+                        ops.stream().map(AlterConfigOp::toString).collect(Collectors.joining(",")));
+            } catch (InterruptedException e) {
+                log.error("Error", e);
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                updatedTopic.setStatus(Topic.TopicStatus.ofFailed("Error while updating topic configs: " + e.getMessage()));
+                log.error(String.format("Error while updating topic configs %s on %s", key.name(), this.kafkaAsyncExecutorConfig.getName()), e);
+            }
+            topicRepository.create(updatedTopic);
+        });
     }
 
     private void createTopics(List<Topic> topics) {
