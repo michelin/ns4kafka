@@ -177,12 +177,9 @@ public class AccessControlEntryService {
                     // grants LITERAL : priv_b          NO
                     // grants PREFIXED: priv_bsm_topic2 NO
                     // grants LITERAL : pric_bsm_topic2 NO
-                    if (ace.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.LITERAL &&
+                    return ace.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.LITERAL &&
                             accessControlEntry.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.LITERAL &&
-                            accessControlEntry.getSpec().getResource().equals(ace.getSpec().getResource())) {
-                        return true;
-                    }
-                    return false;
+                            accessControlEntry.getSpec().getResource().equals(ace.getSpec().getResource());
                 });
     }
 
@@ -199,6 +196,7 @@ public class AccessControlEntryService {
     /**
      * Delete an ACL from broker and from internal topic
      *
+     * @param namespace The namespace
      * @param accessControlEntry The ACL
      */
     public void delete(Namespace namespace, AccessControlEntry accessControlEntry) {

@@ -14,9 +14,7 @@
     <logger name="io.micronaut" level="info"/>
     <logger name="com.michelin" level="debug" />
     <logger name="org.apache" level="error" />
-
-    <!-- removes embedded kafka logs -->
-    <logger name="kafka" level="error" />
+    <logger name="io.micronaut.configuration.kafka" level="error" />
     <logger name="state.change.logger" level="error" />
 
     <root level="info">
