@@ -96,6 +96,11 @@ public class SchemaController extends NamespacedResourceController {
                             .map(Optional::of)
                             .defaultIfEmpty(Optional.empty())
                             .flatMap(latestSubjectOptional -> {
+                                schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                                schema.getMetadata().setCluster(ns.getMetadata().getCluster());
+                                schema.getMetadata().setNamespace(ns.getMetadata().getName());
+                                latestSubjectOptional.ifPresent(value -> schema.getSpec().setCompatibility(value.getSpec().getCompatibility()));
+
                                 if (dryrun) {
                                     // Cannot compute the "unchanged" apply status before getting the ID at registration
                                     return Single.just(formatHttpResponse(schema,
@@ -106,10 +111,6 @@ public class SchemaController extends NamespacedResourceController {
                                         .register(ns, schema)
                                         .map(id -> {
                                             ApplyStatus status;
-
-                                            schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                                            schema.getMetadata().setCluster(ns.getMetadata().getCluster());
-                                            schema.getMetadata().setNamespace(ns.getMetadata().getName());
 
                                             if (latestSubjectOptional.isEmpty()) {
                                                 status = ApplyStatus.created;
