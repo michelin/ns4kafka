@@ -341,18 +341,20 @@ public class AccessControlEntryAsyncExecutor {
      * @param ns4kafkaACL The Kafka ACL
      */
     public void deleteNs4KafkaACL(Namespace namespace, AccessControlEntry ns4kafkaACL) {
-        List<AclBinding> results = new ArrayList<>();
+        if (kafkaAsyncExecutorConfig.isManageAcls()) {
+            List<AclBinding> results = new ArrayList<>();
 
-        if (List.of(TOPIC, GROUP, TRANSACTIONAL_ID).contains(ns4kafkaACL.getSpec().getResourceType())) {
-            results.addAll(buildAclBindingsFromAccessControlEntry(ns4kafkaACL, namespace.getSpec().getKafkaUser()));
+            if (List.of(TOPIC, GROUP, TRANSACTIONAL_ID).contains(ns4kafkaACL.getSpec().getResourceType())) {
+                results.addAll(buildAclBindingsFromAccessControlEntry(ns4kafkaACL, namespace.getSpec().getKafkaUser()));
+            }
+
+            if (ns4kafkaACL.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT &&
+                    ns4kafkaACL.getSpec().getPermission() == AccessControlEntry.Permission.OWNER) {
+                results.addAll(buildAclBindingsFromConnector(ns4kafkaACL, namespace.getSpec().getKafkaUser()));
+            }
+
+            deleteACLs(results);
         }
-
-        if (ns4kafkaACL.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT &&
-                ns4kafkaACL.getSpec().getPermission() == AccessControlEntry.Permission.OWNER) {
-            results.addAll(buildAclBindingsFromConnector(ns4kafkaACL, namespace.getSpec().getKafkaUser()));
-        }
-
-        deleteACLs(results);
     }
 
     /**
@@ -362,9 +364,10 @@ public class AccessControlEntryAsyncExecutor {
      * @param kafkaStream The Kafka Streams
      */
     public void deleteKafkaStreams(Namespace namespace, KafkaStream kafkaStream) {
-        List<AclBinding> results = new ArrayList<>(buildAclBindingsFromKafkaStream(kafkaStream, namespace.getSpec().getKafkaUser()));
-
-        deleteACLs(results);
+        if (kafkaAsyncExecutorConfig.isManageAcls()) {
+            List<AclBinding> results = new ArrayList<>(buildAclBindingsFromKafkaStream(kafkaStream, namespace.getSpec().getKafkaUser()));
+            deleteACLs(results);
+        }
     }
 
     /**
