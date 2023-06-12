@@ -86,6 +86,11 @@ ns4kafka:
       - registry/read
       - connect/read
       - connect/state/update
+    new-roles:
+      TOPIC: topic-read
+      CONNECT: connect-rw
+      SCHEMA: registry-read
+
     # Special group which will be granted ".*" on topics, connects, and groups
     admin-group: _
     # Roles to be granted to admin group
@@ -97,6 +102,11 @@ ns4kafka:
       - connect/read
       - connect/state/update
       - users/reset-password
+    new-admin-roles:
+      TOPIC: topic-admin
+      CONNECT: connect-admin
+      SCHEMA: registry-admin
+
   security:
     aes256-encryption-key: changeitchangeitchangeitchangeit
     admin-group: _
