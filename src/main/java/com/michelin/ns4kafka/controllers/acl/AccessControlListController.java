@@ -12,7 +12,6 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
 import io.micronaut.security.authentication.Authentication;
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
 
@@ -25,8 +24,7 @@ import java.util.Optional;
 
 import static com.michelin.ns4kafka.services.AccessControlEntryService.PUBLIC_GRANTED_TO;
 
-@Tag(name = "Cross Namespace Topic Grants",
-        description = "APIs to handle cross namespace ACL")
+@Tag(name = "ACLs", description = "Manage the ACLs.")
 @Controller("/api/namespaces/{namespace}/acls")
 public class AccessControlListController extends NamespacedResourceController {
     @Inject
@@ -36,12 +34,11 @@ public class AccessControlListController extends NamespacedResourceController {
     AccessControlEntryService accessControlEntryService;
 
     /**
-     * Get all ACLs of given namespace
+     * List ACLs by namespace
      * @param namespace The namespace
      * @param limit The ACL scope
      * @return A list of ACLs
      */
-    @Operation(summary = "Returns the Access Control Entry List")
     @Get("{?limit}")
     public List<AccessControlEntry> list(String namespace, Optional<AclLimit> limit) {
         if (limit.isEmpty()) {
@@ -105,7 +102,7 @@ public class AccessControlListController extends NamespacedResourceController {
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
         boolean isAdmin = roles.contains(ResourceBasedSecurityRule.IS_ADMIN);
-        // Self assigned ACL (spec.grantedTo == metadata.namespace)
+        // Self-assigned ACL (spec.grantedTo == metadata.namespace)
         boolean isSelfAssignedACL = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
 
         List<String> validationErrors;
@@ -121,7 +118,7 @@ public class AccessControlListController extends NamespacedResourceController {
         }
 
         // AccessControlEntry spec is immutable
-        // This prevents accidental updates on ACL resources already declared with the same name (with differents rules)
+        // This prevents accidental updates on ACL resources already declared with the same name (with different rules)
         Optional<AccessControlEntry> existingACL = accessControlEntryService.findByName(namespace, accessControlEntry.getMetadata().getName());
         if(existingACL.isPresent() && !existingACL.get().getSpec().equals(accessControlEntry.getSpec())){
             throw new ResourceValidationException(List.of("Invalid modification: `spec` is immutable. You can still update `metadata`"), accessControlEntry.getKind(), accessControlEntry.getMetadata().getName());
@@ -172,7 +169,7 @@ public class AccessControlListController extends NamespacedResourceController {
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
         boolean isAdmin = roles.contains(ResourceBasedSecurityRule.IS_ADMIN);
-        // Self assigned ACL (spec.grantedTo == metadata.namespace)
+        // Self-assigned ACL (spec.grantedTo == metadata.namespace)
         boolean isSelfAssignedACL = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
 
         if (isSelfAssignedACL && !isAdmin) {

@@ -25,7 +25,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-@Tag(name = "Schemas")
+@Tag(name = "Schemas", description = "Manage the schemas.")
 @Controller(value = "/api/namespaces/{namespace}/schemas")
 @ExecuteOn(TaskExecutors.IO)
 public class SchemaController extends NamespacedResourceController {
@@ -33,7 +33,7 @@ public class SchemaController extends NamespacedResourceController {
     SchemaService schemaService;
 
     /**
-     * Get all the schemas by namespace
+     * List schemas by namespace
      * @param namespace The namespace
      * @return A list of schemas
      */

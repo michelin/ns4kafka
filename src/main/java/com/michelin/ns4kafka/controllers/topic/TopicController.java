@@ -22,7 +22,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-@Tag(name = "Topics")
+@Tag(name = "Topics", description = "Manage the topics.")
 @Controller(value = "/api/namespaces/{namespace}/topics")
 public class TopicController extends NamespacedResourceController {
     @Inject
@@ -32,9 +32,9 @@ public class TopicController extends NamespacedResourceController {
     ResourceQuotaService resourceQuotaService;
 
     /**
-     * Get all the topics by namespace
+     * List topics by namespace
      * @param namespace The namespace
-     * @return A list of Kafka Streams
+     * @return A list of topics
      */
     @Get
     public List<Topic> list(String namespace) {
@@ -59,7 +59,7 @@ public class TopicController extends NamespacedResourceController {
      * @param namespace The namespace
      * @param topic The topic
      * @param dryrun Is dry run mode or not ?
-     * @return An HTTP response
+     * @return The created topic
      */
     @Post
     public HttpResponse<Topic> apply(String namespace, @Valid @Body Topic topic, @QueryValue(defaultValue = "false") boolean dryrun) throws InterruptedException, ExecutionException, TimeoutException {

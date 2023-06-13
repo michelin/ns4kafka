@@ -9,6 +9,7 @@ import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecurityRule;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,6 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Tag(name = "Resources", description = "Manage the API resources.")
 @RolesAllowed(SecurityRule.IS_ANONYMOUS)
 @Controller("/api-resources")
 public class ApiResourcesController {
@@ -128,7 +130,7 @@ public class ApiResourcesController {
     RoleBindingRepository roleBindingRepository;
 
     /**
-     * List all the API resources
+     * List API resources
      * @param authentication The authentication
      * @return The list of API resources
      */

@@ -20,7 +20,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-@Tag(name = "Role Bindings")
+@Tag(name = "Role Bindings", description = "Manage the role bindings.")
 @Controller(value = "/api/namespaces/{namespace}/role-bindings")
 @ExecuteOn(TaskExecutors.IO)
 public class RoleBindingController extends NamespacedResourceController {
@@ -28,7 +28,7 @@ public class RoleBindingController extends NamespacedResourceController {
     RoleBindingService roleBindingService;
 
     /**
-     * Get all the role bindings by namespace
+     * List role bindings by namespace
      * @param namespace The namespace
      * @return A list of role bindings
      */
@@ -38,7 +38,7 @@ public class RoleBindingController extends NamespacedResourceController {
     }
 
     /**
-     * Get a role binding by namespace and subject
+     * Get a role binding by namespace and name
      * @param namespace The namespace
      * @param name The role binding name
      * @return A role binding
@@ -49,7 +49,7 @@ public class RoleBindingController extends NamespacedResourceController {
     }
 
     /**
-     * Publish a role binding
+     * Create a role binding
      * @param namespace The namespace
      * @param roleBinding The role binding
      * @param dryrun Does the creation is a dry run

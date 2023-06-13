@@ -18,14 +18,14 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-@Tag(name = "Streams")
+@Tag(name = "Kafka Streams", description = "Manage the Kafka Streams.")
 @Controller(value = "/api/namespaces/{namespace}/streams")
 public class StreamController extends NamespacedResourceController {
     @Inject
     StreamService streamService;
 
     /**
-     * Get all the Kafka Streams by namespace
+     * List Kafka Streams by namespace
      * @param namespace The namespace
      * @return A list of Kafka Streams
      */

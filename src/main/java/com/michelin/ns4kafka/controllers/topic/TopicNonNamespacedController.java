@@ -12,7 +12,7 @@ import jakarta.inject.Inject;
 import javax.annotation.security.RolesAllowed;
 import java.util.List;
 
-@Tag(name = "Topics")
+@Tag(name = "Topics", description = "Manage the topics.")
 @Controller(value = "/api/topics")
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 public class TopicNonNamespacedController extends NonNamespacedResourceController {
@@ -20,7 +20,7 @@ public class TopicNonNamespacedController extends NonNamespacedResourceControlle
     TopicService topicService;
 
     /**
-     * Get all the topics of all namespaces
+     * List topics
      * @return A list of topics
      */
     @Get
