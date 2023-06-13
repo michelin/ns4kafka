@@ -12,7 +12,7 @@ import jakarta.inject.Inject;
 import javax.annotation.security.RolesAllowed;
 import java.util.List;
 
-@Tag(name = "Resource Quotas")
+@Tag(name = "Quotas", description = "Manage the resource quotas.")
 @Controller(value = "/api/resource-quotas")
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 public class ResourceQuotaNonNamespacedController extends NonNamespacedResourceController {
@@ -20,7 +20,7 @@ public class ResourceQuotaNonNamespacedController extends NonNamespacedResourceC
     ResourceQuotaService resourceQuotaService;
 
     /**
-     * Get all the quotas of all namespaces
+     * List quotas
      * @return A list of quotas
      */
     @Get

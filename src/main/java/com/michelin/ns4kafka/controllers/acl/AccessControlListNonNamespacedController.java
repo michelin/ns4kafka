@@ -12,19 +12,15 @@ import jakarta.inject.Inject;
 import javax.annotation.security.RolesAllowed;
 import java.util.List;
 
-@Tag(name = "ACLs resource")
+@Tag(name = "ACLs", description = "Manage the ACLs.")
 @Controller("/api/acls")
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 public class AccessControlListNonNamespacedController extends NonNamespacedResourceController {
-
-    /**
-     * The ACL service
-     */
     @Inject
     AccessControlEntryService accessControlEntryService;
 
     /**
-     * Get all the ACLs of all namespaces
+     * List ACLs
      * @return A list of ACLs
      */
     @Get

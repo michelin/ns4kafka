@@ -20,14 +20,14 @@ import java.util.List;
 import java.util.Optional;
 
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
-@Tag(name = "Namespaces")
+@Tag(name = "Namespaces", description = "Manage the namespaces.")
 @Controller("/api/namespaces")
 public class NamespaceController extends NonNamespacedResourceController {
     @Inject
     NamespaceService namespaceService;
 
     /**
-     * Get all the namespaces
+     * List namespaces
      * @return A list of namespaces
      */
     @Get("/")
@@ -46,7 +46,7 @@ public class NamespaceController extends NonNamespacedResourceController {
     }
 
     /**
-     * Publish a namespace
+     * Create a namespace
      * @param namespace The namespace
      * @param dryrun Does the creation is a dry run
      * @return The created namespace
