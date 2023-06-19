@@ -1,7 +1,6 @@
 micronaut:
   application:
     name: ns4kafka
-
   netty:
     event-loops:
       default:
@@ -90,6 +89,8 @@ ns4kafka:
       TOPIC: topic-read
       CONNECT: connect-rw
       SCHEMA: registry-read
+      GROUP: group-read
+      CONNECT_CLUSTER: connect-cluster-read
 
     # Special group which will be granted ".*" on topics, connects, and groups
     admin-group: _
@@ -106,6 +107,8 @@ ns4kafka:
       TOPIC: topic-admin
       CONNECT: connect-admin
       SCHEMA: registry-admin
+      GROUP: group-read
+      CONNECT_CLUSTER: connect-cluster-read
 
   security:
     aes256-encryption-key: changeitchangeitchangeitchangeit

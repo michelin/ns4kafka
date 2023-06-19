@@ -128,7 +128,7 @@ public class AkhqClaimProviderController {
 
         List<AccessControlEntry> relatedACL = getAllAclForGroups(groups);
 
-        // Add all public ACLs.
+        // Add all public ACLs
         relatedACL.addAll(accessControlEntryService.findAllPublicGrantedTo());
 
         Map<String, AKHQClaimResponseV3.Group> bindings = new LinkedHashMap<>();
@@ -165,6 +165,11 @@ public class AkhqClaimProviderController {
         });
 
         List<AKHQClaimResponseV3.Group> result = optimizeV3Claim(bindings);
+
+        // Add access to all the schemas
+        result.add(AKHQClaimResponseV3.Group.builder()
+                .role(config.getNewRoles().get(AccessControlEntry.ResourceType.SCHEMA))
+                .build());
 
         return AKHQClaimResponseV3.builder()
                 .groups(result.isEmpty() ? null : Map.of("group", result))
