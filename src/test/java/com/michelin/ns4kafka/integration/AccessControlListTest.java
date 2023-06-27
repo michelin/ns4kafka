@@ -15,8 +15,8 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
-import io.micronaut.rxjava3.http.client.Rx3HttpClient;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
@@ -39,7 +39,7 @@ import java.util.concurrent.ExecutionException;
 class AccessControlListTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
-    Rx3HttpClient client;
+    HttpClient client;
 
     @Inject
     List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutorList;
@@ -81,12 +81,12 @@ class AccessControlListTest extends AbstractIntegrationTest {
             .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin","admin");
-        HttpResponse<BearerAccessRefreshToken> response = client.exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class).blockingFirst();
+        HttpResponse<BearerAccessRefreshToken> response = client.toBlocking().exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
 
         token = response.getBody().get().getAccessToken();
 
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1));
     }
 
     /**
@@ -110,7 +110,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
                   .build())
             .build();
 
-        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic));
 
         // Force ACLs synchronization
         accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
@@ -130,7 +130,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
         Assertions.assertEquals(expected, results.stream().findFirst().get());
 
         // DELETE the ACL and verify
-        client.exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-topic").bearerAuth(token).body(aclTopic)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-topic").bearerAuth(token).body(aclTopic));
 
         accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
 
@@ -167,7 +167,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
         Admin kafkaClient = getAdminClient();
         kafkaClient.createAcls(Collections.singletonList(aclBinding));
 
-        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic));
 
         // Force ACLs synchronization
         accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
@@ -202,7 +202,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
                         .build())
                 .build();
 
-        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic));
 
         //force ACL Sync
         accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
@@ -222,7 +222,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
         Assertions.assertEquals(expected, results.stream().findFirst().get());
 
         // DELETE the ACL and verify
-        client.exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-connect").bearerAuth(token).body(aclTopic)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-connect").bearerAuth(token).body(aclTopic));
 
         accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
 
@@ -266,8 +266,8 @@ class AccessControlListTest extends AbstractIntegrationTest {
                         .build())
                 .build();
 
-        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclGroup)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclGroup));
 
         //force ACL Sync
         accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
@@ -306,7 +306,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
                         .build())
                 .build();
 
-        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/streams").bearerAuth(token).body(stream)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/streams").bearerAuth(token).body(stream));
 
         // Force ACLs synchronization
         accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
@@ -332,9 +332,9 @@ class AccessControlListTest extends AbstractIntegrationTest {
         Assertions.assertTrue(results.containsAll(List.of(ac1, ac2, ac3, ac4, ac5, ac6, ac7)));
 
         // DELETE the Stream & ACL and verify
-        client.exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/streams/ns1-stream1").bearerAuth(token).body(aclTopic)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-topic").bearerAuth(token).body(aclTopic)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-group").bearerAuth(token).body(aclTopic)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/streams/ns1-stream1").bearerAuth(token).body(aclTopic));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-topic").bearerAuth(token).body(aclTopic));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-group").bearerAuth(token).body(aclTopic));
 
         accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
 
@@ -359,7 +359,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
                         .build())
                 .build();
 
-        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic));
 
         // Force ACL Sync
         accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
@@ -383,7 +383,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
         Assertions.assertTrue(results.containsAll(List.of(expected, expected2)));
  
         // DELETE the ACL and verify
-        client.exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-transactional-id").bearerAuth(token).body(aclTopic)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-transactional-id").bearerAuth(token).body(aclTopic));
 
         accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
 

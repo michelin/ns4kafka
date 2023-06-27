@@ -4,9 +4,6 @@ import com.michelin.ns4kafka.security.gitlab.GitlabApiClient;
 import com.michelin.ns4kafka.security.gitlab.GitlabAuthenticationService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MutableHttpResponse;
-import io.reactivex.rxjava3.core.Flowable;
-import io.reactivex.rxjava3.subscribers.TestSubscriber;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,10 +11,14 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(MockitoExtension.class)
 class GitlabAuthenticationServiceTest {
@@ -31,20 +32,13 @@ class GitlabAuthenticationServiceTest {
     void findUserSuccess(){
         String token = "v4l1d_70k3n";
         Mockito.when(gitlabApiClient.findUser(token))
-                .thenReturn(Flowable.just(Map.of("user","test", "email", "user@mail.com")));
+                .thenReturn(Mono.just(Map.of("user","test", "email", "user@mail.com")));
 
-        TestSubscriber<String> subscriber = new TestSubscriber<>();
-        Publisher<String> authenticationResponsePublisher = gitlabAuthenticationService.findUsername(token).toFlowable();
+        Mono<String> authenticationResponsePublisher = gitlabAuthenticationService.findUsername(token);
 
-        authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
-
-        subscriber.assertComplete();
-        subscriber.assertNoErrors();
-        subscriber.assertValueCount(1);
-
-        String actual = subscriber.values().get(0);
-        Assertions.assertEquals("user@mail.com", actual);
+        StepVerifier.create(authenticationResponsePublisher)
+                .consumeNextWith(response -> assertEquals("user@mail.com", response))
+                .verifyComplete();
     }
 
     @Test
@@ -56,20 +50,14 @@ class GitlabAuthenticationServiceTest {
                         Map.<String, Object>of("full_path", "group2", "unusedKey", "unusedVal")))
                 .header("X-Total-Pages","1");
 
-        Mockito.when(gitlabApiClient.getGroupsPage(token,1)).thenReturn(Flowable.just(pageOneResponse));
+        Mockito.when(gitlabApiClient.getGroupsPage(token,1)).thenReturn(Flux.just(pageOneResponse));
 
-        TestSubscriber<String> subscriber = new TestSubscriber<>();
-        Publisher<String> authenticationResponsePublisher = gitlabAuthenticationService.findAllGroups(token);
+        Flux<String> authenticationResponsePublisher = gitlabAuthenticationService.findAllGroups(token);
 
-        authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
-
-        subscriber.assertComplete();
-        subscriber.assertNoErrors();
-        subscriber.assertValueCount(2);
-
-        List<String> actual = subscriber.values();
-        Assertions.assertIterableEquals(List.of("group1","group2"), actual);
+        StepVerifier.create(authenticationResponsePublisher)
+            .consumeNextWith(response -> assertEquals("group1", response))
+            .consumeNextWith(response -> assertEquals("group2", response))
+            .verifyComplete();
     }
 
     @Test
@@ -95,21 +83,19 @@ class GitlabAuthenticationServiceTest {
                         Map.<String, Object>of("full_path", "group6", "unusedKey", "unusedVal")))
                 .header("X-Total-Pages","3");
 
-        Mockito.when(gitlabApiClient.getGroupsPage(token,1)).thenReturn(Flowable.just(pageOneResponse));
-        Mockito.when(gitlabApiClient.getGroupsPage(token,2)).thenReturn(Flowable.just(pageTwoResponse));
-        Mockito.when(gitlabApiClient.getGroupsPage(token,3)).thenReturn(Flowable.just(pageThreeResponse));
+        Mockito.when(gitlabApiClient.getGroupsPage(token,1)).thenReturn(Flux.just(pageOneResponse));
+        Mockito.when(gitlabApiClient.getGroupsPage(token,2)).thenReturn(Flux.just(pageTwoResponse));
+        Mockito.when(gitlabApiClient.getGroupsPage(token,3)).thenReturn(Flux.just(pageThreeResponse));
 
-        TestSubscriber<String> subscriber = new TestSubscriber<>();
         Publisher<String> authenticationResponsePublisher = gitlabAuthenticationService.findAllGroups(token);
 
-        authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
-
-        subscriber.assertComplete();
-        subscriber.assertNoErrors();
-        subscriber.assertValueCount(6);
-
-        List<String> actual = subscriber.values();
-        Assertions.assertIterableEquals(List.of("group1","group2","group3","group4","group5","group6"), actual);
+        StepVerifier.create(authenticationResponsePublisher)
+                .consumeNextWith(response -> assertEquals("group1", response))
+                .consumeNextWith(response -> assertEquals("group2", response))
+                .consumeNextWith(response -> assertEquals("group3", response))
+                .consumeNextWith(response -> assertEquals("group4", response))
+                .consumeNextWith(response -> assertEquals("group5", response))
+                .consumeNextWith(response -> assertEquals("group6", response))
+                .verifyComplete();
     }
 }

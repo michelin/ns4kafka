@@ -1,4 +1,4 @@
-package com.michelin.ns4kafka.services.schema.client.entities;
+package com.michelin.ns4kafka.services.clients.schema.entities;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;

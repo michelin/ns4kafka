@@ -7,9 +7,8 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
 import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
-import com.michelin.ns4kafka.services.connect.ConnectorClientProxy;
-import com.michelin.ns4kafka.services.connect.client.ConnectorClient;
-import com.michelin.ns4kafka.services.connect.client.entities.*;
+import com.michelin.ns4kafka.services.clients.connect.KafkaConnectClient;
+import com.michelin.ns4kafka.services.clients.connect.entities.*;
 import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.ResourceValidator;
@@ -18,8 +17,6 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.inject.qualifiers.Qualifiers;
-import io.reactivex.rxjava3.core.Maybe;
-import io.reactivex.rxjava3.core.Single;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,11 +24,15 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,7 +41,7 @@ class ConnectorServiceTest {
     AccessControlEntryService accessControlEntryService;
 
     @Mock
-    ConnectorClient connectorClient;
+    KafkaConnectClient kafkaConnectClient;
 
     @Mock
     ConnectorRepository connectorRepository;
@@ -360,10 +361,12 @@ class ConnectorServiceTest {
                 .build();
 
         when(connectClusterService.findAllByNamespaceWrite(ns)).thenReturn(List.of());
-        connectorService.validateLocally(ns, connector)
-                .test()
-                .assertValue(response -> response.size() == 1)
-                .assertValue(response -> response.get(0).equals("Invalid value wrong for spec.connectCluster: Value must be one of [local-name]"));
+        StepVerifier.create(connectorService.validateLocally(ns, connector))
+            .consumeNextWith(response -> {
+                assertEquals(1, response.size());
+                assertEquals("Invalid value wrong for spec.connectCluster: Value must be one of [local-name]", response.get(0));
+            })
+            .verifyComplete();
     }
 
     /**
@@ -388,10 +391,12 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        connectorService.validateLocally(ns, connector)
-                .test()
-                .assertValue(response -> response.size() == 1)
-                .assertValue(response -> response.get(0).equals("Invalid value for spec.config.'connector.class': Value must be non-null"));
+        StepVerifier.create(connectorService.validateLocally(ns, connector))
+            .consumeNextWith(response -> {
+                assertEquals(1, response.size());
+                assertEquals("Invalid value for spec.config.'connector.class': Value must be non-null", response.get(0));
+            })
+            .verifyComplete();
     }
 
     /**
@@ -416,13 +421,15 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
-                .thenReturn(Single.just(List.of()));
+        when(kafkaConnectClient.connectPlugins("local", "local-name"))
+                .thenReturn(Mono.just(List.of()));
 
-        connectorService.validateLocally(ns, connector)
-                .test()
-                .assertValue(response -> response.size() == 1)
-                .assertValue(response -> response.get(0).equals("Failed to find any class that implements Connector and which name matches org.apache.kafka.connect.file.FileStreamSinkConnector"));
+        StepVerifier.create(connectorService.validateLocally(ns, connector))
+            .consumeNextWith(response -> {
+                assertEquals(1, response.size());
+                assertEquals("Failed to find any class that implements Connector and which name matches org.apache.kafka.connect.file.FileStreamSinkConnector", response.get(0));
+            })
+            .verifyComplete();
     }
 
     /**
@@ -453,13 +460,15 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
-                .thenReturn(Single.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
+        when(kafkaConnectClient.connectPlugins("local", "local-name"))
+                .thenReturn(Mono.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
 
-        connectorService.validateLocally(ns, connector)
-                .test()
-                .assertValue(response -> response.size() == 1)
-                .assertValue(response -> response.get(0).equals("Invalid value null for configuration missing.field: Value must be non-null"));
+        StepVerifier.create(connectorService.validateLocally(ns, connector))
+                .consumeNextWith(response -> {
+                    assertEquals(1, response.size());
+                    assertEquals("Invalid value null for configuration missing.field: Value must be non-null", response.get(0));
+                })
+                .verifyComplete();
     }
 
     /**
@@ -490,12 +499,12 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
-                .thenReturn(Single.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
+        when(kafkaConnectClient.connectPlugins("local", "local-name"))
+                .thenReturn(Mono.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
 
-        connectorService.validateLocally(ns, connector)
-                .test()
-                .assertValue(List::isEmpty);
+        StepVerifier.create(connectorService.validateLocally(ns, connector))
+            .consumeNextWith(response -> assertTrue(response.isEmpty()))
+            .verifyComplete();
     }
 
     @Test
@@ -518,12 +527,12 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
-                .thenReturn(Single.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
+        when(kafkaConnectClient.connectPlugins("local", "local-name"))
+                .thenReturn(Mono.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
 
-        connectorService.validateLocally(ns, connector)
-                .test()
-                .assertValue(List::isEmpty);
+        StepVerifier.create(connectorService.validateLocally(ns, connector))
+            .consumeNextWith(response -> assertTrue(response.isEmpty()))
+            .verifyComplete();
     }
 
     @Test
@@ -551,12 +560,12 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
-                .thenReturn(Single.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
+        when(kafkaConnectClient.connectPlugins("local", "local-name"))
+                .thenReturn(Mono.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
 
-        connectorService.validateLocally(ns, connector)
-                .test()
-                .assertValue(List::isEmpty);
+        StepVerifier.create(connectorService.validateLocally(ns, connector))
+            .consumeNextWith(response -> assertTrue(response.isEmpty()))
+            .verifyComplete();
     }
 
     @Test
@@ -583,12 +592,12 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
-                .thenReturn(Single.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
+        when(kafkaConnectClient.connectPlugins("local", "local-name"))
+                .thenReturn(Mono.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
 
-        connectorService.validateLocally(ns, connector)
-                .test()
-                .assertValue(List::isEmpty);
+        StepVerifier.create(connectorService.validateLocally(ns, connector))
+            .consumeNextWith(response -> assertTrue(response.isEmpty()))
+            .verifyComplete();
     }
 
     /**
@@ -625,12 +634,12 @@ class ConnectorServiceTest {
                                 .name("local-name")
                                 .build())
                 .build()));
-        when(connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, "local", "local-name"))
-                .thenReturn(Single.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
+        when(kafkaConnectClient.connectPlugins("local", "local-name"))
+                .thenReturn(Mono.just(List.of(new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
 
-        connectorService.validateLocally(ns, connector)
-                .test()
-                .assertValue(List::isEmpty);
+        StepVerifier.create(connectorService.validateLocally(ns, connector))
+            .consumeNextWith(response -> assertTrue(response.isEmpty()))
+            .verifyComplete();
     }
 
     /**
@@ -660,18 +669,19 @@ class ConnectorServiceTest {
                 List.of(new ConfigInfo(new ConfigKeyInfo(null, null, false, null, null, null, null, 0, null, null, null),
                         new ConfigValueInfo(null, null, null, List.of("error_message"), true))));
 
-        when(connectorClient.validate(
-                ArgumentMatchers.anyString(),
+        when(kafkaConnectClient.validate(
                 ArgumentMatchers.eq("local"),
                 ArgumentMatchers.eq("local-name"),
                 ArgumentMatchers.any(),
                 ArgumentMatchers.any()))
-                .thenReturn(Single.just(configInfos));
+                .thenReturn(Mono.just(configInfos));
 
-        connectorService.validateRemotely(ns, connector)
-                .test()
-                .assertValue(response -> response.size() == 1)
-                .assertValue(response -> response.contains("error_message"));
+        StepVerifier.create(connectorService.validateRemotely(ns, connector))
+            .consumeNextWith(response -> {
+                assertEquals(1, response.size());
+                assertEquals("error_message", response.get(0));
+            })
+            .verifyComplete();
     }
 
     /**
@@ -699,17 +709,16 @@ class ConnectorServiceTest {
 
         ConfigInfos configInfos = new ConfigInfos("name", 1, List.of(), List.of());
 
-        when(connectorClient.validate(
-                ArgumentMatchers.anyString(),
+        when(kafkaConnectClient.validate(
                 ArgumentMatchers.eq("local"),
                 ArgumentMatchers.eq("local-name"),
                 ArgumentMatchers.any(),
                 ArgumentMatchers.any()))
-                .thenReturn(Single.just(configInfos));
+                .thenReturn(Mono.just(configInfos));
 
-        connectorService.validateRemotely(ns, connector)
-                .test()
-                .assertValue(List::isEmpty);
+        StepVerifier.create(connectorService.validateRemotely(ns, connector))
+            .consumeNextWith(response -> assertTrue(response.isEmpty()))
+            .verifyComplete();
     }
 
     /**
@@ -754,9 +763,9 @@ class ConnectorServiceTest {
         when(connectClusterService.findAllByNamespaceWrite(ns))
                 .thenReturn(List.of(connectCluster));
         when(connectorAsyncExecutor.collectBrokerConnectors("local-name"))
-                .thenReturn(Single.just(List.of(c1, c2, c3, c4)));
+                .thenReturn(Mono.just(List.of(c1, c2, c3, c4)));
         when(connectorAsyncExecutor.collectBrokerConnectors("ns-connect-cluster"))
-                .thenReturn(Single.just(List.of(c5)));
+                .thenReturn(Mono.just(List.of(c5)));
 
         // list of existing Ns4Kafka access control entries
         when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
@@ -795,14 +804,16 @@ class ConnectorServiceTest {
         when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of());
 
-        connectorService.listUnsynchronizedConnectors(ns)
-                .test()
-                .assertValue(response -> response.size() == 4)
-                .assertValue(response -> response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")))
-                .assertValue(response -> response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect2")))
-                .assertValue(response -> response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns1-connect1")))
-                .assertValue(response -> response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns1-connect2")))
-                .assertValue(response -> response.stream().noneMatch(connector -> connector.getMetadata().getName().equals("ns2-connect1")));
+        StepVerifier.create(connectorService.listUnsynchronizedConnectors(ns))
+            .consumeNextWith(response -> {
+                assertEquals(4, response.size());
+                assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")));
+                assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect2")));
+                assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns1-connect1")));
+                assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns1-connect2")));
+                assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns2-connect1")));
+            })
+            .verifyComplete();
     }
 
     /**
@@ -848,9 +859,9 @@ class ConnectorServiceTest {
         when(connectClusterService.findAllByNamespaceWrite(ns))
                 .thenReturn(List.of(connectCluster));
         when(connectorAsyncExecutor.collectBrokerConnectors("local-name"))
-                .thenReturn(Single.just(List.of(c1, c2, c3, c4)));
+                .thenReturn(Mono.just(List.of(c1, c2, c3, c4)));
         when(connectorAsyncExecutor.collectBrokerConnectors("ns-connect-cluster"))
-                .thenReturn(Single.just(List.of(c5)));
+                .thenReturn(Mono.just(List.of(c5)));
         when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1, c2, c3, c4, c5));
 
@@ -897,9 +908,9 @@ class ConnectorServiceTest {
                                 .build()
                 ));
 
-        connectorService.listUnsynchronizedConnectors(ns)
-                .test()
-                .assertValue(response -> response.size() == 0);
+        StepVerifier.create(connectorService.listUnsynchronizedConnectors(ns))
+            .consumeNextWith(response -> assertTrue(response.isEmpty()))
+            .verifyComplete();
     }
 
     /**
@@ -936,7 +947,7 @@ class ConnectorServiceTest {
                 .metadata(ObjectMeta.builder().name("ns2-connect1").build())
                 .build();
         
-        when(connectorAsyncExecutor.collectBrokerConnectors("local-name")).thenReturn(Single.just(List.of(
+        when(connectorAsyncExecutor.collectBrokerConnectors("local-name")).thenReturn(Mono.just(List.of(
                 c1, c2, c3, c4)));
         
         // list of existing broker connects
@@ -979,13 +990,15 @@ class ConnectorServiceTest {
         when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1));
 
-        connectorService.listUnsynchronizedConnectors(ns)
-                .test()
-                .assertValue(response -> response.size() == 2)
-                .assertValue(response -> response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect2")))
-                .assertValue(response -> response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns1-connect1")))
-                .assertValue(response -> response.stream().noneMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")))
-                .assertValue(response -> response.stream().noneMatch(connector -> connector.getMetadata().getName().equals("ns2-connect1")));
+        StepVerifier.create(connectorService.listUnsynchronizedConnectors(ns))
+            .consumeNextWith(response -> {
+                assertEquals(2, response.size());
+                assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect2")));
+                assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns1-connect1")));
+                assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")));
+                assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns2-connect1")));
+            })
+            .verifyComplete();
     }
 
     /**
@@ -1008,16 +1021,16 @@ class ConnectorServiceTest {
                 .spec(Connector.ConnectorSpec.builder().connectCluster("local-name").build())
                 .build();
 
-        when(connectorClient.delete(ConnectorClientProxy.PROXY_SECRET, ns.getMetadata().getCluster(),
-                "local-name", "ns-connect1")).thenReturn(Maybe.just(HttpResponse.ok()));
+        when(kafkaConnectClient.delete(ns.getMetadata().getCluster(),
+                "local-name", "ns-connect1")).thenReturn(Mono.just(HttpResponse.ok()));
 
         doNothing().when(connectorRepository).delete(connector);
 
-        connectorService.delete(ns, connector)
-                .test()
-                .assertValue(response -> response.getStatus().equals(HttpStatus.OK));
+        StepVerifier.create(connectorService.delete(ns, connector))
+            .consumeNextWith(response -> assertEquals( HttpStatus.OK, response.getStatus()))
+            .verifyComplete();
 
-        verify(connectorClient, times(1)).delete(ConnectorClientProxy.PROXY_SECRET, ns.getMetadata().getCluster(),
+        verify(kafkaConnectClient, times(1)).delete(ns.getMetadata().getCluster(),
                 "local-name", "ns-connect1");
 
         verify(connectorRepository, times(1)).delete(connector);
@@ -1043,12 +1056,12 @@ class ConnectorServiceTest {
                 .spec(Connector.ConnectorSpec.builder().connectCluster("local-name").build())
                 .build();
 
-        when(connectorClient.delete(ConnectorClientProxy.PROXY_SECRET, ns.getMetadata().getCluster(),
-                "local-name", "ns-connect1")).thenReturn(Maybe.error(new HttpClientResponseException("Error", HttpResponse.serverError())));
+        when(kafkaConnectClient.delete(ns.getMetadata().getCluster(),
+                "local-name", "ns-connect1")).thenReturn(Mono.error(new HttpClientResponseException("Error", HttpResponse.serverError())));
 
-        connectorService.delete(ns, connector)
-                .test()
-                .assertError(HttpClientResponseException.class);
+        StepVerifier.create(connectorService.delete(ns, connector))
+            .consumeErrorWith(response -> assertEquals(HttpClientResponseException.class, response.getClass()))
+            .verify();
 
         verify(connectorRepository, never()).delete(connector);
     }

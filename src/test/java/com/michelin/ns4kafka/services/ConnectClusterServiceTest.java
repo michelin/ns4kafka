@@ -8,14 +8,13 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
 import com.michelin.ns4kafka.models.connect.cluster.VaultResponse;
 import com.michelin.ns4kafka.repositories.ConnectClusterRepository;
+import com.michelin.ns4kafka.services.clients.connect.KafkaConnectClient;
 import com.michelin.ns4kafka.utils.EncryptionUtils;
-import com.nimbusds.jose.JOSEException;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MutableHttpRequest;
+import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientException;
-import io.micronaut.rxjava3.http.client.Rx3HttpClient;
-import io.reactivex.rxjava3.core.Flowable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,8 +22,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Mono;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,6 +34,9 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ConnectClusterServiceTest {
+    @Mock
+    KafkaConnectClient kafkaConnectClient;
+
     @Mock
     ConnectClusterRepository connectClusterRepository;
 
@@ -51,8 +53,8 @@ class ConnectClusterServiceTest {
     ConnectClusterService connectClusterService;
 
     @Mock
-    @Client("/")
-    Rx3HttpClient httpClient;
+    @Client
+    HttpClient httpClient;
 
     /**
      * Test find all
@@ -199,12 +201,17 @@ class ConnectClusterServiceTest {
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(ObjectMeta.builder().name("prefix.connect-cluster")
+                .metadata(ObjectMeta.builder()
+                        .name("prefix.connect-cluster")
+                        .cluster("local")
                         .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .build())
                 .build();
+
+        when(kafkaConnectClient.version("local", "prefix.connect-cluster"))
+                .thenReturn(HttpResponse.ok());
 
         when(connectClusterRepository.findAllForCluster("local"))
                 .thenReturn(List.of(connectCluster));
@@ -226,6 +233,57 @@ class ConnectClusterServiceTest {
 
         Assertions.assertTrue(actual.isPresent());
         Assertions.assertEquals("prefix.connect-cluster", actual.get().getMetadata().getName());
+        Assertions.assertEquals("Healthy", actual.get().getSpec().getStatus());
+    }
+
+    /**
+     * Test find by namespace and name when Kafka Connect is unhealthy
+     */
+    @Test
+    void findByNamespaceAndNameUnhealthy() {
+        Namespace namespace = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("prefix.connect-cluster")
+                        .cluster("local")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .url("https://after")
+                        .build())
+                .build();
+
+        when(kafkaConnectClient.version("local", "prefix.connect-cluster"))
+                .thenReturn(HttpResponse.serverError());
+
+        when(connectClusterRepository.findAllForCluster("local"))
+                .thenReturn(List.of(connectCluster));
+
+        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+                .thenReturn(List.of(
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
+                                        .resource("prefix.")
+                                        .build())
+                                .build()
+                ));
+
+        Optional<ConnectCluster> actual = connectClusterService.findByNamespaceAndNameOwner(namespace, "prefix.connect-cluster");
+
+        Assertions.assertTrue(actual.isPresent());
+        Assertions.assertEquals("prefix.connect-cluster", actual.get().getMetadata().getName());
+        Assertions.assertEquals("Unhealthy (Internal Server Error)", actual.get().getSpec().getStatus());
     }
 
     /**
@@ -243,12 +301,17 @@ class ConnectClusterServiceTest {
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(ObjectMeta.builder().name("prefix.connect-cluster")
+                .metadata(ObjectMeta.builder()
+                        .name("prefix.connect-cluster")
+                        .cluster("local")
                         .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .build())
                 .build();
+
+        when(kafkaConnectClient.version("local", "prefix.connect-cluster"))
+                .thenReturn(HttpResponse.ok());
 
         when(connectClusterRepository.findAllForCluster("local"))
                 .thenReturn(List.of(connectCluster));
@@ -275,7 +338,7 @@ class ConnectClusterServiceTest {
      * Test creation
      */
     @Test
-    void create() throws IOException, JOSEException {
+    void create() {
         ConnectCluster connectCluster = ConnectCluster.builder()
                 .metadata(ObjectMeta.builder().name("prefix.connect-cluster")
                         .build())
@@ -295,7 +358,7 @@ class ConnectClusterServiceTest {
      * Test creation with encrypted credentials
      */
     @Test
-    void createCredentialsEncrypted() throws IOException, JOSEException {
+    void createCredentialsEncrypted() {
         ConnectCluster connectCluster = ConnectCluster.builder()
                 .metadata(ObjectMeta.builder().name("prefix.connect-cluster")
                         .build())
@@ -335,12 +398,12 @@ class ConnectClusterServiceTest {
         kafka.setConnects(Map.of("test-connect", new KafkaAsyncExecutorConfig.ConnectConfig()));
         when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of(kafka));
         when(httpClient.exchange(any(MutableHttpRequest.class)))
-                .thenReturn(Flowable.just(HttpResponse.ok()));
+                .thenReturn(Mono.just(HttpResponse.ok()));
 
         List<String> errors = connectClusterService.validateConnectClusterCreation(connectCluster);
 
         Assertions.assertEquals(1L, errors.size());
-        Assertions.assertEquals("A Connect cluster is already defined globally with the name test-connect. Please provide a different name.", errors.get(0));
+        Assertions.assertEquals("A Kafka Connect is already defined globally with the name \"test-connect\". Please provide a different name.", errors.get(0));
     }
 
     /**
@@ -359,12 +422,12 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of());
-        when(httpClient.exchange(any(MutableHttpRequest.class))).thenReturn(Flowable.just(HttpResponse.serverError()));
+        when(httpClient.exchange(any(MutableHttpRequest.class))).thenReturn(Mono.just(HttpResponse.serverError()));
 
         List<String> errors = connectClusterService.validateConnectClusterCreation(connectCluster);
 
         Assertions.assertEquals(1L, errors.size());
-        Assertions.assertEquals("The Connect cluster test-connect is not healthy (HTTP code 500).", errors.get(0));
+        Assertions.assertEquals("The Kafka Connect \"test-connect\" is not healthy (HTTP code 500).", errors.get(0));
     }
 
     /**
@@ -385,7 +448,7 @@ class ConnectClusterServiceTest {
         List<String> errors = connectClusterService.validateConnectClusterCreation(connectCluster);
 
         Assertions.assertEquals(1L, errors.size());
-        Assertions.assertEquals("The Connect cluster test-connect has a malformed URL \"malformed-url\".", errors.get(0));
+        Assertions.assertEquals("The Kafka Connect \"test-connect\" has a malformed URL \"malformed-url\".", errors.get(0));
     }
 
     /**
@@ -408,7 +471,7 @@ class ConnectClusterServiceTest {
         List<String> errors = connectClusterService.validateConnectClusterCreation(connectCluster);
 
         Assertions.assertEquals(1L, errors.size());
-        Assertions.assertEquals("The following error occurred trying to check the Connect cluster test-connect health: Error.", errors.get(0));
+        Assertions.assertEquals("The following error occurred trying to check the Kafka Connect \"test-connect\" health: Error.", errors.get(0));
     }
 
     /**
@@ -428,7 +491,7 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of());
-        when(httpClient.exchange(any(MutableHttpRequest.class))).thenReturn(Flowable.just(HttpResponse.ok()));
+        when(httpClient.exchange(any(MutableHttpRequest.class))).thenReturn(Mono.just(HttpResponse.ok()));
 
         List<String> errors = connectClusterService.validateConnectClusterCreation(connectCluster);
 
@@ -453,7 +516,7 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of());
-        when(httpClient.exchange(any(MutableHttpRequest.class))).thenReturn(Flowable.just(HttpResponse.ok()));
+        when(httpClient.exchange(any(MutableHttpRequest.class))).thenReturn(Mono.just(HttpResponse.ok()));
 
         List<String> errors = connectClusterService.validateConnectClusterCreation(connectCluster);
 
@@ -763,7 +826,9 @@ class ConnectClusterServiceTest {
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(ObjectMeta.builder().name("prefix.connect-cluster")
+                .metadata(ObjectMeta.builder()
+                        .name("prefix.connect-cluster")
+                        .cluster("local")
                         .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .password(EncryptionUtils.encryptAES256GCM("password", encryptKey))
@@ -773,7 +838,9 @@ class ConnectClusterServiceTest {
                 .build();
 
         ConnectCluster connectClusterOwner = ConnectCluster.builder()
-                .metadata(ObjectMeta.builder().name("owner.connect-cluster")
+                .metadata(ObjectMeta.builder()
+                        .name("owner.connect-cluster")
+                        .cluster("local")
                         .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .password(EncryptionUtils.encryptAES256GCM("password", encryptKey))
@@ -781,6 +848,9 @@ class ConnectClusterServiceTest {
                         .aes256Salt(EncryptionUtils.encryptAES256GCM("aes256Salt", encryptKey))
                         .build())
                 .build();
+
+        when(kafkaConnectClient.version(any(), any()))
+                .thenReturn(HttpResponse.ok());
 
         when(connectClusterRepository.findAllForCluster("local"))
                 .thenReturn(List.of(connectCluster, connectClusterOwner));

@@ -8,23 +8,24 @@ import com.michelin.ns4kafka.models.schema.SchemaList;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.SchemaService;
-import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
+import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
-import io.reactivex.rxjava3.core.Maybe;
-import io.reactivex.rxjava3.core.Single;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,18 +56,20 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Single.just(List.of()));
-        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Maybe.empty());
-        when(schemaService.register(namespace, schema)).thenReturn(Single.just(1));
+        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
+        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Mono.empty());
+        when(schemaService.register(namespace, schema)).thenReturn(Mono.just(1));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        schemaController.apply("myNamespace", schema, false)
-                .test()
-                .assertValue(response -> Objects.equals(response.header("X-Ns4kafka-Result"), "created"))
-                .assertValue(response -> response.getBody().isPresent()
-                        && response.getBody().get().getMetadata().getName().equals("prefix.subject-value"));
+        StepVerifier.create(schemaController.apply("myNamespace", schema, false))
+            .consumeNextWith(response -> {
+                assertEquals("created", response.header("X-Ns4kafka-Result"));
+                assertTrue(response.getBody().isPresent());
+                assertEquals("prefix.subject-value", response.getBody().get().getMetadata().getName());
+            })
+            .verifyComplete();
     }
 
     /**
@@ -80,19 +83,21 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Single.just(List.of()));
+        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
         when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName()))
-                .thenReturn(Maybe.just(schema));
-        when(schemaService.register(namespace, schema)).thenReturn(Single.just(2));
+                .thenReturn(Mono.just(schema));
+        when(schemaService.register(namespace, schema)).thenReturn(Mono.just(2));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        schemaController.apply("myNamespace", schema, false)
-                .test()
-                .assertValue(response -> Objects.equals(response.header("X-Ns4kafka-Result"), "changed"))
-                .assertValue(response -> response.getBody().isPresent()
-                        && response.getBody().get().getMetadata().getName().equals("prefix.subject-value"));
+        StepVerifier.create(schemaController.apply("myNamespace", schema, false))
+            .consumeNextWith(response -> {
+                assertEquals("changed", response.header("X-Ns4kafka-Result"));
+                assertTrue(response.getBody().isPresent());
+                assertEquals("prefix.subject-value", response.getBody().get().getMetadata().getName());
+            })
+            .verifyComplete();
     }
 
     /**
@@ -106,15 +111,17 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Single.just(List.of()));
-        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Maybe.just(schema));
-        when(schemaService.register(namespace, schema)).thenReturn(Single.just(1));
+        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
+        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Mono.just(schema));
+        when(schemaService.register(namespace, schema)).thenReturn(Mono.just(1));
 
-        schemaController.apply("myNamespace", schema, false)
-                .test()
-                .assertValue(response -> Objects.equals(response.header("X-Ns4kafka-Result"), "unchanged"))
-                .assertValue(response -> response.getBody().isPresent()
-                        && response.getBody().get().getMetadata().getName().equals("prefix.subject-value"));
+        StepVerifier.create(schemaController.apply("myNamespace", schema, false))
+            .consumeNextWith(response -> {
+                assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
+                assertTrue(response.getBody().isPresent());
+                assertEquals("prefix.subject-value", response.getBody().get().getMetadata().getName());
+            })
+            .verifyComplete();
     }
 
     /**
@@ -128,12 +135,13 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
 
-        schemaController.apply("myNamespace", schema, false)
-                .test()
-                .assertError(ResourceValidationException.class)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1L)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
-                        .equals("Invalid value wrongSubjectName for name: subject must end with -key or -value"));
+        StepVerifier.create(schemaController.apply("myNamespace", schema, false))
+            .consumeErrorWith(error -> {
+                assertEquals(ResourceValidationException.class, error.getClass());
+                assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
+                assertEquals("Invalid value wrongSubjectName for name: subject must end with -key or -value", ((ResourceValidationException) error).getValidationErrors().get(0));
+            })
+            .verify();
 
         verify(schemaService, never()).register(namespace, schema);
     }
@@ -150,12 +158,13 @@ class SchemaControllerTest {
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(false);
 
-        schemaController.apply("myNamespace", schema, false)
-                .test()
-                .assertError(ResourceValidationException.class)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1L)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
-                        .equals("Namespace not owner of this schema prefix.subject-value."));
+        StepVerifier.create(schemaController.apply("myNamespace", schema, false))
+            .consumeErrorWith(error -> {
+                assertEquals(ResourceValidationException.class, error.getClass());
+                assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
+                assertEquals("Namespace not owner of this schema prefix.subject-value.", ((ResourceValidationException) error).getValidationErrors().get(0));
+            })
+            .verify();
     }
 
     @Test
@@ -165,14 +174,16 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Single.just(List.of()));
-        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Maybe.empty());
+        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
+        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Mono.empty());
 
-        schemaController.apply("myNamespace", schema, true)
-                .test()
-                .assertValue(response -> Objects.equals(response.header("X-Ns4kafka-Result"), "created"))
-                .assertValue(response -> response.getBody().isPresent()
-                        && response.getBody().get().getMetadata().getName().equals("prefix.subject-value"));
+        StepVerifier.create(schemaController.apply("myNamespace", schema, true))
+            .consumeNextWith(response -> {
+                assertEquals("created", response.header("X-Ns4kafka-Result"));
+                assertTrue(response.getBody().isPresent());
+                assertEquals("prefix.subject-value", response.getBody().get().getMetadata().getName());
+            })
+            .verifyComplete();
 
         verify(schemaService, never()).register(namespace, schema);
     }
@@ -184,14 +195,16 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Single.just(List.of()));
-        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Maybe.just(schema));
+        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
+        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Mono.just(schema));
 
-        schemaController.apply("myNamespace", schema, true)
-                .test()
-                .assertValue(response -> Objects.equals(response.header("X-Ns4kafka-Result"), "changed"))
-                .assertValue(response -> response.getBody().isPresent()
-                        && response.getBody().get().getMetadata().getName().equals("prefix.subject-value"));
+        StepVerifier.create(schemaController.apply("myNamespace", schema, true))
+            .consumeNextWith(response -> {
+                assertEquals("changed", response.header("X-Ns4kafka-Result"));
+                assertTrue(response.getBody().isPresent());
+                assertEquals("prefix.subject-value", response.getBody().get().getMetadata().getName());
+            })
+            .verifyComplete();
 
         verify(schemaService, never()).register(namespace, schema);
     }
@@ -206,14 +219,15 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Single.just(List.of("Not compatible")));
+        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of("Not compatible")));
 
-        schemaController.apply("myNamespace", schema, true)
-                .test()
-                .assertError(ResourceValidationException.class)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1L)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
-                        .equals("Not compatible"));
+        StepVerifier.create(schemaController.apply("myNamespace", schema, true))
+            .consumeErrorWith(error -> {
+                assertEquals(ResourceValidationException.class, error.getClass());
+                assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
+                assertEquals("Not compatible", ((ResourceValidationException) error).getValidationErrors().get(0));
+            })
+            .verify();
 
         verify(schemaService, never()).register(namespace, schema);
     }
@@ -227,12 +241,14 @@ class SchemaControllerTest {
         SchemaList schema = buildSchemaList();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
-        when(schemaService.findAllForNamespace(namespace)).thenReturn(Single.just(List.of(schema)));
+        when(schemaService.findAllForNamespace(namespace)).thenReturn(Mono.just(List.of(schema)));
 
-        schemaController.list("myNamespace")
-            .test()
-            .assertValue(schemas -> schemas.size() == 1)
-            .assertValue(schemas -> schemas.get(0).getMetadata().getName().equals("prefix.subject-value"));
+        StepVerifier.create(schemaController.list("myNamespace"))
+            .consumeNextWith(schemas -> {
+                assertEquals(1, schemas.size());
+                assertEquals("prefix.subject-value", schemas.get(0).getMetadata().getName());
+            })
+            .verifyComplete();
     }
 
     /**
@@ -245,11 +261,11 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Maybe.just(schema));
+        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Mono.just(schema));
 
-        schemaController.get("myNamespace", "prefix.subject-value")
-                .test()
-                .assertValue(response -> response.getMetadata().getName().equals("prefix.subject-value"));
+        StepVerifier.create(schemaController.get("myNamespace", "prefix.subject-value"))
+            .consumeNextWith(response -> assertEquals("prefix.subject-value", response.getMetadata().getName()))
+            .verifyComplete();
     }
 
     /**
@@ -263,9 +279,8 @@ class SchemaControllerTest {
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(false);
 
-        schemaController.get("myNamespace", "prefix.subject-value")
-                .test()
-                .assertResult();
+        StepVerifier.create(schemaController.get("myNamespace", "prefix.subject-value"))
+                .verifyComplete();
 
         verify(schemaService, never()).getLatestSubject(namespace, schema.getMetadata().getName());
     }
@@ -280,11 +295,11 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, "prefix.subject-value")).thenReturn(Maybe.empty());
+        when(schemaService.getLatestSubject(namespace, "prefix.subject-value")).thenReturn(Mono.empty());
 
-        schemaController.config("myNamespace", "prefix.subject-value", Schema.Compatibility.FORWARD)
-                .test()
-                .assertValue(response -> response.getStatus().equals(HttpStatus.NOT_FOUND));
+        StepVerifier.create(schemaController.config("myNamespace", "prefix.subject-value", Schema.Compatibility.FORWARD))
+                .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
+                .verifyComplete();
 
         verify(schemaService, never()).updateSubjectCompatibility(any(), any(), any());
     }
@@ -299,17 +314,19 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, "prefix.subject-value")).thenReturn(Maybe.just(schema));
-        when(schemaService.updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD)).thenReturn(Single.just(SchemaCompatibilityResponse.builder()
+        when(schemaService.getLatestSubject(namespace, "prefix.subject-value")).thenReturn(Mono.just(schema));
+        when(schemaService.updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD)).thenReturn(Mono.just(SchemaCompatibilityResponse.builder()
                 .compatibilityLevel(Schema.Compatibility.FORWARD)
                 .build()));
 
-        schemaController.config("myNamespace", "prefix.subject-value", Schema.Compatibility.FORWARD)
-                .test()
-                .assertValue(response -> response.getStatus().equals(HttpStatus.OK))
-                .assertValue(response -> response.getBody().isPresent()
-                        && response.getBody().get().getMetadata().getName().equals("prefix.subject-value")
-                        && response.getBody().get().getSpec().getCompatibility().equals(Schema.Compatibility.FORWARD));
+        StepVerifier.create(schemaController.config("myNamespace", "prefix.subject-value", Schema.Compatibility.FORWARD))
+            .consumeNextWith(response -> {
+                assertEquals(HttpStatus.OK, response.getStatus());
+                assertTrue(response.getBody().isPresent());
+                assertEquals("prefix.subject-value", response.getBody().get().getMetadata().getName());
+                assertEquals(Schema.Compatibility.FORWARD, response.getBody().get().getSpec().getCompatibility());
+            })
+            .verifyComplete();
     }
 
     /**
@@ -323,14 +340,16 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, "prefix.subject-value")).thenReturn(Maybe.just(schema));
+        when(schemaService.getLatestSubject(namespace, "prefix.subject-value")).thenReturn(Mono.just(schema));
 
-        schemaController.config("myNamespace", "prefix.subject-value", Schema.Compatibility.FORWARD)
-                .test()
-                .assertValue(response -> response.getStatus().equals(HttpStatus.OK))
-                .assertValue(response -> response.getBody().isPresent()
-                        && response.getBody().get().getMetadata().getName().equals("prefix.subject-value")
-                        && response.getBody().get().getSpec().getCompatibility().equals(Schema.Compatibility.FORWARD));
+        StepVerifier.create(schemaController.config("myNamespace", "prefix.subject-value", Schema.Compatibility.FORWARD))
+            .consumeNextWith(response -> {
+                assertEquals(HttpStatus.OK, response.getStatus());
+                assertTrue(response.getBody().isPresent());
+                assertEquals("prefix.subject-value", response.getBody().get().getMetadata().getName());
+                assertEquals(Schema.Compatibility.FORWARD, response.getBody().get().getSpec().getCompatibility());
+            })
+            .verifyComplete();
 
         verify(schemaService, never()).updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD);
     }
@@ -346,12 +365,13 @@ class SchemaControllerTest {
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(false);
 
-        schemaController.config("myNamespace", "prefix.subject-value", Schema.Compatibility.BACKWARD)
-                .test()
-                .assertError(ResourceValidationException.class)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1L)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
-                        .equals("Invalid prefix prefix.subject-value : namespace not owner of this subject"));
+        StepVerifier.create(schemaController.config("myNamespace", "prefix.subject-value", Schema.Compatibility.BACKWARD))
+            .consumeErrorWith(error -> {
+                assertEquals(ResourceValidationException.class, error.getClass());
+                assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
+                assertEquals("Invalid prefix prefix.subject-value : namespace not owner of this subject", ((ResourceValidationException) error).getValidationErrors().get(0));
+            })
+            .verify();
 
         verify(schemaService, never()).updateSubjectCompatibility(any(), any(), any());
     }
@@ -366,12 +386,13 @@ class SchemaControllerTest {
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value")).thenReturn(false);
 
-        schemaController.deleteSubject("myNamespace", "prefix.subject-value", false)
-                .test()
-                .assertError(ResourceValidationException.class)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1L)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
-                        .equals("Namespace not owner of this schema prefix.subject-value."));
+        StepVerifier.create(schemaController.deleteSubject("myNamespace", "prefix.subject-value", false))
+            .consumeErrorWith(error -> {
+                assertEquals(ResourceValidationException.class, error.getClass());
+                assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
+                assertEquals("Namespace not owner of this schema prefix.subject-value.", ((ResourceValidationException) error).getValidationErrors().get(0));
+            })
+            .verify();
 
         verify(schemaService, never()).updateSubjectCompatibility(any(), any(), any());
     }
@@ -386,15 +407,15 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value")).thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, "prefix.subject-value")).thenReturn(Maybe.just(schema));
-        when(schemaService.deleteSubject(namespace, "prefix.subject-value")).thenReturn(Single.just(new Integer[1]));
+        when(schemaService.getLatestSubject(namespace, "prefix.subject-value")).thenReturn(Mono.just(schema));
+        when(schemaService.deleteSubject(namespace, "prefix.subject-value")).thenReturn(Mono.just(new Integer[1]));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        schemaController.deleteSubject("myNamespace", "prefix.subject-value", false)
-                .test()
-                .assertValue(response -> response.getStatus().equals(HttpStatus.NO_CONTENT));
+        StepVerifier.create(schemaController.deleteSubject("myNamespace", "prefix.subject-value", false))
+            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .verifyComplete();
 
         verify(schemaService, times(1)).deleteSubject(namespace, "prefix.subject-value");
     }
@@ -409,11 +430,11 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value")).thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, "prefix.subject-value")).thenReturn(Maybe.just(schema));
+        when(schemaService.getLatestSubject(namespace, "prefix.subject-value")).thenReturn(Mono.just(schema));
 
-        schemaController.deleteSubject("myNamespace", "prefix.subject-value", true)
-                .test()
-                .assertValue(response -> response.getStatus().equals(HttpStatus.NO_CONTENT));
+        StepVerifier.create(schemaController.deleteSubject("myNamespace", "prefix.subject-value", true))
+            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .verifyComplete();
 
         verify(schemaService, never()).deleteSubject(namespace, "prefix.subject-value");
     }

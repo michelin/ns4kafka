@@ -5,16 +5,14 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.schema.Schema;
 import com.michelin.ns4kafka.models.schema.SchemaList;
-import com.michelin.ns4kafka.services.schema.KafkaSchemaRegistryClientProxy;
-import com.michelin.ns4kafka.services.schema.client.KafkaSchemaRegistryClient;
-import com.michelin.ns4kafka.services.schema.client.entities.SchemaCompatibilityResponse;
-import com.michelin.ns4kafka.services.schema.client.entities.SchemaRequest;
-import com.michelin.ns4kafka.services.schema.client.entities.SchemaResponse;
-import io.reactivex.rxjava3.core.Maybe;
-import io.reactivex.rxjava3.core.Single;
+import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
+import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
+import com.michelin.ns4kafka.services.clients.schema.entities.SchemaRequest;
+import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,20 +25,20 @@ public class SchemaService {
     AccessControlEntryService accessControlEntryService;
 
     @Inject
-    KafkaSchemaRegistryClient kafkaSchemaRegistryClient;
+    SchemaRegistryClient schemaRegistryClient;
 
     /**
      * Get all the schemas by namespace
      * @param namespace The namespace
      * @return A list of schemas
      */
-    public Single<List<SchemaList>> findAllForNamespace(Namespace namespace) {
+    public Mono<List<SchemaList>> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace).stream()
                 .filter(acl -> acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
                 .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC).toList();
 
-        return kafkaSchemaRegistryClient
-                .getSubjects(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster())
+        return schemaRegistryClient
+                .getSubjects(namespace.getMetadata().getCluster())
                 .map(subjects -> subjects
                         .stream()
                         .filter(subject -> {
@@ -71,11 +69,11 @@ public class SchemaService {
      * @param subject The subject
      * @return A schema
      */
-    public Maybe<Schema> getLatestSubject(Namespace namespace, String subject) {
-        return kafkaSchemaRegistryClient
-                .getLatestSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), subject)
-                .flatMap(latestSubjectOptional -> kafkaSchemaRegistryClient
-                    .getCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), subject)
+    public Mono<Schema> getLatestSubject(Namespace namespace, String subject) {
+        return schemaRegistryClient
+                .getLatestSubject(namespace.getMetadata().getCluster(), subject)
+                .flatMap(latestSubjectOptional -> schemaRegistryClient
+                    .getCurrentCompatibilityBySubject(namespace.getMetadata().getCluster(), subject)
                     .map(Optional::of)
                     .defaultIfEmpty(Optional.empty())
                     .map(currentCompatibilityOptional -> {
@@ -96,8 +94,7 @@ public class SchemaService {
                                                 Schema.SchemaType.valueOf(latestSubjectOptional.schemaType()))
                                         .build())
                                 .build();
-                    })
-                    .toMaybe());
+                    }));
     }
 
     /**
@@ -107,9 +104,9 @@ public class SchemaService {
      * @param schema The schema to create
      * @return The ID of the created schema
      */
-    public Single<Integer> register(Namespace namespace, Schema schema) {
-        return kafkaSchemaRegistryClient.
-                register(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
+    public Mono<Integer> register(Namespace namespace, Schema schema) {
+        return schemaRegistryClient.
+                register(namespace.getMetadata().getCluster(),
                         schema.getMetadata().getName(), SchemaRequest.builder()
                                 .schemaType(String.valueOf(schema.getSpec().getSchemaType()))
                                 .schema(schema.getSpec().getSchema())
@@ -124,11 +121,11 @@ public class SchemaService {
      * @param subject The current subject to delete
      * @return The list of deleted versions
      */
-    public Single<Integer[]> deleteSubject(Namespace namespace, String subject) {
-        return kafkaSchemaRegistryClient
-                .deleteSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), subject, false)
-                .flatMap(ids -> kafkaSchemaRegistryClient.
-                        deleteSubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
+    public Mono<Integer[]> deleteSubject(Namespace namespace, String subject) {
+        return schemaRegistryClient
+                .deleteSubject(namespace.getMetadata().getCluster(), subject, false)
+                .flatMap(ids -> schemaRegistryClient.
+                        deleteSubject(namespace.getMetadata().getCluster(),
                                 subject, true));
     }
 
@@ -139,9 +136,8 @@ public class SchemaService {
      * @param schema The schema to validate
      * @return A list of errors
      */
-    public Single<List<String>> validateSchemaCompatibility(String cluster, Schema schema) {
-        return kafkaSchemaRegistryClient.validateSchemaCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
-                cluster, schema.getMetadata().getName(), SchemaRequest.builder()
+    public Mono<List<String>> validateSchemaCompatibility(String cluster, Schema schema) {
+        return schemaRegistryClient.validateSchemaCompatibility(cluster, schema.getMetadata().getName(), SchemaRequest.builder()
                         .schemaType(String.valueOf(schema.getSpec().getSchemaType()))
                         .schema(schema.getSpec().getSchema())
                         .references(schema.getSpec().getReferences())
@@ -168,15 +164,11 @@ public class SchemaService {
      * @param schema The schema
      * @param compatibility The compatibility to apply
      */
-    public Single<SchemaCompatibilityResponse> updateSubjectCompatibility(Namespace namespace, Schema schema, Schema.Compatibility compatibility) {
-        // Reset to default
+    public Mono<SchemaCompatibilityResponse> updateSubjectCompatibility(Namespace namespace, Schema schema, Schema.Compatibility compatibility) {
         if (compatibility.equals(Schema.Compatibility.GLOBAL)) {
-            return kafkaSchemaRegistryClient.deleteCurrentCompatibilityBySubject(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
-                    namespace.getMetadata().getCluster(), schema.getMetadata().getName());
+            return schemaRegistryClient.deleteCurrentCompatibilityBySubject(namespace.getMetadata().getCluster(), schema.getMetadata().getName());
         } else {
-            // Update
-            return kafkaSchemaRegistryClient.updateSubjectCompatibility(KafkaSchemaRegistryClientProxy.PROXY_SECRET,
-                    namespace.getMetadata().getCluster(), schema.getMetadata().getName(),
+            return schemaRegistryClient.updateSubjectCompatibility(namespace.getMetadata().getCluster(), schema.getMetadata().getName(),
                     compatibility.toString());
         }
     }

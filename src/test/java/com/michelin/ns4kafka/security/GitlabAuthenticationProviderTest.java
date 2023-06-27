@@ -8,21 +8,23 @@ import com.michelin.ns4kafka.security.gitlab.GitlabAuthenticationService;
 import com.michelin.ns4kafka.services.RoleBindingService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import io.micronaut.security.authentication.*;
-import io.reactivex.rxjava3.core.Flowable;
-import io.reactivex.rxjava3.core.Maybe;
-import io.reactivex.rxjava3.subscribers.TestSubscriber;
-import org.junit.jupiter.api.Assertions;
+import io.micronaut.security.authentication.AuthenticationException;
+import io.micronaut.security.authentication.AuthenticationRequest;
+import io.micronaut.security.authentication.AuthenticationResponse;
+import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -65,31 +67,25 @@ class GitlabAuthenticationProviderTest {
                 .build();
 
         when(gitlabAuthenticationService.findUsername(authenticationRequest.getSecret()))
-                .thenReturn(Maybe.just("email"));
+                .thenReturn(Mono.just("email"));
         when(gitlabAuthenticationService.findAllGroups(authenticationRequest.getSecret()))
-                .thenReturn(Flowable.fromIterable(groups));
+                .thenReturn(Flux.fromIterable(groups));
         when(roleBindingService.listByGroups(groups))
                 .thenReturn(List.of(roleBinding));
         when(resourceBasedSecurityRule.computeRolesFromGroups(groups))
                 .thenReturn(List.of());
 
-        TestSubscriber<AuthenticationResponse> subscriber = new TestSubscriber<>();
         Publisher<AuthenticationResponse> authenticationResponsePublisher = gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
-        authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
 
-        subscriber.assertComplete();
-        subscriber.assertNoErrors();
-        subscriber.assertValueCount(1);
-
-        AuthenticationResponse actual = subscriber.values().get(0);
-        Assertions.assertTrue(actual.isAuthenticated());
-        Assertions.assertTrue(actual.getAuthentication().isPresent());
-
-        Authentication actualUserDetails = actual.getAuthentication().get();
-        Assertions.assertEquals("email", actualUserDetails.getName());
-        Assertions.assertIterableEquals(groups, (List<String>) actualUserDetails.getAttributes().get( "groups"));
-        Assertions.assertIterableEquals(List.of(), actualUserDetails.getRoles(),"User has no custom roles");
+        StepVerifier.create(authenticationResponsePublisher)
+                .consumeNextWith(response -> {
+                    assertTrue(response.isAuthenticated());
+                    assertTrue(response.getAuthentication().isPresent());
+                    assertEquals("email", response.getAuthentication().get().getName());
+                    assertIterableEquals(groups, (List<String>) response.getAuthentication().get().getAttributes().get( "groups"));
+                    assertIterableEquals(List.of(), response.getAuthentication().get().getRoles(), "User has no custom roles");
+                })
+                .verifyComplete();
     }
 
     /**
@@ -101,9 +97,9 @@ class GitlabAuthenticationProviderTest {
 
         List<String> groups = List.of("group-1","group-2","group-admin");
         when(gitlabAuthenticationService.findUsername(authenticationRequest.getSecret()))
-                .thenReturn(Maybe.just("email"));
+                .thenReturn(Mono.just("email"));
         when(gitlabAuthenticationService.findAllGroups(authenticationRequest.getSecret()))
-                .thenReturn(Flowable.fromIterable(groups));
+                .thenReturn(Flux.fromIterable(groups));
         when(roleBindingService.listByGroups(groups))
                 .thenReturn(List.of());
         when(securityConfig.getAdminGroup())
@@ -111,24 +107,17 @@ class GitlabAuthenticationProviderTest {
         when(resourceBasedSecurityRule.computeRolesFromGroups(groups))
                 .thenReturn(List.of(ResourceBasedSecurityRule.IS_ADMIN));
 
-        TestSubscriber<AuthenticationResponse> subscriber = new TestSubscriber<>();
         Publisher<AuthenticationResponse> authenticationResponsePublisher = gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
 
-        authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
-
-        subscriber.assertComplete();
-        subscriber.assertNoErrors();
-        subscriber.assertValueCount(1);
-
-        AuthenticationResponse actual = subscriber.values().get(0);
-        Assertions.assertTrue(actual.isAuthenticated());
-        Assertions.assertTrue(actual.getAuthentication().isPresent());
-
-        Authentication  actualUserDetails = actual.getAuthentication().get();
-        Assertions.assertEquals("email", actualUserDetails.getName());
-        Assertions.assertIterableEquals(groups, (List<String>) actualUserDetails.getAttributes().get("groups"));
-        Assertions.assertIterableEquals(List.of(ResourceBasedSecurityRule.IS_ADMIN), actualUserDetails.getRoles(),"User has custom roles");
+        StepVerifier.create(authenticationResponsePublisher)
+                .consumeNextWith(response -> {
+                    assertTrue(response.isAuthenticated());
+                    assertTrue(response.getAuthentication().isPresent());
+                    assertEquals("email", response.getAuthentication().get().getName());
+                    assertIterableEquals(groups, (List<String>) response.getAuthentication().get().getAttributes().get( "groups"));
+                    assertIterableEquals(List.of(ResourceBasedSecurityRule.IS_ADMIN), response.getAuthentication().get().getRoles(), "User has custom roles");
+                })
+                .verifyComplete();
     }
 
     /**
@@ -141,14 +130,11 @@ class GitlabAuthenticationProviderTest {
         when(gitlabAuthenticationService.findUsername(authenticationRequest.getSecret()))
                 .thenThrow(new HttpClientResponseException("403 Unauthorized", HttpResponse.unauthorized()));
 
-        TestSubscriber<AuthenticationResponse> subscriber = new TestSubscriber<>();
         Publisher<AuthenticationResponse> authenticationResponsePublisher = gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
 
-        authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
-
-        subscriber.assertError(AuthenticationException.class);
-        subscriber.assertValueCount(0);
+        StepVerifier.create(authenticationResponsePublisher)
+                .consumeErrorWith(error -> assertEquals(AuthenticationException.class, error.getClass()))
+                .verify();
     }
 
     /**
@@ -160,21 +146,18 @@ class GitlabAuthenticationProviderTest {
 
         List<String> groups = List.of("group-1","group-2");
         when(gitlabAuthenticationService.findUsername(authenticationRequest.getSecret()))
-                .thenReturn(Maybe.just("email"));
+                .thenReturn(Mono.just("email"));
         when(gitlabAuthenticationService.findAllGroups(authenticationRequest.getSecret()))
-                .thenReturn(Flowable.fromIterable(groups));
+                .thenReturn(Flux.fromIterable(groups));
         when(roleBindingService.listByGroups(groups))
                 .thenReturn(List.of());
         when(securityConfig.getAdminGroup())
                 .thenReturn("group-admin");
 
-        TestSubscriber<AuthenticationResponse> subscriber = new TestSubscriber<>();
         Publisher<AuthenticationResponse> authenticationResponsePublisher = gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
 
-        authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
-
-        subscriber.assertError(AuthenticationException.class);
-        subscriber.assertValueCount(0);
+        StepVerifier.create(authenticationResponsePublisher)
+                .consumeErrorWith(error -> assertEquals(AuthenticationException.class, error.getClass()))
+                .verify();
     }
 }

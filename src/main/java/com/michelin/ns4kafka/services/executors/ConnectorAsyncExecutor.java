@@ -5,18 +5,19 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import com.michelin.ns4kafka.services.ConnectClusterService;
-import com.michelin.ns4kafka.services.connect.ConnectorClientProxy;
-import com.michelin.ns4kafka.services.connect.client.ConnectorClient;
-import com.michelin.ns4kafka.services.connect.client.entities.ConnectorSpecs;
-import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStatus;
+import com.michelin.ns4kafka.services.clients.connect.KafkaConnectClient;
+import com.michelin.ns4kafka.services.clients.connect.entities.ConnectorSpecs;
+import com.michelin.ns4kafka.services.clients.connect.entities.ConnectorStatus;
+import com.michelin.ns4kafka.services.clients.connect.entities.ServerInfo;
 import io.micronaut.context.annotation.EachBean;
+import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
-import io.reactivex.rxjava3.core.Single;
-import io.reactivex.rxjava3.internal.observers.ConsumerSingleObserver;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,7 @@ public class ConnectorAsyncExecutor {
     private ConnectorRepository connectorRepository;
 
     @Inject
-    private ConnectorClient connectorClient;
+    private KafkaConnectClient kafkaConnectClient;
 
     @Inject
     private ConnectClusterService connectClusterService;
@@ -62,7 +63,15 @@ public class ConnectorAsyncExecutor {
                 .map(connectCluster -> connectCluster.getMetadata().getName()).toList();
 
         Stream.concat(kafkaAsyncExecutorConfig.getConnects().keySet().stream(), selfDeclaredConnectClusterNames.stream())
-                        .forEach(this::synchronizeConnectCluster);
+                .filter(connectCluster -> {
+                    try {
+                        HttpResponse<ServerInfo> response = kafkaConnectClient.version(kafkaAsyncExecutorConfig.getName(), connectCluster);
+                        return response.status().equals(HttpStatus.OK);
+                    } catch (Exception e) {
+                        return false;
+                    }
+                })
+                .forEach(this::synchronizeConnectCluster);
     }
 
     /**
@@ -74,7 +83,7 @@ public class ConnectorAsyncExecutor {
                 kafkaAsyncExecutorConfig.getName(), connectCluster);
 
         collectBrokerConnectors(connectCluster)
-                .subscribe(new ConsumerSingleObserver<>(brokerConnectors -> {
+                .subscribe(brokerConnectors -> {
                     List<Connector> ns4kafkaConnectors = collectNs4KafkaConnectors(connectCluster);
 
                     List<Connector> toCreate = ns4kafkaConnectors.stream()
@@ -100,20 +109,18 @@ public class ConnectorAsyncExecutor {
                     toUpdate.forEach(this::deployConnector);
                 },
                 error -> {
-                    if (error instanceof HttpClientResponseException) {
-                        log.error("Invalid HTTP response {} ({}) during connectors synchronization for Kafka cluster {} and Connect cluster {}",
-                                ((HttpClientResponseException) error).getStatus(), ((HttpClientResponseException) error).getResponse().getStatus(),
+                    if (error instanceof HttpClientResponseException httpClientResponseException) {
+                        log.error("Invalid HTTP response {} ({}) during connectors synchronization for Kafka cluster {} and Kafka Connect {}",
+                                httpClientResponseException.getStatus(), httpClientResponseException.getResponse().getStatus(),
                                 kafkaAsyncExecutorConfig.getName(), connectCluster);
                     } else if (error instanceof ReadTimeoutException) {
-                        log.error("Read timeout during connectors synchronization for Kafka cluster {} and Connect cluster {}",
-                                kafkaAsyncExecutorConfig.getName(),
-                                connectCluster);
+                        log.error("Read timeout during connectors synchronization for Kafka cluster {} and Kafka Connect {}",
+                                kafkaAsyncExecutorConfig.getName(), connectCluster);
                     } else {
-                        log.error("Exception during connectors synchronization for Kafka cluster {} and Connect cluster {} : {}",
-                                kafkaAsyncExecutorConfig.getName(),
-                                connectCluster, error);
+                        log.error("Exception during connectors synchronization for Kafka cluster {} and Kafka Connect {}",
+                                kafkaAsyncExecutorConfig.getName(), connectCluster, error);
                     }
-                }));
+                });
     }
 
     /**
@@ -121,8 +128,8 @@ public class ConnectorAsyncExecutor {
      * @param connectCluster The connect cluster
      * @return A list of connectors
      */
-    public Single<List<Connector>> collectBrokerConnectors(String connectCluster) {
-        return connectorClient.listAll(ConnectorClientProxy.PROXY_SECRET, kafkaAsyncExecutorConfig.getName(), connectCluster)
+    public Mono<List<Connector>> collectBrokerConnectors(String connectCluster) {
+        return kafkaConnectClient.listAll(kafkaAsyncExecutorConfig.getName(), connectCluster)
                 .map(connectors -> {
                     log.debug("Connectors found on Connect cluster {} of Kafka cluster {}: {}", connectCluster, kafkaAsyncExecutorConfig.getName(), connectors.size());
 
@@ -144,17 +151,17 @@ public class ConnectorAsyncExecutor {
         return Connector.builder()
                 .metadata(ObjectMeta.builder()
                         // Any other metadata is not useful for this process
-                        .name(connectorStatus.getInfo().name())
+                        .name(connectorStatus.info().name())
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster(connectCluster)
-                        .config(connectorStatus.getInfo().config())
+                        .config(connectorStatus.info().config())
                         .build())
                 .build();
     }
 
     /**
-     * Collect the connectors from Ns4kafka deployed on the given connect cluster
+     * Collect the connectors from Ns4Kafka deployed on the given connect cluster
      * @param connectCluster The connect cluster
      * @return A list of connectors
      */
@@ -192,12 +199,11 @@ public class ConnectorAsyncExecutor {
      * @param connector The connector to deploy
      */
     private void deployConnector(Connector connector) {
-        connectorClient.createOrUpdate(ConnectorClientProxy.PROXY_SECRET, kafkaAsyncExecutorConfig.getName(),
-                connector.getSpec().getConnectCluster(), connector.getMetadata().getName(),
-                        ConnectorSpecs.builder().config(connector.getSpec().getConfig()).build())
-                .subscribe(new ConsumerSingleObserver<>(httpResponse -> log.info("Success deploying Connector [{}] on Kafka [{}] Connect [{}]",
+        kafkaConnectClient.createOrUpdate(kafkaAsyncExecutorConfig.getName(), connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName(), ConnectorSpecs.builder().config(connector.getSpec().getConfig()).build())
+                .subscribe(httpResponse -> log.info("Success deploying Connector [{}] on Kafka [{}] Connect [{}]",
                         connector.getMetadata().getName(), kafkaAsyncExecutorConfig.getName(), connector.getSpec().getConnectCluster()),
                         httpError -> log.error(String.format("Error deploying Connector [%s] on Kafka [%s] Connect [%s]",
-                                connector.getMetadata().getName(), kafkaAsyncExecutorConfig.getName(), connector.getSpec().getConnectCluster()))));
+                                connector.getMetadata().getName(), kafkaAsyncExecutorConfig.getName(), connector.getSpec().getConnectCluster())));
     }
 }

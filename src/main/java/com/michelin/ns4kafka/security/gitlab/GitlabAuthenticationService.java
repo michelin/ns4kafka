@@ -2,11 +2,11 @@ package com.michelin.ns4kafka.security.gitlab;
 
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
-import io.reactivex.rxjava3.core.Flowable;
-import io.reactivex.rxjava3.core.Maybe;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
@@ -22,9 +22,9 @@ public class GitlabAuthenticationService {
      * @param token The user token
      * @return The user groups
      */
-    public Flowable<String> findAllGroups(String token){
+    public Flux<String> findAllGroups(String token){
         return getPageAndNext(token,1)
-            .flatMap(response -> Flowable.fromIterable(
+                .flatMap(response -> Flux.fromIterable(
                 response.body()
                         .stream()
                         .map(stringObjectMap -> stringObjectMap.get("full_path").toString())
@@ -38,9 +38,8 @@ public class GitlabAuthenticationService {
      * @param token The user token
      * @return The username
      */
-    public Maybe<String> findUsername(String token) {
+    public Mono<String> findUsername(String token) {
         return gitlabApiClient.findUser(token)
-            .firstElement()
             .map(stringObjectMap -> stringObjectMap.get("email").toString());
     }
 
@@ -50,16 +49,16 @@ public class GitlabAuthenticationService {
      * @param page The current page to fetch
      * @return The user groups information
      */
-    private Flowable<HttpResponse<List<Map<String, Object>>>> getPageAndNext(String token, int page){
+    private Flux<HttpResponse<List<Map<String, Object>>>> getPageAndNext(String token, int page) {
         return gitlabApiClient.getGroupsPage(token, page)
-            .concatMap(response -> {
+                .concatMap(response -> {
                 log.debug("Call GitLab groups page {}/{}.", page, response.header("X-Total-Pages"));
 
                 if (StringUtils.isEmpty(response.header("X-Next-Page"))) {
-                    return Flowable.just(response);
+                    return Flux.just(response);
                 } else {
                     int nextPage = Integer.parseInt(response.header("X-Next-Page"));
-                    return Flowable.just(response)
+                    return Flux.just(response)
                             .concatWith(getPageAndNext(token, nextPage));
                 }
             });

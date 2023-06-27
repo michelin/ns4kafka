@@ -14,10 +14,9 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
-import io.reactivex.rxjava3.core.Maybe;
-import io.reactivex.rxjava3.core.Single;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
+import reactor.core.publisher.Mono;
 
 import javax.validation.Valid;
 import java.time.Instant;
@@ -38,7 +37,7 @@ public class SchemaController extends NamespacedResourceController {
      * @return A list of schemas
      */
     @Get
-    public Single<List<SchemaList>> list(String namespace) {
+    public Mono<List<SchemaList>> list(String namespace) {
         Namespace ns = getNamespace(namespace);
         return schemaService.findAllForNamespace(ns);
     }
@@ -50,11 +49,11 @@ public class SchemaController extends NamespacedResourceController {
      * @return A schema
      */
     @Get("/{subject}")
-    public Maybe<Schema> get(String namespace, String subject) {
+    public Mono<Schema> get(String namespace, String subject) {
         Namespace ns = getNamespace(namespace);
 
         if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
-            return Maybe.empty();
+            return Mono.empty();
         }
 
         return schemaService.getLatestSubject(ns, subject);
@@ -68,19 +67,19 @@ public class SchemaController extends NamespacedResourceController {
      * @return The created schema
      */
     @Post
-    public Single<HttpResponse<Schema>> apply(String namespace, @Valid @Body Schema schema, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public Mono<HttpResponse<Schema>> apply(String namespace, @Valid @Body Schema schema, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         // Validate TopicNameStrategy
         // https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject/TopicNameStrategy.java
         if (!schema.getMetadata().getName().endsWith("-key") && !schema.getMetadata().getName().endsWith("-value")) {
-            return Single.error(new ResourceValidationException(List.of("Invalid value " + schema.getMetadata().getName() +
+            return Mono.error(new ResourceValidationException(List.of("Invalid value " + schema.getMetadata().getName() +
                     " for name: subject must end with -key or -value"), schema.getKind(), schema.getMetadata().getName()));
         }
 
         // Validate ownership
         if (!schemaService.isNamespaceOwnerOfSubject(ns, schema.getMetadata().getName())) {
-            return Single.error(new ResourceValidationException(List.of(String.format("Namespace not owner of this schema %s.",
+            return Mono.error(new ResourceValidationException(List.of(String.format("Namespace not owner of this schema %s.",
                     schema.getMetadata().getName())), schema.getKind(), schema.getMetadata().getName()));
         }
 
@@ -88,7 +87,7 @@ public class SchemaController extends NamespacedResourceController {
                 .validateSchemaCompatibility(ns.getMetadata().getCluster(), schema)
                 .flatMap(validationErrors -> {
                     if (!validationErrors.isEmpty()) {
-                        return Single.error(new ResourceValidationException(validationErrors, schema.getKind(), schema.getMetadata().getName()));
+                        return Mono.error(new ResourceValidationException(validationErrors, schema.getKind(), schema.getMetadata().getName()));
                     }
 
                     return schemaService
@@ -103,7 +102,7 @@ public class SchemaController extends NamespacedResourceController {
 
                                 if (dryrun) {
                                     // Cannot compute the "unchanged" apply status before getting the ID at registration
-                                    return Single.just(formatHttpResponse(schema,
+                                    return Mono.just(formatHttpResponse(schema,
                                             latestSubjectOptional.isPresent() ? ApplyStatus.changed : ApplyStatus.created));
                                 }
 
@@ -138,13 +137,13 @@ public class SchemaController extends NamespacedResourceController {
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{subject}")
-    public Single<HttpResponse<Void>> deleteSubject(String namespace, @PathVariable String subject,
+    public Mono<HttpResponse<Void>> deleteSubject(String namespace, @PathVariable String subject,
                                                     @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         // Validate ownership
         if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
-            return Single.error(new ResourceValidationException(List.of(String.format("Namespace not owner of this schema %s.", subject)),
+            return Mono.error(new ResourceValidationException(List.of(String.format("Namespace not owner of this schema %s.", subject)),
                     AccessControlEntry.ResourceType.SCHEMA.toString(), subject));
         }
 
@@ -153,11 +152,11 @@ public class SchemaController extends NamespacedResourceController {
                .defaultIfEmpty(Optional.empty())
                .flatMap(latestSubjectOptional -> {
                    if (latestSubjectOptional.isEmpty()) {
-                       return Single.just(HttpResponse.notFound());
+                       return Mono.just(HttpResponse.notFound());
                    }
 
                    if (dryrun) {
-                       return Single.just(HttpResponse.noContent());
+                       return Mono.just(HttpResponse.noContent());
                    }
 
                    Schema schemaToDelete = latestSubjectOptional.get();
@@ -181,11 +180,11 @@ public class SchemaController extends NamespacedResourceController {
      * @return A schema compatibility state
      */
     @Post("/{subject}/config")
-    public Single<HttpResponse<SchemaCompatibilityState>> config(String namespace, @PathVariable String subject, Schema.Compatibility compatibility) {
+    public Mono<HttpResponse<SchemaCompatibilityState>> config(String namespace, @PathVariable String subject, Schema.Compatibility compatibility) {
         Namespace ns = getNamespace(namespace);
 
         if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
-            return Single.error(new ResourceValidationException(List.of("Invalid prefix " + subject +
+            return Mono.error(new ResourceValidationException(List.of("Invalid prefix " + subject +
                     " : namespace not owner of this subject"), AccessControlEntry.ResourceType.SCHEMA.toString(), subject));
         }
 
@@ -194,7 +193,7 @@ public class SchemaController extends NamespacedResourceController {
                 .defaultIfEmpty(Optional.empty())
                 .flatMap(latestSubjectOptional -> {
                     if (latestSubjectOptional.isEmpty()) {
-                        return Single.just(HttpResponse.notFound());
+                        return Mono.just(HttpResponse.notFound());
                     }
 
                     SchemaCompatibilityState state = SchemaCompatibilityState.builder()
@@ -205,7 +204,7 @@ public class SchemaController extends NamespacedResourceController {
                             .build();
 
                     if (latestSubjectOptional.get().getSpec().getCompatibility().equals(compatibility)) {
-                        return Single.just(HttpResponse.ok(state));
+                        return Mono.just(HttpResponse.ok(state));
                     }
 
                     return schemaService

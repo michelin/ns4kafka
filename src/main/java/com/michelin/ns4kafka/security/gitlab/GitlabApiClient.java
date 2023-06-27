@@ -4,7 +4,8 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Header;
 import io.micronaut.http.client.annotation.Client;
-import io.reactivex.rxjava3.core.Flowable;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
@@ -18,7 +19,7 @@ public interface GitlabApiClient {
      * @return The groups
      */
     @Get("/api/v4/groups?min_access_level=10&sort=asc&page={page}&per_page=100")
-    Flowable<HttpResponse<List<Map<String, Object>>>> getGroupsPage(@Header(value = "PRIVATE-TOKEN") String token, int page);
+    Flux<HttpResponse<List<Map<String, Object>>>> getGroupsPage(@Header(value = "PRIVATE-TOKEN") String token, int page);
 
     /**
      * Find a user by given token
@@ -26,5 +27,5 @@ public interface GitlabApiClient {
      * @return The user information
      */
     @Get("/api/v4/user")
-    Flowable<Map<String,Object>> findUser(@Header(value = "PRIVATE-TOKEN") String token);
+    Mono<Map<String,Object>> findUser(@Header(value = "PRIVATE-TOKEN") String token);
 }

@@ -6,7 +6,6 @@ import com.michelin.ns4kafka.security.local.LocalUserAuthenticationProvider;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.authentication.AuthenticationResponse;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
-import io.reactivex.rxjava3.subscribers.TestSubscriber;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,9 +15,13 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Publisher;
+import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 
 @ExtendWith(MockitoExtension.class)
 class LocalUserAuthenticationProviderTest {
@@ -38,15 +41,11 @@ class LocalUserAuthenticationProviderTest {
         Mockito.when(securityConfig.getLocalUsers())
                 .thenReturn(List.of());
 
-        TestSubscriber<AuthenticationResponse> subscriber = new TestSubscriber<>();
         Publisher<AuthenticationResponse> authenticationResponsePublisher = localUserAuthenticationProvider.authenticate(null, credentials);
 
-        authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
-
-        subscriber.assertComplete();
-        subscriber.assertNoErrors();
-        subscriber.assertValueCount(0);
+        StepVerifier.create(authenticationResponsePublisher)
+                .consumeNextWith(Assertions::assertNull)
+                .verifyComplete();
     }
 
     @Test
@@ -59,15 +58,11 @@ class LocalUserAuthenticationProviderTest {
                         .password("invalid_sha256_signature")
                         .build()));
 
-        TestSubscriber<AuthenticationResponse> subscriber = new TestSubscriber<>();
         Publisher<AuthenticationResponse> authenticationResponsePublisher = localUserAuthenticationProvider.authenticate(null, credentials);
 
-        authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
-
-        subscriber.assertComplete();
-        subscriber.assertNoErrors();
-        subscriber.assertValueCount(0);
+        StepVerifier.create(authenticationResponsePublisher)
+                .consumeNextWith(Assertions::assertNull)
+                .verifyComplete();
     }
 
     @Test
@@ -83,21 +78,14 @@ class LocalUserAuthenticationProviderTest {
         Mockito.when(resourceBasedSecurityRule.computeRolesFromGroups(ArgumentMatchers.any()))
                 .thenReturn(List.of());
 
-        TestSubscriber<AuthenticationResponse> subscriber = new TestSubscriber<>();
         Publisher<AuthenticationResponse> authenticationResponsePublisher = localUserAuthenticationProvider.authenticate(null, credentials);
 
-        authenticationResponsePublisher.subscribe(subscriber);
-        subscriber.awaitDone(1L, TimeUnit.SECONDS);
-
-        subscriber.assertComplete();
-        subscriber.assertNoErrors();
-        subscriber.assertValueCount(1);
-
-        AuthenticationResponse actual = subscriber.values().get(0);
-        Assertions.assertTrue(actual.isAuthenticated());
-        Assertions.assertTrue(actual.getAuthentication().isPresent());
-
-        Authentication actualUserDetails = actual.getAuthentication().get();
-        Assertions.assertEquals("admin", actualUserDetails.getName());
+        StepVerifier.create(authenticationResponsePublisher)
+                .consumeNextWith(response -> {
+                    assertTrue(response.isAuthenticated());
+                    assertTrue(response.getAuthentication().isPresent());
+                    assertEquals("admin", response.getAuthentication().get().getName());
+                })
+                .verifyComplete();
     }
 }
