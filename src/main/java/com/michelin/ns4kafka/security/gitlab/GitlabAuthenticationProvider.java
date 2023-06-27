@@ -10,10 +10,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.List;
 import java.util.Map;
 
 
@@ -45,6 +43,7 @@ public class GitlabAuthenticationProvider implements AuthenticationProvider {
         log.debug("Checking authentication with token: {}", token);
 
         return gitlabAuthenticationService.findUsername(token)
+                .doOnError(throwable -> log.error("TOTO 1", throwable))
                 .onErrorResume(error -> Mono.error(new AuthenticationException(new AuthenticationFailed(AuthenticationFailureReason.CREDENTIALS_DO_NOT_MATCH))))
                 .flatMap(username -> gitlabAuthenticationService.findAllGroups(token).collectList()
                         .onErrorResume(error -> Mono.error(new AuthenticationException(new AuthenticationFailed(AuthenticationFailureReason.CREDENTIALS_DO_NOT_MATCH))))

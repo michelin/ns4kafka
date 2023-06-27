@@ -6,6 +6,7 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.schema.Schema;
 import com.michelin.ns4kafka.models.schema.SchemaList;
 import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
+import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityRequest;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
@@ -168,8 +169,9 @@ public class SchemaService {
         if (compatibility.equals(Schema.Compatibility.GLOBAL)) {
             return schemaRegistryClient.deleteCurrentCompatibilityBySubject(namespace.getMetadata().getCluster(), schema.getMetadata().getName());
         } else {
-            return schemaRegistryClient.updateSubjectCompatibility(namespace.getMetadata().getCluster(), schema.getMetadata().getName(),
-                    compatibility.toString());
+            return schemaRegistryClient.updateSubjectCompatibility(namespace.getMetadata().getCluster(),
+                    schema.getMetadata().getName(), SchemaCompatibilityRequest.builder()
+                            .compatibility(compatibility.toString()).build());
         }
     }
 

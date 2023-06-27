@@ -176,7 +176,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
      */
     @Test
     void registerSchemaIncompatibility() {
-        // Register schema, first name is non optional
+        // Register schema, first name is non-optional
         Schema schema = Schema.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-subject1-value")
@@ -211,7 +211,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         Assertions.assertEquals(Schema.Compatibility.FORWARD, updatedConfig.compatibilityLevel());
 
-        // Register incompatible schema v2, removing non optional "first name" field
+        // Register incompatible schema v2, removing non-optional "first name" field
         Schema incompatibleSchema = Schema.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-subject1-value")

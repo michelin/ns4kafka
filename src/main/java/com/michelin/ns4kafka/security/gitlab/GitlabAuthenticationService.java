@@ -40,7 +40,8 @@ public class GitlabAuthenticationService {
      */
     public Mono<String> findUsername(String token) {
         return gitlabApiClient.findUser(token)
-            .map(stringObjectMap -> stringObjectMap.get("email").toString());
+                .doOnError(throwable -> log.error("TOTO 2", throwable))
+                .map(stringObjectMap -> stringObjectMap.get("email").toString());
     }
 
     /**

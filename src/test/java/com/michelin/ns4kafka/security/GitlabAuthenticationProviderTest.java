@@ -128,7 +128,7 @@ class GitlabAuthenticationProviderTest {
         AuthenticationRequest<String, String> authenticationRequest = new UsernamePasswordCredentials("admin","f4k3_70k3n");
 
         when(gitlabAuthenticationService.findUsername(authenticationRequest.getSecret()))
-                .thenThrow(new HttpClientResponseException("403 Unauthorized", HttpResponse.unauthorized()));
+                .thenReturn(Mono.error(new HttpClientResponseException("403 Unauthorized", HttpResponse.unauthorized())));
 
         Publisher<AuthenticationResponse> authenticationResponsePublisher = gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
 
