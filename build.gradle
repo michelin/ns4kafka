@@ -29,7 +29,6 @@ dependencies {
     implementation("jakarta.annotation:jakarta.annotation-api")
     implementation("io.micronaut.openapi:micronaut-openapi")
     implementation("io.micronaut.reactor:micronaut-reactor")
-    implementation("io.micronaut.openapi:micronaut-openapi")
 
     compileOnly("org.projectlombok:lombok")
     compileOnly("com.google.code.findbugs:jsr305") // https://github.com/micronaut-projects/micronaut-core/pull/5691
@@ -37,7 +36,6 @@ dependencies {
     runtimeOnly("ch.qos.logback:logback-classic")
 
     testImplementation("org.mockito:mockito-core")
-    testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:testcontainers")
     testImplementation("org.testcontainers:kafka") {
