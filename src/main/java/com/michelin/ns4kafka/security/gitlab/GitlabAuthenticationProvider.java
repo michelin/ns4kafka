@@ -43,7 +43,6 @@ public class GitlabAuthenticationProvider implements AuthenticationProvider {
         log.debug("Checking authentication with token: {}", token);
 
         return gitlabAuthenticationService.findUsername(token)
-                .doOnError(throwable -> log.error("TOTO 1", throwable))
                 .onErrorResume(error -> Mono.error(new AuthenticationException(new AuthenticationFailed(AuthenticationFailureReason.CREDENTIALS_DO_NOT_MATCH))))
                 .flatMap(username -> gitlabAuthenticationService.findAllGroups(token).collectList()
                         .onErrorResume(error -> Mono.error(new AuthenticationException(new AuthenticationFailed(AuthenticationFailureReason.CREDENTIALS_DO_NOT_MATCH))))

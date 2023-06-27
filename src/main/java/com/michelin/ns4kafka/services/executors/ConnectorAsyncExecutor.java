@@ -8,10 +8,7 @@ import com.michelin.ns4kafka.services.ConnectClusterService;
 import com.michelin.ns4kafka.services.clients.connect.KafkaConnectClient;
 import com.michelin.ns4kafka.services.clients.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.services.clients.connect.entities.ConnectorStatus;
-import com.michelin.ns4kafka.services.clients.connect.entities.ServerInfo;
 import io.micronaut.context.annotation.EachBean;
-import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
 import jakarta.inject.Inject;
@@ -63,14 +60,6 @@ public class ConnectorAsyncExecutor {
                 .map(connectCluster -> connectCluster.getMetadata().getName()).toList();
 
         Stream.concat(kafkaAsyncExecutorConfig.getConnects().keySet().stream(), selfDeclaredConnectClusterNames.stream())
-                .filter(connectCluster -> {
-                    try {
-                        HttpResponse<ServerInfo> response = kafkaConnectClient.version(kafkaAsyncExecutorConfig.getName(), connectCluster);
-                        return response.status().equals(HttpStatus.OK);
-                    } catch (Exception e) {
-                        return false;
-                    }
-                })
                 .forEach(this::synchronizeConnectCluster);
     }
 
