@@ -84,6 +84,44 @@ class AkhqClaimProviderControllerV3Test {
         Assertions.assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
         Assertions.assertEquals("registry-read", groups.get(1).getRole());
     }
+    @Test
+    void generateClaimMultipleSupportGroups() {
+        Namespace ns1Cluster1 = Namespace.builder()
+                .metadata(ObjectMeta.builder().name("ns1").cluster("cluster1")
+                        .labels(Map.of("support-group", "GP-PROJECT1-DEV,GP-PROJECT1-SUPPORT,GP-PROJECT1-OPS"))
+                        .build())
+                .build();
+
+        AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder().cluster("cluster1").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .resource("project1_t.")
+                        .build())
+                .build();
+
+        akhqClaimProviderController.managedClusters = List.of(new KafkaAsyncExecutorConfig("cluster1"), new KafkaAsyncExecutorConfig("cluster2"));
+        Mockito.when(namespaceService.listAll())
+                .thenReturn(List.of(ns1Cluster1));
+        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1))
+                .thenReturn(List.of(ace1Ns1Cluster1));
+
+        AkhqClaimProviderController.AKHQClaimRequest request = AkhqClaimProviderController.AKHQClaimRequest.builder()
+                .groups(List.of("GP-PROJECT1-SUPPORT"))
+                .build();
+
+        AkhqClaimProviderController.AKHQClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+
+        Assertions.assertEquals(actual.getGroups().size(), 1);
+
+        List<AkhqClaimProviderController.AKHQClaimResponseV3.Group> groups = actual.getGroups().get("group");
+        Assertions.assertEquals(2, groups.size());
+        Assertions.assertEquals("topic-read", groups.get(0).getRole());
+        Assertions.assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
+        Assertions.assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
+        Assertions.assertEquals("registry-read", groups.get(1).getRole());
+    }
 
     @Test
     void generateClaimNoPermissions() {

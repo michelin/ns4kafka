@@ -137,11 +137,14 @@ public class AkhqClaimProviderController {
         relatedACL.forEach(acl -> {
             String escapedString = Pattern.quote(acl.getSpec().getResource());
             String patternRegex;
+
+            // Build the pattern regex based on the pattern type and the resource
             if (acl.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.PREFIXED) {
                 patternRegex = String.format("^%s.*$", escapedString);
             } else {
                 patternRegex = String.format("^%s$", escapedString);
             }
+            // Build the cluster regex
             String patternCluster = String.format("^%s$", acl.getMetadata().getCluster());
 
             String role = config.getNewRoles().get(acl.getSpec().getResourceType());
@@ -185,7 +188,7 @@ public class AkhqClaimProviderController {
     private List<AKHQClaimResponseV3.Group> optimizeV3Claim(Map<String, AKHQClaimResponseV3.Group> bindings) {
         List<AKHQClaimResponseV3.Group> result = new ArrayList<>();
 
-        // Optimize clusters and patterns
+        // Extract the clusters name from the managedClusters configuration
         List<String> clusters = managedClusters.stream().map(c -> String.format("^%s$", c.getName())).toList();
 
         bindings.forEach((key, value) -> {
@@ -218,7 +221,11 @@ public class AkhqClaimProviderController {
         return namespaceService.listAll()
                 .stream()
                 .filter(namespace -> namespace.getMetadata().getLabels() != null &&
-                        groups.contains(namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_")))
+                        // Split by comma the groupLabel to support multiple groups and compare with user groups
+                        !Collections.disjoint(groups,
+                                List.of(namespace.getMetadata().getLabels()
+                                        .getOrDefault(config.getGroupLabel(), "_")
+                                        .split(","))))
                 .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace).stream())
                 .collect(Collectors.toList());
     }
