@@ -30,6 +30,11 @@ public class SchemaRegistryClient {
     @Inject
     private List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigs;
 
+    /**
+     * List subjects
+     * @param kafkaCluster The Kafka cluster
+     * @return A list of subjects
+     */
     public Mono<List<String>> getSubjects(String kafkaCluster) {
         KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/subjects")))
@@ -37,6 +42,12 @@ public class SchemaRegistryClient {
         return Mono.from(httpClient.retrieve(request, Argument.listOf(String.class)));
     }
 
+    /**
+     * Get a latest version of a subject
+     * @param kafkaCluster The Kafka cluster
+     * @param subject The subject
+     * @return A version of a subject
+     */
     public Mono<SchemaResponse> getLatestSubject(String kafkaCluster, String subject) {
         KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/subjects/" + subject + "/versions/latest")))
@@ -46,6 +57,13 @@ public class SchemaRegistryClient {
                         ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Mono.empty() : Mono.error(ex));
     }
 
+    /**
+     * Register a subject and a schema
+     * @param kafkaCluster The Kafka cluster
+     * @param subject The subject
+     * @param body The schema
+     * @return The response of the registration
+     */
     public Mono<SchemaResponse> register(String kafkaCluster, String subject, SchemaRequest body) {
         KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.POST(URI.create(StringUtils.prependUri(config.getUrl(), "/subjects/" + subject + "/versions")), body)
@@ -53,6 +71,13 @@ public class SchemaRegistryClient {
         return Mono.from(httpClient.retrieve(request, SchemaResponse.class));
     }
 
+    /**
+     * Delete a subject
+     * @param kafkaCluster The Kafka cluster
+     * @param subject The subject
+     * @param hardDelete Should the subject be hard deleted or not
+     * @return The versions of the deleted subject
+     */
     public Mono<Integer[]> deleteSubject(String kafkaCluster, String subject, boolean hardDelete) {
         KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         MutableHttpRequest<?> request = HttpRequest.DELETE(URI.create(StringUtils.prependUri(config.getUrl(), "/subjects/" + subject + "?permanent=" + hardDelete)))

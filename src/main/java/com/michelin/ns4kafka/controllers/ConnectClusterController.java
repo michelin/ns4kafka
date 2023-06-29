@@ -17,6 +17,7 @@ import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
+import reactor.core.publisher.Mono;
 
 import javax.validation.Valid;
 import java.time.Instant;
@@ -65,7 +66,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @return The created Kafka Connect cluster
      */
     @Post("/{?dryrun}")
-    HttpResponse<ConnectCluster> apply(String namespace, @Body @Valid ConnectCluster connectCluster, @QueryValue(defaultValue = "false") boolean dryrun) {
+    Mono<HttpResponse<ConnectCluster>> apply(String namespace, @Body @Valid ConnectCluster connectCluster, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         List<String> validationErrors = new ArrayList<>();
@@ -73,30 +74,32 @@ public class ConnectClusterController extends NamespacedResourceController {
             validationErrors.add(String.format("Namespace not owner of this Connect cluster %s.", connectCluster.getMetadata().getName()));
         }
 
-        validationErrors.addAll(connectClusterService.validateConnectClusterCreation(connectCluster));
+        return connectClusterService.validateConnectClusterCreation(connectCluster)
+                .flatMap(errors -> {
+                    validationErrors.addAll(errors);
+                    if (!validationErrors.isEmpty()) {
+                        return Mono.error(new ResourceValidationException(validationErrors, connectCluster.getKind(), connectCluster.getMetadata().getName()));
+                    }
 
-        if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors, connectCluster.getKind(), connectCluster.getMetadata().getName());
-        }
+                    connectCluster.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                    connectCluster.getMetadata().setCluster(ns.getMetadata().getCluster());
+                    connectCluster.getMetadata().setNamespace(ns.getMetadata().getName());
 
-        connectCluster.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-        connectCluster.getMetadata().setCluster(ns.getMetadata().getCluster());
-        connectCluster.getMetadata().setNamespace(ns.getMetadata().getName());
+                    Optional<ConnectCluster> existingConnectCluster = connectClusterService.findByNamespaceAndNameOwner(ns, connectCluster.getMetadata().getName());
+                    if (existingConnectCluster.isPresent() && existingConnectCluster.get().equals(connectCluster)) {
+                        return Mono.just(formatHttpResponse(existingConnectCluster.get(), ApplyStatus.unchanged));
+                    }
 
-        Optional<ConnectCluster> existingConnectCluster = connectClusterService.findByNamespaceAndNameOwner(ns, connectCluster.getMetadata().getName());
-        if (existingConnectCluster.isPresent() && existingConnectCluster.get().equals(connectCluster)) {
-            return formatHttpResponse(existingConnectCluster.get(), ApplyStatus.unchanged);
-        }
+                    ApplyStatus status = existingConnectCluster.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
+                    if (dryrun) {
+                        return Mono.just(formatHttpResponse(connectCluster, status));
+                    }
 
-        ApplyStatus status = existingConnectCluster.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
-        if (dryrun) {
-            return formatHttpResponse(connectCluster, status);
-        }
+                    sendEventLog(connectCluster.getKind(), connectCluster.getMetadata(), status, existingConnectCluster.<Object>map(ConnectCluster::getSpec).orElse(null),
+                            connectCluster.getSpec());
 
-        sendEventLog(connectCluster.getKind(), connectCluster.getMetadata(), status, existingConnectCluster.<Object>map(ConnectCluster::getSpec).orElse(null),
-                connectCluster.getSpec());
-
-        return formatHttpResponse(connectClusterService.create(connectCluster), status);
+                    return Mono.just(formatHttpResponse(connectClusterService.create(connectCluster), status));
+                });
     }
 
     /**

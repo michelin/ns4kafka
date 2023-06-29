@@ -9,11 +9,11 @@ import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
 import com.michelin.ns4kafka.models.connect.cluster.VaultResponse;
 import com.michelin.ns4kafka.repositories.ConnectClusterRepository;
 import com.michelin.ns4kafka.services.clients.connect.KafkaConnectClient;
+import com.michelin.ns4kafka.services.clients.connect.entities.ServerInfo;
 import com.michelin.ns4kafka.utils.EncryptionUtils;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.HttpClient;
-import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -23,13 +23,17 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,7 +57,6 @@ class ConnectClusterServiceTest {
     ConnectClusterService connectClusterService;
 
     @Mock
-    @Client
     HttpClient httpClient;
 
     /**
@@ -397,13 +400,15 @@ class ConnectClusterServiceTest {
         KafkaAsyncExecutorConfig kafka = new KafkaAsyncExecutorConfig("local");
         kafka.setConnects(Map.of("test-connect", new KafkaAsyncExecutorConfig.ConnectConfig()));
         when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of(kafka));
-        when(httpClient.exchange(any(MutableHttpRequest.class)))
-                .thenReturn(Mono.just(HttpResponse.ok()));
+        when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
+                .thenReturn(Mono.just(ServerInfo.builder().build()));
 
-        List<String> errors = connectClusterService.validateConnectClusterCreation(connectCluster);
-
-        Assertions.assertEquals(1L, errors.size());
-        Assertions.assertEquals("A Kafka Connect is already defined globally with the name \"test-connect\". Please provide a different name.", errors.get(0));
+        StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
+                .consumeNextWith(errors -> {
+                    assertEquals(1L, errors.size());
+                    assertEquals("A Kafka Connect is already defined globally with the name \"test-connect\". Please provide a different name.", errors.get(0));
+                })
+                .verifyComplete();
     }
 
     /**
@@ -422,12 +427,15 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of());
-        when(httpClient.exchange(any(MutableHttpRequest.class))).thenReturn(Mono.just(HttpResponse.serverError()));
+        when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
+                .thenReturn(Mono.error(new HttpClientException("Error")));
 
-        List<String> errors = connectClusterService.validateConnectClusterCreation(connectCluster);
-
-        Assertions.assertEquals(1L, errors.size());
-        Assertions.assertEquals("The Kafka Connect \"test-connect\" is not healthy (HTTP code 500).", errors.get(0));
+        StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
+                .consumeNextWith(errors -> {
+                    assertEquals(1L, errors.size());
+                    assertEquals("The Kafka Connect \"test-connect\" is not healthy (Error).", errors.get(0));
+                })
+                .verifyComplete();
     }
 
     /**
@@ -445,33 +453,12 @@ class ConnectClusterServiceTest {
 
         when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of());
 
-        List<String> errors = connectClusterService.validateConnectClusterCreation(connectCluster);
-
-        Assertions.assertEquals(1L, errors.size());
-        Assertions.assertEquals("The Kafka Connect \"test-connect\" has a malformed URL \"malformed-url\".", errors.get(0));
-    }
-
-    /**
-     * Test validate connect cluster creation throws http client exception
-     */
-    @Test
-    void validateConnectClusterCreationHttpClientException() {
-        ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(ObjectMeta.builder().name("test-connect")
-                        .build())
-                .spec(ConnectCluster.ConnectClusterSpec.builder()
-                        .url("https://after")
-                        .build())
-                .build();
-
-        when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of());
-        when(httpClient.exchange(any(MutableHttpRequest.class)))
-                .thenThrow(new HttpClientException("Error"));
-
-        List<String> errors = connectClusterService.validateConnectClusterCreation(connectCluster);
-
-        Assertions.assertEquals(1L, errors.size());
-        Assertions.assertEquals("The following error occurred trying to check the Kafka Connect \"test-connect\" health: Error.", errors.get(0));
+        StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
+                .consumeNextWith(errors -> {
+                    assertEquals(1L, errors.size());
+                    assertEquals("The Kafka Connect \"test-connect\" has a malformed URL \"malformed-url\".", errors.get(0));
+                })
+                .verifyComplete();
     }
 
     /**
@@ -491,12 +478,15 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of());
-        when(httpClient.exchange(any(MutableHttpRequest.class))).thenReturn(Mono.just(HttpResponse.ok()));
+        when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
+                .thenReturn(Mono.just(ServerInfo.builder().build()));
 
-        List<String> errors = connectClusterService.validateConnectClusterCreation(connectCluster);
-
-        Assertions.assertEquals(1L, errors.size());
-        Assertions.assertEquals("The Connect cluster \"test-connect\" \"aes256Key\" and \"aes256Salt\" specs are required to activate the encryption.", errors.get(0));
+        StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
+                .consumeNextWith(errors -> {
+                    assertEquals(1L, errors.size());
+                    assertEquals("The Connect cluster \"test-connect\" \"aes256Key\" and \"aes256Salt\" specs are required to activate the encryption.", errors.get(0));
+                })
+                .verifyComplete();
     }
 
     /**
@@ -516,12 +506,44 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of());
-        when(httpClient.exchange(any(MutableHttpRequest.class))).thenReturn(Mono.just(HttpResponse.ok()));
+        when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
+                .thenReturn(Mono.just(ServerInfo.builder().build()));
 
-        List<String> errors = connectClusterService.validateConnectClusterCreation(connectCluster);
+        StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
+                .consumeNextWith(errors -> {
+                    assertEquals(1L, errors.size());
+                    assertEquals("The Connect cluster \"test-connect\" \"aes256Key\" and \"aes256Salt\" specs are required to activate the encryption.", errors.get(0));
+                })
+                .verifyComplete();
+    }
 
-        Assertions.assertEquals(1L, errors.size());
-        Assertions.assertEquals("The Connect cluster \"test-connect\" \"aes256Key\" and \"aes256Salt\" specs are required to activate the encryption.", errors.get(0));
+    /**
+     * Test validate connect cluster creation when Connect cluster is down and encryption key is missing
+     */
+    @Test
+    void validateConnectClusterCreationDownWithMissingKey() {
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("test-connect")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .url("https://after")
+                        .username("username")
+                        .password("password")
+                        .aes256Salt("aes256Salt")
+                        .build())
+                .build();
+
+        when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of());
+        when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
+                .thenReturn(Mono.error(new HttpClientException("Error")));
+
+        StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
+                .consumeNextWith(errors -> {
+                    assertEquals(2L, errors.size());
+                    assertTrue(errors.contains("The Kafka Connect \"test-connect\" is not healthy (Error)."));
+                    assertTrue(errors.contains("The Connect cluster \"test-connect\" \"aes256Key\" and \"aes256Salt\" specs are required to activate the encryption."));
+                })
+                .verifyComplete();
     }
 
     /**

@@ -117,7 +117,7 @@ class SchemaServiceTest {
         Namespace namespace = buildNamespace();
         SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
 
-        //when(schemaRegistryClient.getLatestSubject(namespace.getMetadata().getCluster(), "prefix.schema-one")).thenReturn(Mono.just(buildSchemaResponse("prefix.schema-one")));
+        when(schemaRegistryClient.getLatestSubject(namespace.getMetadata().getCluster(), "prefix.schema-one")).thenReturn(Mono.just(buildSchemaResponse("prefix.schema-one")));
         when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any())).thenReturn(Mono.just(compatibilityResponse));
 
         StepVerifier.create(schemaService.getLatestSubject(namespace, "prefix.schema-one"))

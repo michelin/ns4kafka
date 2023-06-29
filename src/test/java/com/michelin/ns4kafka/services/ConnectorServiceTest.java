@@ -811,7 +811,7 @@ class ConnectorServiceTest {
                 assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect2")));
                 assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns1-connect1")));
                 assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns1-connect2")));
-                assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns2-connect1")));
+                assertTrue(response.stream().noneMatch(connector -> connector.getMetadata().getName().equals("ns2-connect1")));
             })
             .verifyComplete();
     }
@@ -995,8 +995,8 @@ class ConnectorServiceTest {
                 assertEquals(2, response.size());
                 assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect2")));
                 assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns1-connect1")));
-                assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")));
-                assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns2-connect1")));
+                assertTrue(response.stream().noneMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")));
+                assertTrue(response.stream().noneMatch(connector -> connector.getMetadata().getName().equals("ns2-connect1")));
             })
             .verifyComplete();
     }

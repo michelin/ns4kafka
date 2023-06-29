@@ -21,6 +21,7 @@ import io.micronaut.http.client.exceptions.HttpClientException;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -201,7 +202,7 @@ public class ConnectClusterService {
      * @param connectCluster The connect worker to validate
      * @return A list of validation errors
      */
-    public List<String> validateConnectClusterCreation(ConnectCluster connectCluster) {
+    public Mono<List<String>> validateConnectClusterCreation(ConnectCluster connectCluster) {
         List<String> errors = new ArrayList<>();
 
         if (kafkaAsyncExecutorConfig.stream().anyMatch(cluster ->
@@ -210,26 +211,26 @@ public class ConnectClusterService {
         }
 
         try {
-            MutableHttpRequest<?> request = HttpRequest.GET(new URL(connectCluster.getSpec().getUrl()) + "/connectors?expand=info&expand=status");
-            if (StringUtils.hasText(connectCluster.getSpec().getUsername()) && StringUtils.hasText(connectCluster.getSpec().getPassword())) {
-                request.basicAuth(connectCluster.getSpec().getUsername(), connectCluster.getSpec().getPassword());
-            }
-            HttpResponse<?> response = httpClient.toBlocking().exchange(request);
-            if (!response.getStatus().equals(HttpStatus.OK)) {
-                errors.add(String.format("The Kafka Connect \"%s\" is not healthy (HTTP code %s).", connectCluster.getMetadata().getName(), response.getStatus().getCode()));
-            }
+            MutableHttpRequest<?> request = HttpRequest.GET(new URL(StringUtils.prependUri(connectCluster.getSpec().getUrl(), "/connectors?expand=info&expand=status")).toString())
+                    .basicAuth(connectCluster.getSpec().getUsername(), connectCluster.getSpec().getPassword());
+
+            Mono<ServerInfo> httpResponse = Mono.from(httpClient.retrieve(request, ServerInfo.class));
+
+            return httpResponse
+                    .doOnError(error -> errors.add(String.format("The Kafka Connect \"%s\" is not healthy (%s).", connectCluster.getMetadata().getName(), error.getMessage())))
+                    .doOnEach(signal -> {
+                        // If the key or salt is defined, but one of them is missing
+                        if ((signal.isOnError() || signal.isOnNext()) && (StringUtils.hasText(connectCluster.getSpec().getAes256Key()) ^ StringUtils.hasText(connectCluster.getSpec().getAes256Salt()))) {
+                                errors.add(String.format("The Connect cluster \"%s\" \"aes256Key\" and \"aes256Salt\" specs are required to activate the encryption.", connectCluster.getMetadata().getName()));
+
+                        }
+                    })
+                    .map(response -> errors)
+                    .onErrorReturn(errors);
         } catch (MalformedURLException e) {
             errors.add(String.format("The Kafka Connect \"%s\" has a malformed URL \"%s\".", connectCluster.getMetadata().getName(), connectCluster.getSpec().getUrl()));
-        } catch (HttpClientException e) {
-            errors.add(String.format("The following error occurred trying to check the Kafka Connect \"%s\" health: %s.", connectCluster.getMetadata().getName(), e.getMessage()));
+            return Mono.just(errors);
         }
-
-        // If properties "aes256Key" or aes256Salt is present, both properties are required.
-        if (StringUtils.hasText(connectCluster.getSpec().getAes256Key()) ^ StringUtils.hasText(connectCluster.getSpec().getAes256Salt())) {
-            errors.add(String.format("The Connect cluster \"%s\" \"aes256Key\" and \"aes256Salt\" specs are required to activate the encryption.", connectCluster.getMetadata().getName()));
-        }
-
-        return errors;
     }
 
     /**

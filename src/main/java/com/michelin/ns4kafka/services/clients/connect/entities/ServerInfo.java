@@ -17,6 +17,8 @@
 package com.michelin.ns4kafka.services.clients.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
 
+@Builder
 public record ServerInfo(@JsonProperty("version") String version, @JsonProperty("commit") String commit, @JsonProperty("kafka_cluster_id") String kafkaClusterId) {
 }

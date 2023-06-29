@@ -4,9 +4,7 @@ import com.michelin.ns4kafka.config.SecurityConfig;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpRequest;
-import io.micronaut.security.authentication.AuthenticationProvider;
-import io.micronaut.security.authentication.AuthenticationRequest;
-import io.micronaut.security.authentication.AuthenticationResponse;
+import io.micronaut.security.authentication.*;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
@@ -36,11 +34,14 @@ public class LocalUserAuthenticationProvider implements AuthenticationProvider {
                     .filter(localUser -> localUser.getUsername().equals(username))
                     .filter(localUser -> localUser.isValidPassword(password))
                     .findFirst();
+
             if (authenticatedUser.isPresent()) {
                 AuthenticationResponse user = AuthenticationResponse.success(username,
                         resourceBasedSecurityRule.computeRolesFromGroups(authenticatedUser.get().getGroups()),
                         Map.of("groups", authenticatedUser.get().getGroups()));
                 emitter.success(user);
+            } else {
+                emitter.error(new AuthenticationException(new AuthenticationFailed(AuthenticationFailureReason.CREDENTIALS_DO_NOT_MATCH)));
             }
         });
     }

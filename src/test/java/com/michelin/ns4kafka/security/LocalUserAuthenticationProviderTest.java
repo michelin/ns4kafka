@@ -3,10 +3,9 @@ package com.michelin.ns4kafka.security;
 import com.michelin.ns4kafka.config.SecurityConfig;
 import com.michelin.ns4kafka.security.local.LocalUser;
 import com.michelin.ns4kafka.security.local.LocalUserAuthenticationProvider;
-import io.micronaut.security.authentication.Authentication;
+import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthenticationResponse;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
@@ -18,10 +17,9 @@ import org.reactivestreams.Publisher;
 import reactor.test.StepVerifier;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertIterableEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 class LocalUserAuthenticationProviderTest {
@@ -44,8 +42,8 @@ class LocalUserAuthenticationProviderTest {
         Publisher<AuthenticationResponse> authenticationResponsePublisher = localUserAuthenticationProvider.authenticate(null, credentials);
 
         StepVerifier.create(authenticationResponsePublisher)
-                .consumeNextWith(Assertions::assertNull)
-                .verifyComplete();
+                .consumeErrorWith(error -> assertEquals(AuthenticationException.class, error.getClass()))
+                .verify();
     }
 
     @Test
@@ -58,11 +56,12 @@ class LocalUserAuthenticationProviderTest {
                         .password("invalid_sha256_signature")
                         .build()));
 
-        Publisher<AuthenticationResponse> authenticationResponsePublisher = localUserAuthenticationProvider.authenticate(null, credentials);
+        Publisher<AuthenticationResponse> authenticationResponsePublisher = localUserAuthenticationProvider.authenticate(null,
+                credentials);
 
         StepVerifier.create(authenticationResponsePublisher)
-                .consumeNextWith(Assertions::assertNull)
-                .verifyComplete();
+                .consumeErrorWith(error -> assertEquals(AuthenticationException.class, error.getClass()))
+                .verify();
     }
 
     @Test
@@ -75,6 +74,7 @@ class LocalUserAuthenticationProviderTest {
                         .password("8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918")
                         .groups(List.of("admin"))
                         .build()));
+
         Mockito.when(resourceBasedSecurityRule.computeRolesFromGroups(ArgumentMatchers.any()))
                 .thenReturn(List.of());
 
