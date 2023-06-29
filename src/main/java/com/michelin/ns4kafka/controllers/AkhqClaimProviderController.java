@@ -82,7 +82,7 @@ public class AkhqClaimProviderController {
     }
 
     /**
-     * List AKHQ claims (v020 and higher)
+     * List AKHQ claims (v020 to 024)
      * @param request The AKHQ request
      * @return The AKHQ claims
      */
@@ -112,7 +112,7 @@ public class AkhqClaimProviderController {
     }
 
     /**
-     * Generate AKHQ claims for AKHQ v0.25 and later
+     * List AKHQ claims (v025 and higher)
      *
      * @param request The AKHQ request
      * @return The AKHQ claims
