@@ -21,16 +21,15 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
-@Tag(name = "Consumer Groups")
+@Tag(name = "Consumer Groups", description = "Manage the consumer groups.")
 @Controller("/api/namespaces/{namespace}/consumer-groups")
 public class ConsumerGroupController extends NamespacedResourceController {
     @Inject
     ConsumerGroupService consumerGroupService;
 
     /**
-     * Reset offsets for a given topic and consumer group
+     * Reset offsets by topic and consumer group
      * @param namespace The namespace
      * @param consumerGroup The consumer group
      * @param consumerGroupResetOffsets The information about how to reset

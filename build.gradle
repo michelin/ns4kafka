@@ -1,8 +1,8 @@
 plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
-    id("io.micronaut.application") version "3.7.9"
+    id("io.micronaut.application") version "3.7.10"
     id("jacoco")
-    id("org.sonarqube") version "4.2.0.3129"
+    id("org.sonarqube") version "4.2.1.3168"
     id("pl.allegro.tech.build.axion-release") version "1.15.3"
 }
 
@@ -32,6 +32,7 @@ dependencies {
     implementation("io.micronaut.openapi:micronaut-openapi")
 
     compileOnly("org.projectlombok:lombok")
+    compileOnly("com.google.code.findbugs:jsr305") // https://github.com/micronaut-projects/micronaut-core/pull/5691
 
     runtimeOnly("ch.qos.logback:logback-classic")
 
@@ -43,7 +44,7 @@ dependencies {
             strictly '1.15.3'
         }
     }
-    testImplementation("org.mockito:mockito-junit-jupiter:5.3.1")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.4.0")
 
     testAnnotationProcessor("org.projectlombok:lombok")
     testCompileOnly("org.projectlombok:lombok")

@@ -19,19 +19,24 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 
-@Tag(name = "Users")
+@Tag(name = "Users", description = "Manage the users.")
 @Controller(value = "/api/namespaces/{namespace}/users")
 public class UserController extends NamespacedResourceController {
     @Inject
     ApplicationContext applicationContext;
 
-    // test flag for testing only, don't use it.
+    /**
+     * Reset a password
+     * @param namespace The namespace
+     * @param user The user
+     * @return The new password
+     */
     @Post("/{user}/reset-password")
     public HttpResponse<KafkaUserResetPassword> resetPassword(String namespace, String user) {
         Namespace ns = getNamespace(namespace);
 
         if(!ns.getSpec().getKafkaUser().equals(user)){
-            throw new ResourceValidationException(List.of(String.format("Invalid user %s : Doesn't belong to namespace %s",user, namespace)), "KafkaUserResetPassword", user);
+            throw new ResourceValidationException(List.of(String.format("Invalid user %s : Doesn't belong to namespace %s", user, namespace)), "KafkaUserResetPassword", user);
         }
 
         UserAsyncExecutor userAsyncExecutor = applicationContext.getBean(UserAsyncExecutor.class, Qualifiers.byName(ns.getMetadata().getCluster()));

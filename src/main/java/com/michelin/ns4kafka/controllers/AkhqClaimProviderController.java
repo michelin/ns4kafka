@@ -10,6 +10,7 @@ import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.security.rules.SecurityRule;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
 import lombok.Builder;
 import lombok.Data;
@@ -21,6 +22,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+@Tag(name = "AKHQ", description = "Manage the AKHQ endpoints.")
 @RolesAllowed(SecurityRule.IS_ANONYMOUS)
 @Controller("/akhq-claim")
 public class AkhqClaimProviderController {
@@ -41,8 +43,7 @@ public class AkhqClaimProviderController {
     List<KafkaAsyncExecutorConfig> managedClusters;
 
     /**
-     * Generate AKHQ claims for AKHQ v0.19 and prior
-     *
+     * List AKHQ claims (v019 and prior)
      * @param request The AKHQ request
      * @return The AKHQ claims
      */
@@ -81,8 +82,7 @@ public class AkhqClaimProviderController {
     }
 
     /**
-     * Generate AKHQ claims for AKHQ v0.20 and later
-     *
+     * List AKHQ claims (v020 and higher)
      * @param request The AKHQ request
      * @return The AKHQ claims
      */
@@ -232,8 +232,7 @@ public class AkhqClaimProviderController {
 
     /**
      * Compute AKHQ regexes from given ACLs
-     *
-     * @param acls         The ACLs
+     * @param acls The ACLs
      * @param resourceType The resource type
      * @return A list of regex
      */

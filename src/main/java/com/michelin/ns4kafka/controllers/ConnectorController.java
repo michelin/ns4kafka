@@ -24,7 +24,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-@Tag(name = "Connectors")
+@Tag(name = "Connectors", description = "Manage the connectors.")
 @Controller(value = "/api/namespaces/{namespace}/connectors")
 @ExecuteOn(TaskExecutors.IO)
 public class ConnectorController extends NamespacedResourceController {
@@ -37,7 +37,7 @@ public class ConnectorController extends NamespacedResourceController {
     ResourceQuotaService resourceQuotaService;
 
     /**
-     * Get all the connectors by namespace
+     * List connectors by namespace
      * @param namespace The namespace
      * @return A list of connectors
      */
@@ -58,7 +58,7 @@ public class ConnectorController extends NamespacedResourceController {
     }
 
     /**
-     * Delete all connectors under the given name
+     * Delete a connector
      * @param namespace The current namespace
      * @param connector The current connector name to delete
      * @param dryrun Run in dry mode or not
@@ -97,7 +97,7 @@ public class ConnectorController extends NamespacedResourceController {
     }
 
     /**
-     * Publish a connector
+     * Create a connector
      * @param namespace The namespace
      * @param connector  The connector to create
      * @param dryrun Does the creation is a dry run

@@ -21,7 +21,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-@Tag(name = "Resource Quotas")
+@Tag(name = "Quotas", description = "Manage the resource quotas.")
 @Controller(value = "/api/namespaces/{namespace}/resource-quotas")
 @ExecuteOn(TaskExecutors.IO)
 public class ResourceQuotaController extends NamespacedResourceController {
@@ -29,9 +29,9 @@ public class ResourceQuotaController extends NamespacedResourceController {
     ResourceQuotaService resourceQuotaService;
 
     /**
-     * Get all the quotas by namespace
+     * List quotas by namespace
      * @param namespace The namespace
-     * @return Listed quotas
+     * @return A list of quotas
      */
     @Get
     public List<ResourceQuotaResponse> list(String namespace) {
@@ -44,7 +44,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * Get a quota by namespace and name
      * @param namespace The name
      * @param quota The quota name
-     * @return Listed quotas
+     * @return A quota
      */
     @Get("/{quota}")
     public Optional<ResourceQuotaResponse> get(String namespace, String quota) {
@@ -57,11 +57,11 @@ public class ResourceQuotaController extends NamespacedResourceController {
     }
 
     /**
-     * Publish a resource quota
+     * Create a quota
      * @param namespace The namespace
      * @param quota The resource quota
      * @param dryrun Does the creation is a dry run
-     * @return The created role binding
+     * @return The created quota
      */
     @Post("{?dryrun}")
     public HttpResponse<ResourceQuota> apply(String namespace, @Body @Valid ResourceQuota quota, @QueryValue(defaultValue = "false") boolean dryrun){
@@ -93,7 +93,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
     }
 
     /**
-     * Delete a resource quota
+     * Delete a quota
      * @param namespace The namespace
      * @param name The resource quota
      * @param dryrun Is dry run mode or not ?

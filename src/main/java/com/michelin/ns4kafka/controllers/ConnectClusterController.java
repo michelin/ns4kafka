@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@Tag(name = "Connect Clusters")
+@Tag(name = "Connect Clusters", description = "Manage the Kafka Connect clusters.")
 @Controller(value = "/api/namespaces/{namespace}/connect-clusters")
 @ExecuteOn(TaskExecutors.IO)
 public class ConnectClusterController extends NamespacedResourceController {
@@ -37,10 +37,9 @@ public class ConnectClusterController extends NamespacedResourceController {
     ConnectorService connectorService;
 
     /**
-     * Get all the Connect workers by namespace
-     *
+     * List Kafka Connect clusters by namespace
      * @param namespace The namespace
-     * @return A list of connectors
+     * @return A list of Kafka Connect clusters
      */
     @Get
     public List<ConnectCluster> list(String namespace) {
@@ -48,11 +47,10 @@ public class ConnectClusterController extends NamespacedResourceController {
     }
 
     /**
-     * Get the last version of a connector by namespace and name
-     *
+     * Get a Kafka Connect clusters by namespace and name
      * @param namespace      The namespace
      * @param connectCluster The name
-     * @return A Connect worker
+     * @return A Kafka Connect cluster
      */
     @Get("/{connectCluster}")
     public Optional<ConnectCluster> getConnectCluster(String namespace, String connectCluster) {
@@ -60,12 +58,11 @@ public class ConnectClusterController extends NamespacedResourceController {
     }
 
     /**
-     * Publish a Connect worker
-     *
+     * Create a Kafka Connect cluster
      * @param namespace      The namespace
      * @param connectCluster The connect worker
      * @param dryrun         Does the creation is a dry run
-     * @return The created role binding
+     * @return The created Kafka Connect cluster
      */
     @Post("/{?dryrun}")
     HttpResponse<ConnectCluster> apply(String namespace, @Body @Valid ConnectCluster connectCluster, @QueryValue(defaultValue = "false") boolean dryrun) {
@@ -103,8 +100,7 @@ public class ConnectClusterController extends NamespacedResourceController {
     }
 
     /**
-     * Delete Connect cluster by the given name
-     *
+     * Delete a Kafka Connect cluster
      * @param namespace      The current namespace
      * @param connectCluster The current connect cluster name to delete
      * @param dryrun         Run in dry mode or not
@@ -147,9 +143,8 @@ public class ConnectClusterController extends NamespacedResourceController {
     }
 
     /**
-     * Gets the list of available Kafka Connect vaults for a namespace
-     *
-     * @return The list of the available Kafka Connect vaults.
+     * List vault Kafka Connect clusters by namespace
+     * @return A list of the available vault Kafka Connect clusters
      */
     @Get("/_/vaults")
     public List<ConnectCluster> listVaults(final String namespace) {
@@ -161,8 +156,7 @@ public class ConnectClusterController extends NamespacedResourceController {
     }
 
     /**
-     * Encrypt a password list for a specific Kafka Connect cluster.
-     *
+     * Encrypt a list of passwords
      * @param namespace      The namespace.
      * @param connectCluster The name of the Kafka Connect cluster.
      * @param passwords      The passwords to encrypt.
