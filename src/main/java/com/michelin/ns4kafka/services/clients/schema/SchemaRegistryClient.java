@@ -85,6 +85,13 @@ public class SchemaRegistryClient {
         return Mono.from(httpClient.retrieve(request, Integer[].class));
     }
 
+    /**
+     * Validate the schema compatibility
+     * @param kafkaCluster The Kafka cluster
+     * @param subject The subject
+     * @param body The request
+     * @return The schema compatibility validation
+     */
     public Mono<SchemaCompatibilityCheckResponse> validateSchemaCompatibility(String kafkaCluster, String subject, SchemaRequest body) {
         KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.POST(URI.create(StringUtils.prependUri(config.getUrl(), "/compatibility/subjects/" + subject + "/versions?verbose=true")), body)
@@ -94,6 +101,13 @@ public class SchemaRegistryClient {
                         ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Mono.empty() : Mono.error(ex));
     }
 
+    /**
+     * Update the subject compatibility
+     * @param kafkaCluster The Kafka cluster
+     * @param subject The subject
+     * @param body The schema compatibility request
+     * @return The schema compatibility update
+     */
     public Mono<SchemaCompatibilityResponse> updateSubjectCompatibility(String kafkaCluster, String subject, SchemaCompatibilityRequest body) {
         KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.PUT(URI.create(StringUtils.prependUri(config.getUrl(), "/config/" + subject)), body)
@@ -101,6 +115,12 @@ public class SchemaRegistryClient {
         return Mono.from(httpClient.retrieve(request, SchemaCompatibilityResponse.class));
     }
 
+    /**
+     * Get the current compatibility by subject
+     * @param kafkaCluster The Kafka cluster
+     * @param subject The subject
+     * @return The current schema compatibility
+     */
     public Mono<SchemaCompatibilityResponse> getCurrentCompatibilityBySubject(String kafkaCluster, String subject) {
         KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/config/" + subject)))
@@ -110,6 +130,12 @@ public class SchemaRegistryClient {
                         ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Mono.empty() : Mono.error(ex));
     }
 
+    /**
+     * Delete current compatibility by subject
+     * @param kafkaCluster The Kafka cluster
+     * @param subject The subject
+     * @return The deleted schema compatibility
+     */
     public Mono<SchemaCompatibilityResponse> deleteCurrentCompatibilityBySubject(String kafkaCluster, String subject) {
         KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         MutableHttpRequest<?> request = HttpRequest.DELETE(URI.create(StringUtils.prependUri(config.getUrl(), "/config/" + subject)))
@@ -117,6 +143,11 @@ public class SchemaRegistryClient {
         return Mono.from(httpClient.retrieve(request, SchemaCompatibilityResponse.class));
     }
 
+    /**
+     * Get the schema registry of the given Kafka cluster
+     * @param kafkaCluster The Kafka cluster
+     * @return The schema registry configuration
+     */
     private KafkaAsyncExecutorConfig.RegistryConfig getSchemaRegistry(String kafkaCluster) {
         Optional<KafkaAsyncExecutorConfig> config = kafkaAsyncExecutorConfigs.stream()
                 .filter(kafkaAsyncExecutorConfig -> kafkaAsyncExecutorConfig.getName().equals(kafkaCluster))

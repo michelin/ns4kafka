@@ -41,6 +41,12 @@ public class KafkaConnectClient {
     @Inject
     private SecurityConfig securityConfig;
 
+    /**
+     * Get the Kafka connect version
+     * @param kafkaCluster The Kafka cluster
+     * @param connectCluster The Kafka Connect
+     * @return The version
+     */
     public HttpResponse<ServerInfo> version(String kafkaCluster, String connectCluster) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/")))
@@ -48,6 +54,12 @@ public class KafkaConnectClient {
         return httpClient.toBlocking().exchange(request, ServerInfo.class);
     }
 
+    /**
+     * List all connectors
+     * @param kafkaCluster The Kafka cluster
+     * @param connectCluster The Kafka Connect
+     * @return The connectors
+     */
     public Mono<Map<String, ConnectorStatus>> listAll(String kafkaCluster, String connectCluster) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/connectors?expand=info&expand=status")))
@@ -55,6 +67,14 @@ public class KafkaConnectClient {
         return Mono.from(httpClient.retrieve(request, Argument.mapOf(String.class, ConnectorStatus.class)));
     }
 
+    /**
+     * Validate a connector configuration
+     * @param kafkaCluster The Kafka cluster
+     * @param connectCluster The Kafka Connect
+     * @param connectorClass The connector class
+     * @param connectorSpecs The connector config
+     * @return The configuration infos
+     */
     public Mono<ConfigInfos> validate(String kafkaCluster, String connectCluster, String connectorClass, ConnectorSpecs connectorSpecs) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
         HttpRequest<?> request = HttpRequest.PUT(URI.create(StringUtils.prependUri(config.getUrl(), "/connector-plugins/" + connectorClass + "/config/validate")), connectorSpecs)
@@ -62,6 +82,14 @@ public class KafkaConnectClient {
         return Mono.from(httpClient.retrieve(request, ConfigInfos.class));
     }
 
+    /**
+     * Create or update a connector
+     * @param kafkaCluster The kafka cluster
+     * @param connectCluster The Kafka Connect
+     * @param connector The connector
+     * @param connectorSpecs The connector config
+     * @return The creation or update response
+     */
     public Mono<ConnectorInfo> createOrUpdate(String kafkaCluster, String connectCluster, String connector, ConnectorSpecs connectorSpecs) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
         HttpRequest<?> request = HttpRequest.PUT(URI.create(StringUtils.prependUri(config.getUrl(), "/connectors/" + connector + "/config")), connectorSpecs)
@@ -69,6 +97,13 @@ public class KafkaConnectClient {
         return Mono.from(httpClient.retrieve(request, ConnectorInfo.class));
     }
 
+    /**
+     * Delete a connector
+     * @param kafkaCluster The Kafka cluster
+     * @param connectCluster The Kafka Connect
+     * @param connector The connector
+     * @return The deletion response
+     */
     public Mono<HttpResponse<Void>> delete(String kafkaCluster, String connectCluster, String connector) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
         HttpRequest<?> request = HttpRequest.DELETE(URI.create(StringUtils.prependUri(config.getUrl(), "/connectors/" + connector)))
@@ -76,6 +111,12 @@ public class KafkaConnectClient {
         return Mono.from(httpClient.exchange(request, Void.class));
     }
 
+    /**
+     * List all connector plugins
+     * @param kafkaCluster The Kafka cluster
+     * @param connectCluster The Kafka Connect
+     * @return The list of connector plugins
+     */
     public Mono<List<ConnectorPluginInfo>> connectPlugins(String kafkaCluster, String connectCluster) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/connector-plugins")))
@@ -83,6 +124,13 @@ public class KafkaConnectClient {
         return Mono.from(httpClient.retrieve(request, Argument.listOf(ConnectorPluginInfo.class)));
     }
 
+    /**
+     * Get the status of a connector
+     * @param kafkaCluster The Kafka cluster
+     * @param connectCluster The Kafka Connect
+     * @param connector The connector
+     * @return The status
+     */
     public Mono<ConnectorStateInfo> status(String kafkaCluster, String connectCluster, String connector) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/connectors/" + connector + "/status")))
@@ -90,6 +138,14 @@ public class KafkaConnectClient {
         return Mono.from(httpClient.retrieve(request, ConnectorStateInfo.class));
     }
 
+    /**
+     * Restart a connector
+     * @param kafkaCluster The Kafka cluster
+     * @param connectCluster The Kafka Connect
+     * @param connector The connector
+     * @param taskId The task ID
+     * @return The restart response
+     */
     public Mono<HttpResponse<Void>> restart(String kafkaCluster, String connectCluster, String connector, int taskId) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
         HttpRequest<?> request = HttpRequest.POST(URI.create(StringUtils.prependUri(config.getUrl(), "/connectors/" + connector + "/tasks/" + taskId + "/restart")), null)
@@ -97,6 +153,13 @@ public class KafkaConnectClient {
         return Mono.from(httpClient.exchange(request, Void.class));
     }
 
+    /**
+     * Pause a connector
+     * @param kafkaCluster The Kafka cluster
+     * @param connectCluster The Kafka Connect
+     * @param connector The connector
+     * @return The pause response
+     */
     public Mono<HttpResponse<Void>> pause(String kafkaCluster, String connectCluster, String connector) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
         HttpRequest<?> request = HttpRequest.PUT(URI.create(StringUtils.prependUri(config.getUrl(), "/connectors/" + connector + "/pause")), null)
@@ -104,6 +167,13 @@ public class KafkaConnectClient {
         return Mono.from(httpClient.exchange(request, Void.class));
     }
 
+    /**
+     * Resume a connector
+     * @param kafkaCluster The Kafka cluster
+     * @param connectCluster The Kafka Connect
+     * @param connector The connector
+     * @return The resume response
+     */
     public Mono<HttpResponse<Void>> resume(String kafkaCluster, String connectCluster, String connector) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
         HttpRequest<?> request = HttpRequest.PUT(URI.create(StringUtils.prependUri(config.getUrl(), "/connectors/" + connector + "/resume")), null)
@@ -111,6 +181,12 @@ public class KafkaConnectClient {
         return Mono.from(httpClient.exchange(request, Void.class));
     }
 
+    /**
+     * Get the Kafka Connect configuration
+     * @param kafkaCluster The Kafka cluster
+     * @param connectCluster The Kafka Connect
+     * @return The Kafka Connect configuration
+     */
     public KafkaConnectClient.KafkaConnectHttpConfig getKafkaConnectConfig(String kafkaCluster, String connectCluster) {
         Optional<KafkaAsyncExecutorConfig> config = kafkaAsyncExecutorConfigs.stream()
                 .filter(kafkaAsyncExecutorConfig -> kafkaAsyncExecutorConfig.getName().equals(kafkaCluster))

@@ -81,12 +81,12 @@ public class TopicAsyncExecutor {
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
             if (!toCreate.isEmpty()) {
-                log.debug("Topics to create " + toCreate);
+                log.debug("Topic(s) to create: " +  String.join("," , toCreate.stream().map(topic -> topic.getMetadata().getName()).toList()));
             }
 
             if (!toUpdate.isEmpty()) {
-                log.debug("Topics to update " + toUpdate.keySet().stream().map(ConfigResource::name).toList());
-                for (Map.Entry<ConfigResource,Collection<AlterConfigOp>> e : toUpdate.entrySet()) {
+                log.debug("Topic(s) to update: " + String.join("," , toUpdate.keySet().stream().map(ConfigResource::name).toList()));
+                for (Map.Entry<ConfigResource, Collection<AlterConfigOp>> e : toUpdate.entrySet()) {
                     for (AlterConfigOp op : e.getValue()) {
                         log.debug(e.getKey().name() + " " + op.opType().toString() + " " + op.configEntry().name() + "(" + op.configEntry().value() + ")");
                     }
