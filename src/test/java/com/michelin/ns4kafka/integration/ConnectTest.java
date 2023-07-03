@@ -31,12 +31,14 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
 
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
@@ -151,7 +153,6 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                         .build())
                 .spec(NamespaceSpec.builder()
                         .kafkaUser("user-without-connect")
-                        //.connectClusters(List.of("test-connect"))
                         .topicValidator(TopicValidator.makeDefaultOneBroker())
                         .build())
                 .build();
@@ -236,7 +237,10 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(connectorWithNullParameter));
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(connectorWithEmptyParameter));
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(connectorWithFillParameter));
-        connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
+        Flux.fromIterable(connectorAsyncExecutorList.stream().map(ConnectorAsyncExecutor::run).toList())
+                .flatMap(Function.identity())
+                .subscribe();
+
         Thread.sleep(2000);
 
         HttpClient connectCli = HttpClient.create(new URL(connect.getUrl()));
@@ -315,7 +319,10 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to));
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(updateConnector));
-        connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
+        Flux.fromIterable(connectorAsyncExecutorList.stream().map(ConnectorAsyncExecutor::run).toList())
+                .flatMap(Function.identity())
+                .subscribe();
+
         Thread.sleep(2000);
 
         ConnectorInfo actualConnector = connectCli.toBlocking().retrieve(HttpRequest.GET("/connectors/ns1-connector"), ConnectorInfo.class);
@@ -363,7 +370,10 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to));
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(co));
-        connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
+        Flux.fromIterable(connectorAsyncExecutorList.stream().map(ConnectorAsyncExecutor::run).toList())
+                .flatMap(Function.identity())
+                .subscribe();
+
         Thread.sleep(2000);
 
         ChangeConnectorState restartState = ChangeConnectorState.builder()
@@ -415,7 +425,10 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to));
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(co));
-        connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
+        Flux.fromIterable(connectorAsyncExecutorList.stream().map(ConnectorAsyncExecutor::run).toList())
+                .flatMap(Function.identity())
+                .subscribe();
+
         Thread.sleep(2000);
 
         // pause the connector
@@ -424,6 +437,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.pause).build())
                 .build();
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co2/change-state").bearerAuth(token).body(pauseState));
+
         Thread.sleep(2000);
 
         // verify paused directly on connect cluster
@@ -439,6 +453,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.resume).build())
                 .build();
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co2/change-state").bearerAuth(token).body(resumeState));
+
         Thread.sleep(2000);
 
         // verify resumed directly on connect cluster
