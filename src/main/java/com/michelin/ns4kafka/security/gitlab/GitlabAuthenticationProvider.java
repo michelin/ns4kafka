@@ -40,16 +40,16 @@ public class GitlabAuthenticationProvider implements AuthenticationProvider {
     public Publisher<AuthenticationResponse> authenticate(@Nullable HttpRequest<?> httpRequest, AuthenticationRequest<?,?> authenticationRequest) {
         String token = authenticationRequest.getSecret().toString();
 
-        log.debug("Checking authentication with token: {}", token);
+        log.debug("Checking authentication with token {}", token);
 
         return gitlabAuthenticationService.findUsername(token)
-                .onErrorResume(error -> Mono.error(new AuthenticationException(new AuthenticationFailed(AuthenticationFailureReason.CREDENTIALS_DO_NOT_MATCH))))
+                .onErrorResume(error -> Mono.error(new AuthenticationException(new AuthenticationFailed("Bad GitLab token"))))
                 .flatMap(username -> gitlabAuthenticationService.findAllGroups(token).collectList()
-                        .onErrorResume(error -> Mono.error(new AuthenticationException(new AuthenticationFailed(AuthenticationFailureReason.CREDENTIALS_DO_NOT_MATCH))))
+                        .onErrorResume(error -> Mono.error(new AuthenticationException(new AuthenticationFailed("Cannot retrieve your GitLab groups"))))
                         .flatMap(groups -> {
                             if (roleBindingService.listByGroups(groups).isEmpty() && !groups.contains(securityConfig.getAdminGroup())) {
                                 log.debug("Error during authentication: user groups not found in any namespace");
-                                return Mono.error(new AuthenticationException(new AuthenticationFailed("User groups not found in any namespace. There may be an error on the GitLab group of your namespace.")));
+                                return Mono.error(new AuthenticationException(new AuthenticationFailed("No namespace matches your GitLab groups")));
                             } else {
                                 return Mono.just(AuthenticationResponse.success(username, resourceBasedSecurityRule.computeRolesFromGroups(groups),
                                 Map.of("groups", groups)));

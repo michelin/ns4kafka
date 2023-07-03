@@ -126,7 +126,6 @@ public class KafkaConnectClient {
                 .findFirst();
 
         if (connectClusterOptional.isPresent()) {
-            log.debug("Self deployed Connect cluster {} found in namespace {}", connectCluster, connectClusterOptional.get().getMetadata().getNamespace());
             return KafkaConnectClient.KafkaConnectHttpConfig.builder()
                     .url(connectClusterOptional.get().getSpec().getUrl())
                     .username(connectClusterOptional.get().getSpec().getUsername())
@@ -138,8 +137,6 @@ public class KafkaConnectClient {
         if (connectConfig == null) {
             throw new ResourceValidationException(List.of("Connect cluster \"" + connectCluster + "\" not found"), null, null);
         }
-
-        log.debug("Connect cluster {} found in Ns4Kafka configuration", connectCluster);
 
         return KafkaConnectClient.KafkaConnectHttpConfig.builder()
                 .url(connectConfig.getUrl())

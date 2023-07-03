@@ -157,7 +157,6 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .build();
 
         Assertions.assertDoesNotThrow(() -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns)));
-
     }
 
     /**
