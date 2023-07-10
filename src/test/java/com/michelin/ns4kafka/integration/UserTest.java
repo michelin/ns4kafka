@@ -12,9 +12,9 @@ import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import io.micronaut.rxjava3.http.client.Rx3HttpClient;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
@@ -33,10 +33,10 @@ import java.util.concurrent.ExecutionException;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
-public class UserTest extends AbstractIntegrationTest {
+class UserTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
-    Rx3HttpClient client;
+    HttpClient client;
 
     @Inject
     List<UserAsyncExecutor> userAsyncExecutors;
@@ -93,16 +93,16 @@ public class UserTest extends AbstractIntegrationTest {
                 .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<TopicTest.BearerAccessRefreshToken> response = client.exchange(HttpRequest.POST("/login", credentials), TopicTest.BearerAccessRefreshToken.class).blockingFirst();
+        HttpResponse<TopicTest.BearerAccessRefreshToken> response = client.toBlocking().exchange(HttpRequest.POST("/login", credentials), TopicTest.BearerAccessRefreshToken.class);
 
         token = response.getBody().get().getAccessToken();
 
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1));
 
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns2)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns2/resource-quotas").bearerAuth(token).body(rqNs2)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns2));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns2/resource-quotas").bearerAuth(token).body(rqNs2));
 
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns3)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns3));
 
         //force User Sync
         userAsyncExecutors.forEach(UserAsyncExecutor::run);
@@ -150,7 +150,7 @@ public class UserTest extends AbstractIntegrationTest {
                         ResourceQuota.ResourceQuotaSpecKey.USER_CONSUMER_BYTE_RATE.getKey(), "409600.0"))
                 .build();
 
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns3/resource-quotas").bearerAuth(token).body(rq3)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns3/resource-quotas").bearerAuth(token).body(rq3));
 
         // Force user sync to force the quota update
         userAsyncExecutors.forEach(UserAsyncExecutor::run);
@@ -170,7 +170,7 @@ public class UserTest extends AbstractIntegrationTest {
 
     @Test
     void createAndUpdateUserForceTest() throws ExecutionException, InterruptedException {
-        KafkaUserResetPassword response = client.retrieve(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/users/user1/reset-password").bearerAuth(token), KafkaUserResetPassword.class).blockingFirst();
+        KafkaUserResetPassword response = client.toBlocking().retrieve(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/users/user1/reset-password").bearerAuth(token), KafkaUserResetPassword.class);
 
         Map<String, UserScramCredentialsDescription> mapUser = getAdminClient()
                 .describeUserScramCredentials(List.of("user1")).all().get();
@@ -183,7 +183,7 @@ public class UserTest extends AbstractIntegrationTest {
 
     @Test
     void updateUserFail_NotMatching() {
-        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class, () -> client.retrieve(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/users/user2/reset-password").bearerAuth(token), KafkaUserResetPassword.class).blockingFirst());
+        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class, () -> client.toBlocking().retrieve(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/users/user2/reset-password").bearerAuth(token), KafkaUserResetPassword.class));
 
         Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
         Assertions.assertEquals("Invalid user user2 : Doesn't belong to namespace ns1", exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
