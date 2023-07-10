@@ -13,7 +13,6 @@ import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -25,7 +24,8 @@ import reactor.test.StepVerifier;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -418,6 +418,23 @@ class SchemaControllerTest {
             .verifyComplete();
 
         verify(schemaService, times(1)).deleteSubject(namespace, "prefix.subject-value");
+    }
+
+    /**
+     * Should not delete subject when empty
+     */
+    @Test
+    void shouldNotDeleteSubjectWhenEmpty() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+
+        when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
+        when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value")).thenReturn(true);
+        when(schemaService.getLatestSubject(namespace, "prefix.subject-value")).thenReturn(Mono.empty());
+
+        StepVerifier.create(schemaController.deleteSubject("myNamespace", "prefix.subject-value", false))
+                .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
+                .verifyComplete();
     }
 
     /**

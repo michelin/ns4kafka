@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -264,7 +265,7 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(kafkaConnectClient.version("local", "prefix.connect-cluster"))
-                .thenReturn(HttpResponse.serverError());
+                .thenThrow(new HttpClientException("Internal Server Error"));
 
         when(connectClusterRepository.findAllForCluster("local"))
                 .thenReturn(List.of(connectCluster));
@@ -912,6 +913,171 @@ class ConnectClusterServiceTest {
         Assertions.assertEquals("*****", actual.get(1).getSpec().getPassword());
         Assertions.assertEquals("*****", actual.get(1).getSpec().getAes256Key());
         Assertions.assertEquals("*****", actual.get(1).getSpec().getAes256Salt());
+    }
+
+    /**
+     * Should delete a self-deployed Kafka Connect
+     */
+    @Test
+    void shouldDelete() {
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("prefix.connect-cluster")
+                        .cluster("local")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .build())
+                .build();
+
+        connectClusterService.delete(connectCluster);
+
+        verify(connectClusterRepository).delete(connectCluster);
+    }
+
+    /**
+     * Should namespace be owner of Kafka Connect
+     */
+    @Test
+    void shouldNamespaceOwnerOfConnectCluster() {
+        Namespace namespace = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .build())
+                .build();
+
+        when(accessControlEntryService.isNamespaceOwnerOfResource(any(), any(), any()))
+                .thenReturn(true);
+
+        boolean actual = connectClusterService.isNamespaceOwnerOfConnectCluster(namespace, "prefix.connect-cluster");
+
+        Assertions.assertTrue(actual);
+    }
+
+    @Test
+    void shouldNamespaceAllowedForConnectCluster() {
+        Namespace namespace = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("prefix.connect-cluster")
+                        .cluster("local")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .build())
+                .build();
+
+        ConnectCluster connectClusterOwner = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("owner.connect-cluster")
+                        .cluster("local")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .build())
+                .build();
+
+        when(kafkaConnectClient.version(any(), any()))
+                .thenReturn(HttpResponse.ok());
+
+        when(connectClusterRepository.findAllForCluster("local"))
+                .thenReturn(List.of(connectCluster, connectClusterOwner));
+
+        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+                .thenReturn(List.of(
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.WRITE)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
+                                        .resource("prefix.")
+                                        .build())
+                                .build(),
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
+                                        .resource("owner.")
+                                        .build())
+                                .build()
+                ));
+
+        boolean actual = connectClusterService.isNamespaceAllowedForConnectCluster(namespace, "prefix.connect-cluster");
+
+        Assertions.assertTrue(actual);
+    }
+
+    @Test
+    void shouldNamespaceNotAllowedForConnectCluster() {
+        Namespace namespace = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("prefix.connect-cluster")
+                        .cluster("local")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .build())
+                .build();
+
+        ConnectCluster connectClusterOwner = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("owner.connect-cluster")
+                        .cluster("local")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .build())
+                .build();
+
+        when(kafkaConnectClient.version(any(), any()))
+                .thenReturn(HttpResponse.ok());
+
+        when(connectClusterRepository.findAllForCluster("local"))
+                .thenReturn(List.of(connectCluster, connectClusterOwner));
+
+        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+                .thenReturn(List.of(
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.WRITE)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
+                                        .resource("prefix.")
+                                        .build())
+                                .build(),
+                        AccessControlEntry.builder()
+                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                        .permission(AccessControlEntry.Permission.OWNER)
+                                        .grantedTo("namespace")
+                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
+                                        .resource("owner.")
+                                        .build())
+                                .build()
+                ));
+
+        boolean actual = connectClusterService.isNamespaceAllowedForConnectCluster(namespace, "not-allowed-prefix.connect-cluster");
+
+        Assertions.assertFalse(actual);
     }
 
     /**

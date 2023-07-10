@@ -28,6 +28,8 @@ import java.util.Optional;
 @Slf4j
 @Singleton
 public class KafkaConnectClient {
+    private static final String CONNECTORS = "/connectors/";
+
     @Inject
     @Client(id = "kafka-connect")
     private HttpClient httpClient;
@@ -92,7 +94,7 @@ public class KafkaConnectClient {
      */
     public Mono<ConnectorInfo> createOrUpdate(String kafkaCluster, String connectCluster, String connector, ConnectorSpecs connectorSpecs) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
-        HttpRequest<?> request = HttpRequest.PUT(URI.create(StringUtils.prependUri(config.getUrl(), "/connectors/" + connector + "/config")), connectorSpecs)
+        HttpRequest<?> request = HttpRequest.PUT(URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + connector + "/config")), connectorSpecs)
                 .basicAuth(config.getUsername(), config.getPassword());
         return Mono.from(httpClient.retrieve(request, ConnectorInfo.class));
     }
@@ -106,7 +108,7 @@ public class KafkaConnectClient {
      */
     public Mono<HttpResponse<Void>> delete(String kafkaCluster, String connectCluster, String connector) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
-        HttpRequest<?> request = HttpRequest.DELETE(URI.create(StringUtils.prependUri(config.getUrl(), "/connectors/" + connector)))
+        HttpRequest<?> request = HttpRequest.DELETE(URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + connector)))
                 .basicAuth(config.getUsername(), config.getPassword());
         return Mono.from(httpClient.exchange(request, Void.class));
     }
@@ -133,7 +135,7 @@ public class KafkaConnectClient {
      */
     public Mono<ConnectorStateInfo> status(String kafkaCluster, String connectCluster, String connector) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
-        HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/connectors/" + connector + "/status")))
+        HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + connector + "/status")))
                 .basicAuth(config.getUsername(), config.getPassword());
         return Mono.from(httpClient.retrieve(request, ConnectorStateInfo.class));
     }
@@ -148,7 +150,7 @@ public class KafkaConnectClient {
      */
     public Mono<HttpResponse<Void>> restart(String kafkaCluster, String connectCluster, String connector, int taskId) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
-        HttpRequest<?> request = HttpRequest.POST(URI.create(StringUtils.prependUri(config.getUrl(), "/connectors/" + connector + "/tasks/" + taskId + "/restart")), null)
+        HttpRequest<?> request = HttpRequest.POST(URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + connector + "/tasks/" + taskId + "/restart")), null)
                 .basicAuth(config.getUsername(), config.getPassword());
         return Mono.from(httpClient.exchange(request, Void.class));
     }
@@ -162,7 +164,7 @@ public class KafkaConnectClient {
      */
     public Mono<HttpResponse<Void>> pause(String kafkaCluster, String connectCluster, String connector) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
-        HttpRequest<?> request = HttpRequest.PUT(URI.create(StringUtils.prependUri(config.getUrl(), "/connectors/" + connector + "/pause")), null)
+        HttpRequest<?> request = HttpRequest.PUT(URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + connector + "/pause")), null)
                 .basicAuth(config.getUsername(), config.getPassword());
         return Mono.from(httpClient.exchange(request, Void.class));
     }
@@ -176,7 +178,7 @@ public class KafkaConnectClient {
      */
     public Mono<HttpResponse<Void>> resume(String kafkaCluster, String connectCluster, String connector) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
-        HttpRequest<?> request = HttpRequest.PUT(URI.create(StringUtils.prependUri(config.getUrl(), "/connectors/" + connector + "/resume")), null)
+        HttpRequest<?> request = HttpRequest.PUT(URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + connector + "/resume")), null)
                 .basicAuth(config.getUsername(), config.getPassword());
         return Mono.from(httpClient.exchange(request, Void.class));
     }

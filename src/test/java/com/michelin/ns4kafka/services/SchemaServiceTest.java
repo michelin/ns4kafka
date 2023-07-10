@@ -278,7 +278,7 @@ class SchemaServiceTest {
                         .build()));
 
         StepVerifier.create(schemaService.updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD))
-            .consumeNextWith(schemaCompatibilityResponse -> assertEquals(schemaCompatibilityResponse.compatibilityLevel(), Schema.Compatibility.FORWARD))
+            .consumeNextWith(schemaCompatibilityResponse -> assertEquals(Schema.Compatibility.FORWARD, schemaCompatibilityResponse.compatibilityLevel()))
             .verifyComplete();
 
         verify(schemaRegistryClient, times(1)).updateSubjectCompatibility(any(), any(), any());

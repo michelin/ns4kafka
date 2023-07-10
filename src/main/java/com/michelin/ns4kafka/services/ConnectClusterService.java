@@ -13,7 +13,6 @@ import com.michelin.ns4kafka.utils.EncryptionUtils;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
@@ -125,7 +124,7 @@ public class ConnectClusterService {
     private String getKafkaConnectStatus(ConnectCluster connectCluster) {
         try {
             HttpResponse<ServerInfo> response = kafkaConnectClient.version(connectCluster.getMetadata().getCluster(), connectCluster.getMetadata().getName());
-            return response.status().equals(HttpStatus.OK) ? "Healthy" : "Unhealthy (" + response.reason() + ")";
+            return "Healthy (" + response.status() + ")";
         } catch (HttpClientException e) {
             return "Unhealthy (" + e.getMessage() + ")";
         }
