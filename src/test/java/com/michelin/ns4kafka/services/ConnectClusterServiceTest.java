@@ -237,7 +237,7 @@ class ConnectClusterServiceTest {
 
         Assertions.assertTrue(actual.isPresent());
         Assertions.assertEquals("prefix.connect-cluster", actual.get().getMetadata().getName());
-        Assertions.assertEquals("Healthy", actual.get().getSpec().getStatus());
+        Assertions.assertEquals("Healthy (OK)", actual.get().getSpec().getStatus());
     }
 
     /**
