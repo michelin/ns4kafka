@@ -13,10 +13,10 @@ import java.util.Map;
 @ConfigurationProperties("ns4kafka.akhq")
 public class AkhqClaimProviderControllerConfig {
     private String groupLabel;
-    private List<String> roles;
-    private Map<AccessControlEntry.ResourceType, String> newRoles;
+    private Map<AccessControlEntry.ResourceType, String> roles;
+    private List<String> formerRoles;
 
     private String adminGroup;
-    private List<String> adminRoles;
-    private Map<AccessControlEntry.ResourceType, String> newAdminRoles;
+    private Map<AccessControlEntry.ResourceType, String> adminRoles;
+    private List<String> formerAdminRoles;
 }

@@ -35,7 +35,7 @@ class AkhqClaimProviderControllerTest {
     private AkhqClaimProviderControllerConfig getAkhqClaimProviderControllerConfig() {
         AkhqClaimProviderControllerConfig config = new AkhqClaimProviderControllerConfig();
         config.setGroupLabel("support-group");
-        config.setRoles(List.of(
+        config.setFormerRoles(List.of(
                 "topic/read",
                 "topic/data/read",
                 "group/read",
@@ -44,7 +44,7 @@ class AkhqClaimProviderControllerTest {
                 "connect/state/update"
         ));
         config.setAdminGroup("GP-ADMIN");
-        config.setAdminRoles(List.of(
+        config.setFormerAdminRoles(List.of(
                 "topic/read",
                 "topic/data/read",
                 "group/read",

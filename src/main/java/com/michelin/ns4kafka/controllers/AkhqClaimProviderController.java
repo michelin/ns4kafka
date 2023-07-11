@@ -50,13 +50,13 @@ public class AkhqClaimProviderController {
     @Post
     public AKHQClaimResponse generateClaim(@Valid @Body AKHQClaimRequest request) {
         if (request == null) {
-            return AKHQClaimResponse.ofEmpty(config.getRoles());
+            return AKHQClaimResponse.ofEmpty(config.getFormerRoles());
         }
 
         final List<String> groups = Optional.ofNullable(request.getGroups()).orElse(new ArrayList<>());
 
         if (groups.contains(config.getAdminGroup())) {
-            return AKHQClaimResponse.ofAdmin(config.getAdminRoles());
+            return AKHQClaimResponse.ofAdmin(config.getFormerAdminRoles());
         }
 
         List<AccessControlEntry> relatedACL = namespaceService.listAll()
@@ -70,7 +70,7 @@ public class AkhqClaimProviderController {
         relatedACL.addAll(accessControlEntryService.findAllPublicGrantedTo());
 
         return AKHQClaimResponse.builder()
-                .roles(config.getRoles())
+                .roles(config.getFormerRoles())
                 .attributes(
                         Map.of(
                                 "topicsFilterRegexp", computeAllowedRegexListForResourceType(relatedACL, AccessControlEntry.ResourceType.TOPIC),
@@ -89,13 +89,13 @@ public class AkhqClaimProviderController {
     @Post("/v2")
     public AKHQClaimResponseV2 generateClaimV2(@Valid @Body AKHQClaimRequest request) {
         if (request == null) {
-            return AKHQClaimResponseV2.ofEmpty(config.getRoles());
+            return AKHQClaimResponseV2.ofEmpty(config.getFormerRoles());
         }
 
         final List<String> groups = Optional.ofNullable(request.getGroups()).orElse(new ArrayList<>());
 
         if (groups.contains(config.getAdminGroup())) {
-            return AKHQClaimResponseV2.ofAdmin(config.getAdminRoles());
+            return AKHQClaimResponseV2.ofAdmin(config.getFormerAdminRoles());
         }
 
         List<AccessControlEntry> relatedACL = getAllAclForGroups(groups);
@@ -104,7 +104,7 @@ public class AkhqClaimProviderController {
         relatedACL.addAll(accessControlEntryService.findAllPublicGrantedTo());
 
         return AKHQClaimResponseV2.builder()
-                .roles(config.getRoles())
+                .roles(config.getFormerRoles())
                 .topicsFilterRegexp(computeAllowedRegexListForResourceType(relatedACL, AccessControlEntry.ResourceType.TOPIC))
                 .connectsFilterRegexp(computeAllowedRegexListForResourceType(relatedACL, AccessControlEntry.ResourceType.CONNECT))
                 .consumerGroupsFilterRegexp(ADMIN_REGEXP)
@@ -123,7 +123,7 @@ public class AkhqClaimProviderController {
         final List<String> groups = Optional.ofNullable(request.getGroups()).orElse(new ArrayList<>());
 
         if (groups.contains(config.getAdminGroup())) {
-            return AKHQClaimResponseV3.ofAdmin(config.getNewAdminRoles());
+            return AKHQClaimResponseV3.ofAdmin(config.getAdminRoles());
         }
 
         List<AccessControlEntry> relatedACL = getAllAclForGroups(groups);
@@ -147,7 +147,7 @@ public class AkhqClaimProviderController {
             // Build the cluster regex
             String patternCluster = String.format("^%s$", acl.getMetadata().getCluster());
 
-            String role = config.getNewRoles().get(acl.getSpec().getResourceType());
+            String role = config.getRoles().get(acl.getSpec().getResourceType());
             String key = role + "-" + acl.getSpec().getResource();
 
             // If we already have permissions for the role and cluster, add the pattern to the existing one
@@ -169,10 +169,15 @@ public class AkhqClaimProviderController {
 
         List<AKHQClaimResponseV3.Group> result = optimizeV3Claim(bindings);
 
-        // Add access to all the schemas
-        result.add(AKHQClaimResponseV3.Group.builder()
-                .role(config.getNewRoles().get(AccessControlEntry.ResourceType.SCHEMA))
-                .build());
+        // Add the same pattern and cluster filtering for SCHEMA as the TOPIC ones
+        result.addAll(result.stream()
+                .filter(g -> g.role.equals(config.getRoles().get(AccessControlEntry.ResourceType.TOPIC)))
+                .map(g -> AKHQClaimResponseV3.Group.builder()
+                        .role(config.getRoles().get(AccessControlEntry.ResourceType.SCHEMA))
+                        .patterns(g.getPatterns())
+                        .clusters(g.getClusters())
+                        .build()
+                ).toList());
 
         return AKHQClaimResponseV3.builder()
                 .groups(result.isEmpty() ? null : Map.of("group", result))
@@ -217,6 +222,11 @@ public class AkhqClaimProviderController {
         return result;
     }
 
+    /**
+     * List all the ACL for a user based on its LDAP groups
+     * @param groups the user LDAP groups
+     * @return the user's ACL
+     */
     private List<AccessControlEntry> getAllAclForGroups(List<String> groups) {
         return namespaceService.listAll()
                 .stream()

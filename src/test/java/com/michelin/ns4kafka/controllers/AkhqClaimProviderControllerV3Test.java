@@ -37,10 +37,10 @@ class AkhqClaimProviderControllerV3Test {
         AkhqClaimProviderControllerConfig config = new AkhqClaimProviderControllerConfig();
         config.setGroupLabel("support-group");
         config.setAdminGroup("GP-ADMIN");
-        config.setNewRoles(Map.of(AccessControlEntry.ResourceType.TOPIC, "topic-read",
+        config.setRoles(Map.of(AccessControlEntry.ResourceType.TOPIC, "topic-read",
                 AccessControlEntry.ResourceType.CONNECT, "connect-rw",
                 AccessControlEntry.ResourceType.SCHEMA, "registry-read"));
-        config.setNewAdminRoles(Map.of(AccessControlEntry.ResourceType.TOPIC, "topic-admin",
+        config.setAdminRoles(Map.of(AccessControlEntry.ResourceType.TOPIC, "topic-admin",
                 AccessControlEntry.ResourceType.CONNECT, "connect-admin",
                 AccessControlEntry.ResourceType.SCHEMA, "registry-admin"));
         return config;
@@ -139,10 +139,7 @@ class AkhqClaimProviderControllerV3Test {
                 .build();
 
         AkhqClaimProviderController.AKHQClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
-
-        List<AkhqClaimProviderController.AKHQClaimResponseV3.Group> groups = actual.getGroups().get("group");
-        Assertions.assertEquals(1, groups.size());
-        Assertions.assertEquals("registry-read", groups.get(0).getRole());
+        Assertions.assertNull(actual.getGroups());
     }
 
     @Test
@@ -346,7 +343,7 @@ class AkhqClaimProviderControllerV3Test {
         Assertions.assertEquals(actual.getGroups().size(), 1);
 
         List<AkhqClaimProviderController.AKHQClaimResponseV3.Group> groups = actual.getGroups().get("group");
-        Assertions.assertEquals(3, groups.size());
+        Assertions.assertEquals(4, groups.size());
         Assertions.assertEquals("topic-read", groups.get(0).getRole());
         Assertions.assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
         Assertions.assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
@@ -354,5 +351,10 @@ class AkhqClaimProviderControllerV3Test {
         Assertions.assertEquals(List.of("^\\Qproject2_t.\\E.*$"), groups.get(1).getPatterns());
         Assertions.assertEquals(List.of("^cluster2$"), groups.get(1).getClusters());
         Assertions.assertEquals("registry-read", groups.get(2).getRole());
+        Assertions.assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(2).getPatterns());
+        Assertions.assertEquals(List.of("^cluster1$"), groups.get(2).getClusters());
+        Assertions.assertEquals("registry-read", groups.get(3).getRole());
+        Assertions.assertEquals(List.of("^\\Qproject2_t.\\E.*$"), groups.get(3).getPatterns());
+        Assertions.assertEquals(List.of("^cluster2$"), groups.get(3).getClusters());
     }
 }
