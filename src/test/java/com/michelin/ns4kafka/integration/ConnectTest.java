@@ -237,8 +237,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(connectorWithNullParameter));
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(connectorWithEmptyParameter));
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(connectorWithFillParameter));
-        Flux.fromStream(connectorAsyncExecutorList.stream().map(ConnectorAsyncExecutor::run))
-                .flatMap(Function.identity())
+        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::run)
                 .subscribe();
 
         Thread.sleep(2000);
@@ -319,8 +318,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to));
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(updateConnector));
-        Flux.fromStream(connectorAsyncExecutorList.stream().map(ConnectorAsyncExecutor::run))
-                .flatMap(Function.identity())
+        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::run)
                 .subscribe();
 
         Thread.sleep(2000);
@@ -370,8 +368,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to));
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(co));
-        Flux.fromStream(connectorAsyncExecutorList.stream().map(ConnectorAsyncExecutor::run))
-                .flatMap(Function.identity())
+        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::run)
                 .subscribe();
 
         Thread.sleep(2000);
@@ -425,8 +422,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to));
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(co));
-        Flux.fromStream(connectorAsyncExecutorList.stream().map(ConnectorAsyncExecutor::run))
-                .flatMap(Function.identity())
+        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::run)
                 .subscribe();
 
         Thread.sleep(2000);
