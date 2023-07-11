@@ -14,105 +14,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.michelin.ns4kafka.services.connect.client.entities;
+package com.michelin.ns4kafka.services.clients.connect.entities;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
 
 import java.util.List;
 import java.util.Objects;
 
-public class ConnectorStateInfo {
+public record ConnectorStateInfo(String name, ConnectorState connector, List<TaskState> tasks, ConnectorType type) {
 
-    private final String name;
-    private final ConnectorState connector;
-    private final List<TaskState> tasks;
-    private final ConnectorType type;
-
-    @JsonCreator
-    public ConnectorStateInfo(@JsonProperty("name") String name,
-                              @JsonProperty("connector") ConnectorState connector,
-                              @JsonProperty("tasks") List<TaskState> tasks,
-                              @JsonProperty("type") ConnectorType type) {
-        this.name = name;
-        this.connector = connector;
-        this.tasks = tasks;
-        this.type = type;
-    }
-
-    @JsonProperty
-    public String name() {
-        return name;
-    }
-
-    @JsonProperty
-    public ConnectorState connector() {
-        return connector;
-    }
-
-    @JsonProperty
-    public List<TaskState> tasks() {
-        return tasks;
-    }
-
-    @JsonProperty
-    public ConnectorType type() {
-        return type;
-    }
-
+    @Getter
     public abstract static class AbstractState {
         private final String state;
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
         private final String trace;
+        @JsonProperty("worker_id")
         private final String workerId;
 
-        public AbstractState(String state, String workerId, String trace) {
+        AbstractState(String state, String workerId, String trace) {
             this.state = state;
             this.workerId = workerId;
             this.trace = trace;
         }
-
-        @JsonProperty
-        public String state() {
-            return state;
-        }
-
-        @JsonProperty("worker_id")
-        public String workerId() {
-            return workerId;
-        }
-
-        @JsonProperty
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        public String trace() {
-            return trace;
-        }
     }
 
     public static class ConnectorState extends AbstractState {
-        @JsonCreator
-        public ConnectorState(@JsonProperty("state") String state,
-                              @JsonProperty("worker_id") String worker,
+        public ConnectorState(@JsonProperty("state") String state, @JsonProperty("worker_id") String worker,
                               @JsonProperty("msg") String msg) {
             super(state, worker, msg);
         }
     }
 
+    @Getter
     public static class TaskState extends AbstractState implements Comparable<TaskState> {
         private final int id;
 
-        @JsonCreator
-        public TaskState(@JsonProperty("id") int id,
-                         @JsonProperty("state") String state,
-                         @JsonProperty("worker_id") String worker,
+        public TaskState(@JsonProperty("id") int id, @JsonProperty("state") String state, @JsonProperty("worker_id") String worker,
                          @JsonProperty("msg") String msg) {
             super(state, worker, msg);
             this.id = id;
-        }
-
-        @JsonProperty
-        public int id() {
-            return id;
         }
 
         @Override
@@ -124,9 +66,8 @@ public class ConnectorStateInfo {
         public boolean equals(Object o) {
             if (o == this)
                 return true;
-            if (!(o instanceof TaskState))
+            if (!(o instanceof TaskState other))
                 return false;
-            TaskState other = (TaskState) o;
             return compareTo(other) == 0;
         }
 
@@ -135,5 +76,4 @@ public class ConnectorStateInfo {
             return Objects.hash(id);
         }
     }
-
 }

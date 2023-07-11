@@ -14,30 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.michelin.ns4kafka.services.connect.client.entities;
+package com.michelin.ns4kafka.services.clients.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 
-import java.util.Collection;
+import java.util.Locale;
 
-public class ActiveTopicsInfo {
-    private final String connector;
-    private final Collection<String> topics;
+public enum ConnectorType {
+    SOURCE, SINK, UNKNOWN;
+
+    @Override
+    @JsonValue
+    public String toString() {
+        return super.toString().toLowerCase(Locale.ROOT);
+    }
 
     @JsonCreator
-    public ActiveTopicsInfo(String connector, @JsonProperty("topics") Collection<String> topics) {
-        this.connector = connector;
-        this.topics = topics;
+    public static ConnectorType forValue(String value) {
+        return ConnectorType.valueOf(value.toUpperCase(Locale.ROOT));
     }
-
-    public String connector() {
-        return connector;
-    }
-
-    @JsonProperty
-    public Collection<String> topics() {
-        return topics;
-    }
-
 }

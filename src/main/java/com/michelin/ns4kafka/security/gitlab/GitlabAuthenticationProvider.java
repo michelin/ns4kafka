@@ -6,15 +6,12 @@ import com.michelin.ns4kafka.services.RoleBindingService;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.*;
-import io.reactivex.rxjava3.core.BackpressureStrategy;
-import io.reactivex.rxjava3.core.Flowable;
-import io.reactivex.rxjava3.schedulers.Schedulers;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Mono;
 
-import java.util.List;
 import java.util.Map;
 
 
@@ -41,31 +38,23 @@ public class GitlabAuthenticationProvider implements AuthenticationProvider {
      */
     @Override
     public Publisher<AuthenticationResponse> authenticate(@Nullable HttpRequest<?> httpRequest, AuthenticationRequest<?,?> authenticationRequest) {
-        Flowable<AuthenticationResponse> responseFlowable = Flowable.create(emitter -> {
-            String token = authenticationRequest.getSecret().toString();
+        String token = authenticationRequest.getSecret().toString();
 
-            log.debug("Checking authentication with token: {}", token);
+        log.debug("Checking authentication with token {}", token);
 
-            try {
-                String username = gitlabAuthenticationService.findUsername(token).blockingGet();
-                List<String> groups = gitlabAuthenticationService.findAllGroups(token).toList().blockingGet();
-
-                if (roleBindingService.listByGroups(groups).isEmpty() && !groups.contains(securityConfig.getAdminGroup())) {
-                    log.debug("Error during authentication: user groups not found in any namespace");
-                    emitter.onError(new AuthenticationException(new AuthenticationFailed("User groups not found in any namespace. There may be an error on the GitLab group of your namespace.")));
-                } else {
-                    AuthenticationResponse user = AuthenticationResponse.success(username, resourceBasedSecurityRule.computeRolesFromGroups(groups), Map.of("groups", groups));
-                    emitter.onNext(user);
-                    emitter.onComplete();
-                }
-            } catch (Exception e) {
-                log.debug("Exception during authentication: {}", e.getMessage());
-                emitter.onError(new AuthenticationException(new AuthenticationFailed(AuthenticationFailureReason.CREDENTIALS_DO_NOT_MATCH)));
-            }
-
-        }, BackpressureStrategy.ERROR);
-
-        return responseFlowable.subscribeOn(Schedulers.io());
+        return gitlabAuthenticationService.findUsername(token)
+                .onErrorResume(error -> Mono.error(new AuthenticationException(new AuthenticationFailed("Bad GitLab token"))))
+                .flatMap(username -> gitlabAuthenticationService.findAllGroups(token).collectList()
+                        .onErrorResume(error -> Mono.error(new AuthenticationException(new AuthenticationFailed("Cannot retrieve your GitLab groups"))))
+                        .flatMap(groups -> {
+                            if (roleBindingService.listByGroups(groups).isEmpty() && !groups.contains(securityConfig.getAdminGroup())) {
+                                log.debug("Error during authentication: user groups not found in any namespace");
+                                return Mono.error(new AuthenticationException(new AuthenticationFailed("No namespace matches your GitLab groups")));
+                            } else {
+                                return Mono.just(AuthenticationResponse.success(username, resourceBasedSecurityRule.computeRolesFromGroups(groups),
+                                Map.of("groups", groups)));
+                            }
+                        }));
     }
 
 }

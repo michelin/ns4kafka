@@ -10,10 +10,10 @@ import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.RoleBinding.*;
 import com.michelin.ns4kafka.models.connector.ChangeConnectorState;
 import com.michelin.ns4kafka.models.connector.Connector;
-import com.michelin.ns4kafka.services.connect.client.entities.ConnectorInfo;
-import com.michelin.ns4kafka.services.connect.client.entities.ConnectorSpecs;
-import com.michelin.ns4kafka.services.connect.client.entities.ConnectorStateInfo;
-import com.michelin.ns4kafka.services.connect.client.entities.ServerInfo;
+import com.michelin.ns4kafka.services.clients.connect.entities.ConnectorInfo;
+import com.michelin.ns4kafka.services.clients.connect.entities.ConnectorSpecs;
+import com.michelin.ns4kafka.services.clients.connect.entities.ConnectorStateInfo;
+import com.michelin.ns4kafka.services.clients.connect.entities.ServerInfo;
 import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.ConnectValidator;
@@ -23,27 +23,29 @@ import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
-import io.micronaut.rxjava3.http.client.Rx3HttpClient;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
 
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 class ConnectTest extends AbstractIntegrationConnectTest {
     @Inject
     @Client("/")
-    Rx3HttpClient client;
+    HttpClient client;
 
     @Inject
     List<TopicAsyncExecutor> topicAsyncExecutorList;
@@ -118,14 +120,14 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<BearerAccessRefreshToken> response = client.exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class).blockingFirst();
+        HttpResponse<BearerAccessRefreshToken> response = client.toBlocking().exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
 
         token = response.getBody().get().getAccessToken();
 
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclConnect)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclConnect));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic));
     }
 
     /**
@@ -134,8 +136,8 @@ class ConnectTest extends AbstractIntegrationConnectTest {
      */
     @Test
     void createConnect() throws MalformedURLException {
-        Rx3HttpClient connectCli = Rx3HttpClient.create(new URL(connect.getUrl()));
-        ServerInfo actual = connectCli.retrieve(HttpRequest.GET("/"), ServerInfo.class).blockingFirst();
+        HttpClient connectCli = HttpClient.create(new URL(connect.getUrl()));
+        ServerInfo actual = connectCli.toBlocking().retrieve(HttpRequest.GET("/"), ServerInfo.class);
         Assertions.assertEquals("6.2.0-ccs", actual.version());
     }
 
@@ -151,13 +153,11 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                         .build())
                 .spec(NamespaceSpec.builder()
                         .kafkaUser("user-without-connect")
-                        //.connectClusters(List.of("test-connect"))
                         .topicValidator(TopicValidator.makeDefaultOneBroker())
                         .build())
                 .build();
 
-        Assertions.assertDoesNotThrow(() -> client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns)).blockingFirst());
-
+        Assertions.assertDoesNotThrow(() -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns)));
     }
 
     /**
@@ -232,18 +232,21 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                         .build())
                 .build();
 
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to));
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(connectorWithNullParameter)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(connectorWithEmptyParameter)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(connectorWithFillParameter)).blockingFirst();
-        connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(connectorWithNullParameter));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(connectorWithEmptyParameter));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(connectorWithFillParameter));
+        Flux.fromIterable(connectorAsyncExecutorList.stream().map(ConnectorAsyncExecutor::run).toList())
+                .flatMap(Function.identity())
+                .subscribe();
+
         Thread.sleep(2000);
 
-        Rx3HttpClient connectCli = Rx3HttpClient.create(new URL(connect.getUrl()));
-        ConnectorInfo actualConnectorWithNullParameter = connectCli.retrieve(HttpRequest.GET("/connectors/ns1-connectorWithNullParameter"), ConnectorInfo.class).blockingFirst();
-        ConnectorInfo actualConnectorWithEmptyParameter = connectCli.retrieve(HttpRequest.GET("/connectors/ns1-connectorWithEmptyParameter"), ConnectorInfo.class).blockingFirst();
-        ConnectorInfo actualConnectorWithFillParameter = connectCli.retrieve(HttpRequest.GET("/connectors/ns1-connectorWithFillParameter"), ConnectorInfo.class).blockingFirst();
+        HttpClient connectCli = HttpClient.create(new URL(connect.getUrl()));
+        ConnectorInfo actualConnectorWithNullParameter = connectCli.toBlocking().retrieve(HttpRequest.GET("/connectors/ns1-connectorWithNullParameter"), ConnectorInfo.class);
+        ConnectorInfo actualConnectorWithEmptyParameter = connectCli.toBlocking().retrieve(HttpRequest.GET("/connectors/ns1-connectorWithEmptyParameter"), ConnectorInfo.class);
+        ConnectorInfo actualConnectorWithFillParameter = connectCli.toBlocking().retrieve(HttpRequest.GET("/connectors/ns1-connectorWithFillParameter"), ConnectorInfo.class);
 
         // "File" property is present, but null
         Assertions.assertTrue(actualConnectorWithNullParameter.config().containsKey("file"));
@@ -305,21 +308,24 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                         .build())
                 .build();
 
-        Rx3HttpClient connectCli = Rx3HttpClient.create(new URL(connect.getUrl()));
-        HttpResponse<ConnectorInfo> connectorInfo = connectCli.exchange(HttpRequest.PUT("/connectors/ns1-connector/config", connectorSpecs), ConnectorInfo.class).blockingFirst();
+        HttpClient connectCli = HttpClient.create(new URL(connect.getUrl()));
+        HttpResponse<ConnectorInfo> connectorInfo = connectCli.toBlocking().exchange(HttpRequest.PUT("/connectors/ns1-connector/config", connectorSpecs), ConnectorInfo.class);
 
         // "File" property is present and fill
         Assertions.assertTrue(connectorInfo.getBody().isPresent());
         Assertions.assertTrue(connectorInfo.getBody().get().config().containsKey("file"));
         Assertions.assertEquals("test", connectorInfo.getBody().get().config().get("file"));
 
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to));
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(updateConnector)).blockingFirst();
-        connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(updateConnector));
+        Flux.fromIterable(connectorAsyncExecutorList.stream().map(ConnectorAsyncExecutor::run).toList())
+                .flatMap(Function.identity())
+                .subscribe();
+
         Thread.sleep(2000);
 
-        ConnectorInfo actualConnector = connectCli.retrieve(HttpRequest.GET("/connectors/ns1-connector"), ConnectorInfo.class).blockingFirst();
+        ConnectorInfo actualConnector = connectCli.toBlocking().retrieve(HttpRequest.GET("/connectors/ns1-connector"), ConnectorInfo.class);
 
         // "File" property is present, but null
         Assertions.assertTrue(actualConnector.config().containsKey("file"));
@@ -361,10 +367,13 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                         .build())
                 .build();
 
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to));
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(co)).blockingFirst();
-        connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(co));
+        Flux.fromIterable(connectorAsyncExecutorList.stream().map(ConnectorAsyncExecutor::run).toList())
+                .flatMap(Function.identity())
+                .subscribe();
+
         Thread.sleep(2000);
 
         ChangeConnectorState restartState = ChangeConnectorState.builder()
@@ -372,7 +381,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.restart).build())
                 .build();
 
-        HttpResponse<ChangeConnectorState> actual = client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co1/change-state").bearerAuth(token).body(restartState), ChangeConnectorState.class).blockingFirst();
+        HttpResponse<ChangeConnectorState> actual = client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co1/change-state").bearerAuth(token).body(restartState), ChangeConnectorState.class);
         Assertions.assertEquals(HttpStatus.OK, actual.status());
     }
 
@@ -383,7 +392,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
      */
     @Test
     void pauseAndResumeConnector() throws MalformedURLException, InterruptedException {
-        Rx3HttpClient connectCli = Rx3HttpClient.create(new URL(connect.getUrl()));
+        HttpClient connectCli = HttpClient.create(new URL(connect.getUrl()));
         Topic to = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("ns1-to1")
@@ -413,10 +422,13 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                         .build())
                 .build();
 
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to));
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(co)).blockingFirst();
-        connectorAsyncExecutorList.forEach(ConnectorAsyncExecutor::run);
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(co));
+        Flux.fromIterable(connectorAsyncExecutorList.stream().map(ConnectorAsyncExecutor::run).toList())
+                .flatMap(Function.identity())
+                .subscribe();
+
         Thread.sleep(2000);
 
         // pause the connector
@@ -424,29 +436,31 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .metadata(ObjectMeta.builder().name("ns1-co2").build())
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.pause).build())
                 .build();
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co2/change-state").bearerAuth(token).body(pauseState)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co2/change-state").bearerAuth(token).body(pauseState));
+
         Thread.sleep(2000);
 
         // verify paused directly on connect cluster
-        ConnectorStateInfo actual = connectCli.retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class).blockingFirst();
-        Assertions.assertEquals("PAUSED", actual.connector().state());
-        Assertions.assertEquals("PAUSED", actual.tasks().get(0).state());
-        Assertions.assertEquals("PAUSED", actual.tasks().get(1).state());
-        Assertions.assertEquals("PAUSED", actual.tasks().get(2).state());
+        ConnectorStateInfo actual = connectCli.toBlocking().retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
+        Assertions.assertEquals("PAUSED", actual.connector().getState());
+        Assertions.assertEquals("PAUSED", actual.tasks().get(0).getState());
+        Assertions.assertEquals("PAUSED", actual.tasks().get(1).getState());
+        Assertions.assertEquals("PAUSED", actual.tasks().get(2).getState());
 
         // resume the connector
         ChangeConnectorState resumeState = ChangeConnectorState.builder()
                 .metadata(ObjectMeta.builder().name("ns1-co2").build())
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.resume).build())
                 .build();
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co2/change-state").bearerAuth(token).body(resumeState)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co2/change-state").bearerAuth(token).body(resumeState));
+
         Thread.sleep(2000);
 
         // verify resumed directly on connect cluster
-        actual = connectCli.retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class).blockingFirst();
-        Assertions.assertEquals("RUNNING", actual.connector().state());
-        Assertions.assertEquals("RUNNING", actual.tasks().get(0).state());
-        Assertions.assertEquals("RUNNING", actual.tasks().get(1).state());
-        Assertions.assertEquals("RUNNING", actual.tasks().get(2).state());
+        actual = connectCli.toBlocking().retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
+        Assertions.assertEquals("RUNNING", actual.connector().getState());
+        Assertions.assertEquals("RUNNING", actual.tasks().get(0).getState());
+        Assertions.assertEquals("RUNNING", actual.tasks().get(1).getState());
+        Assertions.assertEquals("RUNNING", actual.tasks().get(2).getState());
     }
 }

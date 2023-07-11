@@ -84,7 +84,7 @@ class EncryptionUtilsTest {
     }
 
     @Test
-    void validateEncryptNEverSameValue() {
+    void validateEncryptNeverSameValue() {
         String clearText = "myClearText";
         String encryptionKey = "myKey";
         String encryptionSalt = "toto";

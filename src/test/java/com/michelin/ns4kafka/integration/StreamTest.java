@@ -16,8 +16,8 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
-import io.micronaut.rxjava3.http.client.Rx3HttpClient;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
@@ -39,7 +39,7 @@ import java.util.concurrent.ExecutionException;
 class StreamTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
-    Rx3HttpClient client;
+    HttpClient client;
 
     @Inject
     List<AccessControlEntryAsyncExecutor> aceAsyncExecutorList;
@@ -88,13 +88,13 @@ class StreamTest extends AbstractIntegrationTest {
 
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin","admin");
-        HttpResponse<BearerAccessRefreshToken> response = client.exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class).blockingFirst();
+        HttpResponse<BearerAccessRefreshToken> response = client.toBlocking().exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
 
         token = response.getBody().get().getAccessToken();
 
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/nskafkastream/acls").bearerAuth(token).body(acl1)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/nskafkastream/acls").bearerAuth(token).body(acl2)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/nskafkastream/acls").bearerAuth(token).body(acl1));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/nskafkastream/acls").bearerAuth(token).body(acl2));
     }
 
     @Test
@@ -105,10 +105,11 @@ class StreamTest extends AbstractIntegrationTest {
                         .name("kstream-test")
                         .build())
                 .build();
-        client.exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/nskafkastream/streams")
+
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/nskafkastream/streams")
                         .bearerAuth(token)
-                        .body(stream))
-                        .blockingFirst();
+                        .body(stream));
+
         //force ACL Sync
         aceAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
         Admin kafkaClient = getAdminClient();

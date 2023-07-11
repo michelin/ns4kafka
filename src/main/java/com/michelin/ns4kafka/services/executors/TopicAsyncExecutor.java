@@ -58,7 +58,6 @@ public class TopicAsyncExecutor {
             Map<String, Topic> brokerTopics = collectBrokerTopics();
             List<Topic> ns4kafkaTopics = topicRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName());
 
-            // Compute toCreate, toDelete, and toUpdate lists
             List<Topic> toCreate = ns4kafkaTopics.stream()
                     .filter(topic -> !brokerTopics.containsKey(topic.getMetadata().getName()))
                     .toList();
@@ -81,12 +80,15 @@ public class TopicAsyncExecutor {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-            if (log.isDebugEnabled()) {
-                log.debug("Topics to create: " + toCreate);
-                log.debug("Topics to update: " + toUpdate);
-                for (Map.Entry<ConfigResource,Collection<AlterConfigOp>> e : toUpdate.entrySet()) {
+            if (!toCreate.isEmpty()) {
+                log.debug("Topic(s) to create: " +  String.join("," , toCreate.stream().map(topic -> topic.getMetadata().getName()).toList()));
+            }
+
+            if (!toUpdate.isEmpty()) {
+                log.debug("Topic(s) to update: " + String.join("," , toUpdate.keySet().stream().map(ConfigResource::name).toList()));
+                for (Map.Entry<ConfigResource, Collection<AlterConfigOp>> e : toUpdate.entrySet()) {
                     for (AlterConfigOp op : e.getValue()) {
-                        log.debug(e.getKey().name()+" "+op.opType().toString()+" " +op.configEntry().name()+"("+op.configEntry().value()+")");
+                        log.debug(e.getKey().name() + " " + op.opType().toString() + " " + op.configEntry().name() + "(" + op.configEntry().value() + ")");
                     }
                 }
             }

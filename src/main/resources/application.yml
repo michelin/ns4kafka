@@ -14,9 +14,9 @@ micronaut:
 
   http:
     services:
-      /connect-proxy:
+      kafka-connect:
         event-loop-group: connect
-      /schema-registry-proxy:
+      schema-registry:
         event-loop-group: schema
 
   security:

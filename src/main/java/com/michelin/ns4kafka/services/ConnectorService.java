@@ -4,19 +4,18 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
-import com.michelin.ns4kafka.services.connect.ConnectorClientProxy;
-import com.michelin.ns4kafka.services.connect.client.ConnectorClient;
-import com.michelin.ns4kafka.services.connect.client.entities.ConnectorSpecs;
+import com.michelin.ns4kafka.services.clients.connect.KafkaConnectClient;
+import com.michelin.ns4kafka.services.clients.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.inject.qualifiers.Qualifiers;
-import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.core.Single;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.Collections;
 import java.util.List;
@@ -34,7 +33,7 @@ public class ConnectorService {
     AccessControlEntryService accessControlEntryService;
 
     @Inject
-    ConnectorClient connectorClient;
+    KafkaConnectClient kafkaConnectClient;
 
     @Inject
     ConnectorRepository connectorRepository;
@@ -103,7 +102,7 @@ public class ConnectorService {
      * @param connector The connector to validate
      * @return A list of errors
      */
-    public Single<List<String>> validateLocally(Namespace namespace, Connector connector) {
+    public Mono<List<String>> validateLocally(Namespace namespace, Connector connector) {
         // Check whether target Connect Cluster is allowed for this namespace
         List<String> selfDeployedConnectClusters = connectClusterService.findAllByNamespaceWrite(namespace)
                 .stream()
@@ -112,18 +111,17 @@ public class ConnectorService {
         if (!namespace.getSpec().getConnectClusters().contains(connector.getSpec().getConnectCluster()) &&
                 !selfDeployedConnectClusters.contains(connector.getSpec().getConnectCluster())) {
             String allowedConnectClusters = Stream.concat(namespace.getSpec().getConnectClusters().stream(), selfDeployedConnectClusters.stream()).collect(Collectors.joining(", "));
-            return Single.just(
+            return Mono.just(
                     List.of("Invalid value " + connector.getSpec().getConnectCluster() + " for spec.connectCluster: Value must be one of [" + allowedConnectClusters + "]"));
         }
 
         // If class doesn't exist, no need to go further
         if (StringUtils.isEmpty(connector.getSpec().getConfig().get(CONNECTOR_CLASS))) {
-            return Single.just(List.of("Invalid value for spec.config.'connector.class': Value must be non-null"));
+            return Mono.just(List.of("Invalid value for spec.config.'connector.class': Value must be non-null"));
         }
 
         // Connector type exists on this target connect cluster ?
-        return connectorClient.connectPlugins(ConnectorClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
-                        connector.getSpec().getConnectCluster())
+        return kafkaConnectClient.connectPlugins(namespace.getMetadata().getCluster(), connector.getSpec().getConnectCluster())
                 .map(connectorPluginInfos -> {
                     Optional<String> connectorType = connectorPluginInfos
                             .stream()
@@ -157,17 +155,15 @@ public class ConnectorService {
      * @param connector The connector
      * @return A list of errors
      */
-    public Single<List<String>> validateRemotely(Namespace namespace, Connector connector) {
-        return connectorClient.validate(ConnectorClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
-                        connector.getSpec().getConnectCluster(), connector.getSpec().getConfig().get(CONNECTOR_CLASS),
-                ConnectorSpecs.builder()
-                        .config(connector.getSpec().getConfig())
-                        .build())
-                .map(configInfos -> configInfos.values()
+    public Mono<List<String>> validateRemotely(Namespace namespace, Connector connector) {
+        return kafkaConnectClient.validate(namespace.getMetadata().getCluster(),
+                                connector.getSpec().getConnectCluster(), connector.getSpec().getConfig().get(CONNECTOR_CLASS),
+                        ConnectorSpecs.builder().config(connector.getSpec().getConfig()).build())
+                .map(configInfos -> configInfos.configs()
                         .stream()
                         .filter(configInfo -> !configInfo.configValue().errors().isEmpty())
                         .flatMap(configInfo -> configInfo.configValue().errors().stream())
-                        .collect(Collectors.toList()));
+                        .toList());
     }
 
     /**
@@ -184,9 +180,8 @@ public class ConnectorService {
      * @param namespace The namespace
      * @param connector The connector
      */
-    public Single<HttpResponse<Void>> delete(Namespace namespace, Connector connector) {
-        return connectorClient.delete(ConnectorClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
-                        connector.getSpec().getConnectCluster(), connector.getMetadata().getName())
+    public Mono<HttpResponse<Void>> delete(Namespace namespace, Connector connector) {
+        return kafkaConnectClient.delete(namespace.getMetadata().getCluster(), connector.getSpec().getConnectCluster(), connector.getMetadata().getName())
                 .defaultIfEmpty(HttpResponse.noContent())
                 .map(httpResponse -> {
                     connectorRepository.delete(connector);
@@ -206,17 +201,16 @@ public class ConnectorService {
      * @param namespace The namespace
      * @return The list of connectors
      */
-    public Single<List<Connector>> listUnsynchronizedConnectors(Namespace namespace) {
+    public Mono<List<Connector>> listUnsynchronizedConnectors(Namespace namespace) {
         ConnectorAsyncExecutor connectorAsyncExecutor = applicationContext.getBean(ConnectorAsyncExecutor.class,
                 Qualifiers.byName(namespace.getMetadata().getCluster()));
 
         // Get all connectors from all connect clusters
-        List<Observable<Connector>> connectors = Stream.concat(namespace.getSpec().getConnectClusters().stream(),
+        List<Flux<Connector>> connectors = Stream.concat(namespace.getSpec().getConnectClusters().stream(),
                 connectClusterService.findAllByNamespaceWrite(namespace)
                         .stream()
                         .map(connectCluster -> connectCluster.getMetadata().getName()))
                 .map(connectClusterName -> connectorAsyncExecutor.collectBrokerConnectors(connectClusterName)
-                        .toObservable()
                         .flatMapIterable(brokerConnectors -> brokerConnectors)
                         // That belongs to this namespace
                         .filter(connector -> isNamespaceOwnerOfConnect(namespace, connector.getMetadata().getName()))
@@ -224,7 +218,7 @@ public class ConnectorService {
                         .filter(connector -> findByName(namespace, connector.getMetadata().getName()).isEmpty()))
                 .toList();
 
-        return Observable.merge(connectors).toList();
+        return Flux.concat(connectors).collectList();
     }
 
     /**
@@ -233,24 +227,22 @@ public class ConnectorService {
      * @param connector The connector
      * @return An HTTP response
      */
-    public Single<HttpResponse<Void>> restart(Namespace namespace, Connector connector) {
-        return connectorClient.status(ConnectorClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(), connector.getSpec().getConnectCluster(),
-                connector.getMetadata().getName())
+    public Mono<HttpResponse<Void>> restart(Namespace namespace, Connector connector) {
+        return kafkaConnectClient.status(namespace.getMetadata().getCluster(), connector.getSpec().getConnectCluster(), connector.getMetadata().getName())
                 .flatMap(status -> {
-                    Observable<HttpResponse<Void>> observable = Observable.fromIterable(status.tasks())
-                        .flatMapSingle(task -> connectorClient.restart(ConnectorClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
-                                connector.getSpec().getConnectCluster(), connector.getMetadata().getName(), task.id()))
-                        .map(restartedTasks -> {
-                            log.info("Success restarting connector [{}] on namespace [{}] connect [{}]",
-                                    connector.getMetadata().getName(),
-                                    namespace.getMetadata().getName(),
-                                    connector.getSpec().getConnectCluster());
+                            Flux<HttpResponse<Void>> responses = Flux.fromIterable(status.tasks())
+                                    .flatMap(task -> kafkaConnectClient.restart(namespace.getMetadata().getCluster(),
+                                            connector.getSpec().getConnectCluster(), connector.getMetadata().getName(), task.getId()))
+                                    .map(response -> {
+                                        log.info("Success restarting connector [{}] on namespace [{}] connect [{}]",
+                                                connector.getMetadata().getName(),
+                                                namespace.getMetadata().getName(),
+                                                connector.getSpec().getConnectCluster());
+                                        return HttpResponse.ok();
+                                    });
 
-                            return HttpResponse.ok();
+                            return Mono.from(responses);
                         });
-
-                    return Single.fromObservable(observable);
-                });
     }
 
     /**
@@ -259,8 +251,8 @@ public class ConnectorService {
      * @param connector The connector
      * @return An HTTP response
      */
-    public Single<HttpResponse<Void>> pause(Namespace namespace, Connector connector) {
-        return connectorClient.pause(ConnectorClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
+    public Mono<HttpResponse<Void>> pause(Namespace namespace, Connector connector) {
+        return kafkaConnectClient.pause(namespace.getMetadata().getCluster(),
                 connector.getSpec().getConnectCluster(), connector.getMetadata().getName())
                         .map(pause -> {
                             log.info("Success pausing Connector [{}] on Namespace [{}] Connect [{}]",
@@ -278,8 +270,8 @@ public class ConnectorService {
      * @param connector The connector
      * @return An HTTP response
      */
-    public Single<HttpResponse<Void>> resume(Namespace namespace, Connector connector) {
-        return connectorClient.resume(ConnectorClientProxy.PROXY_SECRET, namespace.getMetadata().getCluster(),
+    public Mono<HttpResponse<Void>> resume(Namespace namespace, Connector connector) {
+        return kafkaConnectClient.resume(namespace.getMetadata().getCluster(),
                 connector.getSpec().getConnectCluster(), connector.getMetadata().getName())
                         .map(resume -> {
                             log.info("Success resuming Connector [{}] on Namespace [{}] Connect [{}]",

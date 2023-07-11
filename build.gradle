@@ -27,9 +27,8 @@ dependencies {
     implementation("io.micronaut.security:micronaut-security-ldap")
     implementation("io.swagger.core.v3:swagger-annotations")
     implementation("jakarta.annotation:jakarta.annotation-api")
-    implementation("io.micronaut.rxjava3:micronaut-rxjava3")
-    implementation("io.micronaut.rxjava3:micronaut-rxjava3-http-client")
     implementation("io.micronaut.openapi:micronaut-openapi")
+    implementation("io.micronaut.reactor:micronaut-reactor")
 
     compileOnly("org.projectlombok:lombok")
     compileOnly("com.google.code.findbugs:jsr305") // https://github.com/micronaut-projects/micronaut-core/pull/5691
@@ -45,6 +44,7 @@ dependencies {
         }
     }
     testImplementation("org.mockito:mockito-junit-jupiter:5.4.0")
+    testImplementation("io.projectreactor:reactor-test")
 
     testAnnotationProcessor("org.projectlombok:lombok")
     testCompileOnly("org.projectlombok:lombok")

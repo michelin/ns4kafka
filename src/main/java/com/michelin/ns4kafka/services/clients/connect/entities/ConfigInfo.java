@@ -14,24 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.michelin.ns4kafka.services.connect.client.entities;
+package com.michelin.ns4kafka.services.clients.connect.entities;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.Locale;
-
-public enum ConnectorType {
-    SOURCE, SINK, UNKNOWN;
-
-    @Override
-    @JsonValue
-    public String toString() {
-        return super.toString().toLowerCase(Locale.ROOT);
-    }
-
-    @JsonCreator
-    public static ConnectorType forValue(String value) {
-        return ConnectorType.valueOf(value.toUpperCase(Locale.ROOT));
-    }
+public record ConfigInfo(@JsonProperty("definition") ConfigKeyInfo configKey, @JsonProperty("value") ConfigValueInfo configValue) {
 }

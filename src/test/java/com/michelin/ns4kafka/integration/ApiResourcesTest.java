@@ -10,8 +10,8 @@ import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
-import io.micronaut.rxjava3.http.client.Rx3HttpClient;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
@@ -25,18 +25,17 @@ import java.util.List;
 class ApiResourcesTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
-    Rx3HttpClient client;
+    HttpClient client;
 
     @Test
     void asAdmin() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<TopicTest.BearerAccessRefreshToken> response = client.exchange(HttpRequest.POST("/login", credentials), TopicTest.BearerAccessRefreshToken.class).blockingFirst();
+        HttpResponse<TopicTest.BearerAccessRefreshToken> response = client.toBlocking().exchange(HttpRequest.POST("/login", credentials), TopicTest.BearerAccessRefreshToken.class);
 
         String token = response.getBody().get().getAccessToken();
-        List<ApiResourcesController.ResourceDefinition> resources = client.retrieve(
+        List<ApiResourcesController.ResourceDefinition> resources = client.toBlocking().retrieve(
                 HttpRequest.GET("/api-resources").bearerAuth(token),
-                Argument.listOf(ApiResourcesController.ResourceDefinition.class)
-        ).blockingFirst();
+                Argument.listOf(ApiResourcesController.ResourceDefinition.class));
 
         Assertions.assertEquals(9, resources.size());
     }
@@ -45,10 +44,9 @@ class ApiResourcesTest extends AbstractIntegrationTest {
     void asAnonymous() {
         // This feature is not about restricting access, but easing user experience within the CLI
         // If the user is not authenticated, show everything
-        List<ApiResourcesController.ResourceDefinition> resources = client.retrieve(
+        List<ApiResourcesController.ResourceDefinition> resources = client.toBlocking().retrieve(
                 HttpRequest.GET("/api-resources"),
-                Argument.listOf(ApiResourcesController.ResourceDefinition.class)
-        ).blockingFirst();
+                Argument.listOf(ApiResourcesController.ResourceDefinition.class));
 
         Assertions.assertEquals(9, resources.size());
     }
@@ -84,21 +82,20 @@ class ApiResourcesTest extends AbstractIntegrationTest {
                 .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<TopicTest.BearerAccessRefreshToken> response = client.exchange(HttpRequest.POST("/login", credentials), TopicTest.BearerAccessRefreshToken.class).blockingFirst();
+        HttpResponse<TopicTest.BearerAccessRefreshToken> response = client.toBlocking().exchange(HttpRequest.POST("/login", credentials), TopicTest.BearerAccessRefreshToken.class);
 
         String token = response.getBody().get().getAccessToken();
 
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1)).blockingFirst();
-        client.exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1)).blockingFirst();
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1));
 
         UsernamePasswordCredentials userCredentials = new UsernamePasswordCredentials("user", "admin");
-        HttpResponse<TopicTest.BearerAccessRefreshToken> userResponse = client.exchange(HttpRequest.POST("/login", userCredentials), TopicTest.BearerAccessRefreshToken.class).blockingFirst();
+        HttpResponse<TopicTest.BearerAccessRefreshToken> userResponse = client.toBlocking().exchange(HttpRequest.POST("/login", userCredentials), TopicTest.BearerAccessRefreshToken.class);
         String userToken = userResponse.getBody().get().getAccessToken();
 
-        List<ApiResourcesController.ResourceDefinition> resources = client.retrieve(
+        List<ApiResourcesController.ResourceDefinition> resources = client.toBlocking().retrieve(
                 HttpRequest.GET("/api-resources").bearerAuth(userToken),
-                Argument.listOf(ApiResourcesController.ResourceDefinition.class)
-        ).blockingFirst();
+                Argument.listOf(ApiResourcesController.ResourceDefinition.class));
 
         Assertions.assertEquals(2, resources.size());
     }

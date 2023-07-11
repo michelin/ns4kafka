@@ -15,7 +15,6 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.utils.SecurityService;
-import io.reactivex.rxjava3.core.Single;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,9 +23,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.util.*;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -155,12 +157,13 @@ class ConnectorControllerTest {
         Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(false);
 
-        connectorController.deleteConnector("test", "connect1", false)
-                .test()
-                .assertError(ResourceValidationException.class)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
-                        .equals("Namespace not owner of this connector connect1."));
+        StepVerifier.create(connectorController.deleteConnector("test", "connect1", false))
+            .consumeErrorWith(error -> {
+                assertEquals(ResourceValidationException.class, error.getClass());
+                assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
+                assertEquals("Namespace not owner of this connector connect1.", ((ResourceValidationException) error).getValidationErrors().get(0));
+            })
+            .verify();
     }
 
     /**
@@ -183,15 +186,14 @@ class ConnectorControllerTest {
         Mockito.when(connectorService.findByName(ns,"connect1"))
                 .thenReturn(Optional.of(connector));
         Mockito.when(connectorService.delete(ns,connector))
-                .thenReturn(Single.just(HttpResponse.noContent()));
+                .thenReturn(Mono.just(HttpResponse.noContent()));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        connectorController.deleteConnector("test", "connect1", false)
-                .test()
-                .assertNoErrors()
-                .assertValue(response -> response.getStatus().equals(HttpStatus.NO_CONTENT));
+        StepVerifier.create(connectorController.deleteConnector("test", "connect1", false))
+            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .verifyComplete();
     }
 
     /**
@@ -214,10 +216,9 @@ class ConnectorControllerTest {
         Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
 
-        connectorController.deleteConnector("test", "connect1", true)
-                .test()
-                .assertNoErrors()
-                .assertValue(response -> response.getStatus().equals(HttpStatus.NO_CONTENT));
+        StepVerifier.create(connectorController.deleteConnector("test", "connect1", true))
+            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .verifyComplete();
 
         verify(connectorService, never()).delete(any(), any());
     }
@@ -241,10 +242,9 @@ class ConnectorControllerTest {
         Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
 
-        connectorController.deleteConnector("test", "connect1", true)
-                .test()
-                .assertNoErrors()
-                .assertValue(response -> response.getStatus().equals(HttpStatus.NOT_FOUND));
+        StepVerifier.create(connectorController.deleteConnector("test", "connect1", true))
+                .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
+                .verifyComplete();
 
         verify(connectorService, never()).delete(any(), any());
     }
@@ -267,12 +267,13 @@ class ConnectorControllerTest {
         Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(false);
 
-        connectorController.apply("test", connector, false)
-                .test()
-                .assertError(ResourceValidationException.class)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
-                        .equals("Namespace not owner of this connector connect1."));
+        StepVerifier.create(connectorController.apply("test", connector, false))
+            .consumeErrorWith(error -> {
+                assertEquals(ResourceValidationException.class, error.getClass());
+                assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
+                assertEquals("Namespace not owner of this connector connect1.", ((ResourceValidationException) error).getValidationErrors().get(0));
+            })
+            .verify();
     }
 
     /**
@@ -296,14 +297,15 @@ class ConnectorControllerTest {
         Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
         Mockito.when(connectorService.validateLocally(ns, connector))
-                .thenReturn(Single.just(List.of("Local Validation Error 1")));
+                .thenReturn(Mono.just(List.of("Local Validation Error 1")));
 
-        connectorController.apply("test", connector, false)
-                .test()
-                .assertError(ResourceValidationException.class)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
-                        .equals("Local Validation Error 1"));
+        StepVerifier.create(connectorController.apply("test", connector, false))
+            .consumeErrorWith(error -> {
+                assertEquals(ResourceValidationException.class, error.getClass());
+                assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
+                assertEquals("Local Validation Error 1", ((ResourceValidationException) error).getValidationErrors().get(0));
+            })
+            .verify();
     }
 
     /**
@@ -328,16 +330,17 @@ class ConnectorControllerTest {
         Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
         Mockito.when(connectorService.validateLocally(ns, connector))
-                .thenReturn(Single.just(List.of()));
+                .thenReturn(Mono.just(List.of()));
         Mockito.when(connectorService.validateRemotely(ns, connector))
-                .thenReturn(Single.just(List.of("Remote Validation Error 1")));
+                .thenReturn(Mono.just(List.of("Remote Validation Error 1")));
 
-        connectorController.apply("test", connector, false)
-                .test()
-                .assertError(ResourceValidationException.class)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
-                        .equals("Remote Validation Error 1"));
+        StepVerifier.create(connectorController.apply("test", connector, false))
+            .consumeErrorWith(error -> {
+                assertEquals(ResourceValidationException.class, error.getClass());
+                assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
+                assertEquals("Remote Validation Error 1", ((ResourceValidationException) error).getValidationErrors().get(0));
+            })
+            .verify();
     }
 
     /**
@@ -361,14 +364,10 @@ class ConnectorControllerTest {
                         .cluster("local")
                         .build())
                 .build();
-        when(namespaceService.findByName("test"))
-        .thenReturn(Optional.of(ns));
-        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
-        .thenReturn(true);
-        when(connectorService.validateLocally(ns, connector))
-        .thenReturn(Single.just(List.of()));
-        when(connectorService.validateRemotely(ns, connector))
-                .thenReturn(Single.just(List.of()));
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
+        when(connectorService.validateLocally(ns, connector)).thenReturn(Mono.just(List.of()));
+        when(connectorService.validateRemotely(ns, connector)).thenReturn(Mono.just(List.of()));
         when(resourceQuotaService.validateConnectorQuota(any())).thenReturn(List.of());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
@@ -376,11 +375,13 @@ class ConnectorControllerTest {
         when(connectorService.createOrUpdate(connector))
                 .thenReturn(expected);
 
-        connectorController.apply("test", connector, false)
-                .test()
-                .assertValue(response -> Objects.equals(response.header("X-Ns4kafka-Result"), "created"))
-                .assertValue(response -> response.getBody().isPresent()
-                        && response.getBody().get().getStatus().getState().equals(expected.getStatus().getState()));
+        StepVerifier.create(connectorController.apply("test", connector, false))
+            .consumeNextWith(response -> {
+                assertEquals("created", response.header("X-Ns4kafka-Result"));
+                assertTrue(response.getBody().isPresent());
+                assertEquals(expected.getStatus().getState(), response.getBody().get().getStatus().getState());
+            })
+            .verifyComplete();
     }
 
     /**
@@ -404,17 +405,18 @@ class ConnectorControllerTest {
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
         when(connectorService.validateLocally(ns, connector))
-                .thenReturn(Single.just(List.of()));
+                .thenReturn(Mono.just(List.of()));
         when(connectorService.validateRemotely(ns, connector))
-                .thenReturn(Single.just(List.of()));
+                .thenReturn(Mono.just(List.of()));
         when(resourceQuotaService.validateConnectorQuota(ns)).thenReturn(List.of("Quota error"));
 
-        connectorController.apply("test", connector, false)
-                .test()
-                .assertError(ResourceValidationException.class)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
-                        .equals("Quota error"));
+        StepVerifier.create(connectorController.apply("test", connector, false))
+            .consumeErrorWith(error -> {
+                assertEquals(ResourceValidationException.class, error.getClass());
+                assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
+                assertEquals("Quota error", ((ResourceValidationException) error).getValidationErrors().get(0));
+            })
+            .verify();
     }
 
     /**
@@ -441,22 +443,20 @@ class ConnectorControllerTest {
                         .cluster("local")
                         .build())
                 .build();
-        Mockito.when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
-                .thenReturn(true);
-        Mockito.when(connectorService.validateLocally(ns, connector))
-                .thenReturn(Single.just(List.of()));
-        Mockito.when(connectorService.validateRemotely(ns, connector))
-                .thenReturn(Single.just(List.of()));
-        Mockito.when(connectorService.findByName(ns, "connect1"))
-                .thenReturn(Optional.of(connector));
 
-        connectorController.apply("test", connector, false)
-                .test()
-                .assertValue(response -> Objects.equals(response.header("X-Ns4kafka-Result"), "unchanged"))
-                .assertValue(response -> response.getBody().isPresent()
-                        && response.getBody().get().getStatus().getState().equals(expected.getStatus().getState()));
+        Mockito.when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
+        Mockito.when(connectorService.validateLocally(ns, connector)).thenReturn(Mono.just(List.of()));
+        Mockito.when(connectorService.validateRemotely(ns, connector)).thenReturn(Mono.just(List.of()));
+        Mockito.when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.of(connector));
+
+        StepVerifier.create(connectorController.apply("test", connector, false))
+            .consumeNextWith(response -> {
+                assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
+                assertTrue(response.getBody().isPresent());
+                assertEquals(expected.getStatus().getState(), response.getBody().get().getStatus().getState());
+            })
+            .verifyComplete();
 
         verify(connectorService,never()).createOrUpdate(ArgumentMatchers.any());
     }
@@ -491,9 +491,9 @@ class ConnectorControllerTest {
         Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
         Mockito.when(connectorService.validateLocally(ns, connector))
-                .thenReturn(Single.just(List.of()));
+                .thenReturn(Mono.just(List.of()));
         Mockito.when(connectorService.validateRemotely(ns, connector))
-                .thenReturn(Single.just(List.of()));
+                .thenReturn(Mono.just(List.of()));
         Mockito.when(connectorService.findByName(ns, "connect1"))
                 .thenReturn(Optional.of(connectorOld));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
@@ -502,11 +502,13 @@ class ConnectorControllerTest {
         Mockito.when(connectorService.createOrUpdate(connector))
                 .thenReturn(expected);
 
-        connectorController.apply("test", connector, false)
-                .test()
-                .assertValue(response -> Objects.equals(response.header("X-Ns4kafka-Result"), "changed"))
-                .assertValue(response -> response.getBody().isPresent()
-                        && response.getBody().get().getStatus().getState().equals(expected.getStatus().getState()));
+        StepVerifier.create(connectorController.apply("test", connector, false))
+            .consumeNextWith(response -> {
+                assertEquals("changed", response.header("X-Ns4kafka-Result"));
+                assertTrue(response.getBody().isPresent());
+                assertEquals(expected.getStatus().getState(), response.getBody().get().getStatus().getState());
+            })
+            .verifyComplete();
     }
 
     /**
@@ -530,13 +532,13 @@ class ConnectorControllerTest {
         Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
         Mockito.when(connectorService.validateLocally(ns, connector))
-                .thenReturn(Single.just(List.of()));
+                .thenReturn(Mono.just(List.of()));
         Mockito.when(connectorService.validateRemotely(ns, connector))
-                .thenReturn(Single.just(List.of()));
+                .thenReturn(Mono.just(List.of()));
 
-        connectorController.apply("test", connector, true)
-                .test()
-                .assertValue(response -> Objects.equals(response.header("X-Ns4kafka-Result"), "created"));
+        StepVerifier.create(connectorController.apply("test", connector, true))
+            .consumeNextWith(response -> assertEquals("created", response.header("X-Ns4kafka-Result")))
+            .verifyComplete();
 
         verify(connectorService, never()).createOrUpdate(connector);
     }
@@ -559,16 +561,18 @@ class ConnectorControllerTest {
                 .thenReturn(Optional.of(ns));
         
         when(connectorService.listUnsynchronizedConnectors(ns))
-                .thenReturn(Single.just(List.of(connector1, connector2)));
+                .thenReturn(Mono.just(List.of(connector1, connector2)));
         
         when(connectorService.createOrUpdate(connector1)).thenReturn(connector1);
         when(connectorService.createOrUpdate(connector2)).thenReturn(connector2);
 
-        connectorController.importResources("test", false)
-                .test()
-                .assertValue(response -> response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect1")))
-                .assertValue(response -> response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect2")))
-                .assertValue(response -> response.stream().noneMatch(c -> c.getMetadata().getName().equals("connect3")));
+        StepVerifier.create(connectorController.importResources("test", false))
+            .consumeNextWith(response -> {
+                assertTrue(response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect1")));
+                assertTrue(response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect2")));
+                assertTrue(response.stream().noneMatch(c -> c.getMetadata().getName().equals("connect3")));
+            })
+            .verifyComplete();
     }
 
     /**
@@ -590,13 +594,15 @@ class ConnectorControllerTest {
                 .thenReturn(Optional.of(ns));
 
         when(connectorService.listUnsynchronizedConnectors(ns))
-                .thenReturn(Single.just(List.of(connector1, connector2)));
+                .thenReturn(Mono.just(List.of(connector1, connector2)));
 
-        connectorController.importResources("test", true)
-                .test()
-                .assertValue(response -> response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect1")))
-                .assertValue(response -> response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect2")))
-                .assertValue(response -> response.stream().noneMatch(c -> c.getMetadata().getName().equals("connect3")));
+        StepVerifier.create(connectorController.importResources("test", true))
+            .consumeNextWith(response -> {
+                assertTrue(response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect1")));
+                assertTrue(response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect2")));
+                assertTrue(response.stream().noneMatch(c -> c.getMetadata().getName().equals("connect3")));
+            })
+            .verifyComplete();
 
         verify(connectorService, never()).createOrUpdate(connector1);
         verify(connectorService, never()).createOrUpdate(connector2);
@@ -625,12 +631,13 @@ class ConnectorControllerTest {
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.restart).build())
                 .build();
 
-        connectorController.changeState("test", "connect1", restart)
-                .test()
-                .assertError(ResourceValidationException.class)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().size() == 1)
-                .assertError(error -> ((ResourceValidationException) error).getValidationErrors().get(0)
-                        .equals("Namespace not owner of this connector connect1."));
+        StepVerifier.create(connectorController.changeState("test", "connect1", restart))
+            .consumeErrorWith(error -> {
+                assertEquals(ResourceValidationException.class, error.getClass());
+                assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
+                assertEquals("Namespace not owner of this connector connect1.", ((ResourceValidationException) error).getValidationErrors().get(0));
+            })
+            .verify();
     }
 
     /**
@@ -656,9 +663,9 @@ class ConnectorControllerTest {
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.restart).build())
                 .build();
 
-        connectorController.changeState("test", "connect1", restart)
-                .test()
-                .assertValue(response -> response.getStatus().equals(HttpStatus.NOT_FOUND));
+        StepVerifier.create(connectorController.changeState("test", "connect1", restart))
+            .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
+            .verifyComplete();
 
         verify(connectorService,never()).restart(ArgumentMatchers.any(), ArgumentMatchers.any());
     }
@@ -674,6 +681,7 @@ class ConnectorControllerTest {
                         .cluster("local")
                         .build())
                 .build();
+
         Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
         Mockito.when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
@@ -682,18 +690,21 @@ class ConnectorControllerTest {
         Mockito.when(connectorService.findByName(ns,"connect1"))
                 .thenReturn(Optional.of(connector));
         Mockito.when(connectorService.restart(ArgumentMatchers.any(),ArgumentMatchers.any()))
-                .thenReturn(Single.error(new HttpClientResponseException("Rebalancing", HttpResponse.status(HttpStatus.CONFLICT))));
+                .thenReturn(Mono.error(new HttpClientResponseException("Rebalancing", HttpResponse.status(HttpStatus.CONFLICT))));
 
         ChangeConnectorState restart = ChangeConnectorState.builder()
                 .metadata(ObjectMeta.builder().name("connect1").build())
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.restart).build())
                 .build();
 
-        connectorController.changeState("test", "connect1", restart)
-                .test()
-                .assertValue(response -> response.getBody().isPresent()
-                        && !response.getBody().get().getStatus().isSuccess()
-                        && response.body().getStatus().getErrorMessage().equals("Rebalancing"));
+        StepVerifier.create(connectorController.changeState("test", "connect1", restart))
+            .consumeNextWith(response -> {
+                assertTrue(response.getBody().isPresent());
+                assertFalse(response.getBody().get().getStatus().isSuccess());
+                assertNotNull(response.body());
+                assertEquals("Rebalancing", response.body().getStatus().getErrorMessage());
+            })
+            .verifyComplete();
     }
 
     /**
@@ -716,19 +727,21 @@ class ConnectorControllerTest {
         Mockito.when(connectorService.findByName(ns,"connect1"))
                 .thenReturn(Optional.of(connector));
         Mockito.when(connectorService.restart(ArgumentMatchers.any(),ArgumentMatchers.any()))
-                .thenReturn(Single.just(HttpResponse.noContent()));
+                .thenReturn(Mono.just(HttpResponse.noContent()));
 
         ChangeConnectorState changeConnectorState = ChangeConnectorState.builder()
                 .metadata(ObjectMeta.builder().name("connect1").build())
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder().action(ChangeConnectorState.ConnectorAction.restart).build())
                 .build();
 
-        connectorController.changeState("test", "connect1", changeConnectorState)
-                .test()
-                .assertValue(response -> response.getBody().isPresent() &&
-                        response.getBody().get().getStatus().isSuccess())
-                .assertValue(response -> HttpStatus.NO_CONTENT.equals(response.body().getStatus().getCode()))
-                .assertValue(response -> response.body().getMetadata().getName().equals("connect1"));
+        StepVerifier.create(connectorController.changeState("test", "connect1", changeConnectorState))
+            .consumeNextWith(response -> {
+                assertTrue(response.getBody().isPresent());
+                assertTrue(response.getBody().get().getStatus().isSuccess());
+                assertEquals(HttpStatus.NO_CONTENT, response.body().getStatus().getCode());
+                assertEquals("connect1", response.body().getMetadata().getName());
+            })
+            .verifyComplete();
     }
 
     /**
@@ -751,7 +764,7 @@ class ConnectorControllerTest {
         Mockito.when(connectorService.findByName(ns,"connect1"))
                 .thenReturn(Optional.of(connector));
         Mockito.when(connectorService.pause(ArgumentMatchers.any(),ArgumentMatchers.any()))
-                .thenReturn(Single.just(HttpResponse.noContent()));
+                .thenReturn(Mono.just(HttpResponse.noContent()));
 
         ChangeConnectorState changeConnectorState = ChangeConnectorState.builder()
                 .metadata(ObjectMeta.builder().name("connect1").build())
@@ -761,12 +774,14 @@ class ConnectorControllerTest {
                         .build())
                 .build();
 
-        connectorController.changeState("test", "connect1", changeConnectorState)
-                .test()
-                .assertValue(response -> response.getBody().isPresent() &&
-                        response.getBody().get().getStatus().isSuccess())
-                .assertValue(response -> HttpStatus.NO_CONTENT.equals(response.body().getStatus().getCode()))
-                .assertValue(response -> response.body().getMetadata().getName().equals("connect1"));
+        StepVerifier.create(connectorController.changeState("test", "connect1", changeConnectorState))
+            .consumeNextWith(response -> {
+                assertTrue(response.getBody().isPresent());
+                assertTrue(response.getBody().get().getStatus().isSuccess());
+                assertEquals(HttpStatus.NO_CONTENT, response.body().getStatus().getCode());
+                assertEquals("connect1", response.body().getMetadata().getName());
+            })
+            .verifyComplete();
     }
 
     /**
@@ -788,7 +803,7 @@ class ConnectorControllerTest {
         Mockito.when(connectorService.findByName(ns,"connect1"))
                 .thenReturn(Optional.of(connector));
         Mockito.when(connectorService.resume(ArgumentMatchers.any(),ArgumentMatchers.any()))
-                .thenReturn(Single.just(HttpResponse.noContent()));
+                .thenReturn(Mono.just(HttpResponse.noContent()));
 
         ChangeConnectorState changeConnectorState = ChangeConnectorState.builder()
                 .metadata(ObjectMeta.builder().name("connect1").build())
@@ -798,11 +813,13 @@ class ConnectorControllerTest {
                         .build())
                 .build();
 
-        connectorController.changeState("test", "connect1", changeConnectorState)
-                .test()
-                .assertValue(response -> response.getBody().isPresent() &&
-                        response.getBody().get().getStatus().isSuccess())
-                .assertValue(response -> HttpStatus.NO_CONTENT.equals(response.body().getStatus().getCode()))
-                .assertValue(response -> response.body().getMetadata().getName().equals("connect1"));
+        StepVerifier.create(connectorController.changeState("test", "connect1", changeConnectorState))
+            .consumeNextWith(response -> {
+                assertTrue(response.getBody().isPresent());
+                assertTrue(response.getBody().get().getStatus().isSuccess());
+                assertEquals(HttpStatus.NO_CONTENT, response.body().getStatus().getCode());
+                assertEquals("connect1", response.body().getMetadata().getName());
+            })
+            .verifyComplete();
     }
 }
