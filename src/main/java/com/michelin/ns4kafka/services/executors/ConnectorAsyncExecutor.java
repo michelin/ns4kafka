@@ -11,16 +11,16 @@ import com.michelin.ns4kafka.services.clients.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.services.clients.connect.entities.ConnectorStatus;
 import io.micronaut.context.annotation.EachBean;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import io.micronaut.http.client.exceptions.ReadTimeoutException;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.Set;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -38,6 +38,9 @@ public class ConnectorAsyncExecutor {
     @Inject
     private ConnectClusterService connectClusterService;
 
+    private final Set<String> healthyConnectClusters = new HashSet<>();
+    private final Set<String> idleConnectClusters = new HashSet<>();
+
     public ConnectorAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
         this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
     }
@@ -53,19 +56,68 @@ public class ConnectorAsyncExecutor {
     }
 
     /**
-     * For each connect cluster, start the synchronization of connectors
+     * Start connector synchronization
      */
-    private Flux<ConnectorInfo> synchronizeConnectors() {
+    public Flux<String> runHealthCheck() {
+        if (kafkaAsyncExecutorConfig.isManageConnectors()) {
+            return checkConnectClusterHealth();
+        }
+        return Flux.empty();
+    }
+
+    /**
+     * Get all connect clusters of the current Kafka cluster execution, including
+     * both self-declared Connect clusters and hard-declared Connect clusters
+     * @return A list of Connect clusters
+     */
+    private List<String> getConnectClusters() {
         List<String> selfDeclaredConnectClusterNames = connectClusterService.findAll()
                 .stream()
                 .filter(connectCluster -> connectCluster.getMetadata().getCluster().equals(kafkaAsyncExecutorConfig.getName()))
                 .map(connectCluster -> connectCluster.getMetadata().getName()).toList();
 
-        List<Flux<ConnectorInfo>> connectorSyncResponses = Stream.concat(kafkaAsyncExecutorConfig.getConnects().keySet().stream(), selfDeclaredConnectClusterNames.stream())
-                .map(this::synchronizeConnectCluster)
-                .toList();
+        return Stream.concat(kafkaAsyncExecutorConfig.getConnects().keySet().stream(), selfDeclaredConnectClusterNames.stream()).toList();
+    }
 
-        return Flux.fromIterable(connectorSyncResponses).flatMap(Function.identity());
+    private Flux<String> checkConnectClusterHealth() {
+        return Flux.fromIterable(getConnectClusters())
+                .flatMap(connectCluster -> {
+                    log.debug("Starting health check for Kafka cluster {} and Kafka Connect {}",
+                            kafkaAsyncExecutorConfig.getName(), connectCluster);
+
+                    return kafkaConnectClient.version(kafkaAsyncExecutorConfig.getName(), connectCluster)
+                            .doOnError(error -> {
+                                log.debug("Kafka Connect \"" + connectCluster + "\" is not healthy: " + error.getMessage() + ".");
+
+                                idleConnectClusters.add(connectCluster);
+                                healthyConnectClusters.remove(connectCluster);
+                            })
+                            .doOnSuccess(response -> {
+                                log.debug("Kafka Connect \"" + connectCluster + "\" is healthy.");
+                                healthyConnectClusters.add(connectCluster);
+                                idleConnectClusters.remove(connectCluster);
+                            })
+                            .map(response -> connectCluster);
+                });
+    }
+
+
+    /**
+     * For each connect cluster, start the synchronization of connectors
+     */
+    private Flux<ConnectorInfo> synchronizeConnectors() {
+        log.debug("Starting connector synchronization for Kafka cluster {}. Healthy Kafka Connects: {}. Idle Kafka Connects: {}",
+                kafkaAsyncExecutorConfig.getName(),
+                !healthyConnectClusters.isEmpty() ? String.join(",", healthyConnectClusters) : "N/A",
+                !idleConnectClusters.isEmpty() ? String.join(",", idleConnectClusters) : "N/A");
+
+        if (healthyConnectClusters.isEmpty()) {
+            log.debug("No healthy Kafka Connect for Kafka cluster {}. Skipping synchronization.", kafkaAsyncExecutorConfig.getName());
+            return Flux.empty();
+        }
+
+        return Flux.fromIterable(healthyConnectClusters)
+                .flatMap(this::synchronizeConnectCluster);
     }
 
     /**
@@ -73,21 +125,18 @@ public class ConnectorAsyncExecutor {
      * @param connectCluster The connect cluster
      */
     private Flux<ConnectorInfo> synchronizeConnectCluster(String connectCluster) {
-        log.debug("Starting connector collection for Kafka cluster {} and Kafka Connect {}",
+        log.debug("Starting connector collection for Kafka cluster {} and Kafka Connect {}.",
                 kafkaAsyncExecutorConfig.getName(), connectCluster);
 
         return collectBrokerConnectors(connectCluster)
             .doOnError(error -> {
                 if (error instanceof HttpClientResponseException httpClientResponseException) {
-                    log.error("Invalid HTTP response {} ({}) during connectors synchronization for Kafka cluster {} and Kafka Connect {}",
+                    log.error("Invalid HTTP response {} ({}) during connectors synchronization for Kafka cluster {} and Kafka Connect {}.",
                             httpClientResponseException.getStatus(), httpClientResponseException.getResponse().getStatus(),
                             kafkaAsyncExecutorConfig.getName(), connectCluster);
-                } else if (error instanceof ReadTimeoutException) {
-                    log.error("Read timeout during connectors synchronization for Kafka cluster {} and Kafka Connect {}",
-                            kafkaAsyncExecutorConfig.getName(), connectCluster);
                 } else {
-                    log.error("Exception during connectors synchronization for Kafka cluster {} and Kafka Connect {}",
-                            kafkaAsyncExecutorConfig.getName(), connectCluster, error);
+                    log.error("Exception during connectors synchronization for Kafka cluster {} and Kafka Connect {}: {}.",
+                            kafkaAsyncExecutorConfig.getName(), connectCluster, error.getMessage());
                 }
             })
             .flatMapMany(brokerConnectors -> {
@@ -115,12 +164,8 @@ public class ConnectorAsyncExecutor {
                     log.debug("Connector(s) to update: " + String.join(",", toUpdate.stream().map(connector -> connector.getMetadata().getName()).toList()));
                 }
 
-                List<Mono<ConnectorInfo>> responses = Stream
-                        .concat(toCreate.stream(), toUpdate.stream())
-                        .map(this::deployConnector)
-                        .toList();
-
-                return Flux.fromIterable(responses).flatMap(Function.identity());
+                return Flux.fromIterable(Stream.concat(toCreate.stream(), toUpdate.stream()).toList())
+                        .flatMap(this::deployConnector);
             });
     }
 

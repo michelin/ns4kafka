@@ -123,7 +123,9 @@ public class ConnectClusterService {
      */
     private String getKafkaConnectStatus(ConnectCluster connectCluster) {
         try {
-            HttpResponse<ServerInfo> response = kafkaConnectClient.version(connectCluster.getMetadata().getCluster(), connectCluster.getMetadata().getName());
+            HttpResponse<ServerInfo> response = kafkaConnectClient.version(connectCluster.getMetadata().getCluster(),
+                    connectCluster.getMetadata().getName())
+                    .block();
             return "Healthy (" + response.status() + ")";
         } catch (HttpClientException e) {
             return "Unhealthy (" + e.getMessage() + ")";

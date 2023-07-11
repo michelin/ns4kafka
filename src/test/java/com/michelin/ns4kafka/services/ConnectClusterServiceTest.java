@@ -215,7 +215,7 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(kafkaConnectClient.version("local", "prefix.connect-cluster"))
-                .thenReturn(HttpResponse.ok());
+                .thenReturn(Mono.just(HttpResponse.ok()));
 
         when(connectClusterRepository.findAllForCluster("local"))
                 .thenReturn(List.of(connectCluster));
@@ -265,7 +265,7 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(kafkaConnectClient.version("local", "prefix.connect-cluster"))
-                .thenThrow(new HttpClientException("Internal Server Error"));
+                .thenReturn(Mono.error(new HttpClientException("Internal Server Error")));
 
         when(connectClusterRepository.findAllForCluster("local"))
                 .thenReturn(List.of(connectCluster));
@@ -315,7 +315,7 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(kafkaConnectClient.version("local", "prefix.connect-cluster"))
-                .thenReturn(HttpResponse.ok());
+                .thenReturn(Mono.just(HttpResponse.ok()));
 
         when(connectClusterRepository.findAllForCluster("local"))
                 .thenReturn(List.of(connectCluster));
@@ -873,7 +873,7 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(kafkaConnectClient.version(any(), any()))
-                .thenReturn(HttpResponse.ok());
+                .thenReturn(Mono.just(HttpResponse.ok()));
 
         when(connectClusterRepository.findAllForCluster("local"))
                 .thenReturn(List.of(connectCluster, connectClusterOwner));
@@ -986,7 +986,7 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(kafkaConnectClient.version(any(), any()))
-                .thenReturn(HttpResponse.ok());
+                .thenReturn(Mono.just(HttpResponse.ok()));
 
         when(connectClusterRepository.findAllForCluster("local"))
                 .thenReturn(List.of(connectCluster, connectClusterOwner));
@@ -1048,7 +1048,7 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(kafkaConnectClient.version(any(), any()))
-                .thenReturn(HttpResponse.ok());
+                .thenReturn(Mono.just(HttpResponse.ok()));
 
         when(connectClusterRepository.findAllForCluster("local"))
                 .thenReturn(List.of(connectCluster, connectClusterOwner));
