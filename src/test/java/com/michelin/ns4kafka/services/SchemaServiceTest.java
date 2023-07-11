@@ -15,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -44,7 +45,7 @@ class SchemaServiceTest {
         Namespace namespace = buildNamespace();
         List<String> subjectsResponse = Arrays.asList("prefix.schema-one", "prefix2.schema-two", "prefix2.schema-three");
 
-        when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster())).thenReturn(Mono.just(subjectsResponse));
+        when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster())).thenReturn(Flux.fromIterable(subjectsResponse));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(namespace))
                 .thenReturn(List.of(
                         AccessControlEntry.builder()
@@ -86,12 +87,8 @@ class SchemaServiceTest {
                 ));
 
         StepVerifier.create(schemaService.findAllForNamespace(namespace))
-            .consumeNextWith(schemas -> {
-                assertEquals(2, schemas.size());
-                assertEquals("prefix.schema-one", schemas.get(0).getMetadata().getName());
-                assertEquals("prefix2.schema-two", schemas.get(1).getMetadata().getName());
-                assertTrue(schemas.stream().noneMatch(schema -> schema.getMetadata().getName().equals("prefix2.schema-three")));
-            })
+            .consumeNextWith(schema -> assertEquals("prefix.schema-one", schema.getMetadata().getName()))
+            .consumeNextWith(schema -> assertEquals("prefix2.schema-two", schema.getMetadata().getName()))
             .verifyComplete();
     }
 
@@ -102,10 +99,9 @@ class SchemaServiceTest {
     void getAllByNamespaceEmptyResponse() {
         Namespace namespace = buildNamespace();
 
-        when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster())).thenReturn(Mono.just(List.of()));
+        when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster())).thenReturn(Flux.empty());
 
         StepVerifier.create(schemaService.findAllForNamespace(namespace))
-           .consumeNextWith(schemas -> assertTrue(schemas.isEmpty()))
            .verifyComplete();
     }
 
@@ -136,7 +132,8 @@ class SchemaServiceTest {
     void getBySubjectAndVersionEmptyResponse() {
         Namespace namespace = buildNamespace();
 
-        when(schemaRegistryClient.getLatestSubject(namespace.getMetadata().getCluster(), "prefix.schema-one")).thenReturn(Mono.empty());
+        when(schemaRegistryClient.getLatestSubject(namespace.getMetadata().getCluster(), "prefix.schema-one"))
+                .thenReturn(Mono.empty());
 
         StepVerifier.create(schemaService.getLatestSubject(namespace, "prefix.schema-one"))
                 .verifyComplete();

@@ -24,13 +24,9 @@ public class GitlabAuthenticationService {
      */
     public Flux<String> findAllGroups(String token){
         return getPageAndNext(token,1)
-                .flatMap(response -> Flux.fromIterable(
-                response.body()
-                        .stream()
-                        .map(stringObjectMap -> stringObjectMap.get("full_path").toString())
-                        .toList()
-            )
-        );
+                .flatMap(response -> Flux.fromStream(response.body()
+                            .stream()
+                            .map(stringObjectMap -> stringObjectMap.get("full_path").toString())));
     }
 
     /**

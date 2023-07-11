@@ -16,6 +16,7 @@ import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.validation.Valid;
@@ -37,9 +38,8 @@ public class SchemaController extends NamespacedResourceController {
      * @return A list of schemas
      */
     @Get
-    public Mono<List<SchemaList>> list(String namespace) {
-        Namespace ns = getNamespace(namespace);
-        return schemaService.findAllForNamespace(ns);
+    public Flux<SchemaList> list(String namespace) {
+        return schemaService.findAllForNamespace(getNamespace(namespace));
     }
 
     /**

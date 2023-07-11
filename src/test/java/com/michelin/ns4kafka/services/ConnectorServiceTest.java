@@ -24,6 +24,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -763,9 +764,9 @@ class ConnectorServiceTest {
         when(connectClusterService.findAllByNamespaceWrite(ns))
                 .thenReturn(List.of(connectCluster));
         when(connectorAsyncExecutor.collectBrokerConnectors("local-name"))
-                .thenReturn(Mono.just(List.of(c1, c2, c3, c4)));
+                .thenReturn(Flux.fromIterable(List.of(c1, c2, c3, c4)));
         when(connectorAsyncExecutor.collectBrokerConnectors("ns-connect-cluster"))
-                .thenReturn(Mono.just(List.of(c5)));
+                .thenReturn(Flux.fromIterable(List.of(c5)));
 
         // list of existing Ns4Kafka access control entries
         when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
@@ -805,14 +806,10 @@ class ConnectorServiceTest {
                 .thenReturn(List.of());
 
         StepVerifier.create(connectorService.listUnsynchronizedConnectors(ns))
-            .consumeNextWith(response -> {
-                assertEquals(4, response.size());
-                assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")));
-                assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect2")));
-                assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns1-connect1")));
-                assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns1-connect2")));
-                assertTrue(response.stream().noneMatch(connector -> connector.getMetadata().getName().equals("ns2-connect1")));
-            })
+            .consumeNextWith(connector -> assertEquals("ns-connect1", connector.getMetadata().getName()))
+            .consumeNextWith(connector -> assertEquals("ns-connect2", connector.getMetadata().getName()))
+            .consumeNextWith(connector -> assertEquals("ns1-connect1", connector.getMetadata().getName()))
+            .consumeNextWith(connector -> assertEquals("ns1-connect2", connector.getMetadata().getName()))
             .verifyComplete();
     }
 
@@ -859,9 +856,9 @@ class ConnectorServiceTest {
         when(connectClusterService.findAllByNamespaceWrite(ns))
                 .thenReturn(List.of(connectCluster));
         when(connectorAsyncExecutor.collectBrokerConnectors("local-name"))
-                .thenReturn(Mono.just(List.of(c1, c2, c3, c4)));
+                .thenReturn(Flux.fromIterable(List.of(c1, c2, c3, c4)));
         when(connectorAsyncExecutor.collectBrokerConnectors("ns-connect-cluster"))
-                .thenReturn(Mono.just(List.of(c5)));
+                .thenReturn(Flux.fromIterable(List.of(c5)));
         when(connectorRepository.findAllForCluster("local"))
                 .thenReturn(List.of(c1, c2, c3, c4, c5));
 
@@ -909,7 +906,6 @@ class ConnectorServiceTest {
                 ));
 
         StepVerifier.create(connectorService.listUnsynchronizedConnectors(ns))
-            .consumeNextWith(response -> assertTrue(response.isEmpty()))
             .verifyComplete();
     }
 
@@ -947,7 +943,7 @@ class ConnectorServiceTest {
                 .metadata(ObjectMeta.builder().name("ns2-connect1").build())
                 .build();
         
-        when(connectorAsyncExecutor.collectBrokerConnectors("local-name")).thenReturn(Mono.just(List.of(
+        when(connectorAsyncExecutor.collectBrokerConnectors("local-name")).thenReturn(Flux.fromIterable(List.of(
                 c1, c2, c3, c4)));
         
         // list of existing broker connects
@@ -991,13 +987,8 @@ class ConnectorServiceTest {
                 .thenReturn(List.of(c1));
 
         StepVerifier.create(connectorService.listUnsynchronizedConnectors(ns))
-            .consumeNextWith(response -> {
-                assertEquals(2, response.size());
-                assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect2")));
-                assertTrue(response.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns1-connect1")));
-                assertTrue(response.stream().noneMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")));
-                assertTrue(response.stream().noneMatch(connector -> connector.getMetadata().getName().equals("ns2-connect1")));
-            })
+            .consumeNextWith(connector -> assertEquals("ns-connect2", connector.getMetadata().getName()))
+            .consumeNextWith(connector -> assertEquals("ns1-connect1", connector.getMetadata().getName()))
             .verifyComplete();
     }
 

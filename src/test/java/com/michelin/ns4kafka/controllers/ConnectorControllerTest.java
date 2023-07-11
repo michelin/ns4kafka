@@ -23,6 +23,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -561,17 +562,14 @@ class ConnectorControllerTest {
                 .thenReturn(Optional.of(ns));
         
         when(connectorService.listUnsynchronizedConnectors(ns))
-                .thenReturn(Mono.just(List.of(connector1, connector2)));
+                .thenReturn(Flux.fromIterable(List.of(connector1, connector2)));
         
         when(connectorService.createOrUpdate(connector1)).thenReturn(connector1);
         when(connectorService.createOrUpdate(connector2)).thenReturn(connector2);
 
         StepVerifier.create(connectorController.importResources("test", false))
-            .consumeNextWith(response -> {
-                assertTrue(response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect1")));
-                assertTrue(response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect2")));
-                assertTrue(response.stream().noneMatch(c -> c.getMetadata().getName().equals("connect3")));
-            })
+            .consumeNextWith(connect1 -> assertEquals("connect1", connect1.getMetadata().getName()))
+            .consumeNextWith(connect2 -> assertEquals("connect2", connect2.getMetadata().getName()))
             .verifyComplete();
     }
 
@@ -594,14 +592,11 @@ class ConnectorControllerTest {
                 .thenReturn(Optional.of(ns));
 
         when(connectorService.listUnsynchronizedConnectors(ns))
-                .thenReturn(Mono.just(List.of(connector1, connector2)));
+                .thenReturn(Flux.fromIterable(List.of(connector1, connector2)));
 
         StepVerifier.create(connectorController.importResources("test", true))
-            .consumeNextWith(response -> {
-                assertTrue(response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect1")));
-                assertTrue(response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect2")));
-                assertTrue(response.stream().noneMatch(c -> c.getMetadata().getName().equals("connect3")));
-            })
+            .consumeNextWith(connect1 -> assertEquals("connect1", connect1.getMetadata().getName()))
+            .consumeNextWith(connect2 -> assertEquals("connect2", connect2.getMetadata().getName()))
             .verifyComplete();
 
         verify(connectorService, never()).createOrUpdate(connector1);

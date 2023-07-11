@@ -101,35 +101,29 @@ public class ConnectClusterService {
     public List<ConnectCluster> findAllByNamespaceOwner(Namespace namespace) {
         return findAllByNamespace(namespace, List.of(AccessControlEntry.Permission.OWNER))
                 .stream()
-                .map(connectCluster -> ConnectCluster.builder()
-                        .metadata(connectCluster.getMetadata())
-                        .spec(ConnectCluster.ConnectClusterSpec.builder()
-                                .url(connectCluster.getSpec().getUrl())
-                                .username(connectCluster.getSpec().getUsername())
-                                .password(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getPassword(), securityConfig.getAes256EncryptionKey()))
-                                .status(getKafkaConnectStatus(connectCluster))
-                                .aes256Key(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getAes256Key(), securityConfig.getAes256EncryptionKey()))
-                                .aes256Salt(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getAes256Salt(), securityConfig.getAes256EncryptionKey()))
-                                .aes256Format(connectCluster.getSpec().getAes256Format())
-                                .build())
-                        .build())
-                .toList();
-    }
+                .map(connectCluster -> {
+                    var builder = ConnectCluster.ConnectClusterSpec.builder()
+                            .url(connectCluster.getSpec().getUrl())
+                            .username(connectCluster.getSpec().getUsername())
+                            .password(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getPassword(), securityConfig.getAes256EncryptionKey()))
+                            .aes256Key(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getAes256Key(), securityConfig.getAes256EncryptionKey()))
+                            .aes256Salt(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getAes256Salt(), securityConfig.getAes256EncryptionKey()))
+                            .aes256Format(connectCluster.getSpec().getAes256Format());
 
-    /**
-     * Get Kafka Connect status
-     * @param connectCluster The Kafka Connect
-     * @return The status
-     */
-    private String getKafkaConnectStatus(ConnectCluster connectCluster) {
-        try {
-            HttpResponse<ServerInfo> response = kafkaConnectClient.version(connectCluster.getMetadata().getCluster(),
-                    connectCluster.getMetadata().getName())
-                    .block();
-            return "Healthy (" + response.status() + ")";
-        } catch (HttpClientException e) {
-            return "Unhealthy (" + e.getMessage() + ")";
-        }
+                    try {
+                        kafkaConnectClient.version(connectCluster.getMetadata().getCluster(), connectCluster.getMetadata().getName()).block();
+                        builder.status(ConnectCluster.Status.HEALTHY);
+                    } catch (HttpClientException e) {
+                        builder.status(ConnectCluster.Status.IDLE);
+                        builder.statusMessage(e.getMessage());
+                    }
+
+                    return ConnectCluster.builder()
+                            .metadata(connectCluster.getMetadata())
+                            .spec(builder.build())
+                            .build();
+                })
+                .toList();
     }
 
     /**

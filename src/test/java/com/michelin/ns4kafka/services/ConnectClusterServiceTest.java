@@ -237,7 +237,7 @@ class ConnectClusterServiceTest {
 
         Assertions.assertTrue(actual.isPresent());
         Assertions.assertEquals("prefix.connect-cluster", actual.get().getMetadata().getName());
-        Assertions.assertEquals("Healthy (OK)", actual.get().getSpec().getStatus());
+        Assertions.assertEquals(ConnectCluster.Status.HEALTHY, actual.get().getSpec().getStatus());
     }
 
     /**
@@ -287,7 +287,8 @@ class ConnectClusterServiceTest {
 
         Assertions.assertTrue(actual.isPresent());
         Assertions.assertEquals("prefix.connect-cluster", actual.get().getMetadata().getName());
-        Assertions.assertEquals("Unhealthy (Internal Server Error)", actual.get().getSpec().getStatus());
+        Assertions.assertEquals(ConnectCluster.Status.IDLE, actual.get().getSpec().getStatus());
+        Assertions.assertEquals("Internal Server Error", actual.get().getSpec().getStatusMessage());
     }
 
     /**

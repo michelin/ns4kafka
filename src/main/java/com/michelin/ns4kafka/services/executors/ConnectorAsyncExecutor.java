@@ -139,6 +139,7 @@ public class ConnectorAsyncExecutor {
                             kafkaAsyncExecutorConfig.getName(), connectCluster, error.getMessage());
                 }
             })
+            .collectList()
             .flatMapMany(brokerConnectors -> {
                 List<Connector> ns4kafkaConnectors = collectNs4KafkaConnectors(connectCluster);
 
@@ -164,7 +165,7 @@ public class ConnectorAsyncExecutor {
                     log.debug("Connector(s) to update: " + String.join(",", toUpdate.stream().map(connector -> connector.getMetadata().getName()).toList()));
                 }
 
-                return Flux.fromIterable(Stream.concat(toCreate.stream(), toUpdate.stream()).toList())
+                return Flux.fromStream(Stream.concat(toCreate.stream(), toUpdate.stream()))
                         .flatMap(this::deployConnector);
             });
     }
@@ -174,16 +175,13 @@ public class ConnectorAsyncExecutor {
      * @param connectCluster The connect cluster
      * @return A list of connectors
      */
-    public Mono<List<Connector>> collectBrokerConnectors(String connectCluster) {
+    public Flux<Connector> collectBrokerConnectors(String connectCluster) {
         return kafkaConnectClient.listAll(kafkaAsyncExecutorConfig.getName(), connectCluster)
-                .map(connectors -> {
+                .flatMapMany(connectors -> {
                     log.debug("{} connectors found on Kafka Connect {} of Kafka cluster {}.", connectors.size(), connectCluster, kafkaAsyncExecutorConfig.getName());
 
-                    return connectors
-                            .values()
-                            .stream()
-                            .map(connectorStatus -> buildConnectorFromConnectorStatus(connectorStatus, connectCluster))
-                            .toList();
+                    return Flux.fromIterable(connectors.values())
+                            .map(connectorStatus -> buildConnectorFromConnectorStatus(connectorStatus, connectCluster));
                 });
     }
 
