@@ -212,27 +212,47 @@ akhq:
   security:
     rest:
       enabled: true
-      url: https://ns4kafka/akhq-claim/v2
+      url: https://ns4kafka/akhq-claim/v3
 ```
 
+For AKHQ versions from v0.20 to v0.24, use the `/akhq-claim/v2` endpoint.
 For AKHQ versions prior to v0.20, use the `/akhq-claim/v1` endpoint.
 
 3. In your Ns4Kafka configuration, specify the following settings for AKHQ:
-
+* For AKHQ versions v0.25 and later
 ```yaml
 ns4kafka:
   akhq:
     admin-group: LDAP-ADMIN-GROUP
-    admin-roles:
-    - topic/read
-    - topic/data/read
-    - group/read
-    - registry/read
-    - connect/read
-    - connect/state/update
-    - users/reset-password
-    group-label: support-group
     roles:
+      TOPIC: topic-read
+      CONNECT: connect-rw
+      SCHEMA: registry-read
+      GROUP: group-read
+      CONNECT_CLUSTER: connect-cluster-read
+    admin-roles:
+      TOPIC: topic-admin
+      CONNECT: connect-admin
+      SCHEMA: registry-admin
+      GROUP: group-read
+      CONNECT_CLUSTER: connect-cluster-read 
+```
+
+* For AKHQ versions prior to v0.25
+```yaml
+ns4kafka:
+  akhq:
+    admin-group: LDAP-ADMIN-GROUP
+    former-admin-roles:
+      - topic/read
+      - topic/data/read
+      - group/read
+      - registry/read
+      - connect/read
+      - connect/state/update
+      - users/reset-password
+    group-label: support-group
+    former-roles:
       - topic/read
       - topic/data/read
       - group/read

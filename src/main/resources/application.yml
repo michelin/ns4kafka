@@ -1,7 +1,6 @@
 micronaut:
   application:
     name: ns4kafka
-
   netty:
     event-loops:
       default:
@@ -79,17 +78,34 @@ ns4kafka:
   akhq:
     # Namespace label to use to find which namespace the authenticating user belongs to
     group-label: support-group
+    # AKHQ > 0.24.0
     roles:
+      TOPIC: topic-read
+      CONNECT: connect-rw
+      SCHEMA: registry-read
+      GROUP: group-read
+      CONNECT_CLUSTER: connect-cluster-read
+    # AKHQ <= 0.24.0
+    former-roles:
       - topic/read
       - topic/data/read
       - group/read
       - registry/read
       - connect/read
       - connect/state/update
+
     # Special group which will be granted ".*" on topics, connects, and groups
     admin-group: _
     # Roles to be granted to admin group
+    # AKHQ >= 0.25.0
     admin-roles:
+      TOPIC: topic-admin
+      CONNECT: connect-admin
+      SCHEMA: registry-admin
+      GROUP: group-read
+      CONNECT_CLUSTER: connect-cluster-read
+    # AKHQ <= 0.24.0
+    former-admin-roles:
       - topic/read
       - topic/data/read
       - group/read
@@ -97,6 +113,7 @@ ns4kafka:
       - connect/read
       - connect/state/update
       - users/reset-password
+
   security:
     aes256-encryption-key: changeitchangeitchangeitchangeit
     admin-group: _
