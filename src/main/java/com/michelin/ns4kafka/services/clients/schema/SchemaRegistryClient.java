@@ -3,7 +3,6 @@ package com.michelin.ns4kafka.services.clients.schema;
 import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.clients.schema.entities.*;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
-import io.micronaut.core.type.Argument;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpStatus;

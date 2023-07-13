@@ -4,10 +4,8 @@ import com.michelin.ns4kafka.controllers.generic.NonNamespacedResourceController
 import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.ConnectClusterService;
-import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
-import io.micronaut.http.annotation.Produces;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
@@ -30,7 +28,6 @@ public class ConnectClusterNonNamespacedController extends NonNamespacedResource
      * @return A list of Kafka Connect clusters
      */
     @Get("{?all}")
-    @Produces(value = MediaType.APPLICATION_JSON_STREAM)
     public Flux<ConnectCluster> listAll(@QueryValue(defaultValue = "false") boolean all) {
         return connectClusterService.findAll(all);
     }
