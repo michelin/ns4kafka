@@ -66,7 +66,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @return The created Kafka Connect cluster
      */
     @Post("/{?dryrun}")
-    Mono<HttpResponse<ConnectCluster>> apply(String namespace, @Body @Valid ConnectCluster connectCluster, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public Mono<HttpResponse<ConnectCluster>> apply(String namespace, @Body @Valid ConnectCluster connectCluster, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         List<String> validationErrors = new ArrayList<>();
