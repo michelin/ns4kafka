@@ -123,7 +123,7 @@ class NamespaceServiceTest {
                 .thenReturn(List.of());
 
         List<String> result = namespaceService.validateCreation(ns);
-        Assertions.assertTrue(result.isEmpty());
+        assertTrue(result.isEmpty());
     }
 
     @Test
@@ -158,7 +158,7 @@ class NamespaceServiceTest {
                 .thenReturn(List.of(ns2));
 
         List<String> result = namespaceService.validateCreation(ns);
-        Assertions.assertTrue(result.isEmpty());
+        assertTrue(result.isEmpty());
     }
 
     @Test
@@ -183,7 +183,7 @@ class NamespaceServiceTest {
 
         List<String> result = namespaceService.validate(ns);
 
-        Assertions.assertTrue(result.isEmpty());
+        assertTrue(result.isEmpty());
 
     }
 
@@ -261,7 +261,7 @@ class NamespaceServiceTest {
         List<Namespace> result = namespaceService.listAll();
 
         assertEquals(3, result.size());
-        Assertions.assertTrue(result.containsAll(List.of(ns, ns3, ns2)));
+        assertTrue(result.containsAll(List.of(ns, ns3, ns2)));
     }
 
     @Test
@@ -288,7 +288,7 @@ class NamespaceServiceTest {
 
 
         List<String> result = namespaceService.listAllNamespaceResources(ns);
-        Assertions.assertTrue(result.isEmpty());
+        assertTrue(result.isEmpty());
     }
 
     @Test

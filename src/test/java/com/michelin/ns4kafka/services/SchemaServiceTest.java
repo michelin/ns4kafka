@@ -8,7 +8,6 @@ import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -291,9 +290,9 @@ class SchemaServiceTest {
         when(accessControlEntryService.isNamespaceOwnerOfResource("myNamespace", AccessControlEntry.ResourceType.TOPIC, "prefix.schema-one"))
                 .thenReturn(true);
 
-        Assertions.assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one-key"));
-        Assertions.assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one-value"));
-        Assertions.assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one"));
+        assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one-key"));
+        assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one-value"));
+        assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one"));
     }
 
     /**

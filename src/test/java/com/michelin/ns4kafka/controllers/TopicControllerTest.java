@@ -119,7 +119,7 @@ class TopicControllerTest {
 
         Optional<Topic> actual = topicController.getTopic("test", "topic.notfound");
 
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     /**
@@ -143,7 +143,7 @@ class TopicControllerTest {
 
         Optional<Topic> actual = topicController.getTopic("test", "topic.found");
 
-        Assertions.assertTrue(actual.isPresent());
+        assertTrue(actual.isPresent());
         assertEquals("topic.found", actual.get().getMetadata().getName());
     }
 
@@ -727,14 +727,14 @@ class TopicControllerTest {
 
         List<Topic> actual = topicController.importResources("test", false);
 
-        Assertions.assertTrue(actual.stream()
+        assertTrue(actual.stream()
                 .anyMatch(t ->
                         t.getMetadata().getName().equals("test.topic1")
                         && t.getStatus().getMessage().equals("Imported from cluster")
                         && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)
         ));
 
-        Assertions.assertTrue(actual.stream()
+        assertTrue(actual.stream()
                 .anyMatch(t ->
                         t.getMetadata().getName().equals("test.topic2")
                                 && t.getStatus().getMessage().equals("Imported from cluster")
@@ -798,14 +798,14 @@ class TopicControllerTest {
 
         List<Topic> actual = topicController.importResources("test", true);
 
-        Assertions.assertTrue(actual.stream()
+        assertTrue(actual.stream()
                 .anyMatch(t ->
                         t.getMetadata().getName().equals("test.topic1")
                                 && t.getStatus().getMessage().equals("Imported from cluster")
                                 && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)
                 ));
 
-        Assertions.assertTrue(actual.stream()
+        assertTrue(actual.stream()
                 .anyMatch(t ->
                         t.getMetadata().getName().equals("test.topic2")
                                 && t.getStatus().getMessage().equals("Imported from cluster")

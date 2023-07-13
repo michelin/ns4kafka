@@ -16,12 +16,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertLinesMatch;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class AccessControlEntryServiceTest {
+class AccessControlEntryServiceTest {
     @Mock
     AccessControlEntryRepository accessControlEntryRepository;
     @Mock
@@ -224,7 +223,7 @@ public class AccessControlEntryServiceTest {
                         .build()
                 ));
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -265,7 +264,7 @@ public class AccessControlEntryServiceTest {
                         .build()
                 ));
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -306,7 +305,7 @@ public class AccessControlEntryServiceTest {
                         .build()
                 ));
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -337,7 +336,7 @@ public class AccessControlEntryServiceTest {
 
         List<String> actual = accessControlEntryService.validateAsAdmin(accessControlEntry, namespace);
 
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
     @Test
     void validateAsAdmin_FailSameOverlap() {
@@ -730,15 +729,15 @@ public class AccessControlEntryServiceTest {
 
         // Test 1
         List<String> actual = accessControlEntryService.validateAsAdmin(toCreate1, namespace);
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
 
         // Test 2
         actual = accessControlEntryService.validateAsAdmin(toCreate2, namespace);
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
 
         // Test 3
         actual = accessControlEntryService.validateAsAdmin(toCreate3, namespace);
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -762,8 +761,6 @@ public class AccessControlEntryServiceTest {
 
     @Test
     void findAllPublicGrantedTo() {
-        Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder().name("namespace1").build()).build();
         AccessControlEntry ace1 = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
         AccessControlEntry ace2 = AccessControlEntry.builder()
@@ -851,15 +848,15 @@ public class AccessControlEntryServiceTest {
                 .build();
         when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of(ace1, ace2, ace3));
-        Assertions.assertTrue(
+        assertTrue(
                 accessControlEntryService.isNamespaceOwnerOfResource("namespace",
                         AccessControlEntry.ResourceType.CONNECT,
                         "connect"));
-        Assertions.assertTrue(
+        assertTrue(
                 accessControlEntryService.isNamespaceOwnerOfResource("namespace",
                         AccessControlEntry.ResourceType.TOPIC,
                         "main"));
-        Assertions.assertTrue(
+        assertTrue(
                 accessControlEntryService.isNamespaceOwnerOfResource("namespace",
                         AccessControlEntry.ResourceType.TOPIC,
                         "main.sub"), "subresource");

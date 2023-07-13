@@ -73,7 +73,7 @@ class ConnectorControllerTest {
                 .thenReturn(List.of());
 
         List<Connector> actual = connectorController.list("test");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     /**
@@ -117,7 +117,7 @@ class ConnectorControllerTest {
                 .thenReturn(Optional.empty());
 
         Optional<Connector> actual = connectorController.getConnector("test", "missing");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     /**
@@ -139,7 +139,7 @@ class ConnectorControllerTest {
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build()));
 
         Optional<Connector> actual = connectorController.getConnector("test", "connect1");
-        Assertions.assertTrue(actual.isPresent());
+        assertTrue(actual.isPresent());
         assertEquals("connect1", actual.get().getMetadata().getName());
     }
 

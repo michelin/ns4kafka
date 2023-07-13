@@ -11,7 +11,6 @@ import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,8 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -95,8 +93,8 @@ class StreamControllerTest {
 
         List<KafkaStream> actual = streamController.list("test");
         assertEquals(2, actual.size());
-        Assertions.assertTrue(actual.contains(stream1));
-        Assertions.assertTrue(actual.contains(stream2));
+        assertTrue(actual.contains(stream1));
+        assertTrue(actual.contains(stream2));
     }
 
     /**
@@ -118,7 +116,7 @@ class StreamControllerTest {
                 .thenReturn(Optional.empty());
 
         Optional<KafkaStream> actual = streamController.get("test", "test_stream1");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     /**
@@ -146,7 +144,7 @@ class StreamControllerTest {
                 .thenReturn(Optional.of(stream1));
 
         Optional<KafkaStream> actual = streamController.get("test", "test_stream1");
-        Assertions.assertTrue(actual.isPresent());
+        assertTrue(actual.isPresent());
         assertEquals(stream1, actual.get());
     }
 

@@ -2,7 +2,6 @@ package com.michelin.ns4kafka.models;
 
 import com.michelin.ns4kafka.validation.ResourceValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -98,7 +97,7 @@ class TopicValidatorTest {
                 .build();
 
         List<String> actual = topicValidator.validate(success);
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -170,7 +169,7 @@ class TopicValidatorTest {
                 .build();
 
         List<String> actual = topicValidator.validate(topic);
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -187,7 +186,7 @@ class TopicValidatorTest {
                 .build();
 
         List<String> actual = topicValidator.validate(topic);
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -211,9 +210,9 @@ class TopicValidatorTest {
 
         List<String> actual = topicValidator.validate(topic);
         assertEquals(3, actual.size());
-        Assertions.assertTrue(actual.contains("Invalid value null for configuration min.insync.replicas: Value must be non-null"));
-        Assertions.assertTrue(actual.contains("Invalid value null for configuration retention.ms: Value must be non-null"));
-        Assertions.assertTrue(actual.contains("Invalid value null for configuration cleanup.policy: Value must be non-null"));
+        assertTrue(actual.contains("Invalid value null for configuration min.insync.replicas: Value must be non-null"));
+        assertTrue(actual.contains("Invalid value null for configuration retention.ms: Value must be non-null"));
+        assertTrue(actual.contains("Invalid value null for configuration cleanup.policy: Value must be non-null"));
     }
 
     @Test

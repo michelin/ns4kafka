@@ -7,7 +7,6 @@ import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.models.quota.ResourceQuotaResponse;
 import com.michelin.ns4kafka.repositories.ResourceQuotaRepository;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -21,6 +20,7 @@ import java.util.Optional;
 import static com.michelin.ns4kafka.models.quota.ResourceQuota.ResourceQuotaSpecKey.*;
 import static org.apache.kafka.common.config.TopicConfig.RETENTION_BYTES_CONFIG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -67,7 +67,7 @@ class ResourceQuotaServiceTest {
                 .thenReturn(Optional.of(resourceQuota));
 
         Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByNamespace(ns.getMetadata().getName());
-        Assertions.assertTrue(resourceQuotaOptional.isPresent());
+        assertTrue(resourceQuotaOptional.isPresent());
         assertEquals("test", resourceQuotaOptional.get().getMetadata().getName());
     }
 
@@ -90,7 +90,7 @@ class ResourceQuotaServiceTest {
                 .thenReturn(Optional.empty());
 
         Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByNamespace(ns.getMetadata().getName());
-        Assertions.assertTrue(resourceQuotaOptional.isEmpty());
+        assertTrue(resourceQuotaOptional.isEmpty());
     }
 
     /**
@@ -120,7 +120,7 @@ class ResourceQuotaServiceTest {
                 .thenReturn(Optional.of(resourceQuota));
 
         Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByName(ns.getMetadata().getName(), "test");
-        Assertions.assertTrue(resourceQuotaOptional.isPresent());
+        assertTrue(resourceQuotaOptional.isPresent());
         assertEquals("test", resourceQuotaOptional.get().getMetadata().getName());
     }
 
@@ -151,7 +151,7 @@ class ResourceQuotaServiceTest {
                 .thenReturn(Optional.of(resourceQuota));
 
         Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByName(ns.getMetadata().getName(), "wrong-name");
-        Assertions.assertTrue(resourceQuotaOptional.isEmpty());
+        assertTrue(resourceQuotaOptional.isEmpty());
     }
 
     /**
@@ -173,7 +173,7 @@ class ResourceQuotaServiceTest {
                 .thenReturn(Optional.empty());
 
         Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByName(ns.getMetadata().getName(), "test");
-        Assertions.assertTrue(resourceQuotaOptional.isEmpty());
+        assertTrue(resourceQuotaOptional.isEmpty());
     }
 
     /**

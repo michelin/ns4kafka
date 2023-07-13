@@ -63,7 +63,7 @@ class AccessControlEntryTest {
                         .resource("resource1")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .grantedTo("other1")
+                        .grantedTo("other2")
                         .permission(AccessControlEntry.Permission.OWNER)
                         .build())
                 .build();
@@ -73,7 +73,7 @@ class AccessControlEntryTest {
                         .resource("resource1")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .grantedTo("other2")
+                        .grantedTo("other1")
                         .permission(AccessControlEntry.Permission.READ)
                         .build())
                 .build();

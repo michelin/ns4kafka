@@ -137,7 +137,7 @@ class TopicServiceTest {
         List<Topic> list = topicService.findAllForNamespace(ns);
 
         // list of topics is empty
-        Assertions.assertTrue(list.isEmpty());
+        assertTrue(list.isEmpty());
     }
 
     /**
@@ -177,7 +177,7 @@ class TopicServiceTest {
 
         // list of topics is empty 
         List<Topic> actual = topicService.findAllForNamespace(ns);
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     /**
@@ -261,9 +261,9 @@ class TopicServiceTest {
 
         assertEquals(3, actual.size());
         // contains
-        Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns0-topic1")));
-        Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns-topic1")));
-        Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns-topic2")));
+        assertTrue(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns0-topic1")));
+        assertTrue(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns-topic1")));
+        assertTrue(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns-topic2")));
         // doesn't contain
         Assertions.assertFalse(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns1-topic1")));
         Assertions.assertFalse(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns2-topic1")));
@@ -335,9 +335,9 @@ class TopicServiceTest {
 
         assertEquals(3, actual.size());
         // contains
-        Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns-topic1")));
-        Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns-topic2")));
-        Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns1-topic1")));
+        assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns-topic1")));
+        assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns-topic2")));
+        assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns1-topic1")));
         // doesn't contain
         Assertions.assertFalse(actual.stream().anyMatch(topic -> topic.equals("ns2-topic1")));
 
@@ -500,8 +500,8 @@ class TopicServiceTest {
 
         assertEquals(2, actual.size());
         // contains
-        Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns-topic2")));
-        Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns1-topic1")));
+        assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns-topic2")));
+        assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns1-topic1")));
         // doesn't contain
         Assertions.assertFalse(actual.stream().anyMatch(topic -> topic.equals("ns-topic1")));
         Assertions.assertFalse(actual.stream().anyMatch(topic -> topic.equals("ns2-topic1")));
@@ -534,7 +534,7 @@ class TopicServiceTest {
 
         List<String> actual = topicService.findCollidingTopics(ns, topic);
 
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     /**
@@ -563,7 +563,7 @@ class TopicServiceTest {
 
         List<String> actual = topicService.findCollidingTopics(ns, topic);
 
-        Assertions.assertTrue(actual.isEmpty(), "Topic with exactly the same name should not interfere with collision check");
+        assertTrue(actual.isEmpty(), "Topic with exactly the same name should not interfere with collision check");
     }
 
     /**
@@ -623,7 +623,7 @@ class TopicServiceTest {
        assertThrows(InterruptedException.class,
                 () -> topicService.findCollidingTopics(ns, topic));
 
-        Assertions.assertTrue(Thread.interrupted());
+        assertTrue(Thread.interrupted());
     }
 
     /**

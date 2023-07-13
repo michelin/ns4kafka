@@ -17,7 +17,6 @@ import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
@@ -72,7 +71,7 @@ class ConnectClusterControllerTest {
                 .thenReturn(List.of());
 
         List<ConnectCluster> actual = connectClusterController.list("test");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     /**
@@ -122,7 +121,7 @@ class ConnectClusterControllerTest {
                 .thenReturn(Optional.empty());
 
         Optional<ConnectCluster> actual = connectClusterController.getConnectCluster("test", "missing");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     /**
@@ -147,7 +146,7 @@ class ConnectClusterControllerTest {
                                 .build()));
 
         Optional<ConnectCluster> actual = connectClusterController.getConnectCluster("test", "connect-cluster");
-        Assertions.assertTrue(actual.isPresent());
+        assertTrue(actual.isPresent());
         assertEquals("connect-cluster", actual.get().getMetadata().getName());
     }
 
@@ -532,7 +531,7 @@ class ConnectClusterControllerTest {
         when(connectClusterService.findAllByNamespaceWrite(ns)).thenReturn(List.of(connectCluster));
 
         List<ConnectCluster> actual = connectClusterController.listVaults("test");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     /**

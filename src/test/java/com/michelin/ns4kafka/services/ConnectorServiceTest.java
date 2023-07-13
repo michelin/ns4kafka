@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.assertTrue;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -76,7 +76,7 @@ class ConnectorServiceTest {
 
         List<Connector> actual = connectorService.findAllForNamespace(ns);
 
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     /**
@@ -166,9 +166,9 @@ class ConnectorServiceTest {
 
         assertEquals(3, actual.size());
         // contains
-        Assertions.assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")));
-        Assertions.assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect2")));
-        Assertions.assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("other-connect1")));
+        assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")));
+        assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect2")));
+        assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("other-connect1")));
         // doesn't contain
         Assertions.assertFalse(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("other-connect2")));
         Assertions.assertFalse(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns2-connect1")));
@@ -195,7 +195,7 @@ class ConnectorServiceTest {
 
         Optional<Connector> actual = connectorService.findByName(ns, "ns-connect1");
 
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     /**
@@ -269,7 +269,7 @@ class ConnectorServiceTest {
 
         Optional<Connector> actual = connectorService.findByName(ns, "ns-connect1");
 
-        Assertions.assertTrue(actual.isPresent());
+        assertTrue(actual.isPresent());
         assertEquals("ns-connect1", actual.get().getMetadata().getName());
     }
 
@@ -329,7 +329,7 @@ class ConnectorServiceTest {
         List<Connector> actual = connectorService.findAllByConnectCluster(ns, "connect-cluster");
 
         assertEquals(1, actual.size());
-        Assertions.assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")));
+        assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")));
     }
 
     /**

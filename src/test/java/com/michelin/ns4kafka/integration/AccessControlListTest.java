@@ -25,7 +25,6 @@ import org.apache.kafka.common.acl.*;
 import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.resource.ResourcePatternFilter;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -35,6 +34,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
@@ -138,7 +138,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
 
         results = kafkaClient.describeAcls(user1Filter).values().get();
 
-        Assertions.assertTrue(results.isEmpty());
+        assertTrue(results.isEmpty());
     }
 
     /**
@@ -230,7 +230,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
 
         results = kafkaClient.describeAcls(user1Filter).values().get();
 
-        Assertions.assertTrue(results.isEmpty());
+        assertTrue(results.isEmpty());
     }
 
     /**
@@ -299,7 +299,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
                 new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.DESCRIBE_CONFIGS, AclPermissionType.ALLOW));
 
         assertEquals(4, results.size());
-        Assertions.assertTrue(results.containsAll(List.of(ac1, ac2, ac3, ac4)));
+        assertTrue(results.containsAll(List.of(ac1, ac2, ac3, ac4)));
 
         KafkaStream stream = KafkaStream.builder()
                 .metadata(ObjectMeta.builder()
@@ -331,7 +331,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
                 new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.WRITE, AclPermissionType.ALLOW));
 
         assertEquals(7, results.size());
-        Assertions.assertTrue(results.containsAll(List.of(ac1, ac2, ac3, ac4, ac5, ac6, ac7)));
+        assertTrue(results.containsAll(List.of(ac1, ac2, ac3, ac4, ac5, ac6, ac7)));
 
         // DELETE the Stream & ACL and verify
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/streams/ns1-stream1").bearerAuth(token).body(aclTopic));
@@ -342,7 +342,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
 
         results = kafkaClient.describeAcls(user1Filter).values().get();
 
-        Assertions.assertTrue(results.isEmpty());
+        assertTrue(results.isEmpty());
     }
 
     @Test
@@ -382,7 +382,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
 
 
         assertEquals(2, results.size());
-        Assertions.assertTrue(results.containsAll(List.of(expected, expected2)));
+        assertTrue(results.containsAll(List.of(expected, expected2)));
  
         // DELETE the ACL and verify
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-transactional-id").bearerAuth(token).body(aclTopic));
@@ -391,6 +391,6 @@ class AccessControlListTest extends AbstractIntegrationTest {
 
         results = kafkaClient.describeAcls(user1Filter).values().get();
 
-        Assertions.assertTrue(results.isEmpty());
+        assertTrue(results.isEmpty());
     }
 }

@@ -27,7 +27,6 @@ import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourcePatternFilter;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -35,6 +34,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
@@ -128,7 +128,7 @@ class StreamTest extends AbstractIntegrationTest {
                 AccessControlEntryFilter.ANY)).values().get();
 
         assertEquals(2, aclTopic.size());
-        Assertions.assertTrue(aclTopic.stream()
+        assertTrue(aclTopic.stream()
                 .allMatch(aclBinding -> List.of(AclOperation.CREATE, AclOperation.DELETE).contains(aclBinding.entry().operation())));
 
         assertEquals(1, aclTransactionalId.size());

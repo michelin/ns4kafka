@@ -31,8 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
@@ -121,9 +120,9 @@ class UserTest extends AbstractIntegrationTest {
 
         assertEquals(1, mapQuota.entrySet().size());
         Map<String, Double> quotas = mapQuota.entrySet().stream().findFirst().get().getValue();
-        Assertions.assertTrue(quotas.containsKey("producer_byte_rate"));
+        assertTrue(quotas.containsKey("producer_byte_rate"));
         assertEquals(102400.0, quotas.get("producer_byte_rate"));
-        Assertions.assertTrue(quotas.containsKey("consumer_byte_rate"));
+        assertTrue(quotas.containsKey("consumer_byte_rate"));
         assertEquals(102400.0, quotas.get("consumer_byte_rate"));
     }
     @Test
@@ -135,9 +134,9 @@ class UserTest extends AbstractIntegrationTest {
 
         assertEquals(1, mapQuota.entrySet().size());
         Map<String, Double> quotas = mapQuota.entrySet().stream().findFirst().get().getValue();
-        Assertions.assertTrue(quotas.containsKey("producer_byte_rate"));
+        assertTrue(quotas.containsKey("producer_byte_rate"));
         assertEquals(204800.0, quotas.get("producer_byte_rate"));
-        Assertions.assertTrue(quotas.containsKey("consumer_byte_rate"));
+        assertTrue(quotas.containsKey("consumer_byte_rate"));
         assertEquals(409600.0, quotas.get("consumer_byte_rate"));
     }
     @Test
@@ -165,9 +164,9 @@ class UserTest extends AbstractIntegrationTest {
 
         assertEquals(1, mapQuota.entrySet().size());
         Map<String, Double> quotas = mapQuota.entrySet().stream().findFirst().get().getValue();
-        Assertions.assertTrue(quotas.containsKey("producer_byte_rate"));
+        assertTrue(quotas.containsKey("producer_byte_rate"));
         assertEquals(204800.0, quotas.get("producer_byte_rate"));
-        Assertions.assertTrue(quotas.containsKey("consumer_byte_rate"));
+        assertTrue(quotas.containsKey("consumer_byte_rate"));
         assertEquals(409600.0, quotas.get("consumer_byte_rate"));
     }
 
@@ -179,7 +178,7 @@ class UserTest extends AbstractIntegrationTest {
                 .describeUserScramCredentials(List.of("user1")).all().get();
 
         Assertions.assertNotNull(response.getSpec().getNewPassword());
-        Assertions.assertTrue(mapUser.containsKey("user1"));
+        assertTrue(mapUser.containsKey("user1"));
         assertEquals(ScramMechanism.SCRAM_SHA_512, mapUser.get("user1").credentialInfos().get(0).mechanism());
         assertEquals(4096, mapUser.get("user1").credentialInfos().get(0).iterations());
     }

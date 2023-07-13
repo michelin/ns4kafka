@@ -426,7 +426,6 @@ class SchemaControllerTest {
     @Test
     void shouldNotDeleteSubjectWhenEmpty() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value")).thenReturn(true);

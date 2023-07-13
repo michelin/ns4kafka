@@ -83,9 +83,6 @@ public class ConnectorAsyncExecutor {
     private Flux<ConnectCluster> checkConnectClusterHealth() {
         return getConnectClusters()
                 .doOnNext(connectCluster -> {
-                    log.debug("Starting health check for Kafka cluster {} and Kafka Connect {}",
-                            kafkaAsyncExecutorConfig.getName(), connectCluster.getMetadata().getName());
-
                     if (connectCluster.getSpec().getStatus().equals(ConnectCluster.Status.HEALTHY)) {
                         log.debug("Kafka Connect \"" + connectCluster.getMetadata().getName() + "\" is healthy.");
                         healthyConnectClusters.add(connectCluster.getMetadata().getName());

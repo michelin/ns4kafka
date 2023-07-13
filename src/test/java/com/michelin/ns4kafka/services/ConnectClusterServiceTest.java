@@ -24,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -83,7 +84,9 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(connectClusterRepository.findAll()).thenReturn(List.of(connectCluster));
-        
+        when(kafkaConnectClient.version(any(), any()))
+                .thenReturn(Mono.just(HttpResponse.ok()));
+
         StepVerifier.create(connectClusterService.findAll(false))
             .consumeNextWith(result -> assertEquals(connectCluster, result))
             .verifyComplete();
@@ -102,7 +105,7 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        when(connectClusterRepository.findAll()).thenReturn(List.of(connectCluster));
+        when(connectClusterRepository.findAll()).thenReturn(new ArrayList<>(List.of(connectCluster)));
         KafkaAsyncExecutorConfig kafka = new KafkaAsyncExecutorConfig("local");
         kafka.setConnects(Map.of("test-connect", new KafkaAsyncExecutorConfig.ConnectConfig()));
         when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of(kafka));
@@ -114,7 +117,7 @@ class ConnectClusterServiceTest {
                 .consumeNextWith(result -> {
                     assertEquals("connect-cluster", result.getMetadata().getName());
                     assertEquals(ConnectCluster.Status.HEALTHY, result.getSpec().getStatus());
-                    assertTrue(result.getSpec().getStatusMessage().isEmpty());
+                    assertNull(result.getSpec().getStatusMessage());
                 })
                 .consumeNextWith(result -> {
                     assertEquals("test-connect", result.getMetadata().getName());
@@ -217,8 +220,8 @@ class ConnectClusterServiceTest {
 
         assertEquals(2, actual.size());
     
-        Assertions.assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("prefix.connect-cluster")));
-        Assertions.assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("prefix2.connect-two")));
+        assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("prefix.connect-cluster")));
+        assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("prefix2.connect-two")));
      
         Assertions.assertFalse(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("not-owner")));
         Assertions.assertFalse(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("prefix3.connect-cluster")));
@@ -269,7 +272,7 @@ class ConnectClusterServiceTest {
 
         Optional<ConnectCluster> actual = connectClusterService.findByNamespaceAndNameOwner(namespace, "prefix.connect-cluster");
 
-        Assertions.assertTrue(actual.isPresent());
+        assertTrue(actual.isPresent());
         assertEquals("prefix.connect-cluster", actual.get().getMetadata().getName());
         assertEquals(ConnectCluster.Status.HEALTHY, actual.get().getSpec().getStatus());
     }
@@ -319,7 +322,7 @@ class ConnectClusterServiceTest {
 
         Optional<ConnectCluster> actual = connectClusterService.findByNamespaceAndNameOwner(namespace, "prefix.connect-cluster");
 
-        Assertions.assertTrue(actual.isPresent());
+        assertTrue(actual.isPresent());
         assertEquals("prefix.connect-cluster", actual.get().getMetadata().getName());
         assertEquals(ConnectCluster.Status.IDLE, actual.get().getSpec().getStatus());
         assertEquals("Internal Server Error", actual.get().getSpec().getStatusMessage());
@@ -370,7 +373,7 @@ class ConnectClusterServiceTest {
 
         Optional<ConnectCluster> actual = connectClusterService.findByNamespaceAndNameOwner(namespace, "does-not-exist");
 
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     /**
@@ -989,7 +992,7 @@ class ConnectClusterServiceTest {
 
         boolean actual = connectClusterService.isNamespaceOwnerOfConnectCluster(namespace, "prefix.connect-cluster");
 
-        Assertions.assertTrue(actual);
+        assertTrue(actual);
     }
 
     @Test
@@ -1051,7 +1054,7 @@ class ConnectClusterServiceTest {
 
         boolean actual = connectClusterService.isNamespaceAllowedForConnectCluster(namespace, "prefix.connect-cluster");
 
-        Assertions.assertTrue(actual);
+        assertTrue(actual);
     }
 
     @Test
@@ -1161,7 +1164,7 @@ class ConnectClusterServiceTest {
 
         List<VaultResponse> actual = connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", List.of("secret"));
 
-        Assertions.assertTrue(actual.get(0).getSpec().getEncrypted().matches("^\\$\\{aes256\\:.*\\}"));
+        assertTrue(actual.get(0).getSpec().getEncrypted().matches("^\\$\\{aes256\\:.*\\}"));
     }
 
     /**

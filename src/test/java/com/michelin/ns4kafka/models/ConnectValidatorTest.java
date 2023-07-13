@@ -3,14 +3,12 @@ package com.michelin.ns4kafka.models;
 import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.ResourceValidator;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 class ConnectValidatorTest {
     @Test
@@ -205,7 +203,7 @@ class ConnectValidatorTest {
                 .build();
 
         List<String> actual = validator.validate(connector, "sink");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -238,7 +236,7 @@ class ConnectValidatorTest {
                 .build();
 
         List<String> actual = validator.validate(connector, "sink");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -260,7 +258,7 @@ class ConnectValidatorTest {
                 .build();
 
         List<String> actual = validator.validate(connector, "sink");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -300,7 +298,7 @@ class ConnectValidatorTest {
                 .build();
 
         List<String> actual = validator.validate(connector, "source");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -380,7 +378,7 @@ class ConnectValidatorTest {
 
         List<String> actual = validator.validate(connector, "sink");
         assertEquals(2, actual.size());
-        Assertions.assertTrue(actual.contains("Invalid value null for configuration consumer.override.sasl.jaas.config: Value must be non-null"));
-        Assertions.assertTrue(actual.contains("Invalid value null for configuration db.timezone: Value must be non-null"));
+        assertTrue(actual.contains("Invalid value null for configuration consumer.override.sasl.jaas.config: Value must be non-null"));
+        assertTrue(actual.contains("Invalid value null for configuration db.timezone: Value must be non-null"));
     }
 }

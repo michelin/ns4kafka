@@ -39,8 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
@@ -251,15 +250,15 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         ConnectorInfo actualConnectorWithFillParameter = connectCli.toBlocking().retrieve(HttpRequest.GET("/connectors/ns1-connectorWithFillParameter"), ConnectorInfo.class);
 
         // "File" property is present, but null
-        Assertions.assertTrue(actualConnectorWithNullParameter.config().containsKey("file"));
+        assertTrue(actualConnectorWithNullParameter.config().containsKey("file"));
         Assertions.assertNull(actualConnectorWithNullParameter.config().get("file"));
 
         // "File" property is present, but empty
-        Assertions.assertTrue(actualConnectorWithEmptyParameter.config().containsKey("file"));
-        Assertions.assertTrue(actualConnectorWithEmptyParameter.config().get("file").isEmpty());
+        assertTrue(actualConnectorWithEmptyParameter.config().containsKey("file"));
+        assertTrue(actualConnectorWithEmptyParameter.config().get("file").isEmpty());
 
         // "File" property is present
-        Assertions.assertTrue(actualConnectorWithFillParameter.config().containsKey("file"));
+        assertTrue(actualConnectorWithFillParameter.config().containsKey("file"));
         assertEquals("test", actualConnectorWithFillParameter.config().get("file"));
     }
 
@@ -314,8 +313,8 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         HttpResponse<ConnectorInfo> connectorInfo = connectCli.toBlocking().exchange(HttpRequest.PUT("/connectors/ns1-connector/config", connectorSpecs), ConnectorInfo.class);
 
         // "File" property is present and fill
-        Assertions.assertTrue(connectorInfo.getBody().isPresent());
-        Assertions.assertTrue(connectorInfo.getBody().get().config().containsKey("file"));
+        assertTrue(connectorInfo.getBody().isPresent());
+        assertTrue(connectorInfo.getBody().get().config().containsKey("file"));
         assertEquals("test", connectorInfo.getBody().get().config().get("file"));
 
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to));
@@ -330,7 +329,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         ConnectorInfo actualConnector = connectCli.toBlocking().retrieve(HttpRequest.GET("/connectors/ns1-connector"), ConnectorInfo.class);
 
         // "File" property is present, but null
-        Assertions.assertTrue(actualConnector.config().containsKey("file"));
+        assertTrue(actualConnector.config().containsKey("file"));
         Assertions.assertNull(actualConnector.config().get("file"));
     }
 

@@ -133,22 +133,22 @@ class AclControllerTest {
 
         List<AccessControlEntry> actual = accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTEE));
         assertEquals(4, actual.size());
-        Assertions.assertTrue(actual.contains(ace1));
-        Assertions.assertTrue(actual.contains(ace2));
-        Assertions.assertTrue(actual.contains(ace5));
-        Assertions.assertTrue(actual.contains(ace6));
+        assertTrue(actual.contains(ace1));
+        assertTrue(actual.contains(ace2));
+        assertTrue(actual.contains(ace5));
+        assertTrue(actual.contains(ace6));
 
         actual = accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTOR));
         assertEquals(1, actual.size());
-        Assertions.assertTrue(actual.contains(ace3));
+        assertTrue(actual.contains(ace3));
 
         actual = accessControlListController.list("test", Optional.of(AclController.AclLimit.ALL));
         assertEquals(5, actual.size());
-        Assertions.assertTrue(actual.contains(ace1));
-        Assertions.assertTrue(actual.contains(ace2));
-        Assertions.assertTrue(actual.contains(ace3));
-        Assertions.assertTrue(actual.contains(ace5));
-        Assertions.assertTrue(actual.contains(ace6));
+        assertTrue(actual.contains(ace1));
+        assertTrue(actual.contains(ace2));
+        assertTrue(actual.contains(ace3));
+        assertTrue(actual.contains(ace5));
+        assertTrue(actual.contains(ace6));
 
     }
 
@@ -231,13 +231,13 @@ class AclControllerTest {
         // granted to me
         Optional<AccessControlEntry> result4 = accessControlListController.get("test", "ace5");
 
-        Assertions.assertTrue(result1.isEmpty());
-        Assertions.assertTrue(result2.isEmpty());
+        assertTrue(result1.isEmpty());
+        assertTrue(result2.isEmpty());
 
-        Assertions.assertTrue(result3.isPresent());
+        assertTrue(result3.isPresent());
         assertEquals(ace3, result3.get());
 
-        Assertions.assertTrue(result4.isPresent());
+        assertTrue(result4.isPresent());
         assertEquals(ace5, result4.get());
 
     }
