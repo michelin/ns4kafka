@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.controllers.acl.AccessControlListController;
+import com.michelin.ns4kafka.controllers.acl.AclController;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.AuditLog;
 import com.michelin.ns4kafka.models.Namespace;
@@ -31,7 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class AccessControlListControllerTest {
+class AclControllerTest {
     @Mock
     AccessControlEntryService accessControlEntryService;
 
@@ -45,7 +45,7 @@ class AccessControlListControllerTest {
     SecurityService securityService;
 
     @InjectMocks
-    AccessControlListController accessControlListController;
+    AclController accessControlListController;
 
     @Test
     void list() {
@@ -131,18 +131,18 @@ class AccessControlListControllerTest {
         Mockito.when(accessControlEntryService.findAllForCluster("local"))
                 .thenReturn(List.of(ace1, ace2, ace3, ace4, ace5, ace6));
 
-        List<AccessControlEntry> actual = accessControlListController.list("test", Optional.of(AccessControlListController.AclLimit.GRANTEE));
+        List<AccessControlEntry> actual = accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTEE));
         Assertions.assertEquals(4, actual.size());
         Assertions.assertTrue(actual.contains(ace1));
         Assertions.assertTrue(actual.contains(ace2));
         Assertions.assertTrue(actual.contains(ace5));
         Assertions.assertTrue(actual.contains(ace6));
 
-        actual = accessControlListController.list("test", Optional.of(AccessControlListController.AclLimit.GRANTOR));
+        actual = accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTOR));
         Assertions.assertEquals(1, actual.size());
         Assertions.assertTrue(actual.contains(ace3));
 
-        actual = accessControlListController.list("test", Optional.of(AccessControlListController.AclLimit.ALL));
+        actual = accessControlListController.list("test", Optional.of(AclController.AclLimit.ALL));
         Assertions.assertEquals(5, actual.size());
         Assertions.assertTrue(actual.contains(ace1));
         Assertions.assertTrue(actual.contains(ace2));

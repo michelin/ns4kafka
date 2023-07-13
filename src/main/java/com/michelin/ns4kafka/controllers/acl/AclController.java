@@ -26,7 +26,7 @@ import static com.michelin.ns4kafka.services.AccessControlEntryService.PUBLIC_GR
 
 @Tag(name = "ACLs", description = "Manage the ACLs.")
 @Controller("/api/namespaces/{namespace}/acls")
-public class AccessControlListController extends NamespacedResourceController {
+public class AclController extends NamespacedResourceController {
     @Inject
     NamespaceService namespaceService;
 

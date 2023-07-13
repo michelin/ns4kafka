@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.services.executors;
 
 import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
 import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import com.michelin.ns4kafka.services.ConnectClusterService;
@@ -58,7 +59,7 @@ public class ConnectorAsyncExecutor {
     /**
      * Start connector synchronization
      */
-    public Flux<String> runHealthCheck() {
+    public Flux<ConnectCluster> runHealthCheck() {
         if (kafkaAsyncExecutorConfig.isManageConnectors()) {
             return checkConnectClusterHealth();
         }
@@ -70,34 +71,30 @@ public class ConnectorAsyncExecutor {
      * both self-declared Connect clusters and hard-declared Connect clusters
      * @return A list of Connect clusters
      */
-    private List<String> getConnectClusters() {
-        List<String> selfDeclaredConnectClusterNames = connectClusterService.findAll()
-                .stream()
-                .filter(connectCluster -> connectCluster.getMetadata().getCluster().equals(kafkaAsyncExecutorConfig.getName()))
-                .map(connectCluster -> connectCluster.getMetadata().getName()).toList();
-
-        return Stream.concat(kafkaAsyncExecutorConfig.getConnects().keySet().stream(), selfDeclaredConnectClusterNames.stream()).toList();
+    private Flux<ConnectCluster> getConnectClusters() {
+        return connectClusterService.findAll(true)
+                .filter(connectCluster -> connectCluster.getMetadata().getCluster().equals(kafkaAsyncExecutorConfig.getName()));
     }
 
-    private Flux<String> checkConnectClusterHealth() {
-        return Flux.fromIterable(getConnectClusters())
-                .flatMap(connectCluster -> {
+    /**
+     * Check connect cluster health
+     * @return The list of healthy connect cluster
+     */
+    private Flux<ConnectCluster> checkConnectClusterHealth() {
+        return getConnectClusters()
+                .doOnNext(connectCluster -> {
                     log.debug("Starting health check for Kafka cluster {} and Kafka Connect {}",
-                            kafkaAsyncExecutorConfig.getName(), connectCluster);
+                            kafkaAsyncExecutorConfig.getName(), connectCluster.getMetadata().getName());
 
-                    return kafkaConnectClient.version(kafkaAsyncExecutorConfig.getName(), connectCluster)
-                            .doOnError(error -> {
-                                log.debug("Kafka Connect \"" + connectCluster + "\" is not healthy: " + error.getMessage() + ".");
-
-                                idleConnectClusters.add(connectCluster);
-                                healthyConnectClusters.remove(connectCluster);
-                            })
-                            .doOnSuccess(response -> {
-                                log.debug("Kafka Connect \"" + connectCluster + "\" is healthy.");
-                                healthyConnectClusters.add(connectCluster);
-                                idleConnectClusters.remove(connectCluster);
-                            })
-                            .map(response -> connectCluster);
+                    if (connectCluster.getSpec().getStatus().equals(ConnectCluster.Status.HEALTHY)) {
+                        log.debug("Kafka Connect \"" + connectCluster.getMetadata().getName() + "\" is healthy.");
+                        healthyConnectClusters.add(connectCluster.getMetadata().getName());
+                        idleConnectClusters.remove(connectCluster.getMetadata().getName());
+                    } else if (connectCluster.getSpec().getStatus().equals(ConnectCluster.Status.IDLE)) {
+                        log.debug("Kafka Connect \"" + connectCluster.getMetadata().getName() + "\" is not healthy: " + connectCluster.getSpec().getStatusMessage() + ".");
+                        idleConnectClusters.add(connectCluster.getMetadata().getName());
+                        healthyConnectClusters.remove(connectCluster.getMetadata().getName());
+                    }
                 });
     }
 

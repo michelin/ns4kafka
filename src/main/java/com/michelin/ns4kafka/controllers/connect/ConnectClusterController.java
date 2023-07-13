@@ -1,4 +1,4 @@
-package com.michelin.ns4kafka.controllers;
+package com.michelin.ns4kafka.controllers.connect;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
