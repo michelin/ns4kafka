@@ -7,6 +7,7 @@ import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.security.utils.SecurityService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -14,15 +15,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import io.micronaut.http.HttpResponse;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -48,13 +48,13 @@ class NamespaceControllerTest {
                         .cluster("local")
                         .build())
                 .build();
-        Mockito.when(namespaceService.findByName("new-namespace"))
+        when(namespaceService.findByName("new-namespace"))
                 .thenReturn(Optional.empty());
-        Mockito.when(namespaceService.validateCreation(toCreate))
+        when(namespaceService.validateCreation(toCreate))
                 .thenReturn(List.of("OneError"));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,() -> namespaceController.apply(toCreate, false));
-        Assertions.assertEquals(1, actual.getValidationErrors().size());
+        ResourceValidationException actual = assertThrows(ResourceValidationException.class,() -> namespaceController.apply(toCreate, false));
+        assertEquals(1, actual.getValidationErrors().size());
     }
 
     @Test
@@ -65,21 +65,21 @@ class NamespaceControllerTest {
                         .cluster("local")
                         .build())
                 .build();
-        Mockito.when(namespaceService.findByName("new-namespace"))
+        when(namespaceService.findByName("new-namespace"))
                 .thenReturn(Optional.empty());
-        Mockito.when(namespaceService.validateCreation(toCreate))
+        when(namespaceService.validateCreation(toCreate))
                 .thenReturn(List.of());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
-        Mockito.when(namespaceService.createOrUpdate(toCreate))
+        when(namespaceService.createOrUpdate(toCreate))
                 .thenReturn(toCreate);
 
         var response = namespaceController.apply(toCreate, false);
         Namespace actual = response.body();
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
-        Assertions.assertEquals("new-namespace", actual.getMetadata().getName());
-        Assertions.assertEquals("local", actual.getMetadata().getCluster());
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("new-namespace", actual.getMetadata().getName());
+        assertEquals("local", actual.getMetadata().getCluster());
     }
 
     @Test
@@ -90,13 +90,13 @@ class NamespaceControllerTest {
                         .cluster("local")
                         .build())
                 .build();
-        Mockito.when(namespaceService.findByName("new-namespace"))
+        when(namespaceService.findByName("new-namespace"))
                 .thenReturn(Optional.empty());
-        Mockito.when(namespaceService.validateCreation(toCreate))
+        when(namespaceService.validateCreation(toCreate))
                 .thenReturn(List.of());
 
         var response = namespaceController.apply(toCreate, true);
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(namespaceService, never()).createOrUpdate(toCreate);
     }
 
@@ -120,12 +120,12 @@ class NamespaceControllerTest {
                         .kafkaUser("user-change")
                         .build())
                 .build();
-        Mockito.when(namespaceService.findByName("namespace"))
+        when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
                 () -> namespaceController.apply(toUpdate, false));
-        Assertions.assertEquals(2, actual.getValidationErrors().size());
+        assertEquals(2, actual.getValidationErrors().size());
         Assertions.assertIterableEquals(
                 List.of("Invalid value local-change for cluster: Value is immutable (local)",
                         "Invalid value user-change for kafkaUser: Value is immutable (user)"),
@@ -153,23 +153,23 @@ class NamespaceControllerTest {
                         .kafkaUser("user")
                         .build())
                 .build();
-        Mockito.when(namespaceService.findByName("namespace"))
+        when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
-        Mockito.when(namespaceService.createOrUpdate(toUpdate))
+        when(namespaceService.createOrUpdate(toUpdate))
                 .thenReturn(toUpdate);
 
         var response = namespaceController.apply(toUpdate, false);
         Namespace actual = response.body();
-        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
+        assertEquals("changed", response.header("X-Ns4kafka-Result"));
         Assertions.assertNotNull(actual);
-        Assertions.assertEquals("namespace", actual.getMetadata().getName());
-        Assertions.assertEquals("namespace", actual.getMetadata().getNamespace());
-        Assertions.assertEquals("namespace", actual.getMetadata().getName());
-        Assertions.assertEquals("local", actual.getMetadata().getCluster());
-        Assertions.assertEquals("label", actual.getMetadata().getLabels().get("new"));
+        assertEquals("namespace", actual.getMetadata().getName());
+        assertEquals("namespace", actual.getMetadata().getNamespace());
+        assertEquals("namespace", actual.getMetadata().getName());
+        assertEquals("local", actual.getMetadata().getCluster());
+        assertEquals("label", actual.getMetadata().getLabels().get("new"));
     }
 
     @Test
@@ -193,13 +193,13 @@ class NamespaceControllerTest {
                         .kafkaUser("user")
                         .build())
                 .build();
-        Mockito.when(namespaceService.findByName("namespace"))
+        when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
 
         var response = namespaceController.apply(toUpdate, false);
         Namespace actual = response.body();
-        Assertions.assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
-        Assertions.assertEquals(existing, actual);
+        assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
+        assertEquals(existing, actual);
         verify(namespaceService,never()).createOrUpdate(ArgumentMatchers.any());
     }
 
@@ -224,11 +224,11 @@ class NamespaceControllerTest {
                         .kafkaUser("user")
                         .build())
                 .build();
-        Mockito.when(namespaceService.findByName("namespace"))
+        when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
 
         var response = namespaceController.apply(toUpdate, true);
-        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
+        assertEquals("changed", response.header("X-Ns4kafka-Result"));
         verify(namespaceService, never()).createOrUpdate(toUpdate);
     }
 
@@ -243,15 +243,15 @@ class NamespaceControllerTest {
                         .kafkaUser("user")
                         .build())
                 .build();
-        Mockito.when(namespaceService.findByName("namespace"))
+        when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
-        Mockito.when(namespaceService.listAllNamespaceResources(existing))
+        when(namespaceService.listAllNamespaceResources(existing))
                 .thenReturn(List.of());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
         var result = namespaceController.delete("namespace", false);
-        Assertions.assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
+        assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
 
     }
 
@@ -267,25 +267,25 @@ class NamespaceControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("namespace"))
+        when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
-        Mockito.when(namespaceService.listAllNamespaceResources(existing))
+        when(namespaceService.listAllNamespaceResources(existing))
                 .thenReturn(List.of());
 
         var result = namespaceController.delete("namespace", true);
 
         verify(namespaceService, never()).delete(any());
-        Assertions.assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
+        assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
 
     }
 
     @Test
     void deleteFailNoNamespace() {
-        Mockito.when(namespaceService.findByName("namespace"))
+        when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.empty());
         var result = namespaceController.delete("namespace", false);
         verify(namespaceService, never()).delete(any());
-        Assertions.assertEquals(HttpResponse.notFound().getStatus(), result.getStatus());
+        assertEquals(HttpResponse.notFound().getStatus(), result.getStatus());
 
     }
 
@@ -300,11 +300,11 @@ class NamespaceControllerTest {
                         .kafkaUser("user")
                         .build())
                 .build();
-        Mockito.when(namespaceService.findByName("namespace"))
+        when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(existing));
-        Mockito.when(namespaceService.listAllNamespaceResources(existing))
+        when(namespaceService.listAllNamespaceResources(existing))
                 .thenReturn(List.of("Topic/topic1"));
-        Assertions.assertThrows(ResourceValidationException.class,() -> namespaceController.delete("namespace", false));
+        assertThrows(ResourceValidationException.class,() -> namespaceController.delete("namespace", false));
         verify(namespaceService, never()).delete(any());
     }
 }

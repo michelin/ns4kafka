@@ -2,8 +2,10 @@ package com.michelin.ns4kafka.models;
 
 import com.michelin.ns4kafka.models.schema.Schema;
 import com.michelin.ns4kafka.models.schema.SchemaList;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class SchemaTest {
     @Test
@@ -58,10 +60,10 @@ class SchemaTest {
                         .build())
                 .build();
 
-        Assertions.assertEquals(original,same);
-        Assertions.assertNotEquals(original, different);
-        Assertions.assertNotEquals(original, differentByCompat);
-        Assertions.assertNotEquals(original, differentByMetadata);
+        assertEquals(original,same);
+        assertNotEquals(original, different);
+        assertNotEquals(original, differentByCompat);
+        assertNotEquals(original, differentByMetadata);
     }
 
     @Test
@@ -84,7 +86,7 @@ class SchemaTest {
                         .build())
                 .build();
 
-        Assertions.assertEquals(original,same);
-        Assertions.assertNotEquals(original, different);
+        assertEquals(original,same);
+        assertNotEquals(original, different);
     }
 }

@@ -34,6 +34,8 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 class StreamTest extends AbstractIntegrationTest {
@@ -125,11 +127,11 @@ class StreamTest extends AbstractIntegrationTest {
                         PatternType.PREFIXED),
                 AccessControlEntryFilter.ANY)).values().get();
 
-        Assertions.assertEquals(2, aclTopic.size());
+        assertEquals(2, aclTopic.size());
         Assertions.assertTrue(aclTopic.stream()
                 .allMatch(aclBinding -> List.of(AclOperation.CREATE, AclOperation.DELETE).contains(aclBinding.entry().operation())));
 
-        Assertions.assertEquals(1, aclTransactionalId.size());
-        Assertions.assertEquals(AclOperation.WRITE, aclTransactionalId.stream().findFirst().get().entry().operation());
+        assertEquals(1, aclTransactionalId.size());
+        assertEquals(AclOperation.WRITE, aclTransactionalId.stream().findFirst().get().entry().operation());
     }
 }

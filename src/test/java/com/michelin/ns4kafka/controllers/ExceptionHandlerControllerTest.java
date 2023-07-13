@@ -7,13 +7,14 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthorizationException;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import javax.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ExceptionHandlerControllerTest {
 
@@ -25,13 +26,13 @@ class ExceptionHandlerControllerTest {
                 new ResourceValidationException(List.of("Error1", "Error2"),"Topic", "Name"));
         var status = response.body();
 
-        Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatus());
-        Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.getCode(), status.getCode());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatus());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.getCode(), status.getCode());
 
-        Assertions.assertEquals("Topic", status.getDetails().getKind());
-        Assertions.assertEquals("Name", status.getDetails().getName());
-        Assertions.assertEquals("Error1", status.getDetails().getCauses().get(0));
-        Assertions.assertEquals("Error2", status.getDetails().getCauses().get(1));
+        assertEquals("Topic", status.getDetails().getKind());
+        assertEquals("Name", status.getDetails().getName());
+        assertEquals("Error1", status.getDetails().getCauses().get(0));
+        assertEquals("Error2", status.getDetails().getCauses().get(1));
     }
 
     @Test
@@ -40,8 +41,8 @@ class ExceptionHandlerControllerTest {
                 new ConstraintViolationException(Set.of()));
         var status = response.body();
 
-        Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatus());
-        Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.getCode(), status.getCode());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatus());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.getCode(), status.getCode());
     }
 
     @Test
@@ -50,8 +51,8 @@ class ExceptionHandlerControllerTest {
                 new AuthorizationException(null));
         var status = response.body();
 
-        Assertions.assertEquals(HttpStatus.UNAUTHORIZED, response.getStatus());
-        Assertions.assertEquals(HttpStatus.UNAUTHORIZED.getCode(), status.getCode());
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatus());
+        assertEquals(HttpStatus.UNAUTHORIZED.getCode(), status.getCode());
     }
 
     @Test
@@ -60,8 +61,8 @@ class ExceptionHandlerControllerTest {
                 new AuthorizationException(Authentication.build("user", Map.of())));
         var status = response.body();
 
-        Assertions.assertEquals(HttpStatus.FORBIDDEN, response.getStatus());
-        Assertions.assertEquals(HttpStatus.FORBIDDEN.getCode(), status.getCode());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatus());
+        assertEquals(HttpStatus.FORBIDDEN.getCode(), status.getCode());
     }
 
     @Test
@@ -70,8 +71,8 @@ class ExceptionHandlerControllerTest {
                 new AuthenticationException());
         var status = response.body();
 
-        Assertions.assertEquals(HttpStatus.UNAUTHORIZED, response.getStatus());
-        Assertions.assertEquals(HttpStatus.UNAUTHORIZED.getCode(), status.getCode());
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatus());
+        assertEquals(HttpStatus.UNAUTHORIZED.getCode(), status.getCode());
     }
 
     @Test
@@ -80,7 +81,7 @@ class ExceptionHandlerControllerTest {
                 new Exception());
         var status = response.body();
 
-        Assertions.assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
-        Assertions.assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.getCode(), status.getCode());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.getCode(), status.getCode());
     }
 }

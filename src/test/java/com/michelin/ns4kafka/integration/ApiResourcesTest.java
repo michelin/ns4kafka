@@ -15,10 +15,11 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
@@ -37,7 +38,7 @@ class ApiResourcesTest extends AbstractIntegrationTest {
                 HttpRequest.GET("/api-resources").bearerAuth(token),
                 Argument.listOf(ApiResourcesController.ResourceDefinition.class));
 
-        Assertions.assertEquals(9, resources.size());
+        assertEquals(9, resources.size());
     }
 
     @Test
@@ -48,7 +49,7 @@ class ApiResourcesTest extends AbstractIntegrationTest {
                 HttpRequest.GET("/api-resources"),
                 Argument.listOf(ApiResourcesController.ResourceDefinition.class));
 
-        Assertions.assertEquals(9, resources.size());
+        assertEquals(9, resources.size());
     }
 
     @Test
@@ -97,6 +98,6 @@ class ApiResourcesTest extends AbstractIntegrationTest {
                 HttpRequest.GET("/api-resources").bearerAuth(userToken),
                 Argument.listOf(ApiResourcesController.ResourceDefinition.class));
 
-        Assertions.assertEquals(2, resources.size());
+        assertEquals(2, resources.size());
     }
 }

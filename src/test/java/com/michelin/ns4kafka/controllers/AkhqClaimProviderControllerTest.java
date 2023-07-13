@@ -18,6 +18,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertLinesMatch;
+import static org.mockito.Mockito.when;
+
 @ExtendWith(MockitoExtension.class)
 class AkhqClaimProviderControllerTest {
     @Mock
@@ -76,8 +80,8 @@ class AkhqClaimProviderControllerTest {
 
         List<String> actual = akhqClaimProviderController.computeAllowedRegexListForResourceType(inputACLs, AccessControlEntry.ResourceType.CONNECT);
 
-        Assertions.assertEquals(1, actual.size());
-        Assertions.assertEquals("^none$", actual.get(0));
+        assertEquals(1, actual.size());
+        assertEquals("^none$", actual.get(0));
     }
 
     @Test
@@ -114,8 +118,8 @@ class AkhqClaimProviderControllerTest {
         );
         List<String> actual = akhqClaimProviderController.computeAllowedRegexListForResourceType(inputACLs, AccessControlEntry.ResourceType.TOPIC);
 
-        Assertions.assertEquals(2, actual.size());
-        Assertions.assertLinesMatch(
+        assertEquals(2, actual.size());
+        assertLinesMatch(
                 List.of(
                         "^\\Qproject1.\\E.*$",
                         "^\\Qproject2.topic1\\E$"
@@ -145,8 +149,8 @@ class AkhqClaimProviderControllerTest {
         );
         List<String> actual = akhqClaimProviderController.computeAllowedRegexListForResourceType(inputACLs, AccessControlEntry.ResourceType.TOPIC);
 
-        Assertions.assertEquals(1, actual.size());
-        Assertions.assertLinesMatch(
+        assertEquals(1, actual.size());
+        assertLinesMatch(
                 List.of(
                         "^\\Qproject1.\\E.*$"
                 ),
@@ -158,22 +162,22 @@ class AkhqClaimProviderControllerTest {
     void generateClaimTestNullOrEmptyRequest(){
         AkhqClaimProviderController.AKHQClaimResponse actual = akhqClaimProviderController.generateClaim(null);
 
-        Assertions.assertEquals(1, actual.getAttributes().get("topicsFilterRegexp").size());
-        Assertions.assertEquals("^none$", actual.getAttributes().get("topicsFilterRegexp").get(0));
+        assertEquals(1, actual.getAttributes().get("topicsFilterRegexp").size());
+        assertEquals("^none$", actual.getAttributes().get("topicsFilterRegexp").get(0));
 
         AkhqClaimProviderController.AKHQClaimRequest request = AkhqClaimProviderController.AKHQClaimRequest.builder().build();
         actual = akhqClaimProviderController.generateClaim(request);
 
-        Assertions.assertEquals(1, actual.getAttributes().get("topicsFilterRegexp").size());
-        Assertions.assertEquals("^none$", actual.getAttributes().get("topicsFilterRegexp").get(0));
+        assertEquals(1, actual.getAttributes().get("topicsFilterRegexp").size());
+        assertEquals("^none$", actual.getAttributes().get("topicsFilterRegexp").get(0));
 
         request = AkhqClaimProviderController.AKHQClaimRequest.builder().groups(List.of()).build();
         actual = akhqClaimProviderController.generateClaim(request);
 
-        Assertions.assertEquals(1, actual.getAttributes().get("topicsFilterRegexp").size());
-        Assertions.assertEquals("^none$", actual.getAttributes().get("topicsFilterRegexp").get(0));
+        assertEquals(1, actual.getAttributes().get("topicsFilterRegexp").size());
+        assertEquals("^none$", actual.getAttributes().get("topicsFilterRegexp").get(0));
 
-        Assertions.assertLinesMatch(
+        assertLinesMatch(
                 List.of(
                         "topic/read",
                         "topic/data/read",
@@ -266,13 +270,13 @@ class AkhqClaimProviderControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.listAll())
+        when(namespaceService.listAll())
                 .thenReturn(List.of(ns1, ns2, ns3, ns4, ns5));
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns1))
+        when(accessControlEntryService.findAllGrantedToNamespace(ns1))
                 .thenReturn(List.of(ns1Ace1, ns1Ace2, pubAce1));
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns2))
+        when(accessControlEntryService.findAllGrantedToNamespace(ns2))
                 .thenReturn(List.of(ns2Ace1, ns2Ace2, pubAce1));
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns3))
+        when(accessControlEntryService.findAllGrantedToNamespace(ns3))
                 .thenReturn(List.of(ns3Ace1, pubAce1));
 
         AkhqClaimProviderController.AKHQClaimRequest request = AkhqClaimProviderController.AKHQClaimRequest.builder()
@@ -287,7 +291,7 @@ class AkhqClaimProviderControllerTest {
         Mockito.verify(accessControlEntryService,Mockito.never()).findAllGrantedToNamespace(ns4);
         Mockito.verify(accessControlEntryService,Mockito.never()).findAllGrantedToNamespace(ns5);
         Mockito.verify(accessControlEntryService,Mockito.times(1)).findAllPublicGrantedTo();
-        Assertions.assertLinesMatch(
+        assertLinesMatch(
                 List.of(
                         "topic/read",
                         "topic/data/read",
@@ -298,8 +302,9 @@ class AkhqClaimProviderControllerTest {
                 ),
                 actual.getRoles()
         );
-        Assertions.assertEquals(4, actual.getAttributes().get("topicsFilterRegexp").size());
-        Assertions.assertLinesMatch(
+        
+        assertEquals(4, actual.getAttributes().get("topicsFilterRegexp").size());
+        assertLinesMatch(
                 List.of(
                         "^\\Qproject1_t.\\E.*$",
                         "^\\Qpublic_t.\\E.*$",
@@ -317,7 +322,7 @@ class AkhqClaimProviderControllerTest {
                 .build();
 
         AkhqClaimProviderController.AKHQClaimResponse actual = akhqClaimProviderController.generateClaim(request);
-        Assertions.assertLinesMatch(
+        assertLinesMatch(
                 List.of(
                         "topic/read",
                         "topic/data/read",
@@ -329,9 +334,9 @@ class AkhqClaimProviderControllerTest {
                 actual.getRoles()
         );
         // Admin Regexp
-        Assertions.assertLinesMatch(List.of(".*$"), actual.getAttributes().get("topicsFilterRegexp"));
-        Assertions.assertLinesMatch(List.of(".*$"), actual.getAttributes().get("connectsFilterRegexp"));
-        Assertions.assertLinesMatch(List.of(".*$"), actual.getAttributes().get("consumerGroupsFilterRegexp"));
+        assertLinesMatch(List.of(".*$"), actual.getAttributes().get("topicsFilterRegexp"));
+        assertLinesMatch(List.of(".*$"), actual.getAttributes().get("connectsFilterRegexp"));
+        assertLinesMatch(List.of(".*$"), actual.getAttributes().get("consumerGroupsFilterRegexp"));
     }
 
     @Test
@@ -408,13 +413,13 @@ class AkhqClaimProviderControllerTest {
                         .resource("public_t.")
                         .build())
                 .build();
-        Mockito.when(namespaceService.listAll())
+        when(namespaceService.listAll())
                 .thenReturn(List.of(ns1, ns2, ns3, ns4, ns5));
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns1))
+        when(accessControlEntryService.findAllGrantedToNamespace(ns1))
                 .thenReturn(List.of(ns1_ace1, ns1_ace2, pub_ace1));
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns2))
+        when(accessControlEntryService.findAllGrantedToNamespace(ns2))
                 .thenReturn(List.of(ns2_ace1, ns2_ace2, pub_ace1));
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns3))
+        when(accessControlEntryService.findAllGrantedToNamespace(ns3))
                 .thenReturn(List.of(ns3_ace1, pub_ace1));
 
         AkhqClaimProviderController.AKHQClaimRequest request = AkhqClaimProviderController.AKHQClaimRequest.builder()
@@ -429,7 +434,7 @@ class AkhqClaimProviderControllerTest {
         Mockito.verify(accessControlEntryService,Mockito.never()).findAllGrantedToNamespace(ns4);
         Mockito.verify(accessControlEntryService,Mockito.never()).findAllGrantedToNamespace(ns5);
         Mockito.verify(accessControlEntryService,Mockito.times(1)).findAllPublicGrantedTo();
-        Assertions.assertLinesMatch(
+        assertLinesMatch(
                 List.of(
                         "topic/read",
                         "topic/data/read",
@@ -440,8 +445,8 @@ class AkhqClaimProviderControllerTest {
                 ),
                 actual.getRoles()
         );
-        Assertions.assertEquals(4, actual.getTopicsFilterRegexp().size());
-        Assertions.assertLinesMatch(
+        assertEquals(4, actual.getTopicsFilterRegexp().size());
+        assertLinesMatch(
                 List.of(
                         "^\\Qproject1_t.\\E.*$",
                         "^\\Qpublic_t.\\E.*$",
@@ -457,22 +462,22 @@ class AkhqClaimProviderControllerTest {
     void generateClaimV2TestNullOrEmptyRequest(){
         AkhqClaimProviderController.AKHQClaimResponseV2 actual = akhqClaimProviderController.generateClaimV2(null);
 
-        Assertions.assertEquals(1, actual.getTopicsFilterRegexp().size());
-        Assertions.assertEquals("^none$", actual.getTopicsFilterRegexp().get(0));
+        assertEquals(1, actual.getTopicsFilterRegexp().size());
+        assertEquals("^none$", actual.getTopicsFilterRegexp().get(0));
 
         AkhqClaimProviderController.AKHQClaimRequest request = AkhqClaimProviderController.AKHQClaimRequest.builder().build();
         actual = akhqClaimProviderController.generateClaimV2(request);
 
-        Assertions.assertEquals(1, actual.getTopicsFilterRegexp().size());
-        Assertions.assertEquals("^none$", actual.getTopicsFilterRegexp().get(0));
+        assertEquals(1, actual.getTopicsFilterRegexp().size());
+        assertEquals("^none$", actual.getTopicsFilterRegexp().get(0));
 
         request = AkhqClaimProviderController.AKHQClaimRequest.builder().groups(List.of()).build();
         actual = akhqClaimProviderController.generateClaimV2(request);
 
-        Assertions.assertEquals(1, actual.getTopicsFilterRegexp().size());
-        Assertions.assertEquals("^none$", actual.getTopicsFilterRegexp().get(0));
+        assertEquals(1, actual.getTopicsFilterRegexp().size());
+        assertEquals("^none$", actual.getTopicsFilterRegexp().get(0));
 
-        Assertions.assertLinesMatch(
+        assertLinesMatch(
                 List.of(
                         "topic/read",
                         "topic/data/read",
@@ -493,7 +498,7 @@ class AkhqClaimProviderControllerTest {
 
         AkhqClaimProviderController.AKHQClaimResponseV2 actual = akhqClaimProviderController.generateClaimV2(request);
         // AdminRoles
-        Assertions.assertLinesMatch(
+        assertLinesMatch(
                 List.of(
                         "topic/read",
                         "topic/data/read",
@@ -505,9 +510,9 @@ class AkhqClaimProviderControllerTest {
                 actual.getRoles()
         );
         // Admin Regexp
-        Assertions.assertLinesMatch(List.of(".*$"), actual.getTopicsFilterRegexp());
-        Assertions.assertLinesMatch(List.of(".*$"), actual.getConnectsFilterRegexp());
-        Assertions.assertLinesMatch(List.of(".*$"), actual.getConsumerGroupsFilterRegexp());
+        assertLinesMatch(List.of(".*$"), actual.getTopicsFilterRegexp());
+        assertLinesMatch(List.of(".*$"), actual.getConnectsFilterRegexp());
+        assertLinesMatch(List.of(".*$"), actual.getConsumerGroupsFilterRegexp());
     }
 
     @Test
@@ -565,8 +570,8 @@ class AkhqClaimProviderControllerTest {
         );
         List<String> actual = akhqClaimProviderController.computeAllowedRegexListForResourceType(inputACLs, AccessControlEntry.ResourceType.TOPIC);
 
-        Assertions.assertEquals(4, actual.size());
-        Assertions.assertLinesMatch(
+        assertEquals(4, actual.size());
+        assertLinesMatch(
                 List.of(
                         "^\\Qproject1.\\E.*$",
                         "^\\Qproject2.topic2\\E$",

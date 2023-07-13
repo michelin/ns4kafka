@@ -1,7 +1,9 @@
 package com.michelin.ns4kafka.models;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class AccessControlEntryTest {
     @Test
@@ -15,6 +17,7 @@ class AccessControlEntryTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .build())
                 .build();
+
         AccessControlEntry same = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resource("resource1")
@@ -24,9 +27,9 @@ class AccessControlEntryTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .build())
                 .build();
+
         AccessControlEntry differentByResource = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        // different resource
                         .resource("resource2")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -34,6 +37,7 @@ class AccessControlEntryTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .build())
                 .build();
+
         AccessControlEntry differentByResourcePatternType = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resource("resource1")
@@ -43,6 +47,7 @@ class AccessControlEntryTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .build())
                 .build();
+
         AccessControlEntry differentByResourceType = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resource("resource1")
@@ -52,6 +57,7 @@ class AccessControlEntryTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .build())
                 .build();
+
         AccessControlEntry differentByGrantedTo = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resource("resource1")
@@ -61,6 +67,7 @@ class AccessControlEntryTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .build())
                 .build();
+
         AccessControlEntry differentByPermission = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resource("resource1")
@@ -70,8 +77,12 @@ class AccessControlEntryTest {
                         .permission(AccessControlEntry.Permission.READ)
                         .build())
                 .build();
-        Assertions.assertEquals(original, same);
-        Assertions.assertNotEquals(original, differentByResource);
 
+        assertEquals(original, same);
+        assertNotEquals(original, differentByResource);
+        assertNotEquals(original, differentByResourcePatternType);
+        assertNotEquals(original, differentByResourceType);
+        assertNotEquals(original, differentByGrantedTo);
+        assertNotEquals(original, differentByPermission);
     }
 }

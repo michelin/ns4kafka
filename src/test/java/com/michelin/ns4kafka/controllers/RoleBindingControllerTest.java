@@ -9,7 +9,6 @@ import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.RoleBindingService;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.security.utils.SecurityService;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
@@ -20,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -62,7 +62,7 @@ class RoleBindingControllerTest {
 
         var response = roleBindingController.apply("test", rolebinding, false);
         RoleBinding actual = response.body();
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals(actual.getMetadata().getName(), rolebinding.getMetadata().getName());
     }
 
@@ -86,7 +86,7 @@ class RoleBindingControllerTest {
 
         var response = roleBindingController.apply("test", rolebinding, false);
         RoleBinding actual = response.body();
-        Assertions.assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
+        assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         assertEquals(actual.getMetadata().getName(), rolebinding.getMetadata().getName());
         verify(roleBindingService,never()).create(ArgumentMatchers.any());
     }
@@ -120,7 +120,7 @@ class RoleBindingControllerTest {
 
         var response = roleBindingController.apply("test", rolebinding, false);
         RoleBinding actual = response.body();
-        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
+        assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertEquals(actual.getMetadata().getName(), rolebinding.getMetadata().getName());
     }
 
@@ -142,7 +142,7 @@ class RoleBindingControllerTest {
 
         var response = roleBindingController.apply("test", rolebinding, true);
         RoleBinding actual = response.body();
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(roleBindingService, never()).create(rolebinding);
     }
 
@@ -167,27 +167,19 @@ class RoleBindingControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        Assertions.assertDoesNotThrow(
+        assertDoesNotThrow(
                 () -> roleBindingController.delete("test", "test.rolebinding", false)
         );
     }
 
     @Test
-    void deleteSucessDryRun() {
-
-        Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+    void deleteSuccessDryRun() {
         RoleBinding rolebinding = RoleBinding.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test.rolebinding")
                         .build())
                 .build();
 
-        //when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
         when(roleBindingService.findByName(any(), any())).thenReturn(Optional.of(rolebinding));
 
         roleBindingController.delete("test", "test.rolebinding", true);

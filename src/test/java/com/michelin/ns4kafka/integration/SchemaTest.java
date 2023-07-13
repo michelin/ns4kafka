@@ -29,6 +29,9 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
@@ -121,15 +124,15 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .bearerAuth(token)
                         .body(schema), Schema.class);
 
-        Assertions.assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
+        assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
 
         SchemaResponse actual = schemaClient.toBlocking()
                 .retrieve(HttpRequest.GET("/subjects/ns1-subject0-value/versions/latest"),
                         SchemaResponse.class);
 
         Assertions.assertNotNull(actual.id());
-        Assertions.assertEquals(1, actual.version());
-        Assertions.assertEquals("ns1-subject0-value", actual.subject());
+        assertEquals(1, actual.version());
+        assertEquals("ns1-subject0-value", actual.subject());
 
         // Set compat to forward
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject0-value/config")
@@ -140,7 +143,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                 .retrieve(HttpRequest.GET("/config/ns1-subject0-value"),
                         SchemaCompatibilityResponse.class);
 
-        Assertions.assertEquals(Schema.Compatibility.FORWARD, updatedConfig.compatibilityLevel());
+        assertEquals(Schema.Compatibility.FORWARD, updatedConfig.compatibilityLevel());
 
         // Register compatible schema v2, removing optional "first name" field
         Schema incompatibleSchema = Schema.builder()
@@ -156,15 +159,15 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .bearerAuth(token)
                         .body(incompatibleSchema), Schema.class);
 
-        Assertions.assertEquals("changed", createV2Response.header("X-Ns4kafka-Result"));
+        assertEquals("changed", createV2Response.header("X-Ns4kafka-Result"));
 
         SchemaResponse actualV2 = schemaClient.toBlocking()
                 .retrieve(HttpRequest.GET("/subjects/ns1-subject0-value/versions/latest"),
                         SchemaResponse.class);
 
         Assertions.assertNotNull(actualV2.id());
-        Assertions.assertEquals(2, actualV2.version());
-        Assertions.assertEquals("ns1-subject0-value", actualV2.subject());
+        assertEquals(2, actualV2.version());
+        assertEquals("ns1-subject0-value", actualV2.subject());
     }
 
     /**
@@ -190,15 +193,15 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .bearerAuth(token)
                         .body(schema), Schema.class);
 
-        Assertions.assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
+        assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
 
         SchemaResponse actual = schemaClient.toBlocking()
                 .retrieve(HttpRequest.GET("/subjects/ns1-subject1-value/versions/latest"),
                         SchemaResponse.class);
 
         Assertions.assertNotNull(actual.id());
-        Assertions.assertEquals(1, actual.version());
-        Assertions.assertEquals("ns1-subject1-value", actual.subject());
+        assertEquals(1, actual.version());
+        assertEquals("ns1-subject1-value", actual.subject());
 
         // Set compat to forward
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas/ns1-subject1-value/config")
@@ -209,7 +212,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                 .retrieve(HttpRequest.GET("/config/ns1-subject1-value"),
                         SchemaCompatibilityResponse.class);
 
-        Assertions.assertEquals(Schema.Compatibility.FORWARD, updatedConfig.compatibilityLevel());
+        assertEquals(Schema.Compatibility.FORWARD, updatedConfig.compatibilityLevel());
 
         // Register incompatible schema v2, removing non-optional "first name" field
         Schema incompatibleSchema = Schema.builder()
@@ -221,13 +224,13 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .build())
                 .build();
 
-        HttpClientResponseException incompatibleActual = Assertions.assertThrows(HttpClientResponseException.class,
+        HttpClientResponseException incompatibleActual = assertThrows(HttpClientResponseException.class,
                 () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas")
                         .bearerAuth(token)
                         .body(incompatibleSchema)));
 
-        Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, incompatibleActual.getStatus());
-        Assertions.assertEquals("Invalid Schema ns1-subject1-value", incompatibleActual.getMessage());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, incompatibleActual.getStatus());
+        assertEquals("Invalid Schema ns1-subject1-value", incompatibleActual.getMessage());
     }
 
     /**
@@ -272,37 +275,37 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .bearerAuth(token)
                         .body(schemaHeader), Schema.class);
 
-        Assertions.assertEquals("created", headerCreateResponse.header("X-Ns4kafka-Result"));
+        assertEquals("created", headerCreateResponse.header("X-Ns4kafka-Result"));
 
         SchemaResponse actualHeader = schemaClient.toBlocking().retrieve(HttpRequest.GET("/subjects/ns1-header-subject-value/versions/latest"),
                 SchemaResponse.class);
 
         Assertions.assertNotNull(actualHeader.id());
-        Assertions.assertEquals(1, actualHeader.version());
-        Assertions.assertEquals("ns1-header-subject-value", actualHeader.subject());
+        assertEquals(1, actualHeader.version());
+        assertEquals("ns1-header-subject-value", actualHeader.subject());
 
         // Person without refs not created
-        HttpClientResponseException createException = Assertions.assertThrows(HttpClientResponseException.class,
+        HttpClientResponseException createException = assertThrows(HttpClientResponseException.class,
                 () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas")
                         .bearerAuth(token)
                         .body(schemaPersonWithoutRefs)));
 
-        Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, createException.getStatus());
-        Assertions.assertEquals("Invalid Schema ns1-person-subject-value", createException.getMessage());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, createException.getStatus());
+        assertEquals("Invalid Schema ns1-person-subject-value", createException.getMessage());
 
         // Person with refs created
         var personCreateResponse = client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas")
                         .bearerAuth(token)
                         .body(schemaPersonWithRefs), Schema.class);
 
-        Assertions.assertEquals("created", personCreateResponse.header("X-Ns4kafka-Result"));
+        assertEquals("created", personCreateResponse.header("X-Ns4kafka-Result"));
 
         SchemaResponse actualPerson = schemaClient.toBlocking().retrieve(HttpRequest.GET("/subjects/ns1-person-subject-value/versions/latest"),
                 SchemaResponse.class);
 
         Assertions.assertNotNull(actualPerson.id());
-        Assertions.assertEquals(1, actualPerson.version());
-        Assertions.assertEquals("ns1-person-subject-value", actualPerson.subject());
+        assertEquals(1, actualPerson.version());
+        assertEquals("ns1-person-subject-value", actualPerson.subject());
     }
 
     /**
@@ -319,20 +322,20 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .build())
                 .build();
 
-        HttpClientResponseException createException = Assertions.assertThrows(HttpClientResponseException.class,
+        HttpClientResponseException createException = assertThrows(HttpClientResponseException.class,
                 () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas")
                                 .bearerAuth(token)
                                 .body(wrongSchema)));
 
-        Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, createException.getStatus());
-        Assertions.assertEquals("Invalid Schema wrongprefix-subject", createException.getMessage());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, createException.getStatus());
+        assertEquals("Invalid Schema wrongprefix-subject", createException.getMessage());
 
-        HttpClientResponseException getException = Assertions.assertThrows(HttpClientResponseException.class,
+        HttpClientResponseException getException = assertThrows(HttpClientResponseException.class,
                 () -> schemaClient.toBlocking()
                         .retrieve(HttpRequest.GET("/subjects/wrongprefix-subject/versions/latest"),
                                 SchemaResponse.class));
 
-        Assertions.assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
+        assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
     }
 
     /**
@@ -353,18 +356,18 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .bearerAuth(token)
                         .body(schema), Schema.class);
 
-        Assertions.assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
+        assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
 
         var deleteResponse = client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/schemas/ns1-subject2-value")
                         .bearerAuth(token), Schema.class);
 
-        Assertions.assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
+        assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
 
-        HttpClientResponseException getException = Assertions.assertThrows(HttpClientResponseException.class,
+        HttpClientResponseException getException = assertThrows(HttpClientResponseException.class,
                 () -> schemaClient.toBlocking()
                         .retrieve(HttpRequest.GET("/subjects/ns1-subject2-value/versions/latest"),
                                 SchemaResponse.class));
 
-        Assertions.assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
+        assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
     }
 }

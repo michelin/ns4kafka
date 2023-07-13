@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -30,8 +29,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -65,10 +63,10 @@ class ConnectClusterServiceTest {
      */
     @Test
     void findAllEmpty() {
-        Mockito.when(connectClusterRepository.findAll()).thenReturn(List.of());
-        List<ConnectCluster> actual = connectClusterRepository.findAll();
-
-        Assertions.assertTrue(actual.isEmpty());
+        when(connectClusterRepository.findAll()).thenReturn(List.of());
+        
+        StepVerifier.create(connectClusterService.findAll(false))
+            .verifyComplete();
     }
 
     /**
@@ -84,10 +82,46 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        Mockito.when(connectClusterRepository.findAll()).thenReturn(List.of(connectCluster));
-        List<ConnectCluster> actual = connectClusterService.findAll();
+        when(connectClusterRepository.findAll()).thenReturn(List.of(connectCluster));
+        
+        StepVerifier.create(connectClusterService.findAll(false))
+            .consumeNextWith(result -> assertEquals(connectCluster, result))
+            .verifyComplete();
+    }
 
-        Assertions.assertEquals(1L, actual.size());
+    /**
+     * Test find all
+     */
+    @Test
+    void shouldFindAllIncludingHardDeclared() {
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(ObjectMeta.builder().name("connect-cluster")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .url("https://after")
+                        .build())
+                .build();
+
+        when(connectClusterRepository.findAll()).thenReturn(List.of(connectCluster));
+        KafkaAsyncExecutorConfig kafka = new KafkaAsyncExecutorConfig("local");
+        kafka.setConnects(Map.of("test-connect", new KafkaAsyncExecutorConfig.ConnectConfig()));
+        when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of(kafka));
+        when(kafkaConnectClient.version(any(), any()))
+                .thenReturn(Mono.just(HttpResponse.ok()))
+                .thenReturn(Mono.error(new Exception("error")));
+
+        StepVerifier.create(connectClusterService.findAll(true))
+                .consumeNextWith(result -> {
+                    assertEquals("connect-cluster", result.getMetadata().getName());
+                    assertEquals(ConnectCluster.Status.HEALTHY, result.getSpec().getStatus());
+                    assertTrue(result.getSpec().getStatusMessage().isEmpty());
+                })
+                .consumeNextWith(result -> {
+                    assertEquals("test-connect", result.getMetadata().getName());
+                    assertEquals(ConnectCluster.Status.IDLE, result.getSpec().getStatus());
+                    assertEquals("error", result.getSpec().getStatusMessage());
+                })
+                .verifyComplete();
     }
 
     /**
@@ -181,11 +215,11 @@ class ConnectClusterServiceTest {
 
         List<ConnectCluster> actual = connectClusterService.findAllByNamespace(namespace, List.of(AccessControlEntry.Permission.OWNER));
 
-        Assertions.assertEquals(2, actual.size());
-        // contains
+        assertEquals(2, actual.size());
+    
         Assertions.assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("prefix.connect-cluster")));
         Assertions.assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("prefix2.connect-two")));
-        // doesn't contain
+     
         Assertions.assertFalse(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("not-owner")));
         Assertions.assertFalse(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("prefix3.connect-cluster")));
     }
@@ -236,8 +270,8 @@ class ConnectClusterServiceTest {
         Optional<ConnectCluster> actual = connectClusterService.findByNamespaceAndNameOwner(namespace, "prefix.connect-cluster");
 
         Assertions.assertTrue(actual.isPresent());
-        Assertions.assertEquals("prefix.connect-cluster", actual.get().getMetadata().getName());
-        Assertions.assertEquals(ConnectCluster.Status.HEALTHY, actual.get().getSpec().getStatus());
+        assertEquals("prefix.connect-cluster", actual.get().getMetadata().getName());
+        assertEquals(ConnectCluster.Status.HEALTHY, actual.get().getSpec().getStatus());
     }
 
     /**
@@ -286,9 +320,9 @@ class ConnectClusterServiceTest {
         Optional<ConnectCluster> actual = connectClusterService.findByNamespaceAndNameOwner(namespace, "prefix.connect-cluster");
 
         Assertions.assertTrue(actual.isPresent());
-        Assertions.assertEquals("prefix.connect-cluster", actual.get().getMetadata().getName());
-        Assertions.assertEquals(ConnectCluster.Status.IDLE, actual.get().getSpec().getStatus());
-        Assertions.assertEquals("Internal Server Error", actual.get().getSpec().getStatusMessage());
+        assertEquals("prefix.connect-cluster", actual.get().getMetadata().getName());
+        assertEquals(ConnectCluster.Status.IDLE, actual.get().getSpec().getStatus());
+        assertEquals("Internal Server Error", actual.get().getSpec().getStatusMessage());
     }
 
     /**
@@ -355,7 +389,7 @@ class ConnectClusterServiceTest {
         when(connectClusterRepository.create(connectCluster)).thenReturn(connectCluster);
 
         ConnectCluster actual = connectClusterService.create(connectCluster);
-        Assertions.assertEquals(actual, connectCluster);
+        assertEquals(actual, connectCluster);
     }
 
 
@@ -380,9 +414,10 @@ class ConnectClusterServiceTest {
         when(securityConfig.getAes256EncryptionKey()).thenReturn("changeitchangeitchangeitchangeit");
 
         connectClusterService.create(connectCluster);
-        Assertions.assertNotEquals("myPassword", connectCluster.getSpec().getPassword());
-        Assertions.assertNotEquals("myAES256Key", connectCluster.getSpec().getAes256Key());
-        Assertions.assertNotEquals("myAES256Salt", connectCluster.getSpec().getAes256Salt());
+
+        assertNotEquals("myPassword", connectCluster.getSpec().getPassword());
+        assertNotEquals("myAES256Key", connectCluster.getSpec().getAes256Key());
+        assertNotEquals("myAES256Salt", connectCluster.getSpec().getAes256Salt());
     }
 
     /**
@@ -588,8 +623,8 @@ class ConnectClusterServiceTest {
 
         List<String> errors = connectClusterService.validateConnectClusterVault(namespace, "prefix.fake-connect-cluster");
 
-        Assertions.assertEquals(1L, errors.size());
-        Assertions.assertEquals("No Connect Cluster available.", errors.get(0));
+        assertEquals(1L, errors.size());
+        assertEquals("No Connect Cluster available.", errors.get(0));
     }
 
     /**
@@ -664,8 +699,8 @@ class ConnectClusterServiceTest {
 
         List<String> errors = connectClusterService.validateConnectClusterVault(namespace, "prefix1.fake-connect-cluster");
 
-        Assertions.assertEquals(1L, errors.size());
-        Assertions.assertEquals("No Connect cluster available with valid aes256 specs configuration.", errors.get(0));
+        assertEquals(1L, errors.size());
+        assertEquals("No Connect cluster available with valid aes256 specs configuration.", errors.get(0));
     }
 
     /**
@@ -742,8 +777,8 @@ class ConnectClusterServiceTest {
 
         List<String> errors = connectClusterService.validateConnectClusterVault(namespace, "prefix1.fake-connect-cluster");
 
-        Assertions.assertEquals(1L, errors.size());
-        Assertions.assertEquals("Invalid value \"prefix1.fake-connect-cluster\" for Connect Cluster: Value must be one of [" +
+        assertEquals(1L, errors.size());
+        assertEquals("Invalid value \"prefix1.fake-connect-cluster\" for Connect Cluster: Value must be one of [" +
                 "prefix2.connect-cluster, prefix3.connect-cluster].", errors.get(0));
     }
 
@@ -788,7 +823,7 @@ class ConnectClusterServiceTest {
 
         List<String> errors = connectClusterService.validateConnectClusterVault(namespace, "prefix.connect-cluster");
 
-        Assertions.assertEquals(0L, errors.size());
+        assertEquals(0L, errors.size());
     }
 
     /**
@@ -831,7 +866,7 @@ class ConnectClusterServiceTest {
 
         List<VaultResponse> actual = connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", List.of("secret"));
 
-        Assertions.assertEquals("secret", actual.get(0).getSpec().getEncrypted());
+        assertEquals("secret", actual.get(0).getSpec().getEncrypted());
     }
 
     /**
@@ -904,16 +939,16 @@ class ConnectClusterServiceTest {
         when(securityConfig.getAes256EncryptionKey()).thenReturn(encryptKey);
         List<ConnectCluster> actual = connectClusterService.findAllByNamespaceWrite(namespace);
 
-        Assertions.assertEquals(2, actual.size());
+        assertEquals(2, actual.size());
         // 1rts is for owner with decrypted values
-        Assertions.assertEquals("password", actual.get(0).getSpec().getPassword());
-        Assertions.assertEquals("aes256Key", actual.get(0).getSpec().getAes256Key());
-        Assertions.assertEquals("aes256Salt", actual.get(0).getSpec().getAes256Salt());
+        assertEquals("password", actual.get(0).getSpec().getPassword());
+        assertEquals("aes256Key", actual.get(0).getSpec().getAes256Key());
+        assertEquals("aes256Salt", actual.get(0).getSpec().getAes256Salt());
 
         // second is only for write with wildcards
-        Assertions.assertEquals("*****", actual.get(1).getSpec().getPassword());
-        Assertions.assertEquals("*****", actual.get(1).getSpec().getAes256Key());
-        Assertions.assertEquals("*****", actual.get(1).getSpec().getAes256Salt());
+        assertEquals("*****", actual.get(1).getSpec().getPassword());
+        assertEquals("*****", actual.get(1).getSpec().getAes256Key());
+        assertEquals("*****", actual.get(1).getSpec().getAes256Salt());
     }
 
     /**

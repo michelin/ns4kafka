@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -71,8 +71,8 @@ class ResourceQuotaControllerTest {
         when(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.empty())).thenReturn(response);
 
         List<ResourceQuotaResponse> actual = resourceQuotaController.list("test");
-        Assertions.assertEquals(1, actual.size());
-        Assertions.assertEquals(response, actual.get(0));
+        assertEquals(1, actual.size());
+        assertEquals(response, actual.get(0));
     }
 
     /**
@@ -126,7 +126,7 @@ class ResourceQuotaControllerTest {
 
         Optional<ResourceQuotaResponse> actual = resourceQuotaController.get("test", "quotaName");
         Assertions.assertTrue(actual.isPresent());
-        Assertions.assertEquals(response, actual.get());
+        assertEquals(response, actual.get());
     }
 
     /**
@@ -152,10 +152,10 @@ class ResourceQuotaControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of("Quota already exceeded"));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
                 () -> resourceQuotaController.apply("test", resourceQuota, false));
-        Assertions.assertEquals(1, actual.getValidationErrors().size());
-        Assertions.assertLinesMatch(List.of("Quota already exceeded"), actual.getValidationErrors());
+        assertEquals(1, actual.getValidationErrors().size());
+        assertLinesMatch(List.of("Quota already exceeded"), actual.getValidationErrors());
 
         verify(resourceQuotaService, never()).create(ArgumentMatchers.any());
     }
@@ -185,7 +185,7 @@ class ResourceQuotaControllerTest {
         when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.of(resourceQuota));
 
         var response = resourceQuotaController.apply("test", resourceQuota, false);
-        Assertions.assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
+        assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         verify(resourceQuotaService, never()).create(ArgumentMatchers.any());
         assertEquals(resourceQuota, response.body());
     }
@@ -215,7 +215,7 @@ class ResourceQuotaControllerTest {
         when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.empty());
 
         var response = resourceQuotaController.apply("test", resourceQuota, true);
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(resourceQuotaService, never()).create(ArgumentMatchers.any());
     }
 
@@ -249,7 +249,7 @@ class ResourceQuotaControllerTest {
 
         var response = resourceQuotaController.apply("test", resourceQuota, false);
         ResourceQuota actual = response.body();
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("created-quota", actual.getMetadata().getName());
     }
 
@@ -291,7 +291,7 @@ class ResourceQuotaControllerTest {
 
         var response = resourceQuotaController.apply("test", resourceQuota, false);
         ResourceQuota actual = response.body();
-        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
+        assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertEquals("created-quota", actual.getMetadata().getName());
         assertEquals("1", actual.getSpec().get("count/topics"));
     }
@@ -303,7 +303,7 @@ class ResourceQuotaControllerTest {
     void deleteNotFound() {
         when(resourceQuotaService.findByName("test", "quota")).thenReturn(Optional.empty());
         HttpResponse<Void> actual = resourceQuotaController.delete("test", "quota", false);
-        Assertions.assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
+        assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
         verify(resourceQuotaService, never()).delete(ArgumentMatchers.any());
     }
 
@@ -322,7 +322,7 @@ class ResourceQuotaControllerTest {
 
         when(resourceQuotaService.findByName("test", "quota")).thenReturn(Optional.of(resourceQuota));
         HttpResponse<Void> actual = resourceQuotaController.delete("test", "quota", true);
-        Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
+        assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
         verify(resourceQuotaService, never()).delete(ArgumentMatchers.any());
     }
 
@@ -346,7 +346,7 @@ class ResourceQuotaControllerTest {
         doNothing().when(resourceQuotaService).delete(resourceQuota);
 
         HttpResponse<Void> actual = resourceQuotaController.delete("test", "quota", false);
-        Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
+        assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
         verify(resourceQuotaService, times(1)).delete(resourceQuota);
     }
 }

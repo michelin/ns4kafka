@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,14 +30,12 @@ class StreamServiceTest {
 
     @Test
     void findAllEmpty() {
-
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
                         .cluster("local")
                         .build())
                 .build();
-
 
         when(streamRepository.findAllForCluster("local"))
                 .thenReturn(List.of());
@@ -46,7 +45,6 @@ class StreamServiceTest {
 
     @Test
     void findAll() {
-
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -79,7 +77,7 @@ class StreamServiceTest {
         when(streamRepository.findAllForCluster("local"))
                 .thenReturn(List.of(stream1, stream2, stream3));
         var actual = streamService.findAllForNamespace(ns);
-        Assertions.assertEquals(3,actual.size());
+        assertEquals(3,actual.size());
         Assertions.assertTrue(actual.contains(stream1));
         Assertions.assertTrue(actual.contains(stream2));
         Assertions.assertTrue(actual.contains(stream3));
@@ -121,7 +119,7 @@ class StreamServiceTest {
                 .thenReturn(List.of(stream1, stream2, stream3));
         var actual = streamService.findByName(ns, "test_stream2");
         Assertions.assertTrue(actual.isPresent());
-        Assertions.assertEquals(stream2, actual.get());
+        assertEquals(stream2, actual.get());
     }
 
     @Test

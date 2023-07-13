@@ -22,6 +22,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -53,13 +55,13 @@ class StreamControllerTest {
                         .cluster("local")
                         .build())
                 .build();
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(streamService.findAllForNamespace(ns))
                 .thenReturn(List.of());
 
         List<KafkaStream> actual = streamController.list("test");
-        Assertions.assertEquals(0, actual.size());
+        assertEquals(0, actual.size());
     }
 
     /**
@@ -86,13 +88,13 @@ class StreamControllerTest {
                       .build())
             .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         when(streamService.findAllForNamespace(ns))
                 .thenReturn(List.of(stream1, stream2));
 
         List<KafkaStream> actual = streamController.list("test");
-        Assertions.assertEquals(2, actual.size());
+        assertEquals(2, actual.size());
         Assertions.assertTrue(actual.contains(stream1));
         Assertions.assertTrue(actual.contains(stream2));
     }
@@ -109,7 +111,7 @@ class StreamControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
 
         when(streamService.findByName(ns, "test_stream1"))
@@ -137,7 +139,7 @@ class StreamControllerTest {
                       .build())
             .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
 
         when(streamService.findByName(ns, "test_stream1"))
@@ -145,7 +147,7 @@ class StreamControllerTest {
 
         Optional<KafkaStream> actual = streamController.get("test", "test_stream1");
         Assertions.assertTrue(actual.isPresent());
-        Assertions.assertEquals(stream1, actual.get());
+        assertEquals(stream1, actual.get());
     }
 
     @Test
@@ -163,10 +165,10 @@ class StreamControllerTest {
                       .build())
             .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
 
-        Mockito.when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
+        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
                 .thenReturn(true);
 
         when(streamService.findByName(ns, "test_stream1"))
@@ -175,13 +177,13 @@ class StreamControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        Mockito.when(streamService.create(stream1))
+        when(streamService.create(stream1))
                 .thenReturn(stream1);
 
         var response = streamController.apply("test", stream1, false);
         KafkaStream actual = response.body();
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
-        Assertions.assertEquals("test_stream1", actual.getMetadata().getName());
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("test_stream1", actual.getMetadata().getName());
     }
 
     @Test
@@ -199,10 +201,10 @@ class StreamControllerTest {
                       .build())
             .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
 
-        Mockito.when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
+        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
                 .thenReturn(true);
 
         when(streamService.findByName(ns, "test_stream1"))
@@ -211,8 +213,8 @@ class StreamControllerTest {
         var response = streamController.apply("test", stream1, true);
         KafkaStream actual = response.body();
         Mockito.verify(streamService, never()).create(any());
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
-        Assertions.assertEquals("test_stream1", actual.getMetadata().getName());
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("test_stream1", actual.getMetadata().getName());
     }
 
     @Test
@@ -230,10 +232,10 @@ class StreamControllerTest {
                       .build())
             .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
 
-        Mockito.when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
+        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
                 .thenReturn(true);
 
         when(streamService.findByName(ns, "test_stream1"))
@@ -242,8 +244,8 @@ class StreamControllerTest {
         var response = streamController.apply("test", stream1, false);
         KafkaStream actual = response.body();
         Mockito.verify(streamService, never()).create(any());
-        Assertions.assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
-        Assertions.assertEquals("test_stream1", actual.getMetadata().getName());
+        assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
+        assertEquals("test_stream1", actual.getMetadata().getName());
     }
 
     @Test
@@ -261,12 +263,13 @@ class StreamControllerTest {
                       .build())
             .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
 
-        Mockito.when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
+        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
                 .thenReturn(false);
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> streamController.apply("test", stream1, false));
+
+        assertThrows(ResourceValidationException.class, () -> streamController.apply("test", stream1, false));
         Mockito.verify(streamService, never()).create(any());
     }
 
@@ -288,10 +291,10 @@ class StreamControllerTest {
                       .build())
             .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
 
-        Mockito.when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
+        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
                 .thenReturn(true);
 
         when(streamService.findByName(ns, "test_stream1"))
@@ -302,7 +305,7 @@ class StreamControllerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
         doNothing().when(streamService).delete(ns,stream1);
         var response = streamController.delete("test", "test_stream1", false);
-        Assertions.assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
     }
 
     /**
@@ -323,10 +326,10 @@ class StreamControllerTest {
                       .build())
             .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
 
-        Mockito.when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
+        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
                 .thenReturn(true);
 
         when(streamService.findByName(ns, "test_stream1"))
@@ -334,7 +337,7 @@ class StreamControllerTest {
 
         var response = streamController.delete("test", "test_stream1", true);
         Mockito.verify(streamService, never()).delete(any(), any());
-        Assertions.assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
     }
 
     /**
@@ -349,9 +352,9 @@ class StreamControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
+        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
                 .thenReturn(true);
 
         when(streamService.findByName(ns, "test_stream1"))
@@ -360,7 +363,7 @@ class StreamControllerTest {
         var response = streamController.delete("test", "test_stream1", false);
         Mockito.verify(streamService, never()).delete(any(), any());
 
-        Assertions.assertEquals(HttpStatus.NOT_FOUND, response.getStatus());
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatus());
     }
 
     /**
@@ -375,13 +378,13 @@ class StreamControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
 
-        Mockito.when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
+        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
                 .thenReturn(false);
 
-        Assertions.assertThrows(ResourceValidationException.class, () -> streamController.delete("test", "test_stream1", false));
+        assertThrows(ResourceValidationException.class, () -> streamController.delete("test", "test_stream1", false));
         Mockito.verify(streamService, never()).delete(any(), any());
     }
 }

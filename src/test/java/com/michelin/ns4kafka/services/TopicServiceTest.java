@@ -23,6 +23,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
+
 @ExtendWith(MockitoExtension.class)
 class TopicServiceTest {
     @InjectMocks
@@ -71,10 +74,10 @@ class TopicServiceTest {
                 .metadata(ObjectMeta.builder().name("ns2-topic1").build())
                 .build();
 
-        Mockito.when(topicRepository.findAllForCluster("local"))
+        when(topicRepository.findAllForCluster("local"))
                 .thenReturn(List.of(t1, t2, t3, t4));
 
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(
                         AccessControlEntry.builder()
                                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -98,13 +101,13 @@ class TopicServiceTest {
 
         // search topic by name
         Optional<Topic> actualTopicPrefixed = topicService.findByName(ns, "ns-topic1");
-        Assertions.assertEquals(actualTopicPrefixed.get(), t1);
+        assertEquals(actualTopicPrefixed.get(), t1);
 
         Optional<Topic> actualTopicLiteral = topicService.findByName(ns, "ns1-topic1");
-        Assertions.assertEquals(actualTopicLiteral.get(), t3);
+        assertEquals(actualTopicLiteral.get(), t3);
 
         Optional<Topic> actualTopicNotFound = topicService.findByName(ns, "ns2-topic1");
-        Assertions.assertThrows(NoSuchElementException.class, () -> actualTopicNotFound.get(), "No value present");
+        assertThrows(NoSuchElementException.class, actualTopicNotFound::get, "No value present");
     }
 
     /**
@@ -123,11 +126,11 @@ class TopicServiceTest {
                 .build();
 
         // no ns4kfk access control entries
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of());
 
         // no ns4kfk topics 
-        Mockito.when(topicRepository.findAllForCluster("local"))
+        when(topicRepository.findAllForCluster("local"))
                 .thenReturn(List.of());
 
         // get list of topics
@@ -165,11 +168,11 @@ class TopicServiceTest {
         Topic t4 = Topic.builder()
                 .metadata(ObjectMeta.builder().name("ns2-topic1").build())
                 .build();
-        Mockito.when(topicRepository.findAllForCluster("local"))
+        when(topicRepository.findAllForCluster("local"))
                 .thenReturn(List.of(t1, t2, t3, t4));
 
         // no ns4kfk access control entries
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of());
 
         // list of topics is empty 
@@ -208,11 +211,11 @@ class TopicServiceTest {
         Topic t4 = Topic.builder()
                 .metadata(ObjectMeta.builder().name("ns2-topic1").build())
                 .build();
-        Mockito.when(topicRepository.findAllForCluster("local"))
+        when(topicRepository.findAllForCluster("local"))
                 .thenReturn(List.of(t0,t1, t2, t3, t4));
 
         // ns4kfk access control entries
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(
                         AccessControlEntry.builder()
                                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -256,7 +259,7 @@ class TopicServiceTest {
         // search for topics into namespace
         List<Topic> actual = topicService.findAllForNamespace(ns);
 
-        Assertions.assertEquals(3, actual.size());
+        assertEquals(3, actual.size());
         // contains
         Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns0-topic1")));
         Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.getMetadata().getName().equals("ns-topic1")));
@@ -286,24 +289,24 @@ class TopicServiceTest {
 
         // init topicAsyncExecutor
         TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
-        Mockito.when(applicationContext.getBean(TopicAsyncExecutor.class,
+        when(applicationContext.getBean(TopicAsyncExecutor.class,
                 Qualifiers.byName(ns.getMetadata().getCluster()))).thenReturn(topicAsyncExecutor);
 
         // list of existing broker topics
-        Mockito.when(topicAsyncExecutor.listBrokerTopicNames()).thenReturn(List.of("ns-topic1", "ns-topic2",
+        when(topicAsyncExecutor.listBrokerTopicNames()).thenReturn(List.of("ns-topic1", "ns-topic2",
                 "ns1-topic1", "ns2-topic1"));
 
         // list of existing ns4kfk access control entries
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns-topic1"))
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns-topic1"))
                 .thenReturn(true);
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns-topic2"))
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns-topic2"))
                 .thenReturn(true);
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns1-topic1"))
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns1-topic1"))
                 .thenReturn(true);
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns2-topic1"))
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns2-topic1"))
                 .thenReturn(false);
 
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(
                         AccessControlEntry.builder()
                                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -326,11 +329,11 @@ class TopicServiceTest {
                 ));
 
         // no topic exists into ns4kfk
-        Mockito.when(topicRepository.findAllForCluster("local"))
+        when(topicRepository.findAllForCluster("local"))
                 .thenReturn(List.of());
         List<String> actual = topicService.listUnsynchronizedTopicNames(ns);
 
-        Assertions.assertEquals(3, actual.size());
+        assertEquals(3, actual.size());
         // contains
         Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns-topic1")));
         Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns-topic2")));
@@ -375,24 +378,24 @@ class TopicServiceTest {
 
         // init topicAsyncExecutor
         TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
-        Mockito.when(applicationContext.getBean(TopicAsyncExecutor.class,
+        when(applicationContext.getBean(TopicAsyncExecutor.class,
                 Qualifiers.byName(ns.getMetadata().getCluster()))).thenReturn(topicAsyncExecutor);
 
         // list of existing broker topics
-        Mockito.when(topicAsyncExecutor.listBrokerTopicNames()).thenReturn(List.of(t1.getMetadata().getName(), t2.getMetadata().getName(),
+        when(topicAsyncExecutor.listBrokerTopicNames()).thenReturn(List.of(t1.getMetadata().getName(), t2.getMetadata().getName(),
                 t3.getMetadata().getName(), t4.getMetadata().getName()));
 
         // list of existing ns4kfk access control entries
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, t1.getMetadata().getName()))
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, t1.getMetadata().getName()))
                 .thenReturn(true);
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, t2.getMetadata().getName()))
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, t2.getMetadata().getName()))
                 .thenReturn(true);
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, t3.getMetadata().getName()))
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, t3.getMetadata().getName()))
                 .thenReturn(true);
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, t4.getMetadata().getName()))
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, t4.getMetadata().getName()))
                 .thenReturn(false);
 
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(
                         AccessControlEntry.builder()
                                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -415,12 +418,12 @@ class TopicServiceTest {
                 ));
 
         // all topic exists into ns4kfk
-        Mockito.when(topicRepository.findAllForCluster("local"))
+        when(topicRepository.findAllForCluster("local"))
                 .thenReturn(List.of(t1, t2, t3, t4));
 
         List<String> actual = topicService.listUnsynchronizedTopicNames(ns);
 
-        Assertions.assertEquals(0, actual.size());
+        assertEquals(0, actual.size());
 
     }
 
@@ -450,24 +453,24 @@ class TopicServiceTest {
 
         // init topicAsyncExecutor
         TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
-        Mockito.when(applicationContext.getBean(TopicAsyncExecutor.class,
+        when(applicationContext.getBean(TopicAsyncExecutor.class,
                 Qualifiers.byName(ns.getMetadata().getCluster()))).thenReturn(topicAsyncExecutor);
 
         // list of existing broker topics
-        Mockito.when(topicAsyncExecutor.listBrokerTopicNames()).thenReturn(List.of("ns-topic1", "ns-topic2",
+        when(topicAsyncExecutor.listBrokerTopicNames()).thenReturn(List.of("ns-topic1", "ns-topic2",
                 "ns1-topic1", "ns2-topic1"));
 
         // list of existing ns4kfk access control entries
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns-topic1"))
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns-topic1"))
                 .thenReturn(true);
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns-topic2"))
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns-topic2"))
                 .thenReturn(true);
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns1-topic1"))
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns1-topic1"))
                 .thenReturn(true);
-        Mockito.when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns2-topic1"))
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns2-topic1"))
                 .thenReturn(false);
 
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(
                         AccessControlEntry.builder()
                                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -490,12 +493,12 @@ class TopicServiceTest {
                 ));
 
         // partial number of topics exists into ns4kfk
-        Mockito.when(topicRepository.findAllForCluster("local"))
+        when(topicRepository.findAllForCluster("local"))
                 .thenReturn(List.of(t1));
 
         List<String> actual = topicService.listUnsynchronizedTopicNames(ns);
 
-        Assertions.assertEquals(2, actual.size());
+        assertEquals(2, actual.size());
         // contains
         Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns-topic2")));
         Assertions.assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns1-topic1")));
@@ -524,9 +527,9 @@ class TopicServiceTest {
                 .build();
 
         TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
-        Mockito.when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
+        when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
                 .thenReturn(topicAsyncExecutor);
-        Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
+        when(topicAsyncExecutor.listBrokerTopicNames())
                 .thenReturn(List.of("project2.topic", "project1.other"));
 
         List<String> actual = topicService.findCollidingTopics(ns, topic);
@@ -553,9 +556,9 @@ class TopicServiceTest {
                 .build();
 
         TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
-        Mockito.when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
+        when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
                 .thenReturn(topicAsyncExecutor);
-        Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
+        when(topicAsyncExecutor.listBrokerTopicNames())
                 .thenReturn(List.of("project1.topic", "project2.topic", "project1.other"));
 
         List<String> actual = topicService.findCollidingTopics(ns, topic);
@@ -582,15 +585,15 @@ class TopicServiceTest {
                 .build();
 
         TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
-        Mockito.when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
+        when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
                 .thenReturn(topicAsyncExecutor);
-        Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
+        when(topicAsyncExecutor.listBrokerTopicNames())
                 .thenReturn(List.of("project1_topic"));
 
         List<String> actual = topicService.findCollidingTopics(ns, topic);
 
-        Assertions.assertEquals(1, actual.size());
-        Assertions.assertLinesMatch(List.of("project1_topic"), actual);
+        assertEquals(1, actual.size());
+        assertLinesMatch(List.of("project1_topic"), actual);
     }
 
     /**
@@ -612,12 +615,12 @@ class TopicServiceTest {
                 .build();
 
         TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
-        Mockito.when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
+        when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
                 .thenReturn(topicAsyncExecutor);
-        Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
+        when(topicAsyncExecutor.listBrokerTopicNames())
                 .thenThrow(new InterruptedException());
 
-       Assertions.assertThrows(InterruptedException.class,
+       assertThrows(InterruptedException.class,
                 () -> topicService.findCollidingTopics(ns, topic));
 
         Assertions.assertTrue(Thread.interrupted());
@@ -643,12 +646,12 @@ class TopicServiceTest {
                 .build();
 
         TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
-        Mockito.when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
+        when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
                 .thenReturn(topicAsyncExecutor);
-        Mockito.when(topicAsyncExecutor.listBrokerTopicNames())
+        when(topicAsyncExecutor.listBrokerTopicNames())
                 .thenThrow(new RuntimeException("Unknown Error"));
 
-        Assertions.assertThrows(RuntimeException.class,
+        assertThrows(RuntimeException.class,
                 () -> topicService.findCollidingTopics(ns, topic));
     }
 
@@ -657,13 +660,6 @@ class TopicServiceTest {
      */
     @Test
     void validateDeleteRecordsTopic() {
-        Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .build();
-
         Topic topic = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("project1.topic")
@@ -675,8 +671,8 @@ class TopicServiceTest {
 
         List<String> actual = topicService.validateDeleteRecordsTopic(topic);
 
-        Assertions.assertEquals(1, actual.size());
-        Assertions.assertLinesMatch(List.of("Cannot delete records on a compacted topic. Please delete and recreate the topic."), actual);
+        assertEquals(1, actual.size());
+        assertLinesMatch(List.of("Cannot delete records on a compacted topic. Please delete and recreate the topic."), actual);
     }
 
     /**
@@ -719,12 +715,12 @@ class TopicServiceTest {
                         .build())
                 .build();
 
-        Mockito.when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of());
+        when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of());
 
         List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
 
-        Assertions.assertEquals(1, actual.size());
-        Assertions.assertLinesMatch(List.of("Invalid value 6 for configuration partitions: Value is immutable (3)."), actual);
+        assertEquals(1, actual.size());
+        assertLinesMatch(List.of("Invalid value 6 for configuration partitions: Value is immutable (3)."), actual);
     }
 
     /**
@@ -765,12 +761,12 @@ class TopicServiceTest {
                         .build())
                 .build();
 
-        Mockito.when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of());
+        when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of());
 
         List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
 
-        Assertions.assertEquals(1, actual.size());
-        Assertions.assertLinesMatch(List.of("Invalid value 6 for configuration replication.factor: Value is immutable (3)."), actual);
+        assertEquals(1, actual.size());
+        assertLinesMatch(List.of("Invalid value 6 for configuration replication.factor: Value is immutable (3)."), actual);
     }
 
     /**
@@ -811,12 +807,12 @@ class TopicServiceTest {
                         .build())
                 .build();
 
-        Mockito.when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)));
+        when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)));
 
         List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
 
-        Assertions.assertEquals(1, actual.size());
-        Assertions.assertLinesMatch(List.of("Invalid value compact for configuration cleanup.policy: Altering topic configuration from `delete` to `compact` is not currently supported. Please create a new topic with `compact` policy specified instead."), actual);
+        assertEquals(1, actual.size());
+        assertLinesMatch(List.of("Invalid value compact for configuration cleanup.policy: Altering topic configuration from `delete` to `compact` is not currently supported. Please create a new topic with `compact` policy specified instead."), actual);
     }
 
     /**
@@ -857,11 +853,11 @@ class TopicServiceTest {
                         .build())
                 .build();
 
-        Mockito.when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)));
+        when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)));
 
         List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
 
-        Assertions.assertEquals(0, actual.size());
+        assertEquals(0, actual.size());
     }
 
     /**
@@ -902,11 +898,11 @@ class TopicServiceTest {
                         .build())
                 .build();
 
-        Mockito.when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.SELF_MANAGED)));
+        when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.SELF_MANAGED)));
 
         List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
 
-        Assertions.assertEquals(0, actual.size());
+        assertEquals(0, actual.size());
     }
 
     /**
@@ -930,9 +926,9 @@ class TopicServiceTest {
                 .metadata(ObjectMeta.builder().name("ns2-topic1").build())
                 .build();
 
-        Mockito.when(topicRepository.findAll()).thenReturn(List.of(t1, t2, t3, t4));
+        when(topicRepository.findAll()).thenReturn(List.of(t1, t2, t3, t4));
 
         List<Topic> topics = topicService.findAll();
-        Assertions.assertEquals(4, topics.size());
+        assertEquals(4, topics.size());
     }
 }

@@ -1,9 +1,11 @@
 package com.michelin.ns4kafka.models;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class RoleBindingTest {
     @Test
@@ -25,10 +27,10 @@ class RoleBindingTest {
                 .verbs(List.of(RoleBinding.Verb.DELETE))
                 .build();
 
-        Assertions.assertEquals(original, same);
+        assertEquals(original, same);
 
-        Assertions.assertNotEquals(original, differentByResourceTypes);
-        Assertions.assertNotEquals(original, differentByVerbs);
+        assertNotEquals(original, differentByResourceTypes);
+        assertNotEquals(original, differentByVerbs);
     }
 
     @Test
@@ -50,10 +52,10 @@ class RoleBindingTest {
                 .subjectType(RoleBinding.SubjectType.USER)
                 .build();
 
-        Assertions.assertEquals(original, same);
+        assertEquals(original, same);
 
-        Assertions.assertNotEquals(original, differentByName);
-        Assertions.assertNotEquals(original, differentByType);
+        assertNotEquals(original, differentByName);
+        assertNotEquals(original, differentByType);
     }
 
     @Test
@@ -118,9 +120,9 @@ class RoleBindingTest {
                         .build())
                 .build();
 
-        Assertions.assertEquals(original, same);
-        Assertions.assertNotEquals(original, differentByMetadata);
-        Assertions.assertNotEquals(original, differentByRole);
-        Assertions.assertNotEquals(original, differentBySubject);
+        assertEquals(original, same);
+        assertNotEquals(original, differentByMetadata);
+        assertNotEquals(original, differentByRole);
+        assertNotEquals(original, differentBySubject);
     }
 }

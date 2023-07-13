@@ -21,13 +21,14 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
@@ -108,52 +109,52 @@ class ExceptionHandlerTest extends AbstractIntegrationTest {
                                 "retention.ms", "60000"))
                         .build())
                 .build();
-        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,
+        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
                 () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics")
                         .bearerAuth(token)
                         .body(topicFirstCreate)));
 
-        Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
-        Assertions.assertEquals("Invalid Resource", exception.getMessage());
-        Assertions.assertEquals("topic.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"", exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
+        assertEquals("Invalid Resource", exception.getMessage());
+        assertEquals("topic.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"", exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
     }
 
     @Test
     void forbiddenTopic() {
-        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,
+        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
                 () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns2/topics")
                         .bearerAuth(token)));
 
-        Assertions.assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
-        Assertions.assertEquals("Resource forbidden", exception.getMessage());
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        assertEquals("Resource forbidden", exception.getMessage());
     }
 
     @Test
     void UnauthorizedTopic() {
-        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,
+        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
                 () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/topics")));
 
-        Assertions.assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
-        Assertions.assertEquals("Client '/': Unauthorized", exception.getMessage());
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
+        assertEquals("Client '/': Unauthorized", exception.getMessage());
     }
 
     @Test
     void notFoundTopic() {
-        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,
+        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
                 () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/topics/not-found-topic")
                         .bearerAuth(token)));
 
-        Assertions.assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
-        Assertions.assertEquals("Not Found", exception.getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("Not Found", exception.getMessage());
     }
 
     @Test
     void notValidMethodTopic() {
-        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,
+        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
                 () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.PUT,"/api/namespaces/ns1/topics/")
                         .bearerAuth(token)));
 
-        Assertions.assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
-        Assertions.assertEquals("Resource forbidden", exception.getMessage());
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        assertEquals("Resource forbidden", exception.getMessage());
     }
 }

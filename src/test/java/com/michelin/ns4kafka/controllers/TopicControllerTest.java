@@ -28,8 +28,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -71,7 +70,7 @@ class TopicControllerTest {
                 .thenReturn(List.of());
 
         List<Topic> actual = topicController.list("test");
-        Assertions.assertEquals(0, actual.size());
+        assertEquals(0, actual.size());
     }
 
     /**
@@ -96,9 +95,9 @@ class TopicControllerTest {
 
         List<Topic> actual = topicController.list("test");
 
-        Assertions.assertEquals(2, actual.size());
-        Assertions.assertEquals("topic1", actual.get(0).getMetadata().getName());
-        Assertions.assertEquals("topic2", actual.get(1).getMetadata().getName());
+        assertEquals(2, actual.size());
+        assertEquals("topic1", actual.get(0).getMetadata().getName());
+        assertEquals("topic2", actual.get(1).getMetadata().getName());
     }
 
     /**
@@ -145,7 +144,7 @@ class TopicControllerTest {
         Optional<Topic> actual = topicController.getTopic("test", "topic.found");
 
         Assertions.assertTrue(actual.isPresent());
-        Assertions.assertEquals("topic.found", actual.get().getMetadata().getName());
+        assertEquals("topic.found", actual.get().getMetadata().getName());
     }
 
     /**
@@ -178,7 +177,7 @@ class TopicControllerTest {
 
         HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete", false);
 
-        Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
+        assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
     }
 
     /**
@@ -227,7 +226,7 @@ class TopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic("test", "topic.delete"))
                 .thenReturn(false);
 
-        Assertions.assertThrows(ResourceValidationException.class,
+        assertThrows(ResourceValidationException.class,
         () -> topicController.deleteTopic("test", "topic.delete", false));
     }
 
@@ -275,7 +274,7 @@ class TopicControllerTest {
 
         var response = topicController.apply("test", topic, false);
         Topic actual = response.body();
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("test.topic", actual.getMetadata().getName());
     }
 
@@ -318,7 +317,7 @@ class TopicControllerTest {
 
         var response = topicController.apply("test", topic, false);
         Topic actual = response.body();
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("test.topic", actual.getMetadata().getName());
     }
 
@@ -376,7 +375,7 @@ class TopicControllerTest {
 
         var response = topicController.apply("test", topic, false);
         Topic actual = response.body();
-        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
+        assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertEquals("test.topic", actual.getMetadata().getName());
     }
 
@@ -426,10 +425,10 @@ class TopicControllerTest {
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
         when(topicService.validateTopicUpdate(ns, existing, topic)).thenReturn(List.of("Invalid value 6 for configuration partitions: Value is immutable (3)."));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
                 () -> topicController.apply("test", topic, false));
-        Assertions.assertEquals(1, actual.getValidationErrors().size());
-        Assertions.assertLinesMatch(List.of("Invalid value 6 for configuration partitions: Value is immutable (3)."), actual.getValidationErrors());
+        assertEquals(1, actual.getValidationErrors().size());
+        assertLinesMatch(List.of("Invalid value 6 for configuration partitions: Value is immutable (3)."), actual.getValidationErrors());
     }
 
     /**
@@ -484,7 +483,7 @@ class TopicControllerTest {
 
         var response = topicController.apply("test", topic, false);
         Topic actual = response.body();
-        Assertions.assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
+        assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         verify(topicService, never()).create(ArgumentMatchers.any());
         assertEquals(existing, actual);
     }
@@ -527,7 +526,7 @@ class TopicControllerTest {
         when(resourceQuotaService.validateTopicQuota(ns, Optional.empty(), topic)).thenReturn(List.of());
 
         var response = topicController.apply("test", topic, true);
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(topicService, never()).create(topic);
     }
 
@@ -562,10 +561,10 @@ class TopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
                 () -> topicController.apply("test", topic, false));
-        Assertions.assertEquals(1, actual.getValidationErrors().size());
-        Assertions.assertLinesMatch(List.of(".*replication\\.factor.*"), actual.getValidationErrors());
+        assertEquals(1, actual.getValidationErrors().size());
+        assertLinesMatch(List.of(".*replication\\.factor.*"), actual.getValidationErrors());
     }
 
     @Test
@@ -597,7 +596,7 @@ class TopicControllerTest {
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
 
         var response = topicController.apply("test", topic, true);
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(topicService, never()).create(topic);
     }
 
@@ -631,7 +630,7 @@ class TopicControllerTest {
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
 
         var response = topicController.apply("test", topic, true);
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(topicService, never()).create(topic);
     }
 
@@ -668,10 +667,10 @@ class TopicControllerTest {
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
         when(resourceQuotaService.validateTopicQuota(ns, Optional.empty(), topic)).thenReturn(List.of("Quota error"));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
                 () -> topicController.apply("test", topic, false));
-        Assertions.assertEquals(1, actual.getValidationErrors().size());
-        Assertions.assertLinesMatch(List.of("Quota error"), actual.getValidationErrors());
+        assertEquals(1, actual.getValidationErrors().size());
+        assertLinesMatch(List.of("Quota error"), actual.getValidationErrors());
     }
 
     /**
@@ -866,17 +865,17 @@ class TopicControllerTest {
                 .findFirst()
                 .orElse(null);
 
-        Assertions.assertEquals(2L, actual.size());
+        assertEquals(2L, actual.size());
 
         assertNotNull(resultPartition0);
-        Assertions.assertEquals(100L, resultPartition0.getSpec().getOffset());
-        Assertions.assertEquals(0, resultPartition0.getSpec().getPartition());
-        Assertions.assertEquals("topic.empty", resultPartition0.getSpec().getTopic());
+        assertEquals(100L, resultPartition0.getSpec().getOffset());
+        assertEquals(0, resultPartition0.getSpec().getPartition());
+        assertEquals("topic.empty", resultPartition0.getSpec().getTopic());
 
         assertNotNull(resultPartition1);
-        Assertions.assertEquals(101L, resultPartition1.getSpec().getOffset());
-        Assertions.assertEquals(1, resultPartition1.getSpec().getPartition());
-        Assertions.assertEquals("topic.empty", resultPartition1.getSpec().getTopic());
+        assertEquals(101L, resultPartition1.getSpec().getOffset());
+        assertEquals(1, resultPartition1.getSpec().getPartition());
+        assertEquals("topic.empty", resultPartition1.getSpec().getTopic());
     }
 
     /**
@@ -902,11 +901,11 @@ class TopicControllerTest {
         when(topicService.findByName(ns, "topic.empty"))
                 .thenReturn(Optional.of(toEmpty));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
                 () -> topicController.deleteRecords("test", "topic.empty", false));
 
-        Assertions.assertEquals(1, actual.getValidationErrors().size());
-        Assertions.assertLinesMatch(List.of("Cannot delete records on a compacted topic. Please delete and recreate the topic."),
+        assertEquals(1, actual.getValidationErrors().size());
+        assertLinesMatch(List.of("Cannot delete records on a compacted topic. Please delete and recreate the topic."),
                 actual.getValidationErrors());
     }
 
@@ -955,17 +954,17 @@ class TopicControllerTest {
                 .findFirst()
                 .orElse(null);
 
-        Assertions.assertEquals(2L, actual.size());
+        assertEquals(2L, actual.size());
 
         assertNotNull(resultPartition0);
-        Assertions.assertEquals(100L, resultPartition0.getSpec().getOffset());
-        Assertions.assertEquals(0, resultPartition0.getSpec().getPartition());
-        Assertions.assertEquals("topic.empty", resultPartition0.getSpec().getTopic());
+        assertEquals(100L, resultPartition0.getSpec().getOffset());
+        assertEquals(0, resultPartition0.getSpec().getPartition());
+        assertEquals("topic.empty", resultPartition0.getSpec().getTopic());
 
         assertNotNull(resultPartition1);
-        Assertions.assertEquals(101L, resultPartition1.getSpec().getOffset());
-        Assertions.assertEquals(1, resultPartition1.getSpec().getPartition());
-        Assertions.assertEquals("topic.empty", resultPartition1.getSpec().getTopic());
+        assertEquals(101L, resultPartition1.getSpec().getOffset());
+        assertEquals(1, resultPartition1.getSpec().getPartition());
+        assertEquals("topic.empty", resultPartition1.getSpec().getTopic());
 
         verify(topicService, never()).deleteRecords(any(), anyMap());
     }
@@ -987,11 +986,11 @@ class TopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic("test","topic.empty"))
                 .thenReturn(false);
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
                 () -> topicController.deleteRecords("test", "topic.empty", false));
 
-        Assertions.assertEquals(1, actual.getValidationErrors().size());
-        Assertions.assertLinesMatch(List.of("Namespace not owner of this topic \"topic.empty\"."),
+        assertEquals(1, actual.getValidationErrors().size());
+        assertLinesMatch(List.of("Namespace not owner of this topic \"topic.empty\"."),
                 actual.getValidationErrors());
     }
 
@@ -1014,11 +1013,11 @@ class TopicControllerTest {
         when(topicService.findByName(ns, "topic.empty"))
                 .thenReturn(Optional.empty());
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
                 () -> topicController.deleteRecords("test", "topic.empty", false));
 
-        Assertions.assertEquals(1, actual.getValidationErrors().size());
-        Assertions.assertLinesMatch(List.of("Topic \"topic.empty\" does not exist."),
+        assertEquals(1, actual.getValidationErrors().size());
+        assertLinesMatch(List.of("Topic \"topic.empty\" does not exist."),
                 actual.getValidationErrors());
     }
 
@@ -1058,9 +1057,9 @@ class TopicControllerTest {
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
         when(topicService.findCollidingTopics(ns, topic)).thenReturn(List.of("test_topic"));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class, () -> topicController.apply("test", topic, false));
-        Assertions.assertEquals(1, actual.getValidationErrors().size());
-        Assertions.assertLinesMatch(
+        ResourceValidationException actual = assertThrows(ResourceValidationException.class, () -> topicController.apply("test", topic, false));
+        assertEquals(1, actual.getValidationErrors().size());
+        assertLinesMatch(
                 List.of("Topic test.topic collides with existing topics: test_topic."),
                 actual.getValidationErrors());
     }

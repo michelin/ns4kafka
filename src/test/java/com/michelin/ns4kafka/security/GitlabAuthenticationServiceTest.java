@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -19,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class GitlabAuthenticationServiceTest {
@@ -31,7 +31,7 @@ class GitlabAuthenticationServiceTest {
     @Test
     void findUserSuccess(){
         String token = "v4l1d_70k3n";
-        Mockito.when(gitlabApiClient.findUser(token))
+        when(gitlabApiClient.findUser(token))
                 .thenReturn(Mono.just(Map.of("user","test", "email", "user@mail.com")));
 
         Mono<String> authenticationResponsePublisher = gitlabAuthenticationService.findUsername(token);
@@ -50,7 +50,7 @@ class GitlabAuthenticationServiceTest {
                         Map.<String, Object>of("full_path", "group2", "unusedKey", "unusedVal")))
                 .header("X-Total-Pages","1");
 
-        Mockito.when(gitlabApiClient.getGroupsPage(token,1)).thenReturn(Flux.just(pageOneResponse));
+        when(gitlabApiClient.getGroupsPage(token,1)).thenReturn(Flux.just(pageOneResponse));
 
         Flux<String> authenticationResponsePublisher = gitlabAuthenticationService.findAllGroups(token);
 
@@ -83,9 +83,9 @@ class GitlabAuthenticationServiceTest {
                         Map.<String, Object>of("full_path", "group6", "unusedKey", "unusedVal")))
                 .header("X-Total-Pages","3");
 
-        Mockito.when(gitlabApiClient.getGroupsPage(token,1)).thenReturn(Flux.just(pageOneResponse));
-        Mockito.when(gitlabApiClient.getGroupsPage(token,2)).thenReturn(Flux.just(pageTwoResponse));
-        Mockito.when(gitlabApiClient.getGroupsPage(token,3)).thenReturn(Flux.just(pageThreeResponse));
+        when(gitlabApiClient.getGroupsPage(token,1)).thenReturn(Flux.just(pageOneResponse));
+        when(gitlabApiClient.getGroupsPage(token,2)).thenReturn(Flux.just(pageTwoResponse));
+        when(gitlabApiClient.getGroupsPage(token,3)).thenReturn(Flux.just(pageThreeResponse));
 
         Publisher<String> authenticationResponsePublisher = gitlabAuthenticationService.findAllGroups(token);
 

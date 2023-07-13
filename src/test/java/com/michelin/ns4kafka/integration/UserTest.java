@@ -31,6 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 class UserTest extends AbstractIntegrationTest {
@@ -116,12 +119,12 @@ class UserTest extends AbstractIntegrationTest {
                         List.of(ClientQuotaFilterComponent.ofEntity("user", "user1")))
                 ).entities().get();
 
-        Assertions.assertEquals(1, mapQuota.entrySet().size());
+        assertEquals(1, mapQuota.entrySet().size());
         Map<String, Double> quotas = mapQuota.entrySet().stream().findFirst().get().getValue();
         Assertions.assertTrue(quotas.containsKey("producer_byte_rate"));
-        Assertions.assertEquals(102400.0, quotas.get("producer_byte_rate"));
+        assertEquals(102400.0, quotas.get("producer_byte_rate"));
         Assertions.assertTrue(quotas.containsKey("consumer_byte_rate"));
-        Assertions.assertEquals(102400.0, quotas.get("consumer_byte_rate"));
+        assertEquals(102400.0, quotas.get("consumer_byte_rate"));
     }
     @Test
     void checkCustomQuotas() throws ExecutionException, InterruptedException {
@@ -130,12 +133,12 @@ class UserTest extends AbstractIntegrationTest {
                         List.of(ClientQuotaFilterComponent.ofEntity("user", "user2")))
                 ).entities().get();
 
-        Assertions.assertEquals(1, mapQuota.entrySet().size());
+        assertEquals(1, mapQuota.entrySet().size());
         Map<String, Double> quotas = mapQuota.entrySet().stream().findFirst().get().getValue();
         Assertions.assertTrue(quotas.containsKey("producer_byte_rate"));
-        Assertions.assertEquals(204800.0, quotas.get("producer_byte_rate"));
+        assertEquals(204800.0, quotas.get("producer_byte_rate"));
         Assertions.assertTrue(quotas.containsKey("consumer_byte_rate"));
-        Assertions.assertEquals(409600.0, quotas.get("consumer_byte_rate"));
+        assertEquals(409600.0, quotas.get("consumer_byte_rate"));
     }
     @Test
     void checkUpdateQuotas() throws ExecutionException, InterruptedException {
@@ -160,12 +163,12 @@ class UserTest extends AbstractIntegrationTest {
                         List.of(ClientQuotaFilterComponent.ofEntity("user", "user3")))
                 ).entities().get();
 
-        Assertions.assertEquals(1, mapQuota.entrySet().size());
+        assertEquals(1, mapQuota.entrySet().size());
         Map<String, Double> quotas = mapQuota.entrySet().stream().findFirst().get().getValue();
         Assertions.assertTrue(quotas.containsKey("producer_byte_rate"));
-        Assertions.assertEquals(204800.0, quotas.get("producer_byte_rate"));
+        assertEquals(204800.0, quotas.get("producer_byte_rate"));
         Assertions.assertTrue(quotas.containsKey("consumer_byte_rate"));
-        Assertions.assertEquals(409600.0, quotas.get("consumer_byte_rate"));
+        assertEquals(409600.0, quotas.get("consumer_byte_rate"));
     }
 
     @Test
@@ -177,15 +180,15 @@ class UserTest extends AbstractIntegrationTest {
 
         Assertions.assertNotNull(response.getSpec().getNewPassword());
         Assertions.assertTrue(mapUser.containsKey("user1"));
-        Assertions.assertEquals(ScramMechanism.SCRAM_SHA_512, mapUser.get("user1").credentialInfos().get(0).mechanism());
-        Assertions.assertEquals(4096, mapUser.get("user1").credentialInfos().get(0).iterations());
+        assertEquals(ScramMechanism.SCRAM_SHA_512, mapUser.get("user1").credentialInfos().get(0).mechanism());
+        assertEquals(4096, mapUser.get("user1").credentialInfos().get(0).iterations());
     }
 
     @Test
     void updateUserFail_NotMatching() {
-        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class, () -> client.toBlocking().retrieve(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/users/user2/reset-password").bearerAuth(token), KafkaUserResetPassword.class));
+        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class, () -> client.toBlocking().retrieve(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/users/user2/reset-password").bearerAuth(token), KafkaUserResetPassword.class));
 
-        Assertions.assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
-        Assertions.assertEquals("Invalid user user2 : Doesn't belong to namespace ns1", exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
+        assertEquals("Invalid user user2 : Doesn't belong to namespace ns1", exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
     }
 }

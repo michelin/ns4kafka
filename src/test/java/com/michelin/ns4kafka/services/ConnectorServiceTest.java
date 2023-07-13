@@ -164,7 +164,7 @@ class ConnectorServiceTest {
 
         List<Connector> actual = connectorService.findAllForNamespace(ns);
 
-        Assertions.assertEquals(3, actual.size());
+        assertEquals(3, actual.size());
         // contains
         Assertions.assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")));
         Assertions.assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect2")));
@@ -270,7 +270,7 @@ class ConnectorServiceTest {
         Optional<Connector> actual = connectorService.findByName(ns, "ns-connect1");
 
         Assertions.assertTrue(actual.isPresent());
-        Assertions.assertEquals("ns-connect1", actual.get().getMetadata().getName());
+        assertEquals("ns-connect1", actual.get().getMetadata().getName());
     }
 
     /**
@@ -328,7 +328,7 @@ class ConnectorServiceTest {
 
         List<Connector> actual = connectorService.findAllByConnectCluster(ns, "connect-cluster");
 
-        Assertions.assertEquals(1, actual.size());
+        assertEquals(1, actual.size());
         Assertions.assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")));
     }
 
