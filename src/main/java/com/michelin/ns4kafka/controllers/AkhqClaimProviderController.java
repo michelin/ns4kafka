@@ -154,15 +154,16 @@ public class AkhqClaimProviderController {
             if (bindings.containsKey(key)) {
                 bindings.get(key).getClusters().add(patternCluster);
             } else {
+                List<String> regexes = new ArrayList<>();
+                regexes.add(patternRegex);
+                List<String> clusters = new ArrayList<>();
+                clusters.add(patternCluster);
+
                 // Otherwise we add a new one
                 bindings.put(key, AKHQClaimResponseV3.Group.builder()
                         .role(role)
-                        .patterns(new ArrayList<>() {{
-                            add(patternRegex);
-                        }})
-                        .clusters(new ArrayList<>() {{
-                            add(patternCluster);
-                        }})
+                        .patterns(regexes)
+                        .clusters(clusters)
                         .build());
             }
         });
@@ -209,7 +210,7 @@ public class AkhqClaimProviderController {
                     List<String> c = new ArrayList<>(r.clusters);
                     c.removeAll(value.clusters);
                     // Same role and same clusters filtering
-                    return r.role.equals(value.role) && c.size() == 0;
+                    return r.role.equals(value.role) && c.isEmpty();
                 })
                 .findFirst()
                 .ifPresentOrElse(
@@ -237,7 +238,7 @@ public class AkhqClaimProviderController {
                                         .getOrDefault(config.getGroupLabel(), "_")
                                         .split(","))))
                 .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace).stream())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
