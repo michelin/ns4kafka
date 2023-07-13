@@ -1,10 +1,12 @@
 package com.michelin.ns4kafka.models;
 
 import com.michelin.ns4kafka.models.connector.Connector;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class ConnectorTest {
     @Test
@@ -71,10 +73,10 @@ class ConnectorTest {
                 .build();
 
         // objects are same, even if status differs
-        Assertions.assertEquals(original, same);
+        assertEquals(original, same);
 
-        Assertions.assertNotEquals(original, differentByConnectCluster);
-        Assertions.assertNotEquals(original, differentByConfig);
-        Assertions.assertNotEquals(original, differentByMetadata);
+        assertNotEquals(original, differentByConnectCluster);
+        assertNotEquals(original, differentByConfig);
+        assertNotEquals(original, differentByMetadata);
     }
 }

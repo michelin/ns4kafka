@@ -3,7 +3,6 @@ package com.michelin.ns4kafka.services.clients.schema;
 import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.clients.schema.entities.*;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
-import io.micronaut.core.type.Argument;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpStatus;
@@ -14,6 +13,7 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
@@ -38,11 +38,11 @@ public class SchemaRegistryClient {
      * @param kafkaCluster The Kafka cluster
      * @return A list of subjects
      */
-    public Mono<List<String>> getSubjects(String kafkaCluster) {
+    public Flux<String> getSubjects(String kafkaCluster) {
         KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/subjects")))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-        return Mono.from(httpClient.retrieve(request, Argument.listOf(String.class)));
+        return Flux.from(httpClient.retrieve(request, String.class));
     }
 
     /**

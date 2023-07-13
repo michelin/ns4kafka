@@ -9,8 +9,9 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
@@ -23,6 +24,6 @@ class LoginTest extends AbstractIntegrationTest {
     void login() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin","admin");
         HttpResponse<String> response = client.toBlocking().exchange(HttpRequest.POST("/login", credentials), String.class);
-        Assertions.assertEquals(HttpStatus.OK, response.status());
+        assertEquals(HttpStatus.OK, response.status());
     }
 }

@@ -8,20 +8,20 @@ import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -44,8 +44,8 @@ class SchemaServiceTest {
         Namespace namespace = buildNamespace();
         List<String> subjectsResponse = Arrays.asList("prefix.schema-one", "prefix2.schema-two", "prefix2.schema-three");
 
-        when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster())).thenReturn(Mono.just(subjectsResponse));
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+        when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster())).thenReturn(Flux.fromIterable(subjectsResponse));
+        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
                 .thenReturn(List.of(
                         AccessControlEntry.builder()
                                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -86,12 +86,8 @@ class SchemaServiceTest {
                 ));
 
         StepVerifier.create(schemaService.findAllForNamespace(namespace))
-            .consumeNextWith(schemas -> {
-                assertEquals(2, schemas.size());
-                assertEquals("prefix.schema-one", schemas.get(0).getMetadata().getName());
-                assertEquals("prefix2.schema-two", schemas.get(1).getMetadata().getName());
-                assertTrue(schemas.stream().noneMatch(schema -> schema.getMetadata().getName().equals("prefix2.schema-three")));
-            })
+            .consumeNextWith(schema -> assertEquals("prefix.schema-one", schema.getMetadata().getName()))
+            .consumeNextWith(schema -> assertEquals("prefix2.schema-two", schema.getMetadata().getName()))
             .verifyComplete();
     }
 
@@ -102,10 +98,9 @@ class SchemaServiceTest {
     void getAllByNamespaceEmptyResponse() {
         Namespace namespace = buildNamespace();
 
-        when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster())).thenReturn(Mono.just(List.of()));
+        when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster())).thenReturn(Flux.empty());
 
         StepVerifier.create(schemaService.findAllForNamespace(namespace))
-           .consumeNextWith(schemas -> assertTrue(schemas.isEmpty()))
            .verifyComplete();
     }
 
@@ -136,7 +131,8 @@ class SchemaServiceTest {
     void getBySubjectAndVersionEmptyResponse() {
         Namespace namespace = buildNamespace();
 
-        when(schemaRegistryClient.getLatestSubject(namespace.getMetadata().getCluster(), "prefix.schema-one")).thenReturn(Mono.empty());
+        when(schemaRegistryClient.getLatestSubject(namespace.getMetadata().getCluster(), "prefix.schema-one"))
+                .thenReturn(Mono.empty());
 
         StepVerifier.create(schemaService.getLatestSubject(namespace, "prefix.schema-one"))
                 .verifyComplete();
@@ -294,9 +290,9 @@ class SchemaServiceTest {
         when(accessControlEntryService.isNamespaceOwnerOfResource("myNamespace", AccessControlEntry.ResourceType.TOPIC, "prefix.schema-one"))
                 .thenReturn(true);
 
-        Assertions.assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one-key"));
-        Assertions.assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one-value"));
-        Assertions.assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one"));
+        assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one-key"));
+        assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one-value"));
+        assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one"));
     }
 
     /**

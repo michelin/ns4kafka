@@ -3,6 +3,9 @@ package com.michelin.ns4kafka.utils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
 class EncryptionUtilsTest {
     /**
      * Validate encryption/decryption when given text is null
@@ -23,7 +26,7 @@ class EncryptionUtilsTest {
         String keyEncryptionKey = "myKeyEncryptionKeyWrongSize";
 
         String stillBlankText = EncryptionUtils.encryptAES256GCM("", keyEncryptionKey);
-        Assertions.assertEquals("", stillBlankText);
+        assertEquals("", stillBlankText);
     }
 
     /**
@@ -35,7 +38,7 @@ class EncryptionUtilsTest {
         String keyEncryptionKey = "myKeyEncryptionKeyWrongSize";
         String myClearText = EncryptionUtils.encryptAES256GCM(clearText, keyEncryptionKey);
 
-        Assertions.assertEquals(clearText, myClearText);
+        assertEquals(clearText, myClearText);
     }
 
     @Test
@@ -45,7 +48,7 @@ class EncryptionUtilsTest {
         String encryptedText = EncryptionUtils.encryptAES256GCM(clearText, keyEncryptionKey);
         String clearTextDecrypted = EncryptionUtils.decryptAES256GCM(encryptedText, keyEncryptionKey);
 
-        Assertions.assertEquals(clearText, clearTextDecrypted);
+        assertEquals(clearText, clearTextDecrypted);
     }
 
     /**
@@ -57,7 +60,7 @@ class EncryptionUtilsTest {
         final String encryptionSalt = "mySaltEncryption";
 
         final String stillBlankText = EncryptionUtils.encryptAESWithPrefix("", encryptionKey, encryptionSalt);
-        Assertions.assertEquals("", stillBlankText);
+        assertEquals("", stillBlankText);
     }
 
     /**
@@ -80,7 +83,7 @@ class EncryptionUtilsTest {
         String encryptedText = EncryptionUtils.encryptAESWithPrefix(clearText, encryptionKey, encryptionSalt);
         String clearTextDecrypted = EncryptionUtils.decryptAESWithPrefix(encryptedText, encryptionKey, encryptionSalt);
 
-        Assertions.assertEquals(clearText, clearTextDecrypted);
+        assertEquals(clearText, clearTextDecrypted);
     }
 
     @Test
@@ -93,8 +96,8 @@ class EncryptionUtilsTest {
         String clearTextDecrypted = EncryptionUtils.decryptAESWithPrefix(encryptedText, encryptionKey, encryptionSalt);
         String clearTextDecrypted2 = EncryptionUtils.decryptAESWithPrefix(encryptedText2, encryptionKey, encryptionSalt);
 
-        Assertions.assertEquals(clearText, clearTextDecrypted);
-        Assertions.assertNotEquals(encryptedText2, encryptedText);
-        Assertions.assertEquals(clearText, clearTextDecrypted2);
+        assertEquals(clearText, clearTextDecrypted);
+        assertNotEquals(encryptedText2, encryptedText);
+        assertEquals(clearText, clearTextDecrypted2);
     }
 }

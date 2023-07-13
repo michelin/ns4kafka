@@ -1,11 +1,13 @@
 package com.michelin.ns4kafka.models;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class ObjectMetaTest {
     @Test
@@ -39,7 +41,8 @@ class ObjectMetaTest {
                 .creationTimestamp(Date.from(Instant.now()))
                 .generation(0)
                 .build();
-        Assertions.assertEquals(original, same);
-        Assertions.assertNotEquals(original, different);
+
+        assertEquals(original, same);
+        assertNotEquals(original, different);
     }
 }

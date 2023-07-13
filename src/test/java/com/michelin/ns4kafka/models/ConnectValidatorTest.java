@@ -3,11 +3,12 @@ package com.michelin.ns4kafka.models;
 import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.ResourceValidator;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 class ConnectValidatorTest {
     @Test
@@ -122,11 +123,11 @@ class ConnectValidatorTest {
                                 "db.timezone", new ResourceValidator.NonEmptyString())))
                 .build();
 
-        Assertions.assertEquals(original, same);
-        Assertions.assertNotEquals(original, differentByGeneralRules);
-        Assertions.assertNotEquals(original, differentBySourceRules);
-        Assertions.assertNotEquals(original, differentBySinkRules);
-        Assertions.assertNotEquals(original, differentByClassRules);
+        assertEquals(original, same);
+        assertNotEquals(original, differentByGeneralRules);
+        assertNotEquals(original, differentBySourceRules);
+        assertNotEquals(original, differentBySinkRules);
+        assertNotEquals(original, differentByClassRules);
     }
 
     @Test
@@ -140,8 +141,8 @@ class ConnectValidatorTest {
                 .build();
 
         List<String> actual = validator.validate(connector, "sink");
-        Assertions.assertEquals(1, actual.size());
-        Assertions.assertEquals("Invalid value null for name: Value must not be empty", actual.get(0));
+        assertEquals(1, actual.size());
+        assertEquals("Invalid value null for name: Value must not be empty", actual.get(0));
     }
 
     @Test
@@ -164,9 +165,9 @@ class ConnectValidatorTest {
                 .build();
 
         List<String> actual = validator.validate(connector, "sink");
-        Assertions.assertEquals(2, actual.size());
-        Assertions.assertEquals("Invalid value $thisNameIsDefinitelyToLooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooongToBeAConnectorName$ for name: Value must not be longer than 249", actual.get(0));
-        Assertions.assertEquals("Invalid value $thisNameIsDefinitelyToLooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooongToBeAConnectorName$ for name: Value must only contain ASCII alphanumerics, '.', '_' or '-'", actual.get(1));
+        assertEquals(2, actual.size());
+        assertEquals("Invalid value $thisNameIsDefinitelyToLooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooongToBeAConnectorName$ for name: Value must not be longer than 249", actual.get(0));
+        assertEquals("Invalid value $thisNameIsDefinitelyToLooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooongToBeAConnectorName$ for name: Value must only contain ASCII alphanumerics, '.', '_' or '-'", actual.get(1));
     }
 
     @Test
@@ -202,7 +203,7 @@ class ConnectValidatorTest {
                 .build();
 
         List<String> actual = validator.validate(connector, "sink");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -235,7 +236,7 @@ class ConnectValidatorTest {
                 .build();
 
         List<String> actual = validator.validate(connector, "sink");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -257,7 +258,7 @@ class ConnectValidatorTest {
                 .build();
 
         List<String> actual = validator.validate(connector, "sink");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -297,7 +298,7 @@ class ConnectValidatorTest {
                 .build();
 
         List<String> actual = validator.validate(connector, "source");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -336,8 +337,8 @@ class ConnectValidatorTest {
                 .build();
 
         List<String> actual = validator.validate(connector, "source");
-        Assertions.assertEquals(1, actual.size());
-        Assertions.assertEquals("Invalid value null for configuration producer.override.sasl.jaas.config: Value must be non-null", actual.get(0));
+        assertEquals(1, actual.size());
+        assertEquals("Invalid value null for configuration producer.override.sasl.jaas.config: Value must be non-null", actual.get(0));
     }
 
     @Test
@@ -376,8 +377,8 @@ class ConnectValidatorTest {
                 .build();
 
         List<String> actual = validator.validate(connector, "sink");
-        Assertions.assertEquals(2, actual.size());
-        Assertions.assertTrue(actual.contains("Invalid value null for configuration consumer.override.sasl.jaas.config: Value must be non-null"));
-        Assertions.assertTrue(actual.contains("Invalid value null for configuration db.timezone: Value must be non-null"));
+        assertEquals(2, actual.size());
+        assertTrue(actual.contains("Invalid value null for configuration consumer.override.sasl.jaas.config: Value must be non-null"));
+        assertTrue(actual.contains("Invalid value null for configuration db.timezone: Value must be non-null"));
     }
 }

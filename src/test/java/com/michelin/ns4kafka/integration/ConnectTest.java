@@ -38,7 +38,8 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
@@ -138,7 +139,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
     void createConnect() throws MalformedURLException {
         HttpClient connectCli = HttpClient.create(new URL(connect.getUrl()));
         ServerInfo actual = connectCli.toBlocking().retrieve(HttpRequest.GET("/"), ServerInfo.class);
-        Assertions.assertEquals("6.2.0-ccs", actual.version());
+        assertEquals("6.2.0-ccs", actual.version());
     }
 
     /**
@@ -157,7 +158,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                         .build())
                 .build();
 
-        Assertions.assertDoesNotThrow(() -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns)));
+        assertDoesNotThrow(() -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns)));
     }
 
     /**
@@ -237,9 +238,9 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(connectorWithNullParameter));
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(connectorWithEmptyParameter));
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(connectorWithFillParameter));
-        Flux.fromIterable(connectorAsyncExecutorList.stream().map(ConnectorAsyncExecutor::run).toList())
-                .flatMap(Function.identity())
-                .subscribe();
+
+        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::runHealthCheck).subscribe();
+        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::run).subscribe();
 
         Thread.sleep(2000);
 
@@ -249,16 +250,16 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         ConnectorInfo actualConnectorWithFillParameter = connectCli.toBlocking().retrieve(HttpRequest.GET("/connectors/ns1-connectorWithFillParameter"), ConnectorInfo.class);
 
         // "File" property is present, but null
-        Assertions.assertTrue(actualConnectorWithNullParameter.config().containsKey("file"));
+        assertTrue(actualConnectorWithNullParameter.config().containsKey("file"));
         Assertions.assertNull(actualConnectorWithNullParameter.config().get("file"));
 
         // "File" property is present, but empty
-        Assertions.assertTrue(actualConnectorWithEmptyParameter.config().containsKey("file"));
-        Assertions.assertTrue(actualConnectorWithEmptyParameter.config().get("file").isEmpty());
+        assertTrue(actualConnectorWithEmptyParameter.config().containsKey("file"));
+        assertTrue(actualConnectorWithEmptyParameter.config().get("file").isEmpty());
 
         // "File" property is present
-        Assertions.assertTrue(actualConnectorWithFillParameter.config().containsKey("file"));
-        Assertions.assertEquals("test", actualConnectorWithFillParameter.config().get("file"));
+        assertTrue(actualConnectorWithFillParameter.config().containsKey("file"));
+        assertEquals("test", actualConnectorWithFillParameter.config().get("file"));
     }
 
     /**
@@ -312,23 +313,23 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         HttpResponse<ConnectorInfo> connectorInfo = connectCli.toBlocking().exchange(HttpRequest.PUT("/connectors/ns1-connector/config", connectorSpecs), ConnectorInfo.class);
 
         // "File" property is present and fill
-        Assertions.assertTrue(connectorInfo.getBody().isPresent());
-        Assertions.assertTrue(connectorInfo.getBody().get().config().containsKey("file"));
-        Assertions.assertEquals("test", connectorInfo.getBody().get().config().get("file"));
+        assertTrue(connectorInfo.getBody().isPresent());
+        assertTrue(connectorInfo.getBody().get().config().containsKey("file"));
+        assertEquals("test", connectorInfo.getBody().get().config().get("file"));
 
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to));
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(updateConnector));
-        Flux.fromIterable(connectorAsyncExecutorList.stream().map(ConnectorAsyncExecutor::run).toList())
-                .flatMap(Function.identity())
-                .subscribe();
+
+        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::runHealthCheck).subscribe();
+        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::run).subscribe();
 
         Thread.sleep(2000);
 
         ConnectorInfo actualConnector = connectCli.toBlocking().retrieve(HttpRequest.GET("/connectors/ns1-connector"), ConnectorInfo.class);
 
         // "File" property is present, but null
-        Assertions.assertTrue(actualConnector.config().containsKey("file"));
+        assertTrue(actualConnector.config().containsKey("file"));
         Assertions.assertNull(actualConnector.config().get("file"));
     }
 
@@ -370,9 +371,9 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to));
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(co));
-        Flux.fromIterable(connectorAsyncExecutorList.stream().map(ConnectorAsyncExecutor::run).toList())
-                .flatMap(Function.identity())
-                .subscribe();
+
+        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::runHealthCheck).subscribe();
+        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::run).subscribe();
 
         Thread.sleep(2000);
 
@@ -382,7 +383,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .build();
 
         HttpResponse<ChangeConnectorState> actual = client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co1/change-state").bearerAuth(token).body(restartState), ChangeConnectorState.class);
-        Assertions.assertEquals(HttpStatus.OK, actual.status());
+        assertEquals(HttpStatus.OK, actual.status());
     }
 
     /**
@@ -425,9 +426,9 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to));
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(co));
-        Flux.fromIterable(connectorAsyncExecutorList.stream().map(ConnectorAsyncExecutor::run).toList())
-                .flatMap(Function.identity())
-                .subscribe();
+
+        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::runHealthCheck).subscribe();
+        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::run).subscribe();
 
         Thread.sleep(2000);
 
@@ -442,10 +443,10 @@ class ConnectTest extends AbstractIntegrationConnectTest {
 
         // verify paused directly on connect cluster
         ConnectorStateInfo actual = connectCli.toBlocking().retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
-        Assertions.assertEquals("PAUSED", actual.connector().getState());
-        Assertions.assertEquals("PAUSED", actual.tasks().get(0).getState());
-        Assertions.assertEquals("PAUSED", actual.tasks().get(1).getState());
-        Assertions.assertEquals("PAUSED", actual.tasks().get(2).getState());
+        assertEquals("PAUSED", actual.connector().getState());
+        assertEquals("PAUSED", actual.tasks().get(0).getState());
+        assertEquals("PAUSED", actual.tasks().get(1).getState());
+        assertEquals("PAUSED", actual.tasks().get(2).getState());
 
         // resume the connector
         ChangeConnectorState resumeState = ChangeConnectorState.builder()
@@ -458,9 +459,9 @@ class ConnectTest extends AbstractIntegrationConnectTest {
 
         // verify resumed directly on connect cluster
         actual = connectCli.toBlocking().retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
-        Assertions.assertEquals("RUNNING", actual.connector().getState());
-        Assertions.assertEquals("RUNNING", actual.tasks().get(0).getState());
-        Assertions.assertEquals("RUNNING", actual.tasks().get(1).getState());
-        Assertions.assertEquals("RUNNING", actual.tasks().get(2).getState());
+        assertEquals("RUNNING", actual.connector().getState());
+        assertEquals("RUNNING", actual.tasks().get(0).getState());
+        assertEquals("RUNNING", actual.tasks().get(1).getState());
+        assertEquals("RUNNING", actual.tasks().get(2).getState());
     }
 }

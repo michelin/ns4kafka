@@ -1,7 +1,9 @@
 package com.michelin.ns4kafka.models;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class StreamTest {
     @Test
@@ -18,7 +20,7 @@ class StreamTest {
                 .metadata(ObjectMeta.builder().name("stream2").build())
                 .build();
 
-        Assertions.assertEquals(original,same);
-        Assertions.assertNotEquals(original, different);
+        assertEquals(original,same);
+        assertNotEquals(original, different);
     }
 }

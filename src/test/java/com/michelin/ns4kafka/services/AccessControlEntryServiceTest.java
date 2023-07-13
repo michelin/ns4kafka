@@ -16,8 +16,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
+
 @ExtendWith(MockitoExtension.class)
-public class AccessControlEntryServiceTest {
+class AccessControlEntryServiceTest {
     @Mock
     AccessControlEntryRepository accessControlEntryRepository;
     @Mock
@@ -48,14 +51,15 @@ public class AccessControlEntryServiceTest {
                         .grantedTo("target-ns")
                         .build())
                 .build();
-        Mockito.when(applicationContext.getBean(NamespaceService.class))
+
+        when(applicationContext.getBean(NamespaceService.class))
                 .thenReturn(namespaceService);
-        Mockito.when(namespaceService.findByName("target-ns"))
+        when(namespaceService.findByName("target-ns"))
                 .thenReturn(Optional.empty());
-        Mockito.when(accessControlEntryRepository.findAll())
+        when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of());
         List<String> actual = accessControlEntryService.validate(badACL, ns);
-        Assertions.assertLinesMatch(List.of(
+        assertLinesMatch(List.of(
                 "^Invalid value CONNECT for resourceType.*",
                 "^Invalid value OWNER for permission.*",
                 "^Invalid value target-ns for grantedTo.*",
@@ -85,14 +89,14 @@ public class AccessControlEntryServiceTest {
                         .grantedTo("namespace")
                         .build())
                 .build();
-        Mockito.when(applicationContext.getBean(NamespaceService.class))
+        when(applicationContext.getBean(NamespaceService.class))
                 .thenReturn(namespaceService);
-        Mockito.when(namespaceService.findByName("namespace"))
+        when(namespaceService.findByName("namespace"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryRepository.findAll())
+        when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of());
         List<String> actual = accessControlEntryService.validate(badACL, ns);
-        Assertions.assertLinesMatch(List.of(
+        assertLinesMatch(List.of(
                 "^Invalid value namespace for grantedTo.*",
                 "^Invalid grant PREFIXED:.*"),
                 actual);
@@ -120,11 +124,11 @@ public class AccessControlEntryServiceTest {
                         .grantedTo("target-ns")
                         .build())
                 .build();
-        Mockito.when(applicationContext.getBean(NamespaceService.class))
+        when(applicationContext.getBean(NamespaceService.class))
                 .thenReturn(namespaceService);
-        Mockito.when(namespaceService.findByName("target-ns"))
+        when(namespaceService.findByName("target-ns"))
                 .thenReturn(Optional.of(Namespace.builder().build()));
-        Mockito.when(accessControlEntryRepository.findAll())
+        when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of(AccessControlEntry.builder()
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -137,7 +141,7 @@ public class AccessControlEntryServiceTest {
                         .build()
                 ));
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
-        Assertions.assertLinesMatch(List.of("^Invalid grant PREFIXED:.*"), actual);
+        assertLinesMatch(List.of("^Invalid grant PREFIXED:.*"), actual);
     }
 
     @Test
@@ -161,11 +165,11 @@ public class AccessControlEntryServiceTest {
                         .grantedTo("target-ns")
                         .build())
                 .build();
-        Mockito.when(applicationContext.getBean(NamespaceService.class))
+        when(applicationContext.getBean(NamespaceService.class))
                 .thenReturn(namespaceService);
-        Mockito.when(namespaceService.findByName("target-ns"))
+        when(namespaceService.findByName("target-ns"))
                 .thenReturn(Optional.of(Namespace.builder().build()));
-        Mockito.when(accessControlEntryRepository.findAll())
+        when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of(AccessControlEntry.builder()
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -178,7 +182,7 @@ public class AccessControlEntryServiceTest {
                         .build()
                 ));
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
-        Assertions.assertLinesMatch(List.of("^Invalid grant LITERAL:.*"), actual);
+        assertLinesMatch(List.of("^Invalid grant LITERAL:.*"), actual);
     }
 
     @Test
@@ -202,11 +206,11 @@ public class AccessControlEntryServiceTest {
                         .grantedTo("target-ns")
                         .build())
                 .build();
-        Mockito.when(applicationContext.getBean(NamespaceService.class))
+        when(applicationContext.getBean(NamespaceService.class))
                 .thenReturn(namespaceService);
-        Mockito.when(namespaceService.findByName("target-ns"))
+        when(namespaceService.findByName("target-ns"))
                 .thenReturn(Optional.of(Namespace.builder().build()));
-        Mockito.when(accessControlEntryRepository.findAll())
+        when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of(AccessControlEntry.builder()
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -219,7 +223,7 @@ public class AccessControlEntryServiceTest {
                         .build()
                 ));
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -243,11 +247,11 @@ public class AccessControlEntryServiceTest {
                         .grantedTo("target-ns")
                         .build())
                 .build();
-        Mockito.when(applicationContext.getBean(NamespaceService.class))
+        when(applicationContext.getBean(NamespaceService.class))
                 .thenReturn(namespaceService);
-        Mockito.when(namespaceService.findByName("target-ns"))
+        when(namespaceService.findByName("target-ns"))
                 .thenReturn(Optional.of(Namespace.builder().metadata(ObjectMeta.builder().name("target-ns").build()).build()));
-        Mockito.when(accessControlEntryRepository.findAll())
+        when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of(AccessControlEntry.builder()
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -260,7 +264,7 @@ public class AccessControlEntryServiceTest {
                         .build()
                 ));
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -284,11 +288,11 @@ public class AccessControlEntryServiceTest {
                         .grantedTo("*")
                         .build())
                 .build();
-        Mockito.when(applicationContext.getBean(NamespaceService.class))
+        when(applicationContext.getBean(NamespaceService.class))
                 .thenReturn(namespaceService);
-        Mockito.when(namespaceService.findByName("*"))
+        when(namespaceService.findByName("*"))
                 .thenReturn(Optional.empty());
-        Mockito.when(accessControlEntryRepository.findAll())
+        when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of(AccessControlEntry.builder()
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -301,7 +305,7 @@ public class AccessControlEntryServiceTest {
                         .build()
                 ));
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -327,12 +331,12 @@ public class AccessControlEntryServiceTest {
                         .build())
                 .build();
 
-        Mockito.when(accessControlEntryRepository.findAll())
+        when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of(accessControlEntry));
 
         List<String> actual = accessControlEntryService.validateAsAdmin(accessControlEntry, namespace);
 
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
     @Test
     void validateAsAdmin_FailSameOverlap() {
@@ -414,16 +418,16 @@ public class AccessControlEntryServiceTest {
                         .grantedTo("target-ns")
                         .build())
                 .build();
-        Mockito.when(accessControlEntryRepository.findAll())
+        when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of(existing1, existing2));
 
         // Test 1
         List<String> actual = accessControlEntryService.validateAsAdmin(toCreate1, namespace);
-        Assertions.assertEquals(1, actual.size());
+        assertEquals(1, actual.size());
 
         // Test 2
         actual = accessControlEntryService.validateAsAdmin(toCreate2, namespace);
-        Assertions.assertEquals(1, actual.size());
+        assertEquals(1, actual.size());
     }
     @Test
     void validateAsAdmin_FailParentOverlap() {
@@ -505,16 +509,16 @@ public class AccessControlEntryServiceTest {
                         .grantedTo("target-ns")
                         .build())
                 .build();
-        Mockito.when(accessControlEntryRepository.findAll())
+        when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of(existing1, existing2));
 
         // Test 1
         List<String> actual = accessControlEntryService.validateAsAdmin(toCreate1, namespace);
-        Assertions.assertEquals(2, actual.size());
+        assertEquals(2, actual.size());
 
         // Test 2
         actual = accessControlEntryService.validateAsAdmin(toCreate2, namespace);
-        Assertions.assertEquals(1, actual.size());
+        assertEquals(1, actual.size());
     }
     @Test
     void validateAsAdmin_FailChildOverlap() {
@@ -596,16 +600,16 @@ public class AccessControlEntryServiceTest {
                         .grantedTo("target-ns")
                         .build())
                 .build();
-        Mockito.when(accessControlEntryRepository.findAll())
+        when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of(existing1, existing2));
 
         // Test 1
         List<String> actual = accessControlEntryService.validateAsAdmin(toCreate1, namespace);
-        Assertions.assertEquals(1, actual.size());
+        assertEquals(1, actual.size());
 
         // Test 2
         actual = accessControlEntryService.validateAsAdmin(toCreate2, namespace);
-        Assertions.assertEquals(1, actual.size());
+        assertEquals(1, actual.size());
     }
 
     @Test
@@ -670,26 +674,14 @@ public class AccessControlEntryServiceTest {
                         .grantedTo("other-ns")
                         .build())
                 .build();
-        AccessControlEntry existing4 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-existing2")
-                        .namespace("other-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.READ)
-                        .resource("p")
-                        .grantedTo("other-ns")
-                        .build())
-                .build();
+
         Namespace namespace = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("target-ns")
                         .cluster("local")
                         .build())
                 .build();
+
         AccessControlEntry toCreate1 = AccessControlEntry.builder()
                 .metadata(ObjectMeta.builder()
                         .name("acl-tocreate")
@@ -732,20 +724,20 @@ public class AccessControlEntryServiceTest {
                         .grantedTo("target-ns")
                         .build())
                 .build();
-        Mockito.when(accessControlEntryRepository.findAll())
+        when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of(existing1, existing2, existing3));
 
         // Test 1
         List<String> actual = accessControlEntryService.validateAsAdmin(toCreate1, namespace);
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
 
         // Test 2
         actual = accessControlEntryService.validateAsAdmin(toCreate2, namespace);
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
 
         // Test 3
         actual = accessControlEntryService.validateAsAdmin(toCreate3, namespace);
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -761,16 +753,14 @@ public class AccessControlEntryServiceTest {
         AccessControlEntry ace4 = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("*").build()).build();
 
-        Mockito.when(accessControlEntryRepository.findAll())
+        when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of(ace1, ace2, ace3, ace4));
         List<AccessControlEntry> actual = accessControlEntryService.findAllGrantedToNamespace(ns);
-        Assertions.assertEquals(3, actual.size());
+        assertEquals(3, actual.size());
     }
 
     @Test
     void findAllPublicGrantedTo() {
-        Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder().name("namespace1").build()).build();
         AccessControlEntry ace1 = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
         AccessControlEntry ace2 = AccessControlEntry.builder()
@@ -780,10 +770,10 @@ public class AccessControlEntryServiceTest {
         AccessControlEntry ace4 = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("*").build()).build();
 
-        Mockito.when(accessControlEntryRepository.findAll())
+        when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of(ace1, ace2, ace3, ace4));
         List<AccessControlEntry> actual = accessControlEntryService.findAllPublicGrantedTo();
-        Assertions.assertEquals(1, actual.size());
+        assertEquals(1, actual.size());
     }
 
     @Test
@@ -800,10 +790,10 @@ public class AccessControlEntryServiceTest {
                 .metadata(ObjectMeta.builder().namespace("namespace2").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
 
-        Mockito.when(accessControlEntryRepository.findAll())
+        when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of(ace1, ace2, ace3));
         List<AccessControlEntry> actual = accessControlEntryService.findAllForNamespace(ns);
-        Assertions.assertEquals(2, actual.size());
+        assertEquals(2, actual.size());
     }
 
     @Test
@@ -818,10 +808,10 @@ public class AccessControlEntryServiceTest {
                 .metadata(ObjectMeta.builder().namespace("namespace3").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace3").build()).build();
 
-        Mockito.when(accessControlEntryRepository.findAll())
+        when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of(ace1, ace2, ace3));
         List<AccessControlEntry> actual = accessControlEntryService.findAll();
-        Assertions.assertEquals(3, actual.size());
+        assertEquals(3, actual.size());
     }
 
     @Test
@@ -856,17 +846,17 @@ public class AccessControlEntryServiceTest {
                         .build()
                 )
                 .build();
-        Mockito.when(accessControlEntryRepository.findAll())
+        when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of(ace1, ace2, ace3));
-        Assertions.assertTrue(
+        assertTrue(
                 accessControlEntryService.isNamespaceOwnerOfResource("namespace",
                         AccessControlEntry.ResourceType.CONNECT,
                         "connect"));
-        Assertions.assertTrue(
+        assertTrue(
                 accessControlEntryService.isNamespaceOwnerOfResource("namespace",
                         AccessControlEntry.ResourceType.TOPIC,
                         "main"));
-        Assertions.assertTrue(
+        assertTrue(
                 accessControlEntryService.isNamespaceOwnerOfResource("namespace",
                         AccessControlEntry.ResourceType.TOPIC,
                         "main.sub"), "subresource");

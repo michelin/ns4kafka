@@ -11,7 +11,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Publisher;
 import reactor.test.StepVerifier;
@@ -20,6 +19,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class LocalUserAuthenticationProviderTest {
@@ -36,7 +36,7 @@ class LocalUserAuthenticationProviderTest {
     void authenticateNoMatchUser() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
 
-        Mockito.when(securityConfig.getLocalUsers())
+        when(securityConfig.getLocalUsers())
                 .thenReturn(List.of());
 
         Publisher<AuthenticationResponse> authenticationResponsePublisher = localUserAuthenticationProvider.authenticate(null, credentials);
@@ -50,7 +50,7 @@ class LocalUserAuthenticationProviderTest {
     void authenticateMatchUserNoMatchPassword() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
 
-        Mockito.when(securityConfig.getLocalUsers())
+        when(securityConfig.getLocalUsers())
                 .thenReturn(List.of(LocalUser.builder()
                         .username("admin")
                         .password("invalid_sha256_signature")
@@ -68,14 +68,14 @@ class LocalUserAuthenticationProviderTest {
     void authenticateMatchUserMatchPassword() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
 
-        Mockito.when(securityConfig.getLocalUsers())
+        when(securityConfig.getLocalUsers())
                 .thenReturn(List.of(LocalUser.builder()
                         .username("admin")
                         .password("8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918")
                         .groups(List.of("admin"))
                         .build()));
 
-        Mockito.when(resourceBasedSecurityRule.computeRolesFromGroups(ArgumentMatchers.any()))
+        when(resourceBasedSecurityRule.computeRolesFromGroups(ArgumentMatchers.any()))
                 .thenReturn(List.of());
 
         Publisher<AuthenticationResponse> authenticationResponsePublisher = localUserAuthenticationProvider.authenticate(null, credentials);

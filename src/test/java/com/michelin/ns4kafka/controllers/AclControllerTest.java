@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.controllers.acl.AccessControlListController;
+import com.michelin.ns4kafka.controllers.acl.AclController;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.AuditLog;
 import com.michelin.ns4kafka.models.Namespace;
@@ -20,18 +20,18 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class AccessControlListControllerTest {
+class AclControllerTest {
     @Mock
     AccessControlEntryService accessControlEntryService;
 
@@ -45,7 +45,7 @@ class AccessControlListControllerTest {
     SecurityService securityService;
 
     @InjectMocks
-    AccessControlListController accessControlListController;
+    AclController accessControlListController;
 
     @Test
     void list() {
@@ -124,31 +124,31 @@ class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(ace1, ace2, ace5, ace6));
-        Mockito.when(accessControlEntryService.findAllForCluster("local"))
+        when(accessControlEntryService.findAllForCluster("local"))
                 .thenReturn(List.of(ace1, ace2, ace3, ace4, ace5, ace6));
 
-        List<AccessControlEntry> actual = accessControlListController.list("test", Optional.of(AccessControlListController.AclLimit.GRANTEE));
-        Assertions.assertEquals(4, actual.size());
-        Assertions.assertTrue(actual.contains(ace1));
-        Assertions.assertTrue(actual.contains(ace2));
-        Assertions.assertTrue(actual.contains(ace5));
-        Assertions.assertTrue(actual.contains(ace6));
+        List<AccessControlEntry> actual = accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTEE));
+        assertEquals(4, actual.size());
+        assertTrue(actual.contains(ace1));
+        assertTrue(actual.contains(ace2));
+        assertTrue(actual.contains(ace5));
+        assertTrue(actual.contains(ace6));
 
-        actual = accessControlListController.list("test", Optional.of(AccessControlListController.AclLimit.GRANTOR));
-        Assertions.assertEquals(1, actual.size());
-        Assertions.assertTrue(actual.contains(ace3));
+        actual = accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTOR));
+        assertEquals(1, actual.size());
+        assertTrue(actual.contains(ace3));
 
-        actual = accessControlListController.list("test", Optional.of(AccessControlListController.AclLimit.ALL));
-        Assertions.assertEquals(5, actual.size());
-        Assertions.assertTrue(actual.contains(ace1));
-        Assertions.assertTrue(actual.contains(ace2));
-        Assertions.assertTrue(actual.contains(ace3));
-        Assertions.assertTrue(actual.contains(ace5));
-        Assertions.assertTrue(actual.contains(ace6));
+        actual = accessControlListController.list("test", Optional.of(AclController.AclLimit.ALL));
+        assertEquals(5, actual.size());
+        assertTrue(actual.contains(ace1));
+        assertTrue(actual.contains(ace2));
+        assertTrue(actual.contains(ace3));
+        assertTrue(actual.contains(ace5));
+        assertTrue(actual.contains(ace6));
 
     }
 
@@ -217,9 +217,9 @@ class AccessControlListControllerTest {
                         .build()
                 )
                 .build();
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.findAllForCluster("local"))
+        when(accessControlEntryService.findAllForCluster("local"))
                 .thenReturn(List.of(ace1, ace2, ace3, ace4, ace5));
 
         // name not in list
@@ -231,14 +231,14 @@ class AccessControlListControllerTest {
         // granted to me
         Optional<AccessControlEntry> result4 = accessControlListController.get("test", "ace5");
 
-        Assertions.assertTrue(result1.isEmpty());
-        Assertions.assertTrue(result2.isEmpty());
+        assertTrue(result1.isEmpty());
+        assertTrue(result2.isEmpty());
 
-        Assertions.assertTrue(result3.isPresent());
-        Assertions.assertEquals(ace3, result3.get());
+        assertTrue(result3.isPresent());
+        assertEquals(ace3, result3.get());
 
-        Assertions.assertTrue(result4.isPresent());
-        Assertions.assertEquals(ace5, result4.get());
+        assertTrue(result4.isPresent());
+        assertEquals(ace5, result4.get());
 
     }
 
@@ -260,14 +260,14 @@ class AccessControlListControllerTest {
                 .build();
         Authentication auth = Authentication.build("admin", Map.of("roles",List.of("isAdmin()")));
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.validateAsAdmin(ace1, ns))
+        when(accessControlEntryService.validateAsAdmin(ace1, ns))
                 .thenReturn(List.of("ValidationError"));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
                 () -> accessControlListController.apply(auth,"test", ace1, false));
-        Assertions.assertEquals(1, actual.getValidationErrors().size());
+        assertEquals(1, actual.getValidationErrors().size());
     }
 
     @Test
@@ -288,18 +288,18 @@ class AccessControlListControllerTest {
                 .build();
         Authentication auth = Authentication.build("admin", Map.of("roles",List.of("isAdmin()")));
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.validateAsAdmin(ace1, ns))
+        when(accessControlEntryService.validateAsAdmin(ace1, ns))
                 .thenReturn(List.of());
-        Mockito.when(accessControlEntryService.create(ace1))
+        when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
         var response = accessControlListController.apply(auth,"test", ace1, false);
         AccessControlEntry actual = response.body();
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
-        Assertions.assertEquals("test", actual.getMetadata().getNamespace());
-        Assertions.assertEquals("local", actual.getMetadata().getCluster());
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("test", actual.getMetadata().getNamespace());
+        assertEquals("local", actual.getMetadata().getCluster());
     }
 
     @Test
@@ -320,14 +320,14 @@ class AccessControlListControllerTest {
                 .build();
         Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.validate(ace1, ns))
+        when(accessControlEntryService.validate(ace1, ns))
                 .thenReturn(List.of("ValidationError"));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
                 () -> accessControlListController.apply(auth,"test", ace1, false));
-        Assertions.assertEquals(1, actual.getValidationErrors().size());
+        assertEquals(1, actual.getValidationErrors().size());
     }
 
     @Test
@@ -348,21 +348,21 @@ class AccessControlListControllerTest {
                 .build();
         Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.validate(ace1, ns))
+        when(accessControlEntryService.validate(ace1, ns))
                 .thenReturn(List.of());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
-        Mockito.when(accessControlEntryService.create(ace1))
+        when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
         var response = accessControlListController.apply(auth, "test", ace1, false);
         AccessControlEntry actual = response.body();
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
-        Assertions.assertEquals("test", actual.getMetadata().getNamespace());
-        Assertions.assertEquals("local", actual.getMetadata().getCluster());
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("test", actual.getMetadata().getNamespace());
+        assertEquals("local", actual.getMetadata().getCluster());
     }
     @Test
     void applySuccess_AlreadyExists() {
@@ -382,18 +382,18 @@ class AccessControlListControllerTest {
                 .build();
         Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.validate(ace1, ns))
+        when(accessControlEntryService.validate(ace1, ns))
                 .thenReturn(List.of());
-        Mockito.when(accessControlEntryService.findByName("test","ace1"))
+        when(accessControlEntryService.findByName("test","ace1"))
                 .thenReturn(Optional.of(ace1));
 
         var response = accessControlListController.apply(auth, "test", ace1, false);
         AccessControlEntry actual = response.body();
-        Assertions.assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
-        Assertions.assertEquals("test", actual.getMetadata().getNamespace());
-        Assertions.assertEquals("local", actual.getMetadata().getCluster());
+        assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
+        assertEquals("test", actual.getMetadata().getNamespace());
+        assertEquals("local", actual.getMetadata().getCluster());
         verify(accessControlEntryService,never()).create(ArgumentMatchers.any());
     }
 
@@ -426,17 +426,17 @@ class AccessControlListControllerTest {
                 .build();
         Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.validate(ace1, ns))
+        when(accessControlEntryService.validate(ace1, ns))
                 .thenReturn(List.of());
-        Mockito.when(accessControlEntryService.findByName("test","ace1"))
+        when(accessControlEntryService.findByName("test","ace1"))
                 .thenReturn(Optional.of(ace1Old));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
                 () -> accessControlListController.apply(auth,"test", ace1, false));
-        Assertions.assertEquals(1, actual.getValidationErrors().size());
-        Assertions.assertEquals("Invalid modification: `spec` is immutable. You can still update `metadata`", actual.getValidationErrors().get(0));
+        assertEquals(1, actual.getValidationErrors().size());
+        assertEquals("Invalid modification: `spec` is immutable. You can still update `metadata`", actual.getValidationErrors().get(0));
 
     }
 
@@ -472,20 +472,20 @@ class AccessControlListControllerTest {
                 .build();
         Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.validate(ace1, ns))
+        when(accessControlEntryService.validate(ace1, ns))
                 .thenReturn(List.of());
-        Mockito.when(accessControlEntryService.findByName("test","ace1"))
+        when(accessControlEntryService.findByName("test","ace1"))
                 .thenReturn(Optional.of(ace1Old));
-        Mockito.when(accessControlEntryService.create(ace1))
+        when(accessControlEntryService.create(ace1))
                 .thenReturn(ace1);
 
         var response = accessControlListController.apply(auth, "test", ace1, false);
         AccessControlEntry actual = response.body();
-        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
-        Assertions.assertEquals("test", actual.getMetadata().getNamespace());
-        Assertions.assertEquals("local", actual.getMetadata().getCluster());
+        assertEquals("changed", response.header("X-Ns4kafka-Result"));
+        assertEquals("test", actual.getMetadata().getNamespace());
+        assertEquals("local", actual.getMetadata().getCluster());
         Assertions.assertFalse(actual.getMetadata().getLabels().isEmpty());
 
     }
@@ -522,18 +522,18 @@ class AccessControlListControllerTest {
                 .build();
         Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.validate(ace1, ns))
+        when(accessControlEntryService.validate(ace1, ns))
                 .thenReturn(List.of());
-        Mockito.when(accessControlEntryService.findByName("test","ace1"))
+        when(accessControlEntryService.findByName("test","ace1"))
                 .thenReturn(Optional.of(ace1Old));
 
         var response = accessControlListController.apply(auth, "test", ace1, true);
         AccessControlEntry actual = response.body();
-        Assertions.assertEquals("changed", response.header("X-Ns4kafka-Result"));
-        Assertions.assertEquals("test", actual.getMetadata().getNamespace());
-        Assertions.assertEquals("local", actual.getMetadata().getCluster());
+        assertEquals("changed", response.header("X-Ns4kafka-Result"));
+        assertEquals("test", actual.getMetadata().getNamespace());
+        assertEquals("local", actual.getMetadata().getCluster());
         Assertions.assertFalse(actual.getMetadata().getLabels().isEmpty());
 
     }
@@ -556,14 +556,14 @@ class AccessControlListControllerTest {
                 .build();
         Authentication auth = Authentication.build("admin", Map.of("roles",List.of("isAdmin()")));
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.validateAsAdmin(ace1, ns))
+        when(accessControlEntryService.validateAsAdmin(ace1, ns))
                 .thenReturn(List.of());
 
         var response = accessControlListController.apply(auth, "test", ace1, true);
         AccessControlEntry actual = response.body();
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(accessControlEntryService, never()).create(ArgumentMatchers.any());
     }
 
@@ -586,14 +586,14 @@ class AccessControlListControllerTest {
 
         Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.validate(ace1, ns))
+        when(accessControlEntryService.validate(ace1, ns))
                 .thenReturn(List.of());
 
         var response = accessControlListController.apply(auth, "test", ace1, true);
         AccessControlEntry actual = response.body();
-        Assertions.assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(accessControlEntryService, never()).create(ace1);
     }
 
@@ -608,15 +608,15 @@ class AccessControlListControllerTest {
 
         Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.findByName("test", "ace1"))
+        when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.empty());
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
                 () -> accessControlListController.delete(auth,"test", "ace1", false));
 
-        Assertions.assertLinesMatch(List.of("Invalid value ace1 for name: ACL does not exist in this namespace."), actual.getValidationErrors());
+        assertLinesMatch(List.of("Invalid value ace1 for name: ACL does not exist in this namespace."), actual.getValidationErrors());
     }
 
     /**
@@ -641,15 +641,15 @@ class AccessControlListControllerTest {
 
         Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.findByName("test", "ace1"))
+        when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.of(ace1));
 
-        ResourceValidationException actual = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
                 () -> accessControlListController.delete(auth,"test", "ace1", false));
 
-        Assertions.assertLinesMatch(
+        assertLinesMatch(
                 List.of("Only admins.*"),
                 actual.getValidationErrors());
     }
@@ -676,14 +676,14 @@ class AccessControlListControllerTest {
 
         Authentication auth = Authentication.build("user", Map.of("roles",List.of("isAdmin()")));
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.findByName("test", "ace1"))
+        when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.of(ace1));
 
         HttpResponse<Void> actual = accessControlListController.delete(auth,"test", "ace1", false);
 
-        Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.status());
+        assertEquals(HttpStatus.NO_CONTENT, actual.status());
     }
 
     /**
@@ -707,9 +707,9 @@ class AccessControlListControllerTest {
                 .build();
         Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.findByName("test", "ace1"))
+        when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.of(ace1));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
@@ -717,7 +717,7 @@ class AccessControlListControllerTest {
 
         HttpResponse<Void> actual = accessControlListController.delete(auth,"test", "ace1", false);
 
-        Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.status());
+        assertEquals(HttpStatus.NO_CONTENT, actual.status());
     }
 
     /**
@@ -742,13 +742,13 @@ class AccessControlListControllerTest {
                 .build();
         Authentication auth = Authentication.build("user", Map.of("roles",List.of()));
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(accessControlEntryService.findByName("test", "ace1"))
+        when(accessControlEntryService.findByName("test", "ace1"))
                 .thenReturn(Optional.of(ace1));
         HttpResponse<Void> actual = accessControlListController.delete(auth,"test", "ace1", true);
 
         verify(accessControlEntryService, never()).delete(any(), any());
-        Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.status());
+        assertEquals(HttpStatus.NO_CONTENT, actual.status());
     }
 }

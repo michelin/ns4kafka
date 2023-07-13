@@ -14,6 +14,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,7 +31,6 @@ class StreamServiceTest {
 
     @Test
     void findAllEmpty() {
-
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -37,16 +38,14 @@ class StreamServiceTest {
                         .build())
                 .build();
 
-
         when(streamRepository.findAllForCluster("local"))
                 .thenReturn(List.of());
         var actual = streamService.findAllForNamespace(ns);
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
     void findAll() {
-
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test")
@@ -79,10 +78,10 @@ class StreamServiceTest {
         when(streamRepository.findAllForCluster("local"))
                 .thenReturn(List.of(stream1, stream2, stream3));
         var actual = streamService.findAllForNamespace(ns);
-        Assertions.assertEquals(3,actual.size());
-        Assertions.assertTrue(actual.contains(stream1));
-        Assertions.assertTrue(actual.contains(stream2));
-        Assertions.assertTrue(actual.contains(stream3));
+        assertEquals(3,actual.size());
+        assertTrue(actual.contains(stream1));
+        assertTrue(actual.contains(stream2));
+        assertTrue(actual.contains(stream3));
     }
 
     @Test
@@ -120,8 +119,8 @@ class StreamServiceTest {
         when(streamRepository.findAllForCluster("local"))
                 .thenReturn(List.of(stream1, stream2, stream3));
         var actual = streamService.findByName(ns, "test_stream2");
-        Assertions.assertTrue(actual.isPresent());
-        Assertions.assertEquals(stream2, actual.get());
+        assertTrue(actual.isPresent());
+        assertEquals(stream2, actual.get());
     }
 
     @Test
@@ -137,7 +136,7 @@ class StreamServiceTest {
         when(streamRepository.findAllForCluster("local"))
                 .thenReturn(List.of());
         var actual = streamService.findByName(ns, "test_stream2");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     @Test
@@ -223,7 +222,7 @@ class StreamServiceTest {
         when(accessControlEntryService.findAllGrantedToNamespace(ns))
                 .thenReturn(List.of(ace1, ace2, ace3, ace4, ace5, ace6, ace7));
 
-        Assertions.assertTrue(
+        assertTrue(
                 streamService.isNamespaceOwnerOfKafkaStream(ns, "test.stream"));
         Assertions.assertFalse(
                 streamService.isNamespaceOwnerOfKafkaStream(ns, "test-bis.stream"),"ACL are LITERAL");

@@ -1,11 +1,9 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.controllers.acl.AccessControlListNonNamespacedController;
+import com.michelin.ns4kafka.controllers.acl.AclNonNamespacedController;
 import com.michelin.ns4kafka.models.AccessControlEntry;
-import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.services.AccessControlEntryService;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,10 +12,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class AccessControlListNonNamespacedControllerTest {
+class AclNonNamespacedControllerTest {
     /**
      * The mocked ACL service
      */
@@ -28,7 +27,7 @@ class AccessControlListNonNamespacedControllerTest {
      * The mocked ACL controller
      */
     @InjectMocks
-    AccessControlListNonNamespacedController accessControlListNonNamespacedController;
+    AclNonNamespacedController aclNonNamespacedController;
 
     @Test
     void listAll() {
@@ -41,8 +40,9 @@ class AccessControlListNonNamespacedControllerTest {
 
         when(accessControlEntryService.findAll()).thenReturn(List.of(ace1, ace2));
 
-        List<AccessControlEntry> actual = accessControlListNonNamespacedController.listAll();
-        Assertions.assertEquals(2, actual.size());
-        Assertions.assertEquals(List.of(ace1, ace2), actual);
+        List<AccessControlEntry> actual = aclNonNamespacedController.listAll();
+
+        assertEquals(2, actual.size());
+        assertEquals(List.of(ace1, ace2), actual);
     }
 }

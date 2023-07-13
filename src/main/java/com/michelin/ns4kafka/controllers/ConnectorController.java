@@ -16,6 +16,7 @@ import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.validation.Valid;
@@ -238,27 +239,21 @@ public class ConnectorController extends NamespacedResourceController {
      * @return The list of imported connectors
      */
     @Post("/_/import{?dryrun}")
-    public Mono<List<Connector>> importResources(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public Flux<Connector> importResources(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
         return connectorService.listUnsynchronizedConnectors(ns)
-            .map(unsynchronizedConnectors -> {
-                unsynchronizedConnectors.forEach(connector -> {
-                    connector.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                    connector.getMetadata().setCluster(ns.getMetadata().getCluster());
-                    connector.getMetadata().setNamespace(ns.getMetadata().getName());
-                });
+            .map(unsynchronizedConnector -> {
+                unsynchronizedConnector.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                unsynchronizedConnector.getMetadata().setCluster(ns.getMetadata().getCluster());
+                unsynchronizedConnector.getMetadata().setNamespace(ns.getMetadata().getName());
 
                 if (dryrun) {
-                    return unsynchronizedConnectors;
+                    return unsynchronizedConnector;
                 }
 
-                return unsynchronizedConnectors
-                        .stream()
-                        .map(connector -> {
-                            sendEventLog(connector.getKind(), connector.getMetadata(), ApplyStatus.created, null, connector.getSpec());
-                            return connectorService.createOrUpdate(connector);
-                        })
-                        .toList();
+                sendEventLog(unsynchronizedConnector.getKind(), unsynchronizedConnector.getMetadata(), ApplyStatus.created, null, unsynchronizedConnector.getSpec());
+
+                return connectorService.createOrUpdate(unsynchronizedConnector);
             });
     }
 }

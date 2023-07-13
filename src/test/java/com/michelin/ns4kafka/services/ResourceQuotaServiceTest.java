@@ -7,7 +7,6 @@ import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.models.quota.ResourceQuotaResponse;
 import com.michelin.ns4kafka.repositories.ResourceQuotaRepository;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,6 +19,8 @@ import java.util.Optional;
 
 import static com.michelin.ns4kafka.models.quota.ResourceQuota.ResourceQuotaSpecKey.*;
 import static org.apache.kafka.common.config.TopicConfig.RETENTION_BYTES_CONFIG;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -66,8 +67,8 @@ class ResourceQuotaServiceTest {
                 .thenReturn(Optional.of(resourceQuota));
 
         Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByNamespace(ns.getMetadata().getName());
-        Assertions.assertTrue(resourceQuotaOptional.isPresent());
-        Assertions.assertEquals("test", resourceQuotaOptional.get().getMetadata().getName());
+        assertTrue(resourceQuotaOptional.isPresent());
+        assertEquals("test", resourceQuotaOptional.get().getMetadata().getName());
     }
 
     /**
@@ -89,7 +90,7 @@ class ResourceQuotaServiceTest {
                 .thenReturn(Optional.empty());
 
         Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByNamespace(ns.getMetadata().getName());
-        Assertions.assertTrue(resourceQuotaOptional.isEmpty());
+        assertTrue(resourceQuotaOptional.isEmpty());
     }
 
     /**
@@ -119,8 +120,8 @@ class ResourceQuotaServiceTest {
                 .thenReturn(Optional.of(resourceQuota));
 
         Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByName(ns.getMetadata().getName(), "test");
-        Assertions.assertTrue(resourceQuotaOptional.isPresent());
-        Assertions.assertEquals("test", resourceQuotaOptional.get().getMetadata().getName());
+        assertTrue(resourceQuotaOptional.isPresent());
+        assertEquals("test", resourceQuotaOptional.get().getMetadata().getName());
     }
 
     /**
@@ -150,7 +151,7 @@ class ResourceQuotaServiceTest {
                 .thenReturn(Optional.of(resourceQuota));
 
         Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByName(ns.getMetadata().getName(), "wrong-name");
-        Assertions.assertTrue(resourceQuotaOptional.isEmpty());
+        assertTrue(resourceQuotaOptional.isEmpty());
     }
 
     /**
@@ -172,7 +173,7 @@ class ResourceQuotaServiceTest {
                 .thenReturn(Optional.empty());
 
         Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByName(ns.getMetadata().getName(), "test");
-        Assertions.assertTrue(resourceQuotaOptional.isEmpty());
+        assertTrue(resourceQuotaOptional.isEmpty());
     }
 
     /**
@@ -192,7 +193,7 @@ class ResourceQuotaServiceTest {
                 .thenReturn(resourceQuota);
 
         ResourceQuota createdResourceQuota = resourceQuotaService.create(resourceQuota);
-        Assertions.assertEquals(resourceQuota, createdResourceQuota);
+        assertEquals(resourceQuota, createdResourceQuota);
         verify(resourceQuotaRepository, times(1)).create(resourceQuota);
     }
 
@@ -263,7 +264,7 @@ class ResourceQuotaServiceTest {
                 .thenReturn(List.of(topic1, topic2, topic3));
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
-        Assertions.assertEquals(0, validationErrors.size());
+        assertEquals(0, validationErrors.size());
     }
 
     /**
@@ -314,8 +315,8 @@ class ResourceQuotaServiceTest {
                 .thenReturn(List.of(topic1, topic2, topic3));
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
-        Assertions.assertEquals(1, validationErrors.size());
-        Assertions.assertEquals("Quota already exceeded for count/topics: 3/2 (used/limit)", validationErrors.get(0));
+        assertEquals(1, validationErrors.size());
+        assertEquals("Quota already exceeded for count/topics: 3/2 (used/limit)", validationErrors.get(0));
     }
 
     /**
@@ -375,8 +376,8 @@ class ResourceQuotaServiceTest {
                 .thenReturn(List.of(topic1, topic2, topic3));
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
-        Assertions.assertEquals(1, validationErrors.size());
-        Assertions.assertEquals("Quota already exceeded for count/partitions: 19/10 (used/limit)", validationErrors.get(0));
+        assertEquals(1, validationErrors.size());
+        assertEquals("Quota already exceeded for count/partitions: 19/10 (used/limit)", validationErrors.get(0));
     }
 
     /**
@@ -403,8 +404,8 @@ class ResourceQuotaServiceTest {
                 .build();
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
-        Assertions.assertEquals(1, validationErrors.size());
-        Assertions.assertEquals("Invalid value for disk/topics: value must end with either B, KiB, MiB or GiB", validationErrors.get(0));
+        assertEquals(1, validationErrors.size());
+        assertEquals("Invalid value for disk/topics: value must end with either B, KiB, MiB or GiB", validationErrors.get(0));
     }
 
     /**
@@ -456,8 +457,8 @@ class ResourceQuotaServiceTest {
                 .thenReturn(List.of(topic1, topic2));
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
-        Assertions.assertEquals(1, validationErrors.size());
-        Assertions.assertEquals("Quota already exceeded for disk/topics: 8.79KiB/5000B (used/limit)", validationErrors.get(0));
+        assertEquals(1, validationErrors.size());
+        assertEquals("Quota already exceeded for disk/topics: 8.79KiB/5000B (used/limit)", validationErrors.get(0));
     }
 
     /**
@@ -489,8 +490,8 @@ class ResourceQuotaServiceTest {
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
-        Assertions.assertEquals(1, validationErrors.size());
-        Assertions.assertEquals("Quota already exceeded for count/connectors: 2/1 (used/limit)", validationErrors.get(0));
+        assertEquals(1, validationErrors.size());
+        assertEquals("Quota already exceeded for count/connectors: 2/1 (used/limit)", validationErrors.get(0));
     }
 
     /**
@@ -515,9 +516,9 @@ class ResourceQuotaServiceTest {
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
 
-        Assertions.assertEquals(2, validationErrors.size());
-        Assertions.assertEquals("Number expected for user/producer_byte_rate (producer given)", validationErrors.get(0));
-        Assertions.assertEquals("Number expected for user/consumer_byte_rate (consumer given)", validationErrors.get(1));
+        assertEquals(2, validationErrors.size());
+        assertEquals("Number expected for user/producer_byte_rate (producer given)", validationErrors.get(0));
+        assertEquals("Number expected for user/consumer_byte_rate (consumer given)", validationErrors.get(1));
     }
 
     /**
@@ -542,7 +543,7 @@ class ResourceQuotaServiceTest {
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
 
-        Assertions.assertEquals(0, validationErrors.size());
+        assertEquals(0, validationErrors.size());
     }
 
     /**
@@ -585,7 +586,7 @@ class ResourceQuotaServiceTest {
                 .thenReturn(List.of(topic1, topic2, topic3));
 
         long currentlyUsed = resourceQuotaService.getCurrentCountTopicsByNamespace(ns);
-        Assertions.assertEquals(3L, currentlyUsed);
+        assertEquals(3L, currentlyUsed);
     }
 
     /**
@@ -638,7 +639,7 @@ class ResourceQuotaServiceTest {
                 .thenReturn(List.of(topic1, topic2, topic3));
 
         long currentlyUsed = resourceQuotaService.getCurrentCountPartitionsByNamespace(ns);
-        Assertions.assertEquals(19L, currentlyUsed);
+        assertEquals(19L, currentlyUsed);
     }
 
     /**
@@ -662,7 +663,7 @@ class ResourceQuotaServiceTest {
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
         long currentlyUsed = resourceQuotaService.getCurrentCountConnectorsByNamespace(ns);
-        Assertions.assertEquals(2L, currentlyUsed);
+        assertEquals(2L, currentlyUsed);
     }
 
     /**
@@ -716,7 +717,7 @@ class ResourceQuotaServiceTest {
         when(topicService.findAllForNamespace(ns)).thenReturn(List.of(topic1, topic2, topic3));
 
         long currentlyUsed = resourceQuotaService.getCurrentDiskTopicsByNamespace(ns);
-        Assertions.assertEquals(181000L, currentlyUsed);
+        assertEquals(181000L, currentlyUsed);
     }
 
     /**
@@ -795,7 +796,7 @@ class ResourceQuotaServiceTest {
                 .thenReturn(List.of(topic1, topic2, topic3));
 
         List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, Optional.empty(), newTopic);
-        Assertions.assertEquals(0, validationErrors.size());
+        assertEquals(0, validationErrors.size());
     }
 
     /**
@@ -827,7 +828,7 @@ class ResourceQuotaServiceTest {
                 .thenReturn(Optional.empty());
 
         List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, Optional.empty(), newTopic);
-        Assertions.assertEquals(0, validationErrors.size());
+        assertEquals(0, validationErrors.size());
     }
 
     /**
@@ -904,10 +905,10 @@ class ResourceQuotaServiceTest {
                 .thenReturn(List.of(topic1, topic2, topic3));
 
         List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, Optional.empty(), newTopic);
-        Assertions.assertEquals(3, validationErrors.size());
-        Assertions.assertEquals("Exceeding quota for count/topics: 3/3 (used/limit). Cannot add 1 topic.", validationErrors.get(0));
-        Assertions.assertEquals("Exceeding quota for count/partitions: 19/20 (used/limit). Cannot add 6 partition(s).", validationErrors.get(1));
-        Assertions.assertEquals("Exceeding quota for disk/topics: 18.555KiB/20.0KiB (used/limit). Cannot add 5.86KiB of data.", validationErrors.get(2));
+        assertEquals(3, validationErrors.size());
+        assertEquals("Exceeding quota for count/topics: 3/3 (used/limit). Cannot add 1 topic.", validationErrors.get(0));
+        assertEquals("Exceeding quota for count/partitions: 19/20 (used/limit). Cannot add 6 partition(s).", validationErrors.get(1));
+        assertEquals("Exceeding quota for disk/topics: 18.555KiB/20.0KiB (used/limit). Cannot add 5.86KiB of data.", validationErrors.get(2));
     }
 
     /**
@@ -983,8 +984,8 @@ class ResourceQuotaServiceTest {
                 .thenReturn(List.of(topic1, topic2, topic3));
 
         List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, Optional.of(topic1), newTopic);
-        Assertions.assertEquals(1, validationErrors.size());
-        Assertions.assertEquals("Exceeding quota for disk/topics: 18.555KiB/20.0KiB (used/limit). Cannot add 2.93KiB of data.", validationErrors.get(0));
+        assertEquals(1, validationErrors.size());
+        assertEquals("Exceeding quota for disk/topics: 18.555KiB/20.0KiB (used/limit). Cannot add 2.93KiB of data.", validationErrors.get(0));
     }
 
     /**
@@ -1018,7 +1019,7 @@ class ResourceQuotaServiceTest {
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
         List<String> validationErrors = resourceQuotaService.validateConnectorQuota(ns);
-        Assertions.assertEquals(0, validationErrors.size());
+        assertEquals(0, validationErrors.size());
     }
 
     /**
@@ -1040,7 +1041,7 @@ class ResourceQuotaServiceTest {
                 .thenReturn(Optional.empty());
 
         List<String> validationErrors = resourceQuotaService.validateConnectorQuota(ns);
-        Assertions.assertEquals(0, validationErrors.size());
+        assertEquals(0, validationErrors.size());
     }
 
     /**
@@ -1074,8 +1075,8 @@ class ResourceQuotaServiceTest {
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
         List<String> validationErrors = resourceQuotaService.validateConnectorQuota(ns);
-        Assertions.assertEquals(1, validationErrors.size());
-        Assertions.assertEquals("Exceeding quota for count/connectors: 2/2 (used/limit). Cannot add 1 connector.", validationErrors.get(0));
+        assertEquals(1, validationErrors.size());
+        assertEquals("Exceeding quota for count/connectors: 2/2 (used/limit). Cannot add 1 connector.", validationErrors.get(0));
     }
 
     /**
@@ -1145,11 +1146,11 @@ class ResourceQuotaServiceTest {
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
         ResourceQuotaResponse response = resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.of(resourceQuota));
-        Assertions.assertEquals(resourceQuota.getMetadata(), response.getMetadata());
-        Assertions.assertEquals("3/3", response.getSpec().getCountTopic());
-        Assertions.assertEquals("19/20", response.getSpec().getCountPartition());
-        Assertions.assertEquals("2/2", response.getSpec().getCountConnector());
-        Assertions.assertEquals("50.782KiB/60KiB", response.getSpec().getDiskTopic());
+        assertEquals(resourceQuota.getMetadata(), response.getMetadata());
+        assertEquals("3/3", response.getSpec().getCountTopic());
+        assertEquals("19/20", response.getSpec().getCountPartition());
+        assertEquals("2/2", response.getSpec().getCountConnector());
+        assertEquals("50.782KiB/60KiB", response.getSpec().getDiskTopic());
     }
 
     /**
@@ -1208,12 +1209,12 @@ class ResourceQuotaServiceTest {
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
         ResourceQuotaResponse response = resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.empty());
-        Assertions.assertEquals("namespace", response.getMetadata().getNamespace());
-        Assertions.assertEquals("local", response.getMetadata().getCluster());
-        Assertions.assertEquals("3", response.getSpec().getCountTopic());
-        Assertions.assertEquals("19", response.getSpec().getCountPartition());
-        Assertions.assertEquals("2", response.getSpec().getCountConnector());
-        Assertions.assertEquals("50.782KiB", response.getSpec().getDiskTopic());
+        assertEquals("namespace", response.getMetadata().getNamespace());
+        assertEquals("local", response.getMetadata().getCluster());
+        assertEquals("3", response.getSpec().getCountTopic());
+        assertEquals("19", response.getSpec().getCountPartition());
+        assertEquals("2", response.getSpec().getCountConnector());
+        assertEquals("50.782KiB", response.getSpec().getDiskTopic());
     }
 
     /**
@@ -1323,6 +1324,6 @@ class ResourceQuotaServiceTest {
                 .thenReturn(Optional.of(resourceQuota));
 
         List<ResourceQuotaResponse> response = resourceQuotaService.getUsedResourcesByQuotaForAllNamespaces();
-        Assertions.assertEquals(4, response.size());
+        assertEquals(4, response.size());
     }
 }

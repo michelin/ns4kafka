@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.controllers;
 
+import com.michelin.ns4kafka.controllers.connect.ConnectClusterController;
 import com.michelin.ns4kafka.models.AuditLog;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
@@ -16,13 +17,11 @@ import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -66,13 +65,13 @@ class ConnectClusterControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectClusterService.findAllByNamespaceOwner(ns))
+        when(connectClusterService.findAllByNamespaceOwner(ns))
                 .thenReturn(List.of());
 
         List<ConnectCluster> actual = connectClusterController.list("test");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     /**
@@ -87,9 +86,9 @@ class ConnectClusterControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectClusterService.findAllByNamespaceOwner(ns))
+        when(connectClusterService.findAllByNamespaceOwner(ns))
                 .thenReturn(List.of(
                         ConnectCluster.builder()
                                 .metadata(ObjectMeta.builder().name("connect-cluster")
@@ -101,7 +100,7 @@ class ConnectClusterControllerTest {
                                 .build()));
 
         List<ConnectCluster> actual = connectClusterController.list("test");
-        Assertions.assertEquals(2, actual.size());
+        assertEquals(2, actual.size());
     }
 
     /**
@@ -116,13 +115,13 @@ class ConnectClusterControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectClusterService.findByNamespaceAndNameOwner(ns, "missing"))
+        when(connectClusterService.findByNamespaceAndNameOwner(ns, "missing"))
                 .thenReturn(Optional.empty());
 
         Optional<ConnectCluster> actual = connectClusterController.getConnectCluster("test", "missing");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     /**
@@ -137,9 +136,9 @@ class ConnectClusterControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster"))
+        when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster"))
                 .thenReturn(Optional.of(
                         ConnectCluster.builder()
                                 .metadata(ObjectMeta.builder().name("connect-cluster")
@@ -147,8 +146,8 @@ class ConnectClusterControllerTest {
                                 .build()));
 
         Optional<ConnectCluster> actual = connectClusterController.getConnectCluster("test", "connect-cluster");
-        Assertions.assertTrue(actual.isPresent());
-        Assertions.assertEquals("connect-cluster", actual.get().getMetadata().getName());
+        assertTrue(actual.isPresent());
+        assertEquals("connect-cluster", actual.get().getMetadata().getName());
     }
 
     /**
@@ -163,12 +162,12 @@ class ConnectClusterControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
+        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
                 .thenReturn(false);
 
-        Assertions.assertThrows(ResourceValidationException.class,
+        assertThrows(ResourceValidationException.class,
                 () -> connectClusterController.delete("test", "connect-cluster", false));
     }
 
@@ -184,15 +183,15 @@ class ConnectClusterControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
+        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
                 .thenReturn(true);
-        Mockito.when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster"))
+        when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster"))
                 .thenReturn(Optional.empty());
 
         HttpResponse<Void> actual = connectClusterController.delete("test", "connect-cluster", false);
-        Assertions.assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
+        assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
     }
 
     /**
@@ -212,13 +211,13 @@ class ConnectClusterControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
+        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
                 .thenReturn(true);
-        Mockito.when(connectorService.findAllByConnectCluster(ns, "connect-cluster"))
+        when(connectorService.findAllByConnectCluster(ns, "connect-cluster"))
                 .thenReturn(List.of());
-        Mockito.when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster"))
+        when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster"))
                 .thenReturn(Optional.of(connectCluster));
         doNothing().when(connectClusterService).delete(connectCluster);
         when(securityService.username()).thenReturn(Optional.of("test-user"));
@@ -226,7 +225,7 @@ class ConnectClusterControllerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         HttpResponse<Void> actual = connectClusterController.delete("test", "connect-cluster", false);
-        Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
+        assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
     }
 
     /**
@@ -246,17 +245,17 @@ class ConnectClusterControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
+        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
                 .thenReturn(true);
-        Mockito.when(connectorService.findAllByConnectCluster(ns, "connect-cluster"))
+        when(connectorService.findAllByConnectCluster(ns, "connect-cluster"))
                 .thenReturn(List.of());
-        Mockito.when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster"))
+        when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster"))
                 .thenReturn(Optional.of(connectCluster));
 
         HttpResponse<Void> actual = connectClusterController.delete("test", "connect-cluster", true);
-        Assertions.assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
+        assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
 
         verify(connectClusterService, never()).delete(any());
     }
@@ -275,18 +274,18 @@ class ConnectClusterControllerTest {
 
         Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
+        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
                 .thenReturn(true);
-        Mockito.when(connectorService.findAllByConnectCluster(ns, "connect-cluster"))
+        when(connectorService.findAllByConnectCluster(ns, "connect-cluster"))
                 .thenReturn(List.of(connector));
 
-        ResourceValidationException result = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceValidationException result = assertThrows(ResourceValidationException.class,
                 () -> connectClusterController.delete("test", "connect-cluster", false));
 
-        Assertions.assertEquals(1, result.getValidationErrors().size());
-        Assertions.assertEquals("The Connect cluster connect-cluster has 1 deployed connector(s): connect1. Please remove the associated connector(s) before deleting it.", result.getValidationErrors().get(0));
+        assertEquals(1, result.getValidationErrors().size());
+        assertEquals("The Connect cluster connect-cluster has 1 deployed connector(s): connect1. Please remove the associated connector(s) before deleting it.", result.getValidationErrors().get(0));
     }
 
     /**
@@ -532,7 +531,7 @@ class ConnectClusterControllerTest {
         when(connectClusterService.findAllByNamespaceWrite(ns)).thenReturn(List.of(connectCluster));
 
         List<ConnectCluster> actual = connectClusterController.listVaults("test");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     /**
@@ -568,7 +567,7 @@ class ConnectClusterControllerTest {
         when(connectClusterService.findAllByNamespaceWrite(ns)).thenReturn(List.of(connectCluster, connectClusterAes256));
 
         List<ConnectCluster> actual = connectClusterController.listVaults("test");
-        Assertions.assertEquals(1, actual.size());
+        assertEquals(1, actual.size());
     }
 
     /**
@@ -592,10 +591,10 @@ class ConnectClusterControllerTest {
         when(connectClusterService.validateConnectClusterVault(ns, connectClusterName)).thenReturn(List.of());
 
         var secrets = List.of("secret");
-        ResourceValidationException result = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceValidationException result = assertThrows(ResourceValidationException.class,
                 () -> connectClusterController.vaultPassword("test", connectClusterName, secrets));
-        Assertions.assertEquals(1, result.getValidationErrors().size());
-        Assertions.assertEquals("Namespace is not allowed to use this Connect cluster connect-cluster-na.", result.getValidationErrors().get(0));
+        assertEquals(1, result.getValidationErrors().size());
+        assertEquals("Namespace is not allowed to use this Connect cluster connect-cluster-na.", result.getValidationErrors().get(0));
     }
 
     /**
@@ -619,10 +618,10 @@ class ConnectClusterControllerTest {
         when(connectClusterService.validateConnectClusterVault(ns, connectClusterName)).thenReturn(List.of("Error config."));
 
         var secrets = List.of("secret");
-        ResourceValidationException result = Assertions.assertThrows(ResourceValidationException.class,
+        ResourceValidationException result = assertThrows(ResourceValidationException.class,
                 () -> connectClusterController.vaultPassword("test", connectClusterName, secrets));
-        Assertions.assertEquals(1, result.getValidationErrors().size());
-        Assertions.assertEquals("Error config.", result.getValidationErrors().get(0));
+        assertEquals(1, result.getValidationErrors().size());
+        assertEquals("Error config.", result.getValidationErrors().get(0));
     }
 
     /**
@@ -654,7 +653,7 @@ class ConnectClusterControllerTest {
                 ));
 
         final List<VaultResponse> actual = connectClusterController.vaultPassword("test", connectClusterName, List.of("secret"));
-        Assertions.assertEquals("secret", actual.get(0).getSpec().getClearText());
-        Assertions.assertEquals("encryptedSecret", actual.get(0).getSpec().getEncrypted());
+        assertEquals("secret", actual.get(0).getSpec().getClearText());
+        assertEquals("encryptedSecret", actual.get(0).getSpec().getEncrypted());
     }
 }

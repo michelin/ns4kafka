@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -241,12 +242,11 @@ class SchemaControllerTest {
         SchemaList schema = buildSchemaList();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
-        when(schemaService.findAllForNamespace(namespace)).thenReturn(Mono.just(List.of(schema)));
+        when(schemaService.findAllForNamespace(namespace)).thenReturn(Flux.fromIterable(List.of(schema)));
 
         StepVerifier.create(schemaController.list("myNamespace"))
-            .consumeNextWith(schemas -> {
-                assertEquals(1, schemas.size());
-                assertEquals("prefix.subject-value", schemas.get(0).getMetadata().getName());
+            .consumeNextWith(schemaResponse -> {
+                assertEquals("prefix.subject-value", schemaResponse.getMetadata().getName());
             })
             .verifyComplete();
     }
@@ -426,7 +426,6 @@ class SchemaControllerTest {
     @Test
     void shouldNotDeleteSubjectWhenEmpty() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value")).thenReturn(true);

@@ -201,24 +201,20 @@ public class ConnectorService {
      * @param namespace The namespace
      * @return The list of connectors
      */
-    public Mono<List<Connector>> listUnsynchronizedConnectors(Namespace namespace) {
+    public Flux<Connector> listUnsynchronizedConnectors(Namespace namespace) {
         ConnectorAsyncExecutor connectorAsyncExecutor = applicationContext.getBean(ConnectorAsyncExecutor.class,
                 Qualifiers.byName(namespace.getMetadata().getCluster()));
 
         // Get all connectors from all connect clusters
-        List<Flux<Connector>> connectors = Stream.concat(namespace.getSpec().getConnectClusters().stream(),
+        Stream<String> connectClusters = Stream.concat(namespace.getSpec().getConnectClusters().stream(),
                 connectClusterService.findAllByNamespaceWrite(namespace)
                         .stream()
-                        .map(connectCluster -> connectCluster.getMetadata().getName()))
-                .map(connectClusterName -> connectorAsyncExecutor.collectBrokerConnectors(connectClusterName)
-                        .flatMapIterable(brokerConnectors -> brokerConnectors)
-                        // That belongs to this namespace
-                        .filter(connector -> isNamespaceOwnerOfConnect(namespace, connector.getMetadata().getName()))
-                        // And aren't in ns4kafka storage
-                        .filter(connector -> findByName(namespace, connector.getMetadata().getName()).isEmpty()))
-                .toList();
+                        .map(connectCluster -> connectCluster.getMetadata().getName()));
 
-        return Flux.concat(connectors).collectList();
+        return Flux.fromStream(connectClusters)
+                .flatMap(connectClusterName -> connectorAsyncExecutor.collectBrokerConnectors(connectClusterName)
+                        .filter(connector -> isNamespaceOwnerOfConnect(namespace, connector.getMetadata().getName()))
+                        .filter(connector -> findByName(namespace, connector.getMetadata().getName()).isEmpty()));
     }
 
     /**

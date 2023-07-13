@@ -48,7 +48,13 @@ public class ConnectCluster {
          * Gets the Kafka Connect status
          */
         @EqualsAndHashCode.Exclude
-        String status;
+        Status status;
+
+        /**
+         * Gets the Kafka Connect status context message
+         */
+        @EqualsAndHashCode.Exclude
+        String statusMessage;
 
         /**
          * Gets or sets the aes256 key.
@@ -64,5 +70,10 @@ public class ConnectCluster {
          * Gets or sets the aes256 key.
          */
         String aes256Format;
+    }
+
+    public enum Status {
+        HEALTHY,
+        IDLE
     }
 }

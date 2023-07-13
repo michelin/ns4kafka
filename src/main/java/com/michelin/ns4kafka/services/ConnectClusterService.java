@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.config.SecurityConfig;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
+import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
 import com.michelin.ns4kafka.models.connect.cluster.VaultResponse;
 import com.michelin.ns4kafka.repositories.ConnectClusterRepository;
@@ -12,7 +13,6 @@ import com.michelin.ns4kafka.services.clients.connect.entities.ServerInfo;
 import com.michelin.ns4kafka.utils.EncryptionUtils;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
-import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
@@ -20,6 +20,7 @@ import io.micronaut.http.client.exceptions.HttpClientException;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.MalformedURLException;
@@ -61,11 +62,44 @@ public class ConnectClusterService {
 
     /**
      * Find all self deployed Connect clusters
-     *
+     * @param all Include hard-declared Connect clusters
      * @return A list of Connect clusters
      */
-    public List<ConnectCluster> findAll() {
-        return connectClusterRepository.findAll();
+    public Flux<ConnectCluster> findAll(boolean all) {
+        List<ConnectCluster> results = connectClusterRepository.findAll();
+
+        if (all) {
+            results.addAll(kafkaAsyncExecutorConfig
+                    .stream()
+                    .map(config -> config.getConnects().entrySet()
+                            .stream()
+                            .map(entry ->
+                                    ConnectCluster.builder()
+                                            .metadata(ObjectMeta.builder()
+                                                    .name(entry.getKey())
+                                                    .cluster(config.getName())
+                                                    .build())
+                                            .spec(ConnectCluster.ConnectClusterSpec.builder()
+                                                    .url(entry.getValue().getUrl())
+                                                    .username(entry.getValue().getBasicAuthUsername())
+                                                    .password(entry.getValue().getBasicAuthPassword())
+                                                    .build())
+                                            .build())
+                            .toList())
+                    .flatMap(List::stream)
+                    .toList());
+        }
+
+        return Flux.fromIterable(results)
+                .flatMap(connectCluster -> kafkaConnectClient.version(connectCluster.getMetadata().getCluster(),
+                                connectCluster.getMetadata().getName())
+                        .doOnError(error -> {
+                            connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
+                            connectCluster.getSpec().setStatusMessage(error.getMessage());
+                        })
+                        .doOnSuccess(response -> connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY))
+                        .map(response -> connectCluster)
+                        .onErrorReturn(connectCluster));
     }
 
     /**
@@ -101,33 +135,29 @@ public class ConnectClusterService {
     public List<ConnectCluster> findAllByNamespaceOwner(Namespace namespace) {
         return findAllByNamespace(namespace, List.of(AccessControlEntry.Permission.OWNER))
                 .stream()
-                .map(connectCluster -> ConnectCluster.builder()
-                        .metadata(connectCluster.getMetadata())
-                        .spec(ConnectCluster.ConnectClusterSpec.builder()
-                                .url(connectCluster.getSpec().getUrl())
-                                .username(connectCluster.getSpec().getUsername())
-                                .password(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getPassword(), securityConfig.getAes256EncryptionKey()))
-                                .status(getKafkaConnectStatus(connectCluster))
-                                .aes256Key(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getAes256Key(), securityConfig.getAes256EncryptionKey()))
-                                .aes256Salt(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getAes256Salt(), securityConfig.getAes256EncryptionKey()))
-                                .aes256Format(connectCluster.getSpec().getAes256Format())
-                                .build())
-                        .build())
-                .toList();
-    }
+                .map(connectCluster -> {
+                    var builder = ConnectCluster.ConnectClusterSpec.builder()
+                            .url(connectCluster.getSpec().getUrl())
+                            .username(connectCluster.getSpec().getUsername())
+                            .password(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getPassword(), securityConfig.getAes256EncryptionKey()))
+                            .aes256Key(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getAes256Key(), securityConfig.getAes256EncryptionKey()))
+                            .aes256Salt(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getAes256Salt(), securityConfig.getAes256EncryptionKey()))
+                            .aes256Format(connectCluster.getSpec().getAes256Format());
 
-    /**
-     * Get Kafka Connect status
-     * @param connectCluster The Kafka Connect
-     * @return The status
-     */
-    private String getKafkaConnectStatus(ConnectCluster connectCluster) {
-        try {
-            HttpResponse<ServerInfo> response = kafkaConnectClient.version(connectCluster.getMetadata().getCluster(), connectCluster.getMetadata().getName());
-            return "Healthy (" + response.status() + ")";
-        } catch (HttpClientException e) {
-            return "Unhealthy (" + e.getMessage() + ")";
-        }
+                    try {
+                        kafkaConnectClient.version(connectCluster.getMetadata().getCluster(), connectCluster.getMetadata().getName()).block();
+                        builder.status(ConnectCluster.Status.HEALTHY);
+                    } catch (HttpClientException e) {
+                        builder.status(ConnectCluster.Status.IDLE);
+                        builder.statusMessage(e.getMessage());
+                    }
+
+                    return ConnectCluster.builder()
+                            .metadata(connectCluster.getMetadata())
+                            .spec(builder.build())
+                            .build();
+                })
+                .toList();
     }
 
     /**

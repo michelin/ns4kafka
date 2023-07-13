@@ -2,10 +2,12 @@ package com.michelin.ns4kafka.models;
 
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class NamespaceTest {
     @Test
@@ -95,12 +97,12 @@ class NamespaceTest {
                         .build())
                 .build();
 
-        Assertions.assertEquals(original, same);
+        assertEquals(original, same);
 
-        Assertions.assertNotEquals(original, differentByMetadata);
-        Assertions.assertNotEquals(original, differentByUser);
-        Assertions.assertNotEquals(original, differentByConnectClusters);
-        Assertions.assertNotEquals(original, differentByTopicValidator);
-        Assertions.assertNotEquals(original, differentByConnectValidator);
+        assertNotEquals(original, differentByMetadata);
+        assertNotEquals(original, differentByUser);
+        assertNotEquals(original, differentByConnectClusters);
+        assertNotEquals(original, differentByTopicValidator);
+        assertNotEquals(original, differentByConnectValidator);
     }
 }

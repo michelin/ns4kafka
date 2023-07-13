@@ -8,6 +8,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.List;
@@ -38,6 +39,7 @@ public class KafkaAsyncExecutorScheduler {
     @EventListener
     public void onStartupEvent(ApplicationStartupEvent event) {
         ready.compareAndSet(false,true);
+        scheduleConnectHealthCheck();
         scheduleConnectorSynchronization();
     }
 
@@ -61,13 +63,21 @@ public class KafkaAsyncExecutorScheduler {
     public void scheduleConnectorSynchronization() {
         Flux.interval(Duration.ofSeconds(12), Duration.ofSeconds(30))
                 .onBackpressureDrop(onDropped -> log.debug("Skipping next connector synchronization. The previous one is still running."))
-                .concatMap(mapper -> {
-                    List<Flux<ConnectorInfo>> clusterSyncResponses = connectorAsyncExecutors
-                            .stream()
-                            .map(ConnectorAsyncExecutor::run)
-                            .toList();
-                    return Flux.fromIterable(clusterSyncResponses).flatMap(Function.identity());
-                })
-                .subscribe();
+                .concatMap(mapper -> Flux.fromIterable(connectorAsyncExecutors)
+                        .flatMap(ConnectorAsyncExecutor::run))
+                .onErrorContinue((error, body) -> log.trace("Continue connector synchronization after error: " + error.getMessage() + "."))
+                .subscribe(connectorInfo -> log.trace("Synchronization completed for connector \"" + connectorInfo.name() + "\"."));
+    }
+
+    /**
+     * Schedule connector synchronization
+     */
+    public void scheduleConnectHealthCheck() {
+        Flux.interval(Duration.ofSeconds(5), Duration.ofMinutes(1))
+                .onBackpressureDrop(onDropped -> log.debug("Skipping next Connect cluster health check. The previous one is still running."))
+                .concatMap(mapper -> Flux.fromIterable(connectorAsyncExecutors)
+                        .flatMap(ConnectorAsyncExecutor::runHealthCheck))
+                .onErrorContinue((error, body) -> log.trace("Continue Connect cluster health check after error: " + error.getMessage() + "."))
+                .subscribe(connectCluster -> log.trace("Health check completed for Connect cluster \"" + connectCluster.getMetadata().getName() + "\"."));
     }
 }

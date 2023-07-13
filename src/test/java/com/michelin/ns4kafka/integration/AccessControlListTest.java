@@ -25,7 +25,6 @@ import org.apache.kafka.common.acl.*;
 import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.resource.ResourcePatternFilter;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -33,6 +32,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
@@ -126,8 +128,8 @@ class AccessControlListTest extends AbstractIntegrationTest {
                 new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, "ns1-", PatternType.PREFIXED),
                 new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.READ, AclPermissionType.ALLOW));
 
-        Assertions.assertEquals(1, results.size());
-        Assertions.assertEquals(expected, results.stream().findFirst().get());
+        assertEquals(1, results.size());
+        assertEquals(expected, results.stream().findFirst().get());
 
         // DELETE the ACL and verify
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-topic").bearerAuth(token).body(aclTopic));
@@ -136,7 +138,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
 
         results = kafkaClient.describeAcls(user1Filter).values().get();
 
-        Assertions.assertTrue(results.isEmpty());
+        assertTrue(results.isEmpty());
     }
 
     /**
@@ -177,8 +179,8 @@ class AccessControlListTest extends AbstractIntegrationTest {
                 new AccessControlEntryFilter("User:user1", null, AclOperation.ANY, AclPermissionType.ANY));
         Collection<AclBinding> results = kafkaClient.describeAcls(user1Filter).values().get();
 
-        Assertions.assertEquals(1, results.size());
-        Assertions.assertEquals(aclBinding, results.stream().findFirst().get());
+        assertEquals(1, results.size());
+        assertEquals(aclBinding, results.stream().findFirst().get());
     }
 
     /**
@@ -218,8 +220,8 @@ class AccessControlListTest extends AbstractIntegrationTest {
                 new ResourcePattern(org.apache.kafka.common.resource.ResourceType.GROUP, "connect-ns1-", PatternType.PREFIXED),
                 new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.READ, AclPermissionType.ALLOW));
 
-        Assertions.assertEquals(1, results.size());
-        Assertions.assertEquals(expected, results.stream().findFirst().get());
+        assertEquals(1, results.size());
+        assertEquals(expected, results.stream().findFirst().get());
 
         // DELETE the ACL and verify
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-connect").bearerAuth(token).body(aclTopic));
@@ -228,7 +230,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
 
         results = kafkaClient.describeAcls(user1Filter).values().get();
 
-        Assertions.assertTrue(results.isEmpty());
+        assertTrue(results.isEmpty());
     }
 
     /**
@@ -296,8 +298,8 @@ class AccessControlListTest extends AbstractIntegrationTest {
                 new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, "ns1-", PatternType.PREFIXED),
                 new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.DESCRIBE_CONFIGS, AclPermissionType.ALLOW));
 
-        Assertions.assertEquals(4, results.size());
-        Assertions.assertTrue(results.containsAll(List.of(ac1, ac2, ac3, ac4)));
+        assertEquals(4, results.size());
+        assertTrue(results.containsAll(List.of(ac1, ac2, ac3, ac4)));
 
         KafkaStream stream = KafkaStream.builder()
                 .metadata(ObjectMeta.builder()
@@ -328,8 +330,8 @@ class AccessControlListTest extends AbstractIntegrationTest {
                 new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID, "ns1-stream1", PatternType.PREFIXED),
                 new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.WRITE, AclPermissionType.ALLOW));
 
-        Assertions.assertEquals(7, results.size());
-        Assertions.assertTrue(results.containsAll(List.of(ac1, ac2, ac3, ac4, ac5, ac6, ac7)));
+        assertEquals(7, results.size());
+        assertTrue(results.containsAll(List.of(ac1, ac2, ac3, ac4, ac5, ac6, ac7)));
 
         // DELETE the Stream & ACL and verify
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/streams/ns1-stream1").bearerAuth(token).body(aclTopic));
@@ -340,7 +342,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
 
         results = kafkaClient.describeAcls(user1Filter).values().get();
 
-        Assertions.assertTrue(results.isEmpty());
+        assertTrue(results.isEmpty());
     }
 
     @Test
@@ -379,8 +381,8 @@ class AccessControlListTest extends AbstractIntegrationTest {
                 new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.DESCRIBE, AclPermissionType.ALLOW));
 
 
-        Assertions.assertEquals(2, results.size());
-        Assertions.assertTrue(results.containsAll(List.of(expected, expected2)));
+        assertEquals(2, results.size());
+        assertTrue(results.containsAll(List.of(expected, expected2)));
  
         // DELETE the ACL and verify
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-transactional-id").bearerAuth(token).body(aclTopic));
@@ -389,6 +391,6 @@ class AccessControlListTest extends AbstractIntegrationTest {
 
         results = kafkaClient.describeAcls(user1Filter).values().get();
 
-        Assertions.assertTrue(results.isEmpty());
+        assertTrue(results.isEmpty());
     }
 }

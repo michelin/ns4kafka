@@ -13,11 +13,11 @@ import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
@@ -33,34 +33,30 @@ public class SchemaService {
      * @param namespace The namespace
      * @return A list of schemas
      */
-    public Mono<List<SchemaList>> findAllForNamespace(Namespace namespace) {
+    public Flux<SchemaList> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace).stream()
                 .filter(acl -> acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
                 .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC).toList();
 
         return schemaRegistryClient
                 .getSubjects(namespace.getMetadata().getCluster())
-                .map(subjects -> subjects
-                        .stream()
-                        .filter(subject -> {
-                            String underlyingTopicName = subject.replaceAll("(-key|-value)$","");
+                .filter(subject -> {
+                    String underlyingTopicName = subject.replaceAll("(-key|-value)$","");
 
-                            return acls.stream().anyMatch(accessControlEntry -> switch (accessControlEntry.getSpec().getResourcePatternType()) {
-                                case PREFIXED ->
-                                        underlyingTopicName.startsWith(accessControlEntry.getSpec().getResource());
-                                case LITERAL ->
-                                        underlyingTopicName.equals(accessControlEntry.getSpec().getResource());
-                            });
-                        })
-                        .map(namespacedSubject -> SchemaList.builder()
-                                .metadata(ObjectMeta.builder()
-                                        .cluster(namespace.getMetadata().getCluster())
-                                        .namespace(namespace.getMetadata().getName())
-                                        .name(namespacedSubject)
-                                        .build())
-                                .build())
-                        .collect(Collectors.toList())
-                );
+                    return acls.stream().anyMatch(accessControlEntry -> switch (accessControlEntry.getSpec().getResourcePatternType()) {
+                        case PREFIXED ->
+                                underlyingTopicName.startsWith(accessControlEntry.getSpec().getResource());
+                        case LITERAL ->
+                                underlyingTopicName.equals(accessControlEntry.getSpec().getResource());
+                    });
+                })
+                .map(subject -> SchemaList.builder()
+                    .metadata(ObjectMeta.builder()
+                            .cluster(namespace.getMetadata().getCluster())
+                            .namespace(namespace.getMetadata().getName())
+                            .name(subject)
+                            .build())
+                    .build());
     }
 
     /**

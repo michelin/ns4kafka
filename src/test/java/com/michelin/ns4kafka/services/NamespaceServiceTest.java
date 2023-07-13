@@ -1,22 +1,24 @@
 package com.michelin.ns4kafka.services;
 
+import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig.ConnectConfig;
 import com.michelin.ns4kafka.models.*;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig.ConnectConfig;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class NamespaceServiceTest {
@@ -53,12 +55,12 @@ class NamespaceServiceTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceRepository.findAllForCluster("local"))
+        when(namespaceRepository.findAllForCluster("local"))
                 .thenReturn(List.of());
 
         List<String> result = namespaceService.validateCreation(ns);
-        Assertions.assertEquals(1, result.size());
-        Assertions.assertEquals("Invalid value local for cluster: Cluster doesn't exist", result.get(0));
+        assertEquals(1, result.size());
+        assertEquals("Invalid value local for cluster: Cluster doesn't exist", result.get(0));
 
     }
 
@@ -88,14 +90,14 @@ class NamespaceServiceTest {
                 .build();
         KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig1 = new KafkaAsyncExecutorConfig("local");
 
-        Mockito.when(kafkaAsyncExecutorConfigList.stream())
+        when(kafkaAsyncExecutorConfigList.stream())
                 .thenReturn(Stream.of(kafkaAsyncExecutorConfig1));
-        Mockito.when(namespaceRepository.findAllForCluster("local"))
+        when(namespaceRepository.findAllForCluster("local"))
                 .thenReturn(List.of(ns2));
 
         List<String> result = namespaceService.validateCreation(ns);
-        Assertions.assertEquals(1, result.size());
-        Assertions.assertEquals("Invalid value user for user: KafkaUser already exists", result.get(0));
+        assertEquals(1, result.size());
+        assertEquals("Invalid value user for user: KafkaUser already exists", result.get(0));
 
     }
 
@@ -115,18 +117,17 @@ class NamespaceServiceTest {
 
         KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig1 = new KafkaAsyncExecutorConfig("local");
 
-        Mockito.when(kafkaAsyncExecutorConfigList.stream())
+        when(kafkaAsyncExecutorConfigList.stream())
                 .thenReturn(Stream.of(kafkaAsyncExecutorConfig1));
-        Mockito.when(namespaceRepository.findAllForCluster("local"))
+        when(namespaceRepository.findAllForCluster("local"))
                 .thenReturn(List.of());
 
         List<String> result = namespaceService.validateCreation(ns);
-        Assertions.assertTrue(result.isEmpty());
+        assertTrue(result.isEmpty());
     }
 
     @Test
     void validateCreationANamespaceAlreadyExistsSuccess() {
-
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -150,13 +151,13 @@ class NamespaceServiceTest {
 
         KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig1 = new KafkaAsyncExecutorConfig("local");
 
-        Mockito.when(kafkaAsyncExecutorConfigList.stream())
+        when(kafkaAsyncExecutorConfigList.stream())
                 .thenReturn(Stream.of(kafkaAsyncExecutorConfig1));
-        Mockito.when(namespaceRepository.findAllForCluster("local"))
+        when(namespaceRepository.findAllForCluster("local"))
                 .thenReturn(List.of(ns2));
 
         List<String> result = namespaceService.validateCreation(ns);
-        Assertions.assertTrue(result.isEmpty());
+        assertTrue(result.isEmpty());
     }
 
     @Test
@@ -176,12 +177,12 @@ class NamespaceServiceTest {
         KafkaAsyncExecutorConfig kafka = new KafkaAsyncExecutorConfig("local");
         kafka.setConnects(Map.of("local-name", new ConnectConfig()));
 
-        Mockito.when(kafkaAsyncExecutorConfigList.stream())
+        when(kafkaAsyncExecutorConfigList.stream())
                 .thenReturn(Stream.of(kafka));
 
         List<String> result = namespaceService.validate(ns);
 
-        Assertions.assertTrue(result.isEmpty());
+        assertTrue(result.isEmpty());
 
     }
 
@@ -202,13 +203,13 @@ class NamespaceServiceTest {
         KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig1 = new KafkaAsyncExecutorConfig("local");
         kafkaAsyncExecutorConfig1.setConnects(Map.of("other-connect-config", new ConnectConfig()));
 
-        Mockito.when(kafkaAsyncExecutorConfigList.stream())
+        when(kafkaAsyncExecutorConfigList.stream())
                 .thenReturn(Stream.of(kafkaAsyncExecutorConfig1));
 
         List<String> result = namespaceService.validate(ns);
 
-        Assertions.assertEquals(1, result.size());
-        Assertions.assertEquals("Invalid value local-name for Connect Cluster: Connect Cluster doesn't exist", result.get(0));
+        assertEquals(1, result.size());
+        assertEquals("Invalid value local-name for Connect Cluster: Connect Cluster doesn't exist", result.get(0));
     }
 
     @Test
@@ -248,18 +249,18 @@ class NamespaceServiceTest {
         KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig1 = new KafkaAsyncExecutorConfig("local");
         KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig2 = new KafkaAsyncExecutorConfig("other-cluster");
 
-        Mockito.when(kafkaAsyncExecutorConfigList.stream())
+        when(kafkaAsyncExecutorConfigList.stream())
 
                 .thenReturn(Stream.of(kafkaAsyncExecutorConfig1, kafkaAsyncExecutorConfig2));
-        Mockito.when(namespaceRepository.findAllForCluster("local"))
+        when(namespaceRepository.findAllForCluster("local"))
                 .thenReturn(List.of(ns, ns2));
-        Mockito.when(namespaceRepository.findAllForCluster("other-cluster"))
+        when(namespaceRepository.findAllForCluster("other-cluster"))
                 .thenReturn(List.of(ns3));
 
         List<Namespace> result = namespaceService.listAll();
 
-        Assertions.assertEquals(3, result.size());
-        Assertions.assertTrue(result.containsAll(List.of(ns, ns3, ns2)));
+        assertEquals(3, result.size());
+        assertTrue(result.containsAll(List.of(ns, ns3, ns2)));
     }
 
     @Test
@@ -275,18 +276,18 @@ class NamespaceServiceTest {
                         .build())
                 .build();
 
-        Mockito.when(topicService.findAllForNamespace(ns))
+        when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of());
-        Mockito.when(connectorService.findAllForNamespace(ns))
+        when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of());
-        Mockito.when(roleBindingService.list("namespace"))
+        when(roleBindingService.list("namespace"))
                 .thenReturn(List.of());
-        Mockito.when(accessControlEntryService.findAllForNamespace(ns))
+        when(accessControlEntryService.findAllForNamespace(ns))
                 .thenReturn(List.of());
 
 
         List<String> result = namespaceService.listAllNamespaceResources(ns);
-        Assertions.assertTrue(result.isEmpty());
+        assertTrue(result.isEmpty());
     }
 
     @Test
@@ -309,19 +310,19 @@ class NamespaceServiceTest {
                       .build())
             .build();
 
-        Mockito.when(topicService.findAllForNamespace(ns))
+        when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of(topic));
-        Mockito.when(connectorService.findAllForNamespace(ns))
+        when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of());
-        Mockito.when(roleBindingService.list("namespace"))
+        when(roleBindingService.list("namespace"))
                 .thenReturn(List.of());
-        Mockito.when(accessControlEntryService.findAllForNamespace(ns))
+        when(accessControlEntryService.findAllForNamespace(ns))
                 .thenReturn(List.of());
 
 
         List<String> result = namespaceService.listAllNamespaceResources(ns);
-        Assertions.assertEquals(1,result.size());
-        Assertions.assertEquals("Topic/topic",result.get(0));
+        assertEquals(1,result.size());
+        assertEquals("Topic/topic",result.get(0));
     }
 
     @Test
@@ -344,19 +345,19 @@ class NamespaceServiceTest {
                       .build())
             .build();
 
-        Mockito.when(topicService.findAllForNamespace(ns))
+        when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of());
-        Mockito.when(connectorService.findAllForNamespace(ns))
+        when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of(connector));
-        Mockito.when(roleBindingService.list("namespace"))
+        when(roleBindingService.list("namespace"))
                 .thenReturn(List.of());
-        Mockito.when(accessControlEntryService.findAllForNamespace(ns))
+        when(accessControlEntryService.findAllForNamespace(ns))
                 .thenReturn(List.of());
 
 
         List<String> result = namespaceService.listAllNamespaceResources(ns);
-        Assertions.assertEquals(1,result.size());
-        Assertions.assertEquals("Connector/connector",result.get(0));
+        assertEquals(1,result.size());
+        assertEquals("Connector/connector",result.get(0));
     }
 
     @Test
@@ -379,19 +380,19 @@ class NamespaceServiceTest {
                       .build())
             .build();
 
-        Mockito.when(topicService.findAllForNamespace(ns))
+        when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of());
-        Mockito.when(connectorService.findAllForNamespace(ns))
+        when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of());
-        Mockito.when(roleBindingService.list("namespace"))
+        when(roleBindingService.list("namespace"))
                 .thenReturn(List.of(rb));
-        Mockito.when(accessControlEntryService.findAllForNamespace(ns))
+        when(accessControlEntryService.findAllForNamespace(ns))
                 .thenReturn(List.of());
 
 
         List<String> result = namespaceService.listAllNamespaceResources(ns);
-        Assertions.assertEquals(1,result.size());
-        Assertions.assertEquals("RoleBinding/rolebinding",result.get(0));
+        assertEquals(1,result.size());
+        assertEquals("RoleBinding/rolebinding",result.get(0));
     }
 
     @Test
@@ -414,19 +415,19 @@ class NamespaceServiceTest {
                       .build())
             .build();
 
-        Mockito.when(topicService.findAllForNamespace(ns))
+        when(topicService.findAllForNamespace(ns))
                 .thenReturn(List.of());
-        Mockito.when(connectorService.findAllForNamespace(ns))
+        when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of());
-        Mockito.when(roleBindingService.list("namespace"))
+        when(roleBindingService.list("namespace"))
                 .thenReturn(List.of());
-        Mockito.when(accessControlEntryService.findAllForNamespace(ns))
+        when(accessControlEntryService.findAllForNamespace(ns))
                 .thenReturn(List.of(ace));
 
 
         List<String> result = namespaceService.listAllNamespaceResources(ns);
-        Assertions.assertEquals(1,result.size());
-        Assertions.assertEquals("AccessControlEntry/ace",result.get(0));
+        assertEquals(1,result.size());
+        assertEquals("AccessControlEntry/ace",result.get(0));
     }
 
 }

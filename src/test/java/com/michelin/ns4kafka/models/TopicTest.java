@@ -1,9 +1,11 @@
 package com.michelin.ns4kafka.models;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class TopicTest {
     @Test
@@ -27,7 +29,6 @@ class TopicTest {
                         .configs(Map.of("k1","v1",
                                 "k2", "v2"))
                         .build())
-                // Status should not intefere
                 .status(Topic.TopicStatus.ofSuccess("Created !"))
                 .build();
 
@@ -74,11 +75,11 @@ class TopicTest {
                 .status(Topic.TopicStatus.ofPending())
                 .build();
 
-        Assertions.assertEquals(original,same);
+        assertEquals(original,same);
 
-        Assertions.assertNotEquals(original, differentByMetadata);
-        Assertions.assertNotEquals(original, differentByReplicationFactor);
-        Assertions.assertNotEquals(original, differentByPartitions);
-        Assertions.assertNotEquals(original, differentByConfigs);
+        assertNotEquals(original, differentByMetadata);
+        assertNotEquals(original, differentByReplicationFactor);
+        assertNotEquals(original, differentByPartitions);
+        assertNotEquals(original, differentByConfigs);
     }
 }

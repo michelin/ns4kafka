@@ -15,7 +15,7 @@ import java.util.List;
 @Tag(name = "ACLs", description = "Manage the ACLs.")
 @Controller("/api/acls")
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
-public class AccessControlListNonNamespacedController extends NonNamespacedResourceController {
+public class AclNonNamespacedController extends NonNamespacedResourceController {
     @Inject
     AccessControlEntryService accessControlEntryService;
 

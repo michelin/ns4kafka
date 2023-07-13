@@ -49,11 +49,11 @@ public class KafkaConnectClient {
      * @param connectCluster The Kafka Connect
      * @return The version
      */
-    public HttpResponse<ServerInfo> version(String kafkaCluster, String connectCluster) {
+    public Mono<HttpResponse<ServerInfo>> version(String kafkaCluster, String connectCluster) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/")))
                 .basicAuth(config.getUsername(), config.getPassword());
-        return httpClient.toBlocking().exchange(request, ServerInfo.class);
+        return Mono.from(httpClient.exchange(request, ServerInfo.class));
     }
 
     /**

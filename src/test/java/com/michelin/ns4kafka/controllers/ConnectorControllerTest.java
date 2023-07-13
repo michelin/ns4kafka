@@ -21,12 +21,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -64,13 +67,13 @@ class ConnectorControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.findAllForNamespace(ns))
+        when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of());
 
         List<Connector> actual = connectorController.list("test");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     /**
@@ -85,15 +88,15 @@ class ConnectorControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.findAllForNamespace(ns))
+        when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
                         Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
 
         List<Connector> actual = connectorController.list("test");
-        Assertions.assertEquals(2, actual.size());
+        assertEquals(2, actual.size());
     }
 
     /**
@@ -108,13 +111,13 @@ class ConnectorControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.findByName(ns, "missing"))
+        when(connectorService.findByName(ns, "missing"))
                 .thenReturn(Optional.empty());
 
         Optional<Connector> actual = connectorController.getConnector("test", "missing");
-        Assertions.assertTrue(actual.isEmpty());
+        assertTrue(actual.isEmpty());
     }
 
     /**
@@ -129,15 +132,15 @@ class ConnectorControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.findByName(ns, "connect1"))
+        when(connectorService.findByName(ns, "connect1"))
                 .thenReturn(Optional.of(
                         Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build()));
 
         Optional<Connector> actual = connectorController.getConnector("test", "connect1");
-        Assertions.assertTrue(actual.isPresent());
-        Assertions.assertEquals("connect1", actual.get().getMetadata().getName());
+        assertTrue(actual.isPresent());
+        assertEquals("connect1", actual.get().getMetadata().getName());
     }
 
     /**
@@ -152,9 +155,9 @@ class ConnectorControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(false);
 
         StepVerifier.create(connectorController.deleteConnector("test", "connect1", false))
@@ -179,13 +182,13 @@ class ConnectorControllerTest {
                 .build();
 
         Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
-        Mockito.when(connectorService.findByName(ns,"connect1"))
+        when(connectorService.findByName(ns,"connect1"))
                 .thenReturn(Optional.of(connector));
-        Mockito.when(connectorService.delete(ns,connector))
+        when(connectorService.delete(ns,connector))
                 .thenReturn(Mono.just(HttpResponse.noContent()));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
@@ -209,11 +212,11 @@ class ConnectorControllerTest {
                 .build();
         Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.findByName(ns,"connect1"))
+        when(connectorService.findByName(ns,"connect1"))
                 .thenReturn(Optional.of(connector));
-        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
 
         StepVerifier.create(connectorController.deleteConnector("test", "connect1", true))
@@ -235,11 +238,11 @@ class ConnectorControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.findByName(ns,"connect1"))
+        when(connectorService.findByName(ns,"connect1"))
                 .thenReturn(Optional.empty());
-        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
 
         StepVerifier.create(connectorController.deleteConnector("test", "connect1", true))
@@ -262,9 +265,9 @@ class ConnectorControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(false);
 
         StepVerifier.create(connectorController.apply("test", connector, false))
@@ -292,11 +295,11 @@ class ConnectorControllerTest {
                         .cluster("local")
                         .build())
                 .build();
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
-        Mockito.when(connectorService.validateLocally(ns, connector))
+        when(connectorService.validateLocally(ns, connector))
                 .thenReturn(Mono.just(List.of("Local Validation Error 1")));
 
         StepVerifier.create(connectorController.apply("test", connector, false))
@@ -325,13 +328,13 @@ class ConnectorControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
-        Mockito.when(connectorService.validateLocally(ns, connector))
+        when(connectorService.validateLocally(ns, connector))
                 .thenReturn(Mono.just(List.of()));
-        Mockito.when(connectorService.validateRemotely(ns, connector))
+        when(connectorService.validateRemotely(ns, connector))
                 .thenReturn(Mono.just(List.of("Remote Validation Error 1")));
 
         StepVerifier.create(connectorController.apply("test", connector, false))
@@ -444,11 +447,11 @@ class ConnectorControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
-        Mockito.when(connectorService.validateLocally(ns, connector)).thenReturn(Mono.just(List.of()));
-        Mockito.when(connectorService.validateRemotely(ns, connector)).thenReturn(Mono.just(List.of()));
-        Mockito.when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.of(connector));
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
+        when(connectorService.validateLocally(ns, connector)).thenReturn(Mono.just(List.of()));
+        when(connectorService.validateRemotely(ns, connector)).thenReturn(Mono.just(List.of()));
+        when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.of(connector));
 
         StepVerifier.create(connectorController.apply("test", connector, false))
             .consumeNextWith(response -> {
@@ -486,20 +489,20 @@ class ConnectorControllerTest {
                         .cluster("local")
                         .build())
                 .build();
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
-        Mockito.when(connectorService.validateLocally(ns, connector))
+        when(connectorService.validateLocally(ns, connector))
                 .thenReturn(Mono.just(List.of()));
-        Mockito.when(connectorService.validateRemotely(ns, connector))
+        when(connectorService.validateRemotely(ns, connector))
                 .thenReturn(Mono.just(List.of()));
-        Mockito.when(connectorService.findByName(ns, "connect1"))
+        when(connectorService.findByName(ns, "connect1"))
                 .thenReturn(Optional.of(connectorOld));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
-        Mockito.when(connectorService.createOrUpdate(connector))
+        when(connectorService.createOrUpdate(connector))
                 .thenReturn(expected);
 
         StepVerifier.create(connectorController.apply("test", connector, false))
@@ -527,13 +530,13 @@ class ConnectorControllerTest {
                         .cluster("local")
                         .build())
                 .build();
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
-        Mockito.when(connectorService.validateLocally(ns, connector))
+        when(connectorService.validateLocally(ns, connector))
                 .thenReturn(Mono.just(List.of()));
-        Mockito.when(connectorService.validateRemotely(ns, connector))
+        when(connectorService.validateRemotely(ns, connector))
                 .thenReturn(Mono.just(List.of()));
 
         StepVerifier.create(connectorController.apply("test", connector, true))
@@ -557,21 +560,18 @@ class ConnectorControllerTest {
         Connector connector1 = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
         Connector connector2 = Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
         
         when(connectorService.listUnsynchronizedConnectors(ns))
-                .thenReturn(Mono.just(List.of(connector1, connector2)));
+                .thenReturn(Flux.fromIterable(List.of(connector1, connector2)));
         
         when(connectorService.createOrUpdate(connector1)).thenReturn(connector1);
         when(connectorService.createOrUpdate(connector2)).thenReturn(connector2);
 
         StepVerifier.create(connectorController.importResources("test", false))
-            .consumeNextWith(response -> {
-                assertTrue(response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect1")));
-                assertTrue(response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect2")));
-                assertTrue(response.stream().noneMatch(c -> c.getMetadata().getName().equals("connect3")));
-            })
+            .consumeNextWith(connect1 -> assertEquals("connect1", connect1.getMetadata().getName()))
+            .consumeNextWith(connect2 -> assertEquals("connect2", connect2.getMetadata().getName()))
             .verifyComplete();
     }
 
@@ -590,18 +590,15 @@ class ConnectorControllerTest {
         Connector connector2 = Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build();
         Connector connector3 = Connector.builder().metadata(ObjectMeta.builder().name("connect3").build()).build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
 
         when(connectorService.listUnsynchronizedConnectors(ns))
-                .thenReturn(Mono.just(List.of(connector1, connector2)));
+                .thenReturn(Flux.fromIterable(List.of(connector1, connector2)));
 
         StepVerifier.create(connectorController.importResources("test", true))
-            .consumeNextWith(response -> {
-                assertTrue(response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect1")));
-                assertTrue(response.stream().anyMatch(c -> c.getMetadata().getName().equals("connect2")));
-                assertTrue(response.stream().noneMatch(c -> c.getMetadata().getName().equals("connect3")));
-            })
+            .consumeNextWith(connect1 -> assertEquals("connect1", connect1.getMetadata().getName()))
+            .consumeNextWith(connect2 -> assertEquals("connect2", connect2.getMetadata().getName()))
             .verifyComplete();
 
         verify(connectorService, never()).createOrUpdate(connector1);
@@ -621,9 +618,9 @@ class ConnectorControllerTest {
                         .build())
                 .build();
 
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(false);
 
         ChangeConnectorState restart = ChangeConnectorState.builder()
@@ -651,11 +648,11 @@ class ConnectorControllerTest {
                         .cluster("local")
                         .build())
                 .build();
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
-        Mockito.when(connectorService.findByName(ns,"connect1"))
+        when(connectorService.findByName(ns,"connect1"))
                 .thenReturn(Optional.empty());
 
         ChangeConnectorState restart = ChangeConnectorState.builder()
@@ -683,13 +680,13 @@ class ConnectorControllerTest {
                 .build();
 
         Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
-        Mockito.when(connectorService.findByName(ns,"connect1"))
+        when(connectorService.findByName(ns,"connect1"))
                 .thenReturn(Optional.of(connector));
-        Mockito.when(connectorService.restart(ArgumentMatchers.any(),ArgumentMatchers.any()))
+        when(connectorService.restart(ArgumentMatchers.any(),ArgumentMatchers.any()))
                 .thenReturn(Mono.error(new HttpClientResponseException("Rebalancing", HttpResponse.status(HttpStatus.CONFLICT))));
 
         ChangeConnectorState restart = ChangeConnectorState.builder()
@@ -720,13 +717,13 @@ class ConnectorControllerTest {
                 .build();
 
         Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
-        Mockito.when(connectorService.findByName(ns,"connect1"))
+        when(connectorService.findByName(ns,"connect1"))
                 .thenReturn(Optional.of(connector));
-        Mockito.when(connectorService.restart(ArgumentMatchers.any(),ArgumentMatchers.any()))
+        when(connectorService.restart(ArgumentMatchers.any(),ArgumentMatchers.any()))
                 .thenReturn(Mono.just(HttpResponse.noContent()));
 
         ChangeConnectorState changeConnectorState = ChangeConnectorState.builder()
@@ -757,13 +754,13 @@ class ConnectorControllerTest {
                 .build();
 
         Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
-        Mockito.when(connectorService.findByName(ns,"connect1"))
+        when(connectorService.findByName(ns,"connect1"))
                 .thenReturn(Optional.of(connector));
-        Mockito.when(connectorService.pause(ArgumentMatchers.any(),ArgumentMatchers.any()))
+        when(connectorService.pause(ArgumentMatchers.any(),ArgumentMatchers.any()))
                 .thenReturn(Mono.just(HttpResponse.noContent()));
 
         ChangeConnectorState changeConnectorState = ChangeConnectorState.builder()
@@ -796,13 +793,13 @@ class ConnectorControllerTest {
                         .build())
                 .build();
         Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
-        Mockito.when(namespaceService.findByName("test"))
+        when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        Mockito.when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
                 .thenReturn(true);
-        Mockito.when(connectorService.findByName(ns,"connect1"))
+        when(connectorService.findByName(ns,"connect1"))
                 .thenReturn(Optional.of(connector));
-        Mockito.when(connectorService.resume(ArgumentMatchers.any(),ArgumentMatchers.any()))
+        when(connectorService.resume(ArgumentMatchers.any(),ArgumentMatchers.any()))
                 .thenReturn(Mono.just(HttpResponse.noContent()));
 
         ChangeConnectorState changeConnectorState = ChangeConnectorState.builder()
