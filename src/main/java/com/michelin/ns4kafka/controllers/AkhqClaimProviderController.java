@@ -238,7 +238,7 @@ public class AkhqClaimProviderController {
                                         .getOrDefault(config.getGroupLabel(), "_")
                                         .split(","))))
                 .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace).stream())
-                .toList();
+                .collect(Collectors.toList());
     }
 
     /**
