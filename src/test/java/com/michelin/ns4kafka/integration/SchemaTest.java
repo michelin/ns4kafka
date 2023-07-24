@@ -7,9 +7,11 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.models.schema.Schema;
 import com.michelin.ns4kafka.models.schema.SchemaCompatibilityState;
+import com.michelin.ns4kafka.models.schema.SchemaList;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
 import io.micronaut.context.annotation.Property;
+import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
@@ -29,8 +31,7 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
@@ -330,6 +331,15 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, createException.getStatus());
         assertEquals("Invalid Schema wrongprefix-subject", createException.getMessage());
 
+        // Get all schemas
+        var getResponse = client.toBlocking().exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/schemas")
+                .bearerAuth(token), Argument.listOf(SchemaList.class));
+
+        assertTrue(getResponse.getBody().isPresent());
+        assertTrue(getResponse.getBody().get()
+                .stream()
+                .noneMatch(schemaList -> schemaList.getMetadata().getName().equals("wrongprefix-subject")));
+
         HttpClientResponseException getException = assertThrows(HttpClientResponseException.class,
                 () -> schemaClient.toBlocking()
                         .retrieve(HttpRequest.GET("/subjects/wrongprefix-subject/versions/latest"),
@@ -352,16 +362,36 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .build())
                 .build();
 
+        // Apply schema
         var createResponse = client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/schemas")
                         .bearerAuth(token)
                         .body(schema), Schema.class);
 
         assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
 
+        // Get all schemas
+        var getResponse = client.toBlocking().exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/schemas")
+                .bearerAuth(token), Argument.listOf(SchemaList.class));
+
+        assertTrue(getResponse.getBody().isPresent());
+        assertTrue(getResponse.getBody().get()
+                .stream()
+                .anyMatch(schemaList -> schemaList.getMetadata().getName().equals("ns1-subject2-value")));
+
+        // Delete schema
         var deleteResponse = client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/schemas/ns1-subject2-value")
                         .bearerAuth(token), Schema.class);
 
         assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
+
+        // Get all schemas
+        var getResponseEmpty = client.toBlocking().exchange(HttpRequest.create(HttpMethod.GET,"/api/namespaces/ns1/schemas")
+                .bearerAuth(token), Argument.listOf(SchemaList.class));
+
+        assertTrue(getResponseEmpty.getBody().isPresent());
+        assertTrue(getResponseEmpty.getBody().get()
+                .stream()
+                .noneMatch(schemaList -> schemaList.getMetadata().getName().equals("ns1-subject2-value")));
 
         HttpClientResponseException getException = assertThrows(HttpClientResponseException.class,
                 () -> schemaClient.toBlocking()
