@@ -42,7 +42,7 @@ public class SchemaRegistryClient {
         KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/subjects")))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-        return Flux.from(httpClient.retrieve(request, String.class));
+        return Flux.from(httpClient.retrieve(request, String[].class)).flatMap(Flux::fromArray);
     }
 
     /**
