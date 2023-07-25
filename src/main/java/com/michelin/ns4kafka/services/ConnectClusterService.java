@@ -97,7 +97,10 @@ public class ConnectClusterService {
                             connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
                             connectCluster.getSpec().setStatusMessage(error.getMessage());
                         })
-                        .doOnSuccess(response -> connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY))
+                        .doOnSuccess(response -> {
+                            connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
+                            connectCluster.getSpec().setStatusMessage(null);
+                        })
                         .map(response -> connectCluster)
                         .onErrorReturn(connectCluster));
     }
