@@ -241,7 +241,7 @@ public class ConnectorAsyncExecutor {
                         connector.getMetadata().getName(), ConnectorSpecs.builder().config(connector.getSpec().getConfig()).build())
                 .doOnSuccess(httpResponse -> log.info("Success deploying connector {} on Kafka Connect {} of Kafka cluster {}.",
                         connector.getMetadata().getName(), connector.getSpec().getConnectCluster(), kafkaAsyncExecutorConfig.getName()))
-                .doOnError(httpError -> log.error("Error deploying connector {} on Kafka Connect {} of Kafka cluster {}.",
-                                connector.getMetadata().getName(), connector.getSpec().getConnectCluster(), kafkaAsyncExecutorConfig.getName()));
+                .doOnError(httpError -> log.error("Error deploying connector {} on Kafka Connect {} of Kafka cluster {}: {}",
+                                connector.getMetadata().getName(), connector.getSpec().getConnectCluster(), kafkaAsyncExecutorConfig.getName(), httpError.getMessage()));
     }
 }

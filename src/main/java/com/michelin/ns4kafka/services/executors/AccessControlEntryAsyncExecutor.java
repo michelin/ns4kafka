@@ -70,7 +70,7 @@ public class AccessControlEntryAsyncExecutor {
      * Start the ACLs synchronization
      */
     private void synchronizeACLs() {
-        log.debug("Starting ACLs collection for cluster {}", kafkaAsyncExecutorConfig.getName());
+        log.debug("Starting ACL collection for cluster {}", kafkaAsyncExecutorConfig.getName());
 
         try {
             // List ACLs from broker
@@ -87,18 +87,15 @@ public class AccessControlEntryAsyncExecutor {
                     .filter(aclBinding -> !ns4kafkaACLs.contains(aclBinding))
                     .toList();
 
-            if (log.isDebugEnabled()) {
-                brokerACLs.stream()
-                        .filter(ns4kafkaACLs::contains)
-                        .forEach(aclBinding -> log.debug("ACLs found in broker and Ns4Kafka: " + aclBinding.toString()));
+            if (!toCreate.isEmpty()) {
+                log.debug("ACL(s) to create: " +  String.join("," , toCreate.stream().map(AclBinding::toString).toList()));
+            }
 
-                toCreate.forEach(aclBinding -> log.debug("ACLs to create: " + aclBinding.toString()));
-
-                if (!kafkaAsyncExecutorConfig.isDropUnsyncAcls() && !toDelete.isEmpty()) {
+            if (!toDelete.isEmpty()) {
+                if (!kafkaAsyncExecutorConfig.isDropUnsyncAcls()) {
                     log.debug("The ACL drop is disabled. The following ACLs won't be deleted.");
                 }
-
-                toDelete.forEach(aclBinding -> log.debug("ACLs to delete: " + aclBinding.toString()));
+                log.debug("ACL(s) to delete: " +  String.join("," , toDelete.stream().map(AclBinding::toString).toList()));
             }
 
             // Execute toAdd list BEFORE toDelete list to avoid breaking ACL on connected user
@@ -156,9 +153,8 @@ public class AccessControlEntryAsyncExecutor {
                 .flatMap(Function.identity())
                 .toList();
 
-        if (log.isDebugEnabled()) {
-            log.debug("ACLs found on ns4kafka : " + ns4kafkaACLs.size());
-            ns4kafkaACLs.forEach(aclBinding -> log.debug(aclBinding.toString()));
+        if (!ns4kafkaACLs.isEmpty()) {
+            log.trace("ACL(s) found in Ns4Kafka: " +  String.join("," , ns4kafkaACLs.stream().map(AclBinding::toString).toList()));
         }
 
         return ns4kafkaACLs;
@@ -183,31 +179,28 @@ public class AccessControlEntryAsyncExecutor {
                 .filter(aclBinding -> validResourceTypes.contains(aclBinding.pattern().resourceType()))
                 .toList();
 
-        log.debug("{} ACLs found on broker", userACLs.size());
-        if (log.isTraceEnabled()) {
-            userACLs.forEach(aclBinding -> log.trace(aclBinding.toString()));
-        }
-
         if (managedUsersOnly) {
-            // we first collect the list of Users managed in ns4kafka
-            List<String> managedUsers = namespaceRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName())
+            // Collect the list of users managed in Ns4Kafka
+            List<String> managedUsers = new ArrayList<>();
+            managedUsers.add(USER_PRINCIPAL + PUBLIC_GRANTED_TO);
+            managedUsers.addAll(namespaceRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName())
                     .stream()
-                    //1-N Namespace to KafkaUser
                     .flatMap(namespace -> Stream.of(USER_PRINCIPAL + namespace.getSpec().getKafkaUser()))
-                    .toList();
+                    .toList());
 
-            // And then filter out the AclBinding to retain only those matching
-            // or having principal equal to wildcard (public).
+            // Filter out the ACLs to retain only those matching
             userACLs = userACLs
                     .stream()
-                    .filter(aclBinding -> managedUsers.contains(aclBinding.entry().principal()) ||
-                            aclBinding.entry().principal().equals(PUBLIC_GRANTED_TO))
+                    .filter(aclBinding -> managedUsers.contains(aclBinding.entry().principal()))
                     .toList();
-            log.debug("ACLs found on Broker (managed scope) : {}", userACLs.size());
+
+            if (!userACLs.isEmpty()) {
+                log.trace("ACL(s) found in broker (managed scope): " +  String.join("," , userACLs.stream().map(AclBinding::toString).toList()));
+            }
         }
 
-        if (log.isDebugEnabled()) {
-            userACLs.forEach(aclBinding -> log.debug(aclBinding.toString()));
+        if (!userACLs.isEmpty()) {
+            log.trace("ACL(s) found in broker: " +  String.join("," , userACLs.stream().map(AclBinding::toString).toList()));
         }
 
         return userACLs;
