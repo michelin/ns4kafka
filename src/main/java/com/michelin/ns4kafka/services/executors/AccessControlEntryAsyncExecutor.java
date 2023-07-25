@@ -153,8 +153,6 @@ public class AccessControlEntryAsyncExecutor {
                 .flatMap(Function.identity())
                 .toList();
 
-
-
         if (!ns4kafkaACLs.isEmpty()) {
             log.trace("ACL(s) found in Ns4Kafka: " +  String.join("," , ns4kafkaACLs.stream().map(AclBinding::toString).toList()));
         }
