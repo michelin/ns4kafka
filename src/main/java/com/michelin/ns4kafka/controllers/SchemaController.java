@@ -114,7 +114,7 @@ public class SchemaController extends NamespacedResourceController {
                                             if (latestSubjectOptional.isEmpty()) {
                                                 status = ApplyStatus.created;
                                                 sendEventLog(schema.getKind(), schema.getMetadata(), status, null, schema.getSpec());
-                                            } else if (!id.equals(latestSubjectOptional.get().getSpec().getId())) {
+                                            } else if (id > latestSubjectOptional.get().getSpec().getId()) {
                                                 status = ApplyStatus.changed;
                                                 sendEventLog(schema.getKind(), schema.getMetadata(), status, latestSubjectOptional.get().getSpec(),
                                                         schema.getSpec());
