@@ -139,7 +139,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
     void createConnect() throws MalformedURLException {
         HttpClient connectCli = HttpClient.create(new URL(connect.getUrl()));
         ServerInfo actual = connectCli.toBlocking().retrieve(HttpRequest.GET("/"), ServerInfo.class);
-        assertEquals("6.2.0-ccs", actual.version());
+        assertEquals("7.4.1-ccs", actual.version());
     }
 
     /**
@@ -185,10 +185,10 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .build();
 
         Map<String, String> connectorSpecs = new HashMap<>();
-        connectorSpecs.put("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector");
-        connectorSpecs.put("tasks.max", "1");
-        connectorSpecs.put("topics", "ns1-to1");
-        connectorSpecs.put("file", null);
+        connectorSpecs.put("connector.class", "io.confluent.kafka.connect.datagen.DatagenConnector");
+        connectorSpecs.put("kafka.topic", "ns1-to1");
+        connectorSpecs.put("schema.string", "{\"namespace\":\"io.github.michelin.ns4kafka.avro\",\"name\":\"KafkaPerson\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":{\"type\":\"long\",\"arg.properties\":{\"range\":{\"min\":0,\"max\":2147483647}}}}]}");
+        connectorSpecs.put("test.field", null);
 
         Connector connectorWithNullParameter = Connector.builder()
                 .metadata(ObjectMeta.builder()
@@ -209,10 +209,10 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("test-connect")
                         .config(Map.of(
-                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
-                                "tasks.max", "1",
-                                "topics", "ns1-to1",
-                                "file", ""
+                                "connector.class", "io.confluent.kafka.connect.datagen.DatagenConnector",
+                                "kafka.topic", "ns1-to1",
+                                "schema.string", "{\"namespace\":\"io.github.michelin.ns4kafka.avro\",\"name\":\"KafkaPerson\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":{\"type\":\"long\",\"arg.properties\":{\"range\":{\"min\":0,\"max\":2147483647}}}}]}",
+                                "test.field", ""
                         ))
                         .build())
                 .build();
@@ -225,10 +225,10 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("test-connect")
                         .config(Map.of(
-                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
-                                "tasks.max", "1",
-                                "topics", "ns1-to1",
-                                "file", "test"
+                                "connector.class", "io.confluent.kafka.connect.datagen.DatagenConnector",
+                                "kafka.topic", "ns1-to1",
+                                "schema.string", "{\"namespace\":\"io.github.michelin.ns4kafka.avro\",\"name\":\"KafkaPerson\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":{\"type\":\"long\",\"arg.properties\":{\"range\":{\"min\":0,\"max\":2147483647}}}}]}",
+                                "test.field", "test"
                         ))
                         .build())
                 .build();
@@ -249,22 +249,22 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         ConnectorInfo actualConnectorWithEmptyParameter = connectCli.toBlocking().retrieve(HttpRequest.GET("/connectors/ns1-connectorWithEmptyParameter"), ConnectorInfo.class);
         ConnectorInfo actualConnectorWithFillParameter = connectCli.toBlocking().retrieve(HttpRequest.GET("/connectors/ns1-connectorWithFillParameter"), ConnectorInfo.class);
 
-        // "File" property is present, but null
-        assertTrue(actualConnectorWithNullParameter.config().containsKey("file"));
-        Assertions.assertNull(actualConnectorWithNullParameter.config().get("file"));
+        // "test.field" property is present, but null
+        assertTrue(actualConnectorWithNullParameter.config().containsKey("test.field"));
+        Assertions.assertNull(actualConnectorWithNullParameter.config().get("test.field"));
 
-        // "File" property is present, but empty
-        assertTrue(actualConnectorWithEmptyParameter.config().containsKey("file"));
-        assertTrue(actualConnectorWithEmptyParameter.config().get("file").isEmpty());
+        // "test.field" property is present, but empty
+        assertTrue(actualConnectorWithEmptyParameter.config().containsKey("test.field"));
+        assertTrue(actualConnectorWithEmptyParameter.config().get("test.field").isEmpty());
 
-        // "File" property is present
-        assertTrue(actualConnectorWithFillParameter.config().containsKey("file"));
-        assertEquals("test", actualConnectorWithFillParameter.config().get("file"));
+        // "test.field" property is present
+        assertTrue(actualConnectorWithFillParameter.config().containsKey("test.field"));
+        assertEquals("test", actualConnectorWithFillParameter.config().get("test.field"));
     }
 
     /**
      * Validate connector update when connector is already deployed
-     * in the cluster and it is updated with a null property
+     * in the cluster, and it is updated with a null property
      * @throws InterruptedException Any interrupted exception
      * @throws MalformedURLException Any malformed URL exception
      */
@@ -285,18 +285,18 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .build();
 
         ConnectorSpecs connectorSpecs = ConnectorSpecs.builder()
-                .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
-                        "tasks.max", "1",
-                        "topics", "ns1-to1",
-                        "file", "test"
+                .config(Map.of("connector.class", "io.confluent.kafka.connect.datagen.DatagenConnector",
+                        "kafka.topic", "ns1-to1",
+                        "schema.string", "{\"namespace\":\"io.github.michelin.ns4kafka.avro\",\"name\":\"KafkaPerson\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":{\"type\":\"long\",\"arg.properties\":{\"range\":{\"min\":0,\"max\":2147483647}}}}]}",
+                        "test.field", "test"
                 ))
                 .build();
 
         Map<String, String> updatedConnectorSpecs = new HashMap<>();
-        updatedConnectorSpecs.put("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector");
-        updatedConnectorSpecs.put("tasks.max", "1");
-        updatedConnectorSpecs.put("topics", "ns1-to1");
-        updatedConnectorSpecs.put("file", null);
+        updatedConnectorSpecs.put("connector.class", "io.confluent.kafka.connect.datagen.DatagenConnector");
+        updatedConnectorSpecs.put("kafka.topic", "ns1-to1");
+        updatedConnectorSpecs.put("schema.string", "{\"namespace\":\"io.github.michelin.ns4kafka.avro\",\"name\":\"KafkaPerson\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":{\"type\":\"long\",\"arg.properties\":{\"range\":{\"min\":0,\"max\":2147483647}}}}]}");
+        updatedConnectorSpecs.put("test.field", null);
 
         Connector updateConnector = Connector.builder()
                 .metadata(ObjectMeta.builder()
@@ -314,8 +314,8 @@ class ConnectTest extends AbstractIntegrationConnectTest {
 
         // "File" property is present and fill
         assertTrue(connectorInfo.getBody().isPresent());
-        assertTrue(connectorInfo.getBody().get().config().containsKey("file"));
-        assertEquals("test", connectorInfo.getBody().get().config().get("file"));
+        assertTrue(connectorInfo.getBody().get().config().containsKey("test.field"));
+        assertEquals("test", connectorInfo.getBody().get().config().get("test.field"));
 
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to));
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
@@ -329,8 +329,8 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         ConnectorInfo actualConnector = connectCli.toBlocking().retrieve(HttpRequest.GET("/connectors/ns1-connector"), ConnectorInfo.class);
 
         // "File" property is present, but null
-        assertTrue(actualConnector.config().containsKey("file"));
-        Assertions.assertNull(actualConnector.config().get("file"));
+        assertTrue(actualConnector.config().containsKey("test.field"));
+        Assertions.assertNull(actualConnector.config().get("test.field"));
     }
 
     /**
@@ -360,11 +360,9 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("test-connect")
-                        .config(Map.of(
-                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
-                                "tasks.max", "1",
-                                "topics", "ns1-to1"
-                        ))
+                        .config(Map.of("connector.class", "io.confluent.kafka.connect.datagen.DatagenConnector",
+                                        "kafka.topic", "ns1-to1",
+                                        "schema.string", "{\"namespace\":\"io.github.michelin.ns4kafka.avro\",\"name\":\"KafkaPerson\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":{\"type\":\"long\",\"arg.properties\":{\"range\":{\"min\":0,\"max\":2147483647}}}}]}"))
                         .build())
                 .build();
 
@@ -415,10 +413,10 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("test-connect")
-                        .config(Map.of(
-                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
-                                "tasks.max", "3",
-                                "topics", "ns1-to1"
+                        .config(Map.of("connector.class", "io.confluent.kafka.connect.datagen.DatagenConnector",
+                                        "tasks.max", "3",
+                                        "kafka.topic", "ns1-to1",
+                                        "schema.string", "{\"namespace\":\"io.github.michelin.ns4kafka.avro\",\"name\":\"KafkaPerson\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":{\"type\":\"long\",\"arg.properties\":{\"range\":{\"min\":0,\"max\":2147483647}}}}]}",
                         ))
                         .build())
                 .build();
