@@ -416,7 +416,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                         .config(Map.of("connector.class", "io.confluent.kafka.connect.datagen.DatagenConnector",
                                         "tasks.max", "3",
                                         "kafka.topic", "ns1-to1",
-                                        "schema.string", "{\"namespace\":\"io.github.michelin.ns4kafka.avro\",\"name\":\"KafkaPerson\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":{\"type\":\"long\",\"arg.properties\":{\"range\":{\"min\":0,\"max\":2147483647}}}}]}",
+                                        "schema.string", "{\"namespace\":\"io.github.michelin.ns4kafka.avro\",\"name\":\"KafkaPerson\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":{\"type\":\"long\",\"arg.properties\":{\"range\":{\"min\":0,\"max\":2147483647}}}}]}"
                         ))
                         .build())
                 .build();
