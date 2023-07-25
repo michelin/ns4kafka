@@ -155,7 +155,7 @@ public class AccessControlEntryAsyncExecutor {
 
 
 
-        if (log.isTraceEnabled() && !ns4kafkaACLs.isEmpty()) {
+        if (!ns4kafkaACLs.isEmpty()) {
             log.trace("ACL(s) found in Ns4Kafka: " +  String.join("," , ns4kafkaACLs.stream().map(AclBinding::toString).toList()));
         }
 
@@ -196,12 +196,12 @@ public class AccessControlEntryAsyncExecutor {
                     .filter(aclBinding -> managedUsers.contains(aclBinding.entry().principal()))
                     .toList();
 
-            if (log.isTraceEnabled() && !userACLs.isEmpty()) {
+            if (!userACLs.isEmpty()) {
                 log.trace("ACL(s) found in broker (managed scope): " +  String.join("," , userACLs.stream().map(AclBinding::toString).toList()));
             }
         }
 
-        if (log.isTraceEnabled() && !userACLs.isEmpty()) {
+        if (!userACLs.isEmpty()) {
             log.trace("ACL(s) found in broker: " +  String.join("," , userACLs.stream().map(AclBinding::toString).toList()));
         }
 
