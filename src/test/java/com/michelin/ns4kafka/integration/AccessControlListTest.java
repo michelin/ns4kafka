@@ -150,7 +150,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
     void shouldCreatePublicTopicReadACL() throws InterruptedException, ExecutionException {
         AccessControlEntry aclTopic = AccessControlEntry.builder()
                 .metadata(ObjectMeta.builder()
-                        .name("ns1-public-acl-topic")
+                        .name("ns1-acl-topic")
                         .namespace("ns1")
                         .build())
                 .spec(AccessControlEntrySpec.builder()
@@ -158,7 +158,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
                         .resource("ns1-")
                         .resourcePatternType(ResourcePatternType.PREFIXED)
                         .permission(Permission.READ)
-                        .grantedTo("*")
+                        .grantedTo("'*'")
                         .build())
                 .build();
 
@@ -181,7 +181,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
         assertEquals(expected, results.stream().findFirst().get());
 
         // DELETE the ACL and verify
-        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-public-acl-topic").bearerAuth(token).body(aclTopic));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-topic").bearerAuth(token).body(aclTopic));
 
         accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
 
