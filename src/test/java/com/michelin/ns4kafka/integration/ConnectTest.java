@@ -132,11 +132,11 @@ class ConnectTest extends AbstractIntegrationConnectTest {
     }
 
     /**
-     * Validate connector HTTP client creation
+     * Verify the current Kafka Connect version
      * @throws MalformedURLException Any malformed URL exception
      */
     @Test
-    void createConnect() throws MalformedURLException {
+    void checkVersion() throws MalformedURLException {
         HttpClient connectCli = HttpClient.create(new URL(connect.getUrl()));
         ServerInfo actual = connectCli.toBlocking().retrieve(HttpRequest.GET("/"), ServerInfo.class);
         assertEquals("7.4.1-ccs", actual.version());
@@ -185,9 +185,9 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .build();
 
         Map<String, String> connectorSpecs = new HashMap<>();
-        connectorSpecs.put("connector.class", "io.confluent.kafka.connect.datagen.DatagenConnector");
-        connectorSpecs.put("kafka.topic", "ns1-to1");
-        connectorSpecs.put("schema.string", "{\"namespace\":\"io.github.michelin.ns4kafka.avro\",\"name\":\"KafkaPerson\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":{\"type\":\"long\",\"arg.properties\":{\"range\":{\"min\":0,\"max\":2147483647}}}}]}");
+        connectorSpecs.put("connector.class", "org.apache.kafka.connect.tools.MockSinkConnector");
+        connectorSpecs.put("topics", "ns1-to1");
+        connectorSpecs.put("tasks.max", "1");
         connectorSpecs.put("test.field", null);
 
         Connector connectorWithNullParameter = Connector.builder()
@@ -209,9 +209,9 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("test-connect")
                         .config(Map.of(
-                                "connector.class", "io.confluent.kafka.connect.datagen.DatagenConnector",
-                                "kafka.topic", "ns1-to1",
-                                "schema.string", "{\"namespace\":\"io.github.michelin.ns4kafka.avro\",\"name\":\"KafkaPerson\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":{\"type\":\"long\",\"arg.properties\":{\"range\":{\"min\":0,\"max\":2147483647}}}}]}",
+                                "connector.class", "org.apache.kafka.connect.tools.MockSinkConnector",
+                                "topics", "ns1-to1",
+                                "tasks.max", "1",
                                 "test.field", ""
                         ))
                         .build())
@@ -225,9 +225,9 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("test-connect")
                         .config(Map.of(
-                                "connector.class", "io.confluent.kafka.connect.datagen.DatagenConnector",
-                                "kafka.topic", "ns1-to1",
-                                "schema.string", "{\"namespace\":\"io.github.michelin.ns4kafka.avro\",\"name\":\"KafkaPerson\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":{\"type\":\"long\",\"arg.properties\":{\"range\":{\"min\":0,\"max\":2147483647}}}}]}",
+                                "connector.class", "org.apache.kafka.connect.tools.MockSinkConnector",
+                                "topics", "ns1-to1",
+                                "tasks.max", "1",
                                 "test.field", "test"
                         ))
                         .build())
@@ -285,17 +285,17 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .build();
 
         ConnectorSpecs connectorSpecs = ConnectorSpecs.builder()
-                .config(Map.of("connector.class", "io.confluent.kafka.connect.datagen.DatagenConnector",
-                        "kafka.topic", "ns1-to1",
-                        "schema.string", "{\"namespace\":\"io.github.michelin.ns4kafka.avro\",\"name\":\"KafkaPerson\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":{\"type\":\"long\",\"arg.properties\":{\"range\":{\"min\":0,\"max\":2147483647}}}}]}",
+                .config(Map.of("connector.class", "org.apache.kafka.connect.tools.MockSinkConnector",
+                        "topics", "ns1-to1",
+                        "tasks.max", "1",
                         "test.field", "test"
                 ))
                 .build();
 
         Map<String, String> updatedConnectorSpecs = new HashMap<>();
-        updatedConnectorSpecs.put("connector.class", "io.confluent.kafka.connect.datagen.DatagenConnector");
-        updatedConnectorSpecs.put("kafka.topic", "ns1-to1");
-        updatedConnectorSpecs.put("schema.string", "{\"namespace\":\"io.github.michelin.ns4kafka.avro\",\"name\":\"KafkaPerson\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":{\"type\":\"long\",\"arg.properties\":{\"range\":{\"min\":0,\"max\":2147483647}}}}]}");
+        updatedConnectorSpecs.put("connector.class", "org.apache.kafka.connect.tools.MockSinkConnector");
+        updatedConnectorSpecs.put("topics", "ns1-to1");
+        updatedConnectorSpecs.put("tasks.max", "1");
         updatedConnectorSpecs.put("test.field", null);
 
         Connector updateConnector = Connector.builder()
@@ -360,9 +360,9 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("test-connect")
-                        .config(Map.of("connector.class", "io.confluent.kafka.connect.datagen.DatagenConnector",
-                                        "kafka.topic", "ns1-to1",
-                                        "schema.string", "{\"namespace\":\"io.github.michelin.ns4kafka.avro\",\"name\":\"KafkaPerson\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":{\"type\":\"long\",\"arg.properties\":{\"range\":{\"min\":0,\"max\":2147483647}}}}]}"))
+                        .config(Map.of("connector.class", "org.apache.kafka.connect.tools.MockSinkConnector",
+                                        "topics", "ns1-to1",
+                                "tasks.max", "1"))
                         .build())
                 .build();
 
@@ -413,10 +413,9 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("test-connect")
-                        .config(Map.of("connector.class", "io.confluent.kafka.connect.datagen.DatagenConnector",
+                        .config(Map.of("connector.class", "org.apache.kafka.connect.tools.MockSinkConnector",
                                         "tasks.max", "3",
-                                        "kafka.topic", "ns1-to1",
-                                        "schema.string", "{\"namespace\":\"io.github.michelin.ns4kafka.avro\",\"name\":\"KafkaPerson\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":{\"type\":\"long\",\"arg.properties\":{\"range\":{\"min\":0,\"max\":2147483647}}}}]}"
+                                        "topics", "ns1-to1"
                         ))
                         .build())
                 .build();
