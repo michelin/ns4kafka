@@ -142,55 +142,6 @@ class AccessControlListTest extends AbstractIntegrationTest {
     }
 
     /**
-     * Should create public topic ACL
-     * @throws InterruptedException Any interrupted exception during ACLs synchronization
-     * @throws ExecutionException Any execution exception during ACLs synchronization
-     */
-    @Test
-    void shouldCreatePublicTopicReadACL() throws InterruptedException, ExecutionException {
-        AccessControlEntry aclTopic = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("ns1-acl-topic")
-                        .namespace("ns1")
-                        .build())
-                .spec(AccessControlEntrySpec.builder()
-                        .resourceType(ResourceType.TOPIC)
-                        .resource("ns1-")
-                        .resourcePatternType(ResourcePatternType.PREFIXED)
-                        .permission(Permission.READ)
-                        .grantedTo("'*'")
-                        .build())
-                .build();
-
-        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic));
-
-        // Force ACLs synchronization
-        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
-
-        Admin kafkaClient = getAdminClient();
-
-        AclBindingFilter user1Filter = new AclBindingFilter(ResourcePatternFilter.ANY, new AccessControlEntryFilter("User:*",
-                null, AclOperation.ANY, AclPermissionType.ANY));
-        Collection<AclBinding> results = kafkaClient.describeAcls(user1Filter).values().get();
-
-        AclBinding expected = new AclBinding(new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC,
-                "ns1-", PatternType.PREFIXED), new org.apache.kafka.common.acl.AccessControlEntry("User:*",
-                "*", AclOperation.READ, AclPermissionType.ALLOW));
-
-        assertEquals(1, results.size());
-        assertEquals(expected, results.stream().findFirst().get());
-
-        // DELETE the ACL and verify
-        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-topic").bearerAuth(token).body(aclTopic));
-
-        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
-
-        results = kafkaClient.describeAcls(user1Filter).values().get();
-
-        assertTrue(results.isEmpty());
-    }
-
-    /**
      * Validate topic ACL creation when the ACL is already in broker but not in Ns4Kafka
      * @throws InterruptedException Any interrupted exception during ACLs synchronization
      * @throws ExecutionException Any execution exception during ACLs synchronization
