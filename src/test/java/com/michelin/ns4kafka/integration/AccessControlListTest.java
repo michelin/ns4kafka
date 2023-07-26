@@ -132,11 +132,79 @@ class AccessControlListTest extends AbstractIntegrationTest {
         assertEquals(expected, results.stream().findFirst().get());
 
         // DELETE the ACL and verify
-        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-topic").bearerAuth(token).body(aclTopic));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-topic").bearerAuth(token));
 
         accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
 
         results = kafkaClient.describeAcls(user1Filter).values().get();
+
+        assertTrue(results.isEmpty());
+    }
+
+    /**
+     * Validate public topic ACL creation
+     * @throws InterruptedException Any interrupted exception during ACLs synchronization
+     * @throws ExecutionException Any execution exception during ACLs synchronization
+     */
+    @Test
+    void createPublicTopicReadACL() throws InterruptedException, ExecutionException {
+        AccessControlEntry aclTopicOwner = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-acl-topic-owner")
+                        .namespace("ns1")
+                        .build())
+                .spec(AccessControlEntrySpec.builder()
+                        .resourceType(ResourceType.TOPIC)
+                        .resource("ns1-")
+                        .resourcePatternType(ResourcePatternType.PREFIXED)
+                        .permission(Permission.OWNER)
+                        .grantedTo("ns1")
+                        .build())
+                .build();
+
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopicOwner));
+
+        // Force ACLs synchronization
+        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+
+        AccessControlEntry aclTopicPublic = AccessControlEntry.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-public-acl-topic")
+                        .namespace("ns1")
+                        .build())
+                .spec(AccessControlEntrySpec.builder()
+                        .resourceType(ResourceType.TOPIC)
+                        .resource("ns1-")
+                        .resourcePatternType(ResourcePatternType.PREFIXED)
+                        .permission(Permission.READ)
+                        .grantedTo("*")
+                        .build())
+                .build();
+
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopicPublic));
+
+        // Force ACLs synchronization
+        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+
+        Admin kafkaClient = getAdminClient();
+        AclBindingFilter publicFilter = new AclBindingFilter(ResourcePatternFilter.ANY,
+                new AccessControlEntryFilter("User:*", null, AclOperation.ANY, AclPermissionType.ANY));
+        Collection<AclBinding> results = kafkaClient.describeAcls(publicFilter).values().get();
+
+        AclBinding expected = new AclBinding(
+                new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, "ns1-", PatternType.PREFIXED),
+                new org.apache.kafka.common.acl.AccessControlEntry("User:*", "*", AclOperation.READ, AclPermissionType.ALLOW));
+
+        assertEquals(1, results.size());
+        assertEquals(expected, results.stream().findFirst().get());
+
+        // DELETE the ACLs and verify
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-public-acl-topic").bearerAuth(token));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-topic-owner").bearerAuth(token));
+
+        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+
+        results = kafkaClient.describeAcls(publicFilter).values().get();
 
         assertTrue(results.isEmpty());
     }
@@ -224,7 +292,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
         assertEquals(expected, results.stream().findFirst().get());
 
         // DELETE the ACL and verify
-        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-connect").bearerAuth(token).body(aclTopic));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-connect").bearerAuth(token));
 
         accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
 
@@ -334,9 +402,9 @@ class AccessControlListTest extends AbstractIntegrationTest {
         assertTrue(results.containsAll(List.of(ac1, ac2, ac3, ac4, ac5, ac6, ac7)));
 
         // DELETE the Stream & ACL and verify
-        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/streams/ns1-stream1").bearerAuth(token).body(aclTopic));
-        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-topic").bearerAuth(token).body(aclTopic));
-        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-group").bearerAuth(token).body(aclTopic));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/streams/ns1-stream1").bearerAuth(token));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-topic").bearerAuth(token));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-group").bearerAuth(token));
 
         accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
 
@@ -385,7 +453,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
         assertTrue(results.containsAll(List.of(expected, expected2)));
  
         // DELETE the ACL and verify
-        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-transactional-id").bearerAuth(token).body(aclTopic));
+        client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-transactional-id").bearerAuth(token));
 
         accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
 

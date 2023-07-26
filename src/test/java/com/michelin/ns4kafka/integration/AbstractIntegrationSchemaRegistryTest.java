@@ -9,9 +9,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class AbstractIntegrationSchemaRegistryTest extends AbstractIntegrationTest {
-    public static final String CONFLUENT_REGISTRY_VERSION = "7.0.0";
-
+public abstract class AbstractIntegrationSchemaRegistryTest extends AbstractIntegrationTest {
+    public static final String CONFLUENT_REGISTRY_VERSION = "7.4.1";
     public SchemaRegistryContainer schemaRegistryContainer;
 
     /**

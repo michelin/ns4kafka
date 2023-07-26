@@ -28,7 +28,7 @@ public class LocalUserAuthenticationProvider implements AuthenticationProvider {
         return Mono.create(emitter -> {
             String username = authenticationRequest.getIdentity().toString();
             String password = authenticationRequest.getSecret().toString();
-            log.debug("Checking local authentication for user : {}", username);
+            log.debug("Checking local authentication for user: {}", username);
 
             Optional<LocalUser> authenticatedUser = securityConfig.getLocalUsers().stream()
                     .filter(localUser -> localUser.getUsername().equals(username))

@@ -12,7 +12,7 @@ import java.util.Map;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AbstractIntegrationTest implements TestPropertyProvider {
-    public static final String CONFLUENT_VERSION = "6.2.0";
+    public static final String CONFLUENT_VERSION = "7.4.1";
 
     public KafkaContainer kafka;
     public Network network;
@@ -47,7 +47,7 @@ public abstract class AbstractIntegrationTest implements TestPropertyProvider {
                                     "username=\"admin\" password=\"admin\" " +
                                     "user_admin=\"admin\" " +
                                     "user_client=\"client\";")
-                    .withEnv("KAFKA_AUTHORIZER_CLASS_NAME", "kafka.security.auth.SimpleAclAuthorizer")
+                    .withEnv("KAFKA_AUTHORIZER_CLASS_NAME", "kafka.security.authorizer.AclAuthorizer")
                     .withEnv("KAFKA_SUPER_USERS", "User:admin")
                     .withNetworkAliases("kafka")
                     .withNetwork(network);
