@@ -139,7 +139,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
     void createConnect() throws MalformedURLException {
         HttpClient connectCli = HttpClient.create(new URL(connect.getUrl()));
         ServerInfo actual = connectCli.toBlocking().retrieve(HttpRequest.GET("/"), ServerInfo.class);
-        assertEquals("6.2.0-ccs", actual.version());
+        assertEquals("7.4.1-ccs", actual.version());
     }
 
     /**

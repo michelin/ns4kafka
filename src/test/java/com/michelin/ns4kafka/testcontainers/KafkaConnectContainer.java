@@ -11,7 +11,6 @@ import static java.lang.String.format;
 
 /**
  * This file is a slight adaptation of the KafkaConnectContainer code available on ydespreaux's Github account:
- *
  * @see <a href="https://github.com/ydespreaux/testcontainers/blob/master/testcontainers-kafka/src/main/java/com/github/ydespreaux/testcontainers/kafka/containers/KafkaConnectContainer.java">KafkaConnectContainer.java</a>
  */
 public class KafkaConnectContainer extends GenericContainer<KafkaConnectContainer> {
@@ -23,10 +22,8 @@ public class KafkaConnectContainer extends GenericContainer<KafkaConnectContaine
     public static final String STATUS_STORAGE_TOPIC_CONFIG = "CONNECT_STATUS_STORAGE_TOPIC";
     public static final String STATUS_STORAGE_PARTITIONS_CONFIG = "CONNECT_STATUS_STORAGE_PARTITIONS";
     public static final String KEY_CONVERTER_CONFIG = "CONNECT_KEY_CONVERTER";
-    public static final String KEY_CONVERTER_SCHEMA_REGISTRY_URL_CONFIG = "CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL";
     public static final String VALUE_CONVERTER_CONFIG = "CONNECT_VALUE_CONVERTER";
-    public static final String VALUE_CONVERTER_SCHEMA_REGISTRY_URL_CONFIG = "CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL";
-    private static final String PLUGIN_PATH_CONTAINER = "/usr/share/java";
+    private static final String PLUGIN_PATH_CONTAINER = "/usr/share/java,/usr/share/filestream-connectors";
     private static final String GROUP_ID_DEFAULT_VALUE = "kafka-connect-group";
     private static final String OFFSET_STORAGE_TOPIC_DEFAULT_VALUE = "connect-offsets";
     private static final Integer OFFSET_STORAGE_PARTITIONS_DEFAULT_VALUE = 3;
@@ -40,9 +37,7 @@ public class KafkaConnectContainer extends GenericContainer<KafkaConnectContaine
     private static final String STATUS_STORAGE_REPLICATION_FACTOR_CONFIG = "CONNECT_STATUS_STORAGE_REPLICATION_FACTOR";
     private static final Integer STATUS_STORAGE_REPLICATION_FACTOR_DEFAULT_VALUE = 1;
     private static final String KEY_CONVERTER_DEFAULT_VALUE = "org.apache.kafka.connect.json.JsonConverter";
-    private static final String KEY_CONVERTER_SCHEMAS_ENABLE_CONFIG = "CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE";
     private static final String VALUE_CONVERTER_DEFAULT_VALUE = "org.apache.kafka.connect.json.JsonConverter";
-    private static final String VALUE_CONVERTER_SCHEMAS_ENABLE_CONFIG = "CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE";
     private static final String INTERNAL_KEY_CONVERTER_CONFIG = "CONNECT_INTERNAL_KEY_CONVERTER";
     private static final String INTERNAL_KEY_CONVERTER_DEFAULT_VALUE = "org.apache.kafka.connect.json.JsonConverter";
     private static final String INTERNAL_VALUE_CONVERTER_CONFIG = "CONNECT_INTERNAL_VALUE_CONVERTER";
@@ -52,11 +47,9 @@ public class KafkaConnectContainer extends GenericContainer<KafkaConnectContaine
     public KafkaConnectContainer(DockerImageName dockerImageName, String bootstrapServers) {
         super(dockerImageName);
         this.bootstrapServers = bootstrapServers;
-        //this.withLogConsumer(containerLogsConsumer(logger()))
         this.withEnv(GROUP_ID_CONFIG, GROUP_ID_DEFAULT_VALUE)
                 .withEnv(KEY_CONVERTER_CONFIG, KEY_CONVERTER_DEFAULT_VALUE)
                 .withEnv(VALUE_CONVERTER_CONFIG, VALUE_CONVERTER_DEFAULT_VALUE)
-                //.withEnv(OFFSET_STORAGE_FILE_FILENAME_CONFIG, OFFSET_STORAGE_FILE_FILENAME_DEFAULT_VALUE)
                 .withEnv(OFFSET_STORAGE_TOPIC_CONFIG, OFFSET_STORAGE_TOPIC_DEFAULT_VALUE)
                 .withEnv(OFFSET_STORAGE_PARTITIONS_CONFIG, String.valueOf(OFFSET_STORAGE_PARTITIONS_DEFAULT_VALUE))
                 .withEnv(OFFSET_STORAGE_REPLICATION_FACTOR_CONFIG, String.valueOf(OFFSET_STORAGE_REPLICATION_FACTOR_DEFAULT_VALUE))
