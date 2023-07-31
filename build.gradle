@@ -3,7 +3,7 @@ plugins {
     id("io.micronaut.application") version "3.7.10"
     id("jacoco")
     id("org.sonarqube") version "4.3.0.3225"
-    id("pl.allegro.tech.build.axion-release") version "1.15.3"
+    id("pl.allegro.tech.build.axion-release") version "1.15.4"
 }
 
 version = scmVersion.version
