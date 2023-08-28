@@ -357,4 +357,121 @@ class AkhqClaimProviderControllerV3Test {
         Assertions.assertEquals(List.of("^\\Qproject2_t.\\E.*$"), groups.get(3).getPatterns());
         Assertions.assertEquals(List.of("^cluster2$"), groups.get(3).getClusters());
     }
+
+    @Test
+    void generateClaimAndOptimizePatterns(){
+        Namespace ns1Cluster1 = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1").cluster("cluster1").labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
+                        .build())
+                .build();
+        List<AccessControlEntry> inputACLs = List.of(
+                AccessControlEntry.builder()
+                        .metadata(ObjectMeta.builder().cluster("cluster1").build())
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                .resource("project1.")
+                                .build())
+                        .build(),
+                AccessControlEntry.builder()
+                        .metadata(ObjectMeta.builder().cluster("cluster1").build())
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                .resource("project1.topic1")
+                                .build())
+                        .build(),
+                AccessControlEntry.builder()
+                        .metadata(ObjectMeta.builder().cluster("cluster1").build())
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                .resource("project1.topic1")
+                                .build())
+                        .build(),
+                AccessControlEntry.builder()
+                        .metadata(ObjectMeta.builder().cluster("cluster1").build())
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                .resource("project2.topic2")
+                                .build())
+                        .build(),
+                AccessControlEntry.builder()
+                        .metadata(ObjectMeta.builder().cluster("cluster1").build())
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                .resource("project2.topic2a")
+                                .build())
+                        .build(),
+                AccessControlEntry.builder()
+                        .metadata(ObjectMeta.builder().cluster("cluster1").build())
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                .resource("project2.topic3")
+                                .build())
+                        .build(),
+                AccessControlEntry.builder()
+                        .metadata(ObjectMeta.builder().cluster("cluster1").build())
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                .resource("project2.")
+                                .build())
+                        .build(),
+                AccessControlEntry.builder()
+                        .metadata(ObjectMeta.builder().cluster("cluster1").build())
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                .resource("project3.topic4")
+                                .build())
+                        .build(),
+                AccessControlEntry.builder()
+                        .metadata(ObjectMeta.builder().cluster("cluster1").build())
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                .resource("project3.topic5")
+                                .build())
+                        .build(),
+                AccessControlEntry.builder()
+                        .metadata(ObjectMeta.builder().cluster("cluster1").build())
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                .resource("project3.")
+                                .build())
+                        .build()
+        );
+        akhqClaimProviderController.managedClusters = List.of(new KafkaAsyncExecutorConfig("cluster1"), new KafkaAsyncExecutorConfig("cluster2"));
+        Mockito.when(namespaceService.listAll()).thenReturn(List.of(ns1Cluster1));
+        Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(inputACLs);
+
+        AkhqClaimProviderController.AKHQClaimRequest request = AkhqClaimProviderController.AKHQClaimRequest.builder()
+                .groups(List.of("GP-PROJECT1&2-SUPPORT"))
+                .build();
+        AkhqClaimProviderController.AKHQClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+
+        List<AkhqClaimProviderController.AKHQClaimResponseV3.Group> groups = actual.getGroups().get("group");
+        Assertions.assertEquals(3, groups.size());
+        Assertions.assertEquals("topic-read", groups.get(0).getRole());
+        Assertions.assertEquals(
+                List.of("^\\Qproject1.\\E.*$", "^\\Qproject2.topic2\\E$", "^\\Qproject2.topic2a\\E$", "^\\Qproject2.topic3\\E$", "^\\Qproject3.\\E.*$"),
+                groups.get(0).getPatterns()
+        );
+        Assertions.assertEquals("connect-rw", groups.get(1).getRole());
+        Assertions.assertEquals(
+                List.of("^\\Qproject1.topic1\\E$", "^\\Qproject2.\\E.*$"),
+                groups.get(1).getPatterns()
+        );
+        Assertions.assertEquals("registry-read", groups.get(2).getRole());
+        Assertions.assertEquals(
+                List.of("^\\Qproject1.\\E.*$", "^\\Qproject2.topic2\\E$", "^\\Qproject2.topic2a\\E$", "^\\Qproject2.topic3\\E$", "^\\Qproject3.\\E.*$"),
+                groups.get(2).getPatterns()
+        );
+    }
 }

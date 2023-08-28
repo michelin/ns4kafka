@@ -131,6 +131,9 @@ public class AkhqClaimProviderController {
         // Add all public ACLs
         relatedACL.addAll(accessControlEntryService.findAllPublicGrantedTo());
 
+        // Remove unnecessary ACLs (project.topic1 when project.* is granted on the same resource type and cluster)
+        optimizeACL(relatedACL);
+
         Map<String, AKHQClaimResponseV3.Group> bindings = new LinkedHashMap<>();
 
         // Start by creating a map that store permissions by role/cluster
@@ -268,6 +271,25 @@ public class AkhqClaimProviderController {
                 .toList();
         //AKHQ considers empty list as "^.*$" so we must return something
         return !allowedRegex.isEmpty() ? allowedRegex : EMPTY_REGEXP;
+    }
+
+    /**
+     * Remove ACL that are already included by another ACL on the same resource and cluster
+     * Ex: LITERAL ACL1 with project.topic1 resource + PREFIXED ACL2 with project -> return ACL2 only
+     *
+     * @param acl the input list of acl to optimize
+     */
+    private static void optimizeACL(List<AccessControlEntry> acl) {
+        acl.removeIf(accessControlEntry -> acl.stream()
+                // Keep PREFIXED ACL with a different resource but same resource type and cluster
+                .filter(accessControlEntryOther ->
+                        accessControlEntryOther.getSpec().getResourcePatternType().equals(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                && !accessControlEntryOther.getSpec().getResource().equals(accessControlEntry.getSpec().getResource())
+                                && accessControlEntryOther.getSpec().getResourceType().equals(accessControlEntry.getSpec().getResourceType())
+                                && accessControlEntryOther.getMetadata().getCluster().equals(accessControlEntry.getMetadata().getCluster()))
+                .map(accessControlEntryOther -> accessControlEntryOther.getSpec().getResource())
+                // Remove the ACL if there is one that contains the current resource
+                .anyMatch(escapedString -> accessControlEntry.getSpec().getResource().startsWith(escapedString)));
     }
 
     @Introspected
