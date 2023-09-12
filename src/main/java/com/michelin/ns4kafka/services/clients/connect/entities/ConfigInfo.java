@@ -17,6 +17,8 @@
 package com.michelin.ns4kafka.services.clients.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.micronaut.serde.annotation.Serdeable;
 
+@Serdeable
 public record ConfigInfo(@JsonProperty("definition") ConfigKeyInfo configKey, @JsonProperty("value") ConfigValueInfo configValue) {
 }

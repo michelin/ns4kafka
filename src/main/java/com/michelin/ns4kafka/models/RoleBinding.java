@@ -1,23 +1,23 @@
 package com.michelin.ns4kafka.models;
 
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
 import java.util.Collection;
 
 
-@Introspected(classes = {RoleBinding.class, RoleBinding.RoleBindingSpec.class, RoleBinding.Role.class, RoleBinding.Subject.class})
+@Data
 @Builder
+@Serdeable
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
 public class RoleBinding {
     private final String apiVersion = "v1";
     private final String kind = "RoleBinding";
@@ -30,10 +30,11 @@ public class RoleBinding {
     @NotNull
     private RoleBindingSpec spec;
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Data
+    @Builder
+    @Serdeable
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class RoleBindingSpec {
         @Valid
         @NotNull
@@ -44,10 +45,11 @@ public class RoleBinding {
         private Subject subject;
     }
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Data
+    @Builder
+    @Serdeable
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Role {
         @NotNull
         @NotEmpty
@@ -58,10 +60,11 @@ public class RoleBinding {
         private Collection<Verb> verbs;
     }
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Data
+    @Builder
+    @Serdeable
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Subject {
         @NotNull
         private SubjectType subjectType;

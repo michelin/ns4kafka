@@ -9,16 +9,16 @@ import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecurityRule;
+import io.micronaut.serde.annotation.Serdeable;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.annotation.security.RolesAllowed;
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Tag(name = "Resources", description = "Manage the API resources.")
 @RolesAllowed(SecurityRule.IS_ANONYMOUS)
@@ -170,10 +170,11 @@ public class ApiResourcesController {
                 .toList();
     }
 
-    @Introspected
-    @Builder
     @Getter
     @Setter
+    @Builder
+    @Serdeable
+    @Introspected
     public static class ResourceDefinition {
         private String kind;
         private boolean namespaced;

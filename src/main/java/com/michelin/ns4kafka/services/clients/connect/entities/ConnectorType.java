@@ -18,9 +18,11 @@ package com.michelin.ns4kafka.services.clients.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import io.micronaut.serde.annotation.Serdeable;
 
 import java.util.Locale;
 
+@Serdeable
 public enum ConnectorType {
     SOURCE, SINK, UNKNOWN;
 

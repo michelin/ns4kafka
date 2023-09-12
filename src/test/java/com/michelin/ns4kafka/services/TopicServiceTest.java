@@ -6,7 +6,7 @@ import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.TopicRepository;
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.properties.KafkaAsyncExecutorProperties;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
@@ -41,7 +41,7 @@ class TopicServiceTest {
     ApplicationContext applicationContext;
 
     @Mock
-    List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigs;
+    List<KafkaAsyncExecutorProperties> kafkaAsyncExecutorProperties;
 
     /**
      * Validate find topic by name
@@ -715,7 +715,7 @@ class TopicServiceTest {
                         .build())
                 .build();
 
-        when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of());
+        when(kafkaAsyncExecutorProperties.stream()).thenReturn(Stream.of());
 
         List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
 
@@ -761,7 +761,7 @@ class TopicServiceTest {
                         .build())
                 .build();
 
-        when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of());
+        when(kafkaAsyncExecutorProperties.stream()).thenReturn(Stream.of());
 
         List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
 
@@ -807,7 +807,7 @@ class TopicServiceTest {
                         .build())
                 .build();
 
-        when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)));
+        when(kafkaAsyncExecutorProperties.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorProperties("local", KafkaAsyncExecutorProperties.KafkaProvider.CONFLUENT_CLOUD)));
 
         List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
 
@@ -853,7 +853,7 @@ class TopicServiceTest {
                         .build())
                 .build();
 
-        when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)));
+        when(kafkaAsyncExecutorProperties.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorProperties("local", KafkaAsyncExecutorProperties.KafkaProvider.CONFLUENT_CLOUD)));
 
         List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
 
@@ -898,7 +898,7 @@ class TopicServiceTest {
                         .build())
                 .build();
 
-        when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.SELF_MANAGED)));
+        when(kafkaAsyncExecutorProperties.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorProperties("local", KafkaAsyncExecutorProperties.KafkaProvider.SELF_MANAGED)));
 
         List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
 

@@ -1,7 +1,7 @@
 package com.michelin.ns4kafka.services.clients.connect;
 
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
-import com.michelin.ns4kafka.config.SecurityConfig;
+import com.michelin.ns4kafka.properties.KafkaAsyncExecutorProperties;
+import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
 import com.michelin.ns4kafka.repositories.ConnectClusterRepository;
 import com.michelin.ns4kafka.services.clients.connect.entities.*;
@@ -35,13 +35,13 @@ public class KafkaConnectClient {
     private HttpClient httpClient;
 
     @Inject
-    private List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigs;
+    private List<KafkaAsyncExecutorProperties> kafkaAsyncExecutorProperties;
 
     @Inject
     ConnectClusterRepository connectClusterRepository;
 
     @Inject
-    private SecurityConfig securityConfig;
+    private SecurityProperties securityProperties;
 
     /**
      * Get the Kafka connect version
@@ -190,7 +190,7 @@ public class KafkaConnectClient {
      * @return The Kafka Connect configuration
      */
     public KafkaConnectClient.KafkaConnectHttpConfig getKafkaConnectConfig(String kafkaCluster, String connectCluster) {
-        Optional<KafkaAsyncExecutorConfig> config = kafkaAsyncExecutorConfigs.stream()
+        Optional<KafkaAsyncExecutorProperties> config = kafkaAsyncExecutorProperties.stream()
                 .filter(kafkaAsyncExecutorConfig -> kafkaAsyncExecutorConfig.getName().equals(kafkaCluster))
                 .findFirst();
 
@@ -207,11 +207,11 @@ public class KafkaConnectClient {
             return KafkaConnectClient.KafkaConnectHttpConfig.builder()
                     .url(connectClusterOptional.get().getSpec().getUrl())
                     .username(connectClusterOptional.get().getSpec().getUsername())
-                    .password(EncryptionUtils.decryptAES256GCM(connectClusterOptional.get().getSpec().getPassword(), securityConfig.getAes256EncryptionKey()))
+                    .password(EncryptionUtils.decryptAES256GCM(connectClusterOptional.get().getSpec().getPassword(), securityProperties.getAes256EncryptionKey()))
                     .build();
         }
 
-        KafkaAsyncExecutorConfig.ConnectConfig connectConfig = config.get().getConnects().get(connectCluster);
+        KafkaAsyncExecutorProperties.ConnectConfig connectConfig = config.get().getConnects().get(connectCluster);
         if (connectConfig == null) {
             throw new ResourceValidationException(List.of("Connect cluster \"" + connectCluster + "\" not found"), null, null);
         }

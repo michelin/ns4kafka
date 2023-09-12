@@ -1,7 +1,7 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.config.AkhqClaimProviderControllerConfig;
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.properties.AkhqClaimProviderControllerProperties;
+import com.michelin.ns4kafka.properties.KafkaAsyncExecutorProperties;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
@@ -31,10 +31,10 @@ class AkhqClaimProviderControllerV3Test {
     AkhqClaimProviderController akhqClaimProviderController;
 
     @Spy
-    AkhqClaimProviderControllerConfig akhqClaimProviderControllerConfig = getAkhqClaimProviderControllerConfig();
+    AkhqClaimProviderControllerProperties akhqClaimProviderControllerProperties = getAkhqClaimProviderControllerConfig();
 
-    private AkhqClaimProviderControllerConfig getAkhqClaimProviderControllerConfig() {
-        AkhqClaimProviderControllerConfig config = new AkhqClaimProviderControllerConfig();
+    private AkhqClaimProviderControllerProperties getAkhqClaimProviderControllerConfig() {
+        AkhqClaimProviderControllerProperties config = new AkhqClaimProviderControllerProperties();
         config.setGroupLabel("support-group");
         config.setAdminGroup("GP-ADMIN");
         config.setRoles(Map.of(AccessControlEntry.ResourceType.TOPIC, "topic-read",
@@ -63,7 +63,7 @@ class AkhqClaimProviderControllerV3Test {
                         .build())
                 .build();
 
-        akhqClaimProviderController.managedClusters = List.of(new KafkaAsyncExecutorConfig("cluster1"), new KafkaAsyncExecutorConfig("cluster2"));
+        akhqClaimProviderController.managedClusters = List.of(new KafkaAsyncExecutorProperties("cluster1"), new KafkaAsyncExecutorProperties("cluster2"));
         Mockito.when(namespaceService.listAll())
                 .thenReturn(List.of(ns1Cluster1));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1))
@@ -101,7 +101,7 @@ class AkhqClaimProviderControllerV3Test {
                         .build())
                 .build();
 
-        akhqClaimProviderController.managedClusters = List.of(new KafkaAsyncExecutorConfig("cluster1"), new KafkaAsyncExecutorConfig("cluster2"));
+        akhqClaimProviderController.managedClusters = List.of(new KafkaAsyncExecutorProperties("cluster1"), new KafkaAsyncExecutorProperties("cluster2"));
         Mockito.when(namespaceService.listAll())
                 .thenReturn(List.of(ns1Cluster1));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1))
@@ -131,7 +131,7 @@ class AkhqClaimProviderControllerV3Test {
                         .build())
                 .build();
 
-        akhqClaimProviderController.managedClusters = List.of(new KafkaAsyncExecutorConfig("cluster1"), new KafkaAsyncExecutorConfig("cluster2"));
+        akhqClaimProviderController.managedClusters = List.of(new KafkaAsyncExecutorProperties("cluster1"), new KafkaAsyncExecutorProperties("cluster2"));
         Mockito.when(namespaceService.listAll()).thenReturn(List.of(ns1Cluster1));
 
         AkhqClaimProviderController.AKHQClaimRequest request = AkhqClaimProviderController.AKHQClaimRequest.builder()
@@ -173,7 +173,7 @@ class AkhqClaimProviderControllerV3Test {
                         .build())
                 .build();
 
-        akhqClaimProviderController.managedClusters = List.of(new KafkaAsyncExecutorConfig("cluster1"), new KafkaAsyncExecutorConfig("cluster2"));
+        akhqClaimProviderController.managedClusters = List.of(new KafkaAsyncExecutorProperties("cluster1"), new KafkaAsyncExecutorProperties("cluster2"));
         Mockito.when(namespaceService.listAll()).thenReturn(List.of(ns1Cluster1, ns1Cluster2));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster2)).thenReturn(List.of(ace1Ns1Cluster2));
@@ -225,7 +225,7 @@ class AkhqClaimProviderControllerV3Test {
                         .build())
                 .build();
 
-        akhqClaimProviderController.managedClusters = List.of(new KafkaAsyncExecutorConfig("cluster1"), new KafkaAsyncExecutorConfig("cluster2"));
+        akhqClaimProviderController.managedClusters = List.of(new KafkaAsyncExecutorProperties("cluster1"), new KafkaAsyncExecutorProperties("cluster2"));
         Mockito.when(namespaceService.listAll()).thenReturn(List.of(ns1Cluster1, ns2Cluster1));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns2Cluster1)).thenReturn(List.of(ace2Ns2Cluster1));
@@ -277,7 +277,7 @@ class AkhqClaimProviderControllerV3Test {
                         .build())
                 .build();
 
-        akhqClaimProviderController.managedClusters = List.of(new KafkaAsyncExecutorConfig("cluster1"), new KafkaAsyncExecutorConfig("cluster2"));
+        akhqClaimProviderController.managedClusters = List.of(new KafkaAsyncExecutorProperties("cluster1"), new KafkaAsyncExecutorProperties("cluster2"));
         Mockito.when(namespaceService.listAll()).thenReturn(List.of(ns1Cluster1, ns1Cluster2));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Cluster1));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster2)).thenReturn(List.of(ace1Cluster2));
@@ -329,7 +329,7 @@ class AkhqClaimProviderControllerV3Test {
                         .build())
                 .build();
 
-        akhqClaimProviderController.managedClusters = List.of(new KafkaAsyncExecutorConfig("cluster1"), new KafkaAsyncExecutorConfig("cluster2"));
+        akhqClaimProviderController.managedClusters = List.of(new KafkaAsyncExecutorProperties("cluster1"), new KafkaAsyncExecutorProperties("cluster2"));
         Mockito.when(namespaceService.listAll()).thenReturn(List.of(ns1Cluster1, ns2Cluster2));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns2Cluster2)).thenReturn(List.of(ace1Ns2Cluster2));
@@ -447,7 +447,7 @@ class AkhqClaimProviderControllerV3Test {
                                 .build())
                         .build()
         );
-        akhqClaimProviderController.managedClusters = List.of(new KafkaAsyncExecutorConfig("cluster1"), new KafkaAsyncExecutorConfig("cluster2"));
+        akhqClaimProviderController.managedClusters = List.of(new KafkaAsyncExecutorProperties("cluster1"), new KafkaAsyncExecutorProperties("cluster2"));
         Mockito.when(namespaceService.listAll()).thenReturn(List.of(ns1Cluster1));
         Mockito.when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(inputACLs);
 

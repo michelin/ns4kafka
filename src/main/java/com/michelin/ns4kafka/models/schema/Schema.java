@@ -1,16 +1,16 @@
 package com.michelin.ns4kafka.models.schema;
 
 import com.michelin.ns4kafka.models.ObjectMeta;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 import java.util.List;
 
 @Data
 @Builder
-@Introspected
+@Serdeable
 @NoArgsConstructor
 @AllArgsConstructor
 public class Schema {
@@ -25,10 +25,11 @@ public class Schema {
     @NotNull
     private SchemaSpec spec;
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Data
+    @Builder
+    @Serdeable
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class SchemaSpec {
         private Integer id;
         private Integer version;
@@ -39,13 +40,15 @@ public class Schema {
 
         @Builder.Default
         private Compatibility compatibility = Compatibility.GLOBAL;
+
         private List<Reference> references;
 
-        @Builder
         @Getter
         @Setter
-        @AllArgsConstructor
+        @Builder
+        @Serdeable
         @NoArgsConstructor
+        @AllArgsConstructor
         public static class Reference {
             private String name;
             private String subject;
@@ -53,7 +56,6 @@ public class Schema {
         }
     }
 
-    @Introspected
     public enum Compatibility {
         GLOBAL,
         BACKWARD,
@@ -65,7 +67,6 @@ public class Schema {
         NONE
     }
 
-    @Introspected
     public enum SchemaType {
         AVRO,
         JSON,

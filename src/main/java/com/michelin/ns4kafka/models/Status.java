@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.models;
 
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,7 +10,7 @@ import java.util.List;
 
 @Data
 @Builder
-@Introspected
+@Serdeable
 @NoArgsConstructor
 @AllArgsConstructor
 public class Status {
@@ -22,10 +22,11 @@ public class Status {
     private StatusDetails details;
     private int code;
 
+    @Data
     @Builder
+    @Serdeable
     @AllArgsConstructor
     @NoArgsConstructor
-    @Data
     public static class StatusDetails {
         private String name;
         private String kind;

@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.security;
 
-import com.michelin.ns4kafka.config.SecurityConfig;
+import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
@@ -11,7 +11,6 @@ import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.security.rules.SecurityRuleResult;
-import io.micronaut.web.router.RouteMatch;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
@@ -25,13 +24,13 @@ import java.util.regex.Pattern;
 
 @Slf4j
 @Singleton
-public class ResourceBasedSecurityRule implements SecurityRule {
+public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
     public static final String IS_ADMIN = "isAdmin()";
 
     private final Pattern namespacedResourcePattern = Pattern.compile("^\\/api\\/namespaces\\/(?<namespace>[a-zA-Z0-9_-]+)\\/(?<resourceType>[a-z_-]+)(\\/([a-zA-Z0-9_.-]+)(\\/(?<resourceSubtype>[a-z-]+))?)?$");
 
     @Inject
-    SecurityConfig securityConfig;
+    SecurityProperties securityProperties;
 
     @Inject
     RoleBindingRepository roleBindingRepository;
@@ -40,7 +39,7 @@ public class ResourceBasedSecurityRule implements SecurityRule {
     NamespaceRepository namespaceRepository;
 
     @Override
-    public Publisher<SecurityRuleResult> check(HttpRequest<?> request, RouteMatch<?> routeMatch, Authentication authentication) {
+    public Publisher<SecurityRuleResult> check(@Nullable HttpRequest<?> request, @Nullable Authentication authentication) {
         return Publishers.just(checkSecurity(request, authentication));
     }
 
@@ -128,7 +127,7 @@ public class ResourceBasedSecurityRule implements SecurityRule {
     public List<String> computeRolesFromGroups(List<String> groups) {
         List<String> roles = new ArrayList<>();
 
-        if (groups.contains(securityConfig.getAdminGroup())) {
+        if (groups.contains(securityProperties.getAdminGroup())) {
             roles.add(ResourceBasedSecurityRule.IS_ADMIN);
         }
 

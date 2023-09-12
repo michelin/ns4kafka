@@ -22,6 +22,7 @@ import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
+import io.micronaut.serde.annotation.Serdeable;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import lombok.AllArgsConstructor;
@@ -486,6 +487,7 @@ class TopicTest extends AbstractIntegrationTest {
      * Bearer token class
      */
     @Data
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class BearerAccessRefreshToken {

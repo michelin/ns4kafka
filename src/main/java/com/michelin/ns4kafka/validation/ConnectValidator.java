@@ -1,9 +1,8 @@
 package com.michelin.ns4kafka.validation;
 
-import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.annotation.Nulls;
 import com.michelin.ns4kafka.models.connector.Connector;
 import io.micronaut.core.util.StringUtils;
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -19,20 +18,18 @@ import static com.michelin.ns4kafka.utils.ValidationErrorUtils.INVALID_VALUE;
 import static com.michelin.ns4kafka.utils.config.ConnectorConfig.CONNECTOR_CLASS;
 
 @Data
+@Serdeable
 @SuperBuilder
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper=true)
 public class ConnectValidator extends ResourceValidator {
     @Builder.Default
-    @JsonSetter(nulls = Nulls.AS_EMPTY)
     private Map<String, Validator> sourceValidationConstraints = new HashMap<>();
 
     @Builder.Default
-    @JsonSetter(nulls = Nulls.AS_EMPTY)
     private Map<String, Validator> sinkValidationConstraints = new HashMap<>();
 
     @Builder.Default
-    @JsonSetter(nulls = Nulls.AS_EMPTY)
     private Map<String, Map<String, Validator>> classValidationConstraints = new HashMap<>();
 
     /**
@@ -57,15 +54,17 @@ public class ConnectValidator extends ResourceValidator {
                     "ASCII alphanumerics, '.', '_' or '-'");
         }
 
-        validationConstraints.forEach((key, value) -> {
-            try {
-                value.ensureValid(key, connector.getSpec().getConfig().get(key));
-            } catch (FieldValidationException e) {
-                validationErrors.add(e.getMessage());
-            }
-        });
+        if (validationConstraints != null) {
+            validationConstraints.forEach((key, value) -> {
+                try {
+                    value.ensureValid(key, connector.getSpec().getConfig().get(key));
+                } catch (FieldValidationException e) {
+                    validationErrors.add(e.getMessage());
+                }
+            });
+        }
 
-        if (connectorType.equals("sink")) {
+        if (connectorType.equals("sink") && sinkValidationConstraints != null) {
             sinkValidationConstraints.forEach((key, value) -> {
                 try {
                     value.ensureValid(key, connector.getSpec().getConfig().get(key));
@@ -75,7 +74,7 @@ public class ConnectValidator extends ResourceValidator {
             });
         }
 
-        if (connectorType.equals("source")) {
+        if (connectorType.equals("source") && sourceValidationConstraints != null) {
             sourceValidationConstraints.forEach((key, value) -> {
                 try {
                     value.ensureValid(key, connector.getSpec().getConfig().get(key));
@@ -85,7 +84,7 @@ public class ConnectValidator extends ResourceValidator {
             });
         }
 
-        if (classValidationConstraints.containsKey(connector.getSpec().getConfig().get(CONNECTOR_CLASS))) {
+        if (classValidationConstraints != null && classValidationConstraints.containsKey(connector.getSpec().getConfig().get(CONNECTOR_CLASS))) {
             classValidationConstraints.get(connector.getSpec().getConfig().get(CONNECTOR_CLASS)).forEach((key, value) -> {
                 try {
                     value.ensureValid(key, connector.getSpec().getConfig().get(key));

@@ -18,11 +18,13 @@ package com.michelin.ns4kafka.services.clients.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.Getter;
 
 import java.util.List;
 import java.util.Objects;
 
+@Serdeable
 public record ConnectorStateInfo(String name, ConnectorState connector, List<TaskState> tasks, ConnectorType type) {
 
     @Getter
@@ -40,6 +42,7 @@ public record ConnectorStateInfo(String name, ConnectorState connector, List<Tas
         }
     }
 
+    @Serdeable
     public static class ConnectorState extends AbstractState {
         public ConnectorState(@JsonProperty("state") String state, @JsonProperty("worker_id") String worker,
                               @JsonProperty("msg") String msg) {
@@ -48,10 +51,11 @@ public record ConnectorStateInfo(String name, ConnectorState connector, List<Tas
     }
 
     @Getter
+    @Serdeable
     public static class TaskState extends AbstractState implements Comparable<TaskState> {
-        private final int id;
+        private final Integer id;
 
-        public TaskState(@JsonProperty("id") int id, @JsonProperty("state") String state, @JsonProperty("worker_id") String worker,
+        public TaskState(@JsonProperty("id") Integer id, @JsonProperty("state") String state, @JsonProperty("worker_id") String worker,
                          @JsonProperty("msg") String msg) {
             super(state, worker, msg);
             this.id = id;

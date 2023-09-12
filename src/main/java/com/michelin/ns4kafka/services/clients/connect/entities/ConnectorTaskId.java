@@ -17,6 +17,7 @@
 package com.michelin.ns4kafka.services.clients.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.micronaut.serde.annotation.Serdeable;
 
 import java.io.Serializable;
 
@@ -24,6 +25,7 @@ import java.io.Serializable;
  * Unique ID for a single task. It includes a unique connector ID and a task ID that is unique within
  * the connector.
  */
+@Serdeable
 public record ConnectorTaskId(@JsonProperty("connector") String connector, @JsonProperty("task") int task) implements Serializable, Comparable<ConnectorTaskId> {
     @Override
     public int compareTo(ConnectorTaskId o) {

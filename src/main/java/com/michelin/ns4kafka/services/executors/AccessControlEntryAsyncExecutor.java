@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.services.executors;
 
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.properties.KafkaAsyncExecutorProperties;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.KafkaStream;
 import com.michelin.ns4kafka.models.Namespace;
@@ -34,12 +34,12 @@ import static com.michelin.ns4kafka.models.AccessControlEntry.ResourceType.*;
 import static com.michelin.ns4kafka.services.AccessControlEntryService.PUBLIC_GRANTED_TO;
 
 @Slf4j
-@EachBean(KafkaAsyncExecutorConfig.class)
+@EachBean(KafkaAsyncExecutorProperties.class)
 @Singleton
 public class AccessControlEntryAsyncExecutor {
     private static final String USER_PRINCIPAL = "User:";
 
-    private final KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
+    private final KafkaAsyncExecutorProperties kafkaAsyncExecutorProperties;
 
     @Inject
     AccessControlEntryService accessControlEntryService;
@@ -53,15 +53,15 @@ public class AccessControlEntryAsyncExecutor {
     @Inject
     NamespaceRepository namespaceRepository;
 
-    public AccessControlEntryAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
-        this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
+    public AccessControlEntryAsyncExecutor(KafkaAsyncExecutorProperties kafkaAsyncExecutorProperties) {
+        this.kafkaAsyncExecutorProperties = kafkaAsyncExecutorProperties;
     }
 
     /**
      * Run the ACL executor
      */
     public void run() {
-        if (this.kafkaAsyncExecutorConfig.isManageAcls()) {
+        if (this.kafkaAsyncExecutorProperties.isManageAcls()) {
             synchronizeACLs();
         }
     }
@@ -70,7 +70,7 @@ public class AccessControlEntryAsyncExecutor {
      * Start the ACLs synchronization
      */
     private void synchronizeACLs() {
-        log.debug("Starting ACL collection for cluster {}", kafkaAsyncExecutorConfig.getName());
+        log.debug("Starting ACL collection for cluster {}", kafkaAsyncExecutorProperties.getName());
 
         try {
             // List ACLs from broker
@@ -92,7 +92,7 @@ public class AccessControlEntryAsyncExecutor {
             }
 
             if (!toDelete.isEmpty()) {
-                if (!kafkaAsyncExecutorConfig.isDropUnsyncAcls()) {
+                if (!kafkaAsyncExecutorProperties.isDropUnsyncAcls()) {
                     log.debug("The ACL drop is disabled. The following ACLs won't be deleted.");
                 }
                 log.debug("ACL(s) to delete: " +  String.join("," , toDelete.stream().map(AclBinding::toString).toList()));
@@ -102,7 +102,7 @@ public class AccessControlEntryAsyncExecutor {
             // such as deleting <LITERAL "toto.titi"> only to add one second later <PREFIX "toto.">
             createACLs(toCreate);
 
-            if (kafkaAsyncExecutorConfig.isDropUnsyncAcls()) {
+            if (kafkaAsyncExecutorProperties.isDropUnsyncAcls()) {
                 deleteACLs(toDelete);
             }
         } catch (KafkaStoreException | ExecutionException | TimeoutException e) {
@@ -121,7 +121,7 @@ public class AccessControlEntryAsyncExecutor {
      * @return A list of ACLs
      */
     private List<AclBinding> collectNs4KafkaACLs() {
-        List<Namespace> namespaces = namespaceRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName());
+        List<Namespace> namespaces = namespaceRepository.findAllForCluster(kafkaAsyncExecutorProperties.getName());
 
         // Converts topic, group and transaction Ns4kafka ACLs to topic and group Kafka AclBindings
         Stream<AclBinding> aclBindingFromACLs = namespaces
@@ -183,7 +183,7 @@ public class AccessControlEntryAsyncExecutor {
             // Collect the list of users managed in Ns4Kafka
             List<String> managedUsers = new ArrayList<>();
             managedUsers.add(USER_PRINCIPAL + PUBLIC_GRANTED_TO);
-            managedUsers.addAll(namespaceRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName())
+            managedUsers.addAll(namespaceRepository.findAllForCluster(kafkaAsyncExecutorProperties.getName())
                     .stream()
                     .flatMap(namespace -> Stream.of(USER_PRINCIPAL + namespace.getSpec().getKafkaUser()))
                     .toList());
@@ -316,12 +316,12 @@ public class AccessControlEntryAsyncExecutor {
                 .values().forEach((key, value) -> {
                     try {
                         value.get(10, TimeUnit.SECONDS);
-                        log.info("Success deleting ACL {} on {}", key, this.kafkaAsyncExecutorConfig.getName());
+                        log.info("Success deleting ACL {} on {}", key, this.kafkaAsyncExecutorProperties.getName());
                     } catch (InterruptedException e) {
                         log.error("Error", e);
                         Thread.currentThread().interrupt();
                     } catch (Exception e) {
-                        log.error(String.format("Error while deleting ACL %s on %s", key, this.kafkaAsyncExecutorConfig.getName()), e);
+                        log.error(String.format("Error while deleting ACL %s on %s", key, this.kafkaAsyncExecutorProperties.getName()), e);
                     }
                 });
     }
@@ -334,7 +334,7 @@ public class AccessControlEntryAsyncExecutor {
      * @param ns4kafkaACL The Kafka ACL
      */
     public void deleteNs4KafkaACL(Namespace namespace, AccessControlEntry ns4kafkaACL) {
-        if (kafkaAsyncExecutorConfig.isManageAcls()) {
+        if (kafkaAsyncExecutorProperties.isManageAcls()) {
             List<AclBinding> results = new ArrayList<>();
 
             if (List.of(TOPIC, GROUP, TRANSACTIONAL_ID).contains(ns4kafkaACL.getSpec().getResourceType())) {
@@ -357,7 +357,7 @@ public class AccessControlEntryAsyncExecutor {
      * @param kafkaStream The Kafka Streams
      */
     public void deleteKafkaStreams(Namespace namespace, KafkaStream kafkaStream) {
-        if (kafkaAsyncExecutorConfig.isManageAcls()) {
+        if (kafkaAsyncExecutorProperties.isManageAcls()) {
             List<AclBinding> results = new ArrayList<>(buildAclBindingsFromKafkaStream(kafkaStream, namespace.getSpec().getKafkaUser()));
             deleteACLs(results);
         }
@@ -374,12 +374,12 @@ public class AccessControlEntryAsyncExecutor {
                 .forEach((key, value) -> {
                     try {
                         value.get(10, TimeUnit.SECONDS);
-                        log.info("Success creating ACL {} on {}", key, this.kafkaAsyncExecutorConfig.getName());
+                        log.info("Success creating ACL {} on {}", key, this.kafkaAsyncExecutorProperties.getName());
                     } catch (InterruptedException e) {
                         log.error("Error", e);
                         Thread.currentThread().interrupt();
                     } catch (Exception e) {
-                        log.error(String.format("Error while creating ACL %s on %s", key, this.kafkaAsyncExecutorConfig.getName()), e);
+                        log.error(String.format("Error while creating ACL %s on %s", key, this.kafkaAsyncExecutorProperties.getName()), e);
                     }
                 });
     }
@@ -390,6 +390,6 @@ public class AccessControlEntryAsyncExecutor {
      * @return The admin client
      */
     private Admin getAdminClient() {
-        return kafkaAsyncExecutorConfig.getAdminClient();
+        return kafkaAsyncExecutorProperties.getAdminClient();
     }
 }

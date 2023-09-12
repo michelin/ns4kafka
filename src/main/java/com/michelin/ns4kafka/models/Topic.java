@@ -1,19 +1,18 @@
 package com.michelin.ns4kafka.models;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 
 @Data
 @Builder
-@Introspected
+@Serdeable
 @NoArgsConstructor
 @AllArgsConstructor
 public class Topic {
@@ -30,27 +29,27 @@ public class Topic {
     @EqualsAndHashCode.Exclude
     private TopicStatus status;
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Data
+    @Builder
+    @Serdeable
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class TopicSpec {
         private int replicationFactor;
         private int partitions;
         private Map<String, String> configs;
     }
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Getter
     @Setter
+    @Builder
+    @Serdeable
+    @NoArgsConstructor
+    @AllArgsConstructor
     @Schema(description = "Server-side", accessMode = Schema.AccessMode.READ_ONLY)
     public static class TopicStatus {
         private TopicPhase phase;
         private String message;
-
-        @JsonFormat(shape = JsonFormat.Shape.STRING)
         private Date lastUpdateTime;
 
         /**

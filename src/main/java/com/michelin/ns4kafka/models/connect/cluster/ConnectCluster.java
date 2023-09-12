@@ -1,15 +1,14 @@
 package com.michelin.ns4kafka.models.connect.cluster;
 
 import com.michelin.ns4kafka.models.ObjectMeta;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
-
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 
 @Data
 @Builder
-@Introspected
+@Serdeable
 @NoArgsConstructor
 @AllArgsConstructor
 public class ConnectCluster {
@@ -20,13 +19,15 @@ public class ConnectCluster {
     @NotNull
     private ObjectMeta metadata;
 
+    @Valid
     @NotNull
     private ConnectClusterSpec spec;
 
+    @Data
     @Builder
+    @Serdeable
     @AllArgsConstructor
     @NoArgsConstructor
-    @Data
     public static class ConnectClusterSpec {
         /**
          * Gets or sets the Kafka Connect Cluster url.

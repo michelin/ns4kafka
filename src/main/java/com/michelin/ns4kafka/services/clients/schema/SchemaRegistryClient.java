@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.services.clients.schema;
 
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.properties.KafkaAsyncExecutorProperties;
 import com.michelin.ns4kafka.services.clients.schema.entities.*;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.core.util.StringUtils;
@@ -31,7 +31,7 @@ public class SchemaRegistryClient {
     private HttpClient httpClient;
 
     @Inject
-    private List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigs;
+    private List<KafkaAsyncExecutorProperties> kafkaAsyncExecutorProperties;
 
     /**
      * List subjects
@@ -39,7 +39,7 @@ public class SchemaRegistryClient {
      * @return A list of subjects
      */
     public Flux<String> getSubjects(String kafkaCluster) {
-        KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
+        KafkaAsyncExecutorProperties.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/subjects")))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Flux.from(httpClient.retrieve(request, String[].class)).flatMap(Flux::fromArray);
@@ -52,7 +52,7 @@ public class SchemaRegistryClient {
      * @return A version of a subject
      */
     public Mono<SchemaResponse> getLatestSubject(String kafkaCluster, String subject) {
-        KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
+        KafkaAsyncExecutorProperties.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + "/versions/latest")))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, SchemaResponse.class))
@@ -68,7 +68,7 @@ public class SchemaRegistryClient {
      * @return The response of the registration
      */
     public Mono<SchemaResponse> register(String kafkaCluster, String subject, SchemaRequest body) {
-        KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
+        KafkaAsyncExecutorProperties.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.POST(URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + "/versions")), body)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, SchemaResponse.class));
@@ -82,7 +82,7 @@ public class SchemaRegistryClient {
      * @return The versions of the deleted subject
      */
     public Mono<Integer[]> deleteSubject(String kafkaCluster, String subject, boolean hardDelete) {
-        KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
+        KafkaAsyncExecutorProperties.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         MutableHttpRequest<?> request = HttpRequest.DELETE(URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + "?permanent=" + hardDelete)))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, Integer[].class));
@@ -96,7 +96,7 @@ public class SchemaRegistryClient {
      * @return The schema compatibility validation
      */
     public Mono<SchemaCompatibilityCheckResponse> validateSchemaCompatibility(String kafkaCluster, String subject, SchemaRequest body) {
-        KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
+        KafkaAsyncExecutorProperties.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.POST(URI.create(StringUtils.prependUri(config.getUrl(), "/compatibility/subjects/" + subject + "/versions?verbose=true")), body)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, SchemaCompatibilityCheckResponse.class))
@@ -112,7 +112,7 @@ public class SchemaRegistryClient {
      * @return The schema compatibility update
      */
     public Mono<SchemaCompatibilityResponse> updateSubjectCompatibility(String kafkaCluster, String subject, SchemaCompatibilityRequest body) {
-        KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
+        KafkaAsyncExecutorProperties.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.PUT(URI.create(StringUtils.prependUri(config.getUrl(), CONFIG + subject)), body)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, SchemaCompatibilityResponse.class));
@@ -125,7 +125,7 @@ public class SchemaRegistryClient {
      * @return The current schema compatibility
      */
     public Mono<SchemaCompatibilityResponse> getCurrentCompatibilityBySubject(String kafkaCluster, String subject) {
-        KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
+        KafkaAsyncExecutorProperties.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), CONFIG + subject)))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, SchemaCompatibilityResponse.class))
@@ -140,7 +140,7 @@ public class SchemaRegistryClient {
      * @return The deleted schema compatibility
      */
     public Mono<SchemaCompatibilityResponse> deleteCurrentCompatibilityBySubject(String kafkaCluster, String subject) {
-        KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
+        KafkaAsyncExecutorProperties.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         MutableHttpRequest<?> request = HttpRequest.DELETE(URI.create(StringUtils.prependUri(config.getUrl(), CONFIG + subject)))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, SchemaCompatibilityResponse.class));
@@ -151,8 +151,8 @@ public class SchemaRegistryClient {
      * @param kafkaCluster The Kafka cluster
      * @return The schema registry configuration
      */
-    private KafkaAsyncExecutorConfig.RegistryConfig getSchemaRegistry(String kafkaCluster) {
-        Optional<KafkaAsyncExecutorConfig> config = kafkaAsyncExecutorConfigs.stream()
+    private KafkaAsyncExecutorProperties.RegistryConfig getSchemaRegistry(String kafkaCluster) {
+        Optional<KafkaAsyncExecutorProperties> config = kafkaAsyncExecutorProperties.stream()
                 .filter(kafkaAsyncExecutorConfig -> kafkaAsyncExecutorConfig.getName().equals(kafkaCluster))
                 .findFirst();
 

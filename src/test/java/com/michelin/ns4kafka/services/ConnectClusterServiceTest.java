@@ -1,7 +1,7 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
-import com.michelin.ns4kafka.config.SecurityConfig;
+import com.michelin.ns4kafka.properties.KafkaAsyncExecutorProperties;
+import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
@@ -48,10 +48,10 @@ class ConnectClusterServiceTest {
     AccessControlEntryService accessControlEntryService;
 
     @Mock
-    List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigList;
+    List<KafkaAsyncExecutorProperties> kafkaAsyncExecutorPropertiesList;
 
     @Mock
-    SecurityConfig securityConfig;
+    SecurityProperties securityProperties;
 
     @InjectMocks
     ConnectClusterService connectClusterService;
@@ -106,9 +106,9 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(connectClusterRepository.findAll()).thenReturn(new ArrayList<>(List.of(connectCluster)));
-        KafkaAsyncExecutorConfig kafka = new KafkaAsyncExecutorConfig("local");
-        kafka.setConnects(Map.of("test-connect", new KafkaAsyncExecutorConfig.ConnectConfig()));
-        when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of(kafka));
+        KafkaAsyncExecutorProperties kafka = new KafkaAsyncExecutorProperties("local");
+        kafka.setConnects(Map.of("test-connect", new KafkaAsyncExecutorProperties.ConnectConfig()));
+        when(kafkaAsyncExecutorPropertiesList.stream()).thenReturn(Stream.of(kafka));
         when(kafkaConnectClient.version(any(), any()))
                 .thenReturn(Mono.just(HttpResponse.ok()))
                 .thenReturn(Mono.error(new Exception("error")));
@@ -414,7 +414,7 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(connectClusterRepository.create(connectCluster)).thenReturn(connectCluster);
-        when(securityConfig.getAes256EncryptionKey()).thenReturn("changeitchangeitchangeitchangeit");
+        when(securityProperties.getAes256EncryptionKey()).thenReturn("changeitchangeitchangeitchangeit");
 
         connectClusterService.create(connectCluster);
 
@@ -437,9 +437,9 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        KafkaAsyncExecutorConfig kafka = new KafkaAsyncExecutorConfig("local");
-        kafka.setConnects(Map.of("test-connect", new KafkaAsyncExecutorConfig.ConnectConfig()));
-        when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of(kafka));
+        KafkaAsyncExecutorProperties kafka = new KafkaAsyncExecutorProperties("local");
+        kafka.setConnects(Map.of("test-connect", new KafkaAsyncExecutorProperties.ConnectConfig()));
+        when(kafkaAsyncExecutorPropertiesList.stream()).thenReturn(Stream.of(kafka));
         when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
                 .thenReturn(Mono.just(ServerInfo.builder().build()));
 
@@ -466,7 +466,7 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of());
+        when(kafkaAsyncExecutorPropertiesList.stream()).thenReturn(Stream.of());
         when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
                 .thenReturn(Mono.error(new HttpClientException("Error")));
 
@@ -491,7 +491,7 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of());
+        when(kafkaAsyncExecutorPropertiesList.stream()).thenReturn(Stream.of());
 
         StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
                 .consumeNextWith(errors -> {
@@ -517,7 +517,7 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of());
+        when(kafkaAsyncExecutorPropertiesList.stream()).thenReturn(Stream.of());
         when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
                 .thenReturn(Mono.just(ServerInfo.builder().build()));
 
@@ -545,7 +545,7 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of());
+        when(kafkaAsyncExecutorPropertiesList.stream()).thenReturn(Stream.of());
         when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
                 .thenReturn(Mono.just(ServerInfo.builder().build()));
 
@@ -573,7 +573,7 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        when(kafkaAsyncExecutorConfigList.stream()).thenReturn(Stream.of());
+        when(kafkaAsyncExecutorPropertiesList.stream()).thenReturn(Stream.of());
         when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
                 .thenReturn(Mono.error(new HttpClientException("Error")));
 
@@ -939,7 +939,7 @@ class ConnectClusterServiceTest {
                                 .build()
                 ));
 
-        when(securityConfig.getAes256EncryptionKey()).thenReturn(encryptKey);
+        when(securityProperties.getAes256EncryptionKey()).thenReturn(encryptKey);
         List<ConnectCluster> actual = connectClusterService.findAllByNamespaceWrite(namespace);
 
         assertEquals(2, actual.size());
@@ -1160,7 +1160,7 @@ class ConnectClusterServiceTest {
                                 .build()
                 ));
 
-        when(securityConfig.getAes256EncryptionKey()).thenReturn("changeitchangeitchangeitchangeit");
+        when(securityProperties.getAes256EncryptionKey()).thenReturn("changeitchangeitchangeitchangeit");
 
         List<VaultResponse> actual = connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", List.of("secret"));
 
@@ -1209,7 +1209,7 @@ class ConnectClusterServiceTest {
                                 .build()
                 ));
 
-        when(securityConfig.getAes256EncryptionKey()).thenReturn("changeitchangeitchangeitchangeit");
+        when(securityProperties.getAes256EncryptionKey()).thenReturn("changeitchangeitchangeitchangeit");
 
         List<VaultResponse> actual = connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", List.of("secret"));
 

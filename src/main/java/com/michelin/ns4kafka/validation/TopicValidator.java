@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.validation;
 
 import com.michelin.ns4kafka.models.Topic;
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -15,6 +16,7 @@ import static com.michelin.ns4kafka.utils.config.TopicConfig.REPLICATION_FACTOR;
 
 @Getter
 @Setter
+@Serdeable
 @SuperBuilder
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
@@ -45,33 +47,36 @@ public class TopicValidator extends ResourceValidator {
                     "ASCII alphanumerics, '.', '_' or '-'");
         }
 
-        if (!validationConstraints.isEmpty() && topic.getSpec().getConfigs() != null) {
-            Set<String> configsWithoutConstraints = topic.getSpec().getConfigs().keySet()
-                    .stream()
-                    .filter(s -> !validationConstraints.containsKey(s))
-                    .collect(Collectors.toSet());
-            if (!configsWithoutConstraints.isEmpty()) {
-                validationErrors.add("Configurations [" + String.join(",", configsWithoutConstraints) + "] are not allowed");
+        if (validationConstraints != null) {
+            if (!validationConstraints.isEmpty() && topic.getSpec().getConfigs() != null) {
+                Set<String> configsWithoutConstraints = topic.getSpec().getConfigs().keySet()
+                        .stream()
+                        .filter(s -> !validationConstraints.containsKey(s))
+                        .collect(Collectors.toSet());
+                if (!configsWithoutConstraints.isEmpty()) {
+                    validationErrors.add("Configurations [" + String.join(",", configsWithoutConstraints) + "] are not allowed");
+                }
             }
+
+            validationConstraints.forEach((key, value) -> {
+                try {
+                    if (key.equals(PARTITIONS)) {
+                        value.ensureValid(key, topic.getSpec().getPartitions());
+                    } else if (key.equals(REPLICATION_FACTOR)) {
+                        value.ensureValid(key, topic.getSpec().getReplicationFactor());
+                    } else {
+                        if (topic.getSpec().getConfigs() != null) {
+                            value.ensureValid(key, topic.getSpec().getConfigs().get(key));
+                        } else {
+                            validationErrors.add("Invalid value null for configuration " + key + ": Value must be non-null");
+                        }
+                    }
+                } catch (FieldValidationException e) {
+                    validationErrors.add(e.getMessage());
+                }
+            });
         }
 
-        validationConstraints.forEach((key, value) -> {
-            try {
-                if (key.equals(PARTITIONS)) {
-                    value.ensureValid(key, topic.getSpec().getPartitions());
-                } else if (key.equals(REPLICATION_FACTOR)) {
-                    value.ensureValid(key, topic.getSpec().getReplicationFactor());
-                } else {
-                    if (topic.getSpec().getConfigs() != null) {
-                        value.ensureValid(key, topic.getSpec().getConfigs().get(key));
-                    } else {
-                        validationErrors.add("Invalid value null for configuration " + key + ": Value must be non-null");
-                    }
-                }
-            } catch (FieldValidationException e) {
-                validationErrors.add(e.getMessage());
-            }
-        });
         return validationErrors;
     }
 

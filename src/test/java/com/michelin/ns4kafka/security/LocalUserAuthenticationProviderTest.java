@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.security;
 
-import com.michelin.ns4kafka.config.SecurityConfig;
+import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.security.local.LocalUser;
 import com.michelin.ns4kafka.security.local.LocalUserAuthenticationProvider;
 import io.micronaut.security.authentication.AuthenticationException;
@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class LocalUserAuthenticationProviderTest {
     @Mock
-    SecurityConfig securityConfig;
+    SecurityProperties securityProperties;
 
     @Mock
     ResourceBasedSecurityRule resourceBasedSecurityRule;
@@ -36,7 +36,7 @@ class LocalUserAuthenticationProviderTest {
     void authenticateNoMatchUser() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
 
-        when(securityConfig.getLocalUsers())
+        when(securityProperties.getLocalUsers())
                 .thenReturn(List.of());
 
         Publisher<AuthenticationResponse> authenticationResponsePublisher = localUserAuthenticationProvider.authenticate(null, credentials);
@@ -50,7 +50,7 @@ class LocalUserAuthenticationProviderTest {
     void authenticateMatchUserNoMatchPassword() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
 
-        when(securityConfig.getLocalUsers())
+        when(securityProperties.getLocalUsers())
                 .thenReturn(List.of(LocalUser.builder()
                         .username("admin")
                         .password("invalid_sha256_signature")
@@ -68,7 +68,7 @@ class LocalUserAuthenticationProviderTest {
     void authenticateMatchUserMatchPassword() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
 
-        when(securityConfig.getLocalUsers())
+        when(securityProperties.getLocalUsers())
                 .thenReturn(List.of(LocalUser.builder()
                         .username("admin")
                         .password("8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918")

@@ -17,9 +17,11 @@
 package com.michelin.ns4kafka.services.clients.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.micronaut.serde.annotation.Serdeable;
 
 import java.util.List;
 
+@Serdeable
 public record ConfigValueInfo(String name, String value, @JsonProperty("recommended_values") List<String> recommendedValues,
                               List<String> errors, @JsonProperty("visible") boolean visible) {
 }

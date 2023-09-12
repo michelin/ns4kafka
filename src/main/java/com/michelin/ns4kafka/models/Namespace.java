@@ -2,20 +2,20 @@ package com.michelin.ns4kafka.models;
 
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 import java.util.List;
 
 @Data
 @Builder
-@Introspected
+@Serdeable
 @NoArgsConstructor
 @AllArgsConstructor
 public class Namespace {
@@ -32,8 +32,9 @@ public class Namespace {
 
     @Data
     @Builder
-    @AllArgsConstructor
+    @Serdeable
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class NamespaceSpec {
         @NotBlank
         private String kafkaUser;

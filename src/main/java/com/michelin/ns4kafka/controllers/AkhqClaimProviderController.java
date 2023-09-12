@@ -1,23 +1,23 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.config.AkhqClaimProviderControllerConfig;
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.properties.AkhqClaimProviderControllerProperties;
+import com.michelin.ns4kafka.properties.KafkaAsyncExecutorProperties;
 import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.NamespaceService;
-import io.micronaut.core.annotation.Introspected;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.security.rules.SecurityRule;
+import io.micronaut.serde.annotation.Serdeable;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 
-import javax.annotation.security.RolesAllowed;
-import javax.validation.Valid;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -31,7 +31,7 @@ public class AkhqClaimProviderController {
     private static final List<String> ADMIN_REGEXP = List.of(".*");
 
     @Inject
-    AkhqClaimProviderControllerConfig config;
+    AkhqClaimProviderControllerProperties config;
 
     @Inject
     AccessControlEntryService accessControlEntryService;
@@ -40,7 +40,7 @@ public class AkhqClaimProviderController {
     NamespaceService namespaceService;
 
     @Inject
-    List<KafkaAsyncExecutorConfig> managedClusters;
+    List<KafkaAsyncExecutorProperties> managedClusters;
 
     /**
      * List AKHQ claims (v019 and prior)
@@ -292,9 +292,9 @@ public class AkhqClaimProviderController {
                 .anyMatch(escapedString -> accessControlEntry.getSpec().getResource().startsWith(escapedString)));
     }
 
-    @Introspected
-    @Builder
     @Getter
+    @Builder
+    @Serdeable
     public static class AKHQClaimRequest {
         String providerType;
         String providerName;
@@ -302,9 +302,9 @@ public class AkhqClaimProviderController {
         List<String> groups;
     }
 
-    @Introspected
-    @Builder
     @Getter
+    @Builder
+    @Serdeable
     public static class AKHQClaimResponse {
         private List<String> roles;
         private Map<String, List<String>> attributes;
@@ -335,9 +335,9 @@ public class AkhqClaimProviderController {
         }
     }
 
-    @Introspected
-    @Builder
     @Getter
+    @Builder
+    @Serdeable
     public static class AKHQClaimResponseV2 {
         private List<String> roles;
         private List<String> topicsFilterRegexp;
@@ -364,9 +364,9 @@ public class AkhqClaimProviderController {
         }
     }
 
-    @Introspected
-    @Builder
     @Getter
+    @Builder
+    @Serdeable
     public static class AKHQClaimResponseV3 {
         private Map<String, List<Group>> groups;
 
@@ -380,7 +380,7 @@ public class AkhqClaimProviderController {
 
         @Data
         @Builder
-        @Introspected
+        @Serdeable
         public static class Group {
             private String role;
             private List<String> patterns;

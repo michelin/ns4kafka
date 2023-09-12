@@ -108,7 +108,6 @@ class UserTest extends AbstractIntegrationTest {
 
         //force User Sync
         userAsyncExecutors.forEach(UserAsyncExecutor::run);
-
     }
 
     @Test
@@ -125,6 +124,7 @@ class UserTest extends AbstractIntegrationTest {
         assertTrue(quotas.containsKey("consumer_byte_rate"));
         assertEquals(102400.0, quotas.get("consumer_byte_rate"));
     }
+
     @Test
     void checkCustomQuotas() throws ExecutionException, InterruptedException {
         Map<ClientQuotaEntity, Map<String, Double>> mapQuota = getAdminClient()
@@ -139,6 +139,7 @@ class UserTest extends AbstractIntegrationTest {
         assertTrue(quotas.containsKey("consumer_byte_rate"));
         assertEquals(409600.0, quotas.get("consumer_byte_rate"));
     }
+
     @Test
     void checkUpdateQuotas() throws ExecutionException, InterruptedException {
         // Update the namespace user quotas

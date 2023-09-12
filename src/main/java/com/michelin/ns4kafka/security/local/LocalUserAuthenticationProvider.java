@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.security.local;
 
-import com.michelin.ns4kafka.config.SecurityConfig;
+import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpRequest;
@@ -16,9 +16,9 @@ import java.util.Optional;
 
 @Slf4j
 @Singleton
-public class LocalUserAuthenticationProvider implements AuthenticationProvider {
+public class LocalUserAuthenticationProvider implements AuthenticationProvider<HttpRequest<?>> {
     @Inject
-    SecurityConfig securityConfig;
+    SecurityProperties securityProperties;
 
     @Inject
     ResourceBasedSecurityRule resourceBasedSecurityRule;
@@ -30,7 +30,7 @@ public class LocalUserAuthenticationProvider implements AuthenticationProvider {
             String password = authenticationRequest.getSecret().toString();
             log.debug("Checking local authentication for user: {}", username);
 
-            Optional<LocalUser> authenticatedUser = securityConfig.getLocalUsers().stream()
+            Optional<LocalUser> authenticatedUser = securityProperties.getLocalUsers().stream()
                     .filter(localUser -> localUser.getUsername().equals(username))
                     .filter(localUser -> localUser.isValidPassword(password))
                     .findFirst();

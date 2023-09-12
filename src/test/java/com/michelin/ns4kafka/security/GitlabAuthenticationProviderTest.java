@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.security;
 
-import com.michelin.ns4kafka.config.SecurityConfig;
+import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.security.gitlab.GitlabAuthenticationProvider;
@@ -39,7 +39,7 @@ class GitlabAuthenticationProviderTest {
     RoleBindingService roleBindingService;
 
     @Mock
-    SecurityConfig securityConfig;
+    SecurityProperties securityProperties;
 
     @InjectMocks
     GitlabAuthenticationProvider gitlabAuthenticationProvider;
@@ -102,7 +102,7 @@ class GitlabAuthenticationProviderTest {
                 .thenReturn(Flux.fromIterable(groups));
         when(roleBindingService.listByGroups(groups))
                 .thenReturn(List.of());
-        when(securityConfig.getAdminGroup())
+        when(securityProperties.getAdminGroup())
                 .thenReturn("group-admin");
         when(resourceBasedSecurityRule.computeRolesFromGroups(groups))
                 .thenReturn(List.of(ResourceBasedSecurityRule.IS_ADMIN));
@@ -151,7 +151,7 @@ class GitlabAuthenticationProviderTest {
                 .thenReturn(Flux.fromIterable(groups));
         when(roleBindingService.listByGroups(groups))
                 .thenReturn(List.of());
-        when(securityConfig.getAdminGroup())
+        when(securityProperties.getAdminGroup())
                 .thenReturn("group-admin");
 
         Publisher<AuthenticationResponse> authenticationResponsePublisher = gitlabAuthenticationProvider.authenticate(null, authenticationRequest);

@@ -1,19 +1,18 @@
 package com.michelin.ns4kafka.models.connector;
 
 import com.michelin.ns4kafka.models.ObjectMeta;
-import io.micronaut.core.annotation.Introspected;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.serde.annotation.Serdeable;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-
 @Data
 @Builder
-@Introspected
+@Serdeable
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChangeConnectorState {
@@ -27,11 +26,12 @@ public class ChangeConnectorState {
     @Valid
     @NotNull
     private ChangeConnectorStateSpec spec;
+
     private ChangeConnectorStateStatus status;
 
     @Data
     @Builder
-    @Introspected
+    @Serdeable
     @AllArgsConstructor
     @NoArgsConstructor
     public static class ChangeConnectorStateSpec {
@@ -41,7 +41,7 @@ public class ChangeConnectorState {
 
     @Data
     @Builder
-    @Introspected
+    @Serdeable
     @AllArgsConstructor
     @NoArgsConstructor
     public static class ChangeConnectorStateStatus {

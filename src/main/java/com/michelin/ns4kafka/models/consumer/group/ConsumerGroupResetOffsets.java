@@ -2,15 +2,16 @@ package com.michelin.ns4kafka.models.consumer.group;
 
 import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 @Data
 @Builder
-@Introspected
+@Serdeable
 @NoArgsConstructor
 @AllArgsConstructor
 public class ConsumerGroupResetOffsets {
@@ -29,7 +30,7 @@ public class ConsumerGroupResetOffsets {
     @Setter
     @Builder
     @ToString
-    @Introspected
+    @Serdeable
     @AllArgsConstructor
     @NoArgsConstructor
     public static class ConsumerGroupResetOffsetsSpec {
@@ -39,6 +40,7 @@ public class ConsumerGroupResetOffsets {
 
         @NotNull
         private ResetOffsetsMethod method;
+
         private String options;
     }
 

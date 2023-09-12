@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.services.executors;
 
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.properties.KafkaAsyncExecutorProperties;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.TopicRepository;
@@ -23,27 +23,27 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
-@EachBean(KafkaAsyncExecutorConfig.class)
+@EachBean(KafkaAsyncExecutorProperties.class)
 @Singleton
 public class TopicAsyncExecutor {
-    private final KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
+    private final KafkaAsyncExecutorProperties kafkaAsyncExecutorProperties;
 
     @Inject
     TopicRepository topicRepository;
 
-    public TopicAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
-        this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
+    public TopicAsyncExecutor(KafkaAsyncExecutorProperties kafkaAsyncExecutorProperties) {
+        this.kafkaAsyncExecutorProperties = kafkaAsyncExecutorProperties;
     }
 
     private Admin getAdminClient(){
-        return kafkaAsyncExecutorConfig.getAdminClient();
+        return kafkaAsyncExecutorProperties.getAdminClient();
     }
 
     /**
      * Start topic synchronization
      */
     public void run() {
-        if (this.kafkaAsyncExecutorConfig.isManageTopics()) {
+        if (this.kafkaAsyncExecutorProperties.isManageTopics()) {
             synchronizeTopics();
         }
     }
@@ -52,11 +52,11 @@ public class TopicAsyncExecutor {
      * Start the synchronization of topics
      */
     public void synchronizeTopics() {
-        log.debug("Starting topic collection for cluster {}", kafkaAsyncExecutorConfig.getName());
+        log.debug("Starting topic collection for cluster {}", kafkaAsyncExecutorProperties.getName());
 
         try {
             Map<String, Topic> brokerTopics = collectBrokerTopics();
-            List<Topic> ns4kafkaTopics = topicRepository.findAllForCluster(kafkaAsyncExecutorConfig.getName());
+            List<Topic> ns4kafkaTopics = topicRepository.findAllForCluster(kafkaAsyncExecutorProperties.getName());
 
             List<Topic> toCreate = ns4kafkaTopics.stream()
                     .filter(topic -> !brokerTopics.containsKey(topic.getMetadata().getName()))
@@ -109,7 +109,7 @@ public class TopicAsyncExecutor {
      */
     public void deleteTopic(Topic topic) throws InterruptedException, ExecutionException, TimeoutException {
         getAdminClient().deleteTopics(List.of(topic.getMetadata().getName())).all().get(30, TimeUnit.SECONDS);
-        log.info("Success deleting topic {} on {}", topic.getMetadata().getName(), this.kafkaAsyncExecutorConfig.getName());
+        log.info("Success deleting topic {} on {}", topic.getMetadata().getName(), this.kafkaAsyncExecutorProperties.getName());
     }
 
     /**
@@ -155,7 +155,7 @@ public class TopicAsyncExecutor {
                 .stream()
                 .map(stringMapEntry -> Topic.builder()
                         .metadata(ObjectMeta.builder()
-                                .cluster(kafkaAsyncExecutorConfig.getName())
+                                .cluster(kafkaAsyncExecutorProperties.getName())
                                 .name(stringMapEntry.getKey())
                                 .build())
                         .spec(Topic.TopicSpec.builder()
@@ -180,14 +180,14 @@ public class TopicAsyncExecutor {
                 updatedTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic configs updated"));
                 log.info("Success updating topic configs {} on {}: [{}]",
                         key.name(),
-                        kafkaAsyncExecutorConfig.getName(),
+                        kafkaAsyncExecutorProperties.getName(),
                         ops.stream().map(AlterConfigOp::toString).collect(Collectors.joining(",")));
             } catch (InterruptedException e) {
                 log.error("Error", e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 updatedTopic.setStatus(Topic.TopicStatus.ofFailed("Error while updating topic configs: " + e.getMessage()));
-                log.error(String.format("Error while updating topic configs %s on %s", key.name(), this.kafkaAsyncExecutorConfig.getName()), e);
+                log.error(String.format("Error while updating topic configs %s on %s", key.name(), this.kafkaAsyncExecutorProperties.getName()), e);
             }
             topicRepository.create(updatedTopic);
         });
@@ -212,13 +212,13 @@ public class TopicAsyncExecutor {
                 createdTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                 createdTopic.getMetadata().setGeneration(1);
                 createdTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic created"));
-                log.info("Success creating topic {} on {}", key, this.kafkaAsyncExecutorConfig.getName());
+                log.info("Success creating topic {} on {}", key, this.kafkaAsyncExecutorProperties.getName());
             } catch (InterruptedException e) {
                 log.error("Error", e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 createdTopic.setStatus(Topic.TopicStatus.ofFailed("Error while creating topic: " + e.getMessage()));
-                log.error(String.format("Error while creating topic %s on %s", key, this.kafkaAsyncExecutorConfig.getName()), e);
+                log.error(String.format("Error while creating topic %s on %s", key, this.kafkaAsyncExecutorProperties.getName()), e);
             }
             topicRepository.create(createdTopic);
         });

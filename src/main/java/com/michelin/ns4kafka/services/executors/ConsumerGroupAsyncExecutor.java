@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.services.executors;
 
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.properties.KafkaAsyncExecutorProperties;
 import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
@@ -19,13 +19,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
-@EachBean(KafkaAsyncExecutorConfig.class)
+@EachBean(KafkaAsyncExecutorProperties.class)
 @Singleton
 public class ConsumerGroupAsyncExecutor {
-    private final KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
+    private final KafkaAsyncExecutorProperties kafkaAsyncExecutorProperties;
 
-    public ConsumerGroupAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
-        this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
+    public ConsumerGroupAsyncExecutor(KafkaAsyncExecutorProperties kafkaAsyncExecutorProperties) {
+        this.kafkaAsyncExecutorProperties = kafkaAsyncExecutorProperties;
     }
 
     /**
@@ -33,7 +33,7 @@ public class ConsumerGroupAsyncExecutor {
      * @return A Kafka Admin client instance
      */
     private Admin getAdminClient() {
-        return kafkaAsyncExecutorConfig.getAdminClient();
+        return kafkaAsyncExecutorProperties.getAdminClient();
     }
 
     public Map<String, ConsumerGroupDescription> describeConsumerGroups(List<String> groupIds) throws ExecutionException, InterruptedException {

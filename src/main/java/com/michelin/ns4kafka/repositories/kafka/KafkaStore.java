@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.repositories.kafka;
 
-import com.michelin.ns4kafka.config.KafkaStoreConfig;
+import com.michelin.ns4kafka.properties.KafkaStoreProperties;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.scheduling.TaskExecutors;
@@ -40,7 +40,7 @@ public abstract class KafkaStore<T> {
     AdminClient adminClient;
 
     @Inject
-    KafkaStoreConfig kafkaStoreConfig;
+    KafkaStoreProperties kafkaStoreProperties;
 
     @Inject
     @Named(TaskExecutors.SCHEDULED)
@@ -136,9 +136,9 @@ public abstract class KafkaStore<T> {
             throw new KafkaStoreException("The topic " + kafkaTopic + " should have only 1 partition but has " + numPartitions + ".");
         }
 
-        if (description.partitions().get(0).replicas().size() < kafkaStoreConfig.getReplicationFactor() && log.isWarnEnabled()) {
+        if (description.partitions().get(0).replicas().size() < kafkaStoreProperties.getReplicationFactor() && log.isWarnEnabled()) {
             log.warn("The replication factor of the topic " + kafkaTopic + " is less than the desired one of "
-                    + kafkaStoreConfig.getReplicationFactor() + ". If this is a production environment, it's crucial to add more brokers and "
+                    + kafkaStoreProperties.getReplicationFactor() + ". If this is a production environment, it's crucial to add more brokers and "
                     + "increase the replication factor of the topic.");
         }
 
@@ -180,16 +180,16 @@ public abstract class KafkaStore<T> {
             throw new KafkaStoreException("No live Kafka brokers.");
         }
 
-        int schemaTopicReplicationFactor = Math.min(numLiveBrokers, kafkaStoreConfig.getReplicationFactor());
-        if (schemaTopicReplicationFactor < kafkaStoreConfig.getReplicationFactor() && log.isWarnEnabled()) {
+        int schemaTopicReplicationFactor = Math.min(numLiveBrokers, kafkaStoreProperties.getReplicationFactor());
+        if (schemaTopicReplicationFactor < kafkaStoreProperties.getReplicationFactor() && log.isWarnEnabled()) {
             log.warn("Creating the kafkaTopic {}" + kafkaTopic + " using a replication factor of "
                     + schemaTopicReplicationFactor + ", which is less than the desired one of "
-                    + kafkaStoreConfig.getReplicationFactor() + ". If this is a production environment, it's "
+                    + kafkaStoreProperties.getReplicationFactor() + ". If this is a production environment, it's "
                     + "crucial to add more brokers and increase the replication factor of the kafkaTopic.");
         }
 
         NewTopic schemaTopicRequest = new NewTopic(kafkaTopic, 1, (short) schemaTopicReplicationFactor);
-        schemaTopicRequest.configs(kafkaStoreConfig.getProps());
+        schemaTopicRequest.configs(kafkaStoreProperties.getProps());
 
         try {
             adminClient.createTopics(Collections.singleton(schemaTopicRequest))

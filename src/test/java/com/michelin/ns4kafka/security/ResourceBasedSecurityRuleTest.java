@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.security;
 
-import com.michelin.ns4kafka.config.SecurityConfig;
+import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
@@ -32,7 +32,7 @@ class ResourceBasedSecurityRuleTest {
     RoleBindingRepository roleBindingRepository;
 
     @Mock
-    SecurityConfig securityConfig;
+    SecurityProperties securityProperties;
 
     @InjectMocks
     ResourceBasedSecurityRule resourceBasedSecurityRule;
@@ -288,7 +288,7 @@ class ResourceBasedSecurityRuleTest {
 
     @Test
     void ComputeRolesNoAdmin() {
-        when(securityConfig.getAdminGroup())
+        when(securityProperties.getAdminGroup())
                 .thenReturn("admin-group");
         List<String> actual = resourceBasedSecurityRule.computeRolesFromGroups(List.of("not-admin"));
 
@@ -297,7 +297,7 @@ class ResourceBasedSecurityRuleTest {
 
     @Test
     void ComputeRolesAdmin() {
-        when(securityConfig.getAdminGroup())
+        when(securityProperties.getAdminGroup())
                 .thenReturn("admin-group");
         List<String> actual = resourceBasedSecurityRule.computeRolesFromGroups(List.of("admin-group"));
 

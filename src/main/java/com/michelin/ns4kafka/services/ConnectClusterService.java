@@ -1,7 +1,7 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
-import com.michelin.ns4kafka.config.SecurityConfig;
+import com.michelin.ns4kafka.properties.KafkaAsyncExecutorProperties;
+import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
@@ -51,10 +51,10 @@ public class ConnectClusterService {
     ConnectClusterRepository connectClusterRepository;
 
     @Inject
-    List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfig;
+    List<KafkaAsyncExecutorProperties> kafkaAsyncExecutorProperties;
 
     @Inject
-    SecurityConfig securityConfig;
+    SecurityProperties securityProperties;
 
     @Inject
     @Client
@@ -69,7 +69,7 @@ public class ConnectClusterService {
         List<ConnectCluster> results = connectClusterRepository.findAll();
 
         if (all) {
-            results.addAll(kafkaAsyncExecutorConfig
+            results.addAll(kafkaAsyncExecutorProperties
                     .stream()
                     .map(config -> config.getConnects().entrySet()
                             .stream()
@@ -142,9 +142,9 @@ public class ConnectClusterService {
                     var builder = ConnectCluster.ConnectClusterSpec.builder()
                             .url(connectCluster.getSpec().getUrl())
                             .username(connectCluster.getSpec().getUsername())
-                            .password(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getPassword(), securityConfig.getAes256EncryptionKey()))
-                            .aes256Key(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getAes256Key(), securityConfig.getAes256EncryptionKey()))
-                            .aes256Salt(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getAes256Salt(), securityConfig.getAes256EncryptionKey()))
+                            .password(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getPassword(), securityProperties.getAes256EncryptionKey()))
+                            .aes256Key(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getAes256Key(), securityProperties.getAes256EncryptionKey()))
+                            .aes256Salt(EncryptionUtils.decryptAES256GCM(connectCluster.getSpec().getAes256Salt(), securityProperties.getAes256EncryptionKey()))
                             .aes256Format(connectCluster.getSpec().getAes256Format());
 
                     try {
@@ -210,19 +210,19 @@ public class ConnectClusterService {
     public ConnectCluster create(ConnectCluster connectCluster) {
         if (StringUtils.hasText(connectCluster.getSpec().getPassword())) {
             connectCluster.getSpec()
-                    .setPassword(EncryptionUtils.encryptAES256GCM(connectCluster.getSpec().getPassword(), securityConfig.getAes256EncryptionKey()));
+                    .setPassword(EncryptionUtils.encryptAES256GCM(connectCluster.getSpec().getPassword(), securityProperties.getAes256EncryptionKey()));
         }
 
         // encrypt aes256 key if present
         if (StringUtils.hasText(connectCluster.getSpec().getAes256Key())) {
             connectCluster.getSpec()
-                    .setAes256Key(EncryptionUtils.encryptAES256GCM(connectCluster.getSpec().getAes256Key(), securityConfig.getAes256EncryptionKey()));
+                    .setAes256Key(EncryptionUtils.encryptAES256GCM(connectCluster.getSpec().getAes256Key(), securityProperties.getAes256EncryptionKey()));
         }
 
         // encrypt aes256 salt if present
         if (StringUtils.hasText(connectCluster.getSpec().getAes256Salt())) {
             connectCluster.getSpec()
-                    .setAes256Salt(EncryptionUtils.encryptAES256GCM(connectCluster.getSpec().getAes256Salt(), securityConfig.getAes256EncryptionKey()));
+                    .setAes256Salt(EncryptionUtils.encryptAES256GCM(connectCluster.getSpec().getAes256Salt(), securityProperties.getAes256EncryptionKey()));
         }
 
         return connectClusterRepository.create(connectCluster);
@@ -237,7 +237,7 @@ public class ConnectClusterService {
     public Mono<List<String>> validateConnectClusterCreation(ConnectCluster connectCluster) {
         List<String> errors = new ArrayList<>();
 
-        if (kafkaAsyncExecutorConfig.stream().anyMatch(cluster ->
+        if (kafkaAsyncExecutorProperties.stream().anyMatch(cluster ->
                 cluster.getConnects().entrySet().stream().anyMatch(entry -> entry.getKey().equals(connectCluster.getMetadata().getName())))) {
             errors.add(String.format("A Kafka Connect is already defined globally with the name \"%s\". Please provide a different name.", connectCluster.getMetadata().getName()));
         }
@@ -367,8 +367,8 @@ public class ConnectClusterService {
                     .toList();
         }
 
-        final String aes256Key = EncryptionUtils.decryptAES256GCM(kafkaConnect.get().getSpec().getAes256Key(), securityConfig.getAes256EncryptionKey());
-        final String aes256Salt = EncryptionUtils.decryptAES256GCM(kafkaConnect.get().getSpec().getAes256Salt(), securityConfig.getAes256EncryptionKey());
+        final String aes256Key = EncryptionUtils.decryptAES256GCM(kafkaConnect.get().getSpec().getAes256Key(), securityProperties.getAes256EncryptionKey());
+        final String aes256Salt = EncryptionUtils.decryptAES256GCM(kafkaConnect.get().getSpec().getAes256Salt(), securityProperties.getAes256EncryptionKey());
         final String aes256Format = StringUtils.hasText(kafkaConnect.get().getSpec().getAes256Format()) ?
                 kafkaConnect.get().getSpec().getAes256Format() : DEFAULT_FORMAT;
 

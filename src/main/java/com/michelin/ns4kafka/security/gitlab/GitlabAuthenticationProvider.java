@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.security.gitlab;
 
-import com.michelin.ns4kafka.config.SecurityConfig;
+import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.RoleBindingService;
 import io.micronaut.core.annotation.Nullable;
@@ -17,7 +17,7 @@ import java.util.Map;
 
 @Slf4j
 @Singleton
-public class GitlabAuthenticationProvider implements AuthenticationProvider {
+public class GitlabAuthenticationProvider implements AuthenticationProvider<HttpRequest<?>> {
     @Inject
     GitlabAuthenticationService gitlabAuthenticationService;
 
@@ -28,7 +28,7 @@ public class GitlabAuthenticationProvider implements AuthenticationProvider {
     RoleBindingService roleBindingService;
 
     @Inject
-    SecurityConfig securityConfig;
+    SecurityProperties securityProperties;
 
     /**
      * Perform user authentication with GitLab
@@ -47,7 +47,7 @@ public class GitlabAuthenticationProvider implements AuthenticationProvider {
                 .flatMap(username -> gitlabAuthenticationService.findAllGroups(token).collectList()
                         .onErrorResume(error -> Mono.error(new AuthenticationException(new AuthenticationFailed("Cannot retrieve your GitLab groups"))))
                         .flatMap(groups -> {
-                            if (roleBindingService.listByGroups(groups).isEmpty() && !groups.contains(securityConfig.getAdminGroup())) {
+                            if (roleBindingService.listByGroups(groups).isEmpty() && !groups.contains(securityProperties.getAdminGroup())) {
                                 log.debug("Error during authentication: user groups not found in any namespace");
                                 return Mono.error(new AuthenticationException(new AuthenticationFailed("No namespace matches your GitLab groups")));
                             } else {

@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.security.local;
 
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -12,26 +12,26 @@ import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 @Slf4j
-@Introspected
-@Builder
 @Getter
 @Setter
+@Builder
+@Serdeable
 public class LocalUser {
     String username;
     String password;
     List<String> groups;
 
-    public boolean isValidPassword(String input_password) {
+    public boolean isValidPassword(String inputPassword) {
         log.debug("Verifying password for user {}", username);
         MessageDigest digest = null;
         try {
             digest = MessageDigest.getInstance("SHA-256");
             byte[] encodedhash = digest.digest(
-                    input_password.getBytes(StandardCharsets.UTF_8));
+                    inputPassword.getBytes(StandardCharsets.UTF_8));
 
             StringBuilder hexString = new StringBuilder(2 * encodedhash.length);
-            for (int i = 0; i < encodedhash.length; i++) {
-                String hex = Integer.toHexString(0xff & encodedhash[i]);
+            for (byte b : encodedhash) {
+                String hex = Integer.toHexString(0xff & b);
                 if (hex.length() == 1) {
                     hexString.append('0');
                 }

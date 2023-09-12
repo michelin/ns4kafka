@@ -17,9 +17,11 @@
 package com.michelin.ns4kafka.services.clients.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.micronaut.serde.annotation.Serdeable;
 
 import java.util.List;
 
+@Serdeable
 public record ConfigKeyInfo(String name, String type, @JsonProperty("required") boolean required,
                             @JsonProperty("default_value") String defaultValue, String importance,
                             String documentation, String group, @JsonProperty("order_in_group") int orderInGroup,

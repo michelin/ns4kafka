@@ -1,9 +1,9 @@
-package com.michelin.ns4kafka.config;
+package com.michelin.ns4kafka.properties;
 
 import io.micronaut.context.annotation.ConfigurationProperties;
 import io.micronaut.context.annotation.EachProperty;
 import io.micronaut.context.annotation.Parameter;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.kafka.clients.admin.Admin;
@@ -13,8 +13,9 @@ import java.util.Properties;
 
 @Getter
 @Setter
+@Serdeable
 @EachProperty("ns4kafka.managed-clusters")
-public class KafkaAsyncExecutorConfig {
+public class KafkaAsyncExecutorProperties {
     private String name;
     private boolean manageTopics;
     private boolean manageAcls;
@@ -27,18 +28,18 @@ public class KafkaAsyncExecutorConfig {
     private RegistryConfig schemaRegistry;
     private Admin adminClient = null;
 
-    public KafkaAsyncExecutorConfig(@Parameter String name) {
+    public KafkaAsyncExecutorProperties(@Parameter String name) {
         this.name = name;
     }
 
-    public KafkaAsyncExecutorConfig(@Parameter String name, @Parameter KafkaProvider provider) {
+    public KafkaAsyncExecutorProperties(@Parameter String name, @Parameter KafkaProvider provider) {
         this.name = name;
         this.provider = provider;
     }
 
     @Getter
     @Setter
-    @Introspected
+    @Serdeable
     public static class ConnectConfig {
         String url;
         String basicAuthUsername;
@@ -47,6 +48,7 @@ public class KafkaAsyncExecutorConfig {
 
     @Getter
     @Setter
+    @Serdeable
     @ConfigurationProperties("schema-registry")
     public static class RegistryConfig {
         String url;

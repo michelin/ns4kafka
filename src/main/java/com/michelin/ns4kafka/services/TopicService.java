@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.properties.KafkaAsyncExecutorProperties;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
@@ -32,7 +32,7 @@ public class TopicService {
     ApplicationContext applicationContext;
 
     @Inject
-    List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfig;
+    List<KafkaAsyncExecutorProperties> kafkaAsyncExecutorProperties;
 
     /**
      * Find all topics
@@ -159,12 +159,12 @@ public class TopicService {
                     newTopic.getSpec().getReplicationFactor(), existingTopic.getSpec().getReplicationFactor()));
         }
 
-        Optional<KafkaAsyncExecutorConfig> topicCluster = kafkaAsyncExecutorConfig
+        Optional<KafkaAsyncExecutorProperties> topicCluster = kafkaAsyncExecutorProperties
                 .stream()
                 .filter(cluster -> namespace.getMetadata().getCluster().equals(cluster.getName()))
                 .findFirst();
 
-        boolean confluentCloudCluster = topicCluster.isPresent() && topicCluster.get().getProvider().equals(KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD);
+        boolean confluentCloudCluster = topicCluster.isPresent() && topicCluster.get().getProvider().equals(KafkaAsyncExecutorProperties.KafkaProvider.CONFLUENT_CLOUD);
         if (confluentCloudCluster && existingTopic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG).equals(CLEANUP_POLICY_DELETE) &&
                 newTopic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG).equals(CLEANUP_POLICY_COMPACT)) {
             validationErrors.add(String.format("Invalid value %s for configuration cleanup.policy: Altering topic configuration from `delete` to `compact` is not currently supported. Please create a new topic with `compact` policy specified instead.",

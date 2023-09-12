@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.services;
 
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.properties.KafkaAsyncExecutorProperties;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import jakarta.inject.Inject;
@@ -9,7 +9,6 @@ import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Singleton
@@ -18,7 +17,7 @@ public class NamespaceService {
     NamespaceRepository namespaceRepository;
 
     @Inject
-    List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigList;
+    List<KafkaAsyncExecutorProperties> kafkaAsyncExecutorPropertiesList;
 
     @Inject
     TopicService topicService;
@@ -40,7 +39,7 @@ public class NamespaceService {
     public List<String> validateCreation(Namespace namespace) {
         List<String> validationErrors = new ArrayList<>();
 
-        if (kafkaAsyncExecutorConfigList.stream().noneMatch(config -> config.getName().equals(namespace.getMetadata().getCluster()))) {
+        if (kafkaAsyncExecutorPropertiesList.stream().noneMatch(config -> config.getName().equals(namespace.getMetadata().getCluster()))) {
             validationErrors.add("Invalid value " + namespace.getMetadata().getCluster() + " for cluster: Cluster doesn't exist");
         }
 
@@ -72,7 +71,7 @@ public class NamespaceService {
      * @return true it does, false otherwise
      */
     private boolean connectClusterExists(String kafkaCluster, String connectCluster) {
-        return kafkaAsyncExecutorConfigList.stream()
+        return kafkaAsyncExecutorPropertiesList.stream()
                 .anyMatch(kafkaAsyncExecutorConfig -> kafkaAsyncExecutorConfig.getName().equals(kafkaCluster) &&
                         kafkaAsyncExecutorConfig.getConnects().containsKey(connectCluster));
     }
@@ -90,8 +89,8 @@ public class NamespaceService {
     }
 
     public List<Namespace> listAll() {
-        return kafkaAsyncExecutorConfigList.stream()
-                .map(KafkaAsyncExecutorConfig::getName)
+        return kafkaAsyncExecutorPropertiesList.stream()
+                .map(KafkaAsyncExecutorProperties::getName)
                 .flatMap(s -> namespaceRepository.findAllForCluster(s).stream())
                 .toList();
     }

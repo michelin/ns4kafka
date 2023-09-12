@@ -1,17 +1,16 @@
 package com.michelin.ns4kafka.models;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.*;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Pattern;
 import java.util.Date;
 import java.util.Map;
 
 @Data
 @Builder
-@Introspected
+@Serdeable
 @NoArgsConstructor
 @AllArgsConstructor
 public class ObjectMeta {
@@ -24,7 +23,6 @@ public class ObjectMeta {
     @EqualsAndHashCode.Exclude
     private int generation;
     @EqualsAndHashCode.Exclude
-    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Date creationTimestamp;
 
 }

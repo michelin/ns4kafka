@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.services.executors;
 
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.properties.KafkaAsyncExecutorProperties;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.ResourceQuotaRepository;
@@ -24,14 +24,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
-@EachBean(KafkaAsyncExecutorConfig.class)
+@EachBean(KafkaAsyncExecutorProperties.class)
 @Singleton
 public class UserAsyncExecutor {
     public static final double BYTE_RATE_DEFAULT_VALUE = 102400.0;
 
     private static final String USER_QUOTA_PREFIX = "user/";
 
-    private final KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
+    private final KafkaAsyncExecutorProperties kafkaAsyncExecutorProperties;
 
     private final AbstractUserSynchronizer userExecutor;
 
@@ -41,11 +41,11 @@ public class UserAsyncExecutor {
     @Inject
     ResourceQuotaRepository quotaRepository;
 
-    public UserAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
-        this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
-        switch (kafkaAsyncExecutorConfig.getProvider()) {
+    public UserAsyncExecutor(KafkaAsyncExecutorProperties kafkaAsyncExecutorProperties) {
+        this.kafkaAsyncExecutorProperties = kafkaAsyncExecutorProperties;
+        switch (kafkaAsyncExecutorProperties.getProvider()) {
             case SELF_MANAGED:
-                this.userExecutor = new Scram512UserSynchronizer(kafkaAsyncExecutorConfig.getAdminClient());
+                this.userExecutor = new Scram512UserSynchronizer(kafkaAsyncExecutorProperties.getAdminClient());
                 break;
             case CONFLUENT_CLOUD:
             default:
@@ -55,14 +55,14 @@ public class UserAsyncExecutor {
     }
 
     public void run() {
-        if (this.kafkaAsyncExecutorConfig.isManageUsers() && this.userExecutor.canSynchronizeQuotas()) {
+        if (this.kafkaAsyncExecutorProperties.isManageUsers() && this.userExecutor.canSynchronizeQuotas()) {
             synchronizeUsers();
         }
 
     }
 
     public void synchronizeUsers() {
-        log.debug("Starting user collection for cluster {}", kafkaAsyncExecutorConfig.getName());
+        log.debug("Starting user collection for cluster {}", kafkaAsyncExecutorProperties.getName());
         // List user details from broker
         Map<String, Map<String, Double>> brokerUserQuotas = this.userExecutor.listQuotas();
         // List user details from ns4kafka
@@ -98,14 +98,14 @@ public class UserAsyncExecutor {
             return this.userExecutor.resetPassword(user);
         } else {
             throw new ResourceValidationException(
-                    List.of("Password reset is not available with provider " + kafkaAsyncExecutorConfig.getProvider()),
+                    List.of("Password reset is not available with provider " + kafkaAsyncExecutorProperties.getProvider()),
                     "KafkaUserResetPassword",
                     user);
         }
     }
 
     private Map<String, Map<String, Double>> collectNs4kafkaQuotas() {
-        return namespaceRepository.findAllForCluster(this.kafkaAsyncExecutorConfig.getName())
+        return namespaceRepository.findAllForCluster(this.kafkaAsyncExecutorProperties.getName())
                 .stream()
                 .map(namespace -> {
                     Optional<ResourceQuota> quota = quotaRepository.findForNamespace(namespace.getMetadata().getName());

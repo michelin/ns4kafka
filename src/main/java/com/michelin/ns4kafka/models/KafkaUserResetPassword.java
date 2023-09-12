@@ -1,12 +1,12 @@
 package com.michelin.ns4kafka.models;
 
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.*;
 
 @Getter
 @Setter
 @Builder
-@Introspected
+@Serdeable
 @NoArgsConstructor
 @AllArgsConstructor
 public class KafkaUserResetPassword {
@@ -15,11 +15,11 @@ public class KafkaUserResetPassword {
     private ObjectMeta metadata;
     private KafkaUserResetPasswordSpec spec;
 
-    @Introspected
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Getter
+    @Builder
+    @Serdeable
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class KafkaUserResetPasswordSpec {
         private String newPassword;
     }

@@ -17,8 +17,10 @@
 package com.michelin.ns4kafka.services.clients.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.micronaut.serde.annotation.Serdeable;
 
 import java.util.List;
 
+@Serdeable
 public record ConfigInfos(String name, @JsonProperty("error_count") int errorCount, List<String> groups, List<ConfigInfo> configs) {
 }

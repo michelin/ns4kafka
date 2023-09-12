@@ -1,18 +1,18 @@
 package com.michelin.ns4kafka.models.quota;
 
 import com.michelin.ns4kafka.models.ObjectMeta;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 import java.util.Map;
 
 @Data
 @Builder
-@Introspected
-@AllArgsConstructor
+@Serdeable
 @NoArgsConstructor
+@AllArgsConstructor
 public class ResourceQuota {
     private final String apiVersion = "v1";
     private final String kind = "ResourceQuota";
@@ -21,12 +21,11 @@ public class ResourceQuota {
     @NotNull
     private ObjectMeta metadata;
 
-    @Valid
     @NotNull
     private Map<String, String> spec;
 
     @Getter
-    @Introspected
+    @Serdeable
     @AllArgsConstructor
     public enum ResourceQuotaSpecKey {
         COUNT_TOPICS("count/topics"),

@@ -1,15 +1,14 @@
 package com.michelin.ns4kafka.models.consumer.group;
 
 import com.michelin.ns4kafka.models.ObjectMeta;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-
-@Introspected
-@Builder
 @Getter
+@Builder
+@Serdeable
 @NoArgsConstructor
 @AllArgsConstructor
 public class ConsumerGroupResetOffsetsResponse {
@@ -37,12 +36,12 @@ public class ConsumerGroupResetOffsetsResponse {
     @NotNull
     private ConsumerGroupResetOffsetsResponseSpec spec;
 
-    @Introspected
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Getter
+    @Builder
     @ToString
+    @Serdeable
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ConsumerGroupResetOffsetsResponseSpec {
         /**
          * The topic that was reset
