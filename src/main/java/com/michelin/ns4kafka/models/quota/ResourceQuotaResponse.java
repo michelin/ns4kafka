@@ -6,7 +6,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-@Getter
+@Data
 @Builder
 @Serdeable
 @NoArgsConstructor
@@ -23,12 +23,11 @@ public class ResourceQuotaResponse {
     @NotNull
     private ResourceQuotaResponseSpec spec;
 
-    @Getter
+    @Data
     @Builder
-    @ToString
     @Serdeable
-    @AllArgsConstructor
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class ResourceQuotaResponseSpec {
         private String countTopic;
         private String countPartition;

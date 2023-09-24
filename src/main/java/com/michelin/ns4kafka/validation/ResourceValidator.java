@@ -1,7 +1,6 @@
 package com.michelin.ns4kafka.validation;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.*;
 import io.micronaut.serde.annotation.Serdeable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -44,14 +43,12 @@ public abstract class ResourceValidator {
      * Validation logic for numeric ranges
      */
     @Data
-    @Builder
     @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class Range implements ResourceValidator.Validator {
+    public static class Range implements Validator {
         private Number min;
         private Number max;
-        @Builder.Default
         private boolean optional = false;
 
         /**
@@ -111,18 +108,15 @@ public abstract class ResourceValidator {
     @Data
     @Serdeable
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class ValidList implements ResourceValidator.Validator {
         private List<String> validStrings;
         private boolean optional = false;
 
-        public ValidList(List<String> validStrings, boolean optional) {
-            this.validStrings = validStrings;
-            this.optional = optional;
-        }
-
         public static ResourceValidator.ValidList in(String... validStrings) {
             return new ResourceValidator.ValidList(Arrays.asList(validStrings), false);
         }
+
         public static ResourceValidator.ValidList optionalIn(String... validStrings) {
             return new ResourceValidator.ValidList(Arrays.asList(validStrings), true);
         }
@@ -156,14 +150,10 @@ public abstract class ResourceValidator {
     @Data
     @Serdeable
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class ValidString implements ResourceValidator.Validator {
         private List<String> validStrings;
         private boolean optional = false;
-
-        public ValidString(List<String> validStrings, boolean optional) {
-            this.validStrings = validStrings;
-            this.optional = optional;
-        }
 
         public static ResourceValidator.ValidString in(String... validStrings) {
             return new ResourceValidator.ValidString(Arrays.asList(validStrings), false);
@@ -192,12 +182,20 @@ public abstract class ResourceValidator {
         }
     }
 
+    @Data
     @Serdeable
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class NonEmptyString implements ResourceValidator.Validator {
+        private boolean optional = false;
+
         @Override
         public void ensureValid(String name, Object o) {
-            if (o == null)
+            if (o == null) {
+                if (optional)
+                    return;
                 throw new FieldValidationException(name, null, "Value must be non-null");
+            }
             String s = (String) o;
             if (s.isEmpty()) {
                 throw new FieldValidationException(name, o, "String must be non-empty");
@@ -213,7 +211,8 @@ public abstract class ResourceValidator {
         public boolean equals(Object obj) {
             if (this == obj) return true;
             if (obj == null) return false;
-            return obj instanceof NonEmptyString;
+            if (!(obj instanceof NonEmptyString)) return false;
+            return true;
         }
 
         @Override

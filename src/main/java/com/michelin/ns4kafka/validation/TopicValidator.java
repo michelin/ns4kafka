@@ -14,8 +14,7 @@ import java.util.stream.Collectors;
 import static com.michelin.ns4kafka.utils.config.TopicConfig.PARTITIONS;
 import static com.michelin.ns4kafka.utils.config.TopicConfig.REPLICATION_FACTOR;
 
-@Getter
-@Setter
+@Data
 @Serdeable
 @SuperBuilder
 @NoArgsConstructor

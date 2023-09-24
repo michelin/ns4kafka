@@ -302,9 +302,7 @@ class TopicTest extends AbstractIntegrationTest {
                 .toList();
 
         assertEquals(config.size(), valueToVerify.size());
-        valueToVerify.forEach(entry -> {
-            assertEquals(config.get(entry.name()), entry.value());
-        });
+        valueToVerify.forEach(entry -> assertEquals(config.get(entry.name()), entry.value()));
     }
 
     /**
@@ -414,7 +412,9 @@ class TopicTest extends AbstractIntegrationTest {
 
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
 
-        List<DeleteRecordsResponse> deleteRecordsResponse = client.toBlocking().retrieve(HttpRequest.create(HttpMethod.POST,"/api/namespaces/ns1/topics/ns1-topicToDelete/delete-records").bearerAuth(token), Argument.listOf(DeleteRecordsResponse.class));
+        List<DeleteRecordsResponse> deleteRecordsResponse = client.toBlocking().retrieve(HttpRequest.create(HttpMethod.POST,
+                        "/api/namespaces/ns1/topics/ns1-topicToDelete/delete-records").bearerAuth(token),
+                Argument.listOf(DeleteRecordsResponse.class));
 
         DeleteRecordsResponse resultPartition0 = deleteRecordsResponse
                 .stream()

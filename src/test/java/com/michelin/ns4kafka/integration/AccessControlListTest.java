@@ -12,6 +12,7 @@ import com.michelin.ns4kafka.models.RoleBinding.*;
 import com.michelin.ns4kafka.services.executors.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.annotation.Property;
+import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
@@ -130,6 +131,13 @@ class AccessControlListTest extends AbstractIntegrationTest {
 
         assertEquals(1, results.size());
         assertEquals(expected, results.stream().findFirst().get());
+
+        List<AccessControlEntry> aclsResponse = client.toBlocking().retrieve(HttpRequest.create(HttpMethod.GET,
+                        "/api/namespaces/ns1/acls").bearerAuth(token),
+                Argument.listOf(AccessControlEntry.class));
+
+        assertEquals(1, aclsResponse.size());
+        assertEquals(aclTopic.getSpec(), aclsResponse.get(0).getSpec());
 
         // DELETE the ACL and verify
         client.toBlocking().exchange(HttpRequest.create(HttpMethod.DELETE,"/api/namespaces/ns1/acls/ns1-acl-topic").bearerAuth(token));

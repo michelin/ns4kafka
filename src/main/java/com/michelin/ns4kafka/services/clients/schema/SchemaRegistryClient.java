@@ -6,8 +6,10 @@ import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.MediaType;
 import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.HttpClient;
+import io.micronaut.http.client.HttpClientConfiguration;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import jakarta.inject.Inject;
@@ -17,6 +19,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -41,7 +44,9 @@ public class SchemaRegistryClient {
     public Flux<String> getSubjects(String kafkaCluster) {
         KafkaAsyncExecutorProperties.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/subjects")))
+                .accept(MediaType.APPLICATION_JSON)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+
         return Flux.from(httpClient.retrieve(request, String[].class)).flatMap(Flux::fromArray);
     }
 
@@ -54,7 +59,9 @@ public class SchemaRegistryClient {
     public Mono<SchemaResponse> getLatestSubject(String kafkaCluster, String subject) {
         KafkaAsyncExecutorProperties.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + "/versions/latest")))
+                .accept(MediaType.APPLICATION_JSON)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+
         return Mono.from(httpClient.retrieve(request, SchemaResponse.class))
                 .onErrorResume(HttpClientResponseException.class,
                         ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Mono.empty() : Mono.error(ex));
@@ -70,7 +77,9 @@ public class SchemaRegistryClient {
     public Mono<SchemaResponse> register(String kafkaCluster, String subject, SchemaRequest body) {
         KafkaAsyncExecutorProperties.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.POST(URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + "/versions")), body)
+                .accept(MediaType.APPLICATION_JSON)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+
         return Mono.from(httpClient.retrieve(request, SchemaResponse.class));
     }
 
@@ -84,7 +93,9 @@ public class SchemaRegistryClient {
     public Mono<Integer[]> deleteSubject(String kafkaCluster, String subject, boolean hardDelete) {
         KafkaAsyncExecutorProperties.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         MutableHttpRequest<?> request = HttpRequest.DELETE(URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + "?permanent=" + hardDelete)))
+                .accept(MediaType.APPLICATION_JSON)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+
         return Mono.from(httpClient.retrieve(request, Integer[].class));
     }
 
@@ -98,7 +109,9 @@ public class SchemaRegistryClient {
     public Mono<SchemaCompatibilityCheckResponse> validateSchemaCompatibility(String kafkaCluster, String subject, SchemaRequest body) {
         KafkaAsyncExecutorProperties.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.POST(URI.create(StringUtils.prependUri(config.getUrl(), "/compatibility/subjects/" + subject + "/versions?verbose=true")), body)
+                .accept(MediaType.APPLICATION_JSON)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+
         return Mono.from(httpClient.retrieve(request, SchemaCompatibilityCheckResponse.class))
                 .onErrorResume(HttpClientResponseException.class,
                         ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Mono.empty() : Mono.error(ex));
@@ -114,7 +127,9 @@ public class SchemaRegistryClient {
     public Mono<SchemaCompatibilityResponse> updateSubjectCompatibility(String kafkaCluster, String subject, SchemaCompatibilityRequest body) {
         KafkaAsyncExecutorProperties.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.PUT(URI.create(StringUtils.prependUri(config.getUrl(), CONFIG + subject)), body)
+                .accept(MediaType.APPLICATION_JSON)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+
         return Mono.from(httpClient.retrieve(request, SchemaCompatibilityResponse.class));
     }
 
@@ -127,7 +142,9 @@ public class SchemaRegistryClient {
     public Mono<SchemaCompatibilityResponse> getCurrentCompatibilityBySubject(String kafkaCluster, String subject) {
         KafkaAsyncExecutorProperties.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), CONFIG + subject)))
+                .accept(MediaType.APPLICATION_JSON)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+
         return Mono.from(httpClient.retrieve(request, SchemaCompatibilityResponse.class))
                 .onErrorResume(HttpClientResponseException.class,
                         ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Mono.empty() : Mono.error(ex));
@@ -142,7 +159,9 @@ public class SchemaRegistryClient {
     public Mono<SchemaCompatibilityResponse> deleteCurrentCompatibilityBySubject(String kafkaCluster, String subject) {
         KafkaAsyncExecutorProperties.RegistryConfig config = getSchemaRegistry(kafkaCluster);
         MutableHttpRequest<?> request = HttpRequest.DELETE(URI.create(StringUtils.prependUri(config.getUrl(), CONFIG + subject)))
+                .accept(MediaType.APPLICATION_JSON)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+
         return Mono.from(httpClient.retrieve(request, SchemaCompatibilityResponse.class));
     }
 

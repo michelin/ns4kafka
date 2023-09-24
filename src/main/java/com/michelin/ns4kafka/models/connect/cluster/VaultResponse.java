@@ -11,7 +11,7 @@ import jakarta.validation.constraints.NotNull;
 /**
  * Represents the Kafka Connect Cluster Vault Response.
  */
-@Getter
+@Data
 @Builder
 @Serdeable
 @NoArgsConstructor
@@ -37,12 +37,11 @@ public class VaultResponse {
     /**
      * Represents the vault response specification.
      */
-    @Getter
+    @Data
     @Builder
-    @ToString
-    @Introspected
-    @AllArgsConstructor
+    @Serdeable
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class VaultResponseSpec {
         /**
          * The clear text to encrypt.

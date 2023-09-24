@@ -3,8 +3,7 @@ package com.michelin.ns4kafka.models;
 import io.micronaut.serde.annotation.Serdeable;
 import lombok.*;
 
-@Getter
-@Setter
+@Data
 @Builder
 @Serdeable
 @NoArgsConstructor
@@ -15,7 +14,7 @@ public class KafkaUserResetPassword {
     private ObjectMeta metadata;
     private KafkaUserResetPasswordSpec spec;
 
-    @Getter
+    @Data
     @Builder
     @Serdeable
     @NoArgsConstructor

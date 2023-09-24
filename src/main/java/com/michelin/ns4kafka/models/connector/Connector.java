@@ -46,12 +46,11 @@ public class Connector {
         private Map<String, String> config;
     }
 
-    @Getter
-    @Setter
+    @Data
     @Builder
     @Serdeable
-    @AllArgsConstructor
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class ConnectorStatus {
         private TaskState state;
         private String worker_id;

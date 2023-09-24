@@ -12,10 +12,7 @@ import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilit
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.core.type.Argument;
-import io.micronaut.http.HttpMethod;
-import io.micronaut.http.HttpRequest;
-import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
+import io.micronaut.http.*;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
@@ -128,7 +125,8 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
 
         SchemaResponse actual = schemaClient.toBlocking()
-                .retrieve(HttpRequest.GET("/subjects/ns1-subject0-value/versions/latest"),
+                .retrieve(HttpRequest.GET("/subjects/ns1-subject0-value/versions/latest")
+                                .accept(MediaType.APPLICATION_JSON_TYPE),
                         SchemaResponse.class);
 
         Assertions.assertNotNull(actual.id());
@@ -141,7 +139,8 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .body(Map.of("compatibility", Schema.Compatibility.FORWARD)), SchemaCompatibilityState.class);
 
         SchemaCompatibilityResponse updatedConfig = schemaClient.toBlocking()
-                .retrieve(HttpRequest.GET("/config/ns1-subject0-value"),
+                .retrieve(HttpRequest.GET("/config/ns1-subject0-value")
+                                .accept(MediaType.APPLICATION_JSON_TYPE),
                         SchemaCompatibilityResponse.class);
 
         assertEquals(Schema.Compatibility.FORWARD, updatedConfig.compatibilityLevel());
@@ -163,7 +162,8 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         assertEquals("changed", createV2Response.header("X-Ns4kafka-Result"));
 
         SchemaResponse actualV2 = schemaClient.toBlocking()
-                .retrieve(HttpRequest.GET("/subjects/ns1-subject0-value/versions/latest"),
+                .retrieve(HttpRequest.GET("/subjects/ns1-subject0-value/versions/latest")
+                                .accept(MediaType.APPLICATION_JSON_TYPE),
                         SchemaResponse.class);
 
         Assertions.assertNotNull(actualV2.id());
@@ -197,7 +197,9 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
 
         SchemaResponse actual = schemaClient.toBlocking()
-                .retrieve(HttpRequest.GET("/subjects/ns1-subject1-value/versions/latest"),
+                .retrieve(HttpRequest
+                                .GET("/subjects/ns1-subject1-value/versions/latest")
+                                .accept(MediaType.APPLICATION_JSON_TYPE),
                         SchemaResponse.class);
 
         Assertions.assertNotNull(actual.id());
@@ -210,7 +212,8 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .body(Map.of("compatibility", Schema.Compatibility.FORWARD)), SchemaCompatibilityState.class);
 
         SchemaCompatibilityResponse updatedConfig = schemaClient.toBlocking()
-                .retrieve(HttpRequest.GET("/config/ns1-subject1-value"),
+                .retrieve(HttpRequest.GET("/config/ns1-subject1-value")
+                                .accept(MediaType.APPLICATION_JSON_TYPE),
                         SchemaCompatibilityResponse.class);
 
         assertEquals(Schema.Compatibility.FORWARD, updatedConfig.compatibilityLevel());
@@ -278,7 +281,9 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         assertEquals("created", headerCreateResponse.header("X-Ns4kafka-Result"));
 
-        SchemaResponse actualHeader = schemaClient.toBlocking().retrieve(HttpRequest.GET("/subjects/ns1-header-subject-value/versions/latest"),
+        SchemaResponse actualHeader = schemaClient.toBlocking().retrieve(HttpRequest
+                        .GET("/subjects/ns1-header-subject-value/versions/latest")
+                        .accept(MediaType.APPLICATION_JSON_TYPE),
                 SchemaResponse.class);
 
         Assertions.assertNotNull(actualHeader.id());
@@ -301,7 +306,9 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         assertEquals("created", personCreateResponse.header("X-Ns4kafka-Result"));
 
-        SchemaResponse actualPerson = schemaClient.toBlocking().retrieve(HttpRequest.GET("/subjects/ns1-person-subject-value/versions/latest"),
+        SchemaResponse actualPerson = schemaClient.toBlocking().retrieve(HttpRequest
+                        .GET("/subjects/ns1-person-subject-value/versions/latest")
+                        .accept(MediaType.APPLICATION_JSON_TYPE),
                 SchemaResponse.class);
 
         Assertions.assertNotNull(actualPerson.id());
@@ -342,7 +349,9 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         HttpClientResponseException getException = assertThrows(HttpClientResponseException.class,
                 () -> schemaClient.toBlocking()
-                        .retrieve(HttpRequest.GET("/subjects/wrongprefix-subject/versions/latest"),
+                        .retrieve(HttpRequest
+                                        .GET("/subjects/wrongprefix-subject/versions/latest")
+                                        .accept(MediaType.APPLICATION_JSON_TYPE),
                                 SchemaResponse.class));
 
         assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
@@ -395,7 +404,9 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         HttpClientResponseException getException = assertThrows(HttpClientResponseException.class,
                 () -> schemaClient.toBlocking()
-                        .retrieve(HttpRequest.GET("/subjects/ns1-subject2-value/versions/latest"),
+                        .retrieve(HttpRequest
+                                        .GET("/subjects/ns1-subject2-value/versions/latest")
+                                        .accept(MediaType.APPLICATION_JSON_TYPE),
                                 SchemaResponse.class));
 
         assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());

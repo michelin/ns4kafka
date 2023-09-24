@@ -6,8 +6,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+@Data
 @Builder
-@Getter
 @Serdeable
 @NoArgsConstructor
 @AllArgsConstructor
@@ -23,9 +23,8 @@ public class SchemaCompatibilityState {
     @NotNull
     private SchemaCompatibilityState.SchemaCompatibilityStateSpec spec;
 
-    @Getter
+    @Data
     @Builder
-    @ToString
     @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor

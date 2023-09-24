@@ -26,13 +26,11 @@ public class ConsumerGroupResetOffsets {
     @NotNull
     private ConsumerGroupResetOffsetsSpec spec;
 
-    @Getter
-    @Setter
+    @Data
     @Builder
-    @ToString
     @Serdeable
-    @AllArgsConstructor
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class ConsumerGroupResetOffsetsSpec {
         @NotNull
         @NotBlank
@@ -44,7 +42,6 @@ public class ConsumerGroupResetOffsets {
         private String options;
     }
 
-    @Introspected
     public enum ResetOffsetsMethod {
         TO_EARLIEST,
         TO_LATEST,

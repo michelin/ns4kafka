@@ -32,8 +32,8 @@ public class ChangeConnectorState {
     @Data
     @Builder
     @Serdeable
-    @AllArgsConstructor
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class ChangeConnectorStateSpec {
         @NotNull
         private ConnectorAction action;
@@ -42,8 +42,8 @@ public class ChangeConnectorState {
     @Data
     @Builder
     @Serdeable
-    @AllArgsConstructor
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class ChangeConnectorStateStatus {
         private boolean success;
         private HttpStatus code;

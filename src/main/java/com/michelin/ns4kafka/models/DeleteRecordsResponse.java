@@ -5,7 +5,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-@Getter
+@Data
 @Builder
 @Serdeable
 @NoArgsConstructor
@@ -22,15 +22,14 @@ public class DeleteRecordsResponse {
     @NotNull
     private DeleteRecordsResponseSpec spec;
 
+    @Data
     @Builder
-    @Getter
-    @ToString
     @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class DeleteRecordsResponseSpec {
         private String topic;
-        private int partition;
+        private Integer partition;
         private Long offset;
     }
 }

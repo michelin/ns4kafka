@@ -36,9 +36,8 @@ public class ConsumerGroupResetOffsetsResponse {
     @NotNull
     private ConsumerGroupResetOffsetsResponseSpec spec;
 
-    @Getter
+    @Data
     @Builder
-    @ToString
     @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor

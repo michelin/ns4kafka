@@ -55,10 +55,9 @@ micronaut:
         paths: classpath:META-INF/swagger/views/rapidoc
         mapping: /rapidoc/**
 
-jackson:
-  serialization-inclusion: NON_ABSENT
-  serialization:
-    indent-output: true # Pretty-print JSON
+  serde:
+    serialization:
+      inclusion: non_absent
 
 kafka:
   health:
