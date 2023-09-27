@@ -88,6 +88,15 @@ public class TopicController extends NamespacedResourceController {
             validationErrors.addAll(topicService.validateTopicUpdate(ns, existingTopic.get(), topic));
         }
 
+        // validate on new tags only, not on deletion
+        if(topic.getMetadata().getTags() == null) {
+            topic.getMetadata().setTags(Collections.emptyList());
+        }
+        List<String> existingTags = existingTopic.isPresent() && existingTopic.get().getMetadata().getTags() != null ? existingTopic.get().getMetadata().getTags() : Collections.emptyList();
+        if(topic.getMetadata().getTags().stream().anyMatch(newTag -> !existingTags.contains(newTag))) {
+            validationErrors.addAll(topicService.validateTags(ns, topic));
+        }
+
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors, topic.getKind(), topic.getMetadata().getName());
         }

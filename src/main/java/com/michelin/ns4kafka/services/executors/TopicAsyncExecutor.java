@@ -5,6 +5,9 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
+import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagSpecs;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
 import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -22,6 +25,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.michelin.ns4kafka.utils.tags.TagsUtils.TOPIC_ENTITY_TYPE;
+
 @Slf4j
 @EachBean(KafkaAsyncExecutorConfig.class)
 @Singleton
@@ -30,6 +35,9 @@ public class TopicAsyncExecutor {
 
     @Inject
     TopicRepository topicRepository;
+
+    @Inject
+    SchemaRegistryClient schemaRegistryClient;
 
     public TopicAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
         this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
@@ -95,12 +103,64 @@ public class TopicAsyncExecutor {
 
             createTopics(toCreate);
             alterTopics(toUpdate, toCheckConf);
+
+            createTags(ns4kafkaTopics, brokerTopics);
+            deleteTags(ns4kafkaTopics, brokerTopics);
+
         } catch (ExecutionException | TimeoutException | CancellationException | KafkaStoreException e) {
             log.error("Error", e);
         } catch (InterruptedException e) {
             log.error("Error", e);
             Thread.currentThread().interrupt();
         }
+    }
+
+    /**
+     * Create tags
+     * @param ns4kafkaTopics Topics from ns4kafka
+     * @param brokerTopics Topics from broker
+     */
+    public void createTags(List<Topic> ns4kafkaTopics, Map<String, Topic> brokerTopics) {
+        List<TagSpecs> tagsToCreate = ns4kafkaTopics.stream().flatMap(ns4kafkaTopic -> {
+            Topic brokerTopic = brokerTopics.get(ns4kafkaTopic.getMetadata().getName());
+
+            List<String> existingTags = brokerTopic != null && brokerTopic.getMetadata().getTags() != null ? brokerTopic.getMetadata().getTags() : Collections.emptyList();
+            List<String> newTags = ns4kafkaTopic.getMetadata().getTags() != null ? ns4kafkaTopic.getMetadata().getTags() : Collections.emptyList();
+
+            return newTags.stream().filter(tag -> !existingTags.contains(tag)).map(tag -> TagSpecs.builder()
+                    .entityName(kafkaAsyncExecutorConfig.getConfig().getProperty("cluster.id")+":"+ns4kafkaTopic.getMetadata().getName())
+                    .typeName(tag)
+                    .entityType(TOPIC_ENTITY_TYPE)
+                    .build());
+        }).toList();
+
+        if(!tagsToCreate.isEmpty()) {
+            schemaRegistryClient.addTags(kafkaAsyncExecutorConfig.getName(), tagsToCreate).block();
+        }
+    }
+
+    /**
+     * Delete tags
+     * @param ns4kafkaTopics Topics from ns4kafka
+     * @param brokerTopics Topics from broker
+     */
+    public void deleteTags(List<Topic> ns4kafkaTopics, Map<String, Topic> brokerTopics) {
+
+        List<TagTopicInfo> tagsToDelete = brokerTopics.values().stream().flatMap(brokerTopic -> {
+            Optional<Topic> newTopic = ns4kafkaTopics.stream()
+                    .filter(ns4kafkaTopic -> ns4kafkaTopic.getMetadata().getName().equals(brokerTopic.getMetadata().getName()))
+                    .findFirst();
+            List<String> newTags = newTopic.isPresent() && newTopic.get().getMetadata().getTags() != null ? newTopic.get().getMetadata().getTags() : Collections.emptyList();
+            List<String> existingTags = brokerTopic.getMetadata().getTags() != null ? brokerTopic.getMetadata().getTags() : Collections.emptyList();
+
+            return existingTags.stream().filter(tag -> !newTags.contains(tag)).map(tag -> TagTopicInfo.builder()
+                    .entityName(kafkaAsyncExecutorConfig.getConfig().getProperty("cluster.id")+":"+brokerTopic.getMetadata().getName())
+                    .typeName(tag)
+                    .entityType(TOPIC_ENTITY_TYPE)
+                    .build());
+        }).toList();
+
+        tagsToDelete.forEach(tag -> schemaRegistryClient.deleteTag(kafkaAsyncExecutorConfig.getName(), tag.entityName(), tag.typeName()).block());
     }
 
     /**
@@ -134,9 +194,11 @@ public class TopicAsyncExecutor {
 
     public Map<String, Topic> collectBrokerTopicsFromNames(List<String> topicNames) throws InterruptedException, ExecutionException, TimeoutException {
         Map<String, TopicDescription> topicDescriptions = getAdminClient().describeTopics(topicNames).all().get();
+
+
         // Create a Map<TopicName, Map<ConfigName, ConfigValue>> for all topics
         // includes only Dynamic config properties
-        return getAdminClient()
+        Map<String, Topic> topics = getAdminClient()
                 .describeConfigs(topicNames.stream()
                         .map(s -> new ConfigResource(ConfigResource.Type.TOPIC, s))
                         .toList())
@@ -166,6 +228,17 @@ public class TopicAsyncExecutor {
                         .build()
                 )
                 .collect(Collectors.toMap( topic -> topic.getMetadata().getName(), Function.identity()));
+
+
+            if(kafkaAsyncExecutorConfig.getProvider().equals(KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)) {
+                topics.entrySet().stream()
+                    .forEach(entry ->
+                            entry.getValue().getMetadata().setTags(schemaRegistryClient.getTopicWithTags(kafkaAsyncExecutorConfig.getName(),
+                                kafkaAsyncExecutorConfig.getConfig().getProperty("cluster.id") + ":" + entry.getValue().getMetadata().getName())
+                        .block().stream().map(TagTopicInfo::typeName).toList()));
+            }
+
+        return topics;
     }
 
     private void alterTopics(Map<ConfigResource, Collection<AlterConfigOp>> toUpdate, List<Topic> topics) {
@@ -223,7 +296,7 @@ public class TopicAsyncExecutor {
             topicRepository.create(createdTopic);
         });
     }
- 
+
     private Collection<AlterConfigOp> computeConfigChanges(Map<String,String> expected, Map<String,String> actual){
         List<AlterConfigOp> toCreate = expected.entrySet()
                 .stream()

@@ -5,6 +5,8 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.TopicRepository;
+import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
@@ -33,6 +35,9 @@ public class TopicService {
 
     @Inject
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfig;
+
+    @Inject
+    SchemaRegistryClient schemaRegistryClient;
 
     /**
      * Find all topics
@@ -170,7 +175,6 @@ public class TopicService {
             validationErrors.add(String.format("Invalid value %s for configuration cleanup.policy: Altering topic configuration from `delete` to `compact` is not currently supported. Please create a new topic with `compact` policy specified instead.",
                     newTopic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG)));
         }
-
         return validationErrors;
     }
 
@@ -283,5 +287,41 @@ public class TopicService {
             Thread.currentThread().interrupt();
             throw new InterruptedException(e.getMessage());
         }
+    }
+
+    /**
+     * Validate tags for topic
+     * @param namespace The namespace
+     * @param topic The topic which contains tags
+     * @return A list of validation errors
+     */
+    public List<String> validateTags(Namespace namespace, Topic topic) {
+        List<String> validationErrors = new ArrayList<>();
+
+
+        Optional<KafkaAsyncExecutorConfig> topicCluster = kafkaAsyncExecutorConfig
+                .stream()
+                .filter(cluster -> namespace.getMetadata().getCluster().equals(cluster.getName()))
+                .findFirst();
+
+        if(topicCluster.isPresent() && !topicCluster.get().getProvider().equals(KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)) {
+            validationErrors.add("Tags can only be used on confluent clusters.");
+            return validationErrors;
+        }
+
+        Set<String> tagNames = schemaRegistryClient.getTags(namespace.getMetadata().getCluster())
+                .map(tags -> tags.stream().map(TagInfo::name).collect(Collectors.toSet())).block();
+
+        if(tagNames.isEmpty()) {
+            validationErrors.add(String.format("Invalid value %s for tags: No tags defined on the kafka cluster.",
+                    String.join(" ", topic.getMetadata().getTags())));
+        }
+
+        if(!tagNames.containsAll(topic.getMetadata().getTags())) {
+            validationErrors.add(String.format("Invalid value (%s) for tags: Available tags are (%s).",
+                    String.join(" ", topic.getMetadata().getTags()), String.join(" ", tagNames)));
+        }
+
+        return validationErrors;
     }
 }

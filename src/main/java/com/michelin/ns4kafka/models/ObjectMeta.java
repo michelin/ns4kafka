@@ -8,6 +8,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Pattern;
 import java.util.Date;
 import java.util.Map;
+import java.util.List;
 
 @Data
 @Builder
@@ -26,5 +27,5 @@ public class ObjectMeta {
     @EqualsAndHashCode.Exclude
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Date creationTimestamp;
-
+    private List<String> tags;
 }
