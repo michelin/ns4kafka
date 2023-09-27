@@ -22,6 +22,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -452,6 +453,7 @@ class TopicControllerTest {
         Topic existing = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test.topic")
+                        .tags(Collections.emptyList())
                         .namespace("test")
                         .cluster("local")
                         .build())
@@ -467,6 +469,7 @@ class TopicControllerTest {
         Topic topic = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test.topic")
+                        .tags(Collections.emptyList())
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
