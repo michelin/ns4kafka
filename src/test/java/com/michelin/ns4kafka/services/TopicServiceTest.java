@@ -7,6 +7,8 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
+import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
@@ -17,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Mono;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -42,6 +45,9 @@ class TopicServiceTest {
 
     @Mock
     List<KafkaAsyncExecutorConfig> kafkaAsyncExecutorConfigs;
+
+    @Mock
+    SchemaRegistryClient schemaRegistryClient;
 
     /**
      * Validate find topic by name
@@ -930,5 +936,91 @@ class TopicServiceTest {
 
         List<Topic> topics = topicService.findAll();
         assertEquals(4, topics.size());
+    }
+
+    @Test
+    void validateTagsShouldWork() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic1").tags(List.of("TAG_TEST")).build())
+                .build();
+
+        List<TagInfo> tagInfo = List.of(TagInfo.builder().name("TAG_TEST").build());
+
+        when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)));
+        when(schemaRegistryClient.getTags("local")).thenReturn(Mono.just(tagInfo));
+
+        List<String> validationErrors = topicService.validateTags(ns, topic);
+        assertEquals(0, validationErrors.size());
+    }
+
+    @Test
+    void validateTagsShouldReturnErrorBecauseOfNonConfluentBroker() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic1").tags(List.of("TAG_TEST")).build())
+                .build();
+
+        when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.SELF_MANAGED)));
+
+        List<String> validationErrors = topicService.validateTags(ns, topic);
+        assertEquals(1, validationErrors.size());
+        assertEquals("Tags can only be used on confluent clusters.", validationErrors.get(0));
+    }
+
+    @Test
+    void validateTagsShouldReturnErrorBecauseOfNoTagsDefinedInBroker() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic1").tags(List.of("TAG_TEST")).build())
+                .build();
+
+        when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)));
+        when(schemaRegistryClient.getTags("local")).thenReturn(Mono.just(Collections.emptyList()));
+
+        List<String> validationErrors = topicService.validateTags(ns, topic);
+        assertEquals(1, validationErrors.size());
+        assertEquals("Invalid value (TAG_TEST) for tags: No tags defined on the kafka cluster.", validationErrors.get(0));
+    }
+
+    @Test
+    void validateTagsShouldReturnErrorBecauseOfBadTagsDefined() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic1").tags(List.of("BAD_TAG")).build())
+                .build();
+
+        List<TagInfo> tagInfo = List.of(TagInfo.builder().name("TAG_TEST").build());
+
+        when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)));
+        when(schemaRegistryClient.getTags("local")).thenReturn(Mono.just(tagInfo));
+
+        List<String> validationErrors = topicService.validateTags(ns, topic);
+        assertEquals(1, validationErrors.size());
+        assertEquals("Invalid value (BAD_TAG) for tags: Available tags are (TAG_TEST).", validationErrors.get(0));
     }
 }

@@ -22,10 +22,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -252,6 +249,7 @@ class TopicControllerTest {
         Topic topic = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test.topic")
+                        .tags(List.of("TAG_TEST"))
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)

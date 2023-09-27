@@ -298,7 +298,6 @@ public class TopicService {
     public List<String> validateTags(Namespace namespace, Topic topic) {
         List<String> validationErrors = new ArrayList<>();
 
-
         Optional<KafkaAsyncExecutorConfig> topicCluster = kafkaAsyncExecutorConfig
                 .stream()
                 .filter(cluster -> namespace.getMetadata().getCluster().equals(cluster.getName()))
@@ -313,7 +312,7 @@ public class TopicService {
                 .map(tags -> tags.stream().map(TagInfo::name).collect(Collectors.toSet())).block();
 
         if(tagNames == null || tagNames.isEmpty()) {
-            validationErrors.add(String.format("Invalid value %s for tags: No tags defined on the kafka cluster.",
+            validationErrors.add(String.format("Invalid value (%s) for tags: No tags defined on the kafka cluster.",
                     String.join(" ", topic.getMetadata().getTags())));
             return validationErrors;
         }
