@@ -25,6 +25,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.michelin.ns4kafka.utils.config.ClusterConfig.CLUSTER_ID;
 import static com.michelin.ns4kafka.utils.tags.TagsUtils.TOPIC_ENTITY_TYPE;
 
 @Slf4j
@@ -128,7 +129,7 @@ public class TopicAsyncExecutor {
             List<String> newTags = ns4kafkaTopic.getMetadata().getTags() != null ? ns4kafkaTopic.getMetadata().getTags() : Collections.emptyList();
 
             return newTags.stream().filter(tag -> !existingTags.contains(tag)).map(tag -> TagSpecs.builder()
-                    .entityName(kafkaAsyncExecutorConfig.getConfig().getProperty("cluster.id")+":"+ns4kafkaTopic.getMetadata().getName())
+                    .entityName(kafkaAsyncExecutorConfig.getConfig().getProperty(CLUSTER_ID)+":"+ns4kafkaTopic.getMetadata().getName())
                     .typeName(tag)
                     .entityType(TOPIC_ENTITY_TYPE)
                     .build());
@@ -154,7 +155,7 @@ public class TopicAsyncExecutor {
             List<String> existingTags = brokerTopic.getMetadata().getTags() != null ? brokerTopic.getMetadata().getTags() : Collections.emptyList();
 
             return existingTags.stream().filter(tag -> !newTags.contains(tag)).map(tag -> TagTopicInfo.builder()
-                    .entityName(kafkaAsyncExecutorConfig.getConfig().getProperty("cluster.id")+":"+brokerTopic.getMetadata().getName())
+                    .entityName(kafkaAsyncExecutorConfig.getConfig().getProperty(CLUSTER_ID)+":"+brokerTopic.getMetadata().getName())
                     .typeName(tag)
                     .entityType(TOPIC_ENTITY_TYPE)
                     .build());
@@ -234,7 +235,7 @@ public class TopicAsyncExecutor {
                 topics.entrySet().stream()
                     .forEach(entry ->
                             entry.getValue().getMetadata().setTags(schemaRegistryClient.getTopicWithTags(kafkaAsyncExecutorConfig.getName(),
-                                kafkaAsyncExecutorConfig.getConfig().getProperty("cluster.id") + ":" + entry.getValue().getMetadata().getName())
+                                kafkaAsyncExecutorConfig.getConfig().getProperty(CLUSTER_ID) + ":" + entry.getValue().getMetadata().getName())
                         .block().stream().map(TagTopicInfo::typeName).toList()));
             }
 

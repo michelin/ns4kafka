@@ -312,9 +312,10 @@ public class TopicService {
         Set<String> tagNames = schemaRegistryClient.getTags(namespace.getMetadata().getCluster())
                 .map(tags -> tags.stream().map(TagInfo::name).collect(Collectors.toSet())).block();
 
-        if(tagNames.isEmpty()) {
+        if(tagNames == null || tagNames.isEmpty()) {
             validationErrors.add(String.format("Invalid value %s for tags: No tags defined on the kafka cluster.",
                     String.join(" ", topic.getMetadata().getTags())));
+            return validationErrors;
         }
 
         if(!tagNames.containsAll(topic.getMetadata().getTags())) {

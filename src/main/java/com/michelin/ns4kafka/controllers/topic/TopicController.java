@@ -88,14 +88,7 @@ public class TopicController extends NamespacedResourceController {
             validationErrors.addAll(topicService.validateTopicUpdate(ns, existingTopic.get(), topic));
         }
 
-        // validate on new tags only, not on deletion
-        if(topic.getMetadata().getTags() == null) {
-            topic.getMetadata().setTags(Collections.emptyList());
-        }
-        List<String> existingTags = existingTopic.isPresent() && existingTopic.get().getMetadata().getTags() != null ? existingTopic.get().getMetadata().getTags() : Collections.emptyList();
-        if(topic.getMetadata().getTags().stream().anyMatch(newTag -> !existingTags.contains(newTag))) {
-            validationErrors.addAll(topicService.validateTags(ns, topic));
-        }
+        validateTags(topic, existingTopic, validationErrors, ns);
 
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(validationErrors, topic.getKind(), topic.getMetadata().getName());
@@ -128,6 +121,23 @@ public class TopicController extends NamespacedResourceController {
                 topic.getSpec());
 
         return formatHttpResponse(topicService.create(topic), status);
+    }
+
+    /**
+     * Validate on new tags only, not on deletion
+     * @param topic The topic to apply
+     * @param existingTopic The existing topic
+     * @param validationErrors A list of validation errors
+     * @param ns The namespace
+     */
+    public void validateTags(Topic topic, Optional<Topic> existingTopic, List<String> validationErrors, Namespace ns) {
+        if(topic.getMetadata().getTags() == null) {
+            topic.getMetadata().setTags(Collections.emptyList());
+        }
+        List<String> existingTags = existingTopic.isPresent() && existingTopic.get().getMetadata().getTags() != null ? existingTopic.get().getMetadata().getTags() : Collections.emptyList();
+        if(topic.getMetadata().getTags().stream().anyMatch(newTag -> !existingTags.contains(newTag))) {
+            validationErrors.addAll(topicService.validateTags(ns, topic));
+        }
     }
 
     /**
