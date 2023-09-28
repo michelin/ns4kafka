@@ -14,22 +14,24 @@ Ns4Kafka introduces namespace functionality to Apache Kafka, as well as a new de
 
 ## Table of Contents
 
-* [Principles](#principles)
-  * [Namespace Isolation](#namespace-isolation)
-  * [Desired State](#desired-state)
-  * [Server Side Validation](#server-side-validation)
-  * [CLI](#cli)
-* [Download](#download)
-* [Install](#install)
-* [Demo Environment](#demo-environment)
-* [Configuration](#configuration)
-  * [GitLab Authentication](#gitlab-authentication)
-    * [Admin Account](#admin-account)
-  * [Kafka Broker Authentication](#kafka-broker-authentication)
-  * [Managed clusters](#managed-clusters)
-  * [AKHQ](#akhq)
-* [Administration](#administration)
-* [Contribution](#contribution)
+- [Ns4Kafka](#ns4kafka)
+  - [Table of Contents](#table-of-contents)
+  - [Principles](#principles)
+    - [Namespace Isolation](#namespace-isolation)
+    - [Desired State](#desired-state)
+    - [Server Side Validation](#server-side-validation)
+    - [CLI](#cli)
+  - [Download](#download)
+  - [Install](#install)
+  - [Demo Environment](#demo-environment)
+  - [Configuration](#configuration)
+    - [GitLab Authentication](#gitlab-authentication)
+      - [Admin Account](#admin-account)
+    - [Kafka Broker Authentication](#kafka-broker-authentication)
+    - [Managed clusters](#managed-clusters)
+    - [AKHQ](#akhq)
+  - [Administration](#administration)
+  - [Contribution](#contribution)
 
 ## Principles
 
@@ -168,6 +170,7 @@ ns4kafka:
         sasl.mechanism: "PLAIN"
         security.protocol: "SASL_PLAINTEXT"
         sasl.jaas.config: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"admin\";"
+        cluster.id: "lkc-abcde"
       schema-registry:
         url: "http://localhost:8081"
         basicAuthUsername: "user"
@@ -190,6 +193,7 @@ The name for each managed cluster has to be unique. This is this name you have t
 | drop-unsync-acls                        | boolean | Should Ns4Kafka drop unsynchronized ACLs                    |
 | provider                                | boolean | The kind of cluster. Either SELF_MANAGED or CONFLUENT_CLOUD |
 | config.bootstrap.servers                | string  | The location of the clusters servers                        |
+| config.cluster.id                       | string  | The confluent cloud cluster id to manage tags               |
 | schema-registry.url                     | string  | The location of the Schema Registry                         |
 | schema-registry.basicAuthUsername       | string  | Basic authentication username to the Schema Registry        |
 | schema-registry.basicAuthPassword       | string  | Basic authentication password to the Schema Registry        |
