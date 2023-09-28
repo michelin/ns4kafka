@@ -17,7 +17,7 @@ import java.util.Map;
 
 @Slf4j
 @Singleton
-public class GitlabAuthenticationProvider implements AuthenticationProvider {
+public class GitlabAuthenticationProvider implements AuthenticationProvider<HttpRequest<?>> {
     @Inject
     GitlabAuthenticationService gitlabAuthenticationService;
 

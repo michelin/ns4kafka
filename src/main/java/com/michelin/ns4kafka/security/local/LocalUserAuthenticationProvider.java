@@ -16,7 +16,7 @@ import java.util.Optional;
 
 @Slf4j
 @Singleton
-public class LocalUserAuthenticationProvider implements AuthenticationProvider {
+public class LocalUserAuthenticationProvider implements AuthenticationProvider<HttpRequest<?>> {
     @Inject
     SecurityConfig securityConfig;
 

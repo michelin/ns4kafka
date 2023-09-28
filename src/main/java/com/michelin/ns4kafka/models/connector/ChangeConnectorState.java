@@ -8,8 +8,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 @Data
 @Builder
@@ -32,8 +32,8 @@ public class ChangeConnectorState {
     @Data
     @Builder
     @Introspected
-    @AllArgsConstructor
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class ChangeConnectorStateSpec {
         @NotNull
         private ConnectorAction action;
@@ -42,8 +42,8 @@ public class ChangeConnectorState {
     @Data
     @Builder
     @Introspected
-    @AllArgsConstructor
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class ChangeConnectorStateStatus {
         private boolean success;
         private HttpStatus code;

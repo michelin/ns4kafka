@@ -9,7 +9,7 @@ import io.micronaut.http.annotation.Get;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
 
-import javax.annotation.security.RolesAllowed;
+import jakarta.annotation.security.RolesAllowed;
 import java.util.List;
 
 @Tag(name = "Topics", description = "Manage the topics.")

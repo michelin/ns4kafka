@@ -22,10 +22,10 @@ public class Status {
     private StatusDetails details;
     private int code;
 
+    @Data
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @Data
     public static class StatusDetails {
         private String name;
         private String kind;

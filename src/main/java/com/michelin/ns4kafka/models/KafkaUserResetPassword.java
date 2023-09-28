@@ -15,11 +15,11 @@ public class KafkaUserResetPassword {
     private ObjectMeta metadata;
     private KafkaUserResetPasswordSpec spec;
 
-    @Introspected
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Getter
+    @Builder
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class KafkaUserResetPasswordSpec {
         private String newPassword;
     }

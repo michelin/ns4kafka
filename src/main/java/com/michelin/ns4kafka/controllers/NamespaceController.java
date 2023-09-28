@@ -11,8 +11,8 @@ import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
 
-import javax.annotation.security.RolesAllowed;
-import javax.validation.Valid;
+import jakarta.annotation.security.RolesAllowed;
+import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;

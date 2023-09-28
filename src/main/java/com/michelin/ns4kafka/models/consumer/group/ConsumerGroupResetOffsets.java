@@ -4,9 +4,9 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 @Data
 @Builder
@@ -30,8 +30,8 @@ public class ConsumerGroupResetOffsets {
     @Builder
     @ToString
     @Introspected
-    @AllArgsConstructor
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class ConsumerGroupResetOffsetsSpec {
         @NotNull
         @NotBlank
@@ -42,7 +42,6 @@ public class ConsumerGroupResetOffsets {
         private String options;
     }
 
-    @Introspected
     public enum ResetOffsetsMethod {
         TO_EARLIEST,
         TO_LATEST,

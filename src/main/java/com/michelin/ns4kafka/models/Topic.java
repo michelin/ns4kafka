@@ -5,8 +5,8 @@ import io.micronaut.core.annotation.Introspected;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
@@ -30,10 +30,10 @@ public class Topic {
     @EqualsAndHashCode.Exclude
     private TopicStatus status;
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class TopicSpec {
         private int replicationFactor;
         private int partitions;

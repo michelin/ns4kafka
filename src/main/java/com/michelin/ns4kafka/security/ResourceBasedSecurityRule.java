@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 
 @Slf4j
 @Singleton
-public class ResourceBasedSecurityRule implements SecurityRule {
+public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
     public static final String IS_ADMIN = "isAdmin()";
 
     private final Pattern namespacedResourcePattern = Pattern.compile("^\\/api\\/namespaces\\/(?<namespace>[a-zA-Z0-9_-]+)\\/(?<resourceType>[a-z_-]+)(\\/([a-zA-Z0-9_.-]+)(\\/(?<resourceSubtype>[a-z-]+))?)?$");
@@ -40,7 +40,7 @@ public class ResourceBasedSecurityRule implements SecurityRule {
     NamespaceRepository namespaceRepository;
 
     @Override
-    public Publisher<SecurityRuleResult> check(HttpRequest<?> request, RouteMatch<?> routeMatch, Authentication authentication) {
+    public Publisher<SecurityRuleResult> check(@Nullable HttpRequest<?> request, @Nullable Authentication authentication) {
         return Publishers.just(checkSecurity(request, authentication));
     }
 
