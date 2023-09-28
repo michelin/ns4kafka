@@ -20,7 +20,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class TopicAsyncExecutorTest {
+class TopicAsyncExecutorTest {
 
     private static final String CLUSTER_ID_TEST = "cluster_id_test";
     private static final String LOCAL_CLUSTER = "local";
@@ -32,7 +32,7 @@ public class TopicAsyncExecutorTest {
     SchemaRegistryClient schemaRegistryClient;
 
     @Test
-    public void createTagsShouldAddTags() {
+    void createTagsShouldAddTags() {
         KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig = new KafkaAsyncExecutorConfig(LOCAL_CLUSTER);
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
@@ -62,7 +62,7 @@ public class TopicAsyncExecutorTest {
     }
 
     @Test
-    public void createTagsShouldNotAddTags() {
+    void createTagsShouldNotAddTags() {
         KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig = new KafkaAsyncExecutorConfig(LOCAL_CLUSTER);
         Properties properties = new Properties();
         properties.put(CLUSTER_ID,CLUSTER_ID_TEST);
@@ -90,7 +90,7 @@ public class TopicAsyncExecutorTest {
     }
 
     @Test
-    public void deleteTagsShouldDeleteTags() {
+    void deleteTagsShouldDeleteTags() {
         KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig = new KafkaAsyncExecutorConfig(LOCAL_CLUSTER);
         Properties properties = new Properties();
         properties.put(CLUSTER_ID,CLUSTER_ID_TEST);
@@ -120,7 +120,7 @@ public class TopicAsyncExecutorTest {
     }
 
     @Test
-    public void deleteTagsShouldNotDeleteTags() {
+    void deleteTagsShouldNotDeleteTags() {
         KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig = new KafkaAsyncExecutorConfig(LOCAL_CLUSTER);
         Properties properties = new Properties();
         properties.put(CLUSTER_ID,CLUSTER_ID_TEST);
@@ -148,7 +148,7 @@ public class TopicAsyncExecutorTest {
     }
 
     @Test
-    public void completeWithTagsShouldComplete() {
+    void completeWithTagsShouldComplete() {
         KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig = new KafkaAsyncExecutorConfig(LOCAL_CLUSTER, KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD);
         Properties properties = new Properties();
         properties.put(CLUSTER_ID,CLUSTER_ID_TEST);
@@ -172,7 +172,7 @@ public class TopicAsyncExecutorTest {
     }
 
     @Test
-    public void completeWithTagsShouldNotComplete() {
+    void completeWithTagsShouldNotComplete() {
         KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig = new KafkaAsyncExecutorConfig(LOCAL_CLUSTER, KafkaAsyncExecutorConfig.KafkaProvider.SELF_MANAGED);
         Properties properties = new Properties();
         properties.put(CLUSTER_ID,CLUSTER_ID_TEST);
