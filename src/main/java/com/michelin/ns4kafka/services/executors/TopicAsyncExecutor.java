@@ -196,7 +196,6 @@ public class TopicAsyncExecutor {
     public Map<String, Topic> collectBrokerTopicsFromNames(List<String> topicNames) throws InterruptedException, ExecutionException, TimeoutException {
         Map<String, TopicDescription> topicDescriptions = getAdminClient().describeTopics(topicNames).all().get();
 
-
         // Create a Map<TopicName, Map<ConfigName, ConfigValue>> for all topics
         // includes only Dynamic config properties
         Map<String, Topic> topics = getAdminClient()
@@ -230,16 +229,23 @@ public class TopicAsyncExecutor {
                 )
                 .collect(Collectors.toMap( topic -> topic.getMetadata().getName(), Function.identity()));
 
-
-            if(kafkaAsyncExecutorConfig.getProvider().equals(KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)) {
-                topics.entrySet().stream()
-                    .forEach(entry ->
-                            entry.getValue().getMetadata().setTags(schemaRegistryClient.getTopicWithTags(kafkaAsyncExecutorConfig.getName(),
-                                kafkaAsyncExecutorConfig.getConfig().getProperty(CLUSTER_ID) + ":" + entry.getValue().getMetadata().getName())
-                        .block().stream().map(TagTopicInfo::typeName).toList()));
-            }
+        completeWithTags(topics);
 
         return topics;
+    }
+
+    /**
+     * Complete topics with confluent tags
+     * @param topics Topics to complete
+     */
+    public void completeWithTags(Map<String, Topic> topics) {
+        if(kafkaAsyncExecutorConfig.getProvider().equals(KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)) {
+            topics.entrySet().stream()
+                    .forEach(entry ->
+                            entry.getValue().getMetadata().setTags(schemaRegistryClient.getTopicWithTags(kafkaAsyncExecutorConfig.getName(),
+                                            kafkaAsyncExecutorConfig.getConfig().getProperty(CLUSTER_ID) + ":" + entry.getValue().getMetadata().getName())
+                                    .block().stream().map(TagTopicInfo::typeName).toList()));
+        }
     }
 
     private void alterTopics(Map<ConfigResource, Collection<AlterConfigOp>> toUpdate, List<Topic> topics) {
