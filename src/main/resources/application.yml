@@ -46,6 +46,11 @@ micronaut:
         access:
           - isAnonymous()
 
+  codec:
+    json:
+      additional-types:
+        - application/vnd.schemaregistry.v1+json
+
   router:
     static-resources:
       swagger:

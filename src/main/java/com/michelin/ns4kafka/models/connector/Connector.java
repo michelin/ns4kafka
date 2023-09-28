@@ -6,9 +6,9 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -33,10 +33,11 @@ public class Connector {
     @EqualsAndHashCode.Exclude
     private ConnectorStatus status;
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Data
+    @Builder
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ConnectorSpec {
         @NotBlank
         private String connectCluster;
@@ -46,11 +47,12 @@ public class Connector {
         private Map<String, String> config;
     }
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Getter
     @Setter
+    @Builder
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ConnectorStatus {
         private TaskState state;
         private String worker_id;
@@ -61,11 +63,12 @@ public class Connector {
 
     }
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Getter
     @Setter
+    @Builder
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class TaskStatus {
         String id;
         TaskState state;

@@ -3,8 +3,8 @@ package com.michelin.ns4kafka.models;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 @Getter
 @Builder
@@ -23,12 +23,12 @@ public class DeleteRecordsResponse {
     @NotNull
     private DeleteRecordsResponseSpec spec;
 
-    @Introspected
+    @Getter
     @Builder
+    @ToString
+    @Introspected
     @AllArgsConstructor
     @NoArgsConstructor
-    @Getter
-    @ToString
     public static class DeleteRecordsResponseSpec {
         private String topic;
         private int partition;

@@ -4,8 +4,8 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 @Introspected
 @Builder
@@ -37,12 +37,12 @@ public class ConsumerGroupResetOffsetsResponse {
     @NotNull
     private ConsumerGroupResetOffsetsResponseSpec spec;
 
-    @Introspected
+    @Getter
     @Builder
+    @ToString
+    @Introspected
     @AllArgsConstructor
     @NoArgsConstructor
-    @Getter
-    @ToString
     public static class ConsumerGroupResetOffsetsResponseSpec {
         /**
          * The topic that was reset

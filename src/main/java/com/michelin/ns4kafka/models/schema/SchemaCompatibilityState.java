@@ -4,8 +4,8 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 @Introspected
 @Builder
@@ -24,12 +24,12 @@ public class SchemaCompatibilityState {
     @NotNull
     private SchemaCompatibilityState.SchemaCompatibilityStateSpec spec;
 
-    @Introspected
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Getter
+    @Builder
     @ToString
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class SchemaCompatibilityStateSpec {
         @Builder.Default
         private final Schema.Compatibility compatibility = Schema.Compatibility.GLOBAL;

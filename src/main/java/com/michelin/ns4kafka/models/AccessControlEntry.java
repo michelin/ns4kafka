@@ -3,9 +3,9 @@ package com.michelin.ns4kafka.models;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 @Introspected
 @Builder
@@ -24,11 +24,11 @@ public class AccessControlEntry {
     @NotNull
     private AccessControlEntrySpec spec;
 
-    @Introspected
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Data
+    @Builder
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class AccessControlEntrySpec {
         @NotNull
         protected ResourceType resourceType;

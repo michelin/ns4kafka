@@ -19,7 +19,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
 import reactor.core.publisher.Mono;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;

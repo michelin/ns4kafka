@@ -16,8 +16,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 
-import javax.annotation.security.RolesAllowed;
-import javax.validation.Valid;
+import jakarta.annotation.security.RolesAllowed;
+import jakarta.validation.Valid;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;

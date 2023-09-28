@@ -13,7 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
 import reactor.core.publisher.Flux;
 
-import javax.annotation.security.RolesAllowed;
+import jakarta.annotation.security.RolesAllowed;
 
 @Tag(name = "Connect Clusters", description = "Manage the Kafka Connect clusters.")
 @Controller(value = "/api/connect-clusters")

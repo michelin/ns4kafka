@@ -4,8 +4,8 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 @Data
@@ -25,10 +25,11 @@ public class Schema {
     @NotNull
     private SchemaSpec spec;
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Data
+    @Builder
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class SchemaSpec {
         private Integer id;
         private Integer version;
@@ -41,11 +42,12 @@ public class Schema {
         private Compatibility compatibility = Compatibility.GLOBAL;
         private List<Reference> references;
 
-        @Builder
         @Getter
         @Setter
-        @AllArgsConstructor
+        @Builder
+        @Introspected
         @NoArgsConstructor
+        @AllArgsConstructor
         public static class Reference {
             private String name;
             private String subject;
@@ -53,7 +55,6 @@ public class Schema {
         }
     }
 
-    @Introspected
     public enum Compatibility {
         GLOBAL,
         BACKWARD,

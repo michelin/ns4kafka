@@ -4,8 +4,8 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * Represents the Kafka Connect Cluster Vault Response.
@@ -43,12 +43,12 @@ public class VaultResponse {
     /**
      * Represents the vault response specification.
      */
-    @Introspected
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Getter
+    @Builder
     @ToString
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class VaultResponseSpec {
         /**
          * The clear text to encrypt.

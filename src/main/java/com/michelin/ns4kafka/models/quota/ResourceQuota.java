@@ -4,8 +4,8 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 
 @Data
@@ -21,12 +21,10 @@ public class ResourceQuota {
     @NotNull
     private ObjectMeta metadata;
 
-    @Valid
     @NotNull
     private Map<String, String> spec;
 
     @Getter
-    @Introspected
     @AllArgsConstructor
     public enum ResourceQuotaSpecKey {
         COUNT_TOPICS("count/topics"),
