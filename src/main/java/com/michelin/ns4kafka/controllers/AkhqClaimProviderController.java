@@ -209,12 +209,9 @@ public class AkhqClaimProviderController {
 
         bindings.forEach((key, value) -> result.stream()
                 // Search bindings with the same role and cluster filtering
-                .filter(r -> {
-                    List<String> c = new ArrayList<>(r.clusters);
-                    c.removeAll(value.clusters);
-                    // Same role and same clusters filtering
-                    return r.role.equals(value.role) && c.isEmpty();
-                })
+                .filter(r -> r.role.equals(value.role) && r.clusters.size() == value.clusters.size()
+                        && new HashSet<>(r.clusters).containsAll(value.clusters)
+                        && new HashSet<>(value.clusters).containsAll(r.clusters))
                 .findFirst()
                 .ifPresentOrElse(
                         // If there is any we can merge the patterns and keep only 1 binding
