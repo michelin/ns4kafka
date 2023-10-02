@@ -23,6 +23,8 @@ dependencies {
     implementation("io.micronaut:micronaut-http-client")
     implementation("io.micronaut:micronaut-jackson-databind")
     implementation("io.micronaut.kafka:micronaut-kafka")
+    implementation("io.micronaut:micronaut-management")
+    implementation("io.micronaut.validation:micronaut-validation")
     implementation("io.micronaut.reactor:micronaut-reactor")
     implementation("io.micronaut.security:micronaut-security")
     implementation("io.micronaut.security:micronaut-security-jwt")
