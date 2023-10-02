@@ -1,11 +1,11 @@
 package com.michelin.ns4kafka.testcontainers;
 
 
+import static java.lang.String.format;
+
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
-
-import static java.lang.String.format;
 
 /**
  * This class is a testcontainers implementation for the
@@ -16,17 +16,17 @@ public class SchemaRegistryContainer extends GenericContainer<SchemaRegistryCont
     private static final int SCHEMA_REGISTRY_INTERNAL_PORT = 8081;
 
     /**
-     * Constructor
+     * Constructor.
      *
-     * @param dockerImageName The Docker image name of the Schema Registry
+     * @param dockerImageName  The Docker image name of the Schema Registry
      * @param bootstrapServers The bootstrap servers URL
      */
     public SchemaRegistryContainer(DockerImageName dockerImageName, String bootstrapServers) {
         super(dockerImageName);
 
         this
-                .withEnv("SCHEMA_REGISTRY_HOST_NAME", "localhost")
-                .withEnv("SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS", bootstrapServers);
+            .withEnv("SCHEMA_REGISTRY_HOST_NAME", "localhost")
+            .withEnv("SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS", bootstrapServers);
 
         withExposedPorts(SCHEMA_REGISTRY_INTERNAL_PORT);
         withNetworkAliases("schema-registry");
@@ -34,7 +34,8 @@ public class SchemaRegistryContainer extends GenericContainer<SchemaRegistryCont
     }
 
     /**
-     * Get the current URL of the schema registry
+     * Get the current URL of the schema registry.
+     *
      * @return The current URL of the schema registry
      */
     public String getUrl() {

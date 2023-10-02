@@ -1,11 +1,17 @@
 package com.michelin.ns4kafka.models;
 
 import io.micronaut.core.annotation.Introspected;
-import lombok.*;
-
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
+/**
+ * Delete records response.
+ */
 @Getter
 @Builder
 @Introspected
@@ -23,6 +29,9 @@ public class DeleteRecordsResponse {
     @NotNull
     private DeleteRecordsResponseSpec spec;
 
+    /**
+     * Delete records response specification.
+     */
     @Getter
     @Builder
     @ToString

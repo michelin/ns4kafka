@@ -9,21 +9,24 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+/**
+ * Main class to start the application.
+ */
 @SecurityScheme(name = "JWT",
-        type = SecuritySchemeType.HTTP,
-        scheme = "bearer",
-        bearerFormat = "JWT")
+    type = SecuritySchemeType.HTTP,
+    scheme = "bearer",
+    bearerFormat = "JWT")
 @OpenAPIDefinition(
-        security = @SecurityRequirement(name = "JWT"),
-        info = @Info(
-                title = "Ns4Kafka",
-                version = "0.1",
-                description = "Getting started with REST APIs."
-        )
+    security = @SecurityRequirement(name = "JWT"),
+    info = @Info(
+        title = "Ns4Kafka",
+        version = "0.1",
+        description = "Getting started with REST APIs."
+    )
 )
 @OpenAPIInclude(
-        classes = { io.micronaut.security.endpoints.LoginController.class },
-        tags = @Tag(name = "_Security", description = "All the login endpoints.")
+    classes = {io.micronaut.security.endpoints.LoginController.class},
+    tags = @Tag(name = "_Security", description = "All the login endpoints.")
 )
 public class Application {
 

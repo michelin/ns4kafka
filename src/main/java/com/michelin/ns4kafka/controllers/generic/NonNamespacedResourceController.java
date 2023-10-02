@@ -1,7 +1,7 @@
 package com.michelin.ns4kafka.controllers.generic;
 
 /**
- * Base Controller for all NonNamespaced resources
+ * Non namespaced resource controller.
  */
 public abstract class NonNamespacedResourceController extends ResourceController {
 

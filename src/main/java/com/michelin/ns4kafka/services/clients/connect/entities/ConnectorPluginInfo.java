@@ -14,9 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.michelin.ns4kafka.services.clients.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * Connector plugin info.
+ *
+ * @param className Class name
+ * @param type      Type
+ * @param version   Version
+ */
 public record ConnectorPluginInfo(@JsonProperty("class") String className, ConnectorType type, String version) {
 }

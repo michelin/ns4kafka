@@ -14,17 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.michelin.ns4kafka.services.clients.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Getter;
-
 import java.util.List;
 import java.util.Objects;
+import lombok.Getter;
 
+/**
+ * Connector state info.
+ *
+ * @param name      Name
+ * @param connector Connector
+ * @param tasks     Tasks
+ * @param type      Type
+ */
 public record ConnectorStateInfo(String name, ConnectorState connector, List<TaskState> tasks, ConnectorType type) {
-
+    /**
+     * Abstract state.
+     */
     @Getter
     public abstract static class AbstractState {
         private final String state;
@@ -40,6 +50,9 @@ public record ConnectorStateInfo(String name, ConnectorState connector, List<Tas
         }
     }
 
+    /**
+     * Connector state.
+     */
     public static class ConnectorState extends AbstractState {
         public ConnectorState(@JsonProperty("state") String state, @JsonProperty("worker_id") String worker,
                               @JsonProperty("msg") String msg) {
@@ -47,11 +60,15 @@ public record ConnectorStateInfo(String name, ConnectorState connector, List<Tas
         }
     }
 
+    /**
+     * Task state.
+     */
     @Getter
     public static class TaskState extends AbstractState implements Comparable<TaskState> {
         private final int id;
 
-        public TaskState(@JsonProperty("id") int id, @JsonProperty("state") String state, @JsonProperty("worker_id") String worker,
+        public TaskState(@JsonProperty("id") int id, @JsonProperty("state") String state,
+                         @JsonProperty("worker_id") String worker,
                          @JsonProperty("msg") String msg) {
             super(state, worker, msg);
             this.id = id;
@@ -64,10 +81,12 @@ public record ConnectorStateInfo(String name, ConnectorState connector, List<Tas
 
         @Override
         public boolean equals(Object o) {
-            if (o == this)
+            if (o == this) {
                 return true;
-            if (!(o instanceof TaskState other))
+            }
+            if (!(o instanceof TaskState other)) {
                 return false;
+            }
             return compareTo(other) == 0;
         }
 

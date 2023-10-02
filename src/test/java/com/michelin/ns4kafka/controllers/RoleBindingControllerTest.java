@@ -1,5 +1,13 @@
 package com.michelin.ns4kafka.controllers;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.michelin.ns4kafka.models.AuditLog;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
@@ -9,20 +17,14 @@ import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.RoleBindingService;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.security.utils.SecurityService;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Map;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class RoleBindingControllerTest {
@@ -44,16 +46,16 @@ class RoleBindingControllerTest {
     @Test
     void applySuccess() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
         RoleBinding rolebinding = RoleBinding.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test.rolebinding")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test.rolebinding")
+                .build())
+            .build();
 
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
@@ -69,51 +71,51 @@ class RoleBindingControllerTest {
     @Test
     void applySuccess_AlreadyExists() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
         RoleBinding rolebinding = RoleBinding.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test.rolebinding")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test.rolebinding")
+                .build())
+            .build();
 
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
-        when(roleBindingService.findByName("test","test.rolebinding"))
-                .thenReturn(Optional.of(rolebinding));
+        when(roleBindingService.findByName("test", "test.rolebinding"))
+            .thenReturn(Optional.of(rolebinding));
 
         var response = roleBindingController.apply("test", rolebinding, false);
         RoleBinding actual = response.body();
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         assertEquals(actual.getMetadata().getName(), rolebinding.getMetadata().getName());
-        verify(roleBindingService,never()).create(ArgumentMatchers.any());
+        verify(roleBindingService, never()).create(ArgumentMatchers.any());
     }
 
     @Test
     void applySuccess_Changed() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
         RoleBinding rolebinding = RoleBinding.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test.rolebinding")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test.rolebinding")
+                .build())
+            .build();
         RoleBinding rolebindingOld = RoleBinding.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test.rolebinding")
-                        .labels(Map.of("old", "label"))
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test.rolebinding")
+                .labels(Map.of("old", "label"))
+                .build())
+            .build();
 
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
-        when(roleBindingService.findByName("test","test.rolebinding"))
-                .thenReturn(Optional.of(rolebindingOld));
+        when(roleBindingService.findByName("test", "test.rolebinding"))
+            .thenReturn(Optional.of(rolebindingOld));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -127,16 +129,16 @@ class RoleBindingControllerTest {
     @Test
     void createDryRun() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
         RoleBinding rolebinding = RoleBinding.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test.rolebinding")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test.rolebinding")
+                .build())
+            .build();
 
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
 
@@ -150,16 +152,16 @@ class RoleBindingControllerTest {
     void deleteSucess() {
 
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
         RoleBinding rolebinding = RoleBinding.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test.rolebinding")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test.rolebinding")
+                .build())
+            .build();
 
         //when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
         when(roleBindingService.findByName(any(), any())).thenReturn(Optional.of(rolebinding));
@@ -168,17 +170,17 @@ class RoleBindingControllerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         assertDoesNotThrow(
-                () -> roleBindingController.delete("test", "test.rolebinding", false)
+            () -> roleBindingController.delete("test", "test.rolebinding", false)
         );
     }
 
     @Test
     void deleteSuccessDryRun() {
         RoleBinding rolebinding = RoleBinding.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test.rolebinding")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test.rolebinding")
+                .build())
+            .build();
 
         when(roleBindingService.findByName(any(), any())).thenReturn(Optional.of(rolebinding));
 

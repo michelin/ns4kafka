@@ -1,5 +1,13 @@
 package com.michelin.ns4kafka.controllers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.michelin.ns4kafka.models.AuditLog;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
@@ -9,6 +17,9 @@ import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.security.utils.SecurityService;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,15 +27,6 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class NamespaceControllerTest {
@@ -41,39 +43,40 @@ class NamespaceControllerTest {
     NamespaceController namespaceController;
 
     @Test
-    void applyCreateInvalid(){
+    void applyCreateInvalid() {
         Namespace toCreate = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("new-namespace")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("new-namespace")
+                .cluster("local")
+                .build())
+            .build();
         when(namespaceService.findByName("new-namespace"))
-                .thenReturn(Optional.empty());
+            .thenReturn(Optional.empty());
         when(namespaceService.validateCreation(toCreate))
-                .thenReturn(List.of("OneError"));
+            .thenReturn(List.of("OneError"));
 
-        ResourceValidationException actual = assertThrows(ResourceValidationException.class,() -> namespaceController.apply(toCreate, false));
+        ResourceValidationException actual =
+            assertThrows(ResourceValidationException.class, () -> namespaceController.apply(toCreate, false));
         assertEquals(1, actual.getValidationErrors().size());
     }
 
     @Test
-    void applyCreateSuccess(){
+    void applyCreateSuccess() {
         Namespace toCreate = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("new-namespace")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("new-namespace")
+                .cluster("local")
+                .build())
+            .build();
         when(namespaceService.findByName("new-namespace"))
-                .thenReturn(Optional.empty());
+            .thenReturn(Optional.empty());
         when(namespaceService.validateCreation(toCreate))
-                .thenReturn(List.of());
+            .thenReturn(List.of());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
         when(namespaceService.createOrUpdate(toCreate))
-                .thenReturn(toCreate);
+            .thenReturn(toCreate);
 
         var response = namespaceController.apply(toCreate, false);
         Namespace actual = response.body();
@@ -83,17 +86,17 @@ class NamespaceControllerTest {
     }
 
     @Test
-    void applyCreateDryRun(){
+    void applyCreateDryRun() {
         Namespace toCreate = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("new-namespace")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("new-namespace")
+                .cluster("local")
+                .build())
+            .build();
         when(namespaceService.findByName("new-namespace"))
-                .thenReturn(Optional.empty());
+            .thenReturn(Optional.empty());
         when(namespaceService.validateCreation(toCreate))
-                .thenReturn(List.of());
+            .thenReturn(List.of());
 
         var response = namespaceController.apply(toCreate, true);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
@@ -101,65 +104,65 @@ class NamespaceControllerTest {
     }
 
     @Test
-    void applyUpdateInvalid(){
+    void applyUpdateInvalid() {
         Namespace existing = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .spec(Namespace.NamespaceSpec.builder()
-                        .kafkaUser("user")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .spec(Namespace.NamespaceSpec.builder()
+                .kafkaUser("user")
+                .build())
+            .build();
         Namespace toUpdate = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local-change")
-                        .build())
-                .spec(Namespace.NamespaceSpec.builder()
-                        .kafkaUser("user-change")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("namespace")
+                .cluster("local-change")
+                .build())
+            .spec(Namespace.NamespaceSpec.builder()
+                .kafkaUser("user-change")
+                .build())
+            .build();
         when(namespaceService.findByName("namespace"))
-                .thenReturn(Optional.of(existing));
+            .thenReturn(Optional.of(existing));
 
         ResourceValidationException actual = assertThrows(ResourceValidationException.class,
-                () -> namespaceController.apply(toUpdate, false));
+            () -> namespaceController.apply(toUpdate, false));
         assertEquals(2, actual.getValidationErrors().size());
         Assertions.assertIterableEquals(
-                List.of("Invalid value local-change for cluster: Value is immutable (local)",
-                        "Invalid value user-change for kafkaUser: Value is immutable (user)"),
-                actual.getValidationErrors());
+            List.of("Invalid value local-change for cluster: Value is immutable (local)",
+                "Invalid value user-change for kafkaUser: Value is immutable (user)"),
+            actual.getValidationErrors());
     }
 
     @Test
-    void applyUpdateSuccess(){
+    void applyUpdateSuccess() {
         Namespace existing = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .spec(Namespace.NamespaceSpec.builder()
-                        .kafkaUser("user")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .spec(Namespace.NamespaceSpec.builder()
+                .kafkaUser("user")
+                .build())
+            .build();
         Namespace toUpdate = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .labels(Map.of("new", "label"))
-                        .build())
-                .spec(Namespace.NamespaceSpec.builder()
-                        .kafkaUser("user")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("namespace")
+                .cluster("local")
+                .labels(Map.of("new", "label"))
+                .build())
+            .spec(Namespace.NamespaceSpec.builder()
+                .kafkaUser("user")
+                .build())
+            .build();
         when(namespaceService.findByName("namespace"))
-                .thenReturn(Optional.of(existing));
+            .thenReturn(Optional.of(existing));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
         when(namespaceService.createOrUpdate(toUpdate))
-                .thenReturn(toUpdate);
+            .thenReturn(toUpdate);
 
         var response = namespaceController.apply(toUpdate, false);
         Namespace actual = response.body();
@@ -173,59 +176,59 @@ class NamespaceControllerTest {
     }
 
     @Test
-    void applyUpdateSuccess_AlreadyExists(){
+    void applyUpdateSuccess_AlreadyExists() {
         Namespace existing = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .namespace("namespace")
-                        .cluster("local")
-                        .build())
-                .spec(Namespace.NamespaceSpec.builder()
-                        .kafkaUser("user")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("namespace")
+                .namespace("namespace")
+                .cluster("local")
+                .build())
+            .spec(Namespace.NamespaceSpec.builder()
+                .kafkaUser("user")
+                .build())
+            .build();
         Namespace toUpdate = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .spec(Namespace.NamespaceSpec.builder()
-                        .kafkaUser("user")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .spec(Namespace.NamespaceSpec.builder()
+                .kafkaUser("user")
+                .build())
+            .build();
         when(namespaceService.findByName("namespace"))
-                .thenReturn(Optional.of(existing));
+            .thenReturn(Optional.of(existing));
 
         var response = namespaceController.apply(toUpdate, false);
         Namespace actual = response.body();
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         assertEquals(existing, actual);
-        verify(namespaceService,never()).createOrUpdate(ArgumentMatchers.any());
+        verify(namespaceService, never()).createOrUpdate(ArgumentMatchers.any());
     }
 
     @Test
-    void applyUpdateDryRun(){
+    void applyUpdateDryRun() {
         Namespace existing = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .spec(Namespace.NamespaceSpec.builder()
-                        .kafkaUser("user")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .spec(Namespace.NamespaceSpec.builder()
+                .kafkaUser("user")
+                .build())
+            .build();
         Namespace toUpdate = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .labels(Map.of("new", "label"))
-                        .build())
-                .spec(Namespace.NamespaceSpec.builder()
-                        .kafkaUser("user")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("namespace")
+                .cluster("local")
+                .labels(Map.of("new", "label"))
+                .build())
+            .spec(Namespace.NamespaceSpec.builder()
+                .kafkaUser("user")
+                .build())
+            .build();
         when(namespaceService.findByName("namespace"))
-                .thenReturn(Optional.of(existing));
+            .thenReturn(Optional.of(existing));
 
         var response = namespaceController.apply(toUpdate, true);
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
@@ -235,18 +238,18 @@ class NamespaceControllerTest {
     @Test
     void deleteSuccess() {
         Namespace existing = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .spec(Namespace.NamespaceSpec.builder()
-                        .kafkaUser("user")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .spec(Namespace.NamespaceSpec.builder()
+                .kafkaUser("user")
+                .build())
+            .build();
         when(namespaceService.findByName("namespace"))
-                .thenReturn(Optional.of(existing));
+            .thenReturn(Optional.of(existing));
         when(namespaceService.listAllNamespaceResources(existing))
-                .thenReturn(List.of());
+            .thenReturn(List.of());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -258,19 +261,19 @@ class NamespaceControllerTest {
     @Test
     void deleteSuccessDryRun() {
         Namespace existing = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .spec(Namespace.NamespaceSpec.builder()
-                        .kafkaUser("user")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .spec(Namespace.NamespaceSpec.builder()
+                .kafkaUser("user")
+                .build())
+            .build();
 
         when(namespaceService.findByName("namespace"))
-                .thenReturn(Optional.of(existing));
+            .thenReturn(Optional.of(existing));
         when(namespaceService.listAllNamespaceResources(existing))
-                .thenReturn(List.of());
+            .thenReturn(List.of());
 
         var result = namespaceController.delete("namespace", true);
 
@@ -282,7 +285,7 @@ class NamespaceControllerTest {
     @Test
     void deleteFailNoNamespace() {
         when(namespaceService.findByName("namespace"))
-                .thenReturn(Optional.empty());
+            .thenReturn(Optional.empty());
         var result = namespaceController.delete("namespace", false);
         verify(namespaceService, never()).delete(any());
         assertEquals(HttpResponse.notFound().getStatus(), result.getStatus());
@@ -292,19 +295,19 @@ class NamespaceControllerTest {
     @Test
     void deleteFailNamespaceNotEmpty() {
         Namespace existing = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .spec(Namespace.NamespaceSpec.builder()
-                        .kafkaUser("user")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .spec(Namespace.NamespaceSpec.builder()
+                .kafkaUser("user")
+                .build())
+            .build();
         when(namespaceService.findByName("namespace"))
-                .thenReturn(Optional.of(existing));
+            .thenReturn(Optional.of(existing));
         when(namespaceService.listAllNamespaceResources(existing))
-                .thenReturn(List.of("Topic/topic1"));
-        assertThrows(ResourceValidationException.class,() -> namespaceController.delete("namespace", false));
+            .thenReturn(List.of("Topic/topic1"));
+        assertThrows(ResourceValidationException.class, () -> namespaceController.delete("namespace", false));
         verify(namespaceService, never()).delete(any());
     }
 }

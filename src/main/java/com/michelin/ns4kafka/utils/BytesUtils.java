@@ -2,7 +2,13 @@ package com.michelin.ns4kafka.utils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
+/**
+ * BytesUtils is a utility class to convert bytes to human-readable values and vice-versa.
+ */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class BytesUtils {
     public static final String BYTE = "B";
     public static final String KIBIBYTE = "KiB";
@@ -10,7 +16,8 @@ public class BytesUtils {
     public static final String GIBIBYTE = "GiB";
 
     /**
-     * Converts given bytes to either kibibyte, mebibite or gibibyte
+     * Converts given bytes to either kibibyte, mebibite or gibibyte.
+     *
      * @param bytes The bytes to convert
      * @return The converted value as human-readable value
      */
@@ -35,7 +42,8 @@ public class BytesUtils {
     }
 
     /**
-     * Converts given human-readable measure to bytes
+     * Converts given human-readable measure to bytes.
+     *
      * @param quota The measure to convert
      * @return The converted value as bytes
      */
@@ -46,24 +54,22 @@ public class BytesUtils {
 
         if (quota.endsWith(KIBIBYTE)) {
             return BigDecimal.valueOf(Double.parseDouble(quota.replace(KIBIBYTE, "")) * kibibyte)
-                    .setScale(0, RoundingMode.CEILING)
-                    .longValue();
+                .setScale(0, RoundingMode.CEILING)
+                .longValue();
         }
 
         if (quota.endsWith(MEBIBYTE)) {
             return BigDecimal.valueOf(Double.parseDouble(quota.replace(MEBIBYTE, "")) * mebibyte)
-                    .setScale(0, RoundingMode.CEILING)
-                    .longValue();
+                .setScale(0, RoundingMode.CEILING)
+                .longValue();
         }
 
         if (quota.endsWith(GIBIBYTE)) {
             return BigDecimal.valueOf(Double.parseDouble(quota.replace(GIBIBYTE, "")) * gibibyte)
-                    .setScale(0, RoundingMode.CEILING)
-                    .longValue();
+                .setScale(0, RoundingMode.CEILING)
+                .longValue();
         }
 
         return Long.parseLong(quota.replace(BYTE, ""));
     }
-
-    private BytesUtils() {}
 }

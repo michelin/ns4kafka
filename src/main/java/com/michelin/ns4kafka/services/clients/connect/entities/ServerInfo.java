@@ -14,11 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.michelin.ns4kafka.services.clients.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 
+/**
+ * Kafka cluster info.
+ *
+ * @param version        The version
+ * @param commit         The commit
+ * @param kafkaClusterId The Kafka cluster id
+ */
 @Builder
-public record ServerInfo(@JsonProperty("version") String version, @JsonProperty("commit") String commit, @JsonProperty("kafka_cluster_id") String kafkaClusterId) {
+public record ServerInfo(@JsonProperty("version") String version, @JsonProperty("commit") String commit,
+                         @JsonProperty("kafka_cluster_id") String kafkaClusterId) {
 }

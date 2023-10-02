@@ -1,13 +1,15 @@
 package com.michelin.ns4kafka.models;
 
 import io.micronaut.core.annotation.Introspected;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
+/**
+ * Status.
+ */
 @Data
 @Builder
 @Introspected
@@ -22,21 +24,17 @@ public class Status {
     private StatusDetails details;
     private int code;
 
-    @Data
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class StatusDetails {
-        private String name;
-        private String kind;
-        private List<String> causes;
-    }
-
+    /**
+     * Status phase.
+     */
     public enum StatusPhase {
         Success,
         Failed
     }
 
+    /**
+     * Status reason.
+     */
     public enum StatusReason {
         BadRequest,
         Unauthorized,
@@ -49,5 +47,18 @@ public class Status {
         ServerTimeout,
         MethodNotAllowed,
         InternalError
+    }
+
+    /**
+     * Status details.
+     */
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class StatusDetails {
+        private String name;
+        private String kind;
+        private List<String> causes;
     }
 }
