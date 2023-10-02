@@ -3,14 +3,16 @@ package com.michelin.ns4kafka.models.connector;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
 import io.micronaut.http.HttpStatus;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-
+/**
+ * Change connector state.
+ */
 @Data
 @Builder
 @Introspected
@@ -29,6 +31,18 @@ public class ChangeConnectorState {
     private ChangeConnectorStateSpec spec;
     private ChangeConnectorStateStatus status;
 
+    /**
+     * Connector action.
+     */
+    public enum ConnectorAction {
+        pause,
+        resume,
+        restart
+    }
+
+    /**
+     * Change connector state specification.
+     */
     @Data
     @Builder
     @Introspected
@@ -39,6 +53,9 @@ public class ChangeConnectorState {
         private ConnectorAction action;
     }
 
+    /**
+     * Change connector state status.
+     */
     @Data
     @Builder
     @Introspected
@@ -48,11 +65,5 @@ public class ChangeConnectorState {
         private boolean success;
         private HttpStatus code;
         private String errorMessage;
-    }
-
-    public enum ConnectorAction {
-        pause,
-        resume,
-        restart
     }
 }

@@ -2,14 +2,20 @@ package com.michelin.ns4kafka.models.schema;
 
 import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
-import lombok.*;
-
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
-@Introspected
-@Builder
+/**
+ * Schema compatibility state.
+ */
 @Getter
+@Builder
+@Introspected
 @NoArgsConstructor
 @AllArgsConstructor
 public class SchemaCompatibilityState {
@@ -24,6 +30,9 @@ public class SchemaCompatibilityState {
     @NotNull
     private SchemaCompatibilityState.SchemaCompatibilityStateSpec spec;
 
+    /**
+     * Schema compatibility state spec.
+     */
     @Getter
     @Builder
     @ToString

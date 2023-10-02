@@ -12,50 +12,161 @@ import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Error;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthorizationException;
-import lombok.extern.slf4j.Slf4j;
-
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.ElementKind;
 import jakarta.validation.Path;
 import java.util.Iterator;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Exception handler controller.
+ */
 @Slf4j
 @Controller("/errors")
 public class ExceptionHandlerController {
+    /**
+     * Handle resource validation exception.
+     *
+     * @param request   the request
+     * @param exception the exception
+     * @return the http response
+     */
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, ResourceValidationException exception) {
         var status = Status.builder()
-                .status(StatusPhase.Failed)
-                .message(String.format("Invalid %s %s", exception.getKind(), exception.getName()))
-                .reason(StatusReason.Invalid)
-                .details(StatusDetails.builder()
-                        .kind(exception.getKind())
-                        .name(exception.getName())
-                        .causes(exception.getValidationErrors())
-                        .build())
-                .code(HttpStatus.UNPROCESSABLE_ENTITY.getCode())
-                .build();
+            .status(StatusPhase.Failed)
+            .message(String.format("Invalid %s %s", exception.getKind(), exception.getName()))
+            .reason(StatusReason.Invalid)
+            .details(StatusDetails.builder()
+                .kind(exception.getKind())
+                .name(exception.getName())
+                .causes(exception.getValidationErrors())
+                .build())
+            .code(HttpStatus.UNPROCESSABLE_ENTITY.getCode())
+            .build();
 
         return HttpResponse.unprocessableEntity()
-                .body(status);
+            .body(status);
     }
 
+    /**
+     * Handle constraint violation exception.
+     *
+     * @param request   the request
+     * @param exception the exception
+     * @return the http response
+     */
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, ConstraintViolationException exception) {
         var status = Status.builder()
-                .status(StatusPhase.Failed)
-                .message("Invalid Resource")
-                .reason(StatusReason.Invalid)
-                .details(StatusDetails.builder()
-                        .causes(exception.getConstraintViolations().stream().map(this::formatViolation).toList())
-                        .build())
-                .code(HttpStatus.UNPROCESSABLE_ENTITY.getCode())
-                .build();
+            .status(StatusPhase.Failed)
+            .message("Invalid Resource")
+            .reason(StatusReason.Invalid)
+            .details(StatusDetails.builder()
+                .causes(exception.getConstraintViolations().stream().map(this::formatViolation).toList())
+                .build())
+            .code(HttpStatus.UNPROCESSABLE_ENTITY.getCode())
+            .build();
 
         return HttpResponse.unprocessableEntity()
+            .body(status);
+    }
+
+    /**
+     * Handle not found exception.
+     *
+     * @param request the request
+     * @return the http response
+     */
+    @Error(global = true, status = HttpStatus.NOT_FOUND)
+    public HttpResponse<Status> error(HttpRequest<?> request) {
+        var status = Status.builder()
+            .status(StatusPhase.Failed)
+            .message("Not Found")
+            .reason(StatusReason.NotFound)
+            .code(HttpStatus.NOT_FOUND.getCode())
+            .build();
+
+        return HttpResponse.status(HttpStatus.NOT_FOUND)
+            .body(status);
+    }
+
+    /**
+     * Handle authentication exception.
+     *
+     * @param request   the request
+     * @param exception the exception
+     * @return the http response
+     */
+    @Error(global = true)
+    public HttpResponse<Status> error(HttpRequest<?> request, AuthenticationException exception) {
+        var status = Status.builder()
+            .status(StatusPhase.Failed)
+            .message(exception.getMessage())
+            .reason(StatusReason.Unauthorized)
+            .code(HttpStatus.UNAUTHORIZED.getCode())
+            .build();
+        return HttpResponse.unauthorized().body(status);
+    }
+
+    /**
+     * Handle authorization exception.
+     *
+     * @param request   the request
+     * @param exception the exception
+     * @return the http response
+     */
+    @Error(global = true)
+    public HttpResponse<Status> error(HttpRequest<?> request, AuthorizationException exception) {
+        if (exception.isForbidden()) {
+            var status = Status.builder()
+                .status(StatusPhase.Failed)
+                .message("Resource forbidden")
+                .reason(StatusReason.Forbidden)
+                .code(HttpStatus.FORBIDDEN.getCode())
+                .build();
+            return HttpResponse.status(HttpStatus.FORBIDDEN)
                 .body(status);
+        }
+
+        var status = Status.builder()
+            .status(StatusPhase.Failed)
+            .message(exception.getMessage())
+            .reason(StatusReason.Unauthorized)
+            .code(HttpStatus.UNAUTHORIZED.getCode())
+            .build();
+
+        return HttpResponse.unauthorized().body(status);
+
+    }
+
+    /**
+     * Handle exception.
+     *
+     * @param request   the request
+     * @param exception the exception
+     * @return the http response
+     */
+    @Error(global = true)
+    public HttpResponse<Status> error(HttpRequest<?> request, Exception exception) {
+        log.error("An error occurred on API endpoint {} {}: {}", request.getMethodName(),
+            request.getUri(), exception.getMessage(), exception);
+
+        Status status = Status.builder()
+            .status(StatusPhase.Failed)
+            .message("Internal server error")
+            .reason(StatusReason.InternalError)
+            .details(StatusDetails.builder()
+                .causes(List.of(exception.getMessage() != null ? exception.getMessage() : exception.toString()))
+                .build())
+            .code(HttpStatus.INTERNAL_SERVER_ERROR.getCode())
+            .build();
+
+        return HttpResponse
+            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(status);
     }
 
     private String formatViolation(ConstraintViolation<?> violation) {
@@ -74,73 +185,5 @@ public class ExceptionHandlerController {
         }
         message.append(": ").append(violation.getMessage());
         return message.toString();
-    }
-
-    @Error(global = true, status = HttpStatus.NOT_FOUND)
-    public HttpResponse<Status> error(HttpRequest<?> request) {
-        var status = Status.builder()
-                .status(StatusPhase.Failed)
-                .message("Not Found")
-                .reason(StatusReason.NotFound)
-                .code(HttpStatus.NOT_FOUND.getCode())
-                .build();
-
-        return HttpResponse.status(HttpStatus.NOT_FOUND)
-                .body(status);
-    }
-
-    @Error(global = true)
-    public HttpResponse<Status> error(HttpRequest<?> request, AuthenticationException exception) {
-        var status = Status.builder()
-                .status(StatusPhase.Failed)
-                .message(exception.getMessage())
-                .reason(StatusReason.Unauthorized)
-                .code(HttpStatus.UNAUTHORIZED.getCode())
-                .build();
-        return HttpResponse.unauthorized().body(status);
-    }
-
-    @Error(global = true)
-    public HttpResponse<Status> error(HttpRequest<?> request, AuthorizationException exception) {
-        if (exception.isForbidden()) {
-            var status = Status.builder()
-                    .status(StatusPhase.Failed)
-                    .message("Resource forbidden")
-                    .reason(StatusReason.Forbidden)
-                    .code(HttpStatus.FORBIDDEN.getCode())
-                    .build();
-            return HttpResponse.status(HttpStatus.FORBIDDEN)
-                    .body(status);
-        }
-
-        var status = Status.builder()
-                .status(StatusPhase.Failed)
-                .message(exception.getMessage())
-                .reason(StatusReason.Unauthorized)
-                .code(HttpStatus.UNAUTHORIZED.getCode())
-                .build();
-
-        return HttpResponse.unauthorized().body(status);
-
-    }
-
-    @Error(global = true)
-    public HttpResponse<Status> error(HttpRequest<?> request, Exception exception) {
-        log.error("An error occurred on API endpoint {} {}: {}", request.getMethodName(),
-                request.getUri(), exception.getMessage(), exception);
-
-        Status status = Status.builder()
-                .status(StatusPhase.Failed)
-                .message("Internal server error")
-                .reason(StatusReason.InternalError)
-                .details(StatusDetails.builder()
-                        .causes(List.of(exception.getMessage() != null ? exception.getMessage() : exception.toString()))
-                        .build())
-                .code(HttpStatus.INTERNAL_SERVER_ERROR.getCode())
-                .build();
-
-        return HttpResponse
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(status);
     }
 }

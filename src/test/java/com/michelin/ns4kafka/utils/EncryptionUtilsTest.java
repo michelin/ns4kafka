@@ -1,87 +1,75 @@
 package com.michelin.ns4kafka.utils;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+/**
+ * Encryption utils test.
+ */
 class EncryptionUtilsTest {
-    /**
-     * Validate encryption/decryption when given text is null
-     */
     @Test
-    void validateEncryptAndDecryptAES256GCMNullText() {
+    void validateEncryptAndDecryptAes256GcmNullText() {
         String keyEncryptionKey = "myKeyEncryptionKeyWrongSize";
 
-        String stillNullText = EncryptionUtils.encryptAES256GCM(null, keyEncryptionKey);
+        String stillNullText = EncryptionUtils.encryptAes256Gcm(null, keyEncryptionKey);
         Assertions.assertNull(stillNullText);
     }
 
-    /**
-     * Validate encryption/decryption when given text is blank
-     */
     @Test
-    void validateEncryptAndDecryptAES256GCMBlankText() {
+    void validateEncryptAndDecryptAes256GcmBlankText() {
         String keyEncryptionKey = "myKeyEncryptionKeyWrongSize";
 
-        String stillBlankText = EncryptionUtils.encryptAES256GCM("", keyEncryptionKey);
+        String stillBlankText = EncryptionUtils.encryptAes256Gcm("", keyEncryptionKey);
         assertEquals("", stillBlankText);
     }
 
-    /**
-     * Validate encryption/decryption is not working when the KEK has wrong key size
-     */
     @Test
-    void validateEncryptAndDecryptAES256GCMWrongKeySize() {
+    void validateEncryptAndDecryptAes256GcmWrongKeySize() {
         String clearText = "myClearText";
         String keyEncryptionKey = "myKeyEncryptionKeyWrongSize";
-        String myClearText = EncryptionUtils.encryptAES256GCM(clearText, keyEncryptionKey);
+        String myClearText = EncryptionUtils.encryptAes256Gcm(clearText, keyEncryptionKey);
 
         assertEquals(clearText, myClearText);
     }
 
     @Test
-    void validateEncryptAndDecryptAES256GCM() {
+    void validateEncryptAndDecryptAes256Gcm() {
         String clearText = "myClearText";
         String keyEncryptionKey = "olDeandATEDiCenSiTurThrepASTrole";
-        String encryptedText = EncryptionUtils.encryptAES256GCM(clearText, keyEncryptionKey);
-        String clearTextDecrypted = EncryptionUtils.decryptAES256GCM(encryptedText, keyEncryptionKey);
+        String encryptedText = EncryptionUtils.encryptAes256Gcm(clearText, keyEncryptionKey);
+        String clearTextDecrypted = EncryptionUtils.decryptAes256Gcm(encryptedText, keyEncryptionKey);
 
         assertEquals(clearText, clearTextDecrypted);
     }
 
-    /**
-     * Validate encryption when given text is blank
-     */
     @Test
-    void validateEncryptAndDecryptAES256lankText() {
+    void validateEncryptAndDecryptAes256BlankText() {
         final String encryptionKey = "myKeyEncryption";
         final String encryptionSalt = "mySaltEncryption";
 
-        final String stillBlankText = EncryptionUtils.encryptAESWithPrefix("", encryptionKey, encryptionSalt);
+        final String stillBlankText = EncryptionUtils.encryptAesWithPrefix("", encryptionKey, encryptionSalt);
         assertEquals("", stillBlankText);
     }
 
-    /**
-     * Validate encryption when given text is blank
-     */
     @Test
-    void validateEncryptAndDecryptAES256NullText() {
+    void validateEncryptAndDecryptAes256NullText() {
         final String encryptionKey = "myKeyEncryption";
         final String encryptionSalt = "p8t42EhY9z2eSUdpGeq7HX7RboMrsJAhUnu3EEJJVS";
 
-        final String stillBlankText = EncryptionUtils.encryptAESWithPrefix(null, encryptionKey, encryptionSalt);
+        final String stillBlankText = EncryptionUtils.encryptAesWithPrefix(null, encryptionKey, encryptionSalt);
         Assertions.assertNull(stillBlankText);
     }
 
     @Test
-    void validateEncryptAndDecryptAES256() {
+    void validateEncryptAndDecryptAes256() {
         String clearText = "myClearText";
         String encryptionKey = "myKeyEncryption";
         String encryptionSalt = "p8t42EhY9z2eSUdpGeq7HX7RboMrsJAhUnu3EEJJVS";
-        String encryptedText = EncryptionUtils.encryptAESWithPrefix(clearText, encryptionKey, encryptionSalt);
-        String clearTextDecrypted = EncryptionUtils.decryptAESWithPrefix(encryptedText, encryptionKey, encryptionSalt);
+        String encryptedText = EncryptionUtils.encryptAesWithPrefix(clearText, encryptionKey, encryptionSalt);
+        String clearTextDecrypted = EncryptionUtils.decryptAesWithPrefix(encryptedText, encryptionKey, encryptionSalt);
 
         assertEquals(clearText, clearTextDecrypted);
     }
@@ -91,10 +79,11 @@ class EncryptionUtilsTest {
         String clearText = "myClearText";
         String encryptionKey = "myKey";
         String encryptionSalt = "toto";
-        String encryptedText = EncryptionUtils.encryptAESWithPrefix(clearText, encryptionKey, encryptionSalt);
-        String encryptedText2 = EncryptionUtils.encryptAESWithPrefix(clearText, encryptionKey, encryptionSalt);
-        String clearTextDecrypted = EncryptionUtils.decryptAESWithPrefix(encryptedText, encryptionKey, encryptionSalt);
-        String clearTextDecrypted2 = EncryptionUtils.decryptAESWithPrefix(encryptedText2, encryptionKey, encryptionSalt);
+        String encryptedText = EncryptionUtils.encryptAesWithPrefix(clearText, encryptionKey, encryptionSalt);
+        String encryptedText2 = EncryptionUtils.encryptAesWithPrefix(clearText, encryptionKey, encryptionSalt);
+        String clearTextDecrypted = EncryptionUtils.decryptAesWithPrefix(encryptedText, encryptionKey, encryptionSalt);
+        String clearTextDecrypted2 =
+            EncryptionUtils.decryptAesWithPrefix(encryptedText2, encryptionKey, encryptionSalt);
 
         assertEquals(clearText, clearTextDecrypted);
         assertNotEquals(encryptedText2, encryptedText);

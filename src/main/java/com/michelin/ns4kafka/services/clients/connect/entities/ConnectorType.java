@@ -14,24 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.michelin.ns4kafka.services.clients.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-
 import java.util.Locale;
 
+/**
+ * Connector type.
+ */
 public enum ConnectorType {
     SOURCE, SINK, UNKNOWN;
+
+    @JsonCreator
+    public static ConnectorType forValue(String value) {
+        return ConnectorType.valueOf(value.toUpperCase(Locale.ROOT));
+    }
 
     @Override
     @JsonValue
     public String toString() {
         return super.toString().toLowerCase(Locale.ROOT);
-    }
-
-    @JsonCreator
-    public static ConnectorType forValue(String value) {
-        return ConnectorType.valueOf(value.toUpperCase(Locale.ROOT));
     }
 }

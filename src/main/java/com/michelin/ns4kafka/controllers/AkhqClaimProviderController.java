@@ -1,8 +1,8 @@
 package com.michelin.ns4kafka.controllers;
 
-import com.michelin.ns4kafka.config.AkhqClaimProviderControllerConfig;
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.properties.AkhqProperties;
+import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.NamespaceService;
 import io.micronaut.core.annotation.Introspected;
@@ -11,17 +11,25 @@ import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.security.rules.SecurityRule;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 
-import jakarta.annotation.security.RolesAllowed;
-import jakarta.validation.Valid;
-import java.util.*;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
+/**
+ * Controller to manage AKHQ claims.
+ */
 @Tag(name = "AKHQ", description = "Manage the AKHQ endpoints.")
 @RolesAllowed(SecurityRule.IS_ANONYMOUS)
 @Controller("/akhq-claim")
@@ -31,7 +39,7 @@ public class AkhqClaimProviderController {
     private static final List<String> ADMIN_REGEXP = List.of(".*");
 
     @Inject
-    AkhqClaimProviderControllerConfig config;
+    AkhqProperties config;
 
     @Inject
     AccessControlEntryService accessControlEntryService;
@@ -40,104 +48,110 @@ public class AkhqClaimProviderController {
     NamespaceService namespaceService;
 
     @Inject
-    List<KafkaAsyncExecutorConfig> managedClusters;
+    List<ManagedClusterProperties> managedClusters;
 
     /**
-     * List AKHQ claims (v019 and prior)
+     * List AKHQ claims (v019 and prior).
+     *
      * @param request The AKHQ request
      * @return The AKHQ claims
      */
     @Post
-    public AKHQClaimResponse generateClaim(@Valid @Body AKHQClaimRequest request) {
+    public AkhqClaimResponse generateClaim(@Valid @Body AkhqClaimRequest request) {
         if (request == null) {
-            return AKHQClaimResponse.ofEmpty(config.getFormerRoles());
+            return AkhqClaimResponse.ofEmpty(config.getFormerRoles());
         }
 
         final List<String> groups = Optional.ofNullable(request.getGroups()).orElse(new ArrayList<>());
 
         if (groups.contains(config.getAdminGroup())) {
-            return AKHQClaimResponse.ofAdmin(config.getFormerAdminRoles());
+            return AkhqClaimResponse.ofAdmin(config.getFormerAdminRoles());
         }
 
-        List<AccessControlEntry> relatedACL = namespaceService.listAll()
-                .stream()
-                .filter(namespace -> namespace.getMetadata().getLabels() != null &&
-                        groups.contains(namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_")))
-                .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace).stream())
-                .collect(Collectors.toList());
+        List<AccessControlEntry> relatedAcl = namespaceService.listAll()
+            .stream()
+            .filter(namespace -> namespace.getMetadata().getLabels() != null
+                && groups.contains(namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_")))
+            .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace).stream())
+            .collect(Collectors.toList());
 
         // Add all public ACLs.
-        relatedACL.addAll(accessControlEntryService.findAllPublicGrantedTo());
+        relatedAcl.addAll(accessControlEntryService.findAllPublicGrantedTo());
 
-        return AKHQClaimResponse.builder()
-                .roles(config.getFormerRoles())
-                .attributes(
-                        Map.of(
-                                "topicsFilterRegexp", computeAllowedRegexListForResourceType(relatedACL, AccessControlEntry.ResourceType.TOPIC),
-                                "connectsFilterRegexp", computeAllowedRegexListForResourceType(relatedACL, AccessControlEntry.ResourceType.CONNECT),
-                                "consumerGroupsFilterRegexp", ADMIN_REGEXP
-                        )
+        return AkhqClaimResponse.builder()
+            .roles(config.getFormerRoles())
+            .attributes(
+                Map.of(
+                    "topicsFilterRegexp",
+                    computeAllowedRegexListForResourceType(relatedAcl, AccessControlEntry.ResourceType.TOPIC),
+                    "connectsFilterRegexp",
+                    computeAllowedRegexListForResourceType(relatedAcl, AccessControlEntry.ResourceType.CONNECT),
+                    "consumerGroupsFilterRegexp", ADMIN_REGEXP
                 )
-                .build();
+            )
+            .build();
     }
 
     /**
-     * List AKHQ claims (v020 to 024)
+     * List AKHQ claims (v020 to 024).
+     *
      * @param request The AKHQ request
      * @return The AKHQ claims
      */
     @Post("/v2")
-    public AKHQClaimResponseV2 generateClaimV2(@Valid @Body AKHQClaimRequest request) {
+    public AkhqClaimResponseV2 generateClaimV2(@Valid @Body AkhqClaimRequest request) {
         if (request == null) {
-            return AKHQClaimResponseV2.ofEmpty(config.getFormerRoles());
+            return AkhqClaimResponseV2.ofEmpty(config.getFormerRoles());
         }
 
         final List<String> groups = Optional.ofNullable(request.getGroups()).orElse(new ArrayList<>());
 
         if (groups.contains(config.getAdminGroup())) {
-            return AKHQClaimResponseV2.ofAdmin(config.getFormerAdminRoles());
+            return AkhqClaimResponseV2.ofAdmin(config.getFormerAdminRoles());
         }
 
-        List<AccessControlEntry> relatedACL = getAllAclForGroups(groups);
+        List<AccessControlEntry> relatedAcl = getAllAclForGroups(groups);
 
         // Add all public ACLs.
-        relatedACL.addAll(accessControlEntryService.findAllPublicGrantedTo());
+        relatedAcl.addAll(accessControlEntryService.findAllPublicGrantedTo());
 
-        return AKHQClaimResponseV2.builder()
-                .roles(config.getFormerRoles())
-                .topicsFilterRegexp(computeAllowedRegexListForResourceType(relatedACL, AccessControlEntry.ResourceType.TOPIC))
-                .connectsFilterRegexp(computeAllowedRegexListForResourceType(relatedACL, AccessControlEntry.ResourceType.CONNECT))
-                .consumerGroupsFilterRegexp(ADMIN_REGEXP)
-                .build();
+        return AkhqClaimResponseV2.builder()
+            .roles(config.getFormerRoles())
+            .topicsFilterRegexp(
+                computeAllowedRegexListForResourceType(relatedAcl, AccessControlEntry.ResourceType.TOPIC))
+            .connectsFilterRegexp(
+                computeAllowedRegexListForResourceType(relatedAcl, AccessControlEntry.ResourceType.CONNECT))
+            .consumerGroupsFilterRegexp(ADMIN_REGEXP)
+            .build();
     }
 
     /**
-     * List AKHQ claims (v025 and higher)
+     * List AKHQ claims (v025 and higher).
      *
      * @param request The AKHQ request
      * @return The AKHQ claims
      */
     @Post("/v3")
-    public AKHQClaimResponseV3 generateClaimV3(@Valid @Body AKHQClaimRequest request) {
+    public AkhqClaimResponseV3 generateClaimV3(@Valid @Body AkhqClaimRequest request) {
 
         final List<String> groups = Optional.ofNullable(request.getGroups()).orElse(new ArrayList<>());
 
         if (groups.contains(config.getAdminGroup())) {
-            return AKHQClaimResponseV3.ofAdmin(config.getAdminRoles());
+            return AkhqClaimResponseV3.ofAdmin(config.getAdminRoles());
         }
 
-        List<AccessControlEntry> relatedACL = getAllAclForGroups(groups);
+        List<AccessControlEntry> relatedAcl = getAllAclForGroups(groups);
 
         // Add all public ACLs
-        relatedACL.addAll(accessControlEntryService.findAllPublicGrantedTo());
+        relatedAcl.addAll(accessControlEntryService.findAllPublicGrantedTo());
 
         // Remove unnecessary ACLs (project.topic1 when project.* is granted on the same resource type and cluster)
-        optimizeACL(relatedACL);
+        optimizeAcl(relatedAcl);
 
-        Map<String, AKHQClaimResponseV3.Group> bindings = new LinkedHashMap<>();
+        Map<String, AkhqClaimResponseV3.Group> bindings = new LinkedHashMap<>();
 
         // Start by creating a map that store permissions by role/cluster
-        relatedACL.forEach(acl -> {
+        relatedAcl.forEach(acl -> {
             String escapedString = Pattern.quote(acl.getSpec().getResource());
             String patternRegex;
 
@@ -163,29 +177,51 @@ public class AkhqClaimProviderController {
                 clusters.add(patternCluster);
 
                 // Otherwise we add a new one
-                bindings.put(key, AKHQClaimResponseV3.Group.builder()
-                        .role(role)
-                        .patterns(regexes)
-                        .clusters(clusters)
-                        .build());
+                bindings.put(key, AkhqClaimResponseV3.Group.builder()
+                    .role(role)
+                    .patterns(regexes)
+                    .clusters(clusters)
+                    .build());
             }
         });
 
-        List<AKHQClaimResponseV3.Group> result = optimizeV3Claim(bindings);
+        List<AkhqClaimResponseV3.Group> result = optimizeV3Claim(bindings);
 
         // Add the same pattern and cluster filtering for SCHEMA as the TOPIC ones
         result.addAll(result.stream()
-                .filter(g -> g.role.equals(config.getRoles().get(AccessControlEntry.ResourceType.TOPIC)))
-                .map(g -> AKHQClaimResponseV3.Group.builder()
-                        .role(config.getRoles().get(AccessControlEntry.ResourceType.SCHEMA))
-                        .patterns(g.getPatterns())
-                        .clusters(g.getClusters())
-                        .build()
-                ).toList());
+            .filter(g -> g.role.equals(config.getRoles().get(AccessControlEntry.ResourceType.TOPIC)))
+            .map(g -> AkhqClaimResponseV3.Group.builder()
+                .role(config.getRoles().get(AccessControlEntry.ResourceType.SCHEMA))
+                .patterns(g.getPatterns())
+                .clusters(g.getClusters())
+                .build()
+            ).toList());
 
-        return AKHQClaimResponseV3.builder()
-                .groups(result.isEmpty() ? null : Map.of("group", result))
-                .build();
+        return AkhqClaimResponseV3.builder()
+            .groups(result.isEmpty() ? null : Map.of("group", result))
+            .build();
+    }
+
+    /**
+     * Remove ACL that are already included by another ACL on the same resource and cluster
+     * Ex: LITERAL ACL1 with project.topic1 resource + PREFIXED ACL2 with project -> return ACL2 only
+     *
+     * @param acl the input list of acl to optimize
+     */
+    private void optimizeAcl(List<AccessControlEntry> acl) {
+        acl.removeIf(accessControlEntry -> acl.stream()
+            // Keep PREFIXED ACL with a different resource but same resource type and cluster
+            .filter(accessControlEntryOther -> accessControlEntryOther.getSpec().getResourcePatternType()
+                .equals(AccessControlEntry.ResourcePatternType.PREFIXED)
+                &&
+                !accessControlEntryOther.getSpec().getResource().equals(accessControlEntry.getSpec().getResource())
+                && accessControlEntryOther.getSpec().getResourceType()
+                .equals(accessControlEntry.getSpec().getResourceType())
+                && accessControlEntryOther.getMetadata().getCluster()
+                .equals(accessControlEntry.getMetadata().getCluster()))
+            .map(accessControlEntryOther -> accessControlEntryOther.getSpec().getResource())
+            // Remove the ACL if there is one that contains the current resource
+            .anyMatch(escapedString -> accessControlEntry.getSpec().getResource().startsWith(escapedString)));
     }
 
     /**
@@ -194,8 +230,8 @@ public class AkhqClaimProviderController {
      * @param bindings - the raw claim
      * @return an optimized claim
      */
-    private List<AKHQClaimResponseV3.Group> optimizeV3Claim(Map<String, AKHQClaimResponseV3.Group> bindings) {
-        List<AKHQClaimResponseV3.Group> result = new ArrayList<>();
+    private List<AkhqClaimResponseV3.Group> optimizeV3Claim(Map<String, AkhqClaimResponseV3.Group> bindings) {
+        List<AkhqClaimResponseV3.Group> result = new ArrayList<>();
 
         // Extract the clusters name from the managedClusters configuration
         List<String> clusters = managedClusters.stream().map(c -> String.format("^%s$", c.getName())).toList();
@@ -208,173 +244,201 @@ public class AkhqClaimProviderController {
         });
 
         bindings.forEach((key, value) -> result.stream()
-                // Search bindings with the same role and cluster filtering
-                .filter(r -> r.role.equals(value.role) && r.clusters.size() == value.clusters.size()
-                        && new HashSet<>(r.clusters).containsAll(value.clusters)
-                        && new HashSet<>(value.clusters).containsAll(r.clusters))
-                .findFirst()
-                .ifPresentOrElse(
-                        // If there is any we can merge the patterns and keep only 1 binding
-                        toMerge -> toMerge.patterns.addAll(value.getPatterns()),
-                        // Otherwise we add the current binding
-                        () -> result.add(value)
-                ));
+            // Search bindings with the same role and cluster filtering
+            .filter(r -> r.role.equals(value.role) && r.clusters.size() == value.clusters.size()
+                && new HashSet<>(r.clusters).containsAll(value.clusters)
+                && new HashSet<>(value.clusters).containsAll(r.clusters))
+            .findFirst()
+            .ifPresentOrElse(
+                // If there is any we can merge the patterns and keep only 1 binding
+                toMerge -> toMerge.patterns.addAll(value.getPatterns()),
+                // Otherwise we add the current binding
+                () -> result.add(value)
+            ));
 
         return result;
     }
 
     /**
-     * List all the ACL for a user based on its LDAP groups
+     * List all the ACL for a user based on its LDAP groups.
+     *
      * @param groups the user LDAP groups
      * @return the user's ACL
      */
     private List<AccessControlEntry> getAllAclForGroups(List<String> groups) {
         return namespaceService.listAll()
-                .stream()
-                .filter(namespace -> namespace.getMetadata().getLabels() != null &&
-                        // Split by comma the groupLabel to support multiple groups and compare with user groups
-                        !Collections.disjoint(groups,
-                                List.of(namespace.getMetadata().getLabels()
-                                        .getOrDefault(config.getGroupLabel(), "_")
-                                        .split(","))))
-                .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace).stream())
-                .collect(Collectors.toList());
+            .stream()
+            .filter(namespace -> namespace.getMetadata().getLabels() != null
+                // Split by comma the groupLabel to support multiple groups and compare with user groups
+                && !Collections.disjoint(groups, List.of(namespace.getMetadata().getLabels()
+                .getOrDefault(config.getGroupLabel(), "_")
+                .split(","))))
+            .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace).stream())
+            .collect(Collectors.toList());
     }
 
     /**
-     * Compute AKHQ regexes from given ACLs
-     * @param acls The ACLs
+     * Compute AKHQ regexes from given ACLs.
+     *
+     * @param acls         The ACLs
      * @param resourceType The resource type
      * @return A list of regex
      */
-    public List<String> computeAllowedRegexListForResourceType(List<AccessControlEntry> acls, AccessControlEntry.ResourceType resourceType) {
+    public List<String> computeAllowedRegexListForResourceType(List<AccessControlEntry> acls,
+                                                               AccessControlEntry.ResourceType resourceType) {
 
         List<String> allowedRegex = acls.stream()
-                .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == resourceType)
-                .filter(accessControlEntry ->
-                        acls.stream()
-                                .filter(accessControlEntryOther -> !accessControlEntryOther.getSpec().getResource().equals(accessControlEntry.getSpec().getResource()))
-                                .map(accessControlEntryOther -> accessControlEntryOther.getSpec().getResource())
-                                .noneMatch(escapedString -> accessControlEntry.getSpec().getResource().startsWith(escapedString)))
-                .map(accessControlEntry -> {
-                    String escapedString = Pattern.quote(accessControlEntry.getSpec().getResource());
-                    if (accessControlEntry.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.PREFIXED) {
-                        return String.format("^%s.*$", escapedString);
-                    } else {
-                        return String.format("^%s$", escapedString);
-                    }
-                })
-                .distinct()
-                .toList();
+            .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == resourceType)
+            .filter(accessControlEntry ->
+                acls.stream()
+                    .filter(accessControlEntryOther -> !accessControlEntryOther.getSpec().getResource()
+                        .equals(accessControlEntry.getSpec().getResource()))
+                    .map(accessControlEntryOther -> accessControlEntryOther.getSpec().getResource())
+                    .noneMatch(escapedString -> accessControlEntry.getSpec().getResource().startsWith(escapedString)))
+            .map(accessControlEntry -> {
+                String escapedString = Pattern.quote(accessControlEntry.getSpec().getResource());
+                if (accessControlEntry.getSpec().getResourcePatternType()
+                    == AccessControlEntry.ResourcePatternType.PREFIXED) {
+                    return String.format("^%s.*$", escapedString);
+                } else {
+                    return String.format("^%s$", escapedString);
+                }
+            })
+            .distinct()
+            .toList();
         //AKHQ considers empty list as "^.*$" so we must return something
         return !allowedRegex.isEmpty() ? allowedRegex : EMPTY_REGEXP;
     }
 
     /**
-     * Remove ACL that are already included by another ACL on the same resource and cluster
-     * Ex: LITERAL ACL1 with project.topic1 resource + PREFIXED ACL2 with project -> return ACL2 only
-     *
-     * @param acl the input list of acl to optimize
+     * AKHQ request.
      */
-    private static void optimizeACL(List<AccessControlEntry> acl) {
-        acl.removeIf(accessControlEntry -> acl.stream()
-                // Keep PREFIXED ACL with a different resource but same resource type and cluster
-                .filter(accessControlEntryOther ->
-                        accessControlEntryOther.getSpec().getResourcePatternType().equals(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                && !accessControlEntryOther.getSpec().getResource().equals(accessControlEntry.getSpec().getResource())
-                                && accessControlEntryOther.getSpec().getResourceType().equals(accessControlEntry.getSpec().getResourceType())
-                                && accessControlEntryOther.getMetadata().getCluster().equals(accessControlEntry.getMetadata().getCluster()))
-                .map(accessControlEntryOther -> accessControlEntryOther.getSpec().getResource())
-                // Remove the ACL if there is one that contains the current resource
-                .anyMatch(escapedString -> accessControlEntry.getSpec().getResource().startsWith(escapedString)));
-    }
-
     @Introspected
     @Builder
     @Getter
-    public static class AKHQClaimRequest {
+    public static class AkhqClaimRequest {
         String providerType;
         String providerName;
         String username;
         List<String> groups;
     }
 
+    /**
+     * AKHQ response.
+     */
     @Introspected
     @Builder
     @Getter
-    public static class AKHQClaimResponse {
+    public static class AkhqClaimResponse {
         private List<String> roles;
         private Map<String, List<String>> attributes;
 
-        public static AKHQClaimResponse ofEmpty(List<String> roles) {
-            return AKHQClaimResponse.builder()
-                    .roles(roles)
-                    .attributes(Map.of(
-                            //AKHQ considers empty list as "^.*$" so we must return something
-                            "topicsFilterRegexp", EMPTY_REGEXP,
-                            "connectsFilterRegexp", EMPTY_REGEXP,
-                            "consumerGroupsFilterRegexp", EMPTY_REGEXP
-                    ))
-                    .build();
+        /**
+         * Build an empty AKHQ response.
+         *
+         * @param roles the roles
+         * @return the AKHQ response
+         */
+        public static AkhqClaimResponse ofEmpty(List<String> roles) {
+            return AkhqClaimResponse.builder()
+                .roles(roles)
+                .attributes(Map.of(
+                    // AKHQ considers empty list as "^.*$" so we must return something
+                    "topicsFilterRegexp", EMPTY_REGEXP,
+                    "connectsFilterRegexp", EMPTY_REGEXP,
+                    "consumerGroupsFilterRegexp", EMPTY_REGEXP
+                ))
+                .build();
         }
 
-        public static AKHQClaimResponse ofAdmin(List<String> roles) {
-
-            return AKHQClaimResponse.builder()
-                    .roles(roles)
-                    .attributes(Map.of(
-                            //AKHQ considers empty list as "^.*$" so we must return something
-                            "topicsFilterRegexp", ADMIN_REGEXP,
-                            "connectsFilterRegexp", ADMIN_REGEXP,
-                            "consumerGroupsFilterRegexp", ADMIN_REGEXP
-                    ))
-                    .build();
+        /**
+         * Build an AKHQ response for an admin.
+         *
+         * @param roles the roles
+         * @return the AKHQ response
+         */
+        public static AkhqClaimResponse ofAdmin(List<String> roles) {
+            return AkhqClaimResponse.builder()
+                .roles(roles)
+                .attributes(Map.of(
+                    // AKHQ considers empty list as "^.*$" so we must return something
+                    "topicsFilterRegexp", ADMIN_REGEXP,
+                    "connectsFilterRegexp", ADMIN_REGEXP,
+                    "consumerGroupsFilterRegexp", ADMIN_REGEXP
+                ))
+                .build();
         }
     }
 
+    /**
+     * AKHQ response (v2).
+     */
     @Introspected
     @Builder
     @Getter
-    public static class AKHQClaimResponseV2 {
+    public static class AkhqClaimResponseV2 {
         private List<String> roles;
         private List<String> topicsFilterRegexp;
         private List<String> connectsFilterRegexp;
         private List<String> consumerGroupsFilterRegexp;
 
-        public static AKHQClaimResponseV2 ofEmpty(List<String> roles) {
-            return AKHQClaimResponseV2.builder()
-                    .roles(roles)
-                    .topicsFilterRegexp(EMPTY_REGEXP)
-                    .connectsFilterRegexp(EMPTY_REGEXP)
-                    .consumerGroupsFilterRegexp(EMPTY_REGEXP)
-                    .build();
+        /**
+         * Build an empty AKHQ response.
+         *
+         * @param roles the roles
+         * @return the AKHQ response
+         */
+        public static AkhqClaimResponseV2 ofEmpty(List<String> roles) {
+            return AkhqClaimResponseV2.builder()
+                .roles(roles)
+                .topicsFilterRegexp(EMPTY_REGEXP)
+                .connectsFilterRegexp(EMPTY_REGEXP)
+                .consumerGroupsFilterRegexp(EMPTY_REGEXP)
+                .build();
         }
 
-        public static AKHQClaimResponseV2 ofAdmin(List<String> roles) {
-
-            return AKHQClaimResponseV2.builder()
-                    .roles(roles)
-                    .topicsFilterRegexp(ADMIN_REGEXP)
-                    .connectsFilterRegexp(ADMIN_REGEXP)
-                    .consumerGroupsFilterRegexp(ADMIN_REGEXP)
-                    .build();
+        /**
+         * Build an AKHQ response for an admin.
+         *
+         * @param roles the roles
+         * @return the AKHQ response
+         */
+        public static AkhqClaimResponseV2 ofAdmin(List<String> roles) {
+            return AkhqClaimResponseV2.builder()
+                .roles(roles)
+                .topicsFilterRegexp(ADMIN_REGEXP)
+                .connectsFilterRegexp(ADMIN_REGEXP)
+                .consumerGroupsFilterRegexp(ADMIN_REGEXP)
+                .build();
         }
     }
 
+    /**
+     * AKHQ response (v3).
+     */
     @Introspected
     @Builder
     @Getter
-    public static class AKHQClaimResponseV3 {
+    public static class AkhqClaimResponseV3 {
         private Map<String, List<Group>> groups;
 
-        public static AKHQClaimResponseV3 ofAdmin(Map<AccessControlEntry.ResourceType, String> newAdminRoles) {
-            return AKHQClaimResponseV3.builder()
-                    .groups(Map.of("group",
-                            newAdminRoles.values().stream()
-                                    .map(r -> Group.builder().role(r).build()).collect(Collectors.toList())))
-                    .build();
+        /**
+         * Build an AKHQ response for an admin.
+         *
+         * @param newAdminRoles the roles
+         * @return the AKHQ response
+         */
+        public static AkhqClaimResponseV3 ofAdmin(Map<AccessControlEntry.ResourceType, String> newAdminRoles) {
+            return AkhqClaimResponseV3.builder()
+                .groups(Map.of("group",
+                    newAdminRoles.values().stream()
+                        .map(r -> Group.builder().role(r).build()).collect(Collectors.toList())))
+                .build();
         }
 
+        /**
+         * AKHQ group.
+         */
         @Data
         @Builder
         @Introspected

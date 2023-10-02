@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.integration;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.michelin.ns4kafka.controllers.ApiResourcesController;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
@@ -15,12 +17,12 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
+/**
+ * Api resources test.
+ */
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 class ApiResourcesTest extends AbstractIntegrationTest {
@@ -31,12 +33,13 @@ class ApiResourcesTest extends AbstractIntegrationTest {
     @Test
     void asAdmin() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<TopicTest.BearerAccessRefreshToken> response = client.toBlocking().exchange(HttpRequest.POST("/login", credentials), TopicTest.BearerAccessRefreshToken.class);
+        HttpResponse<TopicTest.BearerAccessRefreshToken> response = client.toBlocking()
+            .exchange(HttpRequest.POST("/login", credentials), TopicTest.BearerAccessRefreshToken.class);
 
         String token = response.getBody().get().getAccessToken();
         List<ApiResourcesController.ResourceDefinition> resources = client.toBlocking().retrieve(
-                HttpRequest.GET("/api-resources").bearerAuth(token),
-                Argument.listOf(ApiResourcesController.ResourceDefinition.class));
+            HttpRequest.GET("/api-resources").bearerAuth(token),
+            Argument.listOf(ApiResourcesController.ResourceDefinition.class));
 
         assertEquals(9, resources.size());
     }
@@ -46,8 +49,8 @@ class ApiResourcesTest extends AbstractIntegrationTest {
         // This feature is not about restricting access, but easing user experience within the CLI
         // If the user is not authenticated, show everything
         List<ApiResourcesController.ResourceDefinition> resources = client.toBlocking().retrieve(
-                HttpRequest.GET("/api-resources"),
-                Argument.listOf(ApiResourcesController.ResourceDefinition.class));
+            HttpRequest.GET("/api-resources"),
+            Argument.listOf(ApiResourcesController.ResourceDefinition.class));
 
         assertEquals(9, resources.size());
     }
@@ -55,48 +58,52 @@ class ApiResourcesTest extends AbstractIntegrationTest {
     @Test
     void asUser() {
         Namespace ns1 = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("ns1")
-                        .cluster("test-cluster")
-                        .build())
-                .spec(Namespace.NamespaceSpec.builder()
-                        .kafkaUser("user1")
-                        .topicValidator(TopicValidator.makeDefaultOneBroker())
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("ns1")
+                .cluster("test-cluster")
+                .build())
+            .spec(Namespace.NamespaceSpec.builder()
+                .kafkaUser("user1")
+                .topicValidator(TopicValidator.makeDefaultOneBroker())
+                .build())
+            .build();
 
         RoleBinding rb1 = RoleBinding.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("ns1-rb")
-                        .namespace("ns1")
-                        .build())
-                .spec(RoleBinding.RoleBindingSpec.builder()
-                        .role(RoleBinding.Role.builder()
-                                .resourceTypes(List.of("topics", "acls"))
-                                .verbs(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET))
-                                .build())
-                        .subject(RoleBinding.Subject.builder()
-                                .subjectName("userGroup")
-                                .subjectType(RoleBinding.SubjectType.GROUP)
-                                .build())
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("ns1-rb")
+                .namespace("ns1")
+                .build())
+            .spec(RoleBinding.RoleBindingSpec.builder()
+                .role(RoleBinding.Role.builder()
+                    .resourceTypes(List.of("topics", "acls"))
+                    .verbs(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET))
+                    .build())
+                .subject(RoleBinding.Subject.builder()
+                    .subjectName("userGroup")
+                    .subjectType(RoleBinding.SubjectType.GROUP)
+                    .build())
+                .build())
+            .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<TopicTest.BearerAccessRefreshToken> response = client.toBlocking().exchange(HttpRequest.POST("/login", credentials), TopicTest.BearerAccessRefreshToken.class);
+        HttpResponse<TopicTest.BearerAccessRefreshToken> response = client.toBlocking()
+            .exchange(HttpRequest.POST("/login", credentials), TopicTest.BearerAccessRefreshToken.class);
 
         String token = response.getBody().get().getAccessToken();
 
-        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1));
-        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1));
+        client.toBlocking()
+            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1));
+        client.toBlocking().exchange(
+            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1));
 
         UsernamePasswordCredentials userCredentials = new UsernamePasswordCredentials("user", "admin");
-        HttpResponse<TopicTest.BearerAccessRefreshToken> userResponse = client.toBlocking().exchange(HttpRequest.POST("/login", userCredentials), TopicTest.BearerAccessRefreshToken.class);
+        HttpResponse<TopicTest.BearerAccessRefreshToken> userResponse = client.toBlocking()
+            .exchange(HttpRequest.POST("/login", userCredentials), TopicTest.BearerAccessRefreshToken.class);
         String userToken = userResponse.getBody().get().getAccessToken();
 
         List<ApiResourcesController.ResourceDefinition> resources = client.toBlocking().retrieve(
-                HttpRequest.GET("/api-resources").bearerAuth(userToken),
-                Argument.listOf(ApiResourcesController.ResourceDefinition.class));
+            HttpRequest.GET("/api-resources").bearerAuth(userToken),
+            Argument.listOf(ApiResourcesController.ResourceDefinition.class));
 
         assertEquals(2, resources.size());
     }

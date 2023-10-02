@@ -2,17 +2,23 @@ package com.michelin.ns4kafka.models.quota;
 
 import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
-import lombok.*;
-
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+/**
+ * Resource quota.
+ */
 @Data
 @Builder
 @Introspected
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public class ResourceQuota {
     private final String apiVersion = "v1";
     private final String kind = "ResourceQuota";
@@ -24,6 +30,9 @@ public class ResourceQuota {
     @NotNull
     private Map<String, String> spec;
 
+    /**
+     * Resource quota spec keys.
+     */
     @Getter
     @AllArgsConstructor
     public enum ResourceQuotaSpecKey {

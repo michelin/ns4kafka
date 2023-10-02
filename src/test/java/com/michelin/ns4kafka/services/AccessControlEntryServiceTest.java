@@ -1,145 +1,154 @@
 package com.michelin.ns4kafka.services;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertLinesMatch;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
+
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import io.micronaut.context.ApplicationContext;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
-
+/**
+ * Access control entry service test.
+ */
 @ExtendWith(MockitoExtension.class)
 class AccessControlEntryServiceTest {
     @Mock
     AccessControlEntryRepository accessControlEntryRepository;
+
     @Mock
     ApplicationContext applicationContext;
-    NamespaceService namespaceService = Mockito.mock(NamespaceService.class);
+
+    @Mock
+    NamespaceService namespaceService;
 
     @InjectMocks
     AccessControlEntryService accessControlEntryService;
 
     @Test
-    void validate_NotAllowedResources() {
+    void validateNotAllowedResources() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .build();
-        AccessControlEntry badACL = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-name")
-                        .namespace("namespace")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("test")
-                        .grantedTo("target-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .build();
+
+        AccessControlEntry badAcl = AccessControlEntry.builder()
+            .metadata(ObjectMeta.builder()
+                .name("acl-name")
+                .namespace("namespace")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("test")
+                .grantedTo("target-ns")
+                .build())
+            .build();
 
         when(applicationContext.getBean(NamespaceService.class))
-                .thenReturn(namespaceService);
+            .thenReturn(namespaceService);
         when(namespaceService.findByName("target-ns"))
-                .thenReturn(Optional.empty());
+            .thenReturn(Optional.empty());
         when(accessControlEntryRepository.findAll())
-                .thenReturn(List.of());
-        List<String> actual = accessControlEntryService.validate(badACL, ns);
+            .thenReturn(List.of());
+        List<String> actual = accessControlEntryService.validate(badAcl, ns);
         assertLinesMatch(List.of(
                 "^Invalid value CONNECT for resourceType.*",
                 "^Invalid value OWNER for permission.*",
                 "^Invalid value target-ns for grantedTo.*",
                 "^Invalid grant PREFIXED:.*"),
-                actual);
+            actual);
 
     }
 
     @Test
-    void validate_NotAllowedSelfGrant() {
+    void validateNotAllowedSelfGrant() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .build();
-        AccessControlEntry badACL = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-name")
-                        .namespace("namespace")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.READ)
-                        .resource("test")
-                        .grantedTo("namespace")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .build();
+
+        AccessControlEntry badAcl = AccessControlEntry.builder()
+            .metadata(ObjectMeta.builder()
+                .name("acl-name")
+                .namespace("namespace")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.READ)
+                .resource("test")
+                .grantedTo("namespace")
+                .build())
+            .build();
+
         when(applicationContext.getBean(NamespaceService.class))
-                .thenReturn(namespaceService);
+            .thenReturn(namespaceService);
         when(namespaceService.findByName("namespace"))
-                .thenReturn(Optional.of(ns));
+            .thenReturn(Optional.of(ns));
         when(accessControlEntryRepository.findAll())
-                .thenReturn(List.of());
-        List<String> actual = accessControlEntryService.validate(badACL, ns);
+            .thenReturn(List.of());
+        List<String> actual = accessControlEntryService.validate(badAcl, ns);
         assertLinesMatch(List.of(
                 "^Invalid value namespace for grantedTo.*",
                 "^Invalid grant PREFIXED:.*"),
-                actual);
+            actual);
 
     }
 
     @Test
-    void validate_NotAllowedOwnerOfBadPrefix() {
+    void validateNotAllowedOwnerOfBadPrefix() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .build();
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-name")
-                        .namespace("namespace")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.READ)
-                        .resource("main")
-                        .grantedTo("target-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-name")
+                .namespace("namespace")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.READ)
+                .resource("main")
+                .grantedTo("target-ns")
+                .build())
+            .build();
         when(applicationContext.getBean(NamespaceService.class))
-                .thenReturn(namespaceService);
+            .thenReturn(namespaceService);
         when(namespaceService.findByName("target-ns"))
-                .thenReturn(Optional.of(Namespace.builder().build()));
+            .thenReturn(Optional.of(Namespace.builder().build()));
         when(accessControlEntryRepository.findAll())
-                .thenReturn(List.of(AccessControlEntry.builder()
-                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                .permission(AccessControlEntry.Permission.OWNER)
-                                .resource("main.sub")
-                                .grantedTo("namespace")
-                                .build()
-                        )
-                        .build()
-                ));
+            .thenReturn(List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .resource("main.sub")
+                    .grantedTo("namespace")
+                    .build()
+                )
+                .build()
+            ));
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
         assertLinesMatch(List.of("^Invalid grant PREFIXED:.*"), actual);
     }
@@ -147,40 +156,40 @@ class AccessControlEntryServiceTest {
     @Test
     void validate_NotAllowedOwnerOfBadLiteral() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .build();
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-name")
-                        .namespace("namespace")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .permission(AccessControlEntry.Permission.READ)
-                        .resource("resource2")
-                        .grantedTo("target-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-name")
+                .namespace("namespace")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                .permission(AccessControlEntry.Permission.READ)
+                .resource("resource2")
+                .grantedTo("target-ns")
+                .build())
+            .build();
         when(applicationContext.getBean(NamespaceService.class))
-                .thenReturn(namespaceService);
+            .thenReturn(namespaceService);
         when(namespaceService.findByName("target-ns"))
-                .thenReturn(Optional.of(Namespace.builder().build()));
+            .thenReturn(Optional.of(Namespace.builder().build()));
         when(accessControlEntryRepository.findAll())
-                .thenReturn(List.of(AccessControlEntry.builder()
-                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                                .permission(AccessControlEntry.Permission.OWNER)
-                                .resource("resource1")
-                                .grantedTo("namespace")
-                                .build()
-                        )
-                        .build()
-                ));
+            .thenReturn(List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .resource("resource1")
+                    .grantedTo("namespace")
+                    .build()
+                )
+                .build()
+            ));
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
         assertLinesMatch(List.of("^Invalid grant LITERAL:.*"), actual);
     }
@@ -188,40 +197,40 @@ class AccessControlEntryServiceTest {
     @Test
     void validate_AllowedOwnerOfLiteral() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .build();
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-name")
-                        .namespace("namespace")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .permission(AccessControlEntry.Permission.READ)
-                        .resource("resource1")
-                        .grantedTo("target-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-name")
+                .namespace("namespace")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                .permission(AccessControlEntry.Permission.READ)
+                .resource("resource1")
+                .grantedTo("target-ns")
+                .build())
+            .build();
         when(applicationContext.getBean(NamespaceService.class))
-                .thenReturn(namespaceService);
+            .thenReturn(namespaceService);
         when(namespaceService.findByName("target-ns"))
-                .thenReturn(Optional.of(Namespace.builder().build()));
+            .thenReturn(Optional.of(Namespace.builder().build()));
         when(accessControlEntryRepository.findAll())
-                .thenReturn(List.of(AccessControlEntry.builder()
-                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                                .permission(AccessControlEntry.Permission.OWNER)
-                                .resource("resource1")
-                                .grantedTo("namespace")
-                                .build()
-                        )
-                        .build()
-                ));
+            .thenReturn(List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .resource("resource1")
+                    .grantedTo("namespace")
+                    .build()
+                )
+                .build()
+            ));
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
         assertTrue(actual.isEmpty());
     }
@@ -229,40 +238,41 @@ class AccessControlEntryServiceTest {
     @Test
     void validate_AllowedOwnerOfPrefix() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .build();
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-name")
-                        .namespace("namespace")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.READ)
-                        .resource("main.sub")
-                        .grantedTo("target-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-name")
+                .namespace("namespace")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.READ)
+                .resource("main.sub")
+                .grantedTo("target-ns")
+                .build())
+            .build();
         when(applicationContext.getBean(NamespaceService.class))
-                .thenReturn(namespaceService);
+            .thenReturn(namespaceService);
         when(namespaceService.findByName("target-ns"))
-                .thenReturn(Optional.of(Namespace.builder().metadata(ObjectMeta.builder().name("target-ns").build()).build()));
+            .thenReturn(
+                Optional.of(Namespace.builder().metadata(ObjectMeta.builder().name("target-ns").build()).build()));
         when(accessControlEntryRepository.findAll())
-                .thenReturn(List.of(AccessControlEntry.builder()
-                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                .permission(AccessControlEntry.Permission.OWNER)
-                                .resource("main")
-                                .grantedTo("namespace")
-                                .build()
-                        )
-                        .build()
-                ));
+            .thenReturn(List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .resource("main")
+                    .grantedTo("namespace")
+                    .build()
+                )
+                .build()
+            ));
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
         assertTrue(actual.isEmpty());
     }
@@ -270,76 +280,77 @@ class AccessControlEntryServiceTest {
     @Test
     void validate_AllowedPublicGrantedTo() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .build();
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-name")
-                        .namespace("namespace")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.READ)
-                        .resource("main.sub")
-                        .grantedTo("*")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-name")
+                .namespace("namespace")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.READ)
+                .resource("main.sub")
+                .grantedTo("*")
+                .build())
+            .build();
         when(applicationContext.getBean(NamespaceService.class))
-                .thenReturn(namespaceService);
+            .thenReturn(namespaceService);
         when(namespaceService.findByName("*"))
-                .thenReturn(Optional.empty());
+            .thenReturn(Optional.empty());
         when(accessControlEntryRepository.findAll())
-                .thenReturn(List.of(AccessControlEntry.builder()
-                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                .permission(AccessControlEntry.Permission.OWNER)
-                                .resource("main")
-                                .grantedTo("namespace")
-                                .build()
-                        )
-                        .build()
-                ));
+            .thenReturn(List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .resource("main")
+                    .grantedTo("namespace")
+                    .build()
+                )
+                .build()
+            ));
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
         assertTrue(actual.isEmpty());
     }
 
     @Test
-    void validateAsAdmin_SuccessUpdatingExistingACL() {
+    void validateAsAdminSuccessUpdatingExistingAcl() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-name")
-                        .namespace("target-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.READ)
-                        .resource("main.sub")
-                        .grantedTo("target-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-name")
+                .namespace("target-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.READ)
+                .resource("main.sub")
+                .grantedTo("target-ns")
+                .build())
+            .build();
         Namespace namespace = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("target-ns")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("target-ns")
+                .cluster("local")
+                .build())
+            .build();
 
         when(accessControlEntryRepository.findAll())
-                .thenReturn(List.of(accessControlEntry));
+            .thenReturn(List.of(accessControlEntry));
 
         List<String> actual = accessControlEntryService.validateAsAdmin(accessControlEntry, namespace);
 
         assertTrue(actual.isEmpty());
     }
+
     @Test
-    void validateAsAdmin_FailSameOverlap() {
+    void validateAsAdminFailSameOverlap() {
         // another namespace is already OWNER of PREFIXED or LITERAL resource
         // exemple :
         // if already exists:
@@ -357,69 +368,69 @@ class AccessControlEntryServiceTest {
         //   namespace2 OWNER:LITERAL:project2              OK 8
         //   namespace2 OWNER:LITERAL:proj                  OK 9
         AccessControlEntry existing1 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-existing1")
-                        .namespace("other-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("project1")
-                        .grantedTo("other-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-existing1")
+                .namespace("other-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("project1")
+                .grantedTo("other-ns")
+                .build())
+            .build();
         AccessControlEntry existing2 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-existing2")
-                        .namespace("other-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("project2_t1")
-                        .grantedTo("other-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-existing2")
+                .namespace("other-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("project2_t1")
+                .grantedTo("other-ns")
+                .build())
+            .build();
         Namespace namespace = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("target-ns")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("target-ns")
+                .cluster("local")
+                .build())
+            .build();
         AccessControlEntry toCreate1 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-tocreate")
-                        .namespace("target-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("project1")
-                        .grantedTo("target-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-tocreate")
+                .namespace("target-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("project1")
+                .grantedTo("target-ns")
+                .build())
+            .build();
         AccessControlEntry toCreate2 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-tocreate")
-                        .namespace("target-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("project2_t1")
-                        .grantedTo("target-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-tocreate")
+                .namespace("target-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("project2_t1")
+                .grantedTo("target-ns")
+                .build())
+            .build();
         when(accessControlEntryRepository.findAll())
-                .thenReturn(List.of(existing1, existing2));
+            .thenReturn(List.of(existing1, existing2));
 
         // Test 1
         List<String> actual = accessControlEntryService.validateAsAdmin(toCreate1, namespace);
@@ -429,6 +440,7 @@ class AccessControlEntryServiceTest {
         actual = accessControlEntryService.validateAsAdmin(toCreate2, namespace);
         assertEquals(1, actual.size());
     }
+
     @Test
     void validateAsAdmin_FailParentOverlap() {
         // another namespace is already OWNER of PREFIXED or LITERAL resource
@@ -448,69 +460,69 @@ class AccessControlEntryServiceTest {
         //   namespace2 OWNER:LITERAL:project2              OK 8
         //   namespace2 OWNER:LITERAL:proj                  OK 9
         AccessControlEntry existing1 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-existing1")
-                        .namespace("other-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("project1")
-                        .grantedTo("other-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-existing1")
+                .namespace("other-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("project1")
+                .grantedTo("other-ns")
+                .build())
+            .build();
         AccessControlEntry existing2 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-existing2")
-                        .namespace("other-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("project2_t1")
-                        .grantedTo("other-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-existing2")
+                .namespace("other-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("project2_t1")
+                .grantedTo("other-ns")
+                .build())
+            .build();
         Namespace namespace = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("target-ns")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("target-ns")
+                .cluster("local")
+                .build())
+            .build();
         AccessControlEntry toCreate1 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-tocreate")
-                        .namespace("target-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("proj")
-                        .grantedTo("target-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-tocreate")
+                .namespace("target-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("proj")
+                .grantedTo("target-ns")
+                .build())
+            .build();
         AccessControlEntry toCreate2 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-tocreate")
-                        .namespace("target-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("project2")
-                        .grantedTo("target-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-tocreate")
+                .namespace("target-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("project2")
+                .grantedTo("target-ns")
+                .build())
+            .build();
         when(accessControlEntryRepository.findAll())
-                .thenReturn(List.of(existing1, existing2));
+            .thenReturn(List.of(existing1, existing2));
 
         // Test 1
         List<String> actual = accessControlEntryService.validateAsAdmin(toCreate1, namespace);
@@ -520,6 +532,7 @@ class AccessControlEntryServiceTest {
         actual = accessControlEntryService.validateAsAdmin(toCreate2, namespace);
         assertEquals(1, actual.size());
     }
+
     @Test
     void validateAsAdmin_FailChildOverlap() {
         // another namespace is already OWNER of PREFIXED or LITERAL resource
@@ -539,69 +552,69 @@ class AccessControlEntryServiceTest {
         //   namespace2 OWNER:LITERAL:project2             OK 8
         //   namespace2 OWNER:LITERAL:proj                  OK 9
         AccessControlEntry existing1 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-existing1")
-                        .namespace("other-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("project1")
-                        .grantedTo("other-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-existing1")
+                .namespace("other-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("project1")
+                .grantedTo("other-ns")
+                .build())
+            .build();
         AccessControlEntry existing2 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-existing2")
-                        .namespace("other-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("project2_t1")
-                        .grantedTo("other-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-existing2")
+                .namespace("other-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("project2_t1")
+                .grantedTo("other-ns")
+                .build())
+            .build();
         Namespace namespace = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("target-ns")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("target-ns")
+                .cluster("local")
+                .build())
+            .build();
         AccessControlEntry toCreate1 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-tocreate")
-                        .namespace("target-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("project1_sub")
-                        .grantedTo("target-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-tocreate")
+                .namespace("target-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("project1_sub")
+                .grantedTo("target-ns")
+                .build())
+            .build();
         AccessControlEntry toCreate2 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-tocreate")
-                        .namespace("target-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("project1_t1")
-                        .grantedTo("target-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-tocreate")
+                .namespace("target-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("project1_t1")
+                .grantedTo("target-ns")
+                .build())
+            .build();
         when(accessControlEntryRepository.findAll())
-                .thenReturn(List.of(existing1, existing2));
+            .thenReturn(List.of(existing1, existing2));
 
         // Test 1
         List<String> actual = accessControlEntryService.validateAsAdmin(toCreate1, namespace);
@@ -633,109 +646,109 @@ class AccessControlEntryServiceTest {
         //   namespace2 OWNER:LITERAL:project2              OK 8   <<<<<<<<
         //   namespace2 OWNER:LITERAL:proj                  OK 9   <<<<<<<<
         AccessControlEntry existing1 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-existing1")
-                        .namespace("other-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("project1")
-                        .grantedTo("other-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-existing1")
+                .namespace("other-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("project1")
+                .grantedTo("other-ns")
+                .build())
+            .build();
         AccessControlEntry existing2 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-existing2")
-                        .namespace("other-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("project2_t1")
-                        .grantedTo("other-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-existing2")
+                .namespace("other-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("project2_t1")
+                .grantedTo("other-ns")
+                .build())
+            .build();
         AccessControlEntry existing3 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-existing2")
-                        .namespace("other-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("p")
-                        .grantedTo("other-ns")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("acl-existing2")
+                .namespace("other-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("p")
+                .grantedTo("other-ns")
+                .build())
+            .build();
 
         Namespace namespace = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("target-ns")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("target-ns")
+                .cluster("local")
+                .build())
+            .build();
 
         AccessControlEntry toCreate1 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-tocreate")
-                        .namespace("target-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("project3_topic1_sub")
-                        .grantedTo("target-ns")
-                        .build())
-                .build();
-        AccessControlEntry toCreate2 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-tocreate")
-                        .namespace("target-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("project2")
-                        .grantedTo("target-ns")
-                        .build())
-                .build();
-        AccessControlEntry toCreate3 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("acl-tocreate")
-                        .namespace("target-ns")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("proj")
-                        .grantedTo("target-ns")
-                        .build())
-                .build();
-        when(accessControlEntryRepository.findAll())
-                .thenReturn(List.of(existing1, existing2, existing3));
+            .metadata(ObjectMeta.builder()
+                .name("acl-tocreate")
+                .namespace("target-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("project3_topic1_sub")
+                .grantedTo("target-ns")
+                .build())
+            .build();
 
-        // Test 1
+        when(accessControlEntryRepository.findAll())
+            .thenReturn(List.of(existing1, existing2, existing3));
+
         List<String> actual = accessControlEntryService.validateAsAdmin(toCreate1, namespace);
         assertTrue(actual.isEmpty());
 
-        // Test 2
+        AccessControlEntry toCreate2 = AccessControlEntry.builder()
+            .metadata(ObjectMeta.builder()
+                .name("acl-tocreate")
+                .namespace("target-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("project2")
+                .grantedTo("target-ns")
+                .build())
+            .build();
+
         actual = accessControlEntryService.validateAsAdmin(toCreate2, namespace);
         assertTrue(actual.isEmpty());
 
-        // Test 3
+        AccessControlEntry toCreate3 = AccessControlEntry.builder()
+            .metadata(ObjectMeta.builder()
+                .name("acl-tocreate")
+                .namespace("target-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("proj")
+                .grantedTo("target-ns")
+                .build())
+            .build();
+
         actual = accessControlEntryService.validateAsAdmin(toCreate3, namespace);
         assertTrue(actual.isEmpty());
     }
@@ -743,18 +756,18 @@ class AccessControlEntryServiceTest {
     @Test
     void findAllGrantedToNamespace() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder().name("namespace1").build()).build();
+            .metadata(ObjectMeta.builder().name("namespace1").build()).build();
         AccessControlEntry ace1 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
         AccessControlEntry ace2 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
         AccessControlEntry ace3 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
         AccessControlEntry ace4 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("*").build()).build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("*").build()).build();
 
         when(accessControlEntryRepository.findAll())
-                .thenReturn(List.of(ace1, ace2, ace3, ace4));
+            .thenReturn(List.of(ace1, ace2, ace3, ace4));
         List<AccessControlEntry> actual = accessControlEntryService.findAllGrantedToNamespace(ns);
         assertEquals(3, actual.size());
     }
@@ -762,16 +775,16 @@ class AccessControlEntryServiceTest {
     @Test
     void findAllPublicGrantedTo() {
         AccessControlEntry ace1 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
         AccessControlEntry ace2 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
         AccessControlEntry ace3 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
         AccessControlEntry ace4 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("*").build()).build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("*").build()).build();
 
         when(accessControlEntryRepository.findAll())
-                .thenReturn(List.of(ace1, ace2, ace3, ace4));
+            .thenReturn(List.of(ace1, ace2, ace3, ace4));
         List<AccessControlEntry> actual = accessControlEntryService.findAllPublicGrantedTo();
         assertEquals(1, actual.size());
     }
@@ -779,19 +792,19 @@ class AccessControlEntryServiceTest {
     @Test
     void findAllForNamespace() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder().name("namespace1").build()).build();
+            .metadata(ObjectMeta.builder().name("namespace1").build()).build();
         AccessControlEntry ace1 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder().namespace("namespace1").build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
+            .metadata(ObjectMeta.builder().namespace("namespace1").build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
         AccessControlEntry ace2 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder().namespace("namespace1").build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
+            .metadata(ObjectMeta.builder().namespace("namespace1").build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
         AccessControlEntry ace3 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder().namespace("namespace2").build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
+            .metadata(ObjectMeta.builder().namespace("namespace2").build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
 
         when(accessControlEntryRepository.findAll())
-                .thenReturn(List.of(ace1, ace2, ace3));
+            .thenReturn(List.of(ace1, ace2, ace3));
         List<AccessControlEntry> actual = accessControlEntryService.findAllForNamespace(ns);
         assertEquals(2, actual.size());
     }
@@ -799,17 +812,17 @@ class AccessControlEntryServiceTest {
     @Test
     void findAll() {
         AccessControlEntry ace1 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder().namespace("namespace1").build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
+            .metadata(ObjectMeta.builder().namespace("namespace1").build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
         AccessControlEntry ace2 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder().namespace("namespace2").build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
+            .metadata(ObjectMeta.builder().namespace("namespace2").build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
         AccessControlEntry ace3 = AccessControlEntry.builder()
-                .metadata(ObjectMeta.builder().namespace("namespace3").build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace3").build()).build();
+            .metadata(ObjectMeta.builder().namespace("namespace3").build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace3").build()).build();
 
         when(accessControlEntryRepository.findAll())
-                .thenReturn(List.of(ace1, ace2, ace3));
+            .thenReturn(List.of(ace1, ace2, ace3));
         List<AccessControlEntry> actual = accessControlEntryService.findAll();
         assertEquals(3, actual.size());
     }
@@ -817,56 +830,56 @@ class AccessControlEntryServiceTest {
     @Test
     void isNamespaceOwnerOfResource() {
         AccessControlEntry ace1 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("main")
-                        .grantedTo("namespace")
-                        .build()
-                )
-                .build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("main")
+                .grantedTo("namespace")
+                .build()
+            )
+            .build();
         AccessControlEntry ace2 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("connect")
-                        .grantedTo("namespace")
-                        .build()
-                )
-                .build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("connect")
+                .grantedTo("namespace")
+                .build()
+            )
+            .build();
         AccessControlEntry ace3 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .resource("connect")
-                        .grantedTo("namespace-other")
-                        .build()
-                )
-                .build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                .permission(AccessControlEntry.Permission.WRITE)
+                .resource("connect")
+                .grantedTo("namespace-other")
+                .build()
+            )
+            .build();
         when(accessControlEntryRepository.findAll())
-                .thenReturn(List.of(ace1, ace2, ace3));
+            .thenReturn(List.of(ace1, ace2, ace3));
         assertTrue(
-                accessControlEntryService.isNamespaceOwnerOfResource("namespace",
-                        AccessControlEntry.ResourceType.CONNECT,
-                        "connect"));
+            accessControlEntryService.isNamespaceOwnerOfResource("namespace",
+                AccessControlEntry.ResourceType.CONNECT,
+                "connect"));
         assertTrue(
-                accessControlEntryService.isNamespaceOwnerOfResource("namespace",
-                        AccessControlEntry.ResourceType.TOPIC,
-                        "main"));
+            accessControlEntryService.isNamespaceOwnerOfResource("namespace",
+                AccessControlEntry.ResourceType.TOPIC,
+                "main"));
         assertTrue(
-                accessControlEntryService.isNamespaceOwnerOfResource("namespace",
-                        AccessControlEntry.ResourceType.TOPIC,
-                        "main.sub"), "subresource");
+            accessControlEntryService.isNamespaceOwnerOfResource("namespace",
+                AccessControlEntry.ResourceType.TOPIC,
+                "main.sub"), "subresource");
         Assertions.assertFalse(
-                accessControlEntryService.isNamespaceOwnerOfResource("namespace-other",
-                        AccessControlEntry.ResourceType.TOPIC,
-                        "main"));
+            accessControlEntryService.isNamespaceOwnerOfResource("namespace-other",
+                AccessControlEntry.ResourceType.TOPIC,
+                "main"));
         Assertions.assertFalse(
-                accessControlEntryService.isNamespaceOwnerOfResource("namespace-other",
-                        AccessControlEntry.ResourceType.CONNECT,
-                        "connect"));
+            accessControlEntryService.isNamespaceOwnerOfResource("namespace-other",
+                AccessControlEntry.ResourceType.CONNECT,
+                "connect"));
     }
 }

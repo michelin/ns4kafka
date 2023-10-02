@@ -4,14 +4,20 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.Nulls;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
-import java.util.*;
-
+/**
+ * Resource validator.
+ */
 @Data
 @SuperBuilder
 @AllArgsConstructor
@@ -19,22 +25,26 @@ import java.util.*;
 public abstract class ResourceValidator {
     @Builder.Default
     @JsonSetter(nulls = Nulls.AS_EMPTY)
-    protected Map<String,Validator> validationConstraints = new HashMap<>();
+    protected Map<String, Validator> validationConstraints = new HashMap<>();
 
+    /**
+     * Validate the configuration.
+     */
     @JsonTypeInfo(
-            use = JsonTypeInfo.Id.NAME,
-            property = "validation-type")
+        use = JsonTypeInfo.Id.NAME,
+        property = "validation-type")
     @JsonSubTypes({
-            @JsonSubTypes.Type(value = Range.class, name = "Range"),
-            @JsonSubTypes.Type(value = ValidList.class, name = "ValidList"),
-            @JsonSubTypes.Type(value = ValidString.class, name = "ValidString"),
-            @JsonSubTypes.Type(value = NonEmptyString.class, name = "NonEmptyString"),
-            @JsonSubTypes.Type(value = CompositeValidator.class, name = "CompositeValidator")
+        @JsonSubTypes.Type(value = Range.class, name = "Range"),
+        @JsonSubTypes.Type(value = ValidList.class, name = "ValidList"),
+        @JsonSubTypes.Type(value = ValidString.class, name = "ValidString"),
+        @JsonSubTypes.Type(value = NonEmptyString.class, name = "NonEmptyString"),
+        @JsonSubTypes.Type(value = CompositeValidator.class, name = "CompositeValidator")
     })
     public interface Validator {
         /**
          * Perform single configuration validation.
-         * @param name The name of the configuration
+         *
+         * @param name  The name of the configuration
          * @param value The value of the configuration
          * @throws FieldValidationException if the value is invalid.
          */
@@ -42,7 +52,7 @@ public abstract class ResourceValidator {
     }
 
     /**
-     * Validation logic for numeric ranges
+     * Validation logic for numeric ranges.
      */
     @Data
     @NoArgsConstructor
@@ -52,9 +62,10 @@ public abstract class ResourceValidator {
         private boolean optional = false;
 
         /**
-         *  A numeric range with inclusive upper bound and inclusive lower bound
-         * @param min  the lower bound
-         * @param max  the upper bound
+         * A numeric range with inclusive upper bound and inclusive lower bound.
+         *
+         * @param min the lower bound
+         * @param max the upper bound
          */
         public Range(Number min, Number max, boolean optional) {
             this.min = min;
@@ -63,7 +74,7 @@ public abstract class ResourceValidator {
         }
 
         /**
-         * A numeric range that checks only the lower bound
+         * A numeric range that checks only the lower bound.
          *
          * @param min The minimum acceptable value
          */
@@ -72,78 +83,100 @@ public abstract class ResourceValidator {
         }
 
         /**
-         * A numeric range that checks both the upper (inclusive) and lower bound
+         * A numeric range that checks both the upper (inclusive) and lower bound.
          */
         public static ResourceValidator.Range between(Number min, Number max) {
             return new ResourceValidator.Range(min, max, false);
         }
+
         /**
-         * A numeric range that checks both the upper (inclusive) and lower bound, and accepts null as well
+         * A numeric range that checks both the upper (inclusive) and lower bound, and accepts null as well.
          */
         public static ResourceValidator.Range optionalBetween(Number min, Number max) {
             return new ResourceValidator.Range(min, max, true);
         }
 
+        /**
+         * Ensure that the value is in the range.
+         *
+         * @param name The name of the configuration
+         * @param o    The value of the configuration
+         */
         public void ensureValid(String name, Object o) {
-            Number n = null;
+            Number n;
             if (o == null) {
-                if (optional)
+                if (optional) {
                     return;
+                }
                 throw new FieldValidationException(name, null, "Value must be non-null");
             }
             try {
                 n = Double.valueOf(o.toString());
-            }catch (NumberFormatException e){
-                throw new FieldValidationException(name,o.toString(),"Value must be a Number");
+            } catch (NumberFormatException e) {
+                throw new FieldValidationException(name, o.toString(), "Value must be a Number");
             }
-            if (min != null && n.doubleValue() < min.doubleValue())
+            if (min != null && n.doubleValue() < min.doubleValue()) {
                 throw new FieldValidationException(name, o, "Value must be at least " + min);
-            if (max != null && n.doubleValue() > max.doubleValue())
+            }
+            if (max != null && n.doubleValue() > max.doubleValue()) {
                 throw new FieldValidationException(name, o, "Value must be no more than " + max);
+            }
         }
 
+        /**
+         * Return a string representation of the range.
+         *
+         * @return A string representation of the range
+         */
         public String toString() {
-            if (min == null && max == null)
+            if (min == null && max == null) {
                 return "[...]";
-            else if (min == null)
+            } else if (min == null) {
                 return "[...," + max + "]";
-            else if (max == null)
+            } else if (max == null) {
                 return "[" + min + ",...]";
-            else
+            } else {
                 return "[" + min + ",...," + max + "]";
+            }
         }
     }
 
+    /**
+     * Validation logic for a list of valid strings.
+     */
     @Data
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class ValidList implements ResourceValidator.Validator {
-
         private List<String> validStrings;
         private boolean optional = false;
-
-        public ValidList(List<String> validStrings, boolean optional) {
-            this.validStrings = validStrings;
-            this.optional = optional;
-        }
 
         public static ResourceValidator.ValidList in(String... validStrings) {
             return new ResourceValidator.ValidList(Arrays.asList(validStrings), false);
         }
+
         public static ResourceValidator.ValidList optionalIn(String... validStrings) {
             return new ResourceValidator.ValidList(Arrays.asList(validStrings), true);
         }
 
+        /**
+         * Ensure that the value is one of the valid strings.
+         *
+         * @param name The name of the configuration
+         * @param o    The value of the configuration
+         */
         @Override
         public void ensureValid(final String name, final Object o) {
             if (o == null) {
-                if (optional)
+                if (optional) {
                     return;
+                }
                 throw new FieldValidationException(name, null, "Value must be non-null");
             }
-            String s = (String)o;
+            String s = (String) o;
 
             List<String> values = List.of(s); //default if no "," (most of the time)
-            if(s.contains(",")){
+            if (s.contains(",")) {
                 //split and strip
                 values = Arrays.stream(s.split(",")).map(String::strip).toList();
             }
@@ -154,61 +187,92 @@ public abstract class ResourceValidator {
             }
         }
 
+        /**
+         * Return a string representation of the valid strings.
+         *
+         * @return A string representation of the valid strings
+         */
         public String toString() {
             return validStrings.toString();
         }
     }
 
+    /**
+     * Validation logic for a valid string.
+     */
     @Data
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class ValidString implements ResourceValidator.Validator {
         private List<String> validStrings;
         private boolean optional = false;
 
-
-        public ValidString(List<String> validStrings, boolean optional) {
-            this.validStrings = validStrings;
-            this.optional = optional;
-        }
-
         public static ResourceValidator.ValidString in(String... validStrings) {
             return new ResourceValidator.ValidString(Arrays.asList(validStrings), false);
         }
+
         public static ResourceValidator.ValidString optionalIn(String... validStrings) {
             return new ResourceValidator.ValidString(Arrays.asList(validStrings), true);
         }
 
+        /**
+         * Ensure that the value is one of the valid strings.
+         *
+         * @param name The name of the configuration
+         * @param o    The value of the configuration
+         */
         @Override
         public void ensureValid(String name, Object o) {
             if (o == null) {
-                if (optional)
+                if (optional) {
                     return;
+                }
                 throw new FieldValidationException(name, null, "Value must be non-null");
             }
             String s = (String) o;
             if (!validStrings.contains(s)) {
-                throw new FieldValidationException(name, o, "String must be one of: " + String.join(", ", validStrings));
+                throw new FieldValidationException(name, o,
+                    "String must be one of: " + String.join(", ", validStrings));
             }
 
         }
 
+        /**
+         * Return a string representation of the valid strings.
+         *
+         * @return A string representation of the valid strings
+         */
         public String toString() {
             return "[" + String.join(", ", validStrings) + "]";
         }
     }
 
+    /**
+     * Validation logic for a non-empty string.
+     */
     public static class NonEmptyString implements ResourceValidator.Validator {
-
+        /**
+         * Ensure that the value is non-empty.
+         *
+         * @param name The name of the configuration
+         * @param o    The value of the configuration
+         */
         @Override
         public void ensureValid(String name, Object o) {
-            if (o == null)
+            if (o == null) {
                 throw new FieldValidationException(name, null, "Value must be non-null");
+            }
             String s = (String) o;
-            if (s != null && s.isEmpty()) {
+            if (s.isEmpty()) {
                 throw new FieldValidationException(name, o, "String must be non-empty");
             }
         }
 
+        /**
+         * Return a string representation of the valid strings.
+         *
+         * @return A string representation of the valid strings
+         */
         @Override
         public String toString() {
             return "non-empty string";
@@ -216,9 +280,15 @@ public abstract class ResourceValidator {
 
         @Override
         public boolean equals(Object obj) {
-            if (this == obj) return true;
-            if (obj == null) return false;
-            if (!(obj instanceof NonEmptyString)) return false;
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (!(obj instanceof NonEmptyString)) {
+                return false;
+            }
             return true;
         }
 
@@ -228,6 +298,9 @@ public abstract class ResourceValidator {
         }
     }
 
+    /**
+     * Validation logic for a composite validator.
+     */
     @Data
     @NoArgsConstructor
     public static class CompositeValidator implements ResourceValidator.Validator {
@@ -243,161 +316,24 @@ public abstract class ResourceValidator {
 
         @Override
         public void ensureValid(String name, Object value) {
-            for (ResourceValidator.Validator validator: validators) {
+            for (ResourceValidator.Validator validator : validators) {
                 validator.ensureValid(name, value);
             }
         }
 
         @Override
         public String toString() {
-            if (validators == null) return "";
+            if (validators == null) {
+                return "";
+            }
             StringBuilder desc = new StringBuilder();
-            for (ResourceValidator.Validator v: validators) {
+            for (ResourceValidator.Validator v : validators) {
                 if (desc.length() > 0) {
                     desc.append(',').append(' ');
                 }
-                desc.append(String.valueOf(v));
+                desc.append(v);
             }
             return desc.toString();
         }
     }
-    /*
-    public static class CaseInsensitiveValidString implements ResourceValidator.Validator {
-
-        Set<String> validStrings;
-
-        private CaseInsensitiveValidString(List<String> validStrings) {
-            this.validStrings = validStrings.stream()
-                    .map(s -> s.toUpperCase(Locale.ROOT))
-                    .collect(Collectors.toSet());
-        }
-
-        public static ResourceValidator.CaseInsensitiveValidString in(String... validStrings) {
-            return new ResourceValidator.CaseInsensitiveValidString(Arrays.asList(validStrings));
-        }
-
-        @Override
-        public void ensureValid(String name, Object o) {
-            String s = (String) o;
-            if (s == null || !validStrings.contains(s.toUpperCase(Locale.ROOT))) {
-                throw new ValidationException(name, o, "String must be one of (case insensitive): " + String.join(", ", validStrings));
-            }
-        }
-
-        public String toString() {
-            return "(case insensitive) [" + String.join(", ", validStrings) + "]";
-        }
-    }
-
-    public static class NonNullValidator implements ResourceValidator.Validator {
-        @Override
-        public void ensureValid(String name, Object value) {
-            if (value == null) {
-                // Pass in the string null to avoid the spotbugs warning
-                throw new ValidationException(name, "null", "entry must be non null");
-            }
-        }
-
-        public String toString() {
-            return "non-null string";
-        }
-    }
-
-    public static class LambdaValidator implements ResourceValidator.Validator {
-        BiConsumer<String, Object> ensureValid;
-        Supplier<String> toStringFunction;
-
-        private LambdaValidator(BiConsumer<String, Object> ensureValid,
-                                Supplier<String> toStringFunction) {
-            this.ensureValid = ensureValid;
-            this.toStringFunction = toStringFunction;
-        }
-
-        public static ResourceValidator.LambdaValidator with(BiConsumer<String, Object> ensureValid,
-                                                             Supplier<String> toStringFunction) {
-            return new ResourceValidator.LambdaValidator(ensureValid, toStringFunction);
-        }
-
-        @Override
-        public void ensureValid(String name, Object value) {
-            ensureValid.accept(name, value);
-        }
-
-        @Override
-        public String toString() {
-            return toStringFunction.get();
-        }
-    }
-
-    public static class CompositeValidator implements ResourceValidator.Validator {
-        private final List<ResourceValidator.Validator> validators;
-
-        private CompositeValidator(List<ResourceValidator.Validator> validators) {
-            this.validators = Collections.unmodifiableList(validators);
-        }
-
-        public static ResourceValidator.CompositeValidator of(ResourceValidator.Validator... validators) {
-            return new ResourceValidator.CompositeValidator(Arrays.asList(validators));
-        }
-
-        @Override
-        public void ensureValid(String name, Object value) {
-            for (ResourceValidator.Validator validator: validators) {
-                validator.ensureValid(name, value);
-            }
-        }
-
-        @Override
-        public String toString() {
-            if (validators == null) return "";
-            StringBuilder desc = new StringBuilder();
-            for (ResourceValidator.Validator v: validators) {
-                if (desc.length() > 0) {
-                    desc.append(',').append(' ');
-                }
-                desc.append(String.valueOf(v));
-            }
-            return desc.toString();
-        }
-    }
-
-    public static class NonEmptyStringWithoutControlChars implements ResourceValidator.Validator {
-
-        public static ResourceValidator.NonEmptyStringWithoutControlChars nonEmptyStringWithoutControlChars() {
-            return new ResourceValidator.NonEmptyStringWithoutControlChars();
-        }
-
-        @Override
-        public void ensureValid(String name, Object value) {
-            String s = (String) value;
-
-            if (s == null) {
-                // This can happen during creation of the config object due to no default value being defined for the
-                // name configuration - a missing name parameter is caught when checking for mandatory parameters,
-                // thus we can ok a null value here
-                return;
-            } else if (s.isEmpty()) {
-                throw new ValidationException(name, value, "String may not be empty");
-            }
-
-            // Check name string for illegal characters
-            ArrayList<String> foundIllegalCharacters = new ArrayList<>();
-
-            for (int i = 0; i < s.length(); i++) {
-                if (Character.isISOControl(s.codePointAt(i))) {
-                    foundIllegalCharacters.add(String.valueOf(s.codePointAt(i)));
-                }
-            }
-
-            if (!foundIllegalCharacters.isEmpty()) {
-                throw new ValidationException(name, value, "String may not contain control sequences but had the following ASCII chars: " + String.join(", ", foundIllegalCharacters));
-            }
-        }
-
-        public String toString() {
-            return "non-empty string without ISO control characters";
-        }
-    }
-
-     */
 }

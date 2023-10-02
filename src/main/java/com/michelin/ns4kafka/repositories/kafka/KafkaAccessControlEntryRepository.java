@@ -2,30 +2,38 @@ package com.michelin.ns4kafka.repositories.kafka;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
-import io.micronaut.configuration.kafka.annotation.*;
+import io.micronaut.configuration.kafka.annotation.KafkaClient;
+import io.micronaut.configuration.kafka.annotation.KafkaListener;
+import io.micronaut.configuration.kafka.annotation.OffsetReset;
+import io.micronaut.configuration.kafka.annotation.OffsetStrategy;
+import io.micronaut.configuration.kafka.annotation.Topic;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
+import java.util.Collection;
+import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-import java.util.Collection;
-import java.util.Optional;
-
+/**
+ * Access control entry repository.
+ */
 @Singleton
 @KafkaListener(
-        offsetReset = OffsetReset.EARLIEST,
-        groupId = "${ns4kafka.store.kafka.group-id}",
-        offsetStrategy = OffsetStrategy.DISABLED
+    offsetReset = OffsetReset.EARLIEST,
+    groupId = "${ns4kafka.store.kafka.group-id}",
+    offsetStrategy = OffsetStrategy.DISABLED
 )
-public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlEntry> implements AccessControlEntryRepository {
-    public KafkaAccessControlEntryRepository(@Value("${ns4kafka.store.kafka.topics.prefix}.access-control-entries") String kafkaTopic,
-                                    @KafkaClient("access-control-entries-producer") Producer<String, AccessControlEntry> kafkaProducer) {
+public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlEntry>
+    implements AccessControlEntryRepository {
+    public KafkaAccessControlEntryRepository(
+        @Value("${ns4kafka.store.kafka.topics.prefix}.access-control-entries") String kafkaTopic,
+        @KafkaClient("access-control-entries-producer") Producer<String, AccessControlEntry> kafkaProducer) {
         super(kafkaTopic, kafkaProducer);
     }
 
     @Override
     String getMessageKey(AccessControlEntry accessControlEntry) {
-        return  accessControlEntry.getMetadata().getNamespace() + "/" + accessControlEntry.getMetadata().getName();
+        return accessControlEntry.getMetadata().getNamespace() + "/" + accessControlEntry.getMetadata().getName();
     }
 
     @Override
@@ -35,16 +43,16 @@ public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlE
 
     @Override
     public void delete(AccessControlEntry accessControlEntry) {
-        produce(getMessageKey(accessControlEntry),null);
+        produce(getMessageKey(accessControlEntry), null);
     }
 
     @Override
     public Optional<AccessControlEntry> findByName(String namespace, String name) {
         return getKafkaStore().values()
-                .stream()
-                .filter(ace -> ace.getMetadata().getNamespace().equals(namespace))
-                .filter(ace -> ace.getMetadata().getName().equals(name))
-                .findFirst();
+            .stream()
+            .filter(ace -> ace.getMetadata().getNamespace().equals(namespace))
+            .filter(ace -> ace.getMetadata().getName().equals(name))
+            .findFirst();
     }
 
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.access-control-entries")

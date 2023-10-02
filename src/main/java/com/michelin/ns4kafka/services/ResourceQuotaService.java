@@ -1,5 +1,17 @@
 package com.michelin.ns4kafka.services;
 
+import static com.michelin.ns4kafka.models.quota.ResourceQuota.ResourceQuotaSpecKey.COUNT_CONNECTORS;
+import static com.michelin.ns4kafka.models.quota.ResourceQuota.ResourceQuotaSpecKey.COUNT_PARTITIONS;
+import static com.michelin.ns4kafka.models.quota.ResourceQuota.ResourceQuotaSpecKey.COUNT_TOPICS;
+import static com.michelin.ns4kafka.models.quota.ResourceQuota.ResourceQuotaSpecKey.DISK_TOPICS;
+import static com.michelin.ns4kafka.models.quota.ResourceQuota.ResourceQuotaSpecKey.USER_CONSUMER_BYTE_RATE;
+import static com.michelin.ns4kafka.models.quota.ResourceQuota.ResourceQuotaSpecKey.USER_PRODUCER_BYTE_RATE;
+import static com.michelin.ns4kafka.utils.BytesUtils.BYTE;
+import static com.michelin.ns4kafka.utils.BytesUtils.GIBIBYTE;
+import static com.michelin.ns4kafka.utils.BytesUtils.KIBIBYTE;
+import static com.michelin.ns4kafka.utils.BytesUtils.MEBIBYTE;
+import static org.apache.kafka.common.config.TopicConfig.RETENTION_BYTES_CONFIG;
+
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
@@ -11,16 +23,14 @@ import com.michelin.ns4kafka.utils.BytesUtils;
 import io.micronaut.core.util.StringUtils;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 
-import static com.michelin.ns4kafka.models.quota.ResourceQuota.ResourceQuotaSpecKey.*;
-import static com.michelin.ns4kafka.utils.BytesUtils.*;
-import static org.apache.kafka.common.config.TopicConfig.RETENTION_BYTES_CONFIG;
-
+/**
+ * Service to manage resource quotas.
+ */
 @Slf4j
 @Singleton
 public class ResourceQuotaService {
@@ -31,10 +41,7 @@ public class ResourceQuotaService {
     private static final String USER_QUOTA_RESPONSE_FORMAT = "%sB/s";
 
     private static final String NO_QUOTA_RESPONSE_FORMAT = "%s";
-
-    @Inject
-    NamespaceService namespaceService;
-
+    
     @Inject
     ResourceQuotaRepository resourceQuotaRepository;
 
@@ -45,7 +52,8 @@ public class ResourceQuotaService {
     ConnectorService connectorService;
 
     /**
-     * Find a resource quota by namespace
+     * Find a resource quota by namespace.
+     *
      * @param namespace The namespace used to research
      * @return The researched resource quota
      */
@@ -54,27 +62,32 @@ public class ResourceQuotaService {
     }
 
     /**
-     * Find a resource quota by namespace and name
+     * Find a resource quota by namespace and name.
+     *
      * @param namespace The namespace
-     * @param quota The quota name
+     * @param quota     The quota name
      * @return The researched resource quota
      */
     public Optional<ResourceQuota> findByName(String namespace, String quota) {
         return findByNamespace(namespace)
-                .stream()
-                .filter(resourceQuota -> resourceQuota.getMetadata().getName().equals(quota))
-                .findFirst();
+            .stream()
+            .filter(resourceQuota -> resourceQuota.getMetadata().getName().equals(quota))
+            .findFirst();
     }
 
     /**
-     * Create a resource quota
+     * Create a resource quota.
+     *
      * @param resourceQuota The resource quota to create
      * @return The created resource quota
      */
-    public ResourceQuota create(ResourceQuota resourceQuota) { return resourceQuotaRepository.create(resourceQuota); }
+    public ResourceQuota create(ResourceQuota resourceQuota) {
+        return resourceQuotaRepository.create(resourceQuota);
+    }
 
     /**
-     * Delete a resource quota
+     * Delete a resource quota.
+     *
      * @param resourceQuota The resource quota to delete
      */
     public void delete(ResourceQuota resourceQuota) {
@@ -82,8 +95,9 @@ public class ResourceQuotaService {
     }
 
     /**
-     * Validate a given new resource quota against the current resource used by the namespace
-     * @param namespace The namespace
+     * Validate a given new resource quota against the current resource used by the namespace.
+     *
+     * @param namespace     The namespace
      * @param resourceQuota The new resource quota
      * @return A list of validation errors
      */
@@ -108,15 +122,16 @@ public class ResourceQuotaService {
 
         if (StringUtils.hasText(resourceQuota.getSpec().get(DISK_TOPICS.getKey()))) {
             String limitAsString = resourceQuota.getSpec().get(DISK_TOPICS.getKey());
-            if (!limitAsString.endsWith(BYTE) && !limitAsString.endsWith(KIBIBYTE) && !limitAsString.endsWith(MEBIBYTE) && !limitAsString.endsWith(GIBIBYTE)) {
+            if (!limitAsString.endsWith(BYTE) && !limitAsString.endsWith(KIBIBYTE)
+                && !limitAsString.endsWith(MEBIBYTE) && !limitAsString.endsWith(GIBIBYTE)) {
                 errors.add(String.format("Invalid value for %s: value must end with either %s, %s, %s or %s",
-                        DISK_TOPICS, BYTE, KIBIBYTE, MEBIBYTE, GIBIBYTE));
+                    DISK_TOPICS, BYTE, KIBIBYTE, MEBIBYTE, GIBIBYTE));
             } else {
                 long used = getCurrentDiskTopicsByNamespace(namespace);
                 long limit = BytesUtils.humanReadableToBytes(limitAsString);
                 if (used > limit) {
                     errors.add(String.format(QUOTA_ALREADY_EXCEEDED_ERROR, DISK_TOPICS,
-                            BytesUtils.bytesToHumanReadable(used), limitAsString));
+                        BytesUtils.bytesToHumanReadable(used), limitAsString));
                 }
             }
         }
@@ -151,7 +166,8 @@ public class ResourceQuotaService {
     }
 
     /**
-     * Get currently used number of topics by namespace
+     * Get currently used number of topics by namespace.
+     *
      * @param namespace The namespace
      * @return The number of topics
      */
@@ -160,33 +176,36 @@ public class ResourceQuotaService {
     }
 
     /**
-     * Get currently used number of partitions by namespace
+     * Get currently used number of partitions by namespace.
+     *
      * @param namespace The namespace
      * @return The number of partitions
      */
     public long getCurrentCountPartitionsByNamespace(Namespace namespace) {
         return topicService.findAllForNamespace(namespace)
-                .stream()
-                .map(topic -> topic.getSpec().getPartitions())
-                .reduce(0, Integer::sum)
-                .longValue();
+            .stream()
+            .map(topic -> topic.getSpec().getPartitions())
+            .reduce(0, Integer::sum)
+            .longValue();
     }
 
     /**
-     * Get currently used topic disk in bytes by namespace
+     * Get currently used topic disk in bytes by namespace.
+     *
      * @param namespace The namespace
      * @return The number of topic disk
      */
     public long getCurrentDiskTopicsByNamespace(Namespace namespace) {
         return topicService.findAllForNamespace(namespace)
-                .stream()
-                .map(topic -> Long.parseLong(topic.getSpec().getConfigs().getOrDefault("retention.bytes", "0")) *
-                        topic.getSpec().getPartitions())
-                .reduce(0L, Long::sum);
+            .stream()
+            .map(topic -> Long.parseLong(topic.getSpec().getConfigs().getOrDefault("retention.bytes", "0"))
+                * topic.getSpec().getPartitions())
+            .reduce(0L, Long::sum);
     }
 
     /**
-     * Get currently used number of connectors by namespace
+     * Get currently used number of connectors by namespace.
+     *
      * @param namespace The namespace
      * @return The number of connectors
      */
@@ -195,10 +214,11 @@ public class ResourceQuotaService {
     }
 
     /**
-     * Validate the topic quota
-     * @param namespace The namespace
+     * Validate the topic quota.
+     *
+     * @param namespace     The namespace
      * @param existingTopic The existing topic
-     * @param newTopic The new topic
+     * @param newTopic      The new topic
      * @return A list of errors
      */
     public List<String> validateTopicQuota(Namespace namespace, Optional<Topic> existingTopic, Topic newTopic) {
@@ -216,7 +236,9 @@ public class ResourceQuotaService {
                 long used = getCurrentCountTopicsByNamespace(namespace);
                 long limit = Long.parseLong(resourceQuota.getSpec().get(COUNT_TOPICS.getKey()));
                 if (used + 1 > limit) {
-                    errors.add(String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add 1 topic.", COUNT_TOPICS, used, limit));
+                    errors.add(
+                        String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add 1 topic.", COUNT_TOPICS,
+                            used, limit));
                 }
             }
 
@@ -224,35 +246,39 @@ public class ResourceQuotaService {
                 long used = getCurrentCountPartitionsByNamespace(namespace);
                 long limit = Long.parseLong(resourceQuota.getSpec().get(COUNT_PARTITIONS.getKey()));
                 if (used + newTopic.getSpec().getPartitions() > limit) {
-                    errors.add(String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add %s partition(s).", COUNT_PARTITIONS, used, limit, newTopic.getSpec().getPartitions()));
+                    errors.add(String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add %s partition(s).",
+                        COUNT_PARTITIONS, used, limit, newTopic.getSpec().getPartitions()));
                 }
             }
         }
 
-        if (StringUtils.hasText(resourceQuota.getSpec().get(DISK_TOPICS.getKey())) &&
-                StringUtils.hasText(newTopic.getSpec().getConfigs().get(RETENTION_BYTES_CONFIG))) {
+        if (StringUtils.hasText(resourceQuota.getSpec().get(DISK_TOPICS.getKey()))
+            && StringUtils.hasText(newTopic.getSpec().getConfigs().get(RETENTION_BYTES_CONFIG))) {
             long used = getCurrentDiskTopicsByNamespace(namespace);
             long limit = BytesUtils.humanReadableToBytes(resourceQuota.getSpec().get(DISK_TOPICS.getKey()));
 
-            long newTopicSize = Long.parseLong(newTopic.getSpec().getConfigs().get(RETENTION_BYTES_CONFIG)) * newTopic.getSpec().getPartitions();
+            long newTopicSize = Long.parseLong(newTopic.getSpec().getConfigs().get(RETENTION_BYTES_CONFIG))
+                * newTopic.getSpec().getPartitions();
             long existingTopicSize = existingTopic
-                    .map(value -> Long.parseLong(value.getSpec().getConfigs().getOrDefault(RETENTION_BYTES_CONFIG, "0"))
-                            * value.getSpec().getPartitions())
-                    .orElse(0L);
+                .map(value -> Long.parseLong(value.getSpec().getConfigs().getOrDefault(RETENTION_BYTES_CONFIG, "0"))
+                    * value.getSpec().getPartitions())
+                .orElse(0L);
 
             long bytesToAdd = newTopicSize - existingTopicSize;
             if (bytesToAdd > 0 && used + bytesToAdd > limit) {
-                errors.add(String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add %s of data.", DISK_TOPICS,
-                        BytesUtils.bytesToHumanReadable(used), BytesUtils.bytesToHumanReadable(limit), BytesUtils.bytesToHumanReadable(bytesToAdd)));
+                errors.add(
+                    String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add %s of data.", DISK_TOPICS,
+                        BytesUtils.bytesToHumanReadable(used), BytesUtils.bytesToHumanReadable(limit),
+                        BytesUtils.bytesToHumanReadable(bytesToAdd)));
             }
-
         }
 
         return errors;
     }
 
     /**
-     * Validate the connector quota
+     * Validate the connector quota.
+     *
      * @param namespace The namespace
      * @return A list of errors
      */
@@ -269,7 +295,8 @@ public class ResourceQuotaService {
             long used = getCurrentCountConnectorsByNamespace(namespace);
             long limit = Long.parseLong(resourceQuota.getSpec().get(COUNT_CONNECTORS.getKey()));
             if (used + 1 > limit) {
-                errors.add(String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add 1 connector.", COUNT_CONNECTORS, used, limit));
+                errors.add(String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add 1 connector.",
+                    COUNT_CONNECTORS, used, limit));
             }
         }
 
@@ -277,81 +304,100 @@ public class ResourceQuotaService {
     }
 
     /**
-     * Get the current consumed resources against the current quota of the given namespace to a response
+     * Get the current consumed resources against the current quota of the given namespace to a response.
+     *
      * @return A list of quotas as response format
      */
-    public List<ResourceQuotaResponse> getUsedResourcesByQuotaForAllNamespaces() {
-        return namespaceService.listAll()
-                .stream()
-                .map(namespace -> getUsedResourcesByQuotaByNamespace(namespace, findByNamespace(namespace.getMetadata().getName())))
-                .toList();
+    public List<ResourceQuotaResponse> getUsedQuotaByNamespaces(List<Namespace> namespaces) {
+        return namespaces
+            .stream()
+            .map(namespace -> getUsedResourcesByQuotaByNamespace(namespace,
+                findByNamespace(namespace.getMetadata().getName())))
+            .toList();
     }
 
     /**
-     * Map current consumed resources and current quota of the given namespace to a response
-     * @param namespace The namespace
+     * Map current consumed resources and current quota of the given namespace to a response.
+     *
+     * @param namespace     The namespace
      * @param resourceQuota The quota to map
      * @return A list of quotas as response format
      */
-    public ResourceQuotaResponse getUsedResourcesByQuotaByNamespace(Namespace namespace, Optional<ResourceQuota> resourceQuota) {
+    public ResourceQuotaResponse getUsedResourcesByQuotaByNamespace(Namespace namespace,
+                                                                    Optional<ResourceQuota> resourceQuota) {
         long currentCountTopic = getCurrentCountTopicsByNamespace(namespace);
         long currentCountPartition = getCurrentCountPartitionsByNamespace(namespace);
         long currentDiskTopic = getCurrentDiskTopicsByNamespace(namespace);
         long currentCountConnector = getCurrentCountConnectorsByNamespace(namespace);
 
         return formatUsedResourceByQuotaResponse(namespace, currentCountTopic, currentCountPartition, currentDiskTopic,
-                currentCountConnector, resourceQuota);
+            currentCountConnector, resourceQuota);
     }
 
     /**
-     * Map given consumed resources and current quota to a response
-     * @param namespace The namespace
-     * @param currentCountTopic The current number of topics
+     * Map given consumed resources and current quota to a response.
+     *
+     * @param namespace             The namespace
+     * @param currentCountTopic     The current number of topics
      * @param currentCountPartition The current number of partitions
-     * @param currentDiskTopic The current number of disk space used by topics
+     * @param currentDiskTopic      The current number of disk space used by topics
      * @param currentCountConnector The current number of connectors
-     * @param resourceQuota The quota to map
+     * @param resourceQuota         The quota to map
      * @return A list of quotas as response format
      */
-    public ResourceQuotaResponse formatUsedResourceByQuotaResponse(Namespace namespace, long currentCountTopic, long currentCountPartition, long currentDiskTopic,
-                                                     long currentCountConnector, Optional<ResourceQuota> resourceQuota) {
-        String countTopic = resourceQuota.isPresent() && StringUtils.hasText(resourceQuota.get().getSpec().get(COUNT_TOPICS.getKey())) ?
-                String.format(QUOTA_RESPONSE_FORMAT, currentCountTopic, resourceQuota.get().getSpec().get(COUNT_TOPICS.getKey())) :
+    public ResourceQuotaResponse formatUsedResourceByQuotaResponse(Namespace namespace, long currentCountTopic,
+                                                                   long currentCountPartition, long currentDiskTopic,
+                                                                   long currentCountConnector,
+                                                                   Optional<ResourceQuota> resourceQuota) {
+        String countTopic =
+            resourceQuota.isPresent() && StringUtils.hasText(resourceQuota.get().getSpec().get(COUNT_TOPICS.getKey()))
+                ? String.format(QUOTA_RESPONSE_FORMAT, currentCountTopic,
+                resourceQuota.get().getSpec().get(COUNT_TOPICS.getKey())) :
                 String.format(NO_QUOTA_RESPONSE_FORMAT, currentCountTopic);
 
-        String countPartition = resourceQuota.isPresent() && StringUtils.hasText(resourceQuota.get().getSpec().get(COUNT_PARTITIONS.getKey())) ?
-                String.format(QUOTA_RESPONSE_FORMAT, currentCountPartition, resourceQuota.get().getSpec().get(COUNT_PARTITIONS.getKey())) :
-                String.format(NO_QUOTA_RESPONSE_FORMAT, currentCountPartition);
+        String countPartition = resourceQuota.isPresent()
+            && StringUtils.hasText(resourceQuota.get().getSpec().get(COUNT_PARTITIONS.getKey()))
+            ? String.format(QUOTA_RESPONSE_FORMAT, currentCountPartition,
+            resourceQuota.get().getSpec().get(COUNT_PARTITIONS.getKey())) :
+            String.format(NO_QUOTA_RESPONSE_FORMAT, currentCountPartition);
 
-        String diskTopic = resourceQuota.isPresent() && StringUtils.hasText(resourceQuota.get().getSpec().get(DISK_TOPICS.getKey())) ?
-                String.format(QUOTA_RESPONSE_FORMAT, BytesUtils.bytesToHumanReadable(currentDiskTopic), resourceQuota.get().getSpec().get(DISK_TOPICS.getKey())) :
+        String diskTopic =
+            resourceQuota.isPresent() && StringUtils.hasText(resourceQuota.get().getSpec().get(DISK_TOPICS.getKey()))
+                ? String.format(QUOTA_RESPONSE_FORMAT, BytesUtils.bytesToHumanReadable(currentDiskTopic),
+                resourceQuota.get().getSpec().get(DISK_TOPICS.getKey())) :
                 String.format(NO_QUOTA_RESPONSE_FORMAT, BytesUtils.bytesToHumanReadable(currentDiskTopic));
 
-        String countConnector = resourceQuota.isPresent() && StringUtils.hasText(resourceQuota.get().getSpec().get(COUNT_CONNECTORS.getKey())) ?
-                String.format(QUOTA_RESPONSE_FORMAT, currentCountConnector, resourceQuota.get().getSpec().get(COUNT_CONNECTORS.getKey())) :
-                String.format(NO_QUOTA_RESPONSE_FORMAT, currentCountConnector);
+        String countConnector = resourceQuota.isPresent()
+            && StringUtils.hasText(resourceQuota.get().getSpec().get(COUNT_CONNECTORS.getKey()))
+            ? String.format(QUOTA_RESPONSE_FORMAT, currentCountConnector,
+            resourceQuota.get().getSpec().get(COUNT_CONNECTORS.getKey())) :
+            String.format(NO_QUOTA_RESPONSE_FORMAT, currentCountConnector);
 
-        String consumerByteRate = resourceQuota.isPresent() && StringUtils.hasText(resourceQuota.get().getSpec().get(USER_CONSUMER_BYTE_RATE.getKey())) ?
-                String.format(USER_QUOTA_RESPONSE_FORMAT, resourceQuota.get().getSpec().get(USER_CONSUMER_BYTE_RATE.getKey())) :
-                String.format(USER_QUOTA_RESPONSE_FORMAT, UserAsyncExecutor.BYTE_RATE_DEFAULT_VALUE);
+        String consumerByteRate = resourceQuota.isPresent()
+            && StringUtils.hasText(resourceQuota.get().getSpec().get(USER_CONSUMER_BYTE_RATE.getKey()))
+            ? String.format(USER_QUOTA_RESPONSE_FORMAT,
+            resourceQuota.get().getSpec().get(USER_CONSUMER_BYTE_RATE.getKey())) :
+            String.format(USER_QUOTA_RESPONSE_FORMAT, UserAsyncExecutor.BYTE_RATE_DEFAULT_VALUE);
 
-        String producerByteRate = resourceQuota.isPresent() && StringUtils.hasText(resourceQuota.get().getSpec().get(USER_PRODUCER_BYTE_RATE.getKey())) ?
-                String.format(USER_QUOTA_RESPONSE_FORMAT, resourceQuota.get().getSpec().get(USER_PRODUCER_BYTE_RATE.getKey())) :
-                String.format(USER_QUOTA_RESPONSE_FORMAT, UserAsyncExecutor.BYTE_RATE_DEFAULT_VALUE);
+        String producerByteRate = resourceQuota.isPresent()
+            && StringUtils.hasText(resourceQuota.get().getSpec().get(USER_PRODUCER_BYTE_RATE.getKey()))
+            ? String.format(USER_QUOTA_RESPONSE_FORMAT,
+            resourceQuota.get().getSpec().get(USER_PRODUCER_BYTE_RATE.getKey())) :
+            String.format(USER_QUOTA_RESPONSE_FORMAT, UserAsyncExecutor.BYTE_RATE_DEFAULT_VALUE);
 
         return ResourceQuotaResponse.builder()
-                .metadata(resourceQuota.map(ResourceQuota::getMetadata).orElse(ObjectMeta.builder()
-                        .namespace(namespace.getMetadata().getName())
-                        .cluster(namespace.getMetadata().getCluster())
-                        .build()))
-                .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
-                        .countTopic(countTopic)
-                        .countPartition(countPartition)
-                        .diskTopic(diskTopic)
-                        .countConnector(countConnector)
-                        .consumerByteRate(consumerByteRate)
-                        .producerByteRate(producerByteRate)
-                        .build())
-                .build();
+            .metadata(resourceQuota.map(ResourceQuota::getMetadata).orElse(ObjectMeta.builder()
+                .namespace(namespace.getMetadata().getName())
+                .cluster(namespace.getMetadata().getCluster())
+                .build()))
+            .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
+                .countTopic(countTopic)
+                .countPartition(countPartition)
+                .diskTopic(diskTopic)
+                .countConnector(countConnector)
+                .consumerByteRate(consumerByteRate)
+                .producerByteRate(producerByteRate)
+                .build())
+            .build();
     }
 }

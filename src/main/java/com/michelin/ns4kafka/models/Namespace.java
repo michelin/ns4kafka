@@ -3,16 +3,18 @@ package com.michelin.ns4kafka.models;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.core.annotation.Introspected;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import java.util.List;
-
+/**
+ * Namespace.
+ */
 @Data
 @Builder
 @Introspected
@@ -30,6 +32,9 @@ public class Namespace {
     @NotNull
     private NamespaceSpec spec;
 
+    /**
+     * Namespace spec.
+     */
     @Data
     @Builder
     @Introspected

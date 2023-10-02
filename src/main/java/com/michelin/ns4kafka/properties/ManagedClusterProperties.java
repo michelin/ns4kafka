@@ -1,20 +1,22 @@
-package com.michelin.ns4kafka.config;
+package com.michelin.ns4kafka.properties;
 
 import io.micronaut.context.annotation.ConfigurationProperties;
 import io.micronaut.context.annotation.EachProperty;
 import io.micronaut.context.annotation.Parameter;
 import io.micronaut.core.annotation.Introspected;
+import java.util.Map;
+import java.util.Properties;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.kafka.clients.admin.Admin;
 
-import java.util.Map;
-import java.util.Properties;
-
+/**
+ * Managed cluster properties.
+ */
 @Getter
 @Setter
 @EachProperty("ns4kafka.managed-clusters")
-public class KafkaAsyncExecutorConfig {
+public class ManagedClusterProperties {
     private String name;
     private boolean manageTopics;
     private boolean manageAcls;
@@ -23,44 +25,22 @@ public class KafkaAsyncExecutorConfig {
     private boolean manageConnectors;
     private KafkaProvider provider;
     private Properties config;
-    private Map<String, ConnectConfig> connects;
-    private RegistryConfig schemaRegistry;
+    private Map<String, ConnectProperties> connects;
+    private SchemaRegistryProperties schemaRegistry;
     private Admin adminClient = null;
 
-    public KafkaAsyncExecutorConfig(@Parameter String name) {
+    public ManagedClusterProperties(@Parameter String name) {
         this.name = name;
     }
 
-    public KafkaAsyncExecutorConfig(@Parameter String name, @Parameter KafkaProvider provider) {
+    public ManagedClusterProperties(@Parameter String name, @Parameter KafkaProvider provider) {
         this.name = name;
         this.provider = provider;
     }
 
-    @Getter
-    @Setter
-    @Introspected
-    public static class ConnectConfig {
-        String url;
-        String basicAuthUsername;
-        String basicAuthPassword;
-    }
-
-    @Getter
-    @Setter
-    @ConfigurationProperties("schema-registry")
-    public static class RegistryConfig {
-        String url;
-        String basicAuthUsername;
-        String basicAuthPassword;
-    }
-
-    public enum KafkaProvider {
-        SELF_MANAGED,
-        CONFLUENT_CLOUD
-    }
-
     /**
-     * Getter for admin client service
+     * Getter for admin client service.
+     *
      * @return The admin client
      */
     public Admin getAdminClient() {
@@ -69,5 +49,37 @@ public class KafkaAsyncExecutorConfig {
         }
 
         return this.adminClient;
+    }
+
+    /**
+     * Kafka provider.
+     */
+    public enum KafkaProvider {
+        SELF_MANAGED,
+        CONFLUENT_CLOUD
+    }
+
+    /**
+     * Connect properties.
+     */
+    @Getter
+    @Setter
+    @Introspected
+    public static class ConnectProperties {
+        String url;
+        String basicAuthUsername;
+        String basicAuthPassword;
+    }
+
+    /**
+     * Schema registry properties.
+     */
+    @Getter
+    @Setter
+    @ConfigurationProperties("schema-registry")
+    public static class SchemaRegistryProperties {
+        String url;
+        String basicAuthUsername;
+        String basicAuthPassword;
     }
 }

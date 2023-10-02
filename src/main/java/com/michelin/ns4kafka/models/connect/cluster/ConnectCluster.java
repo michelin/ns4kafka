@@ -2,11 +2,17 @@ package com.michelin.ns4kafka.models.connect.cluster;
 
 import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
-import lombok.*;
-
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
+/**
+ * Kafka Connect Cluster.
+ */
 @Data
 @Builder
 @Introspected
@@ -24,6 +30,17 @@ public class ConnectCluster {
     @NotNull
     private ConnectClusterSpec spec;
 
+    /**
+     * Kafka Connect status.
+     */
+    public enum Status {
+        HEALTHY,
+        IDLE
+    }
+
+    /**
+     * Kafka Connect Cluster specification.
+     */
     @Data
     @Builder
     @Introspected
@@ -47,13 +64,13 @@ public class ConnectCluster {
         String password;
 
         /**
-         * Gets the Kafka Connect status
+         * Gets the Kafka Connect status.
          */
         @EqualsAndHashCode.Exclude
         Status status;
 
         /**
-         * Gets the Kafka Connect status context message
+         * Gets the Kafka Connect status context message.
          */
         @EqualsAndHashCode.Exclude
         String statusMessage;
@@ -72,10 +89,5 @@ public class ConnectCluster {
          * Gets or sets the aes256 key.
          */
         String aes256Format;
-    }
-
-    public enum Status {
-        HEALTHY,
-        IDLE
     }
 }

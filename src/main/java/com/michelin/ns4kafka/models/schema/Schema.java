@@ -2,12 +2,19 @@ package com.michelin.ns4kafka.models.schema;
 
 import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
-import lombok.*;
-
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+/**
+ * Schema.
+ */
 @Data
 @Builder
 @Introspected
@@ -25,6 +32,32 @@ public class Schema {
     @NotNull
     private SchemaSpec spec;
 
+    /**
+     * Schema compatibility.
+     */
+    public enum Compatibility {
+        GLOBAL,
+        BACKWARD,
+        BACKWARD_TRANSITIVE,
+        FORWARD,
+        FORWARD_TRANSITIVE,
+        FULL,
+        FULL_TRANSITIVE,
+        NONE
+    }
+
+    /**
+     * Schema type.
+     */
+    public enum SchemaType {
+        AVRO,
+        JSON,
+        PROTOBUF
+    }
+
+    /**
+     * Schema spec.
+     */
     @Data
     @Builder
     @Introspected
@@ -42,6 +75,9 @@ public class Schema {
         private Compatibility compatibility = Compatibility.GLOBAL;
         private List<Reference> references;
 
+        /**
+         * Schema reference.
+         */
         @Getter
         @Setter
         @Builder
@@ -53,23 +89,5 @@ public class Schema {
             private String subject;
             private Integer version;
         }
-    }
-
-    public enum Compatibility {
-        GLOBAL,
-        BACKWARD,
-        BACKWARD_TRANSITIVE,
-        FORWARD,
-        FORWARD_TRANSITIVE,
-        FULL,
-        FULL_TRANSITIVE,
-        NONE
-    }
-
-    @Introspected
-    public enum SchemaType {
-        AVRO,
-        JSON,
-        PROTOBUF
     }
 }

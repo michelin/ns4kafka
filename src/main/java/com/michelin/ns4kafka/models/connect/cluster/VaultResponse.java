@@ -2,10 +2,13 @@ package com.michelin.ns4kafka.models.connect.cluster;
 
 import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
-import lombok.*;
-
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
  * Represents the Kafka Connect Cluster Vault Response.
@@ -16,18 +19,11 @@ import jakarta.validation.constraints.NotNull;
 @NoArgsConstructor
 @AllArgsConstructor
 public class VaultResponse {
-    /**
-     * The API version.
-     */
     private final String apiVersion = "v1";
-
-    /**
-     * The Vault Response ns4kafka kind.
-     */
     private final String kind = "VaultResponse";
 
     /**
-     * The object metadata
+     * The object metadata.
      */
     @Valid
     @NotNull

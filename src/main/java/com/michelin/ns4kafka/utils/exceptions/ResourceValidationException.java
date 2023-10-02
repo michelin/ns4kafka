@@ -1,23 +1,22 @@
 package com.michelin.ns4kafka.utils.exceptions;
 
+import java.io.Serial;
+import java.util.List;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.util.List;
-
-
+/**
+ * Resource validation exception.
+ */
+@Getter
+@AllArgsConstructor
 public class ResourceValidationException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = 32400191899153204L;
-    @Getter
+
     private final List<String> validationErrors;
 
-    @Getter
     private final String kind;
-    @Getter
-    private final String name;
 
-    public ResourceValidationException(List<String> validationErrors, String kind, String name) {
-        this.validationErrors = validationErrors;
-        this.kind = kind;
-        this.name = name;
-    }
+    private final String name;
 }
