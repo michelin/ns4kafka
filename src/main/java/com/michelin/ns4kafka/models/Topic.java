@@ -1,6 +1,8 @@
 package com.michelin.ns4kafka.models;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
 import io.micronaut.core.annotation.Introspected;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
@@ -9,6 +11,7 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -37,6 +40,8 @@ public class Topic {
     public static class TopicSpec {
         private int replicationFactor;
         private int partitions;
+        @JsonSetter(nulls = Nulls.AS_EMPTY)
+        private List<String> tags;
         private Map<String, String> configs;
     }
 

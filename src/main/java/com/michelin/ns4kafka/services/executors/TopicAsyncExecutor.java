@@ -11,6 +11,7 @@ import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
 import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.TopicPartition;
@@ -31,18 +32,13 @@ import static com.michelin.ns4kafka.utils.tags.TagsUtils.TOPIC_ENTITY_TYPE;
 @Slf4j
 @EachBean(KafkaAsyncExecutorConfig.class)
 @Singleton
+@AllArgsConstructor
 public class TopicAsyncExecutor {
     private final KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
 
-    @Inject
     TopicRepository topicRepository;
 
-    @Inject
     SchemaRegistryClient schemaRegistryClient;
-
-    public TopicAsyncExecutor(KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig) {
-        this.kafkaAsyncExecutorConfig = kafkaAsyncExecutorConfig;
-    }
 
     private Admin getAdminClient(){
         return kafkaAsyncExecutorConfig.getAdminClient();
@@ -125,8 +121,8 @@ public class TopicAsyncExecutor {
         List<TagSpecs> tagsToCreate = ns4kafkaTopics.stream().flatMap(ns4kafkaTopic -> {
             Topic brokerTopic = brokerTopics.get(ns4kafkaTopic.getMetadata().getName());
 
-            List<String> existingTags = brokerTopic != null && brokerTopic.getMetadata().getTags() != null ? brokerTopic.getMetadata().getTags() : Collections.emptyList();
-            List<String> newTags = ns4kafkaTopic.getMetadata().getTags() != null ? ns4kafkaTopic.getMetadata().getTags() : Collections.emptyList();
+            List<String> existingTags = brokerTopic != null && brokerTopic.getSpec().getTags() != null ? brokerTopic.getSpec().getTags() : Collections.emptyList();
+            List<String> newTags = ns4kafkaTopic.getSpec().getTags() != null ? ns4kafkaTopic.getSpec().getTags() : Collections.emptyList();
 
             return newTags.stream().filter(tag -> !existingTags.contains(tag)).map(tag -> TagSpecs.builder()
                     .entityName(kafkaAsyncExecutorConfig.getConfig().getProperty(CLUSTER_ID)+":"+ns4kafkaTopic.getMetadata().getName())
@@ -151,8 +147,8 @@ public class TopicAsyncExecutor {
             Optional<Topic> newTopic = ns4kafkaTopics.stream()
                     .filter(ns4kafkaTopic -> ns4kafkaTopic.getMetadata().getName().equals(brokerTopic.getMetadata().getName()))
                     .findFirst();
-            List<String> newTags = newTopic.isPresent() && newTopic.get().getMetadata().getTags() != null ? newTopic.get().getMetadata().getTags() : Collections.emptyList();
-            List<String> existingTags = brokerTopic.getMetadata().getTags() != null ? brokerTopic.getMetadata().getTags() : Collections.emptyList();
+            List<String> newTags = newTopic.isPresent() && newTopic.get().getSpec().getTags() != null ? newTopic.get().getSpec().getTags() : Collections.emptyList();
+            List<String> existingTags = brokerTopic.getSpec().getTags() != null ? brokerTopic.getSpec().getTags() : Collections.emptyList();
 
             return existingTags.stream().filter(tag -> !newTags.contains(tag)).map(tag -> TagTopicInfo.builder()
                     .entityName(kafkaAsyncExecutorConfig.getConfig().getProperty(CLUSTER_ID)+":"+brokerTopic.getMetadata().getName())
@@ -242,7 +238,7 @@ public class TopicAsyncExecutor {
         if(kafkaAsyncExecutorConfig.getProvider().equals(KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)) {
             topics.entrySet().stream()
                     .forEach(entry ->
-                            entry.getValue().getMetadata().setTags(schemaRegistryClient.getTopicWithTags(kafkaAsyncExecutorConfig.getName(),
+                            entry.getValue().getSpec().setTags(schemaRegistryClient.getTopicWithTags(kafkaAsyncExecutorConfig.getName(),
                                             kafkaAsyncExecutorConfig.getConfig().getProperty(CLUSTER_ID) + ":" + entry.getValue().getMetadata().getName())
                                     .block().stream().map(TagTopicInfo::typeName).toList()));
         }

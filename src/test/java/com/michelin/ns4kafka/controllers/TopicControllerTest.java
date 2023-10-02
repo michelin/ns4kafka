@@ -249,11 +249,11 @@ class TopicControllerTest {
         Topic topic = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test.topic")
-                        .tags(List.of("TAG_TEST"))
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
+                        .tags(List.of("TAG_TEST"))
                         .configs(Map.of("cleanup.policy","delete",
                                         "min.insync.replicas", "2",
                                         "retention.ms", "60000"))
@@ -451,13 +451,13 @@ class TopicControllerTest {
         Topic existing = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test.topic")
-                        .tags(Collections.emptyList())
                         .namespace("test")
                         .cluster("local")
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
+                        .tags(Collections.emptyList())
                         .configs(Map.of("cleanup.policy","compact",
                                 "min.insync.replicas", "2",
                                 "retention.ms", "60000"))
@@ -467,11 +467,11 @@ class TopicControllerTest {
         Topic topic = Topic.builder()
                 .metadata(ObjectMeta.builder()
                         .name("test.topic")
-                        .tags(Collections.emptyList())
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
+                        .tags(Collections.emptyList())
                         .configs(Map.of("cleanup.policy","compact",
                                 "min.insync.replicas", "2",
                                 "retention.ms", "60000"))

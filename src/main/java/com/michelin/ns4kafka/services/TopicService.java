@@ -304,7 +304,7 @@ public class TopicService {
                 .findFirst();
 
         if(topicCluster.isPresent() && !topicCluster.get().getProvider().equals(KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)) {
-            validationErrors.add("Tags can only be used on confluent clusters.");
+            validationErrors.add(String.format("Invalid value (%s) for tags: Tags are not currently supported.", String.join(",", topic.getSpec().getTags())));
             return validationErrors;
         }
 
@@ -313,13 +313,13 @@ public class TopicService {
 
         if(tagNames == null || tagNames.isEmpty()) {
             validationErrors.add(String.format("Invalid value (%s) for tags: No tags defined on the kafka cluster.",
-                    String.join(" ", topic.getMetadata().getTags())));
+                    String.join(",", topic.getSpec().getTags())));
             return validationErrors;
         }
 
-        if(!tagNames.containsAll(topic.getMetadata().getTags())) {
+        if(!tagNames.containsAll(topic.getSpec().getTags())) {
             validationErrors.add(String.format("Invalid value (%s) for tags: Available tags are (%s).",
-                    String.join(" ", topic.getMetadata().getTags()), String.join(" ", tagNames)));
+                    String.join(",", topic.getSpec().getTags()), String.join(",", tagNames)));
         }
 
         return validationErrors;

@@ -939,7 +939,7 @@ class TopicServiceTest {
     }
 
     @Test
-    void validateTagsShouldWork() {
+    void shouldTagsBeValid() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -948,7 +948,9 @@ class TopicServiceTest {
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(ObjectMeta.builder().name("ns-topic1").tags(List.of("TAG_TEST")).build())
+                .metadata(ObjectMeta.builder().name("ns-topic1").build())
+                .spec(Topic.TopicSpec.builder()
+                    .tags(List.of("TAG_TEST")).build())
                 .build();
 
         List<TagInfo> tagInfo = List.of(TagInfo.builder().name("TAG_TEST").build());
@@ -961,7 +963,7 @@ class TopicServiceTest {
     }
 
     @Test
-    void validateTagsShouldReturnErrorBecauseOfNonConfluentBroker() {
+    void shouldTagsBeInvalidWhenNotConfluentCloud() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -970,7 +972,9 @@ class TopicServiceTest {
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(ObjectMeta.builder().name("ns-topic1").tags(List.of("TAG_TEST")).build())
+                .metadata(ObjectMeta.builder().name("ns-topic1").build())
+                .spec(Topic.TopicSpec.builder()
+                        .tags(List.of("TAG_TEST")).build())
                 .build();
 
         when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.SELF_MANAGED)));
@@ -981,7 +985,7 @@ class TopicServiceTest {
     }
 
     @Test
-    void validateTagsShouldReturnErrorBecauseOfNoTagsDefinedInBroker() {
+    void shouldTagsBeInvalidWhenNoTagsAllowed() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -990,7 +994,9 @@ class TopicServiceTest {
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(ObjectMeta.builder().name("ns-topic1").tags(List.of("TAG_TEST")).build())
+                .metadata(ObjectMeta.builder().name("ns-topic1").build())
+                .spec(Topic.TopicSpec.builder()
+                        .tags(List.of("TAG_TEST")).build())
                 .build();
 
         when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)));
@@ -1002,7 +1008,7 @@ class TopicServiceTest {
     }
 
     @Test
-    void validateTagsShouldReturnErrorBecauseOfBadTagsDefined() {
+    void shouldTagsBeInvalidWhenNotAllowed() {
         Namespace ns = Namespace.builder()
                 .metadata(ObjectMeta.builder()
                         .name("namespace")
@@ -1011,7 +1017,9 @@ class TopicServiceTest {
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(ObjectMeta.builder().name("ns-topic1").tags(List.of("BAD_TAG")).build())
+                .metadata(ObjectMeta.builder().name("ns-topic1").build())
+                .spec(Topic.TopicSpec.builder()
+                        .tags(List.of("TAG_TEST")).build())
                 .build();
 
         List<TagInfo> tagInfo = List.of(TagInfo.builder().name("TAG_TEST").build());
