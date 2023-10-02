@@ -191,12 +191,13 @@ public class AkhqClaimProviderController {
         result.addAll(result.stream()
                 .filter(g -> g.role.equals(config.getRoles().get(AccessControlEntry.ResourceType.TOPIC)))
                 .map(g -> {
+                            // Takes all the PREFIXED patterns as-is
                             List<String> patterns = new ArrayList<>(
-                                    g.getPatterns().stream().filter(p -> p.contains(".*")).toList());
+                                    g.getPatterns().stream().filter(p -> p.endsWith("\\E.*$")).toList());
 
-                            // For literal Topic ACL, we need to add the -key or -value prefix to the schema pattern
+                            // Add -key or -value prefix to the schema pattern for LITERAL patterns
                             patterns.addAll(g.getPatterns().stream()
-                                    .filter(p -> !p.contains(".*"))
+                                    .filter(p -> p.endsWith("\\E$"))
                                     .map(p -> p.replace("\\E$", "-\\E(key|value)$"))
                                     .toList());
 
