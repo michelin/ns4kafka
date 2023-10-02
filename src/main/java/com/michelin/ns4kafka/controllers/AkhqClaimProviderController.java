@@ -189,13 +189,24 @@ public class AkhqClaimProviderController {
 
         // Add the same pattern and cluster filtering for SCHEMA as the TOPIC ones
         result.addAll(result.stream()
-            .filter(g -> g.role.equals(config.getRoles().get(AccessControlEntry.ResourceType.TOPIC)))
-            .map(g -> AkhqClaimResponseV3.Group.builder()
-                .role(config.getRoles().get(AccessControlEntry.ResourceType.SCHEMA))
-                .patterns(g.getPatterns())
-                .clusters(g.getClusters())
-                .build()
-            ).toList());
+                .filter(g -> g.role.equals(config.getRoles().get(AccessControlEntry.ResourceType.TOPIC)))
+                .map(g -> {
+                            List<String> patterns = new ArrayList<>(
+                                    g.getPatterns().stream().filter(p -> p.contains(".*")).toList());
+
+                            // For literal Topic ACL, we need to add the -key or -value prefix to the schema pattern
+                            patterns.addAll(g.getPatterns().stream()
+                                    .filter(p -> !p.contains(".*"))
+                                    .map(p -> p.replace("\\E$", "-\\E(key|value)$"))
+                                    .toList());
+
+                            return AkhqClaimResponseV3.Group.builder()
+                                    .role(config.getRoles().get(AccessControlEntry.ResourceType.SCHEMA))
+                                    .patterns(patterns)
+                                    .clusters(g.getClusters())
+                                    .build();
+                        }
+                ).toList());
 
         return AkhqClaimResponseV3.builder()
             .groups(result.isEmpty() ? null : Map.of("group", result))
