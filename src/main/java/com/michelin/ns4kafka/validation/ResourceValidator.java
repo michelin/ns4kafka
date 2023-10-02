@@ -286,10 +286,7 @@ public abstract class ResourceValidator {
             if (obj == null) {
                 return false;
             }
-            if (!(obj instanceof NonEmptyString)) {
-                return false;
-            }
-            return true;
+            return obj instanceof NonEmptyString;
         }
 
         @Override

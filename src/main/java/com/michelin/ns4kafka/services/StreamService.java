@@ -12,7 +12,6 @@ import jakarta.inject.Singleton;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Service to manage Kafka Streams.
@@ -71,7 +70,7 @@ public class StreamService {
                 == AccessControlEntry.ResourcePatternType.PREFIXED)
             .filter(accessControlEntry -> resource.startsWith(accessControlEntry.getSpec().getResource()))
             .map(accessControlEntry -> accessControlEntry.getSpec().getResourceType())
-            .collect(Collectors.toList()))
+            .toList())
             .containsAll(List.of(AccessControlEntry.ResourceType.TOPIC, AccessControlEntry.ResourceType.GROUP));
     }
 

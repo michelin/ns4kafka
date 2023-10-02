@@ -98,6 +98,7 @@ public class ConsumerGroupService {
                 }
             }
             default -> {
+                // Nothing to do
             }
         }
         return validationErrors;
