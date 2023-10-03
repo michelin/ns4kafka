@@ -142,7 +142,7 @@ class TopicAsyncExecutorTest {
         topicAsyncExecutor.deleteTags(ns4kafkaTopics, brokerTopics);
 
         verify(schemaRegistryClient, times(1))
-                .deleteTag(eq(LOCAL_CLUSTER), eq(CLUSTER_ID_TEST + ":" + TOPIC_NAME), eq(TAG1));
+                .deleteTag(LOCAL_CLUSTER, CLUSTER_ID_TEST + ":" + TOPIC_NAME, TAG1);
     }
 
     @Test

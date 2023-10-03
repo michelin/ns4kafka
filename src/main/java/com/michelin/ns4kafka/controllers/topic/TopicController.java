@@ -109,7 +109,7 @@ public class TopicController extends NamespacedResourceController {
             validationErrors.addAll(topicService.validateTopicUpdate(ns, existingTopic.get(), topic));
         }
 
-        List<String> existingTags = existingTopic.isPresent() && existingTopic.get().getSpec().getTags() != null
+        List<String> existingTags = existingTopic.isPresent()
                 ? existingTopic.get().getSpec().getTags()
                 : Collections.emptyList();
         if (topic.getSpec().getTags().stream().anyMatch(newTag -> !existingTags.contains(newTag))) {
