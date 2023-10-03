@@ -42,6 +42,7 @@ import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -206,6 +207,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
             .spec(Topic.TopicSpec.builder()
                 .partitions(3)
                 .replicationFactor(1)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "1",
                     "retention.ms", "60000"))
@@ -323,6 +325,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
             .spec(Topic.TopicSpec.builder()
                 .partitions(3)
                 .replicationFactor(1)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "1",
                     "retention.ms", "60000"))
@@ -372,6 +375,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
             .spec(Topic.TopicSpec.builder()
                 .partitions(3)
                 .replicationFactor(1)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "1",
                     "retention.ms", "60000"))
@@ -426,6 +430,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
             .spec(Topic.TopicSpec.builder()
                 .partitions(3)
                 .replicationFactor(1)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "1",
                     "retention.ms", "60000"))

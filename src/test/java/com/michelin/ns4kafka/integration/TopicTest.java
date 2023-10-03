@@ -40,6 +40,7 @@ import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -218,6 +219,7 @@ class TopicTest extends AbstractIntegrationTest {
             .spec(TopicSpec.builder()
                 .partitions(3)
                 .replicationFactor(1)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "1",
                     "retention.ms", "60000"))
@@ -260,6 +262,7 @@ class TopicTest extends AbstractIntegrationTest {
             .spec(TopicSpec.builder()
                 .partitions(3)
                 .replicationFactor(1)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "1",
                     "retention.ms", "60000"))
@@ -284,6 +287,7 @@ class TopicTest extends AbstractIntegrationTest {
             .spec(TopicSpec.builder()
                 .partitions(3)
                 .replicationFactor(1)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "1",
                     "retention.ms", "70000"))//This line was changed
@@ -329,6 +333,7 @@ class TopicTest extends AbstractIntegrationTest {
             .spec(TopicSpec.builder()
                 .partitions(3)
                 .replicationFactor(1)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "1",
                     "retention.ms", "60000"))
@@ -370,6 +375,7 @@ class TopicTest extends AbstractIntegrationTest {
             .spec(TopicSpec.builder()
                 .partitions(3)
                 .replicationFactor(1)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "1",
                     "retention.ms", "60000"))
@@ -387,6 +393,7 @@ class TopicTest extends AbstractIntegrationTest {
             .spec(TopicSpec.builder()
                 .partitions(3)
                 .replicationFactor(1)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "1",
                     "retention.ms", "90000"))
@@ -415,6 +422,7 @@ class TopicTest extends AbstractIntegrationTest {
             .spec(TopicSpec.builder()
                 .partitions(3)
                 .replicationFactor(1)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "1",
                     "retention.ms", "60000"))
@@ -477,6 +485,7 @@ class TopicTest extends AbstractIntegrationTest {
             .spec(TopicSpec.builder()
                 .partitions(3)
                 .replicationFactor(1)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "compact",
                     "min.insync.replicas", "1",
                     "retention.ms", "60000"))
