@@ -1,8 +1,8 @@
 package com.michelin.ns4kafka.services.executors;
 
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagSpecs;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
@@ -11,13 +11,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.testcontainers.shaded.org.hamcrest.Matchers;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
 
-import static com.michelin.ns4kafka.utils.config.ClusterConfig.CLUSTER_ID;
-import static com.michelin.ns4kafka.utils.tags.TagsUtils.TOPIC_ENTITY_TYPE;
+import static com.michelin.ns4kafka.services.executors.TopicAsyncExecutor.CLUSTER_ID;
+import static com.michelin.ns4kafka.services.executors.TopicAsyncExecutor.TOPIC_ENTITY_TYPE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -36,7 +35,7 @@ class TopicAsyncExecutorTest {
     SchemaRegistryClient schemaRegistryClient;
 
     @Mock
-    KafkaAsyncExecutorConfig kafkaAsyncExecutorConfig;
+    ManagedClusterProperties managedClusterProperties;
 
     @InjectMocks
     TopicAsyncExecutor topicAsyncExecutor;
@@ -45,11 +44,11 @@ class TopicAsyncExecutorTest {
     void createTagsShouldAddTags() {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
-        kafkaAsyncExecutorConfig.setConfig(properties);
+        managedClusterProperties.setConfig(properties);
 
         when(schemaRegistryClient.addTags(anyString(), anyList())).thenReturn(Mono.just(new ArrayList<>()));
-        when(kafkaAsyncExecutorConfig.getConfig()).thenReturn(properties);
-        when(kafkaAsyncExecutorConfig.getName()).thenReturn(LOCAL_CLUSTER);
+        when(managedClusterProperties.getConfig()).thenReturn(properties);
+        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
         List<Topic> ns4kafkaTopics = new ArrayList<>();
         Topic ns4kafkaTopic = Topic.builder()
@@ -79,7 +78,7 @@ class TopicAsyncExecutorTest {
     void createTagsShouldNotAddTags() {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID,CLUSTER_ID_TEST);
-        kafkaAsyncExecutorConfig.setConfig(properties);
+        managedClusterProperties.setConfig(properties);
 
         List<Topic> ns4kafkaTopics = new ArrayList<>();
         Topic ns4kafkaTopic = Topic.builder()
@@ -106,11 +105,11 @@ class TopicAsyncExecutorTest {
     void deleteTagsShouldDeleteTags() {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID,CLUSTER_ID_TEST);
-        kafkaAsyncExecutorConfig.setConfig(properties);
+        managedClusterProperties.setConfig(properties);
 
         when(schemaRegistryClient.deleteTag(anyString(),anyString(),anyString())).thenReturn(Mono.just(new HttpResponseMock()));
-        when(kafkaAsyncExecutorConfig.getConfig()).thenReturn(properties);
-        when(kafkaAsyncExecutorConfig.getName()).thenReturn(LOCAL_CLUSTER);
+        when(managedClusterProperties.getConfig()).thenReturn(properties);
+        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
         List<Topic> ns4kafkaTopics = new ArrayList<>();
         Topic ns4kafkaTopic = Topic.builder()
@@ -137,7 +136,7 @@ class TopicAsyncExecutorTest {
     void deleteTagsShouldNotDeleteTags() {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID,CLUSTER_ID_TEST);
-        kafkaAsyncExecutorConfig.setConfig(properties);
+        managedClusterProperties.setConfig(properties);
 
         List<Topic> ns4kafkaTopics = new ArrayList<>();
         Topic ns4kafkaTopic = Topic.builder()
@@ -164,14 +163,14 @@ class TopicAsyncExecutorTest {
     void completeWithTagsShouldComplete() {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID,CLUSTER_ID_TEST);
-        kafkaAsyncExecutorConfig.setConfig(properties);
+        managedClusterProperties.setConfig(properties);
 
         TagTopicInfo tagTopicInfo = TagTopicInfo.builder().typeName(TAG1).build();
 
         when(schemaRegistryClient.getTopicWithTags(anyString(),anyString())).thenReturn(Mono.just(List.of(tagTopicInfo)));
-        when(kafkaAsyncExecutorConfig.getConfig()).thenReturn(properties);
-        when(kafkaAsyncExecutorConfig.getName()).thenReturn(LOCAL_CLUSTER);
-        when(kafkaAsyncExecutorConfig.getProvider()).thenReturn(KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD);
+        when(managedClusterProperties.getConfig()).thenReturn(properties);
+        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
+        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
 
         Map<String, Topic> brokerTopics = new HashMap<>();
         Topic brokerTopic = Topic.builder()
@@ -180,7 +179,7 @@ class TopicAsyncExecutorTest {
                 .spec(Topic.TopicSpec.builder().build()).build();
         brokerTopics.put(TOPIC_NAME, brokerTopic);
 
-        topicAsyncExecutor.completeWithTags(brokerTopics);
+        topicAsyncExecutor.enrichWithTags(brokerTopics);
 
         assertEquals(TAG1,brokerTopics.get(TOPIC_NAME).getSpec().getTags().get(0));
     }
@@ -189,9 +188,9 @@ class TopicAsyncExecutorTest {
     void completeWithTagsShouldNotComplete() {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID,CLUSTER_ID_TEST);
-        kafkaAsyncExecutorConfig.setConfig(properties);
+        managedClusterProperties.setConfig(properties);
 
-        when(kafkaAsyncExecutorConfig.getProvider()).thenReturn(KafkaAsyncExecutorConfig.KafkaProvider.SELF_MANAGED);
+        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
 
         Map<String, Topic> brokerTopics = new HashMap<>();
         Topic brokerTopic = Topic.builder()
@@ -200,7 +199,7 @@ class TopicAsyncExecutorTest {
                 .spec(Topic.TopicSpec.builder().build()).build();
         brokerTopics.put(TOPIC_NAME, brokerTopic);
 
-        topicAsyncExecutor.completeWithTags(brokerTopics);
+        topicAsyncExecutor.enrichWithTags(brokerTopics);
 
         assertNull(brokerTopics.get(TOPIC_NAME).getSpec().getTags());
     }

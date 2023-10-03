@@ -27,4 +27,14 @@ public class HttpResponseMock implements HttpResponse<Void> {
     public Optional<Void> getBody() {
         return Optional.empty();
     }
+
+    @Override
+    public String reason() {
+        return null;
+    }
+
+    @Override
+    public int code() {
+        return 0;
+    }
 }

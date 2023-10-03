@@ -4,4 +4,10 @@ import lombok.Builder;
 
 @Builder
 public record TagTopicInfo(String entityName, String entityType, String typeName, String entityStatus) {
+
+    @Override
+    public String toString() {
+        return entityName + "/" + typeName;
+    }
+
 }

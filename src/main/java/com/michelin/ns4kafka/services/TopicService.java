@@ -344,8 +344,7 @@ public class TopicService {
                 .map(tags -> tags.stream().map(TagInfo::name).collect(Collectors.toSet())).block();
 
         if(tagNames == null || tagNames.isEmpty()) {
-            validationErrors.add(String.format("Invalid value (%s) for tags: No tags defined on the kafka cluster.",
-                    String.join(",", topic.getSpec().getTags())));
+            validationErrors.add(String.format("Invalid value (%s) for tags: No tags allowed.", String.join(",", topic.getSpec().getTags())));
             return validationErrors;
         }
 
