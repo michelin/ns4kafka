@@ -493,8 +493,8 @@ class AkhqClaimProviderControllerV3Test {
         );
         Assertions.assertEquals("registry-read", groups.get(2).getRole());
         Assertions.assertEquals(
-            List.of("^\\Qproject1.\\E.*$", "^\\Qproject2.topic2\\E$", "^\\Qproject2.topic2a\\E$",
-                "^\\Qproject2.topic3\\E$", "^\\Qproject3.\\E.*$"),
+            List.of("^\\Qproject1.\\E.*$", "^\\Qproject3.\\E.*$", "^\\Qproject2.topic2-\\E(key|value)$",
+                    "^\\Qproject2.topic2a-\\E(key|value)$", "^\\Qproject2.topic3-\\E(key|value)$"),
             groups.get(2).getPatterns()
         );
     }
