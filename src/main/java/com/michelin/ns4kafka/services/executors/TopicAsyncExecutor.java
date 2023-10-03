@@ -17,12 +17,7 @@ import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.ConfigResource;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -56,8 +51,10 @@ import static com.michelin.ns4kafka.utils.tags.TagsUtils.TOPIC_ENTITY_TYPE;
 public class TopicAsyncExecutor {
     private final ManagedClusterProperties managedClusterProperties;
 
+    @Inject
     TopicRepository topicRepository;
 
+    @Inject
     SchemaRegistryClient schemaRegistryClient;
 
     public TopicAsyncExecutor(ManagedClusterProperties managedClusterProperties) {
@@ -156,14 +153,14 @@ public class TopicAsyncExecutor {
             List<String> newTags = ns4kafkaTopic.getSpec().getTags() != null ? ns4kafkaTopic.getSpec().getTags() : Collections.emptyList();
 
             return newTags.stream().filter(tag -> !existingTags.contains(tag)).map(tag -> TagSpecs.builder()
-                    .entityName(kafkaAsyncExecutorConfig.getConfig().getProperty(CLUSTER_ID)+":"+ns4kafkaTopic.getMetadata().getName())
+                    .entityName(managedClusterProperties.getConfig().getProperty(CLUSTER_ID)+":"+ns4kafkaTopic.getMetadata().getName())
                     .typeName(tag)
                     .entityType(TOPIC_ENTITY_TYPE)
                     .build());
         }).toList();
 
         if(!tagsToCreate.isEmpty()) {
-            schemaRegistryClient.addTags(kafkaAsyncExecutorConfig.getName(), tagsToCreate).block();
+            schemaRegistryClient.addTags(managedClusterProperties.getName(), tagsToCreate).block();
         }
     }
 
@@ -182,13 +179,13 @@ public class TopicAsyncExecutor {
             List<String> existingTags = brokerTopic.getSpec().getTags() != null ? brokerTopic.getSpec().getTags() : Collections.emptyList();
 
             return existingTags.stream().filter(tag -> !newTags.contains(tag)).map(tag -> TagTopicInfo.builder()
-                    .entityName(kafkaAsyncExecutorConfig.getConfig().getProperty(CLUSTER_ID)+":"+brokerTopic.getMetadata().getName())
+                    .entityName(managedClusterProperties.getConfig().getProperty(CLUSTER_ID)+":"+brokerTopic.getMetadata().getName())
                     .typeName(tag)
                     .entityType(TOPIC_ENTITY_TYPE)
                     .build());
         }).toList();
 
-        tagsToDelete.forEach(tag -> schemaRegistryClient.deleteTag(kafkaAsyncExecutorConfig.getName(), tag.entityName(), tag.typeName()).block());
+        tagsToDelete.forEach(tag -> schemaRegistryClient.deleteTag(managedClusterProperties.getName(), tag.entityName(), tag.typeName()).block());
     }
 
     /**
@@ -228,11 +225,11 @@ public class TopicAsyncExecutor {
      * @param topics Topics to complete
      */
     public void completeWithTags(Map<String, Topic> topics) {
-        if(kafkaAsyncExecutorConfig.getProvider().equals(KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)) {
+        if(managedClusterProperties.getProvider().equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)) {
             topics.entrySet().stream()
                     .forEach(entry ->
-                            entry.getValue().getSpec().setTags(schemaRegistryClient.getTopicWithTags(kafkaAsyncExecutorConfig.getName(),
-                                            kafkaAsyncExecutorConfig.getConfig().getProperty(CLUSTER_ID) + ":" + entry.getValue().getMetadata().getName())
+                            entry.getValue().getSpec().setTags(schemaRegistryClient.getTopicWithTags(managedClusterProperties.getName(),
+                                            managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":" + entry.getValue().getMetadata().getName())
                                     .block().stream().map(TagTopicInfo::typeName).toList()));
         }
     }

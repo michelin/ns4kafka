@@ -13,7 +13,6 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.repositories.TopicRepository;
-import com.michelin.ns4kafka.config.KafkaAsyncExecutorConfig;
 import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
@@ -902,7 +901,7 @@ class TopicServiceTest {
 
         List<TagInfo> tagInfo = List.of(TagInfo.builder().name("TAG_TEST").build());
 
-        when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)));
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
         when(schemaRegistryClient.getTags("local")).thenReturn(Mono.just(tagInfo));
 
         List<String> validationErrors = topicService.validateTags(ns, topic);
@@ -924,7 +923,7 @@ class TopicServiceTest {
                         .tags(List.of("TAG_TEST")).build())
                 .build();
 
-        when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.SELF_MANAGED)));
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.SELF_MANAGED)));
 
         List<String> validationErrors = topicService.validateTags(ns, topic);
         assertEquals(1, validationErrors.size());
@@ -946,7 +945,7 @@ class TopicServiceTest {
                         .tags(List.of("TAG_TEST")).build())
                 .build();
 
-        when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)));
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
         when(schemaRegistryClient.getTags("local")).thenReturn(Mono.just(Collections.emptyList()));
 
         List<String> validationErrors = topicService.validateTags(ns, topic);
@@ -971,7 +970,7 @@ class TopicServiceTest {
 
         List<TagInfo> tagInfo = List.of(TagInfo.builder().name("TAG_TEST").build());
 
-        when(kafkaAsyncExecutorConfigs.stream()).thenReturn(Stream.of(new KafkaAsyncExecutorConfig("local", KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)));
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
         when(schemaRegistryClient.getTags("local")).thenReturn(Mono.just(tagInfo));
 
         List<String> validationErrors = topicService.validateTags(ns, topic);

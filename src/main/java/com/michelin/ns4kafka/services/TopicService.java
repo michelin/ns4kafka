@@ -16,11 +16,8 @@ import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -333,12 +330,12 @@ public class TopicService {
     public List<String> validateTags(Namespace namespace, Topic topic) {
         List<String> validationErrors = new ArrayList<>();
 
-        Optional<KafkaAsyncExecutorConfig> topicCluster = kafkaAsyncExecutorConfig
+        Optional<ManagedClusterProperties> topicCluster = managedClusterProperties
                 .stream()
                 .filter(cluster -> namespace.getMetadata().getCluster().equals(cluster.getName()))
                 .findFirst();
 
-        if(topicCluster.isPresent() && !topicCluster.get().getProvider().equals(KafkaAsyncExecutorConfig.KafkaProvider.CONFLUENT_CLOUD)) {
+        if(topicCluster.isPresent() && !topicCluster.get().getProvider().equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)) {
             validationErrors.add(String.format("Invalid value (%s) for tags: Tags are not currently supported.", String.join(",", topic.getSpec().getTags())));
             return validationErrors;
         }

@@ -1,11 +1,7 @@
 package com.michelin.ns4kafka.services.clients.schema;
 
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
-import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityCheckResponse;
-import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityRequest;
-import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
-import com.michelin.ns4kafka.services.clients.schema.entities.SchemaRequest;
-import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
+import com.michelin.ns4kafka.services.clients.schema.entities.*;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.core.type.Argument;
 import io.micronaut.core.util.StringUtils;
@@ -179,7 +175,7 @@ public class SchemaRegistryClient {
      * @return A list of tags
      */
     public Mono<List<TagInfo>> getTags(String kafkaCluster) {
-        KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/catalog/v1/types/tagdefs")))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, Argument.listOf(TagInfo.class)));
@@ -192,7 +188,7 @@ public class SchemaRegistryClient {
      * @return A list of tags
      */
     public Mono<List<TagTopicInfo>> getTopicWithTags(String kafkaCluster, String entityName) {
-        KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/catalog/v1/entity/type/kafka_topic/name/" + entityName + "/tags")))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, Argument.listOf(TagTopicInfo.class)));
@@ -205,7 +201,7 @@ public class SchemaRegistryClient {
      * @return Information about added tags
      */
     public Mono<List<TagTopicInfo>> addTags(String kafkaCluster, List<TagSpecs> tagSpecs) {
-        KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.POST(URI.create(StringUtils.prependUri(config.getUrl(), "/catalog/v1/entity/tags")), tagSpecs)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, Argument.listOf(TagTopicInfo.class)));
@@ -219,7 +215,7 @@ public class SchemaRegistryClient {
      * @return The resume response
      */
     public Mono<HttpResponse<Void>> deleteTag(String kafkaCluster, String  entityName, String tagName) {
-        KafkaAsyncExecutorConfig.RegistryConfig config = getSchemaRegistry(kafkaCluster);
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.DELETE(URI.create(StringUtils.prependUri(config.getUrl(), "/catalog/v1/entity/type/kafka_topic/name/" + entityName + "/tags/" + tagName)))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.exchange(request, Void.class));
