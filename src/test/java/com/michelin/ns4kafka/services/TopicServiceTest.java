@@ -56,7 +56,7 @@ class TopicServiceTest {
     SchemaRegistryClient schemaRegistryClient;
 
     /**
-     * Validate find topic by name
+     * Validate find topic by name.
      */
     @Test
     void findByName() {
@@ -901,7 +901,8 @@ class TopicServiceTest {
 
         List<TagInfo> tagInfo = List.of(TagInfo.builder().name("TAG_TEST").build());
 
-        when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(
+                new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
         when(schemaRegistryClient.getTags("local")).thenReturn(Mono.just(tagInfo));
 
         List<String> validationErrors = topicService.validateTags(ns, topic);
@@ -923,7 +924,8 @@ class TopicServiceTest {
                         .tags(List.of("TAG_TEST")).build())
                 .build();
 
-        when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.SELF_MANAGED)));
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(
+                new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.SELF_MANAGED)));
 
         List<String> validationErrors = topicService.validateTags(ns, topic);
         assertEquals(1, validationErrors.size());
@@ -945,12 +947,15 @@ class TopicServiceTest {
                         .tags(List.of("TAG_TEST")).build())
                 .build();
 
-        when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(
+                new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
         when(schemaRegistryClient.getTags("local")).thenReturn(Mono.just(Collections.emptyList()));
 
         List<String> validationErrors = topicService.validateTags(ns, topic);
         assertEquals(1, validationErrors.size());
-        assertEquals("Invalid value (TAG_TEST) for tags: No tags defined on the kafka cluster.", validationErrors.get(0));
+        assertEquals(
+                "Invalid value (TAG_TEST) for tags: No tags defined on the kafka cluster.",
+                validationErrors.get(0));
     }
 
     @Test
@@ -970,7 +975,10 @@ class TopicServiceTest {
 
         List<TagInfo> tagInfo = List.of(TagInfo.builder().name("TAG_TEST").build());
 
-        when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
+        when(managedClusterProperties.stream())
+                .thenReturn(Stream.of(
+                        new ManagedClusterProperties("local",
+                                ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
         when(schemaRegistryClient.getTags("local")).thenReturn(Mono.just(tagInfo));
 
         List<String> validationErrors = topicService.validateTags(ns, topic);

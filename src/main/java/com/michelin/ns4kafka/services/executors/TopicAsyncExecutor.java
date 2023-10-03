@@ -11,18 +11,25 @@ import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
 import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.config.ConfigResource;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.AlterConfigsResult;
@@ -33,6 +40,8 @@ import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.RecordsToDelete;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.admin.TopicListing;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.config.ConfigResource;
 
 /**
  * Topic executor.
@@ -139,7 +148,8 @@ public class TopicAsyncExecutor {
     }
 
     /**
-     * Create tags
+     * Create tags.
+     *
      * @param ns4kafkaTopics Topics from ns4kafka
      * @param brokerTopics Topics from broker
      */
@@ -147,11 +157,18 @@ public class TopicAsyncExecutor {
         List<TagSpecs> tagsToCreate = ns4kafkaTopics.stream().flatMap(ns4kafkaTopic -> {
             Topic brokerTopic = brokerTopics.get(ns4kafkaTopic.getMetadata().getName());
 
-            List<String> existingTags = brokerTopic != null && brokerTopic.getSpec().getTags() != null ? brokerTopic.getSpec().getTags() : Collections.emptyList();
-            List<String> newTags = ns4kafkaTopic.getSpec().getTags() != null ? ns4kafkaTopic.getSpec().getTags() : Collections.emptyList();
+            List<String> existingTags = brokerTopic != null && brokerTopic.getSpec().getTags() != null
+                    ? brokerTopic.getSpec().getTags()
+                    : Collections.emptyList();
+            List<String> newTags = ns4kafkaTopic.getSpec().getTags() != null
+                    ? ns4kafkaTopic.getSpec().getTags()
+                    : Collections.emptyList();
 
             return newTags.stream().filter(tag -> !existingTags.contains(tag)).map(tag -> TagSpecs.builder()
-                    .entityName(managedClusterProperties.getConfig().getProperty(CLUSTER_ID)+":"+ns4kafkaTopic.getMetadata().getName())
+                    .entityName(
+                            managedClusterProperties.getConfig().getProperty(CLUSTER_ID)
+                                    + ":"
+                                    + ns4kafkaTopic.getMetadata().getName())
                     .typeName(tag)
                     .entityType(TOPIC_ENTITY_TYPE)
                     .build());
@@ -169,7 +186,8 @@ public class TopicAsyncExecutor {
     }
 
     /**
-     * Delete tags
+     * Delete tags.
+     *
      * @param ns4kafkaTopics Topics from ns4kafka
      * @param brokerTopics Topics from broker
      */
@@ -180,26 +198,38 @@ public class TopicAsyncExecutor {
                 .flatMap(brokerTopic -> {
                     Optional<Topic> newTopic = ns4kafkaTopics
                             .stream()
-                            .filter(ns4kafkaTopic -> ns4kafkaTopic.getMetadata().getName().equals(brokerTopic.getMetadata().getName()))
+                            .filter(ns4kafkaTopic -> ns4kafkaTopic
+                                    .getMetadata()
+                                    .getName()
+                                    .equals(brokerTopic.getMetadata().getName()))
                             .findFirst();
 
                     Set<String> existingTags = new HashSet<>(brokerTopic.getSpec().getTags());
-                    Set<String> newTags = newTopic.isPresent() ? new HashSet<>(newTopic.get().getSpec().getTags()) : Collections.emptySet();
+                    Set<String> newTags = newTopic.isPresent()
+                            ? new HashSet<>(newTopic.get().getSpec().getTags())
+                            : Collections.emptySet();
                     existingTags.removeAll(newTags);
                     return existingTags
                             .stream()
                             .map(tag -> TagTopicInfo.builder()
-                                    .entityName(managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":" + brokerTopic.getMetadata().getName())
+                                    .entityName(managedClusterProperties
+                                            .getConfig()
+                                            .getProperty(CLUSTER_ID) + ":" + brokerTopic.getMetadata().getName())
                                     .typeName(tag)
                                     .entityType(TOPIC_ENTITY_TYPE)
                                     .build());
                 }).toList();
 
-        tagsToDelete.forEach(tag -> schemaRegistryClient.deleteTag(managedClusterProperties.getName(), tag.entityName(), tag.typeName()).block());
+        tagsToDelete.forEach(tag ->
+                schemaRegistryClient.deleteTag(
+                        managedClusterProperties.getName(),
+                        tag.entityName(),
+                        tag.typeName()).block());
     }
 
     /**
-     * Delete a topic
+     * Delete a topic.
+     *
      * @param topic The topic to delete
      */
     public void deleteTopic(Topic topic) throws InterruptedException, ExecutionException, TimeoutException {
@@ -231,14 +261,18 @@ public class TopicAsyncExecutor {
     }
 
     /**
-     * Enrich topics with confluent tags
+     * Enrich topics with confluent tags.
+     *
      * @param topics Topics to complete
      */
     public void enrichWithTags(Map<String, Topic> topics) {
-        if(managedClusterProperties.getProvider().equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)) {
-            topics.forEach((key,value) ->
+        if (managedClusterProperties.getProvider().equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)) {
+            topics.forEach((key, value) ->
                     value.getSpec().setTags(schemaRegistryClient.getTopicWithTags(managedClusterProperties.getName(),
-                                    managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":" + value.getMetadata().getName())
+                                    managedClusterProperties
+                                            .getConfig()
+                                            .getProperty(CLUSTER_ID)
+                                            + ":" + value.getMetadata().getName())
                             .block().stream().map(TagTopicInfo::typeName).toList()));
         }
     }

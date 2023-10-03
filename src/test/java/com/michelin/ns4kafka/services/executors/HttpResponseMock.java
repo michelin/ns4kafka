@@ -4,9 +4,11 @@ import io.micronaut.core.convert.value.MutableConvertibleValues;
 import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-
 import java.util.Optional;
 
+/**
+ * Class to Mock Http Response.
+ */
 public class HttpResponseMock implements HttpResponse<Void> {
     @Override
     public HttpStatus getStatus() {

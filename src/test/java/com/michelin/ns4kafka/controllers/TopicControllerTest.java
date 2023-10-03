@@ -29,6 +29,7 @@ import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -42,15 +43,6 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
 
 @ExtendWith(MockitoExtension.class)
 class TopicControllerTest {
@@ -361,7 +353,8 @@ class TopicControllerTest {
     }
 
     /**
-     * Validate topic update with two new tags
+     * Validate topic update with two new tags.
+     *
      * @throws InterruptedException Any interrupted exception
      * @throws ExecutionException Any execution exception
      * @throws TimeoutException Any timeout exception
@@ -385,7 +378,7 @@ class TopicControllerTest {
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
-                        .configs(Map.of("cleanup.policy","compact",
+                        .configs(Map.of("cleanup.policy", "compact",
                                 "min.insync.replicas", "2",
                                 "retention.ms", "60000"))
                         .build())
@@ -399,7 +392,7 @@ class TopicControllerTest {
                         .tags(Arrays.asList("TAG1", "TAG2"))
                         .replicationFactor(3)
                         .partitions(3)
-                        .configs(Map.of("cleanup.policy","delete",
+                        .configs(Map.of("cleanup.policy", "delete",
                                 "min.insync.replicas", "2",
                                 "retention.ms", "60000"))
                         .build())
@@ -423,7 +416,8 @@ class TopicControllerTest {
     }
 
     /**
-     * Validate topic update with a tag to delete
+     * Validate topic update with a tag to delete.
+     *
      * @throws InterruptedException Any interrupted exception
      * @throws ExecutionException Any execution exception
      * @throws TimeoutException Any timeout exception
@@ -448,7 +442,7 @@ class TopicControllerTest {
                         .tags(Arrays.asList("TAG1", "TAG2"))
                         .replicationFactor(3)
                         .partitions(3)
-                        .configs(Map.of("cleanup.policy","compact",
+                        .configs(Map.of("cleanup.policy", "compact",
                                 "min.insync.replicas", "2",
                                 "retention.ms", "60000"))
                         .build())
@@ -462,7 +456,7 @@ class TopicControllerTest {
                         .tags(List.of("TAG1"))
                         .replicationFactor(3)
                         .partitions(3)
-                        .configs(Map.of("cleanup.policy","delete",
+                        .configs(Map.of("cleanup.policy", "delete",
                                 "min.insync.replicas", "2",
                                 "retention.ms", "60000"))
                         .build())
@@ -485,7 +479,7 @@ class TopicControllerTest {
     }
 
     /**
-     * Validate topic update when there are validations errors
+     * Validate topic update when there are validations errors.
      */
     @Test
     void updateTopicValidationErrors() {

@@ -21,7 +21,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -104,8 +109,10 @@ public class TopicController extends NamespacedResourceController {
             validationErrors.addAll(topicService.validateTopicUpdate(ns, existingTopic.get(), topic));
         }
 
-        List<String> existingTags = existingTopic.isPresent() && existingTopic.get().getSpec().getTags() != null ? existingTopic.get().getSpec().getTags() : Collections.emptyList();
-        if(topic.getSpec().getTags().stream().anyMatch(newTag -> !existingTags.contains(newTag))) {
+        List<String> existingTags = existingTopic.isPresent() && existingTopic.get().getSpec().getTags() != null
+                ? existingTopic.get().getSpec().getTags()
+                : Collections.emptyList();
+        if (topic.getSpec().getTags().stream().anyMatch(newTag -> !existingTags.contains(newTag))) {
             validationErrors.addAll(topicService.validateTags(ns, topic));
         }
 
