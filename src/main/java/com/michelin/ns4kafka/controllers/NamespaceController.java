@@ -7,18 +7,25 @@ import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.utils.enums.ApplyStatus;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.annotation.*;
+import io.micronaut.http.annotation.Body;
+import io.micronaut.http.annotation.Controller;
+import io.micronaut.http.annotation.Delete;
+import io.micronaut.http.annotation.Get;
+import io.micronaut.http.annotation.Post;
+import io.micronaut.http.annotation.QueryValue;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
-
-import javax.annotation.security.RolesAllowed;
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Controller to manage the namespaces.
+ */
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 @Tag(name = "Namespaces", description = "Manage the namespaces.")
 @Controller("/api/namespaces")
@@ -27,7 +34,8 @@ public class NamespaceController extends NonNamespacedResourceController {
     NamespaceService namespaceService;
 
     /**
-     * List namespaces
+     * List namespaces.
+     *
      * @return A list of namespaces
      */
     @Get("/")
@@ -36,7 +44,8 @@ public class NamespaceController extends NonNamespacedResourceController {
     }
 
     /**
-     * Get a namespace by name
+     * Get a namespace by name.
+     *
      * @param namespace The namespace
      * @return A namespace
      */
@@ -46,13 +55,15 @@ public class NamespaceController extends NonNamespacedResourceController {
     }
 
     /**
-     * Create a namespace
+     * Create a namespace.
+     *
      * @param namespace The namespace
-     * @param dryrun Does the creation is a dry run
+     * @param dryrun    Does the creation is a dry run
      * @return The created namespace
      */
     @Post("{?dryrun}")
-    public HttpResponse<Namespace> apply(@Valid @Body Namespace namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<Namespace> apply(@Valid @Body Namespace namespace,
+                                         @QueryValue(defaultValue = "false") boolean dryrun) {
         Optional<Namespace> existingNamespace = namespaceService.findByName(namespace.getMetadata().getName());
 
         List<String> validationErrors = new ArrayList<>();
@@ -61,20 +72,21 @@ public class NamespaceController extends NonNamespacedResourceController {
         } else {
             if (!namespace.getMetadata().getCluster().equals(existingNamespace.get().getMetadata().getCluster())) {
                 validationErrors.add("Invalid value " + namespace.getMetadata().getCluster()
-                        + " for cluster: Value is immutable ("
-                        + existingNamespace.get().getMetadata().getCluster() + ")");
+                    + " for cluster: Value is immutable ("
+                    + existingNamespace.get().getMetadata().getCluster() + ")");
             }
             if (!namespace.getMetadata().getCluster().equals(existingNamespace.get().getMetadata().getCluster())) {
                 validationErrors.add("Invalid value " + namespace.getSpec().getKafkaUser()
-                        + " for kafkaUser: Value is immutable ("
-                        + existingNamespace.get().getSpec().getKafkaUser() + ")");
+                    + " for kafkaUser: Value is immutable ("
+                    + existingNamespace.get().getSpec().getKafkaUser() + ")");
             }
         }
 
         validationErrors.addAll(namespaceService.validate(namespace));
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors, namespace.getKind(), namespace.getMetadata().getName());
+            throw new ResourceValidationException(validationErrors, namespace.getKind(),
+                namespace.getMetadata().getName());
         }
 
         namespace.getMetadata().setNamespace(namespace.getMetadata().getName());
@@ -91,18 +103,19 @@ public class NamespaceController extends NonNamespacedResourceController {
         }
 
         sendEventLog(namespace.getKind(),
-                namespace.getMetadata(),
-                status,
-                existingNamespace.<Object>map(Namespace::getSpec).orElse(null),
-                namespace.getSpec());
+            namespace.getMetadata(),
+            status,
+            existingNamespace.<Object>map(Namespace::getSpec).orElse(null),
+            namespace.getSpec());
 
         return formatHttpResponse(namespaceService.createOrUpdate(namespace), status);
     }
 
     /**
-     * Delete a namespace
+     * Delete a namespace.
+     *
      * @param namespace The namespace
-     * @param dryrun Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not ?
      * @return An HTTP response
      */
     @Delete("/{namespace}{?dryrun}")
@@ -115,8 +128,8 @@ public class NamespaceController extends NonNamespacedResourceController {
         List<String> namespaceResources = namespaceService.listAllNamespaceResources(optionalNamespace.get());
         if (!namespaceResources.isEmpty()) {
             List<String> validationErrors = namespaceResources.stream()
-                    .map(s -> "Namespace resource must be deleted first :" + s)
-                    .toList();
+                .map(s -> "Namespace resource must be deleted first: " + s)
+                .toList();
             throw new ResourceValidationException(validationErrors, "Namespace", namespace);
         }
 
@@ -126,10 +139,10 @@ public class NamespaceController extends NonNamespacedResourceController {
 
         var namespaceToDelete = optionalNamespace.get();
         sendEventLog(namespaceToDelete.getKind(),
-                namespaceToDelete.getMetadata(),
-                ApplyStatus.deleted,
-                namespaceToDelete.getSpec(),
-                null);
+            namespaceToDelete.getMetadata(),
+            ApplyStatus.deleted,
+            namespaceToDelete.getSpec(),
+            null);
         namespaceService.delete(optionalNamespace.get());
         return HttpResponse.noContent();
     }

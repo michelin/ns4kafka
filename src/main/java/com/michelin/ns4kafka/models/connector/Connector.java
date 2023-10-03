@@ -4,15 +4,23 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
-import lombok.*;
-
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+/**
+ * Connector.
+ */
 @Data
 @Builder
 @Introspected
@@ -33,10 +41,26 @@ public class Connector {
     @EqualsAndHashCode.Exclude
     private ConnectorStatus status;
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
+    /**
+     * Connector task state.
+     */
+    public enum TaskState {
+        // From https://github.com/apache/kafka/blob/trunk/connect/runtime/src/main/java/org/apache/kafka/connect/runtime/AbstractStatus.java
+        UNASSIGNED,
+        RUNNING,
+        PAUSED,
+        FAILED,
+        DESTROYED,
+    }
+
+    /**
+     * Connector specification.
+     */
     @Data
+    @Builder
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ConnectorSpec {
         @NotBlank
         private String connectCluster;
@@ -46,14 +70,18 @@ public class Connector {
         private Map<String, String> config;
     }
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
+    /**
+     * Connector status.
+     */
     @Getter
     @Setter
+    @Builder
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ConnectorStatus {
         private TaskState state;
-        private String worker_id;
+        private String workerId;
         private List<TaskStatus> tasks;
 
         @JsonFormat(shape = JsonFormat.Shape.STRING)
@@ -61,24 +89,19 @@ public class Connector {
 
     }
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
+    /**
+     * Connector task status.
+     */
     @Getter
     @Setter
+    @Builder
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class TaskStatus {
         String id;
         TaskState state;
         String trace;
-        String worker_id;
-    }
-
-    public enum TaskState {
-        // From https://github.com/apache/kafka/blob/trunk/connect/runtime/src/main/java/org/apache/kafka/connect/runtime/AbstractStatus.java
-        UNASSIGNED,
-        RUNNING,
-        PAUSED,
-        FAILED,
-        DESTROYED,
+        String workerId;
     }
 }

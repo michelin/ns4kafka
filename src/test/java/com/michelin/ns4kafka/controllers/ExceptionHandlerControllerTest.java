@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.controllers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
@@ -7,23 +9,19 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthorizationException;
-import org.junit.jupiter.api.Test;
-
-import javax.validation.ConstraintViolationException;
+import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
 
 class ExceptionHandlerControllerTest {
-
     ExceptionHandlerController exceptionHandlerController = new ExceptionHandlerController();
 
     @Test
     void resourceValidationError() {
         var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
-                new ResourceValidationException(List.of("Error1", "Error2"),"Topic", "Name"));
+            new ResourceValidationException(List.of("Error1", "Error2"), "Topic", "Name"));
         var status = response.body();
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatus());
@@ -38,7 +36,7 @@ class ExceptionHandlerControllerTest {
     @Test
     void constraintViolationError() {
         var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
-                new ConstraintViolationException(Set.of()));
+            new ConstraintViolationException(Set.of()));
         var status = response.body();
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatus());
@@ -48,7 +46,7 @@ class ExceptionHandlerControllerTest {
     @Test
     void authorizationUnauthorizedError() {
         var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
-                new AuthorizationException(null));
+            new AuthorizationException(null));
         var status = response.body();
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatus());
@@ -58,7 +56,7 @@ class ExceptionHandlerControllerTest {
     @Test
     void authorizationForbiddenError() {
         var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
-                new AuthorizationException(Authentication.build("user", Map.of())));
+            new AuthorizationException(Authentication.build("user", Map.of())));
         var status = response.body();
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatus());
@@ -68,7 +66,7 @@ class ExceptionHandlerControllerTest {
     @Test
     void authenticationError() {
         var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
-                new AuthenticationException());
+            new AuthenticationException());
         var status = response.body();
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatus());
@@ -78,7 +76,7 @@ class ExceptionHandlerControllerTest {
     @Test
     void anyError() {
         var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
-                new Exception());
+            new Exception());
         var status = response.body();
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());

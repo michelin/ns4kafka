@@ -11,11 +11,13 @@ import io.micronaut.security.ldap.DefaultContextAuthenticationMapper;
 import io.micronaut.security.ldap.configuration.LdapConfiguration;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Custom LDAP authentication mapper.
+ */
 @Singleton
 @Replaces(DefaultContextAuthenticationMapper.class)
 @Requires(property = LdapConfiguration.PREFIX + ".enabled", notEquals = StringUtils.FALSE)
@@ -25,6 +27,7 @@ public class LdapAuthenticationMapper implements ContextAuthenticationMapper {
 
     @Override
     public AuthenticationResponse map(ConvertibleValues<Object> attributes, String username, Set<String> groups) {
-        return AuthenticationResponse.success(username, resourceBasedSecurityRule.computeRolesFromGroups(List.copyOf(groups)), Map.of("groups",groups));
+        return AuthenticationResponse.success(username,
+            resourceBasedSecurityRule.computeRolesFromGroups(List.copyOf(groups)), Map.of("groups", groups));
     }
 }

@@ -1,23 +1,24 @@
 package com.michelin.ns4kafka.models;
 
 import io.micronaut.core.annotation.Introspected;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import java.util.Collection;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-import java.util.Collection;
-
-
-@Introspected(classes = {RoleBinding.class, RoleBinding.RoleBindingSpec.class, RoleBinding.Role.class, RoleBinding.Subject.class})
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
+/**
+ * Role binding.
+ */
 @Data
+@Builder
+@Introspected
+@NoArgsConstructor
+@AllArgsConstructor
 public class RoleBinding {
     private final String apiVersion = "v1";
     private final String kind = "RoleBinding";
@@ -30,10 +31,32 @@ public class RoleBinding {
     @NotNull
     private RoleBindingSpec spec;
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
+    /**
+     * HTTP verbs.
+     */
+    public enum Verb {
+        GET,
+        POST,
+        PUT,
+        DELETE
+    }
+
+    /**
+     * Subject type.
+     */
+    public enum SubjectType {
+        GROUP,
+        USER
+    }
+
+    /**
+     * Role binding spec.
+     */
     @Data
+    @Builder
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class RoleBindingSpec {
         @Valid
         @NotNull
@@ -44,10 +67,14 @@ public class RoleBinding {
         private Subject subject;
     }
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
+    /**
+     * Role.
+     */
     @Data
+    @Builder
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Role {
         @NotNull
         @NotEmpty
@@ -58,10 +85,14 @@ public class RoleBinding {
         private Collection<Verb> verbs;
     }
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
+    /**
+     * Subject.
+     */
     @Data
+    @Builder
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Subject {
         @NotNull
         private SubjectType subjectType;
@@ -70,17 +101,5 @@ public class RoleBinding {
         @NotBlank
         private String subjectName;
 
-    }
-
-    public enum Verb {
-        GET,
-        POST,
-        PUT,
-        DELETE
-    }
-
-    public enum SubjectType {
-        GROUP,
-        USER
     }
 }

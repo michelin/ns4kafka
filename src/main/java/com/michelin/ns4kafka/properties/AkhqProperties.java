@@ -1,17 +1,19 @@
-package com.michelin.ns4kafka.config;
+package com.michelin.ns4kafka.properties;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import io.micronaut.context.annotation.ConfigurationProperties;
+import java.util.List;
+import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
-import java.util.Map;
-
+/**
+ * Akhq properties.
+ */
 @Getter
 @Setter
 @ConfigurationProperties("ns4kafka.akhq")
-public class AkhqClaimProviderControllerConfig {
+public class AkhqProperties {
     private String groupLabel;
     private Map<AccessControlEntry.ResourceType, String> roles;
     private List<String> formerRoles;

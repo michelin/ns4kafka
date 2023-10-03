@@ -8,33 +8,35 @@ import io.micronaut.configuration.kafka.annotation.OffsetReset;
 import io.micronaut.configuration.kafka.annotation.OffsetStrategy;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
+/**
+ * Kafka Topic repository.
+ */
 @Singleton
 @KafkaListener(
-        offsetReset = OffsetReset.EARLIEST,
-        groupId = "${ns4kafka.store.kafka.group-id}",
-        offsetStrategy = OffsetStrategy.DISABLED
+    offsetReset = OffsetReset.EARLIEST,
+    groupId = "${ns4kafka.store.kafka.group-id}",
+    offsetStrategy = OffsetStrategy.DISABLED
 )
 public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepository {
 
     public KafkaTopicRepository(@Value("${ns4kafka.store.kafka.topics.prefix}.topics") String kafkaTopic,
-                                      @KafkaClient("topics-producer") Producer<String, Topic> kafkaProducer) {
+                                @KafkaClient("topics-producer") Producer<String, Topic> kafkaProducer) {
         super(kafkaTopic, kafkaProducer);
     }
 
     @Override
     String getMessageKey(Topic topic) {
-        return topic.getMetadata().getCluster()+"/"+topic.getMetadata().getName();
+        return topic.getMetadata().getCluster() + "/" + topic.getMetadata().getName();
     }
 
     /**
-     * Create a given topic
+     * Create a given topic.
+     *
      * @param topic The topic to create
      * @return The created topic
      */
@@ -44,12 +46,13 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
     }
 
     /**
-     * Delete a given topic
+     * Delete a given topic.
+     *
      * @param topic The topic to delete
      */
     @Override
     public void delete(Topic topic) {
-        this.produce(getMessageKey(topic),null);
+        this.produce(getMessageKey(topic), null);
     }
 
     @io.micronaut.configuration.kafka.annotation.Topic(value = "${ns4kafka.store.kafka.topics.prefix}.topics")
@@ -58,7 +61,8 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
     }
 
     /**
-     * Find all topics
+     * Find all topics.
+     *
      * @return The list of topics
      */
     @Override
@@ -67,15 +71,16 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
     }
 
     /**
-     * Find all topics by cluster
+     * Find all topics by cluster.
+     *
      * @param cluster The cluster
      * @return The list of topics
      */
     @Override
     public List<Topic> findAllForCluster(String cluster) {
         return getKafkaStore().values()
-                .stream()
-                .filter(topic -> topic.getMetadata().getCluster().equals(cluster))
-                .toList();
+            .stream()
+            .filter(topic -> topic.getMetadata().getCluster().equals(cluster))
+            .toList();
     }
 }

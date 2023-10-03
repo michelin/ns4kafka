@@ -8,10 +8,12 @@ import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.security.utils.SecurityService;
 import jakarta.inject.Inject;
-
 import java.time.Instant;
 import java.util.Date;
 
+/**
+ * Resource controller.
+ */
 public abstract class ResourceController {
     private static final String STATUS_HEADER = "X-Ns4kafka-Result";
 
@@ -25,10 +27,19 @@ public abstract class ResourceController {
         return HttpResponse.ok(body).header(STATUS_HEADER, status.toString());
     }
 
+    /**
+     * Send an audit log event.
+     *
+     * @param kind      the kind of resource
+     * @param metadata  the metadata of the resource
+     * @param operation the operation
+     * @param before    the resource before the operation
+     * @param after     the resource after the operation
+     */
     public void sendEventLog(String kind, ObjectMeta metadata, ApplyStatus operation, Object before, Object after) {
         AuditLog auditLog = new AuditLog(securityService.username().orElse(""),
-                securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN), Date.from(Instant.now()),
-                kind, metadata, operation, before, after);
+            securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN), Date.from(Instant.now()),
+            kind, metadata, operation, before, after);
         applicationEventPublisher.publishEvent(auditLog);
     }
 }

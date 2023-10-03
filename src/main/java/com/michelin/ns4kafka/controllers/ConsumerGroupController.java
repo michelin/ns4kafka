@@ -13,15 +13,17 @@ import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
-import org.apache.kafka.common.TopicPartition;
-
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import org.apache.kafka.common.TopicPartition;
 
+/**
+ * Controller to manage the consumer groups.
+ */
 @Tag(name = "Consumer Groups", description = "Manage the consumer groups.")
 @Controller("/api/namespaces/{namespace}/consumer-groups")
 public class ConsumerGroupController extends NamespacedResourceController {
@@ -29,18 +31,20 @@ public class ConsumerGroupController extends NamespacedResourceController {
     ConsumerGroupService consumerGroupService;
 
     /**
-     * Reset offsets by topic and consumer group
-     * @param namespace The namespace
-     * @param consumerGroup The consumer group
+     * Reset offsets by topic and consumer group.
+     *
+     * @param namespace                 The namespace
+     * @param consumerGroup             The consumer group
      * @param consumerGroupResetOffsets The information about how to reset
-     * @param dryrun Is dry run mode or not ?
+     * @param dryrun                    Is dry run mode or not ?
      * @return The reset offsets response
      */
     @Post("/{consumerGroup}/reset{?dryrun}")
     public List<ConsumerGroupResetOffsetsResponse> resetOffsets(String namespace, String consumerGroup,
-                                                                @Valid @Body ConsumerGroupResetOffsets consumerGroupResetOffsets,
-                                                                @QueryValue(defaultValue = "false") boolean dryrun) throws ExecutionException {
-        Namespace ns = getNamespace(namespace);
+                                                                @Valid @Body
+                                                                ConsumerGroupResetOffsets consumerGroupResetOffsets,
+                                                                @QueryValue(defaultValue = "false") boolean dryrun)
+        throws ExecutionException {
 
         // Validate spec
         List<String> validationErrors = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
@@ -54,7 +58,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
             throw new ResourceValidationException(validationErrors, "ConsumerGroup", consumerGroup);
         }
 
-        // Augment
+        Namespace ns = getNamespace(namespace);
         consumerGroupResetOffsets.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
         consumerGroupResetOffsets.getMetadata().setNamespace(ns.getMetadata().getName());
         consumerGroupResetOffsets.getMetadata().setCluster(ns.getMetadata().getCluster());
@@ -66,35 +70,40 @@ public class ConsumerGroupController extends NamespacedResourceController {
             // Validate Consumer Group is dead or inactive
             String currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
             if (!List.of("Empty", "Dead").contains(currentState)) {
-                throw new IllegalStateException("Assignments can only be reset if the consumer group \"" + consumerGroup + "\" is inactive, but the current state is " + currentState.toLowerCase() + ".");
+                throw new IllegalStateException(
+                    "Assignments can only be reset if the consumer group \"" + consumerGroup
+                        + "\" is inactive, but the current state is " + currentState.toLowerCase() + ".");
             }
 
             // List partitions
-            List<TopicPartition> partitionsToReset = consumerGroupService.getPartitionsToReset(ns, consumerGroup, consumerGroupResetOffsets.getSpec().getTopic());
+            List<TopicPartition> partitionsToReset = consumerGroupService.getPartitionsToReset(ns, consumerGroup,
+                consumerGroupResetOffsets.getSpec().getTopic());
 
             // Prepare offsets
-            Map<TopicPartition, Long> preparedOffsets = consumerGroupService.prepareOffsetsToReset(ns, consumerGroup, consumerGroupResetOffsets.getSpec().getOptions(), partitionsToReset, consumerGroupResetOffsets.getSpec().getMethod());
+            Map<TopicPartition, Long> preparedOffsets = consumerGroupService.prepareOffsetsToReset(ns, consumerGroup,
+                consumerGroupResetOffsets.getSpec().getOptions(), partitionsToReset,
+                consumerGroupResetOffsets.getSpec().getMethod());
 
             if (!dryrun) {
                 sendEventLog("ConsumerGroupResetOffsets",
-                        consumerGroupResetOffsets.getMetadata(),
-                        ApplyStatus.changed,
-                        null,
-                        consumerGroupResetOffsets.getSpec());
+                    consumerGroupResetOffsets.getMetadata(),
+                    ApplyStatus.changed,
+                    null,
+                    consumerGroupResetOffsets.getSpec());
                 consumerGroupService.alterConsumerGroupOffsets(ns, consumerGroup, preparedOffsets);
             }
 
             topicPartitionOffsets = preparedOffsets.entrySet()
-                    .stream()
-                    .map(entry -> ConsumerGroupResetOffsetsResponse.builder()
-                            .spec(ConsumerGroupResetOffsetsResponse.ConsumerGroupResetOffsetsResponseSpec.builder()
-                                    .topic(entry.getKey().topic())
-                                    .partition(entry.getKey().partition())
-                                    .offset(entry.getValue())
-                                    .consumerGroup(consumerGroup)
-                                    .build())
-                            .build())
-                    .toList();
+                .stream()
+                .map(entry -> ConsumerGroupResetOffsetsResponse.builder()
+                    .spec(ConsumerGroupResetOffsetsResponse.ConsumerGroupResetOffsetsResponseSpec.builder()
+                        .topic(entry.getKey().topic())
+                        .partition(entry.getKey().partition())
+                        .offset(entry.getValue())
+                        .consumerGroup(consumerGroup)
+                        .build())
+                    .build())
+                .toList();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

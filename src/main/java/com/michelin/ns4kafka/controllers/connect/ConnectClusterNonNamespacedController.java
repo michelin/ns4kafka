@@ -10,11 +10,13 @@ import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import reactor.core.publisher.Flux;
 
-import javax.annotation.security.RolesAllowed;
-
+/**
+ * Non-namespaced controller to manage Kafka Connect clusters.
+ */
 @Tag(name = "Connect Clusters", description = "Manage the Kafka Connect clusters.")
 @Controller(value = "/api/connect-clusters")
 @ExecuteOn(TaskExecutors.IO)
@@ -24,7 +26,8 @@ public class ConnectClusterNonNamespacedController extends NonNamespacedResource
     ConnectClusterService connectClusterService;
 
     /**
-     * List Kafka Connect clusters
+     * List Kafka Connect clusters.
+     *
      * @return A list of Kafka Connect clusters
      */
     @Get("{?all}")

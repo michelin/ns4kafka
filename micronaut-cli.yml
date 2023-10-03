@@ -3,4 +3,4 @@ defaultPackage: com.michelin.ns4kafka
 testFramework: junit
 sourceLanguage: java
 buildTool: gradle
-features: [annotation-api, app-name, gradle, http-client, java, java-application, junit, kafka, logback, netty-server, openapi, reactor, reactor-http-client, readme, security, security-annotations, security-jwt, security-ldap, shade, yaml]
+features: [ annotation-api, app-name, gradle, http-client, jackson-databind, java, java-application, junit, kafka, logback, management, lombok, micronaut-aot, micronaut-build, micronaut-http-validation, mockito, netty-server, openapi, reactor, reactor-http-client, readme, security, security-annotations, security-jwt, security-ldap, shade, testcontainers, validation ]

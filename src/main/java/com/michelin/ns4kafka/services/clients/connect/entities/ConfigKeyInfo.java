@@ -14,12 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.michelin.ns4kafka.services.clients.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.List;
 
+/**
+ * Connector configuration information.
+ *
+ * @param name          Name
+ * @param type          Type
+ * @param required      Required
+ * @param defaultValue  Default value
+ * @param importance    Importance
+ * @param documentation Documentation
+ * @param group         Group
+ * @param orderInGroup  Order in group
+ * @param width         Width
+ * @param displayName   Display name
+ * @param dependents    Dependents
+ */
 public record ConfigKeyInfo(String name, String type, @JsonProperty("required") boolean required,
                             @JsonProperty("default_value") String defaultValue, String importance,
                             String documentation, String group, @JsonProperty("order_in_group") int orderInGroup,

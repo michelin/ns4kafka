@@ -1,8 +1,15 @@
 package com.michelin.ns4kafka.models;
 
 import io.micronaut.core.annotation.Introspected;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+/**
+ * Kafka user reset password.
+ */
 @Getter
 @Setter
 @Builder
@@ -15,11 +22,14 @@ public class KafkaUserResetPassword {
     private ObjectMeta metadata;
     private KafkaUserResetPasswordSpec spec;
 
-    @Introspected
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
+    /**
+     * Kafka user reset password spec.
+     */
     @Getter
+    @Builder
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class KafkaUserResetPasswordSpec {
         private String newPassword;
     }

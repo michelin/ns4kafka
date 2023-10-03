@@ -2,14 +2,19 @@ package com.michelin.ns4kafka.models;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.micronaut.core.annotation.Introspected;
-import lombok.*;
-
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import java.util.Date;
 import java.util.Map;
-import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
+/**
+ * Object metadata.
+ */
 @Data
 @Builder
 @Introspected
@@ -21,7 +26,7 @@ public class ObjectMeta {
     private String name;
     private String namespace;
     private String cluster;
-    private Map<String,String> labels;
+    private Map<String, String> labels;
     @EqualsAndHashCode.Exclude
     private int generation;
     @EqualsAndHashCode.Exclude

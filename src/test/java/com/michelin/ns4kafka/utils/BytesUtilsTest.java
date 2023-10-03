@@ -1,14 +1,13 @@
 package com.michelin.ns4kafka.utils;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class BytesUtilsTest {
+import org.junit.jupiter.api.Test;
 
-    /**
-     * Validate bytes conversion to human-readable string
-     */
+/**
+ * Bytes utils test.
+ */
+class BytesUtilsTest {
     @Test
     void validateBytesToHumanReadable() {
         assertEquals("0B", BytesUtils.bytesToHumanReadable(0L));
@@ -26,9 +25,6 @@ class BytesUtilsTest {
         assertEquals("27.0GiB", BytesUtils.bytesToHumanReadable(28991029248L));
     }
 
-    /**
-     * Validate human-readable string to bytes conversion
-     */
     @Test
     void validateHumanReadableToBytes() {
         assertEquals(0L, BytesUtils.humanReadableToBytes("0B"));

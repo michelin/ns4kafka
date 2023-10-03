@@ -7,11 +7,13 @@ import com.michelin.ns4kafka.services.TopicService;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
-
-import javax.annotation.security.RolesAllowed;
 import java.util.List;
 
+/**
+ * Non namespaced controller for topics.
+ */
 @Tag(name = "Topics", description = "Manage the topics.")
 @Controller(value = "/api/topics")
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
@@ -20,7 +22,8 @@ public class TopicNonNamespacedController extends NonNamespacedResourceControlle
     TopicService topicService;
 
     /**
-     * List topics
+     * List topics.
+     *
      * @return A list of topics
      */
     @Get

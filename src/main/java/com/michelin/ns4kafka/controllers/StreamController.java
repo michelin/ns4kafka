@@ -8,16 +8,24 @@ import com.michelin.ns4kafka.utils.enums.ApplyStatus;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.annotation.*;
+import io.micronaut.http.annotation.Body;
+import io.micronaut.http.annotation.Controller;
+import io.micronaut.http.annotation.Delete;
+import io.micronaut.http.annotation.Get;
+import io.micronaut.http.annotation.Post;
+import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.http.annotation.Status;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
-
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Controller to manage Kafka Streams.
+ */
 @Tag(name = "Kafka Streams", description = "Manage the Kafka Streams.")
 @Controller(value = "/api/namespaces/{namespace}/streams")
 public class StreamController extends NamespacedResourceController {
@@ -25,43 +33,48 @@ public class StreamController extends NamespacedResourceController {
     StreamService streamService;
 
     /**
-     * List Kafka Streams by namespace
+     * List Kafka Streams by namespace.
+     *
      * @param namespace The namespace
      * @return A list of Kafka Streams
      */
     @Get("/")
-    List<KafkaStream> list(String namespace){
+    List<KafkaStream> list(String namespace) {
         Namespace ns = getNamespace(namespace);
         return streamService.findAllForNamespace(ns);
 
     }
 
     /**
-     * Get a Kafka Streams by namespace and name
+     * Get a Kafka Streams by namespace and name.
+     *
      * @param namespace The name
-     * @param stream The Kafka Streams name
+     * @param stream    The Kafka Streams name
      * @return The Kafka Streams
      */
     @Get("/{stream}")
-    Optional<KafkaStream> get(String namespace, String stream){
+    Optional<KafkaStream> get(String namespace, String stream) {
         Namespace ns = getNamespace(namespace);
         return streamService.findByName(ns, stream);
 
     }
 
     /**
-     * Create a Kafka Streams
+     * Create a Kafka Streams.
+     *
      * @param namespace The namespace
-     * @param stream The Kafka Stream
-     * @param dryrun Is dry run mode or not ?
+     * @param stream    The Kafka Stream
+     * @param dryrun    Is dry run mode or not ?
      * @return An HTTP response
      */
     @Post("/{?dryrun}")
-    HttpResponse<KafkaStream> apply(String namespace,@Body @Valid KafkaStream stream, @QueryValue(defaultValue = "false") boolean dryrun){
+    HttpResponse<KafkaStream> apply(String namespace, @Body @Valid KafkaStream stream,
+                                    @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
         if (!streamService.isNamespaceOwnerOfKafkaStream(ns, stream.getMetadata().getName())) {
             throw new ResourceValidationException(List.of("Invalid value " + stream.getMetadata().getName()
-                    + " for name: Namespace not OWNER of underlying Topic prefix and Group prefix"), "Stream", stream.getMetadata().getName());
+                + " for name: Namespace not OWNER of underlying Topic prefix and Group prefix"), "Stream",
+                stream.getMetadata().getName());
         }
 
         // Augment the Stream
@@ -71,7 +84,7 @@ public class StreamController extends NamespacedResourceController {
 
         // Creation of the correct ACLs
         Optional<KafkaStream> existingStream = streamService.findByName(ns, stream.getMetadata().getName());
-        if (existingStream.isPresent() && existingStream.get().equals(stream)){
+        if (existingStream.isPresent() && existingStream.get().equals(stream)) {
             return formatHttpResponse(stream, ApplyStatus.unchanged);
         }
 
@@ -82,28 +95,29 @@ public class StreamController extends NamespacedResourceController {
         }
 
         sendEventLog(stream.getKind(),
-                stream.getMetadata(),
-                status,
-                null,
-                null);
+            stream.getMetadata(),
+            status,
+            null,
+            null);
 
         return formatHttpResponse(streamService.create(stream), status);
     }
 
     /**
-     * Delete a Kafka Streams
+     * Delete a Kafka Streams.
+     *
      * @param namespace The namespace
-     * @param stream The Kafka Streams
-     * @param dryrun Is dry run mode or not ?
+     * @param stream    The Kafka Streams
+     * @param dryrun    Is dry run mode or not ?
      * @return An HTTP response
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{stream}{?dryrun}")
-    HttpResponse<Void> delete(String namespace,String stream, @QueryValue(defaultValue = "false") boolean dryrun){
+    HttpResponse<Void> delete(String namespace, String stream, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
         if (!streamService.isNamespaceOwnerOfKafkaStream(ns, stream)) {
             throw new ResourceValidationException(List.of("Invalid value " + stream
-                    + " for name: Namespace not OWNER of underlying Topic prefix and Group prefix"), "Stream", stream);
+                + " for name: Namespace not OWNER of underlying Topic prefix and Group prefix"), "Stream", stream);
         }
 
         Optional<KafkaStream> optionalStream = streamService.findByName(ns, stream);
@@ -118,10 +132,10 @@ public class StreamController extends NamespacedResourceController {
 
         var streamToDelete = optionalStream.get();
         sendEventLog(streamToDelete.getKind(),
-                streamToDelete.getMetadata(),
-                ApplyStatus.deleted,
-                null,
-                null);
+            streamToDelete.getMetadata(),
+            ApplyStatus.deleted,
+            null,
+            null);
         streamService.delete(ns, optionalStream.get());
         return HttpResponse.noContent();
     }

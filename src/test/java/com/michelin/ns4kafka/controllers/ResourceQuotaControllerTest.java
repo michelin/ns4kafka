@@ -1,5 +1,16 @@
 package com.michelin.ns4kafka.controllers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertLinesMatch;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.michelin.ns4kafka.controllers.quota.ResourceQuotaController;
 import com.michelin.ns4kafka.models.AuditLog;
 import com.michelin.ns4kafka.models.Namespace;
@@ -14,19 +25,15 @@ import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ResourceQuotaControllerTest {
@@ -45,25 +52,22 @@ class ResourceQuotaControllerTest {
     @Mock
     ApplicationEventPublisher<AuditLog> applicationEventPublisher;
 
-    /**
-     * Validate quota listing
-     */
     @Test
     void list() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
 
         ResourceQuotaResponse response = ResourceQuotaResponse.builder()
-                .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
-                        .countTopic("0/INF")
-                        .countPartition("0/INF")
-                        .countConnector("0/INF")
-                        .build())
-                .build();
+            .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
+                .countTopic("0/INF")
+                .countPartition("0/INF")
+                .countConnector("0/INF")
+                .build())
+            .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.empty());
@@ -74,17 +78,14 @@ class ResourceQuotaControllerTest {
         assertEquals(response, actual.get(0));
     }
 
-    /**
-     * Validate quota get is empty
-     */
     @Test
     void getEmpty() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.findByName(ns.getMetadata().getName(), "quotaName")).thenReturn(Optional.empty());
@@ -93,91 +94,85 @@ class ResourceQuotaControllerTest {
         assertTrue(actual.isEmpty());
     }
 
-    /**
-     * Validate quota get present
-     */
     @Test
     void getPresent() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(ObjectMeta.builder()
-                        .cluster("local")
-                        .name("test")
-                        .build())
-                .spec(Map.of("count/topics", "1"))
-                .build();
+            .metadata(ObjectMeta.builder()
+                .cluster("local")
+                .name("test")
+                .build())
+            .spec(Map.of("count/topics", "1"))
+            .build();
 
         ResourceQuotaResponse response = ResourceQuotaResponse.builder()
-                .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
-                        .countTopic("0/INF")
-                        .build())
-                .build();
+            .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
+                .countTopic("0/INF")
+                .build())
+            .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(resourceQuotaService.findByName(ns.getMetadata().getName(), "quotaName")).thenReturn(Optional.of(resourceQuota));
-        when(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.of(resourceQuota))).thenReturn(response);
+        when(resourceQuotaService.findByName(ns.getMetadata().getName(), "quotaName")).thenReturn(
+            Optional.of(resourceQuota));
+        when(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.of(resourceQuota))).thenReturn(
+            response);
 
         Optional<ResourceQuotaResponse> actual = resourceQuotaController.get("test", "quotaName");
         assertTrue(actual.isPresent());
         assertEquals(response, actual.get());
     }
 
-    /**
-     * Validate quota apply when there are validation errors
-     */
     @Test
     void applyValidationErrors() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(ObjectMeta.builder()
-                        .cluster("local")
-                        .name("test")
-                        .build())
-                .spec(Map.of("count/topics", "1"))
-                .build();
+            .metadata(ObjectMeta.builder()
+                .cluster("local")
+                .name("test")
+                .build())
+            .spec(Map.of("count/topics", "1"))
+            .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of("Quota already exceeded"));
+        when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(
+            List.of("Quota already exceeded"));
 
         ResourceValidationException actual = assertThrows(ResourceValidationException.class,
-                () -> resourceQuotaController.apply("test", resourceQuota, false));
+            () -> resourceQuotaController.apply("test", resourceQuota, false));
         assertEquals(1, actual.getValidationErrors().size());
         assertLinesMatch(List.of("Quota already exceeded"), actual.getValidationErrors());
 
         verify(resourceQuotaService, never()).create(ArgumentMatchers.any());
     }
 
-    /**
-     * Validate quota apply when quota is unchanged
-     */
     @Test
     void applyUnchanged() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(ObjectMeta.builder()
-                        .cluster("local")
-                        .name("test")
-                        .build())
-                .spec(Map.of("count/topics", "1"))
-                .build();
+            .metadata(ObjectMeta.builder()
+                .cluster("local")
+                .name("test")
+                .build())
+            .spec(Map.of("count/topics", "1"))
+            .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
@@ -189,25 +184,22 @@ class ResourceQuotaControllerTest {
         assertEquals(resourceQuota, response.body());
     }
 
-    /**
-     * Validate quota apply in dry mode
-     */
     @Test
     void applyDryRun() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(ObjectMeta.builder()
-                        .cluster("local")
-                        .name("test")
-                        .build())
-                .spec(Map.of("count/topics", "1"))
-                .build();
+            .metadata(ObjectMeta.builder()
+                .cluster("local")
+                .name("test")
+                .build())
+            .spec(Map.of("count/topics", "1"))
+            .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
@@ -218,25 +210,22 @@ class ResourceQuotaControllerTest {
         verify(resourceQuotaService, never()).create(ArgumentMatchers.any());
     }
 
-    /**
-     * Validate quota apply when quota is created
-     */
     @Test
     void applyCreated() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(ObjectMeta.builder()
-                        .cluster("local")
-                        .name("created-quota")
-                        .build())
-                .spec(Map.of("count/topics", "1"))
-                .build();
+            .metadata(ObjectMeta.builder()
+                .cluster("local")
+                .name("created-quota")
+                .build())
+            .spec(Map.of("count/topics", "1"))
+            .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
@@ -252,37 +241,35 @@ class ResourceQuotaControllerTest {
         assertEquals("created-quota", actual.getMetadata().getName());
     }
 
-    /**
-     * Validate quota apply when quota is updated
-     */
     @Test
     void applyUpdated() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
 
         ResourceQuota resourceQuotaExisting = ResourceQuota.builder()
-                .metadata(ObjectMeta.builder()
-                        .cluster("local")
-                        .name("created-quota")
-                        .build())
-                .spec(Map.of("count/topics", "3"))
-                .build();
+            .metadata(ObjectMeta.builder()
+                .cluster("local")
+                .name("created-quota")
+                .build())
+            .spec(Map.of("count/topics", "3"))
+            .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(ObjectMeta.builder()
-                        .cluster("local")
-                        .name("created-quota")
-                        .build())
-                .spec(Map.of("count/topics", "1"))
-                .build();
+            .metadata(ObjectMeta.builder()
+                .cluster("local")
+                .name("created-quota")
+                .build())
+            .spec(Map.of("count/topics", "1"))
+            .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
-        when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.of(resourceQuotaExisting));
+        when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(
+            Optional.of(resourceQuotaExisting));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -295,9 +282,6 @@ class ResourceQuotaControllerTest {
         assertEquals("1", actual.getSpec().get("count/topics"));
     }
 
-    /**
-     * Validate resource quota deletion when quota is not found
-     */
     @Test
     void deleteNotFound() {
         when(resourceQuotaService.findByName("test", "quota")).thenReturn(Optional.empty());
@@ -306,18 +290,15 @@ class ResourceQuotaControllerTest {
         verify(resourceQuotaService, never()).delete(ArgumentMatchers.any());
     }
 
-    /**
-     * Validate resource quota deletion in dry run mode
-     */
     @Test
     void deleteDryRun() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(ObjectMeta.builder()
-                        .cluster("local")
-                        .name("created-quota")
-                        .build())
-                .spec(Map.of("count/topics", "3"))
-                .build();
+            .metadata(ObjectMeta.builder()
+                .cluster("local")
+                .name("created-quota")
+                .build())
+            .spec(Map.of("count/topics", "3"))
+            .build();
 
         when(resourceQuotaService.findByName("test", "quota")).thenReturn(Optional.of(resourceQuota));
         HttpResponse<Void> actual = resourceQuotaController.delete("test", "quota", true);
@@ -325,18 +306,15 @@ class ResourceQuotaControllerTest {
         verify(resourceQuotaService, never()).delete(ArgumentMatchers.any());
     }
 
-    /**
-     * Validate resource quota deletion
-     */
     @Test
     void delete() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(ObjectMeta.builder()
-                        .cluster("local")
-                        .name("created-quota")
-                        .build())
-                .spec(Map.of("count/topics", "3"))
-                .build();
+            .metadata(ObjectMeta.builder()
+                .cluster("local")
+                .name("created-quota")
+                .build())
+            .spec(Map.of("count/topics", "3"))
+            .build();
 
         when(resourceQuotaService.findByName("test", "quota")).thenReturn(Optional.of(resourceQuota));
         when(securityService.username()).thenReturn(Optional.of("test-user"));

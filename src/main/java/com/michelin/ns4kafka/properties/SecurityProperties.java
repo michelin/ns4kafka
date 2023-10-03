@@ -1,16 +1,18 @@
-package com.michelin.ns4kafka.config;
+package com.michelin.ns4kafka.properties;
 
 import com.michelin.ns4kafka.security.local.LocalUser;
 import io.micronaut.context.annotation.ConfigurationProperties;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
-
+/**
+ * Security properties.
+ */
 @Getter
 @Setter
 @ConfigurationProperties("ns4kafka.security")
-public class SecurityConfig {
+public class SecurityProperties {
     private List<LocalUser> localUsers;
     private String adminGroup;
     private String aes256EncryptionKey;

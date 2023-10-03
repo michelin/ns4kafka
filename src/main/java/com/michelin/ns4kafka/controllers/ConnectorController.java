@@ -11,20 +11,28 @@ import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MutableHttpResponse;
-import io.micronaut.http.annotation.*;
+import io.micronaut.http.annotation.Body;
+import io.micronaut.http.annotation.Controller;
+import io.micronaut.http.annotation.Delete;
+import io.micronaut.http.annotation.Get;
+import io.micronaut.http.annotation.Post;
+import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.http.annotation.Status;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
+/**
+ * Controller to manage connectors.
+ */
 @Tag(name = "Connectors", description = "Manage the connectors.")
 @Controller(value = "/api/namespaces/{namespace}/connectors")
 @ExecuteOn(TaskExecutors.IO)
@@ -38,7 +46,8 @@ public class ConnectorController extends NamespacedResourceController {
     ResourceQuotaService resourceQuotaService;
 
     /**
-     * List connectors by namespace
+     * List connectors by namespace.
+     *
      * @param namespace The namespace
      * @return A list of connectors
      */
@@ -48,7 +57,8 @@ public class ConnectorController extends NamespacedResourceController {
     }
 
     /**
-     * Get a connector by namespace and name
+     * Get a connector by namespace and name.
+     *
      * @param namespace The namespace
      * @param connector The name
      * @return A connector
@@ -59,21 +69,23 @@ public class ConnectorController extends NamespacedResourceController {
     }
 
     /**
-     * Delete a connector
+     * Delete a connector.
+     *
      * @param namespace The current namespace
      * @param connector The current connector name to delete
-     * @param dryrun Run in dry mode or not
+     * @param dryrun    Run in dry mode or not
      * @return A HTTP response
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{connector}{?dryrun}")
-    public Mono<HttpResponse<Void>> deleteConnector(String namespace, String connector, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public Mono<HttpResponse<Void>> deleteConnector(String namespace, String connector,
+                                                    @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         // Validate ownership
         if (!connectorService.isNamespaceOwnerOfConnect(ns, connector)) {
             return Mono.error(new ResourceValidationException(List.of(String.format(NAMESPACE_NOT_OWNER, connector)),
-                    "Connector", connector));
+                "Connector", connector));
         }
 
         Optional<Connector> optionalConnector = connectorService.findByName(ns, connector);
@@ -87,31 +99,34 @@ public class ConnectorController extends NamespacedResourceController {
 
         Connector connectorToDelete = optionalConnector.get();
         sendEventLog(connectorToDelete.getKind(),
-                connectorToDelete.getMetadata(),
-                ApplyStatus.deleted,
-                connectorToDelete.getSpec(),
-                null);
+            connectorToDelete.getMetadata(),
+            ApplyStatus.deleted,
+            connectorToDelete.getSpec(),
+            null);
 
         return connectorService
-                .delete(ns, optionalConnector.get())
-                .map(httpResponse -> HttpResponse.noContent());
+            .delete(ns, optionalConnector.get())
+            .map(httpResponse -> HttpResponse.noContent());
     }
 
     /**
-     * Create a connector
+     * Create a connector.
+     *
      * @param namespace The namespace
-     * @param connector  The connector to create
-     * @param dryrun Does the creation is a dry run
+     * @param connector The connector to create
+     * @param dryrun    Does the creation is a dry run
      * @return The created connector
      */
     @Post("{?dryrun}")
-    public Mono<HttpResponse<Connector>> apply(String namespace, @Valid @Body Connector connector, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public Mono<HttpResponse<Connector>> apply(String namespace, @Valid @Body Connector connector,
+                                               @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         // Validate ownership
         if (!connectorService.isNamespaceOwnerOfConnect(ns, connector.getMetadata().getName())) {
-            return Mono.error(new ResourceValidationException(List.of(String.format(NAMESPACE_NOT_OWNER, connector.getMetadata().getName())),
-                    connector.getKind(), connector.getMetadata().getName()));
+            return Mono.error(new ResourceValidationException(
+                List.of(String.format(NAMESPACE_NOT_OWNER, connector.getMetadata().getName())),
+                connector.getKind(), connector.getMetadata().getName()));
         }
 
         // Set / Override name in spec.config.name, required for several Kafka Connect API calls
@@ -126,67 +141,74 @@ public class ConnectorController extends NamespacedResourceController {
 
         // Validate locally
         return connectorService.validateLocally(ns, connector)
-                .flatMap(validationErrors -> {
-                    if (!validationErrors.isEmpty()) {
-                        return Mono.error(new ResourceValidationException(validationErrors, connector.getKind(), connector.getMetadata().getName()));
-                    }
+            .flatMap(validationErrors -> {
+                if (!validationErrors.isEmpty()) {
+                    return Mono.error(new ResourceValidationException(validationErrors, connector.getKind(),
+                        connector.getMetadata().getName()));
+                }
 
-                    // Validate against connect rest API /validate
-                    return connectorService.validateRemotely(ns, connector)
-                            .flatMap(remoteValidationErrors -> {
-                                if (!remoteValidationErrors.isEmpty()) {
-                                    return Mono.error(new ResourceValidationException(remoteValidationErrors, connector.getKind(), connector.getMetadata().getName()));
-                                }
+                // Validate against connect rest API /validate
+                return connectorService.validateRemotely(ns, connector)
+                    .flatMap(remoteValidationErrors -> {
+                        if (!remoteValidationErrors.isEmpty()) {
+                            return Mono.error(
+                                new ResourceValidationException(remoteValidationErrors, connector.getKind(),
+                                    connector.getMetadata().getName()));
+                        }
 
-                                // Augment with server side fields
-                                connector.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                                connector.getMetadata().setCluster(ns.getMetadata().getCluster());
-                                connector.getMetadata().setNamespace(ns.getMetadata().getName());
-                                connector.setStatus(Connector.ConnectorStatus.builder()
-                                        .state(Connector.TaskState.UNASSIGNED)
-                                        .build());
+                        // Augment with server side fields
+                        connector.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                        connector.getMetadata().setCluster(ns.getMetadata().getCluster());
+                        connector.getMetadata().setNamespace(ns.getMetadata().getName());
+                        connector.setStatus(Connector.ConnectorStatus.builder()
+                            .state(Connector.TaskState.UNASSIGNED)
+                            .build());
 
-                                Optional<Connector> existingConnector = connectorService.findByName(ns, connector.getMetadata().getName());
-                                if (existingConnector.isPresent() && existingConnector.get().equals(connector)) {
-                                    return Mono.just(formatHttpResponse(existingConnector.get(), ApplyStatus.unchanged));
-                                }
+                        Optional<Connector> existingConnector =
+                            connectorService.findByName(ns, connector.getMetadata().getName());
+                        if (existingConnector.isPresent() && existingConnector.get().equals(connector)) {
+                            return Mono.just(formatHttpResponse(existingConnector.get(), ApplyStatus.unchanged));
+                        }
 
-                                ApplyStatus status = existingConnector.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
-                                
-                                // Only check quota on connector creation
-                                if (status.equals(ApplyStatus.created)) {
-                                    List<String> quotaErrors = resourceQuotaService.validateConnectorQuota(ns);
-                                    if (!quotaErrors.isEmpty()) {
-                                        return Mono.error(new ResourceValidationException(quotaErrors, connector.getKind(), connector.getMetadata().getName()));
-                                    }
-                                }
+                        ApplyStatus status = existingConnector.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
 
-                                if (dryrun) {
-                                    return Mono.just(formatHttpResponse(connector, status));
-                                }
+                        // Only check quota on connector creation
+                        if (status.equals(ApplyStatus.created)) {
+                            List<String> quotaErrors = resourceQuotaService.validateConnectorQuota(ns);
+                            if (!quotaErrors.isEmpty()) {
+                                return Mono.error(new ResourceValidationException(quotaErrors, connector.getKind(),
+                                    connector.getMetadata().getName()));
+                            }
+                        }
 
-                                sendEventLog(connector.getKind(), connector.getMetadata(), status,
-                                        existingConnector.<Object>map(Connector::getSpec).orElse(null), connector.getSpec());
+                        if (dryrun) {
+                            return Mono.just(formatHttpResponse(connector, status));
+                        }
 
-                                return Mono.just(formatHttpResponse(connectorService.createOrUpdate(connector), status));
-                            });
-                });
+                        sendEventLog(connector.getKind(), connector.getMetadata(), status,
+                            existingConnector.<Object>map(Connector::getSpec).orElse(null), connector.getSpec());
+
+                        return Mono.just(formatHttpResponse(connectorService.createOrUpdate(connector), status));
+                    });
+            });
     }
 
     /**
-     * Change the state of a connector
-     * @param namespace The namespace
-     * @param connector The connector to update the state
+     * Change the state of a connector.
+     *
+     * @param namespace            The namespace
+     * @param connector            The connector to update the state
      * @param changeConnectorState The state to set
      * @return The change connector state response
      */
     @Post("/{connector}/change-state")
-    public Mono<MutableHttpResponse<ChangeConnectorState>> changeState(String namespace, String connector, @Body @Valid ChangeConnectorState changeConnectorState) {
+    public Mono<MutableHttpResponse<ChangeConnectorState>> changeState(
+        String namespace, String connector, @Body @Valid ChangeConnectorState changeConnectorState) {
         Namespace ns = getNamespace(namespace);
 
         if (!connectorService.isNamespaceOwnerOfConnect(ns, connector)) {
             return Mono.error(new ResourceValidationException(List.of(String.format(NAMESPACE_NOT_OWNER, connector)),
-                    "Connector", connector));
+                "Connector", connector));
         }
 
         Optional<Connector> optionalConnector = connectorService.findByName(ns, connector);
@@ -197,45 +219,42 @@ public class ConnectorController extends NamespacedResourceController {
 
         Mono<HttpResponse<Void>> response;
         switch (changeConnectorState.getSpec().getAction()) {
-            case restart:
-                response = connectorService.restart(ns, optionalConnector.get());
-                break;
-            case pause:
-                response = connectorService.pause(ns, optionalConnector.get());
-                break;
-            case resume:
-                response = connectorService.resume(ns, optionalConnector.get());
-                break;
-            default:
-                return Mono.error(new IllegalStateException("Unspecified action " + changeConnectorState.getSpec().getAction()));
+            case restart -> response = connectorService.restart(ns, optionalConnector.get());
+            case pause -> response = connectorService.pause(ns, optionalConnector.get());
+            case resume -> response = connectorService.resume(ns, optionalConnector.get());
+            default -> {
+                return Mono.error(
+                    new IllegalStateException("Unspecified action " + changeConnectorState.getSpec().getAction()));
+            }
         }
 
         return response
-                .doOnSuccess(success -> {
-                    changeConnectorState.setStatus(ChangeConnectorState.ChangeConnectorStateStatus.builder()
-                            .success(true)
-                            .code(success.status())
-                            .build());
-                    changeConnectorState.setMetadata(optionalConnector.get().getMetadata());
-                    changeConnectorState.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                })
-                .doOnError(error -> {
-                    changeConnectorState.setStatus(ChangeConnectorState.ChangeConnectorStateStatus.builder()
-                                    .success(false)
-                                    .code(HttpStatus.INTERNAL_SERVER_ERROR)
-                                    .errorMessage(error.getMessage())
-                                    .build());
-                    changeConnectorState.setMetadata(optionalConnector.get().getMetadata());
-                    changeConnectorState.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                })
-                .map(httpResponse -> HttpResponse.ok(changeConnectorState))
-                .onErrorReturn(HttpResponse.ok(changeConnectorState));
+            .doOnSuccess(success -> {
+                changeConnectorState.setStatus(ChangeConnectorState.ChangeConnectorStateStatus.builder()
+                    .success(true)
+                    .code(success.status())
+                    .build());
+                changeConnectorState.setMetadata(optionalConnector.get().getMetadata());
+                changeConnectorState.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+            })
+            .doOnError(error -> {
+                changeConnectorState.setStatus(ChangeConnectorState.ChangeConnectorStateStatus.builder()
+                    .success(false)
+                    .code(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .errorMessage(error.getMessage())
+                    .build());
+                changeConnectorState.setMetadata(optionalConnector.get().getMetadata());
+                changeConnectorState.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+            })
+            .map(httpResponse -> HttpResponse.ok(changeConnectorState))
+            .onErrorReturn(HttpResponse.ok(changeConnectorState));
     }
 
     /**
-     * Import unsynchronized connectors
+     * Import unsynchronized connectors.
+     *
      * @param namespace The namespace
-     * @param dryrun Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not ?
      * @return The list of imported connectors
      */
     @Post("/_/import{?dryrun}")
@@ -251,7 +270,8 @@ public class ConnectorController extends NamespacedResourceController {
                     return unsynchronizedConnector;
                 }
 
-                sendEventLog(unsynchronizedConnector.getKind(), unsynchronizedConnector.getMetadata(), ApplyStatus.created, null, unsynchronizedConnector.getSpec());
+                sendEventLog(unsynchronizedConnector.getKind(), unsynchronizedConnector.getMetadata(),
+                    ApplyStatus.created, null, unsynchronizedConnector.getSpec());
 
                 return connectorService.createOrUpdate(unsynchronizedConnector);
             });

@@ -1,17 +1,22 @@
 package com.michelin.ns4kafka.models;
 
 import io.micronaut.core.annotation.Introspected;
-import lombok.*;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-
-@Introspected
+/**
+ * Access control entry.
+ */
+@Data
 @Builder
+@Introspected
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
 public class AccessControlEntry {
     private final String apiVersion = "v1";
     private final String kind = "AccessControlEntry";
@@ -24,11 +29,43 @@ public class AccessControlEntry {
     @NotNull
     private AccessControlEntrySpec spec;
 
-    @Introspected
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
+    /**
+     * Resource type managed by Ns4kafka.
+     */
+    public enum ResourceType {
+        TOPIC,
+        GROUP,
+        CONNECT,
+        CONNECT_CLUSTER,
+        SCHEMA,
+        TRANSACTIONAL_ID
+    }
+
+    /**
+     * Resource pattern type.
+     */
+    public enum ResourcePatternType {
+        LITERAL,
+        PREFIXED
+    }
+
+    /**
+     * Permission.
+     */
+    public enum Permission {
+        OWNER,
+        READ,
+        WRITE
+    }
+
+    /**
+     * Access control entry specification.
+     */
     @Data
+    @Builder
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class AccessControlEntrySpec {
         @NotNull
         protected ResourceType resourceType;
@@ -46,25 +83,5 @@ public class AccessControlEntry {
         @NotBlank
         @NotNull
         protected String grantedTo;
-    }
-
-    public enum ResourceType {
-        TOPIC,
-        GROUP,
-        CONNECT,
-        CONNECT_CLUSTER,
-        SCHEMA,
-        TRANSACTIONAL_ID
-    }
-
-    public enum ResourcePatternType {
-        LITERAL,
-        PREFIXED
-    }
-
-    public enum Permission {
-        OWNER,
-        READ,
-        WRITE
     }
 }

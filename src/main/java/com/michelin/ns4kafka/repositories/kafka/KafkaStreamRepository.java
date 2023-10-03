@@ -2,20 +2,25 @@ package com.michelin.ns4kafka.repositories.kafka;
 
 import com.michelin.ns4kafka.models.KafkaStream;
 import com.michelin.ns4kafka.repositories.StreamRepository;
-import io.micronaut.configuration.kafka.annotation.*;
+import io.micronaut.configuration.kafka.annotation.KafkaClient;
+import io.micronaut.configuration.kafka.annotation.KafkaListener;
+import io.micronaut.configuration.kafka.annotation.OffsetReset;
+import io.micronaut.configuration.kafka.annotation.OffsetStrategy;
+import io.micronaut.configuration.kafka.annotation.Topic;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
+import java.util.List;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
+/**
+ * Kafka Stream repository.
+ */
 @Singleton
 @KafkaListener(
-        offsetReset = OffsetReset.EARLIEST,
-        groupId = "${ns4kafka.store.kafka.group-id}",
-        offsetStrategy = OffsetStrategy.DISABLED
+    offsetReset = OffsetReset.EARLIEST,
+    groupId = "${ns4kafka.store.kafka.group-id}",
+    offsetStrategy = OffsetStrategy.DISABLED
 )
 public class KafkaStreamRepository extends KafkaStore<KafkaStream> implements StreamRepository {
 
@@ -26,15 +31,15 @@ public class KafkaStreamRepository extends KafkaStore<KafkaStream> implements St
 
     @Override
     String getMessageKey(KafkaStream stream) {
-        return stream.getMetadata().getCluster()+"/"+ stream.getMetadata().getName();
+        return stream.getMetadata().getCluster() + "/" + stream.getMetadata().getName();
     }
 
     @Override
     public List<KafkaStream> findAllForCluster(String cluster) {
         return getKafkaStore().values()
-                .stream()
-                .filter(stream -> stream.getMetadata().getCluster().equals(cluster))
-                .toList();
+            .stream()
+            .filter(stream -> stream.getMetadata().getCluster().equals(cluster))
+            .toList();
     }
 
     @Override
@@ -49,7 +54,7 @@ public class KafkaStreamRepository extends KafkaStore<KafkaStream> implements St
 
     @Override
     public void delete(KafkaStream stream) {
-        this.produce(getMessageKey(stream),null);
+        this.produce(getMessageKey(stream), null);
     }
 
 }

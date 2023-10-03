@@ -2,11 +2,17 @@ package com.michelin.ns4kafka.models.quota;
 
 import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
-import lombok.*;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-
+/**
+ * Resource quota response.
+ */
 @Getter
 @Builder
 @Introspected
@@ -24,12 +30,15 @@ public class ResourceQuotaResponse {
     @NotNull
     private ResourceQuotaResponseSpec spec;
 
+    /**
+     * Resource quota response spec.
+     */
     @Getter
     @Builder
     @ToString
     @Introspected
-    @AllArgsConstructor
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class ResourceQuotaResponseSpec {
         private String countTopic;
         private String countPartition;

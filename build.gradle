@@ -1,9 +1,10 @@
 plugins {
-    id("com.github.johnrengelman.shadow") version "7.1.2"
-    id("io.micronaut.application") version "3.7.10"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("io.micronaut.application") version "4.0.3"
     id("jacoco")
-    id("org.sonarqube") version "4.3.1.3277"
+    id("org.sonarqube") version "4.4.0.3356"
     id("pl.allegro.tech.build.axion-release") version "1.15.4"
+    id("checkstyle")
 }
 
 version = scmVersion.version
@@ -18,17 +19,21 @@ dependencies {
     annotationProcessor("io.micronaut:micronaut-http-validation")
     annotationProcessor("io.micronaut.openapi:micronaut-openapi")
     annotationProcessor("io.micronaut.security:micronaut-security-annotations")
+    annotationProcessor("io.micronaut.validation:micronaut-validation-processor")
 
     implementation("io.micronaut:micronaut-http-client")
     implementation("io.micronaut:micronaut-jackson-databind")
     implementation("io.micronaut.kafka:micronaut-kafka")
+    implementation("io.micronaut:micronaut-management")
+    implementation("io.micronaut.validation:micronaut-validation")
+    implementation("io.micronaut.reactor:micronaut-reactor")
     implementation("io.micronaut.security:micronaut-security")
     implementation("io.micronaut.security:micronaut-security-jwt")
     implementation("io.micronaut.security:micronaut-security-ldap")
+    implementation("io.micronaut.openapi:micronaut-openapi")
     implementation("io.swagger.core.v3:swagger-annotations")
     implementation("jakarta.annotation:jakarta.annotation-api")
-    implementation("io.micronaut.openapi:micronaut-openapi")
-    implementation("io.micronaut.reactor:micronaut-reactor")
+    implementation("jakarta.validation:jakarta.validation-api")
 
     compileOnly("org.projectlombok:lombok")
     compileOnly("com.google.code.findbugs:jsr305") // https://github.com/micronaut-projects/micronaut-core/pull/5691
@@ -83,38 +88,46 @@ dockerfile {
 
 if (project.hasProperty("releaseLatest")) {
     dockerBuild {
-        images = ["michelin/ns4kafka:" + version, "michelin/ns4kafka:latest"]
+        images.set(["michelin/ns4kafka:" + version, "michelin/ns4kafka:latest"])
     }
 } else {
     dockerBuild {
-        images = ["michelin/ns4kafka:" + version]
+        images.set(["michelin/ns4kafka:" + version])
     }
 }
 
-tasks.withType(JavaCompile) {
+tasks.withType(JavaCompile).configureEach {
     options.fork = true
     options.forkOptions.jvmArgs << '-Dmicronaut.openapi.views.spec=rapidoc.enabled=true'
 }
 
 sonarqube {
-  properties {
-    property "sonar.projectKey", "michelin_ns4kafka"
-    property "sonar.organization", "michelin"
-    property "sonar.host.url", "https://sonarcloud.io"
-  }
+    properties {
+        property "sonar.projectKey", "michelin_ns4kafka"
+        property "sonar.organization", "michelin"
+        property "sonar.host.url", "https://sonarcloud.io"
+    }
 }
 
 jacocoTestReport {
     dependsOn test
     reports {
-        html.enabled true
-        xml.enabled true
+        html.required = true
+        xml.required = true
     }
 }
 
 test {
     reports {
-        html.enabled false
+        html.required = false
     }
+}
+
+checkstyle {
+    toolVersion = '10.12.3'
+    configFile = file(".checkstyle/checkstyle.xml")
+    ignoreFailures = false
+    maxErrors = 0
+    maxWarnings = 0
 }
 

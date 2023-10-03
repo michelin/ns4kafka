@@ -9,18 +9,26 @@ import com.michelin.ns4kafka.utils.enums.ApplyStatus;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.annotation.*;
+import io.micronaut.http.annotation.Body;
+import io.micronaut.http.annotation.Controller;
+import io.micronaut.http.annotation.Delete;
+import io.micronaut.http.annotation.Get;
+import io.micronaut.http.annotation.Post;
+import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.http.annotation.Status;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
-
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Resource quota controller.
+ */
 @Tag(name = "Quotas", description = "Manage the resource quotas.")
 @Controller(value = "/api/namespaces/{namespace}/resource-quotas")
 @ExecuteOn(TaskExecutors.IO)
@@ -29,7 +37,8 @@ public class ResourceQuotaController extends NamespacedResourceController {
     ResourceQuotaService resourceQuotaService;
 
     /**
-     * List quotas by namespace
+     * List quotas by namespace.
+     *
      * @param namespace The namespace
      * @return A list of quotas
      */
@@ -37,13 +46,14 @@ public class ResourceQuotaController extends NamespacedResourceController {
     public List<ResourceQuotaResponse> list(String namespace) {
         Namespace ns = getNamespace(namespace);
         return List.of(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns,
-                resourceQuotaService.findByNamespace(namespace)));
+            resourceQuotaService.findByNamespace(namespace)));
     }
 
     /**
-     * Get a quota by namespace and name
+     * Get a quota by namespace and name.
+     *
      * @param namespace The name
-     * @param quota The quota name
+     * @param quota     The quota name
      * @return A quota
      */
     @Get("/{quota}")
@@ -57,14 +67,16 @@ public class ResourceQuotaController extends NamespacedResourceController {
     }
 
     /**
-     * Create a quota
+     * Create a quota.
+     *
      * @param namespace The namespace
-     * @param quota The resource quota
-     * @param dryrun Does the creation is a dry run
+     * @param quota     The resource quota
+     * @param dryrun    Does the creation is a dry run
      * @return The created quota
      */
     @Post("{?dryrun}")
-    public HttpResponse<ResourceQuota> apply(String namespace, @Body @Valid ResourceQuota quota, @QueryValue(defaultValue = "false") boolean dryrun){
+    public HttpResponse<ResourceQuota> apply(String namespace, @Body @Valid ResourceQuota quota,
+                                             @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         quota.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
@@ -87,21 +99,23 @@ public class ResourceQuotaController extends NamespacedResourceController {
         }
 
         sendEventLog(quota.getKind(), quota.getMetadata(), status,
-                resourceQuotaOptional.<Object>map(ResourceQuota::getSpec).orElse(null), quota.getSpec());
+            resourceQuotaOptional.<Object>map(ResourceQuota::getSpec).orElse(null), quota.getSpec());
 
         return formatHttpResponse(resourceQuotaService.create(quota), status);
     }
 
     /**
-     * Delete a quota
+     * Delete a quota.
+     *
      * @param namespace The namespace
-     * @param name The resource quota
-     * @param dryrun Is dry run mode or not ?
+     * @param name      The resource quota
+     * @param dryrun    Is dry run mode or not ?
      * @return An HTTP response
      */
     @Delete("/{name}{?dryrun}")
     @Status(HttpStatus.NO_CONTENT)
-    public HttpResponse<Void> delete(String namespace, String name, @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<Void> delete(String namespace, String name,
+                                     @QueryValue(defaultValue = "false") boolean dryrun) {
         Optional<ResourceQuota> resourceQuota = resourceQuotaService.findByName(namespace, name);
         if (resourceQuota.isEmpty()) {
             return HttpResponse.notFound();
@@ -112,8 +126,8 @@ public class ResourceQuotaController extends NamespacedResourceController {
         }
 
         ResourceQuota resourceQuotaToDelete = resourceQuota.get();
-        sendEventLog(resourceQuotaToDelete .getKind(), resourceQuotaToDelete.getMetadata(), ApplyStatus.deleted,
-                resourceQuotaToDelete.getSpec(), null);
+        sendEventLog(resourceQuotaToDelete.getKind(), resourceQuotaToDelete.getMetadata(), ApplyStatus.deleted,
+            resourceQuotaToDelete.getSpec(), null);
         resourceQuotaService.delete(resourceQuotaToDelete);
         return HttpResponse.noContent();
     }

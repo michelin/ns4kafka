@@ -2,12 +2,19 @@ package com.michelin.ns4kafka.models.schema;
 
 import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
-import lombok.*;
-
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+/**
+ * Schema.
+ */
 @Data
 @Builder
 @Introspected
@@ -25,10 +32,37 @@ public class Schema {
     @NotNull
     private SchemaSpec spec;
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
+    /**
+     * Schema compatibility.
+     */
+    public enum Compatibility {
+        GLOBAL,
+        BACKWARD,
+        BACKWARD_TRANSITIVE,
+        FORWARD,
+        FORWARD_TRANSITIVE,
+        FULL,
+        FULL_TRANSITIVE,
+        NONE
+    }
+
+    /**
+     * Schema type.
+     */
+    public enum SchemaType {
+        AVRO,
+        JSON,
+        PROTOBUF
+    }
+
+    /**
+     * Schema spec.
+     */
     @Data
+    @Builder
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class SchemaSpec {
         private Integer id;
         private Integer version;
@@ -41,34 +75,19 @@ public class Schema {
         private Compatibility compatibility = Compatibility.GLOBAL;
         private List<Reference> references;
 
-        @Builder
+        /**
+         * Schema reference.
+         */
         @Getter
         @Setter
-        @AllArgsConstructor
+        @Builder
+        @Introspected
         @NoArgsConstructor
+        @AllArgsConstructor
         public static class Reference {
             private String name;
             private String subject;
             private Integer version;
         }
-    }
-
-    @Introspected
-    public enum Compatibility {
-        GLOBAL,
-        BACKWARD,
-        BACKWARD_TRANSITIVE,
-        FORWARD,
-        FORWARD_TRANSITIVE,
-        FULL,
-        FULL_TRANSITIVE,
-        NONE
-    }
-
-    @Introspected
-    public enum SchemaType {
-        AVRO,
-        JSON,
-        PROTOBUF
     }
 }

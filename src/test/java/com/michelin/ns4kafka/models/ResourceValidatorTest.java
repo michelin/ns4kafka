@@ -1,10 +1,13 @@
 package com.michelin.ns4kafka.models;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import com.michelin.ns4kafka.validation.FieldValidationException;
 import com.michelin.ns4kafka.validation.ResourceValidator;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class ResourceValidatorTest {
     @Test
@@ -40,10 +43,11 @@ class ResourceValidatorTest {
         assertDoesNotThrow(() -> original.ensureValid("k", "10"));
         assertDoesNotThrow(() -> original.ensureValid("k", "5"));
     }
+
     @Test
     void testOptionalRange() {
         // BETWEEN
-        ResourceValidator.Validator original = new ResourceValidator.Range(0,10,true);
+        ResourceValidator.Validator original = new ResourceValidator.Range(0, 10, true);
         // test ensureValid
 
         assertThrows(FieldValidationException.class, () -> original.ensureValid("k", ""));
@@ -56,6 +60,7 @@ class ResourceValidatorTest {
         assertDoesNotThrow(() -> original.ensureValid("k", "5"));
 
     }
+
     @Test
     void testRangeAtLeast() {
         ResourceValidator.Validator original = ResourceValidator.Range.atLeast(10);
@@ -95,6 +100,7 @@ class ResourceValidatorTest {
         assertDoesNotThrow(() -> original.ensureValid("k", "b"));
         assertDoesNotThrow(() -> original.ensureValid("k", "c"));
     }
+
     @Test
     void testOptionalValidString() {
         ResourceValidator.Validator original = ResourceValidator.ValidString.optionalIn("a", "b", "c");
@@ -134,6 +140,7 @@ class ResourceValidatorTest {
         assertDoesNotThrow(() -> original.ensureValid("k", "b,c"));
         assertDoesNotThrow(() -> original.ensureValid("k", "c,b,a"));
     }
+
     @Test
     void testOptionalValidList() {
         ResourceValidator.Validator original = ResourceValidator.ValidList.optionalIn("a", "b", "c");

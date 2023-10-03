@@ -14,9 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.michelin.ns4kafka.services.clients.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public record ConfigInfo(@JsonProperty("definition") ConfigKeyInfo configKey, @JsonProperty("value") ConfigValueInfo configValue) {
+/**
+ * Connector configuration information.
+ *
+ * @param configKey   Config key
+ * @param configValue Config value
+ */
+public record ConfigInfo(@JsonProperty("definition") ConfigKeyInfo configKey,
+                         @JsonProperty("value") ConfigValueInfo configValue) {
 }
