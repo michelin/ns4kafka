@@ -929,7 +929,7 @@ class TopicServiceTest {
 
         List<String> validationErrors = topicService.validateTags(ns, topic);
         assertEquals(1, validationErrors.size());
-        assertEquals("Tags can only be used on confluent clusters.", validationErrors.get(0));
+        assertEquals("Invalid value (TAG_TEST) for tags: Tags are not currently supported.", validationErrors.get(0));
     }
 
     @Test
@@ -954,7 +954,7 @@ class TopicServiceTest {
         List<String> validationErrors = topicService.validateTags(ns, topic);
         assertEquals(1, validationErrors.size());
         assertEquals(
-                "Invalid value (TAG_TEST) for tags: No tags defined on the kafka cluster.",
+                "Invalid value (TAG_TEST) for tags: No tags allowed.",
                 validationErrors.get(0));
     }
 
@@ -970,7 +970,7 @@ class TopicServiceTest {
         Topic topic = Topic.builder()
                 .metadata(ObjectMeta.builder().name("ns-topic1").build())
                 .spec(Topic.TopicSpec.builder()
-                        .tags(List.of("TAG_TEST")).build())
+                        .tags(List.of("BAD_TAG")).build())
                 .build();
 
         List<TagInfo> tagInfo = List.of(TagInfo.builder().name("TAG_TEST").build());

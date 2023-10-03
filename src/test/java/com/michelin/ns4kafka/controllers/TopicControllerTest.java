@@ -30,6 +30,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -234,6 +235,7 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -277,6 +279,7 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -319,6 +322,7 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "compact",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -332,6 +336,7 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -500,6 +505,7 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "compact",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -513,6 +519,7 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(6)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -553,6 +560,7 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "compact",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -566,6 +574,7 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "compact",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -602,6 +611,7 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -636,6 +646,7 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(1)
                 .partitions(3)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -671,6 +682,7 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(1)
                 .partitions(3)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -706,6 +718,7 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(1)
                 .partitions(3)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -740,6 +753,7 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -1093,6 +1107,7 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
+                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
