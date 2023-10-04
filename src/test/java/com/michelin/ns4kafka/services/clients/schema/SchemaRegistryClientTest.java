@@ -28,7 +28,7 @@ import reactor.core.publisher.Mono;
  * Test schema registry.
  */
 @ExtendWith(MockitoExtension.class)
-public class SchemaRegistryClientTest {
+class SchemaRegistryClientTest {
 
     private static final String KAFKA_CLUSTER = "local";
     private static final String TAG = "TAG";
