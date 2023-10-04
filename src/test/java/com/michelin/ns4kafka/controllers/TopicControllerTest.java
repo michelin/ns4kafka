@@ -383,6 +383,7 @@ class TopicControllerTest {
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
+                        .tags(Collections.emptyList())
                         .configs(Map.of("cleanup.policy", "compact",
                                 "min.insync.replicas", "2",
                                 "retention.ms", "60000"))

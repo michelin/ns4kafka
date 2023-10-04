@@ -53,6 +53,7 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
         managedClusterProperties.setConfig(properties);
+        managedClusterProperties.setProvider(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
 
         when(schemaRegistryClient.addTags(anyString(), anyList())).thenReturn(Mono.just(new ArrayList<>()));
         when(managedClusterProperties.getConfig()).thenReturn(properties);
@@ -61,7 +62,7 @@ class TopicAsyncExecutorTest {
         List<Topic> ns4kafkaTopics = new ArrayList<>();
         Topic ns4kafkaTopic = Topic.builder()
                 .metadata(ObjectMeta.builder()
-                        .name(TOPIC_NAME).build())
+                        .name(TOPIC_NAME).generation(1).build())
                 .spec(Topic.TopicSpec.builder()
                         .tags(List.of(TAG1)).build()).build();
         ns4kafkaTopics.add(ns4kafkaTopic);
@@ -74,7 +75,7 @@ class TopicAsyncExecutorTest {
                         .tags(List.of(TAG2)).build()).build();
         brokerTopics.put(TOPIC_NAME, brokerTopic);
 
-        topicAsyncExecutor.createTags(ns4kafkaTopics, brokerTopics);
+        topicAsyncExecutor.manageTags(ns4kafkaTopics, brokerTopics);
 
         List<TagSpecs> tagSpecsList = new ArrayList<>();
         TagSpecs tagSpecs = TagSpecs.builder().typeName(TAG1)
@@ -90,6 +91,7 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
         managedClusterProperties.setConfig(properties);
+        managedClusterProperties.setProvider(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
 
         List<Topic> ns4kafkaTopics = new ArrayList<>();
         Topic ns4kafkaTopic = Topic.builder()
@@ -117,6 +119,7 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
         managedClusterProperties.setConfig(properties);
+        managedClusterProperties.setProvider(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
 
         when(schemaRegistryClient.deleteTag(anyString(), anyString(), anyString()))
                 .thenReturn(Mono.just(new HttpResponseMock()));
@@ -150,6 +153,7 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
         managedClusterProperties.setConfig(properties);
+        managedClusterProperties.setProvider(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
 
         List<Topic> ns4kafkaTopics = new ArrayList<>();
         Topic ns4kafkaTopic = Topic.builder()
@@ -177,6 +181,7 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
         managedClusterProperties.setConfig(properties);
+        managedClusterProperties.setProvider(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
 
         TagTopicInfo tagTopicInfo = TagTopicInfo.builder().typeName(TAG1).build();
 
@@ -203,6 +208,7 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
         managedClusterProperties.setConfig(properties);
+        managedClusterProperties.setProvider(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
 
         when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
 

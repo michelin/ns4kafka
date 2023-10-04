@@ -135,15 +135,26 @@ public class TopicAsyncExecutor {
             createTopics(toCreate);
             alterTopics(toUpdate, toCheckConf);
 
-            if (isConfluent()) {
-                createTags(ns4kafkaTopics, brokerTopics);
-                deleteTags(ns4kafkaTopics, brokerTopics);
-            }
+            manageTags(ns4kafkaTopics, brokerTopics);
+
         } catch (ExecutionException | TimeoutException | CancellationException | KafkaStoreException e) {
             log.error("Error", e);
         } catch (InterruptedException e) {
             log.error("Error", e);
             Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * Manage tags for creation and deletion.
+     *
+     * @param ns4kafkaTopics Topics from ns4kafka
+     * @param brokerTopics Topics from broker
+     */
+    public void manageTags(List<Topic> ns4kafkaTopics, Map<String, Topic> brokerTopics) {
+        if (isConfluent()) {
+            createTags(ns4kafkaTopics, brokerTopics);
+            deleteTags(ns4kafkaTopics, brokerTopics);
         }
     }
 
@@ -159,13 +170,17 @@ public class TopicAsyncExecutor {
                 .filter(topic -> topic.getMetadata().getGeneration() == 1)
                 .flatMap(ns4kafkaTopic -> {
                     Topic brokerTopic = brokerTopics.get(ns4kafkaTopic.getMetadata().getName());
-                    Set<String> existingTags = brokerTopic != null ? new HashSet<>(brokerTopic.getSpec().getTags()) : Collections.emptySet();
+                    Set<String> existingTags = brokerTopic != null
+                            ? new HashSet<>(brokerTopic.getSpec().getTags())
+                            : Collections.emptySet();
                     Set<String> newTags = new HashSet<>(ns4kafkaTopic.getSpec().getTags());
                     newTags.removeAll(existingTags);
                     return newTags
                             .stream()
                             .map(tag -> TagSpecs.builder()
-                                    .entityName(managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":" + ns4kafkaTopic.getMetadata().getName())
+                                    .entityName(
+                                            managedClusterProperties.getConfig().getProperty(CLUSTER_ID)
+                                                    + ":" + ns4kafkaTopic.getMetadata().getName())
                                     .typeName(tag)
                                     .entityType(TOPIC_ENTITY_TYPE)
                                     .build());
@@ -217,12 +232,6 @@ public class TopicAsyncExecutor {
                                     .entityType(TOPIC_ENTITY_TYPE)
                                     .build());
                 }).toList();
-
-        tagsToDelete.forEach(tag ->
-                schemaRegistryClient.deleteTag(
-                        managedClusterProperties.getName(),
-                        tag.entityName(),
-                        tag.typeName()).block());
 
         if (!tagsToDelete.isEmpty()) {
             tagsToDelete
