@@ -167,7 +167,7 @@ public class TopicAsyncExecutor {
     public void createTags(List<Topic> ns4kafkaTopics, Map<String, Topic> brokerTopics) {
         List<TagSpecs> tagsToCreate = ns4kafkaTopics
                 .stream()
-                .filter(topic -> topic.getMetadata().getGeneration() == 1)
+                .filter(ns4kafkaTopic -> brokerTopics.get(ns4kafkaTopic.getMetadata().getName()) != null)
                 .flatMap(ns4kafkaTopic -> {
                     Topic brokerTopic = brokerTopics.get(ns4kafkaTopic.getMetadata().getName());
                     Set<String> existingTags = brokerTopic != null

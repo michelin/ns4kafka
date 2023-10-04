@@ -36,6 +36,8 @@ import reactor.core.publisher.Mono;
 public class SchemaRegistryClient {
     private static final String SUBJECTS = "/subjects/";
     private static final String CONFIG = "/config/";
+    private static final String ACCEPT_HEADER = "ACCEPT";
+    private static final String JSON_HEADER = "application/json";
 
     @Inject
     @Client(id = "schema-registry")
@@ -189,7 +191,8 @@ public class SchemaRegistryClient {
                         URI.create(StringUtils.prependUri(
                                 config.getUrl(),
                                 "/catalog/v1/types/tagdefs")))
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword())
+                .header(ACCEPT_HEADER, JSON_HEADER);
         return Mono.from(httpClient.retrieve(request, Argument.listOf(TagInfo.class)));
     }
 
@@ -207,7 +210,8 @@ public class SchemaRegistryClient {
                         URI.create(StringUtils.prependUri(
                                 config.getUrl(),
                                 "/catalog/v1/entity/type/kafka_topic/name/" + entityName + "/tags")))
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword())
+                .header(ACCEPT_HEADER, JSON_HEADER);
         return Mono.from(httpClient.retrieve(request, Argument.listOf(TagTopicInfo.class)));
     }
 
@@ -225,7 +229,8 @@ public class SchemaRegistryClient {
                         URI.create(StringUtils.prependUri(
                                 config.getUrl(),
                                 "/catalog/v1/entity/tags")), tagSpecs)
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword())
+                .header(ACCEPT_HEADER, JSON_HEADER);
         return Mono.from(httpClient.retrieve(request, Argument.listOf(TagTopicInfo.class)));
     }
 
