@@ -7,7 +7,6 @@ import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilit
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
-import com.michelin.ns4kafka.services.clients.schema.entities.TagSpecs;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.core.type.Argument;
@@ -36,8 +35,6 @@ import reactor.core.publisher.Mono;
 public class SchemaRegistryClient {
     private static final String SUBJECTS = "/subjects/";
     private static final String CONFIG = "/config/";
-    private static final String ACCEPT_HEADER = "ACCEPT";
-    private static final String JSON_HEADER = "application/json";
 
     @Inject
     @Client(id = "schema-registry")
@@ -187,12 +184,9 @@ public class SchemaRegistryClient {
     public Mono<List<TagInfo>> getTags(String kafkaCluster) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest
-                .GET(
-                        URI.create(StringUtils.prependUri(
-                                config.getUrl(),
-                                "/catalog/v1/types/tagdefs")))
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword())
-                .header(ACCEPT_HEADER, JSON_HEADER);
+            .GET(URI.create(StringUtils.prependUri(
+                config.getUrl(), "/catalog/v1/types/tagdefs")))
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, Argument.listOf(TagInfo.class)));
     }
 
@@ -200,18 +194,16 @@ public class SchemaRegistryClient {
      * List tags of a topic.
      *
      * @param kafkaCluster The Kafka cluster
-     * @param entityName The topic's name for the API
+     * @param entityName   The topic's name for the API
      * @return A list of tags
      */
     public Mono<List<TagTopicInfo>> getTopicWithTags(String kafkaCluster, String entityName) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest
-                .GET(
-                        URI.create(StringUtils.prependUri(
-                                config.getUrl(),
-                                "/catalog/v1/entity/type/kafka_topic/name/" + entityName + "/tags")))
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword())
-                .header(ACCEPT_HEADER, JSON_HEADER);
+            .GET(URI.create(StringUtils.prependUri(
+                config.getUrl(),
+                "/catalog/v1/entity/type/kafka_topic/name/" + entityName + "/tags")))
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, Argument.listOf(TagTopicInfo.class)));
     }
 
@@ -219,18 +211,16 @@ public class SchemaRegistryClient {
      * Add a tag to a topic.
      *
      * @param kafkaCluster The Kafka cluster
-     * @param tagSpecs Tags to add
+     * @param tagSpecs     Tags to add
      * @return Information about added tags
      */
-    public Mono<List<TagTopicInfo>> addTags(String kafkaCluster, List<TagSpecs> tagSpecs) {
+    public Mono<List<TagTopicInfo>> addTags(String kafkaCluster, List<TagTopicInfo> tagSpecs) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest
-                .POST(
-                        URI.create(StringUtils.prependUri(
-                                config.getUrl(),
-                                "/catalog/v1/entity/tags")), tagSpecs)
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword())
-                .header(ACCEPT_HEADER, JSON_HEADER);
+            .POST(URI.create(StringUtils.prependUri(
+                config.getUrl(),
+                "/catalog/v1/entity/tags")), tagSpecs)
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, Argument.listOf(TagTopicInfo.class)));
     }
 
@@ -238,18 +228,17 @@ public class SchemaRegistryClient {
      * Delete a tag to a topic.
      *
      * @param kafkaCluster The Kafka cluster
-     * @param entityName The topic's name
-     * @param tagName The tag to delete
+     * @param entityName   The topic's name
+     * @param tagName      The tag to delete
      * @return The resume response
      */
-    public Mono<HttpResponse<Void>> deleteTag(String kafkaCluster, String  entityName, String tagName) {
+    public Mono<HttpResponse<Void>> deleteTag(String kafkaCluster, String entityName, String tagName) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest
-                .DELETE(
-                        URI.create(StringUtils.prependUri(
-                                config.getUrl(),
-                                "/catalog/v1/entity/type/kafka_topic/name/" + entityName + "/tags/" + tagName)))
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+            .DELETE(URI.create(StringUtils.prependUri(
+                config.getUrl(),
+                "/catalog/v1/entity/type/kafka_topic/name/" + entityName + "/tags/" + tagName)))
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.exchange(request, Void.class));
     }
 

@@ -329,39 +329,39 @@ public class TopicService {
      * Validate tags for topic.
      *
      * @param namespace The namespace
-     * @param topic The topic which contains tags
+     * @param topic     The topic which contains tags
      * @return A list of validation errors
      */
     public List<String> validateTags(Namespace namespace, Topic topic) {
         List<String> validationErrors = new ArrayList<>();
 
         Optional<ManagedClusterProperties> topicCluster = managedClusterProperties
-                .stream()
-                .filter(cluster -> namespace.getMetadata().getCluster().equals(cluster.getName()))
-                .findFirst();
+            .stream()
+            .filter(cluster -> namespace.getMetadata().getCluster().equals(cluster.getName()))
+            .findFirst();
 
         if (topicCluster.isPresent()
-                && !topicCluster.get().getProvider().equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)) {
+            && !topicCluster.get().getProvider().equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)) {
             validationErrors.add(String.format(
-                            "Invalid value (%s) for tags: Tags are not currently supported.",
-                            String.join(",", topic.getSpec().getTags())));
+                "Invalid value %s for tags: Tags are not currently supported.",
+                String.join(", ", topic.getSpec().getTags())));
             return validationErrors;
         }
 
         Set<String> tagNames = schemaRegistryClient.getTags(namespace.getMetadata().getCluster())
-                .map(tags -> tags.stream().map(TagInfo::name).collect(Collectors.toSet())).block();
+            .map(tags -> tags.stream().map(TagInfo::name).collect(Collectors.toSet())).block();
 
         if (tagNames == null || tagNames.isEmpty()) {
             validationErrors.add(String.format(
-                    "Invalid value (%s) for tags: No tags allowed.",
-                    String.join(",", topic.getSpec().getTags())));
+                "Invalid value %s for tags: No tags allowed.",
+                String.join(", ", topic.getSpec().getTags())));
             return validationErrors;
         }
 
         if (!tagNames.containsAll(topic.getSpec().getTags())) {
             validationErrors.add(String.format(
-                    "Invalid value (%s) for tags: Available tags are (%s).",
-                    String.join(",", topic.getSpec().getTags()), String.join(",", tagNames)));
+                "Invalid value %s for tags: Available tags are %s.",
+                String.join(", ", topic.getSpec().getTags()), String.join(",", tagNames)));
         }
 
         return validationErrors;

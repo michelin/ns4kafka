@@ -6,7 +6,6 @@ import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.ResourceQuotaRepository;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.context.annotation.EachBean;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -17,6 +16,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ScramCredentialInfo;
@@ -33,6 +33,7 @@ import org.apache.kafka.common.quota.ClientQuotaFilterComponent;
 @Slf4j
 @EachBean(ManagedClusterProperties.class)
 @Singleton
+@AllArgsConstructor
 public class UserAsyncExecutor {
     public static final double BYTE_RATE_DEFAULT_VALUE = 102400.0;
 
@@ -42,11 +43,9 @@ public class UserAsyncExecutor {
 
     private final AbstractUserSynchronizer userExecutor;
 
-    @Inject
-    NamespaceRepository namespaceRepository;
+    private NamespaceRepository namespaceRepository;
 
-    @Inject
-    ResourceQuotaRepository quotaRepository;
+    private ResourceQuotaRepository quotaRepository;
 
     /**
      * Constructor.

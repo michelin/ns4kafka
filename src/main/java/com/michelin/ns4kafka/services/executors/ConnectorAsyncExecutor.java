@@ -12,13 +12,13 @@ import com.michelin.ns4kafka.services.clients.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.services.clients.connect.entities.ConnectorStatus;
 import io.micronaut.context.annotation.EachBean;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -29,20 +29,18 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @EachBean(ManagedClusterProperties.class)
 @Singleton
+@AllArgsConstructor
 public class ConnectorAsyncExecutor {
-    private final ManagedClusterProperties managedClusterProperties;
     private final Set<String> healthyConnectClusters = new HashSet<>();
     private final Set<String> idleConnectClusters = new HashSet<>();
-    @Inject
-    private ConnectorRepository connectorRepository;
-    @Inject
-    private KafkaConnectClient kafkaConnectClient;
-    @Inject
-    private ConnectClusterService connectClusterService;
 
-    public ConnectorAsyncExecutor(ManagedClusterProperties managedClusterProperties) {
-        this.managedClusterProperties = managedClusterProperties;
-    }
+    private final ManagedClusterProperties managedClusterProperties;
+
+    private ConnectorRepository connectorRepository;
+
+    private KafkaConnectClient kafkaConnectClient;
+
+    private ConnectClusterService connectClusterService;
 
     /**
      * Run the connector synchronization.
@@ -101,7 +99,6 @@ public class ConnectorAsyncExecutor {
             });
     }
 
-
     /**
      * For each connect cluster, start the synchronization of connectors.
      */
@@ -141,7 +138,7 @@ public class ConnectorAsyncExecutor {
                         managedClusterProperties.getName(), connectCluster);
                 } else {
                     log.error(
-                        "Exception during connectors synchronization for Kafka cluster {} and Kafka Connect {}: {}.",
+                        "Error during connectors synchronization for Kafka cluster {} and Kafka Connect {}: {}.",
                         managedClusterProperties.getName(), connectCluster, error.getMessage());
                 }
             })

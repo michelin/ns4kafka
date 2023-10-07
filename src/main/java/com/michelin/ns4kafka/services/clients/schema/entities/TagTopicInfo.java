@@ -5,9 +5,9 @@ import lombok.Builder;
 /**
  * Information on tag.
  *
- * @param entityName The entity name
- * @param entityType The entity type
- * @param typeName The type name
+ * @param entityName   The entity name
+ * @param entityType   The entity type
+ * @param typeName     The type name
  * @param entityStatus The entity status
  */
 @Builder
@@ -17,5 +17,4 @@ public record TagTopicInfo(String entityName, String entityType, String typeName
     public String toString() {
         return entityName + "/" + typeName;
     }
-
 }

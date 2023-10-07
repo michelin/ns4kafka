@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
 
 /**
@@ -109,9 +108,9 @@ public class TopicController extends NamespacedResourceController {
             validationErrors.addAll(topicService.validateTopicUpdate(ns, existingTopic.get(), topic));
         }
 
-        List<String> existingTags = existingTopic.isPresent()
-                ? existingTopic.get().getSpec().getTags()
-                : Collections.emptyList();
+        List<String> existingTags = existingTopic
+            .map(oldTopic -> oldTopic.getSpec().getTags())
+            .orElse(Collections.emptyList());
         if (topic.getSpec().getTags().stream().anyMatch(newTag -> !existingTags.contains(newTag))) {
             validationErrors.addAll(topicService.validateTags(ns, topic));
         }
@@ -276,6 +275,6 @@ public class TopicController extends NamespacedResourceController {
                     .offset(entry.getValue())
                     .build())
                 .build())
-            .collect(Collectors.toList());
+            .toList();
     }
 }

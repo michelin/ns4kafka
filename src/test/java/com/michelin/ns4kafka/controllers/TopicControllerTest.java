@@ -30,7 +30,6 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -235,7 +234,6 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
-                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -279,7 +277,6 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
-                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -322,7 +319,6 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
-                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "compact",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -336,7 +332,6 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
-                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -357,119 +352,99 @@ class TopicControllerTest {
         assertEquals("test.topic", actual.getMetadata().getName());
     }
 
-    /**
-     * Validate topic update with two new tags.
-     *
-     * @throws InterruptedException Any interrupted exception
-     * @throws ExecutionException Any execution exception
-     * @throws TimeoutException Any timeout exception
-     */
     @Test
-    void updateTopicWithNewTags() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldValidateNewTags() {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .spec(NamespaceSpec.builder()
-                        .topicValidator(TopicValidator.makeDefault())
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .spec(NamespaceSpec.builder()
+                .topicValidator(TopicValidator.makeDefault())
+                .build())
+            .build();
 
         Topic existing = Topic.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test.topic")
-                        .build())
-                .spec(Topic.TopicSpec.builder()
-                        .replicationFactor(3)
-                        .partitions(3)
-                        .tags(Collections.emptyList())
-                        .configs(Map.of("cleanup.policy", "compact",
-                                "min.insync.replicas", "2",
-                                "retention.ms", "60000"))
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test.topic")
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .replicationFactor(3)
+                .partitions(3)
+                .tags(Arrays.asList("TAG1", "TAG3"))
+                .configs(Map.of("cleanup.policy", "compact",
+                    "min.insync.replicas", "2",
+                    "retention.ms", "60000"))
+                .build())
+            .build();
 
         Topic topic = Topic.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test.topic")
-                        .build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(Arrays.asList("TAG1", "TAG2"))
-                        .replicationFactor(3)
-                        .partitions(3)
-                        .configs(Map.of("cleanup.policy", "delete",
-                                "min.insync.replicas", "2",
-                                "retention.ms", "60000"))
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test.topic")
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .tags(Arrays.asList("TAG1", "TAG2"))
+                .replicationFactor(3)
+                .partitions(3)
+                .configs(Map.of("cleanup.policy", "delete",
+                    "min.insync.replicas", "2",
+                    "retention.ms", "60000"))
+                .build())
+            .build();
 
         when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
+            .thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
-        when(topicService.create(topic)).thenReturn(topic);
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
+        when(topicService.validateTags(ns, topic)).thenReturn(List.of("Error on tags"));
 
-        var response = topicController.apply("test", topic, false);
-        Topic actual = response.body();
-        assertEquals("changed", response.header("X-Ns4kafka-Result"));
-        assertEquals("test.topic", actual.getMetadata().getName());
-        assertEquals(2, actual.getSpec().getTags().size());
-        assertEquals("TAG1", actual.getSpec().getTags().get(0));
-        assertEquals("TAG2", actual.getSpec().getTags().get(1));
+        ResourceValidationException actual =
+            assertThrows(ResourceValidationException.class, () -> topicController.apply("test", topic, false));
+        assertEquals(1, actual.getValidationErrors().size());
+        assertLinesMatch(List.of("Error on tags"), actual.getValidationErrors());
     }
-
-    /**
-     * Validate topic update with a tag to delete.
-     *
-     * @throws InterruptedException Any interrupted exception
-     * @throws ExecutionException Any execution exception
-     * @throws TimeoutException Any timeout exception
-     */
+    
     @Test
-    void updateTopicWithTagToDelete() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldNotValidateTagsWhenNoNewTag() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .spec(NamespaceSpec.builder()
-                        .topicValidator(TopicValidator.makeDefault())
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .spec(NamespaceSpec.builder()
+                .topicValidator(TopicValidator.makeDefault())
+                .build())
+            .build();
 
         Topic existing = Topic.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test.topic")
-                        .build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(Arrays.asList("TAG1", "TAG2"))
-                        .replicationFactor(3)
-                        .partitions(3)
-                        .configs(Map.of("cleanup.policy", "compact",
-                                "min.insync.replicas", "2",
-                                "retention.ms", "60000"))
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test.topic")
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .tags(Arrays.asList("TAG1", "TAG2"))
+                .replicationFactor(3)
+                .partitions(3)
+                .configs(Map.of("cleanup.policy", "compact",
+                    "min.insync.replicas", "2",
+                    "retention.ms", "60000"))
+                .build())
+            .build();
 
         Topic topic = Topic.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("test.topic")
-                        .build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(List.of("TAG1"))
-                        .replicationFactor(3)
-                        .partitions(3)
-                        .configs(Map.of("cleanup.policy", "delete",
-                                "min.insync.replicas", "2",
-                                "retention.ms", "60000"))
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("test.topic")
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .tags(List.of("TAG1"))
+                .replicationFactor(3)
+                .partitions(3)
+                .configs(Map.of("cleanup.policy", "delete",
+                    "min.insync.replicas", "2",
+                    "retention.ms", "60000"))
+                .build())
+            .build();
 
         when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
+            .thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
         when(topicService.create(topic)).thenReturn(topic);
         when(securityService.username()).thenReturn(Optional.of("test-user"));
@@ -506,7 +481,6 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
-                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "compact",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -520,7 +494,6 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(6)
-                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -561,7 +534,6 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
-                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "compact",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -575,7 +547,6 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
-                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "compact",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -612,7 +583,6 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
-                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -647,7 +617,6 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(1)
                 .partitions(3)
-                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -683,7 +652,6 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(1)
                 .partitions(3)
-                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -719,7 +687,6 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(1)
                 .partitions(3)
-                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -754,7 +721,6 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
-                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
@@ -1108,7 +1074,6 @@ class TopicControllerTest {
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
-                .tags(Collections.emptyList())
                 .configs(Map.of("cleanup.policy", "delete",
                     "min.insync.replicas", "2",
                     "retention.ms", "60000"))
