@@ -115,9 +115,7 @@ class UserTest extends AbstractIntegrationTest {
         client.toBlocking()
             .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns3));
 
-        //force User Sync
         userAsyncExecutors.forEach(UserAsyncExecutor::run);
-
     }
 
     @Test
