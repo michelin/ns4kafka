@@ -18,6 +18,7 @@ import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
+import io.micronaut.http.HttpResponse;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -195,7 +196,7 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getConfig()).thenReturn(properties);
         when(schemaRegistryClient.deleteTag(anyString(),
             anyString(), anyString()))
-            .thenReturn(Mono.empty())
+            .thenReturn(Mono.just(HttpResponse.ok()))
             .thenReturn(Mono.error(new Exception("error")));
 
         Topic topic = Topic.builder()
@@ -256,7 +257,33 @@ class TopicAsyncExecutorTest {
                 .build());
 
         topicAsyncExecutor.enrichWithTags(brokerTopics);
-        
+
         assertEquals("typeName", brokerTopics.get(TOPIC_NAME).getSpec().getTags().get(0));
+    }
+
+    @Test
+    void shouldEnrichWithTagsWhenConfluentCloudAndResponseIsNull() {
+        Properties properties = new Properties();
+        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
+
+        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
+        when(managedClusterProperties.getConfig()).thenReturn(properties);
+
+        when(schemaRegistryClient.getTopicWithTags(LOCAL_CLUSTER, CLUSTER_ID_TEST + ":" + TOPIC_NAME))
+            .thenReturn(Mono.empty());
+
+        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
+            Topic.builder()
+                .metadata(ObjectMeta.builder()
+                    .name(TOPIC_NAME)
+                    .build())
+                .spec(Topic.TopicSpec.builder()
+                    .build())
+                .build());
+
+        topicAsyncExecutor.enrichWithTags(brokerTopics);
+
+        assertTrue(brokerTopics.get(TOPIC_NAME).getSpec().getTags().isEmpty());
     }
 }
