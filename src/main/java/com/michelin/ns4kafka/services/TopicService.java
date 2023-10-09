@@ -9,6 +9,8 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.repositories.TopicRepository;
+import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
@@ -19,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -41,6 +44,9 @@ public class TopicService {
 
     @Inject
     List<ManagedClusterProperties> managedClusterProperties;
+
+    @Inject
+    SchemaRegistryClient schemaRegistryClient;
 
     /**
      * Find all topics.
@@ -195,7 +201,6 @@ public class TopicService {
                     + "Please create a new topic with `compact` policy specified instead.",
                 newTopic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG)));
         }
-
         return validationErrors;
     }
 
@@ -318,5 +323,53 @@ public class TopicService {
             Thread.currentThread().interrupt();
             throw new InterruptedException(e.getMessage());
         }
+    }
+
+    /**
+     * Validate tags for topic.
+     *
+     * @param namespace The namespace
+     * @param topic     The topic which contains tags
+     * @return A list of validation errors
+     */
+    public List<String> validateTags(Namespace namespace, Topic topic) {
+        List<String> validationErrors = new ArrayList<>();
+
+        Optional<ManagedClusterProperties> topicCluster = managedClusterProperties
+            .stream()
+            .filter(cluster -> namespace.getMetadata().getCluster().equals(cluster.getName()))
+            .findFirst();
+
+        if (topicCluster.isPresent()
+            && !topicCluster.get().getProvider().equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)) {
+            validationErrors.add(String.format(
+                "Invalid value %s for tags: Tags are not currently supported.",
+                String.join(", ", topic.getSpec().getTags())));
+            return validationErrors;
+        }
+
+        Set<String> tagNames = schemaRegistryClient.getTags(namespace.getMetadata().getCluster())
+            .map(tags -> tags.stream().map(TagInfo::name).collect(Collectors.toSet())).block();
+
+        if (tagNames == null || tagNames.isEmpty()) {
+            validationErrors.add(String.format(
+                "Invalid value %s for tags: No tags allowed.",
+                String.join(", ", topic.getSpec().getTags())));
+            return validationErrors;
+        }
+
+        List<String> unavailableTagNames = topic.getSpec().getTags()
+            .stream()
+            .filter(tagName -> !tagNames.contains(tagName))
+            .toList();
+
+        if (!unavailableTagNames.isEmpty()) {
+            validationErrors.add(String.format(
+                "Invalid value %s for tags: Available tags are %s.",
+                String.join(", ", unavailableTagNames),
+                String.join(", ", tagNames)));
+        }
+
+        return validationErrors;
     }
 }

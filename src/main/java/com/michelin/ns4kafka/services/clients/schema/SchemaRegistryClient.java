@@ -6,9 +6,13 @@ import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilit
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
+import io.micronaut.core.type.Argument;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.HttpClient;
@@ -169,6 +173,73 @@ public class SchemaRegistryClient {
             HttpRequest.DELETE(URI.create(StringUtils.prependUri(config.getUrl(), CONFIG + subject)))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, SchemaCompatibilityResponse.class));
+    }
+
+    /**
+     * List tags.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @return A list of tags
+     */
+    public Mono<List<TagInfo>> getTags(String kafkaCluster) {
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
+        HttpRequest<?> request = HttpRequest
+            .GET(URI.create(StringUtils.prependUri(
+                config.getUrl(), "/catalog/v1/types/tagdefs")))
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+        return Mono.from(httpClient.retrieve(request, Argument.listOf(TagInfo.class)));
+    }
+
+    /**
+     * List tags of a topic.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @param entityName   The topic's name for the API
+     * @return A list of tags
+     */
+    public Mono<List<TagTopicInfo>> getTopicWithTags(String kafkaCluster, String entityName) {
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
+        HttpRequest<?> request = HttpRequest
+            .GET(URI.create(StringUtils.prependUri(
+                config.getUrl(),
+                "/catalog/v1/entity/type/kafka_topic/name/" + entityName + "/tags")))
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+        return Mono.from(httpClient.retrieve(request, Argument.listOf(TagTopicInfo.class)));
+    }
+
+    /**
+     * Add a tag to a topic.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @param tagSpecs     Tags to add
+     * @return Information about added tags
+     */
+    public Mono<List<TagTopicInfo>> addTags(String kafkaCluster, List<TagTopicInfo> tagSpecs) {
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
+        HttpRequest<?> request = HttpRequest
+            .POST(URI.create(StringUtils.prependUri(
+                config.getUrl(),
+                "/catalog/v1/entity/tags")), tagSpecs)
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+        return Mono.from(httpClient.retrieve(request, Argument.listOf(TagTopicInfo.class)));
+    }
+
+    /**
+     * Delete a tag to a topic.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @param entityName   The topic's name
+     * @param tagName      The tag to delete
+     * @return The resume response
+     */
+    public Mono<HttpResponse<Void>> deleteTag(String kafkaCluster, String entityName, String tagName) {
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
+        HttpRequest<?> request = HttpRequest
+            .DELETE(URI.create(StringUtils.prependUri(
+                config.getUrl(),
+                "/catalog/v1/entity/type/kafka_topic/name/" + entityName + "/tags/" + tagName)))
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+        return Mono.from(httpClient.exchange(request, Void.class));
     }
 
     /**

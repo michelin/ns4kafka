@@ -188,6 +188,7 @@ ns4kafka:
         sasl.mechanism: "PLAIN"
         security.protocol: "SASL_PLAINTEXT"
         sasl.jaas.config: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"admin\";"
+        cluster.id: "lkc-abcde"
       schema-registry:
         url: "http://localhost:8081"
         basicAuthUsername: "user"
@@ -202,21 +203,22 @@ ns4kafka:
 The name for each managed cluster has to be unique. This is this name you have to set in the field **metadata.cluster**
 of your namespace descriptors.
 
-| Property                                | type    | description                                                 |
-|-----------------------------------------|---------|-------------------------------------------------------------|
-| manage-users                            | boolean | Does the cluster manages users ?                            |
-| manage-acls                             | boolean | Does the cluster manages access control entries ?           |
-| manage-topics                           | boolean | Does the cluster manages topics ?                           |
-| manage-connectors                       | boolean | Does the cluster manages connects ?                         |
-| drop-unsync-acls                        | boolean | Should Ns4Kafka drop unsynchronized ACLs                    |
-| provider                                | boolean | The kind of cluster. Either SELF_MANAGED or CONFLUENT_CLOUD |
-| config.bootstrap.servers                | string  | The location of the clusters servers                        |
-| schema-registry.url                     | string  | The location of the Schema Registry                         |
-| schema-registry.basicAuthUsername       | string  | Basic authentication username to the Schema Registry        |
-| schema-registry.basicAuthPassword       | string  | Basic authentication password to the Schema Registry        |
-| connects.connect-name.url               | string  | The location of the kafka connect                           |
-| connects.connect-name.basicAuthUsername | string  | Basic authentication username to the Kafka Connect          |
-| connects.connect-name.basicAuthPassword | string  | Basic authentication password to the Kafka Connect          |
+| Property                                | type    | description                                                                                                                            |
+|-----------------------------------------|---------|----------------------------------------------------------------------------------------------------------------------------------------|
+| manage-users                            | boolean | Does the cluster manages users ?                                                                                                       |
+| manage-acls                             | boolean | Does the cluster manages access control entries ?                                                                                      |
+| manage-topics                           | boolean | Does the cluster manages topics ?                                                                                                      |
+| manage-connectors                       | boolean | Does the cluster manages connects ?                                                                                                    |
+| drop-unsync-acls                        | boolean | Should Ns4Kafka drop unsynchronized ACLs                                                                                               |
+| provider                                | boolean | The kind of cluster. Either SELF_MANAGED or CONFLUENT_CLOUD                                                                            |
+| config.bootstrap.servers                | string  | The location of the clusters servers                                                                                                   |
+| config.cluster.id                       | string  | The cluster id. Required to use [Confluent Cloud tags](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog.html). |
+| schema-registry.url                     | string  | The location of the Schema Registry                                                                                                    |
+| schema-registry.basicAuthUsername       | string  | Basic authentication username to the Schema Registry                                                                                   |
+| schema-registry.basicAuthPassword       | string  | Basic authentication password to the Schema Registry                                                                                   |
+| connects.connect-name.url               | string  | The location of the kafka connect                                                                                                      |
+| connects.connect-name.basicAuthUsername | string  | Basic authentication username to the Kafka Connect                                                                                     |
+| connects.connect-name.basicAuthPassword | string  | Basic authentication password to the Kafka Connect                                                                                     |
 
 The configuration will depend on the authentication method selected for your broker, schema registry and Kafka Connect.
 

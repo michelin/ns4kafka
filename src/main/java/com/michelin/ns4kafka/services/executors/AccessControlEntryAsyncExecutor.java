@@ -15,7 +15,6 @@ import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.ConnectorService;
 import com.michelin.ns4kafka.services.StreamService;
 import io.micronaut.context.annotation.EachBean;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Stream;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.acl.AclBinding;
@@ -40,26 +40,19 @@ import org.apache.kafka.common.resource.ResourceType;
 @Slf4j
 @EachBean(ManagedClusterProperties.class)
 @Singleton
+@AllArgsConstructor
 public class AccessControlEntryAsyncExecutor {
     private static final String USER_PRINCIPAL = "User:";
 
     private final ManagedClusterProperties managedClusterProperties;
 
-    @Inject
-    AccessControlEntryService accessControlEntryService;
+    private AccessControlEntryService accessControlEntryService;
 
-    @Inject
-    StreamService streamService;
+    private StreamService streamService;
 
-    @Inject
-    ConnectorService connectorService;
+    private ConnectorService connectorService;
 
-    @Inject
-    NamespaceRepository namespaceRepository;
-
-    public AccessControlEntryAsyncExecutor(ManagedClusterProperties managedClusterProperties) {
-        this.managedClusterProperties = managedClusterProperties;
-    }
+    private NamespaceRepository namespaceRepository;
 
     /**
      * Run the ACLs synchronization.

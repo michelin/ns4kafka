@@ -18,12 +18,16 @@ import reactor.core.publisher.Flux;
 @Singleton
 public class KafkaAsyncExecutorScheduler {
     private final AtomicBoolean ready = new AtomicBoolean(false);
+
     @Inject
     List<TopicAsyncExecutor> topicAsyncExecutors;
+
     @Inject
     List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutors;
+
     @Inject
     List<ConnectorAsyncExecutor> connectorAsyncExecutors;
+
     @Inject
     List<UserAsyncExecutor> userAsyncExecutors;
 

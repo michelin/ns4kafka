@@ -22,13 +22,13 @@ import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
 
 /**
@@ -106,6 +106,13 @@ public class TopicController extends NamespacedResourceController {
             }
         } else {
             validationErrors.addAll(topicService.validateTopicUpdate(ns, existingTopic.get(), topic));
+        }
+
+        List<String> existingTags = existingTopic
+            .map(oldTopic -> oldTopic.getSpec().getTags())
+            .orElse(Collections.emptyList());
+        if (topic.getSpec().getTags().stream().anyMatch(newTag -> !existingTags.contains(newTag))) {
+            validationErrors.addAll(topicService.validateTags(ns, topic));
         }
 
         if (!validationErrors.isEmpty()) {
@@ -268,6 +275,6 @@ public class TopicController extends NamespacedResourceController {
                     .offset(entry.getValue())
                     .build())
                 .build())
-            .collect(Collectors.toList());
+            .toList();
     }
 }

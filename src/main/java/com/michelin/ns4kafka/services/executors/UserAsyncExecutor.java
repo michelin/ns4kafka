@@ -137,7 +137,7 @@ public class UserAsyncExecutor {
                     .stream()
                     .filter(q -> q.getKey().startsWith(USER_QUOTA_PREFIX))
                     .forEach(q -> userQuota.put(
-                        q.getKey().replaceAll(USER_QUOTA_PREFIX, ""),
+                        q.getKey().replace(USER_QUOTA_PREFIX, ""),
                         Double.parseDouble(q.getValue()))));
 
                 return Map.entry(namespace.getSpec().getKafkaUser(), userQuota);
@@ -165,7 +165,7 @@ public class UserAsyncExecutor {
 
         private final ScramCredentialInfo info = new ScramCredentialInfo(ScramMechanism.SCRAM_SHA_512, 4096);
         private final SecureRandom secureRandom = new SecureRandom();
-        private Admin admin;
+        private final Admin admin;
 
         public Scram512UserSynchronizer(Admin admin) {
             this.admin = admin;
