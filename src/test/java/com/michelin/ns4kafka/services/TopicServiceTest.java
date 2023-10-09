@@ -970,7 +970,7 @@ class TopicServiceTest {
         Topic topic = Topic.builder()
             .metadata(ObjectMeta.builder().name("ns-topic1").build())
             .spec(Topic.TopicSpec.builder()
-                .tags(List.of("BAD_TAG")).build())
+                .tags(List.of("BAD_TAG", "TAG_TEST")).build())
             .build();
 
         List<TagInfo> tagInfo = List.of(TagInfo.builder().name("TAG_TEST").build());

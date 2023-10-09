@@ -358,10 +358,16 @@ public class TopicService {
             return validationErrors;
         }
 
-        if (!tagNames.containsAll(topic.getSpec().getTags())) {
+        List<String> unavailableTagNames = topic.getSpec().getTags()
+            .stream()
+            .filter(tagName -> !tagNames.contains(tagName))
+            .toList();
+
+        if (!unavailableTagNames.isEmpty()) {
             validationErrors.add(String.format(
                 "Invalid value %s for tags: Available tags are %s.",
-                String.join(", ", topic.getSpec().getTags()), String.join(",", tagNames)));
+                String.join(", ", unavailableTagNames),
+                String.join(", ", tagNames)));
         }
 
         return validationErrors;
