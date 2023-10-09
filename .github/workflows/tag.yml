@@ -22,7 +22,6 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: maven
 
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v6
