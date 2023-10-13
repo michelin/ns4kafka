@@ -26,12 +26,14 @@ import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.common.acl.AccessControlEntryFilter;
 import org.apache.kafka.common.acl.AclBinding;
 import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
 import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourcePattern;
+import org.apache.kafka.common.resource.ResourcePatternFilter;
 import org.apache.kafka.common.resource.ResourceType;
 
 /**
@@ -179,8 +181,14 @@ public class AccessControlEntryAsyncExecutor {
         List<ResourceType> validResourceTypes =
             List.of(ResourceType.TOPIC, ResourceType.GROUP, ResourceType.TRANSACTIONAL_ID);
 
+        AccessControlEntryFilter accessControlEntryFilter = new AccessControlEntryFilter(
+                managedClusterProperties.getProvider()
+                        .equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD) ? "UserV2:*" : null,
+                null, AclOperation.ANY, AclPermissionType.ANY);
+        AclBindingFilter aclBindingFilter = new AclBindingFilter(ResourcePatternFilter.ANY, accessControlEntryFilter);
+
         List<AclBinding> userAcls = getAdminClient()
-            .describeAcls(AclBindingFilter.ANY)
+            .describeAcls(aclBindingFilter)
             .values().get(10, TimeUnit.SECONDS)
             .stream()
             .filter(aclBinding -> validResourceTypes.contains(aclBinding.pattern().resourceType()))
