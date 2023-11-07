@@ -6,6 +6,8 @@ import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
 import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagEntities;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagEntity;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
 import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Singleton;
@@ -18,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -221,14 +224,15 @@ public class TopicAsyncExecutor {
      */
     public void enrichWithTags(Map<String, Topic> topics) {
         if (isConfluentCloud()) {
-            topics.forEach((key, value) -> {
-                List<TagTopicInfo> tags = schemaRegistryClient.getTopicWithTags(managedClusterProperties.getName(),
-                    managedClusterProperties.getConfig().getProperty(CLUSTER_ID)
-                        + ":" + value.getMetadata().getName()).block();
-
-                value.getSpec().setTags(tags != null ? tags.stream().map(TagTopicInfo::typeName).toList() :
-                    Collections.emptyList());
-            });
+            TagEntities tagEntities = schemaRegistryClient.getTopicWithTags(managedClusterProperties.getName()).block();
+            if (tagEntities != null) {
+                topics.forEach((key, value) -> {
+                    Optional<List<String>> tags = tagEntities.entities().stream()
+                            .filter(tagEntity -> value.getMetadata().getName().equals(tagEntity.displayText()))
+                            .map(TagEntity::classificationNames).findFirst();
+                    value.getSpec().setTags(tags.orElse(Collections.emptyList()));
+                });
+            }
         }
     }
 

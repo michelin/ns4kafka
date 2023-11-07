@@ -6,6 +6,7 @@ import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilit
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagEntities;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
@@ -14,6 +15,7 @@ import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.MediaType;
 import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
@@ -190,21 +192,20 @@ public class SchemaRegistryClient {
         return Mono.from(httpClient.retrieve(request, Argument.listOf(TagInfo.class)));
     }
 
+
     /**
      * List tags of a topic.
      *
      * @param kafkaCluster The Kafka cluster
-     * @param entityName   The topic's name for the API
      * @return A list of tags
      */
-    public Mono<List<TagTopicInfo>> getTopicWithTags(String kafkaCluster, String entityName) {
+    public Mono<TagEntities> getTopicWithTags(String kafkaCluster) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest
-            .GET(URI.create(StringUtils.prependUri(
-                config.getUrl(),
-                "/catalog/v1/entity/type/kafka_topic/name/" + entityName + "/tags")))
-            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-        return Mono.from(httpClient.retrieve(request, Argument.listOf(TagTopicInfo.class)));
+                .GET(URI.create(StringUtils.prependUri(
+                        config.getUrl(), "/catalog/v1/search/basic?type=kafka_topic&tag=*")))
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+        return Mono.from(httpClient.retrieve(request, TagEntities.class));
     }
 
     /**

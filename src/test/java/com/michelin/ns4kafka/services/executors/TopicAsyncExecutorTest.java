@@ -17,7 +17,8 @@ import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
-import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagEntities;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagEntity;
 import io.micronaut.http.HttpResponse;
 import java.util.List;
 import java.util.Map;
@@ -238,14 +239,15 @@ class TopicAsyncExecutorTest {
 
         when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
-        when(managedClusterProperties.getConfig()).thenReturn(properties);
 
-        TagTopicInfo tagTopicInfo = TagTopicInfo.builder()
-            .typeName("typeName")
-            .build();
+        TagEntity tagEntity = TagEntity.builder()
+                .classificationNames(List.of("typeName"))
+                .displayText(TOPIC_NAME).build();
+        List<TagEntity> tagEntityList = List.of(tagEntity);
+        TagEntities tagEntities = TagEntities.builder().entities(tagEntityList).build();
 
-        when(schemaRegistryClient.getTopicWithTags(LOCAL_CLUSTER, CLUSTER_ID_TEST + ":" + TOPIC_NAME))
-            .thenReturn(Mono.just(List.of(tagTopicInfo)));
+        when(schemaRegistryClient.getTopicWithTags(LOCAL_CLUSTER))
+            .thenReturn(Mono.just(tagEntities));
 
         Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
             Topic.builder()
@@ -268,9 +270,8 @@ class TopicAsyncExecutorTest {
 
         when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
-        when(managedClusterProperties.getConfig()).thenReturn(properties);
 
-        when(schemaRegistryClient.getTopicWithTags(LOCAL_CLUSTER, CLUSTER_ID_TEST + ":" + TOPIC_NAME))
+        when(schemaRegistryClient.getTopicWithTags(LOCAL_CLUSTER))
             .thenReturn(Mono.empty());
 
         Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
