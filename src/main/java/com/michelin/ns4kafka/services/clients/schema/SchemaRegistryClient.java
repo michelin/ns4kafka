@@ -188,8 +188,7 @@ public class SchemaRegistryClient {
         HttpRequest<?> request = HttpRequest
             .GET(URI.create(StringUtils.prependUri(
                 config.getUrl(), "/catalog/v1/types/tagdefs")))
-            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword())
-            .accept(MediaType.APPLICATION_JSON_TYPE);
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, Argument.listOf(TagInfo.class)));
     }
 
@@ -204,11 +203,8 @@ public class SchemaRegistryClient {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest
                 .GET(URI.create(StringUtils.prependUri(
-                        config.getUrl(),
-                        "/catalog/v1/search/basic?type=kafka_topic&tag=*")))
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword())
-                .accept(MediaType.APPLICATION_JSON_TYPE);
-
+                        config.getUrl(), "/catalog/v1/search/basic?type=kafka_topic&tag=*")))
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, TagEntities.class));
     }
 
