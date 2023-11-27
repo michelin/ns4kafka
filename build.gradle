@@ -11,7 +11,10 @@ version = scmVersion.version
 group = "com.michelin.ns4kafka"
 
 repositories {
-    mavenCentral()
+    maven { url "https://artifactory.michelin.com/maven/" }
+    maven {
+        url "https://packages.confluent.io/maven"
+    }
 }
 
 dependencies {
@@ -34,6 +37,8 @@ dependencies {
     implementation("io.swagger.core.v3:swagger-annotations")
     implementation("jakarta.annotation:jakarta.annotation-api")
     implementation("jakarta.validation:jakarta.validation-api")
+    implementation('io.confluent:kafka-schema-registry-client:7.5.1')
+
 
     compileOnly("org.projectlombok:lombok")
     compileOnly("com.google.code.findbugs:jsr305") // https://github.com/micronaut-projects/micronaut-core/pull/5691

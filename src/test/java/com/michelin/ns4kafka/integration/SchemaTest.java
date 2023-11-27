@@ -14,6 +14,8 @@ import com.michelin.ns4kafka.models.schema.SchemaCompatibilityState;
 import com.michelin.ns4kafka.models.schema.SchemaList;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
+import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaRequest;
+import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaResponse;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.core.type.Argument;
@@ -457,5 +459,101 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                     SchemaResponse.class));
 
         assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
+    }
+
+    @Test
+    void registerSameSchemaTwice() {
+        Schema schema = Schema.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-subject3-value")
+                        .build())
+                .spec(Schema.SchemaSpec.builder()
+                        .schema(
+                                "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                                        + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
+                                        + "\"default\":null,\"doc\":\"First name of the person\"},"
+                                        + "{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,"
+                                        + "\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\","
+                                        + "{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
+                                        + "\"doc\":\"Date of birth of the person\"}]}")
+                        .build())
+                .build();
+
+        Schema sameSchemaWithSwappedFields = Schema.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("ns1-subject3-value")
+                        .build())
+                .spec(Schema.SchemaSpec.builder()
+                        .schema(
+                                "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                                        + "\"name\":\"PersonAvro\",\"fields\":[ {\"name\":\"lastName\",\"type\":[\"null\",\"string\"],"
+                                        + "\"default\":null, \"doc\":\"Last name of the person\"},"
+                                        + "{\"name\":\"firstName\",\"type\":[\"null\",\"string\"], \"default\":null,"
+                                        + "\"doc\":\"First name of the person\"}, {\"name\":\"dateOfBirth\",\"type\":[\"null\","
+                                        + "{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
+                                        + "\"doc\":\"Date of birth of the person\"}]}")
+                        .build())
+                .build();
+
+        // Apply schema
+        var createResponse =
+                ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                        .bearerAuth(token)
+                        .body(schema), Schema.class);
+
+        assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
+
+        // Get all schemas
+        var getResponse =
+                ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
+                        .bearerAuth(token), Argument.listOf(SchemaList.class));
+
+        assertTrue(getResponse.getBody().isPresent());
+        assertTrue(getResponse.getBody().get()
+                .stream()
+                .anyMatch(schemaList -> schemaList.getMetadata().getName().equals("ns1-subject3-value")));
+
+        // Apply the same schema with swapped fields
+        var createSwappedFieldsResponse =
+                ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                        .bearerAuth(token)
+                        .body(sameSchemaWithSwappedFields), Schema.class);
+
+        // Expects a new version
+        assertEquals("changed", createSwappedFieldsResponse.header("X-Ns4kafka-Result"));
+
+        // Get the latest version to check if we are on v2
+        SchemaResponse schemaAfterApply = schemaRegistryClient.toBlocking()
+                .retrieve(HttpRequest.GET("/subjects/ns1-subject3-value/versions/latest"),
+                        SchemaResponse.class);
+
+        Assertions.assertNotNull(schemaAfterApply.id());
+        assertEquals(2, schemaAfterApply.version());
+        assertEquals("ns1-subject3-value", schemaAfterApply.subject());
+
+        // Apply again the schema with swapped fields
+        var createAgainResponse =
+                ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                        .bearerAuth(token)
+                        .body(sameSchemaWithSwappedFields), Schema.class);
+
+        // Expects no new schema version but an unchanged status
+        assertEquals("unchanged", createAgainResponse.header("X-Ns4kafka-Result"));
+
+        // Apply again with SR client to be sure that
+        RegisterSchemaRequest request = new RegisterSchemaRequest();
+        request.setSchema(sameSchemaWithSwappedFields.getSpec().getSchema());
+
+        schemaRegistryClient.toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST,"/subjects/ns1-subject3-value/versions")
+                        .body(request), RegisterSchemaResponse.class);
+
+        SchemaResponse schemaAfterPostOnRegistry = schemaRegistryClient.toBlocking()
+                .retrieve(HttpRequest.GET("/subjects/ns1-subject3-value/versions/latest"),
+                        SchemaResponse.class);
+
+        Assertions.assertNotNull(schemaAfterPostOnRegistry.id());
+        assertEquals(2, schemaAfterPostOnRegistry.version());
+        assertEquals("ns1-subject3-value", schemaAfterPostOnRegistry.subject());
     }
 }

@@ -9,6 +9,7 @@ import com.michelin.ns4kafka.models.schema.SchemaList;
 import com.michelin.ns4kafka.services.SchemaService;
 import com.michelin.ns4kafka.utils.enums.ApplyStatus;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
@@ -28,6 +29,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -118,8 +120,16 @@ public class SchemaController extends NamespacedResourceController {
                         latestSubjectOptional.ifPresent(
                             value -> schema.getSpec().setCompatibility(value.getSpec().getCompatibility()));
 
+                        if (latestSubjectOptional.isPresent()) {
+                            var newSchema = new AvroSchema(schema.getSpec().getSchema());
+                            var actualSchema = new AvroSchema(latestSubjectOptional.get().getSpec().getSchema());
+
+                            if (newSchema.canonicalString().equals(actualSchema.canonicalString())) {
+                                return Mono.just(formatHttpResponse(schema, ApplyStatus.unchanged));
+                            }
+                         }
+
                         if (dryrun) {
-                            // Cannot compute the "unchanged" apply status before getting the ID at registration
                             return Mono.just(formatHttpResponse(schema,
                                 latestSubjectOptional.isPresent() ? ApplyStatus.changed : ApplyStatus.created));
                         }
