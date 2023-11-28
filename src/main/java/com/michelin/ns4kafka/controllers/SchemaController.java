@@ -25,12 +25,10 @@ import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
-
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -126,13 +124,16 @@ public class SchemaController extends NamespacedResourceController {
                             .validateSchemaCompatibility(ns.getMetadata().getCluster(), schema)
                             .flatMap(validationErrors -> {
                                 if (!validationErrors.isEmpty()) {
-                                    return Mono.error(new ResourceValidationException(validationErrors, schema.getKind(),
+                                    return Mono.error(new ResourceValidationException(
+                                            validationErrors,
+                                            schema.getKind(),
                                             schema.getMetadata().getName()));
                                 }
 
                                 if (dryrun) {
                                     return Mono.just(formatHttpResponse(schema,
-                                            latestSubjectOptional.isPresent() ? ApplyStatus.changed : ApplyStatus.created));
+                                            latestSubjectOptional.isPresent()
+                                                    ? ApplyStatus.changed : ApplyStatus.created));
                                 }
 
                                 return schemaService

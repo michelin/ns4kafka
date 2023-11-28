@@ -3,8 +3,8 @@ package com.michelin.ns4kafka.controllers;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -82,7 +82,8 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.validateSchemaCompatibility(eq("local"), any(Schema.class))).thenReturn(Mono.just(List.of()));
+        when(schemaService.validateSchemaCompatibility(eq("local"), any(Schema.class)))
+            .thenReturn(Mono.just(List.of()));
         when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName()))
             .thenReturn(Mono.just(schema));
         when(schemaService.register(namespace, schemaV2)).thenReturn(Mono.just(2));
@@ -183,8 +184,10 @@ class SchemaControllerTest {
         Schema schemaV2 = buildSchemaV2();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
-        when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.validateSchemaCompatibility(eq("local"), any(Schema.class))).thenReturn(Mono.just(List.of()));
+        when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName()))
+            .thenReturn(true);
+        when(schemaService.validateSchemaCompatibility(eq("local"), any(Schema.class)))
+            .thenReturn(Mono.just(List.of()));
         when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Mono.just(schema));
 
         StepVerifier.create(schemaController.apply("myNamespace", schemaV2, true))
@@ -451,24 +454,24 @@ class SchemaControllerTest {
 
     private Schema buildSchemaV2() {
         return Schema.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("prefix.subject-value")
-                        .build())
-                .spec(Schema.SchemaSpec.builder()
-                        .id(1)
-                        .version(2)
-                        .schema(
-                                "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
-                                        + "\"name\":\"PersonAvro\""
-                                        + ",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,"
-                                        + "\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],"
-                                        + "\"default\":null,\"doc\":\"Last name of the person\"},"
-                                        + "{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\","
-                                        + "\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the person\"},"
-                                        + "{\"name\":\"birthPlace\",\"type\":[\"null\",\"string\"],"
-                                        + "\"default\":null,\"doc\":\"Place of birth\"}]}")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("prefix.subject-value")
+                .build())
+            .spec(Schema.SchemaSpec.builder()
+                .id(1)
+                .version(2)
+                .schema(
+                    "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                        + "\"name\":\"PersonAvro\""
+                        + ",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,"
+                        + "\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\","
+                        + "\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},"
+                        + "{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\","
+                        + "\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
+                        + "\"doc\":\"Date of birth of the person\"},{\"name\":\"birthPlace\",\"type\":[\"null\","
+                        + "\"string\"],\"default\":null,\"doc\":\"Place of birth\"}]}")
+                .build())
+            .build();
     }
 
     private SchemaList buildSchemaList() {

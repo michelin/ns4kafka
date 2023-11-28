@@ -464,36 +464,20 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
     @Test
     void registerSameSchemaTwice() {
         Schema schema = Schema.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("ns1-subject3-value")
-                        .build())
-                .spec(Schema.SchemaSpec.builder()
-                        .schema(
-                                "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
-                                        + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
-                                        + "\"default\":null,\"doc\":\"First name of the person\"},"
-                                        + "{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,"
-                                        + "\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\","
-                                        + "{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
-                                        + "\"doc\":\"Date of birth of the person\"}]}")
-                        .build())
-                .build();
-
-        Schema sameSchemaWithSwappedFields = Schema.builder()
-                .metadata(ObjectMeta.builder()
-                        .name("ns1-subject3-value")
-                        .build())
-                .spec(Schema.SchemaSpec.builder()
-                        .schema(
-                                "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
-                                        + "\"name\":\"PersonAvro\",\"fields\":[ {\"name\":\"lastName\",\"type\":[\"null\",\"string\"],"
-                                        + "\"default\":null, \"doc\":\"Last name of the person\"},"
-                                        + "{\"name\":\"firstName\",\"type\":[\"null\",\"string\"], \"default\":null,"
-                                        + "\"doc\":\"First name of the person\"}, {\"name\":\"dateOfBirth\",\"type\":[\"null\","
-                                        + "{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
-                                        + "\"doc\":\"Date of birth of the person\"}]}")
-                        .build())
-                .build();
+            .metadata(ObjectMeta.builder()
+                .name("ns1-subject3-value")
+                .build())
+            .spec(Schema.SchemaSpec.builder()
+                .schema(
+                    "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                        + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
+                        + "\"default\":null,\"doc\":\"First name of the person\"},"
+                        + "{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,"
+                        + "\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\","
+                        + "{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
+                        + "\"doc\":\"Date of birth of the person\"}]}")
+                .build())
+            .build();
 
         // Apply schema
         var createResponse =
@@ -514,6 +498,22 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                 .anyMatch(schemaList -> schemaList.getMetadata().getName().equals("ns1-subject3-value")));
 
         // Apply the same schema with swapped fields
+        Schema sameSchemaWithSwappedFields = Schema.builder()
+            .metadata(ObjectMeta.builder()
+                .name("ns1-subject3-value")
+                .build())
+            .spec(Schema.SchemaSpec.builder()
+                .schema(
+                    "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                        + "\"name\":\"PersonAvro\",\"fields\":[ {\"name\":\"lastName\",\"type\":[\"null\",\"string\"],"
+                        + "\"default\":null, \"doc\":\"Last name of the person\"},"
+                        + "{\"name\":\"firstName\",\"type\":[\"null\",\"string\"], \"default\":null,"
+                        + "\"doc\":\"First name of the person\"}, {\"name\":\"dateOfBirth\",\"type\":[\"null\","
+                        + "{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
+                        + "\"doc\":\"Date of birth of the person\"}]}")
+                .build())
+            .build();
+
         var createSwappedFieldsResponse =
                 ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                         .bearerAuth(token)
@@ -545,7 +545,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         request.setSchema(sameSchemaWithSwappedFields.getSpec().getSchema());
 
         schemaRegistryClient.toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.POST,"/subjects/ns1-subject3-value/versions")
+                .exchange(HttpRequest.create(HttpMethod.POST, "/subjects/ns1-subject3-value/versions")
                         .body(request), RegisterSchemaResponse.class);
 
         SchemaResponse schemaAfterPostOnRegistry = schemaRegistryClient.toBlocking()
