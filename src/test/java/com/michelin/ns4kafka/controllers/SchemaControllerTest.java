@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.controllers;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -77,18 +78,19 @@ class SchemaControllerTest {
     void applyChanged() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
+        Schema schemaV2 = buildSchemaV2();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
+        when(schemaService.validateSchemaCompatibility(eq("local"), any(Schema.class))).thenReturn(Mono.just(List.of()));
         when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName()))
             .thenReturn(Mono.just(schema));
-        when(schemaService.register(namespace, schema)).thenReturn(Mono.just(2));
+        when(schemaService.register(namespace, schemaV2)).thenReturn(Mono.just(2));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        StepVerifier.create(schemaController.apply("myNamespace", schema, false))
+        StepVerifier.create(schemaController.apply("myNamespace", schemaV2, false))
             .consumeNextWith(response -> {
                 assertEquals("changed", response.header("X-Ns4kafka-Result"));
                 assertTrue(response.getBody().isPresent());
@@ -104,9 +106,7 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
         when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Mono.just(schema));
-        when(schemaService.register(namespace, schema)).thenReturn(Mono.just(1));
 
         StepVerifier.create(schemaController.apply("myNamespace", schema, false))
             .consumeNextWith(response -> {
@@ -180,13 +180,14 @@ class SchemaControllerTest {
     void applyDryRunChanged() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
+        Schema schemaV2 = buildSchemaV2();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
+        when(schemaService.validateSchemaCompatibility(eq("local"), any(Schema.class))).thenReturn(Mono.just(List.of()));
         when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Mono.just(schema));
 
-        StepVerifier.create(schemaController.apply("myNamespace", schema, true))
+        StepVerifier.create(schemaController.apply("myNamespace", schemaV2, true))
             .consumeNextWith(response -> {
                 assertEquals("changed", response.header("X-Ns4kafka-Result"));
                 assertTrue(response.getBody().isPresent());
@@ -201,9 +202,11 @@ class SchemaControllerTest {
     void applyDryRunNotCompatible() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
+        Schema schemaV2 = buildSchemaV2();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
+        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Mono.just(schemaV2));
         when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(
             Mono.just(List.of("Not compatible")));
 
@@ -444,6 +447,28 @@ class SchemaControllerTest {
                         + "\"default\":null,\"doc\":\"Date of birth of the person\"}]}")
                 .build())
             .build();
+    }
+
+    private Schema buildSchemaV2() {
+        return Schema.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("prefix.subject-value")
+                        .build())
+                .spec(Schema.SchemaSpec.builder()
+                        .id(1)
+                        .version(2)
+                        .schema(
+                                "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                                        + "\"name\":\"PersonAvro\""
+                                        + ",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,"
+                                        + "\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],"
+                                        + "\"default\":null,\"doc\":\"Last name of the person\"},"
+                                        + "{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\","
+                                        + "\"logicalType\":\"timestamp-millis\"}],\"default\":null,\"doc\":\"Date of birth of the person\"},"
+                                        + "{\"name\":\"birthPlace\",\"type\":[\"null\",\"string\"],"
+                                        + "\"default\":null,\"doc\":\"Place of birth\"}]}")
+                        .build())
+                .build();
     }
 
     private SchemaList buildSchemaList() {
