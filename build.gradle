@@ -11,7 +11,7 @@ version = scmVersion.version
 group = "com.michelin.ns4kafka"
 
 repositories {
-    maven { url "https://artifactory.michelin.com/maven/" }
+    mavenCentral()
     maven {
         url "https://packages.confluent.io/maven"
     }
