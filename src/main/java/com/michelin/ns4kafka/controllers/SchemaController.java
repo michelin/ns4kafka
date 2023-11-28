@@ -116,10 +116,6 @@ public class SchemaController extends NamespacedResourceController {
                         schema.getSpec().setCompatibility(latestSubjectOptional.get().getSpec().getCompatibility());
                     }
 
-                    schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                    schema.getMetadata().setCluster(ns.getMetadata().getCluster());
-                    schema.getMetadata().setNamespace(ns.getMetadata().getName());
-
                     return schemaService
                             .validateSchemaCompatibility(ns.getMetadata().getCluster(), schema)
                             .flatMap(validationErrors -> {
@@ -129,6 +125,10 @@ public class SchemaController extends NamespacedResourceController {
                                             schema.getKind(),
                                             schema.getMetadata().getName()));
                                 }
+
+                                schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                                schema.getMetadata().setCluster(ns.getMetadata().getCluster());
+                                schema.getMetadata().setNamespace(ns.getMetadata().getName());
 
                                 if (dryrun) {
                                     return Mono.just(formatHttpResponse(schema,

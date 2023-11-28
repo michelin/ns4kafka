@@ -82,8 +82,7 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.validateSchemaCompatibility(eq("local"), any(Schema.class)))
-            .thenReturn(Mono.just(List.of()));
+        when(schemaService.validateSchemaCompatibility("local", schemaV2)).thenReturn(Mono.just(List.of()));
         when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName()))
             .thenReturn(Mono.just(schema));
         when(schemaService.register(namespace, schemaV2)).thenReturn(Mono.just(2));
@@ -186,8 +185,7 @@ class SchemaControllerTest {
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName()))
             .thenReturn(true);
-        when(schemaService.validateSchemaCompatibility(eq("local"), any(Schema.class)))
-            .thenReturn(Mono.just(List.of()));
+        when(schemaService.validateSchemaCompatibility("local", schemaV2)).thenReturn(Mono.just(List.of()));
         when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Mono.just(schema));
 
         StepVerifier.create(schemaController.apply("myNamespace", schemaV2, true))
@@ -198,7 +196,7 @@ class SchemaControllerTest {
             })
             .verifyComplete();
 
-        verify(schemaService, never()).register(namespace, schema);
+        verify(schemaService, never()).register(namespace, schemaV2);
     }
 
     @Test
