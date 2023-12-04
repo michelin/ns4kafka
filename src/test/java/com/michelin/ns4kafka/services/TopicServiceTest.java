@@ -887,20 +887,6 @@ class TopicServiceTest {
 
     @Test
     void shouldTagsBeValid() {
-        Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
-                .name("namespace")
-                .cluster("local")
-                .build())
-            .build();
-
-        Topic topic = Topic.builder()
-            .metadata(ObjectMeta.builder().name("ns-topic1").build())
-            .spec(Topic.TopicSpec.builder()
-                .tags(List.of("TAG_TEST")).build())
-            .build();
-
-        List<TagInfo> tagInfo = List.of(TagInfo.builder().name("TAG_TEST").build());
         ManagedClusterProperties managedClusterProps =
                 new ManagedClusterProperties("local",
                         ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
@@ -909,9 +895,15 @@ class TopicServiceTest {
         managedClusterProps.setConfig(properties);
 
         when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
-        when(schemaRegistryClient.getTags("local")).thenReturn(Mono.just(tagInfo));
+        when(schemaRegistryClient.getTags("local"))
+                .thenReturn(Mono.just(List.of(TagInfo.builder().name("TAG_TEST").build())));
 
-        List<String> validationErrors = topicService.validateTags(ns, topic);
+        List<String> validationErrors = topicService.validateTags(
+                Namespace.builder().metadata(
+                        ObjectMeta.builder().name("namespace").cluster("local").build()).build(),
+                Topic.builder().metadata(
+                        ObjectMeta.builder().name("ns-topic1").build()).spec(Topic.TopicSpec.builder()
+                        .tags(List.of("TAG_TEST")).build()).build());
         assertEquals(0, validationErrors.size());
     }
 
@@ -940,19 +932,6 @@ class TopicServiceTest {
 
     @Test
     void shouldTagsBeInvalidWhenNoTagsAllowed() {
-        Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
-                .name("namespace")
-                .cluster("local")
-                .build())
-            .build();
-
-        Topic topic = Topic.builder()
-            .metadata(ObjectMeta.builder().name("ns-topic1").build())
-            .spec(Topic.TopicSpec.builder()
-                .tags(List.of("TAG_TEST")).build())
-            .build();
-
         ManagedClusterProperties managedClusterProps =
                 new ManagedClusterProperties("local",
                         ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
@@ -963,7 +942,14 @@ class TopicServiceTest {
         when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
         when(schemaRegistryClient.getTags("local")).thenReturn(Mono.just(Collections.emptyList()));
 
-        List<String> validationErrors = topicService.validateTags(ns, topic);
+        List<String> validationErrors = topicService.validateTags(
+                Namespace.builder().metadata(ObjectMeta.builder()
+                        .name("namespace").cluster("local").build()).build(),
+                Topic.builder()
+                        .metadata(ObjectMeta.builder().name("ns-topic1").build())
+                        .spec(Topic.TopicSpec.builder()
+                                .tags(List.of("TAG_TEST")).build())
+                        .build());
         assertEquals(1, validationErrors.size());
         assertEquals(
             "Invalid value TAG_TEST for tags: No tags allowed.",
@@ -972,20 +958,6 @@ class TopicServiceTest {
 
     @Test
     void shouldTagsBeInvalidWhenNotAllowed() {
-        Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
-                .name("namespace")
-                .cluster("local")
-                .build())
-            .build();
-
-        Topic topic = Topic.builder()
-            .metadata(ObjectMeta.builder().name("ns-topic1").build())
-            .spec(Topic.TopicSpec.builder()
-                .tags(List.of("BAD_TAG", "TAG_TEST")).build())
-            .build();
-
-        List<TagInfo> tagInfo = List.of(TagInfo.builder().name("TAG_TEST").build());
         ManagedClusterProperties managedClusterProps =
                 new ManagedClusterProperties("local",
                         ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
@@ -994,9 +966,16 @@ class TopicServiceTest {
         managedClusterProps.setConfig(properties);
 
         when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
-        when(schemaRegistryClient.getTags("local")).thenReturn(Mono.just(tagInfo));
+        when(schemaRegistryClient.getTags("local"))
+                .thenReturn(Mono.just(List.of(TagInfo.builder().name("TAG_TEST").build())));
 
-        List<String> validationErrors = topicService.validateTags(ns, topic);
+        List<String> validationErrors = topicService.validateTags(
+                Namespace.builder().metadata(
+                        ObjectMeta.builder().name("namespace").cluster("local").build()).build(),
+                Topic.builder()
+                        .metadata(ObjectMeta.builder().name("ns-topic1").build())
+                        .spec(Topic.TopicSpec.builder()
+                                .tags(List.of("BAD_TAG", "TAG_TEST")).build()).build());
         assertEquals(1, validationErrors.size());
         assertEquals("Invalid value BAD_TAG for tags: Available tags are TAG_TEST.", validationErrors.get(0));
     }
