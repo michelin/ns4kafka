@@ -358,12 +358,11 @@ public class TopicService {
                 .filter(tagName -> tagNames != null && !tagNames.contains(tagName))
                 .toList();
 
-        if(topicCluster.isPresent() &&
-                Boolean.parseBoolean(
+        if (topicCluster.isPresent()
+                && Boolean.parseBoolean(
                 topicCluster.get().getConfig().getProperty(
                         DYNAMIC_TAGS_CREATION,
                         "true"))) {
-
             List<TagInfo> tagsToCreate = unavailableTagNames
                     .stream()
                     .map(TagInfo::new)
