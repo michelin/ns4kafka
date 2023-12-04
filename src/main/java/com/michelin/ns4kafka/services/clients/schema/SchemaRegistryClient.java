@@ -186,9 +186,9 @@ public class SchemaRegistryClient {
     public Mono<List<TagInfo>> getTags(String kafkaCluster) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest
-            .GET(URI.create(StringUtils.prependUri(
-                config.getUrl(), "/catalog/v1/types/tagdefs")))
-            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+                .GET(URI.create(StringUtils.prependUri(
+                        config.getUrl(), "/catalog/v1/types/tagdefs")))
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, Argument.listOf(TagInfo.class)));
     }
 
@@ -223,6 +223,21 @@ public class SchemaRegistryClient {
                 "/catalog/v1/entity/tags")), tagSpecs)
             .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, Argument.listOf(TagTopicInfo.class)));
+    }
+
+    /**
+     * Create tags.
+     *
+     * @param tags The list of tags to create
+     * @param kafkaCluster The Kafka cluster
+     * @return Information about created tags
+     */
+    public Mono<List<TagInfo>> createTags(List<TagInfo> tags, String kafkaCluster) {
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
+        HttpRequest<?> request = HttpRequest.POST(URI.create(StringUtils.prependUri(
+                        config.getUrl(), "/catalog/v1/types/tagdefs")), tags)
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+        return Mono.from(httpClient.retrieve(request, Argument.listOf(TagInfo.class)));
     }
 
     /**

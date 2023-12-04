@@ -48,6 +48,8 @@ public class TopicService {
     @Inject
     SchemaRegistryClient schemaRegistryClient;
 
+    public static final String DYNAMIC_TAGS_CREATION = "dynamic.tags.creation";
+
     /**
      * Find all topics.
      *
@@ -351,17 +353,36 @@ public class TopicService {
         Set<String> tagNames = schemaRegistryClient.getTags(namespace.getMetadata().getCluster())
             .map(tags -> tags.stream().map(TagInfo::name).collect(Collectors.toSet())).block();
 
+        List<String> unavailableTagNames = topic.getSpec().getTags()
+                .stream()
+                .filter(tagName -> tagNames != null && !tagNames.contains(tagName))
+                .toList();
+
+        if(topicCluster.isPresent() &&
+                Boolean.parseBoolean(
+                topicCluster.get().getConfig().getProperty(
+                        DYNAMIC_TAGS_CREATION,
+                        "true"))) {
+
+            List<TagInfo> tagsToCreate = unavailableTagNames
+                    .stream()
+                    .map(TagInfo::new)
+                    .collect(Collectors.toList());
+
+            schemaRegistryClient.createTags(
+                    tagsToCreate,
+                    namespace.getMetadata().getCluster())
+                    .block();
+
+            return validationErrors;
+        }
+
         if (tagNames == null || tagNames.isEmpty()) {
             validationErrors.add(String.format(
                 "Invalid value %s for tags: No tags allowed.",
                 String.join(", ", topic.getSpec().getTags())));
             return validationErrors;
         }
-
-        List<String> unavailableTagNames = topic.getSpec().getTags()
-            .stream()
-            .filter(tagName -> !tagNames.contains(tagName))
-            .toList();
 
         if (!unavailableTagNames.isEmpty()) {
             validationErrors.add(String.format(
