@@ -48,7 +48,7 @@ dependencies {
             strictly '1.15.3'
         }
     }
-    testImplementation("org.mockito:mockito-junit-jupiter:5.7.0")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.8.0")
     testImplementation("io.projectreactor:reactor-test")
 
     testAnnotationProcessor("org.projectlombok:lombok")
