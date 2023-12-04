@@ -366,7 +366,7 @@ public class TopicService {
             List<TagInfo> tagsToCreate = unavailableTagNames
                     .stream()
                     .map(TagInfo::new)
-                    .collect(Collectors.toList());
+                    .toList();
 
             schemaRegistryClient.createTags(
                     tagsToCreate,
