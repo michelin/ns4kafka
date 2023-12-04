@@ -16,22 +16,24 @@ using [Kafkactl](https://github.com/michelin/kafkactl), which follows best pract
 
 ## Table of Contents
 
-* [Principles](#principles)
-    * [Namespace Isolation](#namespace-isolation)
-    * [Desired State](#desired-state)
-    * [Server Side Validation](#server-side-validation)
-    * [CLI](#cli)
-* [Download](#download)
-* [Install](#install)
-* [Demo Environment](#demo-environment)
-* [Configuration](#configuration)
-    * [GitLab Authentication](#gitlab-authentication)
-        * [Admin Account](#admin-account)
-    * [Kafka Broker Authentication](#kafka-broker-authentication)
-    * [Managed clusters](#managed-clusters)
-    * [AKHQ](#akhq)
-* [Administration](#administration)
-* [Contribution](#contribution)
+- [Ns4Kafka](#ns4kafka)
+  - [Table of Contents](#table-of-contents)
+  - [Principles](#principles)
+    - [Namespace Isolation](#namespace-isolation)
+    - [Desired State](#desired-state)
+    - [Server Side Validation](#server-side-validation)
+    - [CLI](#cli)
+  - [Download](#download)
+  - [Install](#install)
+  - [Demo Environment](#demo-environment)
+  - [Configuration](#configuration)
+    - [GitLab Authentication](#gitlab-authentication)
+      - [Admin Account](#admin-account)
+    - [Kafka Broker Authentication](#kafka-broker-authentication)
+    - [Managed clusters](#managed-clusters)
+    - [AKHQ](#akhq)
+  - [Administration](#administration)
+  - [Contribution](#contribution)
 
 ## Principles
 
@@ -213,6 +215,7 @@ of your namespace descriptors.
 | provider                                | boolean | The kind of cluster. Either SELF_MANAGED or CONFLUENT_CLOUD                                                                            |
 | config.bootstrap.servers                | string  | The location of the clusters servers                                                                                                   |
 | config.cluster.id                       | string  | The cluster id. Required to use [Confluent Cloud tags](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog.html). |
+| dynamic.tags.creation                       | boolean  | By default it's true so tags are created when linked to a topic. Otherwise, tags linked to topics must belong to the existing tag list in Confluent. |
 | schema-registry.url                     | string  | The location of the Schema Registry                                                                                                    |
 | schema-registry.basicAuthUsername       | string  | Basic authentication username to the Schema Registry                                                                                   |
 | schema-registry.basicAuthPassword       | string  | Basic authentication password to the Schema Registry                                                                                   |
