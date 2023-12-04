@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
@@ -900,9 +901,14 @@ class TopicServiceTest {
             .build();
 
         List<TagInfo> tagInfo = List.of(TagInfo.builder().name("TAG_TEST").build());
+        ManagedClusterProperties managedClusterProps =
+                new ManagedClusterProperties("local",
+                        ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        Properties properties = new Properties();
+        properties.put(TopicService.DYNAMIC_TAGS_CREATION, "false");
+        managedClusterProps.setConfig(properties);
 
-        when(managedClusterProperties.stream()).thenReturn(Stream.of(
-            new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
         when(schemaRegistryClient.getTags("local")).thenReturn(Mono.just(tagInfo));
 
         List<String> validationErrors = topicService.validateTags(ns, topic);
@@ -947,8 +953,14 @@ class TopicServiceTest {
                 .tags(List.of("TAG_TEST")).build())
             .build();
 
-        when(managedClusterProperties.stream()).thenReturn(Stream.of(
-            new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
+        ManagedClusterProperties managedClusterProps =
+                new ManagedClusterProperties("local",
+                        ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        Properties properties = new Properties();
+        properties.put(TopicService.DYNAMIC_TAGS_CREATION, "false");
+        managedClusterProps.setConfig(properties);
+
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
         when(schemaRegistryClient.getTags("local")).thenReturn(Mono.just(Collections.emptyList()));
 
         List<String> validationErrors = topicService.validateTags(ns, topic);
@@ -974,11 +986,14 @@ class TopicServiceTest {
             .build();
 
         List<TagInfo> tagInfo = List.of(TagInfo.builder().name("TAG_TEST").build());
-
-        when(managedClusterProperties.stream())
-            .thenReturn(Stream.of(
+        ManagedClusterProperties managedClusterProps =
                 new ManagedClusterProperties("local",
-                    ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
+                        ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        Properties properties = new Properties();
+        properties.put(TopicService.DYNAMIC_TAGS_CREATION, "false");
+        managedClusterProps.setConfig(properties);
+
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
         when(schemaRegistryClient.getTags("local")).thenReturn(Mono.just(tagInfo));
 
         List<String> validationErrors = topicService.validateTags(ns, topic);
