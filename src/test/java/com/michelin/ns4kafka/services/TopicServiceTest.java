@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
@@ -896,6 +898,30 @@ class TopicServiceTest {
 
         when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
         when(schemaRegistryClient.getTags("local"))
+                .thenReturn(Mono.just(List.of(TagInfo.builder().name("TAG_TEST").build())));
+
+        List<String> validationErrors = topicService.validateTags(
+                Namespace.builder().metadata(
+                        ObjectMeta.builder().name("namespace").cluster("local").build()).build(),
+                Topic.builder().metadata(
+                        ObjectMeta.builder().name("ns-topic1").build()).spec(Topic.TopicSpec.builder()
+                        .tags(List.of("TAG_TEST")).build()).build());
+        assertEquals(0, validationErrors.size());
+    }
+
+    @Test
+    void shouldTagsBeCreated() {
+        ManagedClusterProperties managedClusterProps =
+                new ManagedClusterProperties("local",
+                        ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        Properties properties = new Properties();
+        properties.put(TopicService.DYNAMIC_TAGS_CREATION, "true");
+        managedClusterProps.setConfig(properties);
+
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
+        when(schemaRegistryClient.getTags("local"))
+                .thenReturn(Mono.just(List.of(TagInfo.builder().name("TAG_TEST").build())));
+        when(schemaRegistryClient.createTags(anyList(), anyString()))
                 .thenReturn(Mono.just(List.of(TagInfo.builder().name("TAG_TEST").build())));
 
         List<String> validationErrors = topicService.validateTags(
