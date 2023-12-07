@@ -434,7 +434,7 @@ class TopicControllerTest {
                 .name("test.topic")
                 .build())
             .spec(Topic.TopicSpec.builder()
-                .tags(List.of("TAG1"))
+                .tags(Arrays.asList("TAG1"))
                 .replicationFactor(3)
                 .partitions(3)
                 .configs(Map.of("cleanup.policy", "delete",
