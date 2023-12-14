@@ -215,7 +215,6 @@ of your namespace descriptors.
 | provider                                | boolean | The kind of cluster. Either SELF_MANAGED or CONFLUENT_CLOUD                                                                            |
 | config.bootstrap.servers                | string  | The location of the clusters servers                                                                                                   |
 | config.cluster.id                       | string  | The cluster id. Required to use [Confluent Cloud tags](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog.html). |
-| dynamic.tags.creation                       | boolean  | By default it's true so tags are created when linked to a topic. Otherwise, tags linked to topics must belong to the existing tag list in Confluent. |
 | schema-registry.url                     | string  | The location of the Schema Registry                                                                                                    |
 | schema-registry.basicAuthUsername       | string  | Basic authentication username to the Schema Registry                                                                                   |
 | schema-registry.basicAuthPassword       | string  | Basic authentication password to the Schema Registry                                                                                   |

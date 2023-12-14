@@ -45,11 +45,6 @@ public class TopicService {
     @Inject
     List<ManagedClusterProperties> managedClusterProperties;
 
-    @Inject
-    SchemaRegistryClient schemaRegistryClient;
-
-    public static final String DYNAMIC_TAGS_CREATION = "dynamic.tags.creation";
-
     /**
      * Find all topics.
      *
