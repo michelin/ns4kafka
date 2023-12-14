@@ -67,7 +67,7 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
-        when(schemaRegistryClient.deleteTag(anyString(),
+        when(schemaRegistryClient.dissociateTag(anyString(),
             anyString(), anyString()))
             .thenReturn(Mono.empty())
             .thenReturn(Mono.error(new Exception("error")));
@@ -96,8 +96,8 @@ class TopicAsyncExecutorTest {
 
         topicAsyncExecutor.alterTags(ns4kafkaTopics, brokerTopics);
 
-        verify(schemaRegistryClient).deleteTag(LOCAL_CLUSTER, CLUSTER_ID_TEST + ":" + TOPIC_NAME, TAG2);
-        verify(schemaRegistryClient).deleteTag(LOCAL_CLUSTER, CLUSTER_ID_TEST + ":" + TOPIC_NAME, TAG3);
+        verify(schemaRegistryClient).dissociateTag(LOCAL_CLUSTER, CLUSTER_ID_TEST + ":" + TOPIC_NAME, TAG2);
+        verify(schemaRegistryClient).dissociateTag(LOCAL_CLUSTER, CLUSTER_ID_TEST + ":" + TOPIC_NAME, TAG3);
     }
 
     @Test
@@ -105,7 +105,7 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
-        when(schemaRegistryClient.addTags(anyString(), anyList()))
+        when(schemaRegistryClient.associateTags(anyString(), anyList()))
             .thenReturn(Mono.empty())
             .thenReturn(Mono.error(new Exception("error")));
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
@@ -132,7 +132,7 @@ class TopicAsyncExecutorTest {
 
         topicAsyncExecutor.alterTags(ns4kafkaTopics, brokerTopics);
 
-        verify(schemaRegistryClient).addTags(eq(LOCAL_CLUSTER), argThat(tags ->
+        verify(schemaRegistryClient).associateTags(eq(LOCAL_CLUSTER), argThat(tags ->
             tags.get(0).entityName().equals(CLUSTER_ID_TEST + ":" + TOPIC_NAME)
                 && tags.get(0).typeName().equals(TAG1)
                 && tags.get(0).entityType().equals(TOPIC_ENTITY_TYPE)));
@@ -161,7 +161,7 @@ class TopicAsyncExecutorTest {
 
         topicAsyncExecutor.deleteTopic(topic);
 
-        verify(schemaRegistryClient, never()).deleteTag(any(), any(), any());
+        verify(schemaRegistryClient, never()).dissociateTag(any(), any(), any());
     }
 
     @Test
@@ -181,7 +181,7 @@ class TopicAsyncExecutorTest {
 
         topicAsyncExecutor.deleteTopic(topic);
 
-        verify(schemaRegistryClient, never()).deleteTag(any(), any(), any());
+        verify(schemaRegistryClient, never()).dissociateTag(any(), any(), any());
     }
 
     @Test
@@ -195,7 +195,7 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
         when(managedClusterProperties.getConfig()).thenReturn(properties);
-        when(schemaRegistryClient.deleteTag(anyString(),
+        when(schemaRegistryClient.dissociateTag(anyString(),
             anyString(), anyString()))
             .thenReturn(Mono.just(HttpResponse.ok()))
             .thenReturn(Mono.error(new Exception("error")));
@@ -211,7 +211,7 @@ class TopicAsyncExecutorTest {
 
         topicAsyncExecutor.deleteTopic(topic);
 
-        verify(schemaRegistryClient).deleteTag(LOCAL_CLUSTER, CLUSTER_ID_TEST + ":" + TOPIC_NAME, TAG1);
+        verify(schemaRegistryClient).dissociateTag(LOCAL_CLUSTER, CLUSTER_ID_TEST + ":" + TOPIC_NAME, TAG1);
     }
 
     @Test

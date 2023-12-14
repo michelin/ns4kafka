@@ -215,7 +215,7 @@ public class SchemaRegistryClient {
      * @param tagSpecs     Tags to add
      * @return Information about added tags
      */
-    public Mono<List<TagTopicInfo>> addTags(String kafkaCluster, List<TagTopicInfo> tagSpecs) {
+    public Mono<List<TagTopicInfo>> associateTags(String kafkaCluster, List<TagTopicInfo> tagSpecs) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest
             .POST(URI.create(StringUtils.prependUri(
@@ -248,7 +248,7 @@ public class SchemaRegistryClient {
      * @param tagName      The tag to delete
      * @return The resume response
      */
-    public Mono<HttpResponse<Void>> deleteTag(String kafkaCluster, String entityName, String tagName) {
+    public Mono<HttpResponse<Void>> dissociateTag(String kafkaCluster, String entityName, String tagName) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest
             .DELETE(URI.create(StringUtils.prependUri(
