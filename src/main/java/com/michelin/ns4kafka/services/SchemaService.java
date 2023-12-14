@@ -10,10 +10,14 @@ import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilit
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
+import io.micronaut.core.util.CollectionUtils;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import java.util.List;
-import java.util.Optional;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -59,6 +63,56 @@ public class SchemaService {
                     .name(subject)
                     .build())
                 .build());
+    }
+
+    public Flux<Schema> getAllSubjectVersions(Namespace namespace, String subject) {
+        return schemaRegistryClient.getAllSubjectVersions(namespace.getMetadata().getCluster(), subject)
+            .map(subjectResponse -> Schema.builder()
+                .metadata(ObjectMeta.builder()
+                    .cluster(namespace.getMetadata().getCluster())
+                    .namespace(namespace.getMetadata().getName())
+                    .name(subjectResponse.subject())
+                    .build())
+                .spec(Schema.SchemaSpec.builder()
+                    .id(subjectResponse.id())
+                    .version(subjectResponse.version())
+                    //.compatibility(compatibility)
+                    .schema(subjectResponse.schema())
+                    .schemaType(subjectResponse.schemaType() == null ? Schema.SchemaType.AVRO :
+                            Schema.SchemaType.valueOf(subjectResponse.schemaType()))
+                    .references(subjectResponse.references())
+                    .build())
+                .build()
+            );
+    }
+
+    public Mono<Schema> getSubject(Namespace namespace, String subject, Integer version) {
+        return schemaRegistryClient
+            .getSubject(namespace.getMetadata().getCluster(), subject, version)
+            .flatMap(latestSubjectOptional -> schemaRegistryClient
+                .getCurrentCompatibilityBySubject(namespace.getMetadata().getCluster(), subject)
+                .map(Optional::of)
+                .defaultIfEmpty(Optional.empty())
+                .map(currentCompatibilityOptional -> {
+                    Schema.Compatibility compatibility = currentCompatibilityOptional.isPresent()
+                        ? currentCompatibilityOptional.get().compatibilityLevel() : Schema.Compatibility.GLOBAL;
+
+                    return Schema.builder()
+                        .metadata(ObjectMeta.builder()
+                            .cluster(namespace.getMetadata().getCluster())
+                            .namespace(namespace.getMetadata().getName())
+                            .name(latestSubjectOptional.subject())
+                            .build())
+                        .spec(Schema.SchemaSpec.builder()
+                            .id(latestSubjectOptional.id())
+                            .version(latestSubjectOptional.version())
+                            .compatibility(compatibility)
+                            .schema(latestSubjectOptional.schema())
+                            .schemaType(latestSubjectOptional.schemaType() == null ? Schema.SchemaType.AVRO :
+                                    Schema.SchemaType.valueOf(latestSubjectOptional.schemaType()))
+                            .build())
+                        .build();
+                }));
     }
 
     /**
@@ -190,5 +244,37 @@ public class SchemaService {
         return accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(),
             AccessControlEntry.ResourceType.TOPIC,
             underlyingTopicName);
+    }
+
+    /**
+     * Get all the schema of all the references for a given schema
+     *
+     * @param schema    The schema
+     * @param namespace The namespace
+     * @return The schema references
+     */
+    public Map<String, String> getSchemaReferences(Schema schema, Namespace namespace) {
+        if (CollectionUtils.isEmpty(schema.getSpec().getReferences()))
+            return Collections.emptyMap();
+
+        return schema.getSpec().getReferences().stream().map(reference ->
+                        getSubject(namespace, reference.getSubject(), reference.getVersion()).block())
+                .collect(Collectors.toMap(s -> Objects.requireNonNull(s).getMetadata().getName(), s -> s.getSpec().getSchema()));
+    }
+
+    /**
+     * Get the schema references
+     *
+     * @param schema The schema
+     * @return The schema references
+     */
+    public List<SchemaReference> getReferences(Schema schema) {
+        if (CollectionUtils.isEmpty(schema.getSpec().getReferences()))
+            return Collections.emptyList();
+
+        return schema.getSpec().getReferences()
+                .stream()
+                .map(reference -> new SchemaReference(reference.getName(), reference.getSubject(), reference.getVersion()))
+                .toList();
     }
 }

@@ -353,6 +353,13 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         Assertions.assertNotNull(actualPerson.id());
         assertEquals(1, actualPerson.version());
         assertEquals("ns1-person-subject-value", actualPerson.subject());
+
+        var personUnchangedResponse =
+                ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                        .bearerAuth(token)
+                        .body(schemaPersonWithRefs), Schema.class);
+
+        assertEquals("unchanged", personUnchangedResponse.header("X-Ns4kafka-Result"));
     }
 
     @Test

@@ -10,6 +10,8 @@ import com.michelin.ns4kafka.services.SchemaService;
 import com.michelin.ns4kafka.utils.enums.ApplyStatus;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
+import io.micronaut.core.util.CollectionUtils;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
@@ -26,9 +28,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import java.time.Instant;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -39,6 +41,7 @@ import reactor.core.publisher.Mono;
 @Controller(value = "/api/namespaces/{namespace}/schemas")
 @ExecuteOn(TaskExecutors.IO)
 public class SchemaController extends NamespacedResourceController {
+
     @Inject
     SchemaService schemaService;
 
@@ -100,64 +103,63 @@ public class SchemaController extends NamespacedResourceController {
                     schema.getMetadata().getName())), schema.getKind(), schema.getMetadata().getName()));
         }
 
-        return schemaService
-                .getLatestSubject(ns, schema.getMetadata().getName())
-                .map(Optional::of)
-                .defaultIfEmpty(Optional.empty())
-                .flatMap(latestSubjectOptional -> {
-                    if (latestSubjectOptional.isPresent()) {
-                        var newSchema = new AvroSchema(schema.getSpec().getSchema());
-                        var actualSchema = new AvroSchema(latestSubjectOptional.get().getSpec().getSchema());
+        return schemaService.getAllSubjectVersions(ns, schema.getMetadata().getName())
+            .collectList()
+            .flatMap(subjects -> {
+                boolean unchanged = subjects.stream().anyMatch(subject -> {
+                    var actualSchema = new AvroSchema(subject.getSpec().getSchema(),
+                        schemaService.getReferences(subject), schemaService.getSchemaReferences(subject, ns), null);
+                    var newSchema = new AvroSchema(schema.getSpec().getSchema(),
+                        schemaService.getReferences(schema), schemaService.getSchemaReferences(schema, ns), null);
 
-                        if (newSchema.canonicalString().equals(actualSchema.canonicalString())) {
-                            return Mono.just(formatHttpResponse(schema, ApplyStatus.unchanged));
+                    return Objects.equals(newSchema.canonicalString(), actualSchema.canonicalString())
+                            && Objects.equals(newSchema.references(), actualSchema.references());
+                });
+
+                if (unchanged) {
+                    return Mono.just(formatHttpResponse(schema, ApplyStatus.unchanged));
+                }
+
+                return schemaService
+                    .validateSchemaCompatibility(ns.getMetadata().getCluster(), schema)
+                    .flatMap(validationErrors -> {
+                        if (!validationErrors.isEmpty()) {
+                            return Mono.error(new ResourceValidationException(
+                                validationErrors,
+                                schema.getKind(),
+                                schema.getMetadata().getName()));
                         }
 
-                        schema.getSpec().setCompatibility(latestSubjectOptional.get().getSpec().getCompatibility());
-                    }
+                        schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                        schema.getMetadata().setCluster(ns.getMetadata().getCluster());
+                        schema.getMetadata().setNamespace(ns.getMetadata().getName());
 
-                    return schemaService
-                            .validateSchemaCompatibility(ns.getMetadata().getCluster(), schema)
-                            .flatMap(validationErrors -> {
-                                if (!validationErrors.isEmpty()) {
-                                    return Mono.error(new ResourceValidationException(
-                                            validationErrors,
-                                            schema.getKind(),
-                                            schema.getMetadata().getName()));
+                        if (dryrun) {
+                            return Mono.just(formatHttpResponse(schema,
+                                subjects.isEmpty()
+                                ? ApplyStatus.created : ApplyStatus.changed));
+                        }
+
+                        return schemaService
+                            .register(ns, schema)
+                            .map(id -> {
+                                ApplyStatus status;
+
+                                if (subjects.isEmpty()) {
+                                    status = ApplyStatus.created;
+                                    sendEventLog(schema.getKind(), schema.getMetadata(), status, null,
+                                        schema.getSpec());
+                                } else {
+                                    status = ApplyStatus.changed;
+                                    sendEventLog(schema.getKind(), schema.getMetadata(), status,
+                                        subjects.stream().max(Comparator.comparingInt((Schema s) -> s.getSpec().getId())),
+                                        schema.getSpec());
                                 }
 
-                                schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                                schema.getMetadata().setCluster(ns.getMetadata().getCluster());
-                                schema.getMetadata().setNamespace(ns.getMetadata().getName());
-
-                                if (dryrun) {
-                                    return Mono.just(formatHttpResponse(schema,
-                                            latestSubjectOptional.isPresent()
-                                                    ? ApplyStatus.changed : ApplyStatus.created));
-                                }
-
-                                return schemaService
-                                        .register(ns, schema)
-                                        .map(id -> {
-                                            ApplyStatus status;
-
-                                            if (latestSubjectOptional.isEmpty()) {
-                                                status = ApplyStatus.created;
-                                                sendEventLog(schema.getKind(), schema.getMetadata(), status, null,
-                                                    schema.getSpec());
-                                            } else if (id > latestSubjectOptional.get().getSpec().getId()) {
-                                                status = ApplyStatus.changed;
-                                                sendEventLog(schema.getKind(), schema.getMetadata(), status,
-                                                    latestSubjectOptional.get().getSpec(),
-                                                    schema.getSpec());
-                                            } else {
-                                                status = ApplyStatus.unchanged;
-                                            }
-
-                                            return formatHttpResponse(schema, status);
-                                        });
+                                return formatHttpResponse(schema, status);
                             });
-                });
+                    });
+            });
     }
 
     /**
