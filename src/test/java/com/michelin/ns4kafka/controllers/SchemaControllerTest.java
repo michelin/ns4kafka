@@ -106,7 +106,8 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName())).thenReturn(Flux.just(schema));
+        when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName()))
+            .thenReturn(Flux.just(schema));
 
         StepVerifier.create(schemaController.apply("myNamespace", schema, false))
             .consumeNextWith(response -> {
@@ -186,7 +187,8 @@ class SchemaControllerTest {
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName()))
             .thenReturn(true);
         when(schemaService.validateSchemaCompatibility("local", schemaV2)).thenReturn(Mono.just(List.of()));
-        when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName())).thenReturn(Flux.just(schema));
+        when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName()))
+            .thenReturn(Flux.just(schema));
 
         StepVerifier.create(schemaController.apply("myNamespace", schemaV2, true))
             .consumeNextWith(response -> {
@@ -207,7 +209,8 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName())).thenReturn(Flux.just(schemaV2));
+        when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName()))
+            .thenReturn(Flux.just(schemaV2));
         when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(
             Mono.just(List.of("Not compatible")));
 

@@ -14,10 +14,12 @@ import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.micronaut.core.util.CollectionUtils;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
-
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -65,6 +67,13 @@ public class SchemaService {
                 .build());
     }
 
+    /**
+     * Get all the subject versions for a given subject.
+     *
+     * @param namespace The namespace
+     * @param subject   The subject
+     * @return All the subject versions
+     */
     public Flux<Schema> getAllSubjectVersions(Namespace namespace, String subject) {
         return schemaRegistryClient.getAllSubjectVersions(namespace.getMetadata().getCluster(), subject)
             .map(subjectResponse -> Schema.builder()
@@ -86,6 +95,14 @@ public class SchemaService {
             );
     }
 
+    /**
+     * Get a subject by its name and version.
+     *
+     * @param namespace The namespace
+     * @param subject   The subject
+     * @param version   The version
+     * @return A Subject
+     */
     public Mono<Schema> getSubject(Namespace namespace, String subject, Integer version) {
         return schemaRegistryClient
             .getSubject(namespace.getMetadata().getCluster(), subject, version)
@@ -247,34 +264,38 @@ public class SchemaService {
     }
 
     /**
-     * Get all the schema of all the references for a given schema
+     * Get all the schema of all the references for a given schema.
      *
      * @param schema    The schema
      * @param namespace The namespace
      * @return The schema references
      */
     public Map<String, String> getSchemaReferences(Schema schema, Namespace namespace) {
-        if (CollectionUtils.isEmpty(schema.getSpec().getReferences()))
+        if (CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
             return Collections.emptyMap();
+        }
 
         return schema.getSpec().getReferences().stream().map(reference ->
-                        getSubject(namespace, reference.getSubject(), reference.getVersion()).block())
-                .collect(Collectors.toMap(s -> Objects.requireNonNull(s).getMetadata().getName(), s -> s.getSpec().getSchema()));
+                getSubject(namespace, reference.getSubject(), reference.getVersion()).block())
+            .collect(Collectors.toMap(s ->
+                Objects.requireNonNull(s).getMetadata().getName(), s -> s.getSpec().getSchema()));
     }
 
     /**
-     * Get the schema references
+     * Get the schema references.
      *
      * @param schema The schema
      * @return The schema references
      */
     public List<SchemaReference> getReferences(Schema schema) {
-        if (CollectionUtils.isEmpty(schema.getSpec().getReferences()))
+        if (CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
             return Collections.emptyList();
+        }
 
         return schema.getSpec().getReferences()
-                .stream()
-                .map(reference -> new SchemaReference(reference.getName(), reference.getSubject(), reference.getVersion()))
-                .toList();
+            .stream()
+            .map(reference ->
+                new SchemaReference(reference.getName(), reference.getSubject(), reference.getVersion()))
+            .toList();
     }
 }

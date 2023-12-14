@@ -10,8 +10,6 @@ import com.michelin.ns4kafka.services.SchemaService;
 import com.michelin.ns4kafka.utils.enums.ApplyStatus;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
-import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
-import io.micronaut.core.util.CollectionUtils;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
@@ -28,9 +26,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import java.time.Instant;
-import java.util.*;
-import java.util.stream.Collectors;
-
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -152,7 +152,8 @@ public class SchemaController extends NamespacedResourceController {
                                 } else {
                                     status = ApplyStatus.changed;
                                     sendEventLog(schema.getKind(), schema.getMetadata(), status,
-                                        subjects.stream().max(Comparator.comparingInt((Schema s) -> s.getSpec().getId())),
+                                        subjects.stream().max(
+                                            Comparator.comparingInt((Schema s) -> s.getSpec().getId())),
                                         schema.getSpec());
                                 }
 

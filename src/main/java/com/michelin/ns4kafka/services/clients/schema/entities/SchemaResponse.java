@@ -1,10 +1,8 @@
 package com.michelin.ns4kafka.services.clients.schema.entities;
 
 import com.michelin.ns4kafka.models.schema.Schema;
-import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
-import lombok.Builder;
-
 import java.util.List;
+import lombok.Builder;
 
 /**
  * Schema response.
@@ -17,5 +15,10 @@ import java.util.List;
  * @param references The schema references
  */
 @Builder
-public record SchemaResponse(Integer id, Integer version, String subject, String schema, String schemaType, List<Schema.SchemaSpec.Reference> references) {
+public record SchemaResponse(Integer id,
+                             Integer version,
+                             String subject,
+                             String schema,
+                             String schemaType,
+                             List<Schema.SchemaSpec.Reference> references) {
 }
