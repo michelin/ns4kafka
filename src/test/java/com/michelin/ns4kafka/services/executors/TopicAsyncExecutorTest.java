@@ -106,8 +106,11 @@ class TopicAsyncExecutorTest {
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
         when(schemaRegistryClient.associateTags(anyString(), anyList()))
-            .thenReturn(Mono.empty())
-            .thenReturn(Mono.error(new Exception("error")));
+                .thenReturn(Mono.empty())
+                .thenReturn(Mono.error(new Exception("error")));
+        when(schemaRegistryClient.createTags(anyList(), anyString()))
+                .thenReturn(Mono.just(List.of()))
+                .thenReturn(Mono.error(new Exception("error")));
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
         when(managedClusterProperties.getConfig()).thenReturn(properties);
 
