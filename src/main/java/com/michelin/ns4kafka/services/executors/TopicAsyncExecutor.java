@@ -8,6 +8,7 @@ import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
 import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagEntities;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagEntity;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
 import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Singleton;
@@ -154,7 +155,7 @@ public class TopicAsyncExecutor {
                 // Get tags to delete
                 Set<String> existingTags = new HashSet<>(brokerTopic.getSpec().getTags());
                 existingTags.removeAll(Set.copyOf(topic.getSpec().getTags()));
-                deleteTags(existingTags, topic.getMetadata().getName());
+                dissociateTags(existingTags, topic.getMetadata().getName());
 
                 // Get tags to create
                 Set<String> newTags = new HashSet<>(topic.getSpec().getTags());
@@ -173,7 +174,7 @@ public class TopicAsyncExecutor {
             .toList();
 
         if (!tagsToCreate.isEmpty()) {
-            createTags(tagsToCreate);
+            createAndAssociateTags(tagsToCreate);
         }
     }
 
@@ -191,7 +192,7 @@ public class TopicAsyncExecutor {
             managedClusterProperties.getName());
 
         if (isConfluentCloud() && !topic.getSpec().getTags().isEmpty()) {
-            deleteTags(topic.getSpec().getTags(), topic.getMetadata().getName());
+            dissociateTags(topic.getSpec().getTags(), topic.getMetadata().getName());
         }
     }
 
@@ -378,37 +379,54 @@ public class TopicAsyncExecutor {
     }
 
     /**
-     * Create tags.
+     * Create tags and associate them.
      *
-     * @param tagsToCreate The tags to create
+     * @param tagsToAssociate The tags to create and associate
      */
-    private void createTags(List<TagTopicInfo> tagsToCreate) {
-        String stringTags = String.join(", ", tagsToCreate
-            .stream()
-            .map(Record::toString)
-            .toList());
+    private void createAndAssociateTags(List<TagTopicInfo> tagsToAssociate) {
+        List<TagInfo> tagsToCreate = tagsToAssociate
+                .stream()
+                .map(tag -> TagInfo
+                        .builder()
+                        .name(tag.typeName())
+                        .build())
+                .toList();
 
-        schemaRegistryClient.addTags(managedClusterProperties.getName(), tagsToCreate)
-            .subscribe(success -> log.info(String.format("Success creating tag %s.", stringTags)),
-                error -> log.error(String.format("Error creating tag %s.", stringTags), error));
+        String stringTags = String.join(", ", tagsToAssociate
+                .stream()
+                .map(Record::toString)
+                .toList());
+
+        schemaRegistryClient.createTags(tagsToCreate, managedClusterProperties.getName())
+                .subscribe(
+                        successCreation ->
+                                schemaRegistryClient.associateTags(
+                                        managedClusterProperties.getName(),
+                                        tagsToAssociate)
+                        .subscribe(
+                                successAssociation ->
+                                        log.info(String.format("Success associating tag %s.", stringTags)),
+                                error ->
+                                        log.error(String.format("Error associating tag %s.", stringTags), error)),
+                        error -> log.error(String.format("Error creating tag %s.", stringTags), error));
     }
 
     /**
-     * Delete tags.
+     * Dissociate tags to a topic.
      *
-     * @param tagsToDelete The tags to delete
-     * @param topicName    The topic name
+     * @param tagsToDissociate  The tags to dissociate
+     * @param topicName         The topic name
      */
-    private void deleteTags(Collection<String> tagsToDelete, String topicName) {
-        tagsToDelete
-            .forEach(tag -> schemaRegistryClient.deleteTag(managedClusterProperties.getName(),
+    private void dissociateTags(Collection<String> tagsToDissociate, String topicName) {
+        tagsToDissociate
+            .forEach(tag -> schemaRegistryClient.dissociateTag(managedClusterProperties.getName(),
                     managedClusterProperties.getConfig().getProperty(CLUSTER_ID)
                         + ":" + topicName, tag)
-                .subscribe(success -> log.info(String.format("Success deleting tag %s.",
+                .subscribe(success -> log.info(String.format("Success dissociating tag %s.",
                         managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
                             + topicName
                             + "/" + tag)),
-                    error -> log.error(String.format("Error deleting tag %s.",
+                    error -> log.error(String.format("Error dissociating tag %s.",
                         managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
                             + topicName
                             + "/" + tag), error)));

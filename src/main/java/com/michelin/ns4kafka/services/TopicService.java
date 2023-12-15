@@ -45,9 +45,6 @@ public class TopicService {
     @Inject
     List<ManagedClusterProperties> managedClusterProperties;
 
-    @Inject
-    SchemaRegistryClient schemaRegistryClient;
-
     /**
      * Find all topics.
      *
@@ -346,28 +343,6 @@ public class TopicService {
                 "Invalid value %s for tags: Tags are not currently supported.",
                 String.join(", ", topic.getSpec().getTags())));
             return validationErrors;
-        }
-
-        Set<String> tagNames = schemaRegistryClient.getTags(namespace.getMetadata().getCluster())
-            .map(tags -> tags.stream().map(TagInfo::name).collect(Collectors.toSet())).block();
-
-        if (tagNames == null || tagNames.isEmpty()) {
-            validationErrors.add(String.format(
-                "Invalid value %s for tags: No tags allowed.",
-                String.join(", ", topic.getSpec().getTags())));
-            return validationErrors;
-        }
-
-        List<String> unavailableTagNames = topic.getSpec().getTags()
-            .stream()
-            .filter(tagName -> !tagNames.contains(tagName))
-            .toList();
-
-        if (!unavailableTagNames.isEmpty()) {
-            validationErrors.add(String.format(
-                "Invalid value %s for tags: Available tags are %s.",
-                String.join(", ", unavailableTagNames),
-                String.join(", ", tagNames)));
         }
 
         return validationErrors;

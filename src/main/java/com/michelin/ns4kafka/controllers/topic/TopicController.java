@@ -108,6 +108,7 @@ public class TopicController extends NamespacedResourceController {
             validationErrors.addAll(topicService.validateTopicUpdate(ns, existingTopic.get(), topic));
         }
 
+        topic.getSpec().getTags().replaceAll(String::toUpperCase);
         List<String> existingTags = existingTopic
             .map(oldTopic -> oldTopic.getSpec().getTags())
             .orElse(Collections.emptyList());

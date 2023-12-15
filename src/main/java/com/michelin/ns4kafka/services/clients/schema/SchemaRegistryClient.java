@@ -186,9 +186,9 @@ public class SchemaRegistryClient {
     public Mono<List<TagInfo>> getTags(String kafkaCluster) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest
-            .GET(URI.create(StringUtils.prependUri(
-                config.getUrl(), "/catalog/v1/types/tagdefs")))
-            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+                .GET(URI.create(StringUtils.prependUri(
+                        config.getUrl(), "/catalog/v1/types/tagdefs")))
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, Argument.listOf(TagInfo.class)));
     }
 
@@ -215,7 +215,7 @@ public class SchemaRegistryClient {
      * @param tagSpecs     Tags to add
      * @return Information about added tags
      */
-    public Mono<List<TagTopicInfo>> addTags(String kafkaCluster, List<TagTopicInfo> tagSpecs) {
+    public Mono<List<TagTopicInfo>> associateTags(String kafkaCluster, List<TagTopicInfo> tagSpecs) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest
             .POST(URI.create(StringUtils.prependUri(
@@ -226,6 +226,21 @@ public class SchemaRegistryClient {
     }
 
     /**
+     * Create tags.
+     *
+     * @param tags The list of tags to create
+     * @param kafkaCluster The Kafka cluster
+     * @return Information about created tags
+     */
+    public Mono<List<TagInfo>> createTags(List<TagInfo> tags, String kafkaCluster) {
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
+        HttpRequest<?> request = HttpRequest.POST(URI.create(StringUtils.prependUri(
+                        config.getUrl(), "/catalog/v1/types/tagdefs")), tags)
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+        return Mono.from(httpClient.retrieve(request, Argument.listOf(TagInfo.class)));
+    }
+
+    /**
      * Delete a tag to a topic.
      *
      * @param kafkaCluster The Kafka cluster
@@ -233,7 +248,7 @@ public class SchemaRegistryClient {
      * @param tagName      The tag to delete
      * @return The resume response
      */
-    public Mono<HttpResponse<Void>> deleteTag(String kafkaCluster, String entityName, String tagName) {
+    public Mono<HttpResponse<Void>> dissociateTag(String kafkaCluster, String entityName, String tagName) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest
             .DELETE(URI.create(StringUtils.prependUri(
