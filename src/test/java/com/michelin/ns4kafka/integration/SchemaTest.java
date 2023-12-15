@@ -360,6 +360,90 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                         .body(schemaPersonWithRefs), Schema.class);
 
         assertEquals("unchanged", personUnchangedResponse.header("X-Ns4kafka-Result"));
+
+        Schema newSchemaVersionPersonWithRefs = Schema.builder()
+            .metadata(ObjectMeta.builder()
+                .name("ns1-person-subject-value")
+                .build())
+            .spec(Schema.SchemaSpec.builder()
+                .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\","
+                    + "\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"header\",\"type\":[\"null\","
+                    + "\"com.michelin.kafka.producer.showcase.avro.HeaderAvro\"],"
+                    + "\"default\":null,\"doc\":\"Header of the person\"},{\"name\":\"firstName\","
+                    + "\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},"
+                    + "{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":"
+                    + "\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\","
+                    + "\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
+                    + "\"doc\":\"Date of birth of the person\"},{\"name\":\"birthPlace\",\"type\":[\"null\","
+                    + "\"string\"],\"default\":null,\"doc\":\"Place of birth\"}]}")
+                .references(List.of(Schema.SchemaSpec.Reference.builder()
+                    .name("com.michelin.kafka.producer.showcase.avro.HeaderAvro")
+                    .subject("ns1-header-subject-value")
+                    .version(1)
+                    .build()))
+                .build())
+            .build();
+
+        var newPersonCreateResponse =
+                ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                        .bearerAuth(token)
+                        .body(newSchemaVersionPersonWithRefs), Schema.class);
+
+        assertEquals("changed", newPersonCreateResponse.header("X-Ns4kafka-Result"));
+
+        SchemaResponse newActualPerson = schemaRegistryClient.toBlocking()
+                .retrieve(HttpRequest.GET("/subjects/ns1-person-subject-value/versions/latest"),
+                        SchemaResponse.class);
+
+        Assertions.assertNotNull(newActualPerson.id());
+        assertEquals(2, newActualPerson.version());
+        assertEquals("ns1-person-subject-value", newActualPerson.subject());
+
+        // Try again to create the subject with v1
+        var personCreateV1Response =
+                ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                        .bearerAuth(token)
+                        .body(schemaPersonWithRefs), Schema.class);
+
+        assertEquals("unchanged", personCreateV1Response.header("X-Ns4kafka-Result"));
+
+        Schema schemaHeaderV2 = Schema.builder()
+            .metadata(ObjectMeta.builder()
+                .name("ns1-header-subject-value")
+                .build())
+            .spec(Schema.SchemaSpec.builder()
+                .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                    + "\"name\":\"HeaderAvro\",\"fields\":[{\"name\":\"id\",\"type\":[\"null\",\"string\"],"
+                    + "\"default\":null,\"doc\":\"ID of the header\"},{\"name\":\"value\",\"type\":[\"null\","
+                    + "\"string\"],\"default\":null,\"doc\":\"value of the header\"}]}")
+                .build())
+            .build();
+
+        // Header v2 created
+        var headerV2CreateResponse =
+                ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                        .bearerAuth(token)
+                        .body(schemaHeaderV2), Schema.class);
+
+        assertEquals("changed", headerV2CreateResponse.header("X-Ns4kafka-Result"));
+
+        SchemaResponse actualHeaderV2 = schemaRegistryClient.toBlocking()
+                .retrieve(HttpRequest.GET("/subjects/ns1-header-subject-value/versions/latest"),
+                        SchemaResponse.class);
+
+        Assertions.assertNotNull(actualHeaderV2.id());
+        assertEquals(2, actualHeaderV2.version());
+        assertEquals("ns1-header-subject-value", actualHeader.subject());
+
+        newSchemaVersionPersonWithRefs.getSpec().getReferences().get(0).setVersion(2);
+
+        // Try to create the same subject with a newer version of the reference
+        var newPersonCreateWithV2RefResponse =
+                ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                        .bearerAuth(token)
+                        .body(newSchemaVersionPersonWithRefs), Schema.class);
+
+        assertEquals("changed", newPersonCreateWithV2RefResponse.header("X-Ns4kafka-Result"));
     }
 
     @Test
