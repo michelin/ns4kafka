@@ -398,14 +398,17 @@ public class TopicAsyncExecutor {
                 .toList());
 
         schemaRegistryClient.createTags(tagsToCreate, managedClusterProperties.getName())
-                .subscribe(successCreation -> {
-                    schemaRegistryClient.associateTags(managedClusterProperties.getName(), tagsToAssociate)
-                            .subscribe(
-                                    successAssociation ->
-                                            log.info(String.format("Success associating tag %s.", stringTags)),
-                                    error ->
-                                            log.error(String.format("Error associating tag %s.", stringTags), error));
-                }, error -> log.error(String.format("Error creating tag %s.", stringTags), error));
+                .subscribe(
+                        successCreation ->
+                                schemaRegistryClient.associateTags(
+                                        managedClusterProperties.getName(),
+                                        tagsToAssociate)
+                        .subscribe(
+                                successAssociation ->
+                                        log.info(String.format("Success associating tag %s.", stringTags)),
+                                error ->
+                                        log.error(String.format("Error associating tag %s.", stringTags), error)),
+                        error -> log.error(String.format("Error creating tag %s.", stringTags), error));
     }
 
     /**

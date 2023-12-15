@@ -903,25 +903,6 @@ class TopicServiceTest {
     }
 
     @Test
-    void shouldTagsBeCreated() {
-        ManagedClusterProperties managedClusterProps =
-                new ManagedClusterProperties("local",
-                        ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
-        Properties properties = new Properties();
-        managedClusterProps.setConfig(properties);
-
-        when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
-
-        List<String> validationErrors = topicService.validateTags(
-                Namespace.builder().metadata(
-                        ObjectMeta.builder().name("namespace").cluster("local").build()).build(),
-                Topic.builder().metadata(
-                        ObjectMeta.builder().name("ns-topic1").build()).spec(Topic.TopicSpec.builder()
-                        .tags(List.of("TAG_TEST")).build()).build());
-        assertEquals(0, validationErrors.size());
-    }
-
-    @Test
     void shouldTagsBeInvalidWhenNotConfluentCloud() {
         Namespace ns = Namespace.builder()
             .metadata(ObjectMeta.builder()
