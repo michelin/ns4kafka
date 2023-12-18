@@ -61,7 +61,7 @@ jobs:
         run: ./gradlew dockerBuild dockerPush
 
       - name: Upload
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ns4kafka
           path: ${{ github.workspace }}/build/libs/ns4kafka-${{ steps.build_jar.outputs.current_version }}.jar
