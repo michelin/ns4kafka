@@ -39,10 +39,12 @@ class AkhqClaimProviderControllerV3Test {
         config.setAdminGroup("GP-ADMIN");
         config.setRoles(Map.of(AccessControlEntry.ResourceType.TOPIC, "topic-read",
             AccessControlEntry.ResourceType.CONNECT, "connect-rw",
-            AccessControlEntry.ResourceType.SCHEMA, "registry-read"));
+            AccessControlEntry.ResourceType.SCHEMA, "registry-read",
+            AccessControlEntry.ResourceType.GROUP, "group-read"));
         config.setAdminRoles(Map.of(AccessControlEntry.ResourceType.TOPIC, "topic-admin",
             AccessControlEntry.ResourceType.CONNECT, "connect-admin",
-            AccessControlEntry.ResourceType.SCHEMA, "registry-admin"));
+            AccessControlEntry.ResourceType.SCHEMA, "registry-admin",
+            AccessControlEntry.ResourceType.GROUP, "group-read"));
         return config;
     }
 
@@ -84,6 +86,56 @@ class AkhqClaimProviderControllerV3Test {
         Assertions.assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
         Assertions.assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
         Assertions.assertEquals("registry-read", groups.get(1).getRole());
+    }
+
+    @Test
+    void shouldGrantAllAccessToGroup() {
+        Namespace ns1Cluster1 = Namespace.builder()
+            .metadata(ObjectMeta.builder().name("ns1").cluster("cluster1")
+                .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
+                .build())
+            .build();
+
+        AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
+            .metadata(ObjectMeta.builder().cluster("cluster1").build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .resource("project1_t.")
+                .build())
+            .build();
+
+        AccessControlEntry ace2Ns1Cluster1 = AccessControlEntry.builder()
+            .metadata(ObjectMeta.builder().cluster("cluster1").build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.GROUP)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .resource("project1_t.")
+                .build())
+            .build();
+
+        akhqClaimProviderController.managedClusters =
+            List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
+        when(namespaceService.listAll())
+            .thenReturn(List.of(ns1Cluster1));
+        when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1))
+            .thenReturn(List.of(ace1Ns1Cluster1, ace2Ns1Cluster1));
+
+        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+            .groups(List.of("GP-PROJECT1-SUPPORT"))
+            .build();
+
+        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+
+        Assertions.assertEquals(actual.getGroups().size(), 1);
+
+        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups = actual.getGroups().get("group");
+        Assertions.assertEquals(3, groups.size());
+        Assertions.assertEquals("topic-read", groups.get(0).getRole());
+        Assertions.assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
+        Assertions.assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
+        Assertions.assertEquals("group-read", groups.get(1).getRole());
+        Assertions.assertEquals("registry-read", groups.get(2).getRole());
     }
 
     @Test
@@ -494,7 +546,7 @@ class AkhqClaimProviderControllerV3Test {
         Assertions.assertEquals("registry-read", groups.get(2).getRole());
         Assertions.assertEquals(
             List.of("^\\Qproject1.\\E.*$", "^\\Qproject3.\\E.*$", "^\\Qproject2.topic2-\\E(key|value)$",
-                    "^\\Qproject2.topic2a-\\E(key|value)$", "^\\Qproject2.topic3-\\E(key|value)$"),
+                "^\\Qproject2.topic2a-\\E(key|value)$", "^\\Qproject2.topic3-\\E(key|value)$"),
             groups.get(2).getPatterns()
         );
     }
