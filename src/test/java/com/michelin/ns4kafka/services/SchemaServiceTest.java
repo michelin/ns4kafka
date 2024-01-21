@@ -287,10 +287,18 @@ class SchemaServiceTest {
     void shouldValidateSchema() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
-
+        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+        schema.getSpec().setReferences(List.of(Schema.SchemaSpec.Reference.builder()
+            .name("reference")
+            .subject("subject-reference")
+            .version(1)
+            .build()));
+        
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(),
             "subject-reference", 1))
             .thenReturn(Mono.just(buildSchemaResponse("subject-reference")));
+        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any())).thenReturn(
+            Mono.just(compatibilityResponse));
 
         StepVerifier.create(schemaService.validateSchema(namespace, schema))
             .consumeNextWith(errors -> assertTrue(errors.isEmpty()))
@@ -302,11 +310,11 @@ class SchemaServiceTest {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
         schema.getMetadata().setName("wrongSubjectName");
-        schema.getSpec().getReferences().add(Schema.SchemaSpec.Reference.builder()
+        schema.getSpec().setReferences(List.of(Schema.SchemaSpec.Reference.builder()
             .name("reference")
             .subject("subject-reference")
             .version(1)
-            .build());
+            .build()));
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(),
             "subject-reference", 1)).thenReturn(Mono.empty());
@@ -315,7 +323,7 @@ class SchemaServiceTest {
             .consumeNextWith(errors -> {
                 assertTrue(errors.contains("Invalid value wrongSubjectName for name: "
                     + "Value must end with -key or -value."));
-                assertTrue(errors.contains("Reference subject-reference with version 1 not found."));
+                assertTrue(errors.contains("Reference subject-reference version 1 not found."));
             })
             .verifyComplete();
     }
@@ -334,7 +342,7 @@ class SchemaServiceTest {
     private Schema buildSchema() {
         return Schema.builder()
             .metadata(ObjectMeta.builder()
-                .name("prefix.schema-one")
+                .name("prefix.schema-one-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
                 .compatibility(Schema.Compatibility.BACKWARD)

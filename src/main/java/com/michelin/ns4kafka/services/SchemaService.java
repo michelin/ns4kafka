@@ -171,11 +171,11 @@ public class SchemaService {
     /**
      * Validate a schema when it is created or updated.
      *
-     * @param ns     The namespace
-     * @param schema The schema to validate
+     * @param namespace The namespace
+     * @param schema    The schema to validate
      * @return A list of errors
      */
-    public Mono<List<String>> validateSchema(Namespace ns, Schema schema) {
+    public Mono<List<String>> validateSchema(Namespace namespace, Schema schema) {
         return Mono.defer(() -> {
             List<String> validationErrors = new ArrayList<>();
 
@@ -188,7 +188,7 @@ public class SchemaService {
             }
 
             if (!CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
-                return Mono.zip(validateReferences(ns, schema), Mono.just(validationErrors),
+                return Mono.zip(validateReferences(namespace, schema), Mono.just(validationErrors),
                     (referenceErrors, errors) -> {
                         errors.addAll(referenceErrors);
                         return errors;
@@ -207,19 +207,17 @@ public class SchemaService {
      * @return A list of errors
      */
     private Mono<List<String>> validateReferences(Namespace ns, Schema schema) {
-        return Flux.concat(schema.getSpec().getReferences()
-                .stream()
-                .map(reference -> getSubject(ns, reference.getSubject(), reference.getVersion())
-                    .map(Optional::of)
-                    .defaultIfEmpty(Optional.empty())
-                    .mapNotNull(schemaOptional -> {
-                        if (schemaOptional.isEmpty()) {
-                            return String.format("Reference %s with version %s not found.",
-                                reference.getSubject(), reference.getVersion());
-                        }
-                        return null;
-                    }))
-                .toList())
+        return Flux.fromIterable(schema.getSpec().getReferences())
+            .flatMap(reference -> getSubject(ns, reference.getSubject(), reference.getVersion())
+                .map(Optional::of)
+                .defaultIfEmpty(Optional.empty())
+                .mapNotNull(schemaOptional -> {
+                    if (schemaOptional.isEmpty()) {
+                        return String.format("Reference %s version %s not found.",
+                            reference.getSubject(), reference.getVersion());
+                    }
+                    return null;
+                }))
             .collectList();
     }
 
