@@ -14,6 +14,7 @@ import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.micronaut.core.util.CollectionUtils;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -85,10 +86,9 @@ public class SchemaService {
                 .spec(Schema.SchemaSpec.builder()
                     .id(subjectResponse.id())
                     .version(subjectResponse.version())
-                    //.compatibility(compatibility)
                     .schema(subjectResponse.schema())
                     .schemaType(subjectResponse.schemaType() == null ? Schema.SchemaType.AVRO :
-                            Schema.SchemaType.valueOf(subjectResponse.schemaType()))
+                        Schema.SchemaType.valueOf(subjectResponse.schemaType()))
                     .references(subjectResponse.references())
                     .build())
                 .build()
@@ -126,7 +126,7 @@ public class SchemaService {
                             .compatibility(compatibility)
                             .schema(latestSubjectOptional.schema())
                             .schemaType(latestSubjectOptional.schemaType() == null ? Schema.SchemaType.AVRO :
-                                    Schema.SchemaType.valueOf(latestSubjectOptional.schemaType()))
+                                Schema.SchemaType.valueOf(latestSubjectOptional.schemaType()))
                             .build())
                         .build();
                 }));
@@ -166,6 +166,61 @@ public class SchemaService {
                             .build())
                         .build();
                 }));
+    }
+
+    /**
+     * Validate a schema when it is created or updated.
+     *
+     * @param ns     The namespace
+     * @param schema The schema to validate
+     * @return A list of errors
+     */
+    public Mono<List<String>> validateSchema(Namespace ns, Schema schema) {
+        return Mono.defer(() -> {
+            List<String> validationErrors = new ArrayList<>();
+
+            // Validate TopicNameStrategy
+            // https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject/TopicNameStrategy.java
+            if (!schema.getMetadata().getName().endsWith("-key")
+                && !schema.getMetadata().getName().endsWith("-value")) {
+                validationErrors.add(String.format("Invalid value %s for name: Value must end with -key or -value.",
+                    schema.getMetadata().getName()));
+            }
+
+            if (!CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
+                return Mono.zip(validateReferences(ns, schema), Mono.just(validationErrors),
+                    (referenceErrors, errors) -> {
+                        errors.addAll(referenceErrors);
+                        return errors;
+                    });
+            }
+
+            return Mono.just(validationErrors);
+        });
+    }
+
+    /**
+     * Validate the references of a schema.
+     *
+     * @param ns     The namespace
+     * @param schema The schema to validate
+     * @return A list of errors
+     */
+    private Mono<List<String>> validateReferences(Namespace ns, Schema schema) {
+        return Flux.concat(schema.getSpec().getReferences()
+                .stream()
+                .map(reference -> getSubject(ns, reference.getSubject(), reference.getVersion())
+                    .map(Optional::of)
+                    .defaultIfEmpty(Optional.empty())
+                    .mapNotNull(schemaOptional -> {
+                        if (schemaOptional.isEmpty()) {
+                            return String.format("Reference %s with version %s not found.",
+                                reference.getSubject(), reference.getVersion());
+                        }
+                        return null;
+                    }))
+                .toList())
+            .collectList();
     }
 
     /**
@@ -275,8 +330,9 @@ public class SchemaService {
             return Collections.emptyMap();
         }
 
-        return schema.getSpec().getReferences().stream().map(reference ->
-                getSubject(namespace, reference.getSubject(), reference.getVersion()).block())
+        return schema.getSpec().getReferences()
+            .stream()
+            .map(reference -> getSubject(namespace, reference.getSubject(), reference.getVersion()).block())
             .collect(Collectors.toMap(s ->
                 Objects.requireNonNull(s).getMetadata().getName(), s -> s.getSpec().getSchema()));
     }

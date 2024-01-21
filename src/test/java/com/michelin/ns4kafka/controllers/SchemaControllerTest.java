@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -58,6 +57,7 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
+        when(schemaService.validateSchema(namespace, schema)).thenReturn(Mono.just(List.of()));
         when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
         when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName())).thenReturn(Flux.empty());
         when(schemaService.register(namespace, schema)).thenReturn(Mono.just(1));
@@ -82,6 +82,7 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
+        when(schemaService.validateSchema(namespace, schemaV2)).thenReturn(Mono.just(List.of()));
         when(schemaService.validateSchemaCompatibility("local", schemaV2)).thenReturn(Mono.just(List.of()));
         when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName()))
             .thenReturn(Flux.just(schema));
@@ -106,6 +107,7 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
+        when(schemaService.validateSchema(namespace, schema)).thenReturn(Mono.just(List.of()));
         when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName()))
             .thenReturn(Flux.just(schema));
 
@@ -118,25 +120,6 @@ class SchemaControllerTest {
             .verifyComplete();
     }
 
-    @Test
-    void applyWrongSubjectName() {
-        Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
-        schema.getMetadata().setName("wrongSubjectName");
-
-        when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
-
-        StepVerifier.create(schemaController.apply("myNamespace", schema, false))
-            .consumeErrorWith(error -> {
-                assertEquals(ResourceValidationException.class, error.getClass());
-                assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
-                assertEquals("Invalid value wrongSubjectName for name: subject must end with -key or -value",
-                    ((ResourceValidationException) error).getValidationErrors().get(0));
-            })
-            .verify();
-
-        verify(schemaService, never()).register(namespace, schema);
-    }
 
     @Test
     void applyNamespaceNotOwnerOfSubject() {
@@ -157,12 +140,32 @@ class SchemaControllerTest {
     }
 
     @Test
+    void applyValidationErrors() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+
+        when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
+        when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
+        when(schemaService.validateSchema(namespace, schema)).thenReturn(Mono.just(List.of("Errors")));
+
+        StepVerifier.create(schemaController.apply("myNamespace", schema, false))
+            .consumeErrorWith(error -> {
+                assertEquals(ResourceValidationException.class, error.getClass());
+                assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
+                assertEquals("Errors",
+                    ((ResourceValidationException) error).getValidationErrors().get(0));
+            })
+            .verify();
+    }
+
+    @Test
     void applyDryRunCreated() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
+        when(schemaService.validateSchema(namespace, schema)).thenReturn(Mono.just(List.of()));
         when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
         when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName())).thenReturn(Flux.empty());
 
@@ -186,6 +189,7 @@ class SchemaControllerTest {
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName()))
             .thenReturn(true);
+        when(schemaService.validateSchema(namespace, schemaV2)).thenReturn(Mono.just(List.of()));
         when(schemaService.validateSchemaCompatibility("local", schemaV2)).thenReturn(Mono.just(List.of()));
         when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName()))
             .thenReturn(Flux.just(schema));
@@ -209,6 +213,7 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
+        when(schemaService.validateSchema(namespace, schema)).thenReturn(Mono.just(List.of()));
         when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName()))
             .thenReturn(Flux.just(schemaV2));
         when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(

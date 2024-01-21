@@ -41,6 +41,7 @@ import reactor.core.publisher.Mono;
 @Controller(value = "/api/namespaces/{namespace}/schemas")
 @ExecuteOn(TaskExecutors.IO)
 public class SchemaController extends NamespacedResourceController {
+    private static final String NAMESPACE_NOT_OWNER = "Namespace not owner of this schema %s.";
 
     @Inject
     SchemaService schemaService;
@@ -87,77 +88,65 @@ public class SchemaController extends NamespacedResourceController {
                                             @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
-        // Validate TopicNameStrategy
-        // https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject/TopicNameStrategy.java
-        if (!schema.getMetadata().getName().endsWith("-key") && !schema.getMetadata().getName().endsWith("-value")) {
-            return Mono.error(
-                new ResourceValidationException(List.of("Invalid value " + schema.getMetadata().getName()
-                    + " for name: subject must end with -key or -value"), schema.getKind(),
-                    schema.getMetadata().getName()));
-        }
-
-        // Validate ownership
         if (!schemaService.isNamespaceOwnerOfSubject(ns, schema.getMetadata().getName())) {
-            return Mono.error(
-                new ResourceValidationException(List.of(String.format("Namespace not owner of this schema %s.",
-                    schema.getMetadata().getName())), schema.getKind(), schema.getMetadata().getName()));
+            return Mono.error(new ResourceValidationException(
+                List.of(String.format(NAMESPACE_NOT_OWNER, schema.getMetadata().getName())),
+                schema.getKind(), schema.getMetadata().getName()));
         }
 
-        return schemaService.getAllSubjectVersions(ns, schema.getMetadata().getName())
-            .collectList()
-            .flatMap(subjects -> {
-                boolean unchanged = subjects.stream().anyMatch(subject -> {
-                    var actualSchema = new AvroSchema(subject.getSpec().getSchema(),
-                        schemaService.getReferences(subject), schemaService.getSchemaReferences(subject, ns), null);
-                    var newSchema = new AvroSchema(schema.getSpec().getSchema(),
-                        schemaService.getReferences(schema), schemaService.getSchemaReferences(schema, ns), null);
-
-                    return Objects.equals(newSchema.canonicalString(), actualSchema.canonicalString())
-                            && Objects.equals(newSchema.references(), actualSchema.references());
-                });
-
-                if (unchanged) {
-                    return Mono.just(formatHttpResponse(schema, ApplyStatus.unchanged));
+        return schemaService.validateSchema(ns, schema)
+            .flatMap(errors -> {
+                if (!errors.isEmpty()) {
+                    return Mono.error(new ResourceValidationException(errors, schema.getKind(),
+                        schema.getMetadata().getName()));
                 }
+                return schemaService.getAllSubjectVersions(ns, schema.getMetadata().getName())
+                    .collectList()
+                    .flatMap(subjects -> {
+                        // If new schema matches any of the existing schemas, return unchanged
+                        boolean unchanged = subjects.stream().anyMatch(subject -> {
+                            var actualSchema = new AvroSchema(subject.getSpec().getSchema(),
+                                schemaService.getReferences(subject), schemaService.getSchemaReferences(subject, ns),
+                                null);
+                            var newSchema = new AvroSchema(schema.getSpec().getSchema(),
+                                schemaService.getReferences(schema), schemaService.getSchemaReferences(schema, ns),
+                                null);
 
-                return schemaService
-                    .validateSchemaCompatibility(ns.getMetadata().getCluster(), schema)
-                    .flatMap(validationErrors -> {
-                        if (!validationErrors.isEmpty()) {
-                            return Mono.error(new ResourceValidationException(
-                                validationErrors,
-                                schema.getKind(),
-                                schema.getMetadata().getName()));
-                        }
+                            return Objects.equals(newSchema.canonicalString(), actualSchema.canonicalString())
+                                && Objects.equals(newSchema.references(), actualSchema.references());
+                        });
 
-                        schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                        schema.getMetadata().setCluster(ns.getMetadata().getCluster());
-                        schema.getMetadata().setNamespace(ns.getMetadata().getName());
-
-                        if (dryrun) {
-                            return Mono.just(formatHttpResponse(schema,
-                                subjects.isEmpty()
-                                ? ApplyStatus.created : ApplyStatus.changed));
+                        if (unchanged) {
+                            return Mono.just(formatHttpResponse(schema, ApplyStatus.unchanged));
                         }
 
                         return schemaService
-                            .register(ns, schema)
-                            .map(id -> {
-                                ApplyStatus status;
-
-                                if (subjects.isEmpty()) {
-                                    status = ApplyStatus.created;
-                                    sendEventLog(schema.getKind(), schema.getMetadata(), status, null,
-                                        schema.getSpec());
-                                } else {
-                                    status = ApplyStatus.changed;
-                                    sendEventLog(schema.getKind(), schema.getMetadata(), status,
-                                        subjects.stream().max(
-                                            Comparator.comparingInt((Schema s) -> s.getSpec().getId())),
-                                        schema.getSpec());
+                            .validateSchemaCompatibility(ns.getMetadata().getCluster(), schema)
+                            .flatMap(validationErrors -> {
+                                if (!validationErrors.isEmpty()) {
+                                    return Mono.error(new ResourceValidationException(
+                                        validationErrors, schema.getKind(), schema.getMetadata().getName()));
                                 }
 
-                                return formatHttpResponse(schema, status);
+                                schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                                schema.getMetadata().setCluster(ns.getMetadata().getCluster());
+                                schema.getMetadata().setNamespace(ns.getMetadata().getName());
+
+                                ApplyStatus status = subjects.isEmpty() ? ApplyStatus.created : ApplyStatus.changed;
+                                if (dryrun) {
+                                    return Mono.just(formatHttpResponse(schema, status));
+                                }
+
+                                return schemaService
+                                    .register(ns, schema)
+                                    .map(id -> {
+                                        sendEventLog(schema.getKind(), schema.getMetadata(), status,
+                                            subjects.isEmpty() ? null : subjects.stream()
+                                                .max(Comparator.comparingInt((Schema s) -> s.getSpec().getId())),
+                                            schema.getSpec());
+
+                                        return formatHttpResponse(schema, status);
+                                    });
                             });
                     });
             });
@@ -180,7 +169,7 @@ public class SchemaController extends NamespacedResourceController {
         // Validate ownership
         if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
             return Mono.error(new ResourceValidationException(
-                List.of(String.format("Namespace not owner of this schema %s.", subject)),
+                List.of(String.format(NAMESPACE_NOT_OWNER, subject)),
                 AccessControlEntry.ResourceType.SCHEMA.toString(), subject));
         }
 

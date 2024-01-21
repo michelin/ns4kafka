@@ -122,7 +122,6 @@ public class ConnectorController extends NamespacedResourceController {
                                                @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
-        // Validate ownership
         if (!connectorService.isNamespaceOwnerOfConnect(ns, connector.getMetadata().getName())) {
             return Mono.error(new ResourceValidationException(
                 List.of(String.format(NAMESPACE_NOT_OWNER, connector.getMetadata().getName())),
