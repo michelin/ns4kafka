@@ -57,8 +57,9 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
+        when(schemaService.validateSchema(namespace, schema)).thenReturn(Mono.just(List.of()));
         when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
-        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Mono.empty());
+        when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName())).thenReturn(Flux.empty());
         when(schemaService.register(namespace, schema)).thenReturn(Mono.just(1));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
@@ -77,18 +78,20 @@ class SchemaControllerTest {
     void applyChanged() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
+        Schema schemaV2 = buildSchemaV2();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
-        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName()))
-            .thenReturn(Mono.just(schema));
-        when(schemaService.register(namespace, schema)).thenReturn(Mono.just(2));
+        when(schemaService.validateSchema(namespace, schemaV2)).thenReturn(Mono.just(List.of()));
+        when(schemaService.validateSchemaCompatibility("local", schemaV2)).thenReturn(Mono.just(List.of()));
+        when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName()))
+            .thenReturn(Flux.just(schema));
+        when(schemaService.register(namespace, schemaV2)).thenReturn(Mono.just(2));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        StepVerifier.create(schemaController.apply("myNamespace", schema, false))
+        StepVerifier.create(schemaController.apply("myNamespace", schemaV2, false))
             .consumeNextWith(response -> {
                 assertEquals("changed", response.header("X-Ns4kafka-Result"));
                 assertTrue(response.getBody().isPresent());
@@ -104,9 +107,9 @@ class SchemaControllerTest {
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
-        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Mono.just(schema));
-        when(schemaService.register(namespace, schema)).thenReturn(Mono.just(1));
+        when(schemaService.validateSchema(namespace, schema)).thenReturn(Mono.just(List.of()));
+        when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName()))
+            .thenReturn(Flux.just(schema));
 
         StepVerifier.create(schemaController.apply("myNamespace", schema, false))
             .consumeNextWith(response -> {
@@ -117,25 +120,6 @@ class SchemaControllerTest {
             .verifyComplete();
     }
 
-    @Test
-    void applyWrongSubjectName() {
-        Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
-        schema.getMetadata().setName("wrongSubjectName");
-
-        when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
-
-        StepVerifier.create(schemaController.apply("myNamespace", schema, false))
-            .consumeErrorWith(error -> {
-                assertEquals(ResourceValidationException.class, error.getClass());
-                assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
-                assertEquals("Invalid value wrongSubjectName for name: subject must end with -key or -value",
-                    ((ResourceValidationException) error).getValidationErrors().get(0));
-            })
-            .verify();
-
-        verify(schemaService, never()).register(namespace, schema);
-    }
 
     @Test
     void applyNamespaceNotOwnerOfSubject() {
@@ -156,14 +140,34 @@ class SchemaControllerTest {
     }
 
     @Test
+    void applyValidationErrors() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+
+        when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
+        when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
+        when(schemaService.validateSchema(namespace, schema)).thenReturn(Mono.just(List.of("Errors")));
+
+        StepVerifier.create(schemaController.apply("myNamespace", schema, false))
+            .consumeErrorWith(error -> {
+                assertEquals(ResourceValidationException.class, error.getClass());
+                assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
+                assertEquals("Errors",
+                    ((ResourceValidationException) error).getValidationErrors().get(0));
+            })
+            .verify();
+    }
+
+    @Test
     void applyDryRunCreated() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
+        when(schemaService.validateSchema(namespace, schema)).thenReturn(Mono.just(List.of()));
         when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
-        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Mono.empty());
+        when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName())).thenReturn(Flux.empty());
 
         StepVerifier.create(schemaController.apply("myNamespace", schema, true))
             .consumeNextWith(response -> {
@@ -180,13 +184,17 @@ class SchemaControllerTest {
     void applyDryRunChanged() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
+        Schema schemaV2 = buildSchemaV2();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
-        when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
-        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName())).thenReturn(Mono.just(schema));
+        when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName()))
+            .thenReturn(true);
+        when(schemaService.validateSchema(namespace, schemaV2)).thenReturn(Mono.just(List.of()));
+        when(schemaService.validateSchemaCompatibility("local", schemaV2)).thenReturn(Mono.just(List.of()));
+        when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName()))
+            .thenReturn(Flux.just(schema));
 
-        StepVerifier.create(schemaController.apply("myNamespace", schema, true))
+        StepVerifier.create(schemaController.apply("myNamespace", schemaV2, true))
             .consumeNextWith(response -> {
                 assertEquals("changed", response.header("X-Ns4kafka-Result"));
                 assertTrue(response.getBody().isPresent());
@@ -194,16 +202,20 @@ class SchemaControllerTest {
             })
             .verifyComplete();
 
-        verify(schemaService, never()).register(namespace, schema);
+        verify(schemaService, never()).register(namespace, schemaV2);
     }
 
     @Test
     void applyDryRunNotCompatible() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
+        Schema schemaV2 = buildSchemaV2();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
+        when(schemaService.validateSchema(namespace, schema)).thenReturn(Mono.just(List.of()));
+        when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName()))
+            .thenReturn(Flux.just(schemaV2));
         when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(
             Mono.just(List.of("Not compatible")));
 
@@ -442,6 +454,28 @@ class SchemaControllerTest {
                         + "{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\","
                         + "\"logicalType\":\"timestamp-millis\"}],"
                         + "\"default\":null,\"doc\":\"Date of birth of the person\"}]}")
+                .build())
+            .build();
+    }
+
+    private Schema buildSchemaV2() {
+        return Schema.builder()
+            .metadata(ObjectMeta.builder()
+                .name("prefix.subject-value")
+                .build())
+            .spec(Schema.SchemaSpec.builder()
+                .id(1)
+                .version(2)
+                .schema(
+                    "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                        + "\"name\":\"PersonAvro\""
+                        + ",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,"
+                        + "\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\","
+                        + "\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},"
+                        + "{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\","
+                        + "\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
+                        + "\"doc\":\"Date of birth of the person\"},{\"name\":\"birthPlace\",\"type\":[\"null\","
+                        + "\"string\"],\"default\":null,\"doc\":\"Place of birth\"}]}")
                 .build())
             .build();
     }

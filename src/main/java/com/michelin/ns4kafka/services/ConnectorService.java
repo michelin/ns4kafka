@@ -121,15 +121,15 @@ public class ConnectorService {
                     .collect(Collectors.joining(", "));
             return Mono.just(
                 List.of("Invalid value " + connector.getSpec().getConnectCluster()
-                    + " for spec.connectCluster: Value must be one of [" + allowedConnectClusters + "]"));
+                    + " for spec.connectCluster: Value must be one of [" + allowedConnectClusters + "]."));
         }
 
-        // If class doesn't exist, no need to go further
+        // If class does not exist, no need to go further
         if (StringUtils.isEmpty(connector.getSpec().getConfig().get(CONNECTOR_CLASS))) {
-            return Mono.just(List.of("Invalid value for spec.config.'connector.class': Value must be non-null"));
+            return Mono.just(List.of("Invalid value for spec.config.'connector.class': Value must be non-null."));
         }
 
-        // Connector type exists on this target connect cluster ?
+        // Connector type exists on this target connect cluster
         return kafkaConnectClient.connectPlugins(namespace.getMetadata().getCluster(),
                 connector.getSpec().getConnectCluster())
             .map(connectorPluginInfos -> {
@@ -141,8 +141,8 @@ public class ConnectorService {
                     .findFirst();
 
                 if (connectorType.isEmpty()) {
-                    return List.of("Failed to find any class that implements Connector and which name matches "
-                        + connector.getSpec().getConfig().get(CONNECTOR_CLASS));
+                    return List.of("Failed to find any class that implements connector and which name matches "
+                        + connector.getSpec().getConfig().get(CONNECTOR_CLASS) + ".");
                 }
 
                 return namespace.getSpec().getConnectValidator() != null

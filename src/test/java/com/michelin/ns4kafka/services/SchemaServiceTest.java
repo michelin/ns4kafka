@@ -121,6 +121,24 @@ class SchemaServiceTest {
     }
 
     @Test
+    void getAllSubjectVersions() {
+        Namespace namespace = buildNamespace();
+        SchemaResponse schemaResponse = buildSchemaResponse("prefix.schema-one");
+
+        when(schemaRegistryClient.getAllSubjectVersions(namespace.getMetadata().getCluster(),
+            "prefix.schema-one")).thenReturn(Flux.just(schemaResponse));
+
+        StepVerifier.create(schemaService.getAllSubjectVersions(namespace, "prefix.schema-one"))
+            .consumeNextWith(subjectVersion -> {
+                assertEquals("prefix.schema-one", subjectVersion.getMetadata().getName());
+                assertEquals("local", subjectVersion.getMetadata().getCluster());
+                assertEquals("myNamespace", subjectVersion.getMetadata().getNamespace());
+                assertEquals(schemaResponse.references(), subjectVersion.getSpec().getReferences());
+            })
+            .verifyComplete();
+    }
+
+    @Test
     void getBySubjectAndVersionEmptyResponse() {
         Namespace namespace = buildNamespace();
 
@@ -265,6 +283,51 @@ class SchemaServiceTest {
         assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one"));
     }
 
+    @Test
+    void shouldValidateSchema() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+        schema.getSpec().setReferences(List.of(Schema.SchemaSpec.Reference.builder()
+            .name("reference")
+            .subject("subject-reference")
+            .version(1)
+            .build()));
+        
+        when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(),
+            "subject-reference", 1))
+            .thenReturn(Mono.just(buildSchemaResponse("subject-reference")));
+        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any())).thenReturn(
+            Mono.just(compatibilityResponse));
+
+        StepVerifier.create(schemaService.validateSchema(namespace, schema))
+            .consumeNextWith(errors -> assertTrue(errors.isEmpty()))
+            .verifyComplete();
+    }
+
+    @Test
+    void shouldNotValidateSchema() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+        schema.getMetadata().setName("wrongSubjectName");
+        schema.getSpec().setReferences(List.of(Schema.SchemaSpec.Reference.builder()
+            .name("reference")
+            .subject("subject-reference")
+            .version(1)
+            .build()));
+
+        when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(),
+            "subject-reference", 1)).thenReturn(Mono.empty());
+
+        StepVerifier.create(schemaService.validateSchema(namespace, schema))
+            .consumeNextWith(errors -> {
+                assertTrue(errors.contains("Invalid value wrongSubjectName for name: "
+                    + "Value must end with -key or -value."));
+                assertTrue(errors.contains("Reference subject-reference version 1 not found."));
+            })
+            .verifyComplete();
+    }
+
     private Namespace buildNamespace() {
         return Namespace.builder()
             .metadata(ObjectMeta.builder()
@@ -279,7 +342,7 @@ class SchemaServiceTest {
     private Schema buildSchema() {
         return Schema.builder()
             .metadata(ObjectMeta.builder()
-                .name("prefix.schema-one")
+                .name("prefix.schema-one-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
                 .compatibility(Schema.Compatibility.BACKWARD)
@@ -308,6 +371,11 @@ class SchemaServiceTest {
                     + "\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\","
                     + "{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
                     + "\"doc\":\"Date of birth of the person\"}]}")
+            .references(List.of(Schema.SchemaSpec.Reference.builder()
+                .name("reference")
+                .subject("subject-reference")
+                .version(1)
+                .build()))
             .build();
     }
 

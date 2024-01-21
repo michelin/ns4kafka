@@ -10,10 +10,17 @@ import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilit
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
+import io.micronaut.core.util.CollectionUtils;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -62,6 +69,70 @@ public class SchemaService {
     }
 
     /**
+     * Get all the subject versions for a given subject.
+     *
+     * @param namespace The namespace
+     * @param subject   The subject
+     * @return All the subject versions
+     */
+    public Flux<Schema> getAllSubjectVersions(Namespace namespace, String subject) {
+        return schemaRegistryClient.getAllSubjectVersions(namespace.getMetadata().getCluster(), subject)
+            .map(subjectResponse -> Schema.builder()
+                .metadata(ObjectMeta.builder()
+                    .cluster(namespace.getMetadata().getCluster())
+                    .namespace(namespace.getMetadata().getName())
+                    .name(subjectResponse.subject())
+                    .build())
+                .spec(Schema.SchemaSpec.builder()
+                    .id(subjectResponse.id())
+                    .version(subjectResponse.version())
+                    .schema(subjectResponse.schema())
+                    .schemaType(subjectResponse.schemaType() == null ? Schema.SchemaType.AVRO :
+                        Schema.SchemaType.valueOf(subjectResponse.schemaType()))
+                    .references(subjectResponse.references())
+                    .build())
+                .build()
+            );
+    }
+
+    /**
+     * Get a subject by its name and version.
+     *
+     * @param namespace The namespace
+     * @param subject   The subject
+     * @param version   The version
+     * @return A Subject
+     */
+    public Mono<Schema> getSubject(Namespace namespace, String subject, Integer version) {
+        return schemaRegistryClient
+            .getSubject(namespace.getMetadata().getCluster(), subject, version)
+            .flatMap(latestSubjectOptional -> schemaRegistryClient
+                .getCurrentCompatibilityBySubject(namespace.getMetadata().getCluster(), subject)
+                .map(Optional::of)
+                .defaultIfEmpty(Optional.empty())
+                .map(currentCompatibilityOptional -> {
+                    Schema.Compatibility compatibility = currentCompatibilityOptional.isPresent()
+                        ? currentCompatibilityOptional.get().compatibilityLevel() : Schema.Compatibility.GLOBAL;
+
+                    return Schema.builder()
+                        .metadata(ObjectMeta.builder()
+                            .cluster(namespace.getMetadata().getCluster())
+                            .namespace(namespace.getMetadata().getName())
+                            .name(latestSubjectOptional.subject())
+                            .build())
+                        .spec(Schema.SchemaSpec.builder()
+                            .id(latestSubjectOptional.id())
+                            .version(latestSubjectOptional.version())
+                            .compatibility(compatibility)
+                            .schema(latestSubjectOptional.schema())
+                            .schemaType(latestSubjectOptional.schemaType() == null ? Schema.SchemaType.AVRO :
+                                Schema.SchemaType.valueOf(latestSubjectOptional.schemaType()))
+                            .build())
+                        .build();
+                }));
+    }
+
+    /**
      * Get the last version of a schema by namespace and subject.
      *
      * @param namespace The namespace
@@ -95,6 +166,59 @@ public class SchemaService {
                             .build())
                         .build();
                 }));
+    }
+
+    /**
+     * Validate a schema when it is created or updated.
+     *
+     * @param namespace The namespace
+     * @param schema    The schema to validate
+     * @return A list of errors
+     */
+    public Mono<List<String>> validateSchema(Namespace namespace, Schema schema) {
+        return Mono.defer(() -> {
+            List<String> validationErrors = new ArrayList<>();
+
+            // Validate TopicNameStrategy
+            // https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject/TopicNameStrategy.java
+            if (!schema.getMetadata().getName().endsWith("-key")
+                && !schema.getMetadata().getName().endsWith("-value")) {
+                validationErrors.add(String.format("Invalid value %s for name: Value must end with -key or -value.",
+                    schema.getMetadata().getName()));
+            }
+
+            if (!CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
+                return Mono.zip(validateReferences(namespace, schema), Mono.just(validationErrors),
+                    (referenceErrors, errors) -> {
+                        errors.addAll(referenceErrors);
+                        return errors;
+                    });
+            }
+
+            return Mono.just(validationErrors);
+        });
+    }
+
+    /**
+     * Validate the references of a schema.
+     *
+     * @param ns     The namespace
+     * @param schema The schema to validate
+     * @return A list of errors
+     */
+    private Mono<List<String>> validateReferences(Namespace ns, Schema schema) {
+        return Flux.fromIterable(schema.getSpec().getReferences())
+            .flatMap(reference -> getSubject(ns, reference.getSubject(), reference.getVersion())
+                .map(Optional::of)
+                .defaultIfEmpty(Optional.empty())
+                .mapNotNull(schemaOptional -> {
+                    if (schemaOptional.isEmpty()) {
+                        return String.format("Reference %s version %s not found.",
+                            reference.getSubject(), reference.getVersion());
+                    }
+                    return null;
+                }))
+            .collectList();
     }
 
     /**
@@ -190,5 +314,42 @@ public class SchemaService {
         return accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(),
             AccessControlEntry.ResourceType.TOPIC,
             underlyingTopicName);
+    }
+
+    /**
+     * Get all the schema of all the references for a given schema.
+     *
+     * @param schema    The schema
+     * @param namespace The namespace
+     * @return The schema references
+     */
+    public Map<String, String> getSchemaReferences(Schema schema, Namespace namespace) {
+        if (CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
+            return Collections.emptyMap();
+        }
+
+        return schema.getSpec().getReferences()
+            .stream()
+            .map(reference -> getSubject(namespace, reference.getSubject(), reference.getVersion()).block())
+            .collect(Collectors.toMap(s ->
+                Objects.requireNonNull(s).getMetadata().getName(), s -> s.getSpec().getSchema()));
+    }
+
+    /**
+     * Get the schema references.
+     *
+     * @param schema The schema
+     * @return The schema references
+     */
+    public List<SchemaReference> getReferences(Schema schema) {
+        if (CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
+            return Collections.emptyList();
+        }
+
+        return schema.getSpec().getReferences()
+            .stream()
+            .map(reference ->
+                new SchemaReference(reference.getName(), reference.getSubject(), reference.getVersion()))
+            .toList();
     }
 }

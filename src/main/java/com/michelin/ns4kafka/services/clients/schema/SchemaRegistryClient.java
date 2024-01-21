@@ -15,7 +15,6 @@ import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.MediaType;
 import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
@@ -23,6 +22,7 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -68,11 +68,55 @@ public class SchemaRegistryClient {
     public Mono<SchemaResponse> getLatestSubject(String kafkaCluster, String subject) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(
-                URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + "/versions/latest")))
+                        URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + "/versions/latest")))
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+        return Mono.from(httpClient.retrieve(request, SchemaResponse.class))
+                .onErrorResume(HttpClientResponseException.class,
+                        ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Mono.empty() : Mono.error(ex));
+    }
+
+    /**
+     * Get a subject by it name and id.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @param subject      The subject
+     * @param version      The subject version
+     * @return A subject
+     */
+    public Mono<SchemaResponse> getSubject(String kafkaCluster, String subject, Integer version) {
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
+        HttpRequest<?> request = HttpRequest.GET(
+                URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + "/versions/" + version)))
             .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, SchemaResponse.class))
+                .onErrorResume(HttpClientResponseException.class,
+                        ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Mono.empty() : Mono.error(ex));
+    }
+
+    /**
+     * Get all the versions of a given subject.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @param subject      The subject
+     * @return All the versions of a subject
+     */
+    public Flux<SchemaResponse> getAllSubjectVersions(String kafkaCluster, String subject) {
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
+        HttpRequest<?> request = HttpRequest.GET(
+                        URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + "/versions")))
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+
+        return Flux.from(httpClient.retrieve(request, Integer[].class))
+            .flatMap(ids -> Flux.fromIterable(Arrays.asList(ids))
+                .flatMap(id -> {
+                    HttpRequest<?> requestVersion = HttpRequest.GET(
+                            URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + "/versions/" + id)))
+                        .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+
+                    return httpClient.retrieve(requestVersion, SchemaResponse.class);
+                }))
             .onErrorResume(HttpClientResponseException.class,
-                ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Mono.empty() : Mono.error(ex));
+                ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Flux.empty() : Flux.error(ex));
     }
 
     /**

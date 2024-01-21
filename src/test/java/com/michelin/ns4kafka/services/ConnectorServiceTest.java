@@ -359,7 +359,7 @@ class ConnectorServiceTest {
         StepVerifier.create(connectorService.validateLocally(ns, connector))
             .consumeNextWith(response -> {
                 assertEquals(1, response.size());
-                assertEquals("Invalid value wrong for spec.connectCluster: Value must be one of [local-name]",
+                assertEquals("Invalid value wrong for spec.connectCluster: Value must be one of [local-name].",
                     response.get(0));
             })
             .verifyComplete();
@@ -374,6 +374,7 @@ class ConnectorServiceTest {
                 .config(Map.of())
                 .build())
             .build();
+
         Namespace ns = Namespace.builder()
             .metadata(ObjectMeta.builder()
                 .name("namespace")
@@ -387,7 +388,7 @@ class ConnectorServiceTest {
         StepVerifier.create(connectorService.validateLocally(ns, connector))
             .consumeNextWith(response -> {
                 assertEquals(1, response.size());
-                assertEquals("Invalid value for spec.config.'connector.class': Value must be non-null",
+                assertEquals("Invalid value for spec.config.'connector.class': Value must be non-null.",
                     response.get(0));
             })
             .verifyComplete();
@@ -419,8 +420,8 @@ class ConnectorServiceTest {
             .consumeNextWith(response -> {
                 assertEquals(1, response.size());
                 assertEquals(
-                    "Failed to find any class that implements Connector and which name matches "
-                        + "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                    "Failed to find any class that implements connector and which name matches "
+                        + "org.apache.kafka.connect.file.FileStreamSinkConnector.",
                     response.get(0));
             })
             .verifyComplete();
