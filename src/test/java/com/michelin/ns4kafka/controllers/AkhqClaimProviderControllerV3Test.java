@@ -78,7 +78,7 @@ class AkhqClaimProviderControllerV3Test {
 
         AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
 
-        Assertions.assertEquals(actual.getGroups().size(), 1);
+        Assertions.assertEquals(1, actual.getGroups().size());
 
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups = actual.getGroups().get("group");
         Assertions.assertEquals(2, groups.size());
