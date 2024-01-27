@@ -336,9 +336,9 @@ public class SchemaService {
      */
     public Mono<Boolean> existInOldVersions(Namespace namespace, Schema schema, List<Schema> oldSchemas) {
         return getSchemaReferences(schema, namespace)
-            .flatMap(schemaRefs -> {
+            .flatMap(schemaRefs ->
                 // If new schema matches any of the existing schemas, return unchanged
-                return Flux.fromIterable(oldSchemas)
+                Flux.fromIterable(oldSchemas)
                     .flatMap(oldSchema -> getSchemaReferences(oldSchema, namespace)
                         .map(oldSchemaRefs -> {
                             var currentSchema = new AvroSchema(oldSchema.getSpec().getSchema(),
@@ -351,7 +351,7 @@ public class SchemaService {
                                 currentSchema.canonicalString())
                                 && Objects.equals(newSchema.references(), currentSchema.references());
                         }))
-                    .any(subjectComparison -> subjectComparison);
-            });
+                    .any(subjectComparison -> subjectComparison)
+            );
     }
 }
