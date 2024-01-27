@@ -103,7 +103,7 @@ public class SchemaController extends NamespacedResourceController {
                     .collectList()
                     .flatMap(oldSchemas -> schemaService.existInOldVersions(ns, schema, oldSchemas)
                         .flatMap(exist -> {
-                            if (exist) {
+                            if (Boolean.TRUE.equals(exist)) {
                                 return Mono.just(formatHttpResponse(schema, ApplyStatus.unchanged));
                             }
 
