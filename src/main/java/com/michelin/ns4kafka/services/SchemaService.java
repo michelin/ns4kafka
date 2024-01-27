@@ -10,6 +10,7 @@ import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilit
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.micronaut.core.util.CollectionUtils;
 import jakarta.inject.Inject;
@@ -20,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -103,7 +103,7 @@ public class SchemaService {
      * @param version   The version
      * @return A Subject
      */
-    public Mono<Schema> getSubject(Namespace namespace, String subject, Integer version) {
+    public Mono<Schema> getSubject(Namespace namespace, String subject, String version) {
         return schemaRegistryClient
             .getSubject(namespace.getMetadata().getCluster(), subject, version)
             .flatMap(latestSubjectOptional -> schemaRegistryClient
@@ -140,32 +140,7 @@ public class SchemaService {
      * @return A schema
      */
     public Mono<Schema> getLatestSubject(Namespace namespace, String subject) {
-        return schemaRegistryClient
-            .getLatestSubject(namespace.getMetadata().getCluster(), subject)
-            .flatMap(latestSubjectOptional -> schemaRegistryClient
-                .getCurrentCompatibilityBySubject(namespace.getMetadata().getCluster(), subject)
-                .map(Optional::of)
-                .defaultIfEmpty(Optional.empty())
-                .map(currentCompatibilityOptional -> {
-                    Schema.Compatibility compatibility = currentCompatibilityOptional.isPresent()
-                        ? currentCompatibilityOptional.get().compatibilityLevel() : Schema.Compatibility.GLOBAL;
-
-                    return Schema.builder()
-                        .metadata(ObjectMeta.builder()
-                            .cluster(namespace.getMetadata().getCluster())
-                            .namespace(namespace.getMetadata().getName())
-                            .name(latestSubjectOptional.subject())
-                            .build())
-                        .spec(Schema.SchemaSpec.builder()
-                            .id(latestSubjectOptional.id())
-                            .version(latestSubjectOptional.version())
-                            .compatibility(compatibility)
-                            .schema(latestSubjectOptional.schema())
-                            .schemaType(latestSubjectOptional.schemaType() == null ? Schema.SchemaType.AVRO :
-                                Schema.SchemaType.valueOf(latestSubjectOptional.schemaType()))
-                            .build())
-                        .build();
-                }));
+        return getSubject(namespace, subject, "latest");
     }
 
     /**
@@ -188,10 +163,10 @@ public class SchemaService {
             }
 
             if (!CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
-                return Mono.zip(validateReferences(namespace, schema), Mono.just(validationErrors),
-                    (referenceErrors, errors) -> {
-                        errors.addAll(referenceErrors);
-                        return errors;
+                return validateReferences(namespace, schema)
+                    .map(referenceErrors -> {
+                        validationErrors.addAll(referenceErrors);
+                        return validationErrors;
                     });
             }
 
@@ -208,7 +183,7 @@ public class SchemaService {
      */
     private Mono<List<String>> validateReferences(Namespace ns, Schema schema) {
         return Flux.fromIterable(schema.getSpec().getReferences())
-            .flatMap(reference -> getSubject(ns, reference.getSubject(), reference.getVersion())
+            .flatMap(reference -> getSubject(ns, reference.getSubject(), String.valueOf(reference.getVersion()))
                 .map(Optional::of)
                 .defaultIfEmpty(Optional.empty())
                 .mapNotNull(schemaOptional -> {
@@ -323,16 +298,14 @@ public class SchemaService {
      * @param namespace The namespace
      * @return The schema references
      */
-    public Map<String, String> getSchemaReferences(Schema schema, Namespace namespace) {
+    public Mono<Map<String, String>> getSchemaReferences(Schema schema, Namespace namespace) {
         if (CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
-            return Collections.emptyMap();
+            return Mono.just(Collections.emptyMap());
         }
 
-        return schema.getSpec().getReferences()
-            .stream()
-            .map(reference -> getSubject(namespace, reference.getSubject(), reference.getVersion()).block())
-            .collect(Collectors.toMap(s ->
-                Objects.requireNonNull(s).getMetadata().getName(), s -> s.getSpec().getSchema()));
+        return Flux.fromIterable(schema.getSpec().getReferences())
+            .flatMap(reference -> getSubject(namespace, reference.getSubject(), String.valueOf(reference.getVersion())))
+            .collectMap(s -> s.getMetadata().getName(), s -> s.getSpec().getSchema());
     }
 
     /**
@@ -351,5 +324,34 @@ public class SchemaService {
             .map(reference ->
                 new SchemaReference(reference.getName(), reference.getSubject(), reference.getVersion()))
             .toList();
+    }
+
+    /**
+     * Check if the schema already exists in the registry all versions combined.
+     *
+     * @param namespace  The namespace
+     * @param schema     The schema
+     * @param oldSchemas The old schemas
+     * @return true as Mono if it exists, false otherwise
+     */
+    public Mono<Boolean> existInOldVersions(Namespace namespace, Schema schema, List<Schema> oldSchemas) {
+        return getSchemaReferences(schema, namespace)
+            .flatMap(schemaRefs ->
+                // If new schema matches any of the existing schemas, return unchanged
+                Flux.fromIterable(oldSchemas)
+                    .flatMap(oldSchema -> getSchemaReferences(oldSchema, namespace)
+                        .map(oldSchemaRefs -> {
+                            var currentSchema = new AvroSchema(oldSchema.getSpec().getSchema(),
+                                getReferences(oldSchema), oldSchemaRefs, null);
+
+                            var newSchema = new AvroSchema(schema.getSpec().getSchema(),
+                                getReferences(schema), schemaRefs, null);
+
+                            return Objects.equals(newSchema.canonicalString(),
+                                currentSchema.canonicalString())
+                                && Objects.equals(newSchema.references(), currentSchema.references());
+                        }))
+                    .any(subjectComparison -> subjectComparison)
+            );
     }
 }

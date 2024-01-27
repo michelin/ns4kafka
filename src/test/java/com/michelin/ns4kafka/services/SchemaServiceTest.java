@@ -16,7 +16,9 @@ import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilit
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -106,8 +108,8 @@ class SchemaServiceTest {
         Namespace namespace = buildNamespace();
         SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
 
-        when(schemaRegistryClient.getLatestSubject(namespace.getMetadata().getCluster(),
-            "prefix.schema-one")).thenReturn(Mono.just(buildSchemaResponse("prefix.schema-one")));
+        when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(),
+            "prefix.schema-one", "latest")).thenReturn(Mono.just(buildSchemaResponse("prefix.schema-one")));
         when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any())).thenReturn(
             Mono.just(compatibilityResponse));
 
@@ -142,7 +144,7 @@ class SchemaServiceTest {
     void getBySubjectAndVersionEmptyResponse() {
         Namespace namespace = buildNamespace();
 
-        when(schemaRegistryClient.getLatestSubject(namespace.getMetadata().getCluster(), "prefix.schema-one"))
+        when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "prefix.schema-one", "latest"))
             .thenReturn(Mono.empty());
 
         StepVerifier.create(schemaService.getLatestSubject(namespace, "prefix.schema-one"))
@@ -288,14 +290,9 @@ class SchemaServiceTest {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
         SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
-        schema.getSpec().setReferences(List.of(Schema.SchemaSpec.Reference.builder()
-            .name("reference")
-            .subject("subject-reference")
-            .version(1)
-            .build()));
-        
+
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(),
-            "subject-reference", 1))
+            "header-value", "1"))
             .thenReturn(Mono.just(buildSchemaResponse("subject-reference")));
         when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any())).thenReturn(
             Mono.just(compatibilityResponse));
@@ -310,21 +307,103 @@ class SchemaServiceTest {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
         schema.getMetadata().setName("wrongSubjectName");
-        schema.getSpec().setReferences(List.of(Schema.SchemaSpec.Reference.builder()
-            .name("reference")
-            .subject("subject-reference")
-            .version(1)
-            .build()));
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(),
-            "subject-reference", 1)).thenReturn(Mono.empty());
+            "header-value", "1")).thenReturn(Mono.empty());
 
         StepVerifier.create(schemaService.validateSchema(namespace, schema))
             .consumeNextWith(errors -> {
                 assertTrue(errors.contains("Invalid value wrongSubjectName for name: "
                     + "Value must end with -key or -value."));
-                assertTrue(errors.contains("Reference subject-reference version 1 not found."));
+                assertTrue(errors.contains("Reference header-value version 1 not found."));
             })
+            .verifyComplete();
+    }
+
+    @Test
+    void shouldGetEmptySchemaReferences() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+        schema.getSpec().setReferences(Collections.emptyList());
+
+        StepVerifier.create(schemaService.getSchemaReferences(schema, namespace))
+            .consumeNextWith(refs -> assertTrue(refs.isEmpty()))
+            .verifyComplete();
+    }
+
+    @Test
+    void shouldGetSchemaReferences() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+        SchemaResponse schemaResponse = buildReferenceSchemaResponse("header-value");
+        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+
+        when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
+            .thenReturn(Mono.just(schemaResponse));
+        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any())).thenReturn(
+            Mono.just(compatibilityResponse));
+
+        StepVerifier.create(schemaService.getSchemaReferences(schema, namespace))
+            .consumeNextWith(refs -> assertTrue(refs.containsKey(schemaResponse.subject()) && refs.containsValue(
+                schemaResponse.schema())))
+            .verifyComplete();
+    }
+
+    @Test
+    void shouldBeEqualByCanonicalStringAndRefs() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+        Schema schemaV2 = buildSchemaV2();
+
+        when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
+            .thenReturn(Mono.just(buildReferenceSchemaResponse("header-value")));
+        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any())).thenReturn(
+            Mono.just(compatibilityResponse));
+
+        StepVerifier.create(schemaService.existInOldVersions(namespace, schema, List.of(schema, schemaV2)))
+            .consumeNextWith(Assertions::assertTrue)
+            .verifyComplete();
+    }
+
+    @Test
+    void shouldBeEqualByCanonicalString() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+        schema.getSpec().setReferences(Collections.emptyList());
+        Schema schemaV2 = buildSchemaV2();
+
+        StepVerifier.create(schemaService.existInOldVersions(namespace, schema, List.of(schema, schemaV2)))
+            .consumeNextWith(Assertions::assertTrue)
+            .verifyComplete();
+    }
+
+    @Test
+    void shouldNotBeEqualByCanonicalString() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+        schema.getSpec().setReferences(Collections.emptyList());
+        Schema schemaV2 = buildSchemaV2();
+
+        StepVerifier.create(schemaService.existInOldVersions(namespace, schemaV2, List.of(schema)))
+            .consumeNextWith(Assertions::assertFalse)
+            .verifyComplete();
+    }
+
+    @Test
+    void shouldNotBeEqualByCanonicalStringAndRefs() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+        Schema schemaV2 = buildSchemaV2();
+        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+
+        when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
+            .thenReturn(Mono.just(buildReferenceSchemaResponse("header-value")));
+        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any())).thenReturn(
+            Mono.just(compatibilityResponse));
+
+        StepVerifier.create(schemaService.existInOldVersions(namespace, schemaV2, List.of(schema)))
+            .consumeNextWith(Assertions::assertFalse)
             .verifyComplete();
     }
 
@@ -354,6 +433,33 @@ class SchemaServiceTest {
                         + "\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\","
                         + "{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
                         + "\"doc\":\"Date of birth of the person\"}]}")
+                .references(List.of(Schema.SchemaSpec.Reference.builder()
+                    .name("HeaderAvro")
+                    .subject("header-value")
+                    .version(1)
+                    .build()))
+                .build())
+            .build();
+    }
+
+    private Schema buildSchemaV2() {
+        return Schema.builder()
+            .metadata(ObjectMeta.builder()
+                .name("prefix.subject-value")
+                .build())
+            .spec(Schema.SchemaSpec.builder()
+                .id(1)
+                .version(2)
+                .schema(
+                    "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                        + "\"name\":\"PersonAvro\""
+                        + ",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,"
+                        + "\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\","
+                        + "\"string\"],\"default\":null,\"doc\":\"Last name of the person\"},"
+                        + "{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\","
+                        + "\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
+                        + "\"doc\":\"Date of birth of the person\"},{\"name\":\"birthPlace\",\"type\":[\"null\","
+                        + "\"string\"],\"default\":null,\"doc\":\"Place of birth\"}]}")
                 .build())
             .build();
     }
@@ -372,10 +478,22 @@ class SchemaServiceTest {
                     + "{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
                     + "\"doc\":\"Date of birth of the person\"}]}")
             .references(List.of(Schema.SchemaSpec.Reference.builder()
-                .name("reference")
-                .subject("subject-reference")
+                .name("HeaderAvro")
+                .subject("header-value")
                 .version(1)
                 .build()))
+            .build();
+    }
+
+    private SchemaResponse buildReferenceSchemaResponse(String subject) {
+        return SchemaResponse.builder()
+            .id(1)
+            .version(1)
+            .subject(subject)
+            .schema(
+                "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                    + "\"name\":\"Header\",\"fields\":[{\"name\":\"id\",\"type\":[\"null\",\"string\"],"
+                    + "\"default\":null,\"doc\":\"Header ID\"}]}")
             .build();
     }
 

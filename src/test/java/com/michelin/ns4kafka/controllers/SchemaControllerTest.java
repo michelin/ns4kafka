@@ -22,6 +22,7 @@ import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -60,6 +61,8 @@ class SchemaControllerTest {
         when(schemaService.validateSchema(namespace, schema)).thenReturn(Mono.just(List.of()));
         when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
         when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName())).thenReturn(Flux.empty());
+        when(schemaService.existInOldVersions(namespace, schema, Collections.emptyList()))
+            .thenReturn(Mono.just(false));
         when(schemaService.register(namespace, schema)).thenReturn(Mono.just(1));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
@@ -84,8 +87,10 @@ class SchemaControllerTest {
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
         when(schemaService.validateSchema(namespace, schemaV2)).thenReturn(Mono.just(List.of()));
         when(schemaService.validateSchemaCompatibility("local", schemaV2)).thenReturn(Mono.just(List.of()));
-        when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName()))
+        when(schemaService.getAllSubjectVersions(namespace, schemaV2.getMetadata().getName()))
             .thenReturn(Flux.just(schema));
+        when(schemaService.existInOldVersions(namespace, schemaV2, List.of(schema)))
+            .thenReturn(Mono.just(false));
         when(schemaService.register(namespace, schemaV2)).thenReturn(Mono.just(2));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
@@ -110,6 +115,8 @@ class SchemaControllerTest {
         when(schemaService.validateSchema(namespace, schema)).thenReturn(Mono.just(List.of()));
         when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName()))
             .thenReturn(Flux.just(schema));
+        when(schemaService.existInOldVersions(namespace, schema, List.of(schema)))
+            .thenReturn(Mono.just(true));
 
         StepVerifier.create(schemaController.apply("myNamespace", schema, false))
             .consumeNextWith(response -> {
@@ -168,6 +175,8 @@ class SchemaControllerTest {
         when(schemaService.validateSchema(namespace, schema)).thenReturn(Mono.just(List.of()));
         when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
         when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName())).thenReturn(Flux.empty());
+        when(schemaService.existInOldVersions(namespace, schema, Collections.emptyList()))
+            .thenReturn(Mono.just(false));
 
         StepVerifier.create(schemaController.apply("myNamespace", schema, true))
             .consumeNextWith(response -> {
@@ -191,8 +200,10 @@ class SchemaControllerTest {
             .thenReturn(true);
         when(schemaService.validateSchema(namespace, schemaV2)).thenReturn(Mono.just(List.of()));
         when(schemaService.validateSchemaCompatibility("local", schemaV2)).thenReturn(Mono.just(List.of()));
-        when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName()))
+        when(schemaService.getAllSubjectVersions(namespace, schemaV2.getMetadata().getName()))
             .thenReturn(Flux.just(schema));
+        when(schemaService.existInOldVersions(namespace, schemaV2, List.of(schema)))
+            .thenReturn(Mono.just(false));
 
         StepVerifier.create(schemaController.apply("myNamespace", schemaV2, true))
             .consumeNextWith(response -> {
@@ -212,14 +223,16 @@ class SchemaControllerTest {
         Schema schemaV2 = buildSchemaV2();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
-        when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName())).thenReturn(true);
-        when(schemaService.validateSchema(namespace, schema)).thenReturn(Mono.just(List.of()));
-        when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName()))
-            .thenReturn(Flux.just(schemaV2));
-        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(
+        when(schemaService.isNamespaceOwnerOfSubject(namespace, schemaV2.getMetadata().getName())).thenReturn(true);
+        when(schemaService.validateSchema(namespace, schemaV2)).thenReturn(Mono.just(List.of()));
+        when(schemaService.getAllSubjectVersions(namespace, schemaV2.getMetadata().getName()))
+            .thenReturn(Flux.just(schema));
+        when(schemaService.existInOldVersions(namespace, schemaV2, List.of(schema)))
+            .thenReturn(Mono.just(false));
+        when(schemaService.validateSchemaCompatibility("local", schemaV2)).thenReturn(
             Mono.just(List.of("Not compatible")));
 
-        StepVerifier.create(schemaController.apply("myNamespace", schema, true))
+        StepVerifier.create(schemaController.apply("myNamespace", schemaV2, true))
             .consumeErrorWith(error -> {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
@@ -239,9 +252,8 @@ class SchemaControllerTest {
         when(schemaService.findAllForNamespace(namespace)).thenReturn(Flux.fromIterable(List.of(schema)));
 
         StepVerifier.create(schemaController.list("myNamespace"))
-            .consumeNextWith(schemaResponse -> {
-                assertEquals("prefix.subject-value", schemaResponse.getMetadata().getName());
-            })
+            .consumeNextWith(
+                schemaResponse -> assertEquals("prefix.subject-value", schemaResponse.getMetadata().getName()))
             .verifyComplete();
     }
 

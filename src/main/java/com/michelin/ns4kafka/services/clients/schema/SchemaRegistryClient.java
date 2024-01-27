@@ -59,23 +59,6 @@ public class SchemaRegistryClient {
     }
 
     /**
-     * Get a latest version of a subject.
-     *
-     * @param kafkaCluster The Kafka cluster
-     * @param subject      The subject
-     * @return A version of a subject
-     */
-    public Mono<SchemaResponse> getLatestSubject(String kafkaCluster, String subject) {
-        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
-        HttpRequest<?> request = HttpRequest.GET(
-                        URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + "/versions/latest")))
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-        return Mono.from(httpClient.retrieve(request, SchemaResponse.class))
-                .onErrorResume(HttpClientResponseException.class,
-                        ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Mono.empty() : Mono.error(ex));
-    }
-
-    /**
      * Get a subject by it name and id.
      *
      * @param kafkaCluster The Kafka cluster
@@ -83,14 +66,14 @@ public class SchemaRegistryClient {
      * @param version      The subject version
      * @return A subject
      */
-    public Mono<SchemaResponse> getSubject(String kafkaCluster, String subject, Integer version) {
+    public Mono<SchemaResponse> getSubject(String kafkaCluster, String subject, String version) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(
                 URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + "/versions/" + version)))
             .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, SchemaResponse.class))
-                .onErrorResume(HttpClientResponseException.class,
-                        ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Mono.empty() : Mono.error(ex));
+            .onErrorResume(HttpClientResponseException.class,
+                ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Mono.empty() : Mono.error(ex));
     }
 
     /**
@@ -103,8 +86,8 @@ public class SchemaRegistryClient {
     public Flux<SchemaResponse> getAllSubjectVersions(String kafkaCluster, String subject) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(
-                        URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + "/versions")))
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+                URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + "/versions")))
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
 
         return Flux.from(httpClient.retrieve(request, Integer[].class))
             .flatMap(ids -> Flux.fromIterable(Arrays.asList(ids))
@@ -230,9 +213,9 @@ public class SchemaRegistryClient {
     public Mono<List<TagInfo>> getTags(String kafkaCluster) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest
-                .GET(URI.create(StringUtils.prependUri(
-                        config.getUrl(), "/catalog/v1/types/tagdefs")))
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+            .GET(URI.create(StringUtils.prependUri(
+                config.getUrl(), "/catalog/v1/types/tagdefs")))
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, Argument.listOf(TagInfo.class)));
     }
 
@@ -246,9 +229,9 @@ public class SchemaRegistryClient {
     public Mono<TagEntities> getTopicWithTags(String kafkaCluster) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest
-                .GET(URI.create(StringUtils.prependUri(
-                        config.getUrl(), "/catalog/v1/search/basic?type=kafka_topic&tag=*")))
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+            .GET(URI.create(StringUtils.prependUri(
+                config.getUrl(), "/catalog/v1/search/basic?type=kafka_topic&tag=*")))
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, TagEntities.class));
     }
 
@@ -272,15 +255,15 @@ public class SchemaRegistryClient {
     /**
      * Create tags.
      *
-     * @param tags The list of tags to create
+     * @param tags         The list of tags to create
      * @param kafkaCluster The Kafka cluster
      * @return Information about created tags
      */
     public Mono<List<TagInfo>> createTags(List<TagInfo> tags, String kafkaCluster) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.POST(URI.create(StringUtils.prependUri(
-                        config.getUrl(), "/catalog/v1/types/tagdefs")), tags)
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+                config.getUrl(), "/catalog/v1/types/tagdefs")), tags)
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, Argument.listOf(TagInfo.class)));
     }
 
