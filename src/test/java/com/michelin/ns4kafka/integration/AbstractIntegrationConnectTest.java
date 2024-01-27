@@ -12,7 +12,7 @@ import org.testcontainers.utility.DockerImageName;
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AbstractIntegrationConnectTest extends AbstractIntegrationTest {
-    public KafkaConnectContainer connect;
+    public KafkaConnectContainer connectContainer;
 
     /**
      * Starts the Kafka Connect container.
@@ -23,8 +23,8 @@ public abstract class AbstractIntegrationConnectTest extends AbstractIntegration
     @Override
     public Map<String, String> getProperties() {
         Map<String, String> brokerProps = super.getProperties();
-        if (connect == null || !connect.isRunning()) {
-            connect =
+        if (connectContainer == null || !connectContainer.isRunning()) {
+            connectContainer =
                 new KafkaConnectContainer(DockerImageName.parse("confluentinc/cp-kafka-connect:" + CONFLUENT_VERSION),
                     "kafka:9092")
                     .withEnv("CONNECT_SASL_MECHANISM", "PLAIN")
@@ -33,11 +33,11 @@ public abstract class AbstractIntegrationConnectTest extends AbstractIntegration
                         "org.apache.kafka.common.security.plain.PlainLoginModule "
                             + "required username=\"admin\" password=\"admin\";")
                     .withNetwork(network);
-            connect.start();
+            connectContainer.start();
         }
 
         Map<String, String> properties = new HashMap<>(brokerProps);
-        properties.put("ns4kafka.managed-clusters.test-cluster.connects.test-connect.url", connect.getUrl());
+        properties.put("ns4kafka.managed-clusters.test-cluster.connects.test-connect.url", connectContainer.getUrl());
         return properties;
     }
 }

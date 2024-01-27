@@ -51,6 +51,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
     @BeforeAll
     void init() {
+        // Create HTTP client as bean to load client configuration from application.yml
         schemaRegistryClient = applicationContext.createBean(HttpClient.class, schemaRegistryContainer.getUrl());
 
         Namespace namespace = Namespace.builder()

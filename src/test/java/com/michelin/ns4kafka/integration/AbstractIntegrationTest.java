@@ -26,29 +26,12 @@ public abstract class AbstractIntegrationTest implements TestPropertyProvider {
         if (kafka == null || !kafka.isRunning()) {
             network = Network.newNetwork();
             kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:" + CONFLUENT_VERSION))
-                .withEnv(
-                    "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP",
-                    "PLAINTEXT:SASL_PLAINTEXT,BROKER:SASL_PLAINTEXT"
-                )
-                .withEnv("KAFKA_INTER_BROKER_LISTENER_NAME", "BROKER")
+                .withEnv("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "PLAINTEXT:SASL_PLAINTEXT,BROKER:SASL_PLAINTEXT")
                 .withEnv("KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL", "PLAIN")
                 .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_SASL_ENABLED_MECHANISMS", "PLAIN")
                 .withEnv("KAFKA_LISTENER_NAME_BROKER_SASL_ENABLED_MECHANISMS", "PLAIN")
-
-                .withEnv("KAFKA_LISTENER_NAME_BROKER_PLAIN_SASL_JAAS_CONFIG",
-                    "org.apache.kafka.common.security.plain.PlainLoginModule required "
-                        + "username=\"admin\" password=\"admin\" "
-                        + "user_admin=\"admin\" "
-                        + "user_client=\"client\";")
-                .withEnv("KAFKA_SASL_JAAS_CONFIG",
-                    "org.apache.kafka.common.security.plain.PlainLoginModule required "
-                        + "username=\"admin\" password=\"admin\";")
-                .withEnv(
-                    "KAFKA_LISTENER_NAME_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG",
-                    "org.apache.kafka.common.security.plain.PlainLoginModule required "
-                        + "username=\"admin\" password=\"admin\" "
-                        + "user_admin=\"admin\" "
-                        + "user_client=\"client\";")
+                .withEnv("KAFKA_LISTENER_NAME_BROKER_PLAIN_SASL_JAAS_CONFIG", getJaasConfig())
+                .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG", getJaasConfig())
                 .withEnv("KAFKA_AUTHORIZER_CLASS_NAME", "kafka.security.authorizer.AclAuthorizer")
                 .withEnv("KAFKA_SUPER_USERS", "User:admin")
                 .withNetworkAliases("kafka")
@@ -62,7 +45,6 @@ public abstract class AbstractIntegrationTest implements TestPropertyProvider {
             "kafka.security.protocol", "SASL_PLAINTEXT",
             "kafka.sasl.jaas.config",
             "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin\";",
-
             "ns4kafka.managed-clusters.test-cluster.config.bootstrap.servers",
             kafka.getHost() + ":" + kafka.getMappedPort(9093),
             "ns4kafka.managed-clusters.test-cluster.config.sasl.mechanism", "PLAIN",
@@ -70,6 +52,18 @@ public abstract class AbstractIntegrationTest implements TestPropertyProvider {
             "ns4kafka.managed-clusters.test-cluster.config.sasl.jaas.config",
             "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin\";"
         );
+    }
+
+    /**
+     * Get the JAAS config.
+     *
+     * @return The JAAS config
+     */
+    private static String getJaasConfig() {
+        return "org.apache.kafka.common.security.plain.PlainLoginModule required "
+            + "username=\"admin\" password=\"admin\" "
+            + "user_admin=\"admin\" "
+            + "user_client=\"client\";";
     }
 
     /**

@@ -48,11 +48,7 @@ dependencies {
     testImplementation("org.mockito:mockito-core")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:testcontainers")
-    testImplementation("org.testcontainers:kafka") {
-        version {
-            strictly '1.15.3'
-        }
-    }
+    testImplementation("org.testcontainers:kafka")
     testImplementation("org.mockito:mockito-junit-jupiter:5.9.0")
     testImplementation("io.projectreactor:reactor-test")
 
@@ -65,8 +61,8 @@ application {
 }
 
 java {
-    sourceCompatibility = JavaVersion.toVersion('17')
-    targetCompatibility = JavaVersion.toVersion('17')
+    sourceCompatibility = JavaVersion.toVersion('21')
+    targetCompatibility = JavaVersion.toVersion('21')
 }
 
 run {
@@ -88,7 +84,7 @@ shadowJar {
 }
 
 dockerfile {
-    baseImage = "eclipse-temurin:17-jre-alpine"
+    baseImage = "eclipse-temurin:21-jre-alpine"
 }
 
 if (project.hasProperty("releaseLatest")) {
