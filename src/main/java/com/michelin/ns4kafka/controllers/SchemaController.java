@@ -9,7 +9,6 @@ import com.michelin.ns4kafka.models.schema.SchemaList;
 import com.michelin.ns4kafka.services.SchemaService;
 import com.michelin.ns4kafka.utils.enums.ApplyStatus;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
-import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
@@ -29,7 +28,6 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -100,55 +98,47 @@ public class SchemaController extends NamespacedResourceController {
                     return Mono.error(new ResourceValidationException(errors, schema.getKind(),
                         schema.getMetadata().getName()));
                 }
+
                 return schemaService.getAllSubjectVersions(ns, schema.getMetadata().getName())
                     .collectList()
-                    .flatMap(subjects -> {
-                        // If new schema matches any of the existing schemas, return unchanged
-                        boolean unchanged = subjects.stream().anyMatch(subject -> {
-                            var actualSchema = new AvroSchema(subject.getSpec().getSchema(),
-                                schemaService.getReferences(subject), schemaService.getSchemaReferences(subject, ns),
-                                null);
-                            var newSchema = new AvroSchema(schema.getSpec().getSchema(),
-                                schemaService.getReferences(schema), schemaService.getSchemaReferences(schema, ns),
-                                null);
+                    .flatMap(oldSchemas -> schemaService.existInOldVersions(ns, schema, oldSchemas)
+                        .flatMap(exist -> {
+                            if (exist) {
+                                return Mono.just(formatHttpResponse(schema, ApplyStatus.unchanged));
+                            }
 
-                            return Objects.equals(newSchema.canonicalString(), actualSchema.canonicalString())
-                                && Objects.equals(newSchema.references(), actualSchema.references());
-                        });
+                            return schemaService
+                                .validateSchemaCompatibility(ns.getMetadata().getCluster(), schema)
+                                .flatMap(validationErrors -> {
+                                    if (!validationErrors.isEmpty()) {
+                                        return Mono.error(new ResourceValidationException(
+                                            validationErrors, schema.getKind(),
+                                            schema.getMetadata().getName()));
+                                    }
 
-                        if (unchanged) {
-                            return Mono.just(formatHttpResponse(schema, ApplyStatus.unchanged));
-                        }
+                                    schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                                    schema.getMetadata().setCluster(ns.getMetadata().getCluster());
+                                    schema.getMetadata().setNamespace(ns.getMetadata().getName());
 
-                        return schemaService
-                            .validateSchemaCompatibility(ns.getMetadata().getCluster(), schema)
-                            .flatMap(validationErrors -> {
-                                if (!validationErrors.isEmpty()) {
-                                    return Mono.error(new ResourceValidationException(
-                                        validationErrors, schema.getKind(), schema.getMetadata().getName()));
-                                }
+                                    ApplyStatus status =
+                                        oldSchemas.isEmpty() ? ApplyStatus.created : ApplyStatus.changed;
+                                    if (dryrun) {
+                                        return Mono.just(formatHttpResponse(schema, status));
+                                    }
 
-                                schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                                schema.getMetadata().setCluster(ns.getMetadata().getCluster());
-                                schema.getMetadata().setNamespace(ns.getMetadata().getName());
+                                    return schemaService
+                                        .register(ns, schema)
+                                        .map(id -> {
+                                            sendEventLog(schema.getKind(), schema.getMetadata(), status,
+                                                oldSchemas.isEmpty() ? null : oldSchemas.stream()
+                                                    .max(Comparator.comparingInt(
+                                                        (Schema s) -> s.getSpec().getId())),
+                                                schema.getSpec());
 
-                                ApplyStatus status = subjects.isEmpty() ? ApplyStatus.created : ApplyStatus.changed;
-                                if (dryrun) {
-                                    return Mono.just(formatHttpResponse(schema, status));
-                                }
-
-                                return schemaService
-                                    .register(ns, schema)
-                                    .map(id -> {
-                                        sendEventLog(schema.getKind(), schema.getMetadata(), status,
-                                            subjects.isEmpty() ? null : subjects.stream()
-                                                .max(Comparator.comparingInt((Schema s) -> s.getSpec().getId())),
-                                            schema.getSpec());
-
-                                        return formatHttpResponse(schema, status);
-                                    });
-                            });
-                    });
+                                            return formatHttpResponse(schema, status);
+                                        });
+                                });
+                        }));
             });
     }
 
