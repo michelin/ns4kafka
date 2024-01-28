@@ -51,7 +51,7 @@ class GitlabAuthenticationServiceTest {
 
         when(gitlabApiClient.getGroupsPage(token, 1)).thenReturn(Flux.just(pageOneResponse));
 
-        Flux<String> authenticationResponsePublisher = gitlabAuthenticationService.findAllGroups(token);
+        Flux<String> authenticationResponsePublisher = gitlabAuthenticationService.findAllGroups(token, null);
 
         StepVerifier.create(authenticationResponsePublisher)
             .consumeNextWith(response -> assertEquals("group1", response))
@@ -86,7 +86,7 @@ class GitlabAuthenticationServiceTest {
         when(gitlabApiClient.getGroupsPage(token, 2)).thenReturn(Flux.just(pageTwoResponse));
         when(gitlabApiClient.getGroupsPage(token, 3)).thenReturn(Flux.just(pageThreeResponse));
 
-        Publisher<String> authenticationResponsePublisher = gitlabAuthenticationService.findAllGroups(token);
+        Publisher<String> authenticationResponsePublisher = gitlabAuthenticationService.findAllGroups(token, null);
 
         StepVerifier.create(authenticationResponsePublisher)
             .consumeNextWith(response -> assertEquals("group1", response))

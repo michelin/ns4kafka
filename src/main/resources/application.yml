@@ -25,6 +25,8 @@ micronaut:
     gitlab:
       enabled: true
       url: https://gitlab.com
+      # limit groups listed in token to subgroups of this parent group
+      # parent-group: path/to/gitlab/group
     ldap:
       enabled: false
     endpoints:

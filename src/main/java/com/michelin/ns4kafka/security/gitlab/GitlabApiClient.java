@@ -26,6 +26,19 @@ public interface GitlabApiClient {
                                                                 int page);
 
     /**
+     * Get user subgroups under given group.
+     *
+     * @param token  The user token
+     * @param parent The parent group under which to fetch groups
+     * @param page   The current page to fetch groups
+     * @return The groups
+     */
+    @Get("/api/v4/groups/{parent}/subgroups?min_access_level=10&sort=asc&page={page}&per_page=100")
+    Flux<HttpResponse<List<Map<String, Object>>>> getGroupsPage(@Header(value = "PRIVATE-TOKEN") String token,
+                                                                String parent,
+                                                                int page);
+
+    /**
      * Find a user by given token.
      *
      * @param token The user token

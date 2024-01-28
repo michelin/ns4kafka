@@ -25,8 +25,8 @@ public class GitlabAuthenticationService {
      * @param token The user token
      * @return The user groups
      */
-    public Flux<String> findAllGroups(String token) {
-        return getPageAndNext(token, 1)
+    public Flux<String> findAllGroups(String token, String parentGroupId) {
+        return getPageAndNext(token, parentGroupId, 1)
             .flatMap(response -> Flux.fromStream(response.body()
                 .stream()
                 .map(stringObjectMap -> stringObjectMap.get("full_path").toString())));
@@ -50,18 +50,24 @@ public class GitlabAuthenticationService {
      * @param page  The current page to fetch
      * @return The user groups information
      */
-    private Flux<HttpResponse<List<Map<String, Object>>>> getPageAndNext(String token, int page) {
-        return gitlabApiClient.getGroupsPage(token, page)
-            .concatMap(response -> {
-                log.debug("Call GitLab groups page {}/{}.", page, response.header("X-Total-Pages"));
+    private Flux<HttpResponse<List<Map<String, Object>>>> getPageAndNext(String token, String parentGroupId, int page) {
+        Flux<HttpResponse<List<Map<String, Object>>>> pages;
+        if (parentGroupId == null) {
+            pages = gitlabApiClient.getGroupsPage(token, page);
+        } else {
+            log.debug("Call GitLab subgroups of {}.", parentGroupId);
+            pages = gitlabApiClient.getGroupsPage(token, parentGroupId, page);
+        }
+        return pages.concatMap(response -> {
+            log.debug("Call GitLab groups page {}/{}.", page, response.header("X-Total-Pages"));
 
-                if (StringUtils.isEmpty(response.header("X-Next-Page"))) {
-                    return Flux.just(response);
-                } else {
-                    int nextPage = Integer.parseInt(response.header("X-Next-Page"));
-                    return Flux.just(response)
-                        .concatWith(getPageAndNext(token, nextPage));
-                }
-            });
+            if (StringUtils.isEmpty(response.header("X-Next-Page"))) {
+                return Flux.just(response);
+            } else {
+                int nextPage = Integer.parseInt(response.header("X-Next-Page"));
+                return Flux.just(response)
+                    .concatWith(getPageAndNext(token, parentGroupId, nextPage));
+            }
+        });
     }
 }

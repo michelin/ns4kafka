@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.security.gitlab;
 import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.RoleBindingService;
+import io.micronaut.context.annotation.Property;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.AuthenticationException;
@@ -35,6 +36,9 @@ public class GitlabAuthenticationProvider implements AuthenticationProvider<Http
     @Inject
     SecurityProperties securityProperties;
 
+    @Property(name = "micronaut.security.gitlab.parent-group")
+    String parentGroup;
+
     /**
      * Perform user authentication with GitLab.
      *
@@ -49,10 +53,12 @@ public class GitlabAuthenticationProvider implements AuthenticationProvider<Http
 
         log.debug("Checking authentication with token {}", token);
 
+        final String parentGroupId = parentGroup != null ? parentGroup.replace("/", "%2f") : null;
+
         return gitlabAuthenticationService.findUsername(token)
             .onErrorResume(
                 error -> Mono.error(new AuthenticationException(new AuthenticationFailed("Bad GitLab token"))))
-            .flatMap(username -> gitlabAuthenticationService.findAllGroups(token).collectList()
+            .flatMap(username -> gitlabAuthenticationService.findAllGroups(token, parentGroupId).collectList()
                 .onErrorResume(error -> Mono.error(
                     new AuthenticationException(new AuthenticationFailed("Cannot retrieve your GitLab groups"))))
                 .flatMap(groups -> {

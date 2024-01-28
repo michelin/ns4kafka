@@ -67,7 +67,7 @@ class GitlabAuthenticationProviderTest {
 
         when(gitlabAuthenticationService.findUsername(authenticationRequest.getSecret()))
             .thenReturn(Mono.just("email"));
-        when(gitlabAuthenticationService.findAllGroups(authenticationRequest.getSecret()))
+        when(gitlabAuthenticationService.findAllGroups(authenticationRequest.getSecret(), null))
             .thenReturn(Flux.fromIterable(groups));
         when(roleBindingService.listByGroups(groups))
             .thenReturn(List.of(roleBinding));
@@ -98,7 +98,7 @@ class GitlabAuthenticationProviderTest {
         List<String> groups = List.of("group-1", "group-2", "group-admin");
         when(gitlabAuthenticationService.findUsername(authenticationRequest.getSecret()))
             .thenReturn(Mono.just("email"));
-        when(gitlabAuthenticationService.findAllGroups(authenticationRequest.getSecret()))
+        when(gitlabAuthenticationService.findAllGroups(authenticationRequest.getSecret(), null))
             .thenReturn(Flux.fromIterable(groups));
         when(roleBindingService.listByGroups(groups))
             .thenReturn(List.of());
@@ -147,7 +147,7 @@ class GitlabAuthenticationProviderTest {
         List<String> groups = List.of("group-1", "group-2");
         when(gitlabAuthenticationService.findUsername(authenticationRequest.getSecret()))
             .thenReturn(Mono.just("email"));
-        when(gitlabAuthenticationService.findAllGroups(authenticationRequest.getSecret()))
+        when(gitlabAuthenticationService.findAllGroups(authenticationRequest.getSecret(), null))
             .thenReturn(Flux.fromIterable(groups));
         when(roleBindingService.listByGroups(groups))
             .thenReturn(List.of());
