@@ -36,7 +36,7 @@ public class GitlabAuthenticationProvider implements AuthenticationProvider<Http
     @Inject
     SecurityProperties securityProperties;
 
-    @Property(name = "micronaut.security.gitlab.parent-group")
+    @Property(name = "micronaut.security.gitlab.parent-group", defaultValue = "")
     String parentGroup;
 
     /**
@@ -53,7 +53,7 @@ public class GitlabAuthenticationProvider implements AuthenticationProvider<Http
 
         log.debug("Checking authentication with token {}", token);
 
-        final String parentGroupId = parentGroup != null ? parentGroup.replace("/", "%2f") : null;
+        final String parentGroupId = "".equals(parentGroup) ? null : parentGroup.replace("/", "%2f");
 
         return gitlabAuthenticationService.findUsername(token)
             .onErrorResume(
