@@ -29,9 +29,11 @@ import org.reactivestreams.Publisher;
 public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
     public static final String IS_ADMIN = "isAdmin()";
 
+    public static final String RESOURCE_PATTERN = "[a-zA-Z0-9_.-]";
+
     private final Pattern namespacedResourcePattern = Pattern.compile(
-        "^\\/api\\/namespaces\\/(?<namespace>[a-zA-Z0-9_-]+)"
-            + "\\/(?<resourceType>[a-z_-]+)(\\/([a-zA-Z0-9_.-]+)(\\/(?<resourceSubtype>[a-z-]+))?)?$");
+        "^/api/namespaces/(?<namespace>" + RESOURCE_PATTERN + "+)"
+            + "/(?<resourceType>[a-z_-]+)(/(" + RESOURCE_PATTERN + "+)(/(?<resourceSubtype>[a-z-]+))?)?$");
 
     @Inject
     SecurityProperties securityProperties;
