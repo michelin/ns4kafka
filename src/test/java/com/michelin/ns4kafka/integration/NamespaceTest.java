@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
  */
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
-public class NamespaceTest extends AbstractIntegrationTest {
+class NamespaceTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
     HttpClient client;

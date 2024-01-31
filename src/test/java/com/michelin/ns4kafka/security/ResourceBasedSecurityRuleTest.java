@@ -54,14 +54,17 @@ class ResourceBasedSecurityRuleTest {
         assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
-    @Test
-    void checkReturnsUnknownInvalidResource() {
+    @ParameterizedTest
+    @CsvSource({"/non-namespaced/resource",
+        "/api/namespaces/admin/connectors",
+        "/api/namespaces"})
+    void checkReturnsUnknownInvalidResource(String path) {
         List<String> groups = List.of("group1");
         Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
         Authentication auth = Authentication.build("user", claims);
 
         SecurityRuleResult actual =
-            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/non-namespaced/resource"), auth);
+            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET(path), auth);
         assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
@@ -92,17 +95,6 @@ class ResourceBasedSecurityRuleTest {
 
         SecurityRuleResult actual =
             resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/connectors"), auth);
-        assertEquals(SecurityRuleResult.UNKNOWN, actual);
-    }
-
-    @Test
-    void checkReturnsUnknownAdminNamespaceAsNotAdmin() {
-        List<String> groups = List.of("group1");
-        Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
-        Authentication auth = Authentication.build("user", claims);
-
-        SecurityRuleResult actual =
-            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/admin/connectors"), auth);
         assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
@@ -236,19 +228,7 @@ class ResourceBasedSecurityRuleTest {
 
         assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
-
-    @Test
-    void shouldReturnUnknownWhenNonNamespacedResource() {
-        List<String> groups = List.of("group1");
-        Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
-        Authentication auth = Authentication.build("user", claims);
-
-        SecurityRuleResult actual =
-            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces"), auth);
-
-        assertEquals(SecurityRuleResult.UNKNOWN, actual);
-    }
-
+    
     @Test
     void checkReturnsAllowedResourceWithHyphen() {
         List<String> groups = List.of("group1");
