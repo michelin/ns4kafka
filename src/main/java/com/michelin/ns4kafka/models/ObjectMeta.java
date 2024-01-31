@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.models;
 
+import static com.michelin.ns4kafka.security.ResourceBasedSecurityRule.RESOURCE_PATTERN;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.constraints.NotBlank;
@@ -22,7 +24,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ObjectMeta {
     @NotBlank
-    @Pattern(regexp = "^[a-zA-Z0-9_.-]+$")
+    @Pattern(regexp = "^" + RESOURCE_PATTERN + "+$")
     private String name;
     private String namespace;
     private String cluster;

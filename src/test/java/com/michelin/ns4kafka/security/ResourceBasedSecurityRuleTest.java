@@ -18,6 +18,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -52,14 +54,17 @@ class ResourceBasedSecurityRuleTest {
         assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
-    @Test
-    void checkReturnsUnknownInvalidResource() {
+    @ParameterizedTest
+    @CsvSource({"/non-namespaced/resource",
+        "/api/namespaces/admin/connectors",
+        "/api/namespaces"})
+    void checkReturnsUnknownInvalidResource(String path) {
         List<String> groups = List.of("group1");
         Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
         Authentication auth = Authentication.build("user", claims);
 
         SecurityRuleResult actual =
-            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/non-namespaced/resource"), auth);
+            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET(path), auth);
         assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
@@ -90,17 +95,6 @@ class ResourceBasedSecurityRuleTest {
 
         SecurityRuleResult actual =
             resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/connectors"), auth);
-        assertEquals(SecurityRuleResult.UNKNOWN, actual);
-    }
-
-    @Test
-    void checkReturnsUnknownAdminNamespaceAsNotAdmin() {
-        List<String> groups = List.of("group1");
-        Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
-        Authentication auth = Authentication.build("user", claims);
-
-        SecurityRuleResult actual =
-            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/admin/connectors"), auth);
         assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
@@ -192,6 +186,49 @@ class ResourceBasedSecurityRuleTest {
         assertEquals(SecurityRuleResult.ALLOWED, actual);
     }
 
+    @ParameterizedTest
+    @CsvSource({"namespace", "name-space", "name.space", "_name_space_", "namespace123"})
+    void shouldReturnAllowedWhenGoodNamespaceName(String namespace) {
+        List<String> groups = List.of("group1");
+        Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
+        Authentication auth = Authentication.build("user", claims);
+
+        when(roleBindingRepository.findAllForGroups(groups))
+            .thenReturn(List.of(RoleBinding.builder()
+                .metadata(ObjectMeta.builder()
+                    .namespace(namespace)
+                    .build())
+                .spec(RoleBinding.RoleBindingSpec.builder()
+                    .role(RoleBinding.Role.builder()
+                        .resourceTypes(List.of("topics"))
+                        .verbs(List.of(RoleBinding.Verb.GET))
+                        .build())
+                    .subject(RoleBinding.Subject.builder().subjectName("group1")
+                        .build())
+                    .build())
+                .build()));
+
+        when(namespaceRepository.findByName(namespace))
+            .thenReturn(Optional.of(Namespace.builder().build()));
+
+        SecurityRuleResult actual =
+            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/" + namespace + "/topics"), auth);
+        assertEquals(SecurityRuleResult.ALLOWED, actual);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"name$space", "name/space", "*namespace*"})
+    void shouldReturnUnknownWhenWrongNamespaceName(String namespace) {
+        List<String> groups = List.of("group1");
+        Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
+        Authentication auth = Authentication.build("user", claims);
+
+        SecurityRuleResult actual =
+            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/" + namespace + "/topics"), auth);
+
+        assertEquals(SecurityRuleResult.UNKNOWN, actual);
+    }
+    
     @Test
     void checkReturnsAllowedResourceWithHyphen() {
         List<String> groups = List.of("group1");
