@@ -203,7 +203,7 @@ class UserTest extends AbstractIntegrationTest {
                 KafkaUserResetPassword.class));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
-        assertEquals("Invalid user user2 : Doesn't belong to namespace ns1",
+        assertEquals("Invalid user for user \"user2\": he does not belong to namespace.",
             exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
     }
 }

@@ -10,6 +10,10 @@ import static com.michelin.ns4kafka.utils.BytesUtils.BYTE;
 import static com.michelin.ns4kafka.utils.BytesUtils.GIBIBYTE;
 import static com.michelin.ns4kafka.utils.BytesUtils.KIBIBYTE;
 import static com.michelin.ns4kafka.utils.BytesUtils.MEBIBYTE;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidFieldValidationNumber;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNewQuota;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidOperationQuota;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidQuotaFormat;
 import static org.apache.kafka.common.config.TopicConfig.RETENTION_BYTES_CONFIG;
 
 import com.michelin.ns4kafka.models.Namespace;
@@ -34,14 +38,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Singleton
 public class ResourceQuotaService {
-    private static final String QUOTA_ALREADY_EXCEEDED_ERROR = "Quota already exceeded for %s: %s/%s (used/limit)";
-    private static final String QUOTA_PARSE_ERROR = "Number expected for %s (%s given)";
-
     private static final String QUOTA_RESPONSE_FORMAT = "%s/%s";
     private static final String USER_QUOTA_RESPONSE_FORMAT = "%sB/s";
 
     private static final String NO_QUOTA_RESPONSE_FORMAT = "%s";
-    
+
     @Inject
     ResourceQuotaRepository resourceQuotaRepository;
 
@@ -108,7 +109,7 @@ public class ResourceQuotaService {
             long used = getCurrentCountTopicsByNamespace(namespace);
             long limit = Long.parseLong(resourceQuota.getSpec().get(COUNT_TOPICS.getKey()));
             if (used > limit) {
-                errors.add(String.format(QUOTA_ALREADY_EXCEEDED_ERROR, COUNT_TOPICS, used, limit));
+                errors.add(invalidNewQuota(COUNT_TOPICS.toString(), String.valueOf(limit), String.valueOf(used)));
             }
         }
 
@@ -116,7 +117,7 @@ public class ResourceQuotaService {
             long used = getCurrentCountPartitionsByNamespace(namespace);
             long limit = Long.parseLong(resourceQuota.getSpec().get(COUNT_PARTITIONS.getKey()));
             if (used > limit) {
-                errors.add(String.format(QUOTA_ALREADY_EXCEEDED_ERROR, COUNT_PARTITIONS, used, limit));
+                errors.add(invalidNewQuota(COUNT_PARTITIONS.toString(), String.valueOf(limit), String.valueOf(used)));
             }
         }
 
@@ -124,14 +125,13 @@ public class ResourceQuotaService {
             String limitAsString = resourceQuota.getSpec().get(DISK_TOPICS.getKey());
             if (!limitAsString.endsWith(BYTE) && !limitAsString.endsWith(KIBIBYTE)
                 && !limitAsString.endsWith(MEBIBYTE) && !limitAsString.endsWith(GIBIBYTE)) {
-                errors.add(String.format("Invalid value for %s: value must end with either %s, %s, %s or %s",
-                    DISK_TOPICS, BYTE, KIBIBYTE, MEBIBYTE, GIBIBYTE));
+                errors.add(invalidQuotaFormat(DISK_TOPICS.toString(), limitAsString));
             } else {
                 long used = getCurrentDiskTopicsByNamespace(namespace);
                 long limit = BytesUtils.humanReadableToBytes(limitAsString);
                 if (used > limit) {
-                    errors.add(String.format(QUOTA_ALREADY_EXCEEDED_ERROR, DISK_TOPICS,
-                        BytesUtils.bytesToHumanReadable(used), limitAsString));
+                    errors.add(
+                        invalidNewQuota(DISK_TOPICS.toString(), limitAsString, BytesUtils.bytesToHumanReadable(used)));
                 }
             }
         }
@@ -140,7 +140,7 @@ public class ResourceQuotaService {
             long used = getCurrentCountConnectorsByNamespace(namespace);
             long limit = Long.parseLong(resourceQuota.getSpec().get(COUNT_CONNECTORS.getKey()));
             if (used > limit) {
-                errors.add(String.format(QUOTA_ALREADY_EXCEEDED_ERROR, COUNT_CONNECTORS, used, limit));
+                errors.add(invalidNewQuota(COUNT_CONNECTORS.toString(), String.valueOf(limit), String.valueOf(used)));
             }
         }
 
@@ -149,7 +149,7 @@ public class ResourceQuotaService {
             try {
                 Double.parseDouble(producerByteRate);
             } catch (NumberFormatException e) {
-                errors.add(String.format(QUOTA_PARSE_ERROR, USER_PRODUCER_BYTE_RATE, producerByteRate));
+                errors.add(invalidFieldValidationNumber(USER_PRODUCER_BYTE_RATE.toString(), producerByteRate));
             }
         }
 
@@ -158,7 +158,7 @@ public class ResourceQuotaService {
             try {
                 Double.parseDouble(consumerByteRate);
             } catch (NumberFormatException e) {
-                errors.add(String.format(QUOTA_PARSE_ERROR, USER_CONSUMER_BYTE_RATE, consumerByteRate));
+                errors.add(invalidFieldValidationNumber(USER_CONSUMER_BYTE_RATE.toString(), consumerByteRate));
             }
         }
 
@@ -236,9 +236,7 @@ public class ResourceQuotaService {
                 long used = getCurrentCountTopicsByNamespace(namespace);
                 long limit = Long.parseLong(resourceQuota.getSpec().get(COUNT_TOPICS.getKey()));
                 if (used + 1 > limit) {
-                    errors.add(
-                        String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add 1 topic.", COUNT_TOPICS,
-                            used, limit));
+                    errors.add(invalidOperationQuota(COUNT_TOPICS.toString(), used, limit));
                 }
             }
 
@@ -246,8 +244,7 @@ public class ResourceQuotaService {
                 long used = getCurrentCountPartitionsByNamespace(namespace);
                 long limit = Long.parseLong(resourceQuota.getSpec().get(COUNT_PARTITIONS.getKey()));
                 if (used + newTopic.getSpec().getPartitions() > limit) {
-                    errors.add(String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add %s partition(s).",
-                        COUNT_PARTITIONS, used, limit, newTopic.getSpec().getPartitions()));
+                    errors.add(invalidOperationQuota(COUNT_PARTITIONS.toString(), used, limit));
                 }
             }
         }
@@ -266,10 +263,7 @@ public class ResourceQuotaService {
 
             long bytesToAdd = newTopicSize - existingTopicSize;
             if (bytesToAdd > 0 && used + bytesToAdd > limit) {
-                errors.add(
-                    String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add %s of data.", DISK_TOPICS,
-                        BytesUtils.bytesToHumanReadable(used), BytesUtils.bytesToHumanReadable(limit),
-                        BytesUtils.bytesToHumanReadable(bytesToAdd)));
+                errors.add(invalidOperationQuota(DISK_TOPICS.toString(), used, limit));
             }
         }
 
@@ -295,8 +289,7 @@ public class ResourceQuotaService {
             long used = getCurrentCountConnectorsByNamespace(namespace);
             long limit = Long.parseLong(resourceQuota.getSpec().get(COUNT_CONNECTORS.getKey()));
             if (used + 1 > limit) {
-                errors.add(String.format("Exceeding quota for %s: %s/%s (used/limit). Cannot add 1 connector.",
-                    COUNT_CONNECTORS, used, limit));
+                errors.add(invalidOperationQuota(COUNT_CONNECTORS.toString(), used, limit));
             }
         }
 

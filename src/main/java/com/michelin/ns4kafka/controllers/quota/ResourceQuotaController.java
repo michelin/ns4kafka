@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.controllers.quota;
 
+import static com.michelin.ns4kafka.models.Kind.RESOURCE_QUOTA;
+
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
@@ -44,8 +46,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
      */
     @Get
     public List<ResourceQuotaResponse> list(String namespace) {
-        Namespace ns = getNamespace(namespace);
-        return List.of(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns,
+        return List.of(resourceQuotaService.getUsedResourcesByQuotaByNamespace(getNamespace(namespace),
             resourceQuotaService.findByNamespace(namespace)));
     }
 
@@ -58,12 +59,12 @@ public class ResourceQuotaController extends NamespacedResourceController {
      */
     @Get("/{quota}")
     public Optional<ResourceQuotaResponse> get(String namespace, String quota) {
-        Namespace ns = getNamespace(namespace);
         Optional<ResourceQuota> resourceQuota = resourceQuotaService.findByName(namespace, quota);
         if (resourceQuota.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, resourceQuota));
+        return Optional.of(
+            resourceQuotaService.getUsedResourcesByQuotaByNamespace(getNamespace(namespace), resourceQuota));
     }
 
     /**
@@ -85,7 +86,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, quota);
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors, quota.getKind(), quota.getMetadata().getName());
+            throw new ResourceValidationException(RESOURCE_QUOTA, quota.getMetadata().getName(), validationErrors);
         }
 
         Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByNamespace(namespace);

@@ -59,7 +59,7 @@ class AclControllerTest {
         AccessControlEntry ace1 =
             AccessControlEntry.builder().metadata(ObjectMeta.builder().namespace("admin").cluster("local").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build())
                 .build();
@@ -67,14 +67,14 @@ class AclControllerTest {
         AccessControlEntry ace2 =
             AccessControlEntry.builder().metadata(ObjectMeta.builder().namespace("admin").cluster("local").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resourceType(AccessControlEntry.AclType.CONNECT)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build())
                 .build();
         // granted by test to namespace-other
         AccessControlEntry ace3 =
             AccessControlEntry.builder().metadata(ObjectMeta.builder().namespace("test").cluster("local").build()).spec(
-                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.READ).resource("prefix").grantedTo("namespace-other")
                     .build()).build();
@@ -82,14 +82,14 @@ class AclControllerTest {
         AccessControlEntry ace4 =
             AccessControlEntry.builder().metadata(ObjectMeta.builder().namespace("admin").cluster("local").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.OWNER).resource("other-prefix")
                     .grantedTo("namespace-other").build()).build();
         // granted by namespace-other to test
         AccessControlEntry ace5 = AccessControlEntry.builder()
             .metadata(ObjectMeta.builder().namespace("namespace-other").cluster("local").build()).spec(
-                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.READ).resource("other-prefix").grantedTo("test").build())
             .build();
@@ -97,7 +97,7 @@ class AclControllerTest {
         AccessControlEntry ace6 =
             AccessControlEntry.builder().metadata(ObjectMeta.builder().namespace("admin").cluster("local").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.READ).resource("public-prefix").grantedTo("*").build())
                 .build();
@@ -134,7 +134,7 @@ class AclControllerTest {
         // granted by tes to test
         AccessControlEntry ace1 = AccessControlEntry.builder()
             .metadata(ObjectMeta.builder().name("ace1").namespace("test").cluster("local").build()).spec(
-                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build())
             .build();
@@ -142,28 +142,28 @@ class AclControllerTest {
         AccessControlEntry ace2 = AccessControlEntry.builder()
             .metadata(ObjectMeta.builder().name("ace2").namespace("test").cluster("local").build()).spec(
                 AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resourceType(AccessControlEntry.AclType.CONNECT)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build())
             .build();
         // granted by test to namespace-other
         AccessControlEntry ace3 = AccessControlEntry.builder()
             .metadata(ObjectMeta.builder().name("ace3").namespace("test").cluster("local").build()).spec(
-                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.READ).resource("prefix").grantedTo("namespace-other")
                     .build()).build();
         // granted by admin to namespace-other
         AccessControlEntry ace4 = AccessControlEntry.builder()
             .metadata(ObjectMeta.builder().name("ace4").namespace("admin").cluster("local").build()).spec(
-                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.OWNER).resource("other-prefix")
                     .grantedTo("namespace-other").build()).build();
         // granted by namespace-other to test
         AccessControlEntry ace5 = AccessControlEntry.builder()
             .metadata(ObjectMeta.builder().name("ace5").namespace("namespace-other").cluster("local").build()).spec(
-                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.READ).resource("other-prefix").grantedTo("test").build())
             .build();
@@ -198,7 +198,7 @@ class AclControllerTest {
         AccessControlEntry ace1 =
             AccessControlEntry.builder().metadata(ObjectMeta.builder().namespace("test").cluster("local").build()).spec(
                     AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourceType(AccessControlEntry.AclType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                         .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build())
                 .build();
@@ -217,7 +217,7 @@ class AclControllerTest {
         Namespace ns = Namespace.builder().metadata(ObjectMeta.builder().name("test").cluster("local").build()).build();
         AccessControlEntry ace1 = AccessControlEntry.builder().metadata(ObjectMeta.builder().name("acl-test").build())
             .spec(
-                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build())
             .build();
@@ -240,7 +240,7 @@ class AclControllerTest {
         AccessControlEntry ace1 =
             AccessControlEntry.builder().metadata(ObjectMeta.builder().namespace("test").cluster("local").build()).spec(
                     AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourceType(AccessControlEntry.AclType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                         .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build())
                 .build();
@@ -258,7 +258,7 @@ class AclControllerTest {
     void applySuccess() {
         Namespace ns = Namespace.builder().metadata(ObjectMeta.builder().name("test").cluster("local").build()).build();
         AccessControlEntry ace1 = AccessControlEntry.builder().metadata(ObjectMeta.builder().build()).spec(
-            AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+            AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build()).build();
         Authentication auth = Authentication.build("user", Map.of("roles", List.of()));
@@ -281,7 +281,7 @@ class AclControllerTest {
     void applySuccessAlreadyExists() {
         Namespace ns = Namespace.builder().metadata(ObjectMeta.builder().name("test").cluster("local").build()).build();
         AccessControlEntry ace1 = AccessControlEntry.builder().metadata(ObjectMeta.builder().name("ace1").build()).spec(
-            AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+            AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build()).build();
         Authentication auth = Authentication.build("user", Map.of("roles", List.of()));
@@ -302,12 +302,12 @@ class AclControllerTest {
     void applyFailedChangedSpec() {
         Namespace ns = Namespace.builder().metadata(ObjectMeta.builder().name("test").cluster("local").build()).build();
         AccessControlEntry ace1 = AccessControlEntry.builder().metadata(ObjectMeta.builder().name("ace1").build()).spec(
-            AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+            AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build()).build();
         AccessControlEntry ace1Old = AccessControlEntry.builder().metadata(ObjectMeta.builder().name("ace1").build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.CONNECT) //This line was changed
+                .resourceType(AccessControlEntry.AclType.CONNECT) //This line was changed
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build()).build();
         Authentication auth = Authentication.build("user", Map.of("roles", List.of()));
@@ -330,13 +330,13 @@ class AclControllerTest {
         AccessControlEntry ace1 = AccessControlEntry.builder()
             .metadata(ObjectMeta.builder().name("ace1").labels(Map.of("new-label", "label-value")) // This label is new
                 .build()).spec(
-                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build())
             .build();
         AccessControlEntry ace1Old = AccessControlEntry.builder().metadata(ObjectMeta.builder().name("ace1").build())
             .spec(
-                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build())
             .build();
@@ -362,13 +362,13 @@ class AclControllerTest {
         AccessControlEntry ace1 = AccessControlEntry.builder()
             .metadata(ObjectMeta.builder().name("ace1").labels(Map.of("new-label", "label-value")) // This label is new
                 .build()).spec(
-                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build())
             .build();
         AccessControlEntry ace1Old = AccessControlEntry.builder().metadata(ObjectMeta.builder().name("ace1").build())
             .spec(
-                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build())
             .build();
@@ -393,7 +393,7 @@ class AclControllerTest {
         AccessControlEntry ace1 =
             AccessControlEntry.builder().metadata(ObjectMeta.builder().namespace("admin").cluster("local").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build())
                 .build();
@@ -413,7 +413,7 @@ class AclControllerTest {
         Namespace ns = Namespace.builder().metadata(ObjectMeta.builder().name("test").cluster("local").build()).build();
 
         AccessControlEntry ace1 = AccessControlEntry.builder().metadata(ObjectMeta.builder().build()).spec(
-            AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+            AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build()).build();
 
@@ -449,7 +449,7 @@ class AclControllerTest {
 
         AccessControlEntry ace1 = AccessControlEntry.builder()
             .metadata(ObjectMeta.builder().name("ace1").namespace("test").cluster("local").build()).spec(
-                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.READ).resource("prefix").grantedTo("test").build())
             .build();
@@ -470,7 +470,7 @@ class AclControllerTest {
 
         AccessControlEntry ace1 = AccessControlEntry.builder()
             .metadata(ObjectMeta.builder().name("ace1").namespace("test").cluster("local").build()).spec(
-                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.READ).resource("prefix").grantedTo("test").build())
             .build();
@@ -491,7 +491,7 @@ class AclControllerTest {
 
         AccessControlEntry ace1 = AccessControlEntry.builder()
             .metadata(ObjectMeta.builder().name("ace1").namespace("test").cluster("local").build()).spec(
-                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.READ).resource("prefix").grantedTo("namespace-other")
                     .build()).build();
@@ -514,7 +514,7 @@ class AclControllerTest {
 
         AccessControlEntry ace1 = AccessControlEntry.builder()
             .metadata(ObjectMeta.builder().name("ace1").namespace("test").cluster("local").build()).spec(
-                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.ResourceType.TOPIC)
+                AccessControlEntry.AccessControlEntrySpec.builder().resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.READ).resource("prefix").grantedTo("namespace-other")
                     .build()).build();

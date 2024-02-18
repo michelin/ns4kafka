@@ -64,14 +64,14 @@ class AkhqClaimProviderControllerTest {
         List<AccessControlEntry> inputAcls = List.of(
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .resource("project1.")
                     .build())
                 .build(),
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                     .resource("project2.topic1")
                     .build())
@@ -79,7 +79,7 @@ class AkhqClaimProviderControllerTest {
         );
 
         List<String> actual = akhqClaimProviderController.computeAllowedRegexListForResourceType(inputAcls,
-            AccessControlEntry.ResourceType.CONNECT);
+            AccessControlEntry.AclType.CONNECT);
 
         assertEquals(1, actual.size());
         assertEquals("^none$", actual.get(0));
@@ -90,35 +90,35 @@ class AkhqClaimProviderControllerTest {
         List<AccessControlEntry> inputAcls = List.of(
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .resource("project1.")
                     .build())
                 .build(),
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                     .resource("project2.topic1")
                     .build())
                 .build(),
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resourceType(AccessControlEntry.AclType.CONNECT)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .resource("project1.connects")
                     .build())
                 .build(),
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.GROUP)
+                    .resourceType(AccessControlEntry.AclType.GROUP)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .resource("project1.")
                     .build())
                 .build()
         );
         List<String> actual = akhqClaimProviderController.computeAllowedRegexListForResourceType(inputAcls,
-            AccessControlEntry.ResourceType.TOPIC);
+            AccessControlEntry.AclType.TOPIC);
 
         assertEquals(2, actual.size());
         assertLinesMatch(
@@ -136,21 +136,21 @@ class AkhqClaimProviderControllerTest {
         List<AccessControlEntry> inputAcls = List.of(
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .resource("project1.")
                     .build())
                 .build(),
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .resource("project1.")
                     .build())
                 .build()
         );
         List<String> actual = akhqClaimProviderController.computeAllowedRegexListForResourceType(inputAcls,
-            AccessControlEntry.ResourceType.TOPIC);
+            AccessControlEntry.AclType.TOPIC);
 
         assertEquals(1, actual.size());
         assertLinesMatch(
@@ -228,7 +228,7 @@ class AkhqClaimProviderControllerTest {
 
         AccessControlEntry ns1Ace1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .resource("project1_t.")
                 .build())
@@ -236,7 +236,7 @@ class AkhqClaimProviderControllerTest {
 
         AccessControlEntry ns1Ace2 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .resourceType(AccessControlEntry.AclType.CONNECT)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .resource("project1_c.")
                 .build())
@@ -244,7 +244,7 @@ class AkhqClaimProviderControllerTest {
 
         AccessControlEntry ns2Ace1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .resource("project2_t.")
                 .build())
@@ -252,7 +252,7 @@ class AkhqClaimProviderControllerTest {
 
         AccessControlEntry ns2Ace2 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .resource("project1_t.") // ACL granted by ns1 to ns2
                 .build())
@@ -260,7 +260,7 @@ class AkhqClaimProviderControllerTest {
 
         AccessControlEntry ns3Ace1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                 .resource("project3_topic")
                 .build())
@@ -268,7 +268,7 @@ class AkhqClaimProviderControllerTest {
 
         AccessControlEntry pubAce1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .resource("public_t.")
                 .build())
@@ -376,42 +376,42 @@ class AkhqClaimProviderControllerTest {
 
         AccessControlEntry ns1Ace1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .resource("project1_t.")
                 .build())
             .build();
         AccessControlEntry ns1Ace2 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .resourceType(AccessControlEntry.AclType.CONNECT)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .resource("project1_c.")
                 .build())
             .build();
         AccessControlEntry ns2Ace1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .resource("project2_t.")
                 .build())
             .build();
         AccessControlEntry ns2Ace2 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .resource("project1_t.") // ACL granted by ns1 to ns2
                 .build())
             .build();
         AccessControlEntry ns3Ace1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                 .resource("project3_topic")
                 .build())
             .build();
         AccessControlEntry pubAce1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .resource("public_t.")
                 .build())
@@ -522,56 +522,56 @@ class AkhqClaimProviderControllerTest {
         List<AccessControlEntry> inputAcls = List.of(
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .resource("project1.")
                     .build())
                 .build(),
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                     .resource("project1.topic1")
                     .build())
                 .build(),
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                     .resource("project2.topic2")
                     .build())
                 .build(),
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                     .resource("project2.topic3")
                     .build())
                 .build(),
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                     .resource("project3.topic4")
                     .build())
                 .build(),
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                     .resource("project3.topic5")
                     .build())
                 .build(),
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .resource("project3.")
                     .build())
                 .build()
         );
         List<String> actual = akhqClaimProviderController.computeAllowedRegexListForResourceType(inputAcls,
-            AccessControlEntry.ResourceType.TOPIC);
+            AccessControlEntry.AclType.TOPIC);
 
         assertEquals(4, actual.size());
         assertLinesMatch(

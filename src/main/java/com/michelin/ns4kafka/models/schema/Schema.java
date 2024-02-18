@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.models.schema;
 
+import static com.michelin.ns4kafka.models.Kind.SCHEMA;
+
 import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
@@ -22,7 +24,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class Schema {
     private final String apiVersion = "v1";
-    private final String kind = "Schema";
+    private final String kind = SCHEMA;
 
     @Valid
     @NotNull

@@ -100,7 +100,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                 .namespace("ns1")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resource("ns1-")
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)

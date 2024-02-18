@@ -1,8 +1,8 @@
 package com.michelin.ns4kafka.services.executors;
 
-import static com.michelin.ns4kafka.models.AccessControlEntry.ResourceType.GROUP;
-import static com.michelin.ns4kafka.models.AccessControlEntry.ResourceType.TOPIC;
-import static com.michelin.ns4kafka.models.AccessControlEntry.ResourceType.TRANSACTIONAL_ID;
+import static com.michelin.ns4kafka.models.AccessControlEntry.AclType.GROUP;
+import static com.michelin.ns4kafka.models.AccessControlEntry.AclType.TOPIC;
+import static com.michelin.ns4kafka.models.AccessControlEntry.AclType.TRANSACTIONAL_ID;
 import static com.michelin.ns4kafka.services.AccessControlEntryService.PUBLIC_GRANTED_TO;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
@@ -149,7 +149,7 @@ public class AccessControlEntryAsyncExecutor {
             .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace)
                 .stream()
                 .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType()
-                    == AccessControlEntry.ResourceType.CONNECT)
+                    == AccessControlEntry.AclType.CONNECT)
                 .filter(accessControlEntry -> accessControlEntry.getSpec().getPermission()
                     == AccessControlEntry.Permission.OWNER)
                 .flatMap(accessControlEntry ->
@@ -182,9 +182,9 @@ public class AccessControlEntryAsyncExecutor {
             List.of(ResourceType.TOPIC, ResourceType.GROUP, ResourceType.TRANSACTIONAL_ID);
 
         AccessControlEntryFilter accessControlEntryFilter = new AccessControlEntryFilter(
-                managedClusterProperties.getProvider()
-                        .equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD) ? "UserV2:*" : null,
-                null, AclOperation.ANY, AclPermissionType.ANY);
+            managedClusterProperties.getProvider()
+                .equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD) ? "UserV2:*" : null,
+            null, AclOperation.ANY, AclPermissionType.ANY);
         AclBindingFilter aclBindingFilter = new AclBindingFilter(ResourcePatternFilter.ANY, accessControlEntryFilter);
 
         List<AclBinding> userAcls = getAdminClient()
@@ -368,7 +368,7 @@ public class AccessControlEntryAsyncExecutor {
                 results.addAll(buildAclBindingsFromAccessControlEntry(ns4kafkaAcl, namespace.getSpec().getKafkaUser()));
             }
 
-            if (ns4kafkaAcl.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT
+            if (ns4kafkaAcl.getSpec().getResourceType() == AccessControlEntry.AclType.CONNECT
                 && ns4kafkaAcl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER) {
                 results.addAll(buildAclBindingsFromConnector(ns4kafkaAcl, namespace.getSpec().getKafkaUser()));
             }

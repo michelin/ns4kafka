@@ -1,5 +1,8 @@
 package com.michelin.ns4kafka.services;
 
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidSchemaReference;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidSchemaSuffix;
+
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.ObjectMeta;
@@ -10,6 +13,7 @@ import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilit
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
+import com.michelin.ns4kafka.utils.exceptions.error.ValidationError;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.micronaut.core.util.CollectionUtils;
@@ -46,7 +50,7 @@ public class SchemaService {
     public Flux<SchemaList> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace).stream()
             .filter(acl -> acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
-            .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC).toList();
+            .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.AclType.TOPIC).toList();
 
         return schemaRegistryClient
             .getSubjects(namespace.getMetadata().getCluster())
@@ -158,8 +162,7 @@ public class SchemaService {
             // https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject/TopicNameStrategy.java
             if (!schema.getMetadata().getName().endsWith("-key")
                 && !schema.getMetadata().getName().endsWith("-value")) {
-                validationErrors.add(String.format("Invalid value %s for name: Value must end with -key or -value.",
-                    schema.getMetadata().getName()));
+                validationErrors.add(invalidSchemaSuffix(schema.getMetadata().getName()));
             }
 
             if (!CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
@@ -188,8 +191,7 @@ public class SchemaService {
                 .defaultIfEmpty(Optional.empty())
                 .mapNotNull(schemaOptional -> {
                     if (schemaOptional.isEmpty()) {
-                        return String.format("Reference %s version %s not found.",
-                            reference.getSubject(), reference.getVersion());
+                        return invalidSchemaReference(reference.getSubject(), String.valueOf(reference.getVersion()));
                     }
                     return null;
                 }))
@@ -251,7 +253,10 @@ public class SchemaService {
                 }
 
                 if (!schemaCompatibilityCheckOptional.get().isCompatible()) {
-                    return schemaCompatibilityCheckOptional.get().messages();
+                    return schemaCompatibilityCheckOptional.get().messages()
+                        .stream()
+                        .map(ValidationError::invalidSchemaResource)
+                        .toList();
                 }
 
                 return List.of();
@@ -287,7 +292,7 @@ public class SchemaService {
     public boolean isNamespaceOwnerOfSubject(Namespace namespace, String subjectName) {
         String underlyingTopicName = subjectName.replaceAll("(-key|-value)$", "");
         return accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(),
-            AccessControlEntry.ResourceType.TOPIC,
+            AccessControlEntry.AclType.TOPIC,
             underlyingTopicName);
     }
 

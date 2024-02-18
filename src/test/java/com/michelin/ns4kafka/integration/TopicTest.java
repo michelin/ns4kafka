@@ -11,7 +11,7 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
-import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
+import com.michelin.ns4kafka.models.AccessControlEntry.AclType;
 import com.michelin.ns4kafka.models.DeleteRecordsResponse;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
@@ -115,7 +115,7 @@ class TopicTest extends AbstractIntegrationTest {
                 .namespace("ns1")
                 .build())
             .spec(AccessControlEntrySpec.builder()
-                .resourceType(ResourceType.TOPIC)
+                .resourceType(AclType.TOPIC)
                 .resource("ns1-")
                 .resourcePatternType(ResourcePatternType.PREFIXED)
                 .permission(Permission.OWNER)
@@ -167,7 +167,7 @@ class TopicTest extends AbstractIntegrationTest {
                 .namespace("ns2")
                 .build())
             .spec(AccessControlEntrySpec.builder()
-                .resourceType(ResourceType.TOPIC)
+                .resourceType(AclType.TOPIC)
                 .resource("ns2-")
                 .resourcePatternType(ResourcePatternType.PREFIXED)
                 .permission(Permission.OWNER)
@@ -354,7 +354,7 @@ class TopicTest extends AbstractIntegrationTest {
                 .namespace("ns1")
                 .build())
             .spec(AccessControlEntrySpec.builder()
-                .resourceType(ResourceType.TOPIC)
+                .resourceType(AclType.TOPIC)
                 .resource("ns1-")
                 .resourcePatternType(ResourcePatternType.PREFIXED)
                 .permission(Permission.READ)

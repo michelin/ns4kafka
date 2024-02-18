@@ -1,8 +1,12 @@
 package com.michelin.ns4kafka.services;
 
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNamespaceNoCluster;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNamespaceUserAlreadyExist;
+
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
+import com.michelin.ns4kafka.utils.exceptions.error.ValidationError;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
@@ -50,14 +54,12 @@ public class NamespaceService {
 
         if (managedClusterPropertiesList.stream()
             .noneMatch(config -> config.getName().equals(namespace.getMetadata().getCluster()))) {
-            validationErrors.add(
-                "Invalid value " + namespace.getMetadata().getCluster() + " for cluster: Cluster doesn't exist");
+            validationErrors.add(invalidNamespaceNoCluster(namespace.getMetadata().getCluster()));
         }
 
         if (namespaceRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
             .anyMatch(namespace1 -> namespace1.getSpec().getKafkaUser().equals(namespace.getSpec().getKafkaUser()))) {
-            validationErrors.add(
-                "Invalid value " + namespace.getSpec().getKafkaUser() + " for user: KafkaUser already exists");
+            validationErrors.add(invalidNamespaceUserAlreadyExist(namespace.getSpec().getKafkaUser()));
         }
 
         return validationErrors;
@@ -73,7 +75,7 @@ public class NamespaceService {
         return namespace.getSpec().getConnectClusters()
             .stream()
             .filter(connectCluster -> !connectClusterExists(namespace.getMetadata().getCluster(), connectCluster))
-            .map(s -> "Invalid value " + s + " for Connect Cluster: Connect Cluster doesn't exist")
+            .map(ValidationError::invalidNamespaceNoConnectCluster)
             .toList();
     }
 

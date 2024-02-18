@@ -54,7 +54,7 @@ class SchemaServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourceType(AccessControlEntry.AclType.TOPIC)
                         .resource("prefix.")
                         .build())
                     .build(),
@@ -63,7 +63,7 @@ class SchemaServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourceType(AccessControlEntry.AclType.TOPIC)
                         .resource("prefix2.schema-two")
                         .build())
                     .build(),
@@ -72,7 +72,7 @@ class SchemaServiceTest {
                         .permission(AccessControlEntry.Permission.READ)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourceType(AccessControlEntry.AclType.TOPIC)
                         .resource("prefix3.")
                         .build())
                     .build(),
@@ -81,7 +81,7 @@ class SchemaServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resourceType(AccessControlEntry.AclType.CONNECT)
                         .resource("ns-")
                         .build())
                     .build()
@@ -276,7 +276,7 @@ class SchemaServiceTest {
     @Test
     void isNamespaceOwnerOfSubjectTest() {
         Namespace ns = buildNamespace();
-        when(accessControlEntryService.isNamespaceOwnerOfResource("myNamespace", AccessControlEntry.ResourceType.TOPIC,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("myNamespace", AccessControlEntry.AclType.TOPIC,
             "prefix.schema-one"))
             .thenReturn(true);
 

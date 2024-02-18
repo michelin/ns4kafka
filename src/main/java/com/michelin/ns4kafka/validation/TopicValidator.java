@@ -2,12 +2,18 @@ package com.michelin.ns4kafka.validation;
 
 import static com.michelin.ns4kafka.utils.config.TopicConfig.PARTITIONS;
 import static com.michelin.ns4kafka.utils.config.TopicConfig.REPLICATION_FACTOR;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidFieldValidationNull;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNameEmpty;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNameLength;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNameSpecChars;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidTopicName;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidTopicSpec;
 
 import com.michelin.ns4kafka.models.Topic;
+import io.micronaut.core.util.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -74,35 +80,31 @@ public class TopicValidator extends ResourceValidator {
     public List<String> validate(Topic topic) {
         List<String> validationErrors = new ArrayList<>();
 
-        if (topic.getMetadata().getName().isEmpty()) {
-            validationErrors.add(
-                "Invalid value " + topic.getMetadata().getName() + " for name: Value must not be empty");
+        if (!StringUtils.hasText(topic.getMetadata().getName())) {
+            validationErrors.add(invalidNameEmpty());
         }
 
         if (topic.getMetadata().getName().equals(".") || topic.getMetadata().getName().equals("..")) {
-            validationErrors.add(
-                "Invalid value " + topic.getMetadata().getName() + " for name: Value must not be \".\" or \"..\"");
+            validationErrors.add(invalidTopicName(topic.getMetadata().getName()));
         }
 
         if (topic.getMetadata().getName().length() > 249) {
-            validationErrors.add(
-                "Invalid value " + topic.getMetadata().getName() + " for name: Value must not be longer than 249");
+            validationErrors.add(invalidNameLength(topic.getMetadata().getName()));
         }
 
         if (!topic.getMetadata().getName().matches("[a-zA-Z0-9._-]+")) {
-            validationErrors.add(
-                "Invalid value " + topic.getMetadata().getName() + " for name: Value must only contain "
-                    + "ASCII alphanumerics, '.', '_' or '-'");
+            validationErrors.add(invalidNameSpecChars(topic.getMetadata().getName()));
         }
 
         if (!validationConstraints.isEmpty() && topic.getSpec().getConfigs() != null) {
-            Set<String> configsWithoutConstraints = topic.getSpec().getConfigs().keySet()
+            Map<String, String> configsWithoutConstraints = topic.getSpec().getConfigs().entrySet()
                 .stream()
-                .filter(s -> !validationConstraints.containsKey(s))
-                .collect(Collectors.toSet());
+                .filter(entry -> !validationConstraints.containsKey(entry.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
             if (!configsWithoutConstraints.isEmpty()) {
-                validationErrors.add(
-                    "Configurations [" + String.join(",", configsWithoutConstraints) + "] are not allowed");
+                configsWithoutConstraints
+                    .forEach((key, value) -> validationErrors.add(invalidTopicSpec(key, value)));
             }
         }
 
@@ -116,8 +118,7 @@ public class TopicValidator extends ResourceValidator {
                     if (topic.getSpec().getConfigs() != null) {
                         value.ensureValid(key, topic.getSpec().getConfigs().get(key));
                     } else {
-                        validationErrors.add(
-                            "Invalid value null for configuration " + key + ": Value must be non-null");
+                        validationErrors.add(invalidFieldValidationNull(key));
                     }
                 }
             } catch (FieldValidationException e) {

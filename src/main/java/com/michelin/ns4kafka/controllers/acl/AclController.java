@@ -1,6 +1,10 @@
 package com.michelin.ns4kafka.controllers.acl;
 
+import static com.michelin.ns4kafka.models.Kind.ACL;
 import static com.michelin.ns4kafka.services.AccessControlEntryService.PUBLIC_GRANTED_TO;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidAclDeleteOnlyAdmin;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidImmutableValue;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNotFound;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.AccessControlEntry;
@@ -118,8 +122,7 @@ public class AclController extends NamespacedResourceController {
         }
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors, accessControlEntry.getKind(),
-                accessControlEntry.getMetadata().getName());
+            throw new ResourceValidationException(ACL, accessControlEntry.getMetadata().getName(), validationErrors);
         }
 
         // AccessControlEntry spec is immutable
@@ -127,9 +130,8 @@ public class AclController extends NamespacedResourceController {
         Optional<AccessControlEntry> existingAcl =
             accessControlEntryService.findByName(namespace, accessControlEntry.getMetadata().getName());
         if (existingAcl.isPresent() && !existingAcl.get().getSpec().equals(accessControlEntry.getSpec())) {
-            throw new ResourceValidationException(
-                List.of("Invalid modification: `spec` is immutable. You can still update `metadata`"),
-                accessControlEntry.getKind(), accessControlEntry.getMetadata().getName());
+            throw new ResourceValidationException(ACL, accessControlEntry.getMetadata().getName(),
+                invalidImmutableValue("spec", accessControlEntry.getSpec().toString()));
         }
 
         accessControlEntry.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
@@ -142,7 +144,6 @@ public class AclController extends NamespacedResourceController {
 
         ApplyStatus status = existingAcl.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
 
-        // Dry run checks
         if (dryrun) {
             return formatHttpResponse(accessControlEntry, status);
         }
@@ -153,7 +154,6 @@ public class AclController extends NamespacedResourceController {
             existingAcl.<Object>map(AccessControlEntry::getSpec).orElse(null),
             accessControlEntry.getSpec());
 
-        // Store
         return formatHttpResponse(accessControlEntryService.create(accessControlEntry), status);
     }
 
@@ -172,17 +172,14 @@ public class AclController extends NamespacedResourceController {
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         AccessControlEntry accessControlEntry = accessControlEntryService
             .findByName(namespace, name)
-            .orElseThrow(() -> new ResourceValidationException(
-                List.of("Invalid value " + name + " for name: ACL does not exist in this namespace."),
-                "AccessControlEntry", name));
+            .orElseThrow(() -> new ResourceValidationException(ACL, name, invalidNotFound(name)));
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
         boolean isAdmin = roles.contains(ResourceBasedSecurityRule.IS_ADMIN);
         boolean isSelfAssignedAcl = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
 
         if (isSelfAssignedAcl && !isAdmin) {
-            throw new ResourceValidationException(List.of("Only admins can delete this ACL."), "AccessControlEntry",
-                name);
+            throw new ResourceValidationException(ACL, name, invalidAclDeleteOnlyAdmin(name));
         }
 
         if (dryrun) {

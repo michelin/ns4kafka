@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.models;
 
+import static com.michelin.ns4kafka.models.Kind.STATUS;
+
 import io.micronaut.core.annotation.Introspected;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -17,7 +19,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Status {
     private final String apiVersion = "v1";
-    private final String kind = "Status";
+    private final String kind = STATUS;
     private StatusPhase status;
     private String message;
     private StatusReason reason;

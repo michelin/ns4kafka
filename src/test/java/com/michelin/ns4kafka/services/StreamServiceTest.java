@@ -148,7 +148,7 @@ class StreamServiceTest {
 
         AccessControlEntry ace1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("test.")
@@ -158,7 +158,7 @@ class StreamServiceTest {
             .build();
         AccessControlEntry ace2 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.GROUP)
+                .resourceType(AccessControlEntry.AclType.GROUP)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("test.")
@@ -168,7 +168,7 @@ class StreamServiceTest {
             .build();
         AccessControlEntry ace3 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .resourceType(AccessControlEntry.AclType.CONNECT)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("test.")
@@ -178,7 +178,7 @@ class StreamServiceTest {
             .build();
         AccessControlEntry ace4 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("test-bis.")
@@ -188,7 +188,7 @@ class StreamServiceTest {
             .build();
         AccessControlEntry ace5 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.GROUP)
+                .resourceType(AccessControlEntry.AclType.GROUP)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("test-bis.")
@@ -198,7 +198,7 @@ class StreamServiceTest {
             .build();
         AccessControlEntry ace6 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.GROUP)
+                .resourceType(AccessControlEntry.AclType.GROUP)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("test-ter.")
@@ -208,7 +208,7 @@ class StreamServiceTest {
             .build();
         AccessControlEntry ace7 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("test-qua.")

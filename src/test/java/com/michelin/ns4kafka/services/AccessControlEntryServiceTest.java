@@ -51,7 +51,7 @@ class AccessControlEntryServiceTest {
                 .namespace("namespace")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .resourceType(AccessControlEntry.AclType.CONNECT)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("test")
@@ -90,7 +90,7 @@ class AccessControlEntryServiceTest {
                 .namespace("namespace")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.READ)
                 .resource("test")
@@ -126,7 +126,7 @@ class AccessControlEntryServiceTest {
                 .namespace("namespace")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.READ)
                 .resource("main")
@@ -140,7 +140,7 @@ class AccessControlEntryServiceTest {
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of(AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.OWNER)
                     .resource("main.sub")
@@ -161,19 +161,21 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .build();
+
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(ObjectMeta.builder()
                 .name("acl-name")
                 .namespace("namespace")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                 .permission(AccessControlEntry.Permission.READ)
                 .resource("resource2")
                 .grantedTo("target-ns")
                 .build())
             .build();
+
         when(applicationContext.getBean(NamespaceService.class))
             .thenReturn(namespaceService);
         when(namespaceService.findByName("target-ns"))
@@ -181,7 +183,7 @@ class AccessControlEntryServiceTest {
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of(AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                     .permission(AccessControlEntry.Permission.OWNER)
                     .resource("resource1")
@@ -208,7 +210,7 @@ class AccessControlEntryServiceTest {
                 .namespace("namespace")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                 .permission(AccessControlEntry.Permission.READ)
                 .resource("resource1")
@@ -222,7 +224,7 @@ class AccessControlEntryServiceTest {
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of(AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                     .permission(AccessControlEntry.Permission.OWNER)
                     .resource("resource1")
@@ -249,7 +251,7 @@ class AccessControlEntryServiceTest {
                 .namespace("namespace")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.READ)
                 .resource("main.sub")
@@ -264,7 +266,7 @@ class AccessControlEntryServiceTest {
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of(AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.OWNER)
                     .resource("main")
@@ -291,7 +293,7 @@ class AccessControlEntryServiceTest {
                 .namespace("namespace")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.READ)
                 .resource("main.sub")
@@ -305,7 +307,7 @@ class AccessControlEntryServiceTest {
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of(AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourceType(AccessControlEntry.AclType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.OWNER)
                     .resource("main")
@@ -327,7 +329,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.READ)
                 .resource("main.sub")
@@ -374,7 +376,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("project1")
@@ -388,7 +390,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("project2_t1")
@@ -408,7 +410,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("project1")
@@ -422,7 +424,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("project2_t1")
@@ -466,7 +468,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("project1")
@@ -480,7 +482,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("project2_t1")
@@ -500,7 +502,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("proj")
@@ -514,7 +516,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("project2")
@@ -558,7 +560,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("project1")
@@ -572,7 +574,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("project2_t1")
@@ -592,7 +594,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("project1_sub")
@@ -606,7 +608,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("project1_t1")
@@ -652,7 +654,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("project1")
@@ -666,7 +668,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("project2_t1")
@@ -680,7 +682,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .resourceType(AccessControlEntry.AclType.CONNECT)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("p")
@@ -702,7 +704,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("project3_topic1_sub")
@@ -723,7 +725,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("project2")
@@ -741,7 +743,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("proj")
@@ -831,7 +833,7 @@ class AccessControlEntryServiceTest {
     void isNamespaceOwnerOfResource() {
         AccessControlEntry ace1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourceType(AccessControlEntry.AclType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("main")
@@ -841,7 +843,7 @@ class AccessControlEntryServiceTest {
             .build();
         AccessControlEntry ace2 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .resourceType(AccessControlEntry.AclType.CONNECT)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("connect")
@@ -851,7 +853,7 @@ class AccessControlEntryServiceTest {
             .build();
         AccessControlEntry ace3 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .resourceType(AccessControlEntry.AclType.CONNECT)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                 .permission(AccessControlEntry.Permission.WRITE)
                 .resource("connect")
@@ -863,23 +865,23 @@ class AccessControlEntryServiceTest {
             .thenReturn(List.of(ace1, ace2, ace3));
         assertTrue(
             accessControlEntryService.isNamespaceOwnerOfResource("namespace",
-                AccessControlEntry.ResourceType.CONNECT,
+                AccessControlEntry.AclType.CONNECT,
                 "connect"));
         assertTrue(
             accessControlEntryService.isNamespaceOwnerOfResource("namespace",
-                AccessControlEntry.ResourceType.TOPIC,
+                AccessControlEntry.AclType.TOPIC,
                 "main"));
         assertTrue(
             accessControlEntryService.isNamespaceOwnerOfResource("namespace",
-                AccessControlEntry.ResourceType.TOPIC,
+                AccessControlEntry.AclType.TOPIC,
                 "main.sub"), "subresource");
         Assertions.assertFalse(
             accessControlEntryService.isNamespaceOwnerOfResource("namespace-other",
-                AccessControlEntry.ResourceType.TOPIC,
+                AccessControlEntry.AclType.TOPIC,
                 "main"));
         Assertions.assertFalse(
             accessControlEntryService.isNamespaceOwnerOfResource("namespace-other",
-                AccessControlEntry.ResourceType.CONNECT,
+                AccessControlEntry.AclType.CONNECT,
                 "connect"));
     }
 }

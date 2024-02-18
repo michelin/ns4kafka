@@ -1,5 +1,8 @@
 package com.michelin.ns4kafka.controllers;
 
+import static com.michelin.ns4kafka.models.Kind.KAFKA_USER;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidKafkaUser;
+
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.KafkaUserResetPassword;
 import com.michelin.ns4kafka.models.Namespace;
@@ -16,7 +19,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
 import java.time.Instant;
 import java.util.Date;
-import java.util.List;
 
 /**
  * Controller to manage users.
@@ -39,9 +41,7 @@ public class UserController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         if (!ns.getSpec().getKafkaUser().equals(user)) {
-            throw new ResourceValidationException(
-                List.of(String.format("Invalid user %s : Doesn't belong to namespace %s", user, namespace)),
-                "KafkaUserResetPassword", user);
+            throw new ResourceValidationException(KAFKA_USER, user, invalidKafkaUser(user));
         }
 
         UserAsyncExecutor userAsyncExecutor =
@@ -60,7 +60,8 @@ public class UserController extends NamespacedResourceController {
                 .newPassword(password)
                 .build())
             .build();
-        sendEventLog("KafkaUserResetPassword", response.getMetadata(), ApplyStatus.changed, null, response.getSpec());
+
+        sendEventLog(KAFKA_USER, response.getMetadata(), ApplyStatus.changed, null, response.getSpec());
         return HttpResponse.ok(response);
     }
 }

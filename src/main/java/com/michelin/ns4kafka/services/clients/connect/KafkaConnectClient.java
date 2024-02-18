@@ -227,8 +227,8 @@ public class KafkaConnectClient {
             .findFirst();
 
         if (config.isEmpty()) {
-            throw new ResourceValidationException(List.of("Kafka cluster \"" + kafkaCluster + "\" not found"), null,
-                null);
+            throw new ResourceValidationException(null, null,
+                List.of("Kafka cluster \"" + kafkaCluster + "\" not found"));
         }
 
         Optional<ConnectCluster> connectClusterOptional = connectClusterRepository.findAll()

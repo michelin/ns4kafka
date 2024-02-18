@@ -1,5 +1,12 @@
 package com.michelin.ns4kafka.services;
 
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConsumerGroupDatetime;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConsumerGroupDuration;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConsumerGroupOffsetInteger;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConsumerGroupOffsetNegative;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConsumerGroupShiftBy;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConsumerGroupTopic;
+
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets;
@@ -40,7 +47,7 @@ public class ConsumerGroupService {
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceOwnerOfConsumerGroup(String namespace, String groupId) {
-        return accessControlEntryService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.GROUP,
+        return accessControlEntryService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.AclType.GROUP,
             groupId);
     }
 
@@ -52,12 +59,12 @@ public class ConsumerGroupService {
      */
     public List<String> validateResetOffsets(ConsumerGroupResetOffsets consumerGroupResetOffsets) {
         List<String> validationErrors = new ArrayList<>();
+
         // validate topic
         // allowed : *, <topic>, <topic:partition>
         Pattern validTopicValue = Pattern.compile("^(\\*|[a-zA-Z0-9-_.]+(:[0-9]+)?)$");
         if (!validTopicValue.matcher(consumerGroupResetOffsets.getSpec().getTopic()).matches()) {
-            validationErrors.add("Invalid topic name \"" + consumerGroupResetOffsets.getSpec().getTopic()
-                + "\". Value must match [*, <topic>, <topic:partition>].");
+            validationErrors.add(invalidConsumerGroupTopic(consumerGroupResetOffsets.getSpec().getTopic()));
         }
 
         String options = consumerGroupResetOffsets.getSpec().getOptions();
@@ -67,15 +74,14 @@ public class ConsumerGroupService {
                 try {
                     Integer.parseInt(options);
                 } catch (NumberFormatException e) {
-                    validationErrors.add("Invalid options \"" + options + "\". Value must be an integer.");
+                    validationErrors.add(invalidConsumerGroupShiftBy(options));
                 }
             }
             case BY_DURATION -> {
                 try {
                     Duration.parse(options);
                 } catch (NullPointerException | DateTimeParseException e) {
-                    validationErrors.add(
-                        "Invalid options \"" + options + "\". Value must be an ISO 8601 Duration [ PnDTnHnMnS ].");
+                    validationErrors.add(invalidConsumerGroupDuration(options));
                 }
             }
             case TO_DATETIME -> {
@@ -83,18 +89,17 @@ public class ConsumerGroupService {
                 try {
                     OffsetDateTime.parse(options);
                 } catch (Exception e) {
-                    validationErrors.add("Invalid options \"" + options
-                        + "\". Value must be an ISO 8601 DateTime with Time zone [ yyyy-MM-dd'T'HH:mm:ss.SSSXXX ].");
+                    validationErrors.add(invalidConsumerGroupDatetime(options));
                 }
             }
             case TO_OFFSET -> {
                 try {
                     int offset = Integer.parseInt(options);
                     if (offset < 0) {
-                        validationErrors.add("Invalid options \"" + options + "\". Value must be >= 0.");
+                        validationErrors.add(invalidConsumerGroupOffsetNegative(options));
                     }
                 } catch (NumberFormatException e) {
-                    validationErrors.add("Invalid options \"" + options + "\". Value must be an integer.");
+                    validationErrors.add(invalidConsumerGroupOffsetInteger(options));
                 }
             }
             default -> {

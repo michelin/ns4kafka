@@ -8,7 +8,7 @@ import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
-import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
+import com.michelin.ns4kafka.models.AccessControlEntry.AclType;
 import com.michelin.ns4kafka.models.KafkaStream;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
@@ -66,7 +66,7 @@ class StreamTest extends AbstractIntegrationTest {
                 .name("nskafkastream-acl-topic")
                 .build())
             .spec(AccessControlEntrySpec.builder()
-                .resourceType(ResourceType.TOPIC)
+                .resourceType(AclType.TOPIC)
                 .resource("kstream-")
                 .resourcePatternType(ResourcePatternType.PREFIXED)
                 .permission(Permission.OWNER)
@@ -90,7 +90,7 @@ class StreamTest extends AbstractIntegrationTest {
                 .name("nskafkastream-acl-group")
                 .build())
             .spec(AccessControlEntrySpec.builder()
-                .resourceType(ResourceType.GROUP)
+                .resourceType(AclType.GROUP)
                 .resource("kstream-")
                 .resourcePatternType(ResourcePatternType.PREFIXED)
                 .permission(Permission.OWNER)

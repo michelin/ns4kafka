@@ -1,7 +1,10 @@
 package com.michelin.ns4kafka.controllers;
 
+import static com.michelin.ns4kafka.models.Kind.SCHEMA;
+import static com.michelin.ns4kafka.models.Kind.SCHEMA_COMPAT;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidOwner;
+
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
-import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.schema.Schema;
 import com.michelin.ns4kafka.models.schema.SchemaCompatibilityState;
@@ -27,7 +30,6 @@ import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -39,8 +41,6 @@ import reactor.core.publisher.Mono;
 @Controller(value = "/api/namespaces/{namespace}/schemas")
 @ExecuteOn(TaskExecutors.IO)
 public class SchemaController extends NamespacedResourceController {
-    private static final String NAMESPACE_NOT_OWNER = "Namespace not owner of this schema %s.";
-
     @Inject
     SchemaService schemaService;
 
@@ -87,16 +87,14 @@ public class SchemaController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         if (!schemaService.isNamespaceOwnerOfSubject(ns, schema.getMetadata().getName())) {
-            return Mono.error(new ResourceValidationException(
-                List.of(String.format(NAMESPACE_NOT_OWNER, schema.getMetadata().getName())),
-                schema.getKind(), schema.getMetadata().getName()));
+            throw new ResourceValidationException(SCHEMA, schema.getMetadata().getName(),
+                invalidOwner(schema.getMetadata().getName()));
         }
 
         return schemaService.validateSchema(ns, schema)
             .flatMap(errors -> {
                 if (!errors.isEmpty()) {
-                    return Mono.error(new ResourceValidationException(errors, schema.getKind(),
-                        schema.getMetadata().getName()));
+                    return Mono.error(new ResourceValidationException(SCHEMA, schema.getMetadata().getName(), errors));
                 }
 
                 return schemaService.getAllSubjectVersions(ns, schema.getMetadata().getName())
@@ -111,9 +109,8 @@ public class SchemaController extends NamespacedResourceController {
                                 .validateSchemaCompatibility(ns.getMetadata().getCluster(), schema)
                                 .flatMap(validationErrors -> {
                                     if (!validationErrors.isEmpty()) {
-                                        return Mono.error(new ResourceValidationException(
-                                            validationErrors, schema.getKind(),
-                                            schema.getMetadata().getName()));
+                                        return Mono.error(new ResourceValidationException(SCHEMA,
+                                            schema.getMetadata().getName(), validationErrors));
                                     }
 
                                     schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
@@ -158,9 +155,7 @@ public class SchemaController extends NamespacedResourceController {
 
         // Validate ownership
         if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
-            return Mono.error(new ResourceValidationException(
-                List.of(String.format(NAMESPACE_NOT_OWNER, subject)),
-                AccessControlEntry.ResourceType.SCHEMA.toString(), subject));
+            throw new ResourceValidationException(SCHEMA, subject, invalidOwner(subject));
         }
 
         return schemaService.getLatestSubject(ns, subject)
@@ -202,9 +197,7 @@ public class SchemaController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
-            return Mono.error(new ResourceValidationException(List.of("Invalid prefix " + subject
-                + " : namespace not owner of this subject"),
-                AccessControlEntry.ResourceType.SCHEMA.toString(), subject));
+            throw new ResourceValidationException(SCHEMA, subject, invalidOwner(subject));
         }
 
         return schemaService.getLatestSubject(ns, subject)
@@ -229,7 +222,7 @@ public class SchemaController extends NamespacedResourceController {
                 return schemaService
                     .updateSubjectCompatibility(ns, latestSubjectOptional.get(), compatibility)
                     .map(schemaCompatibility -> {
-                        sendEventLog("SchemaCompatibilityState",
+                        sendEventLog(SCHEMA_COMPAT,
                             latestSubjectOptional.get().getMetadata(),
                             ApplyStatus.changed,
                             latestSubjectOptional.get().getSpec().getCompatibility(),

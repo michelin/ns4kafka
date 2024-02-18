@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.models;
 
+import static com.michelin.ns4kafka.models.Kind.ACL;
+
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -19,7 +21,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AccessControlEntry {
     private final String apiVersion = "v1";
-    private final String kind = "AccessControlEntry";
+    private final String kind = ACL;
 
     @Valid
     @NotNull
@@ -32,7 +34,7 @@ public class AccessControlEntry {
     /**
      * Resource type managed by Ns4kafka.
      */
-    public enum ResourceType {
+    public enum AclType {
         TOPIC,
         GROUP,
         CONNECT,
@@ -68,7 +70,7 @@ public class AccessControlEntry {
     @AllArgsConstructor
     public static class AccessControlEntrySpec {
         @NotNull
-        protected ResourceType resourceType;
+        protected AccessControlEntry.AclType resourceType;
 
         @NotNull
         @NotBlank

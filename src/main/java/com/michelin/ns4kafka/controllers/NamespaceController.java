@@ -1,11 +1,15 @@
 package com.michelin.ns4kafka.controllers;
 
+import static com.michelin.ns4kafka.models.Kind.NAMESPACE;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidImmutableValue;
+
 import com.michelin.ns4kafka.controllers.generic.NonNamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.utils.enums.ApplyStatus;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
+import com.michelin.ns4kafka.utils.exceptions.error.ValidationError;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
@@ -71,22 +75,15 @@ public class NamespaceController extends NonNamespacedResourceController {
             validationErrors.addAll(namespaceService.validateCreation(namespace));
         } else {
             if (!namespace.getMetadata().getCluster().equals(existingNamespace.get().getMetadata().getCluster())) {
-                validationErrors.add("Invalid value " + namespace.getMetadata().getCluster()
-                    + " for cluster: Value is immutable ("
-                    + existingNamespace.get().getMetadata().getCluster() + ")");
-            }
-            if (!namespace.getMetadata().getCluster().equals(existingNamespace.get().getMetadata().getCluster())) {
-                validationErrors.add("Invalid value " + namespace.getSpec().getKafkaUser()
-                    + " for kafkaUser: Value is immutable ("
-                    + existingNamespace.get().getSpec().getKafkaUser() + ")");
+                validationErrors.add(invalidImmutableValue("cluster",
+                    existingNamespace.get().getMetadata().getCluster()));
             }
         }
 
         validationErrors.addAll(namespaceService.validate(namespace));
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors, namespace.getKind(),
-                namespace.getMetadata().getName());
+            throw new ResourceValidationException(NAMESPACE, namespace.getMetadata().getName(), validationErrors);
         }
 
         namespace.getMetadata().setNamespace(namespace.getMetadata().getName());
@@ -127,10 +124,11 @@ public class NamespaceController extends NonNamespacedResourceController {
 
         List<String> namespaceResources = namespaceService.listAllNamespaceResources(optionalNamespace.get());
         if (!namespaceResources.isEmpty()) {
-            List<String> validationErrors = namespaceResources.stream()
-                .map(s -> "Namespace resource must be deleted first: " + s)
+            List<String> validationErrors = namespaceResources
+                .stream()
+                .map(ValidationError::invalidNamespaceDeleteOperation)
                 .toList();
-            throw new ResourceValidationException(validationErrors, "Namespace", namespace);
+            throw new ResourceValidationException(NAMESPACE, namespace, validationErrors);
         }
 
         if (dryrun) {

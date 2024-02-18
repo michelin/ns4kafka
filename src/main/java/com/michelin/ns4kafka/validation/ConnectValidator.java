@@ -1,7 +1,9 @@
 package com.michelin.ns4kafka.validation;
 
-import static com.michelin.ns4kafka.utils.ValidationErrorUtils.INVALID_VALUE;
 import static com.michelin.ns4kafka.utils.config.ConnectorConfig.CONNECTOR_CLASS;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNameEmpty;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNameLength;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNameSpecChars;
 
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
@@ -81,18 +83,15 @@ public class ConnectValidator extends ResourceValidator {
         List<String> validationErrors = new ArrayList<>();
 
         if (!StringUtils.hasText(connector.getMetadata().getName())) {
-            return List.of(INVALID_VALUE + connector.getMetadata().getName() + " for name: Value must not be empty");
+            return List.of(invalidNameEmpty());
         }
 
         if (connector.getMetadata().getName().length() > 249) {
-            validationErrors.add(
-                INVALID_VALUE + connector.getMetadata().getName() + " for name: Value must not be longer than 249");
+            validationErrors.add(invalidNameLength(connector.getMetadata().getName()));
         }
 
         if (!connector.getMetadata().getName().matches("[a-zA-Z0-9._-]+")) {
-            validationErrors.add(
-                INVALID_VALUE + connector.getMetadata().getName() + " for name: Value must only contain "
-                    + "ASCII alphanumerics, '.', '_' or '-'");
+            validationErrors.add(invalidNameSpecChars(connector.getMetadata().getName()));
         }
 
         validationConstraints.forEach((key, value) -> {

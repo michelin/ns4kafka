@@ -120,7 +120,7 @@ class ConnectorServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resourceType(AccessControlEntry.AclType.CONNECT)
                         .resource("ns-")
                         .build())
                     .build(),
@@ -129,7 +129,7 @@ class ConnectorServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resourceType(AccessControlEntry.AclType.CONNECT)
                         .resource("other-connect1")
                         .build())
                     .build(),
@@ -138,7 +138,7 @@ class ConnectorServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourceType(AccessControlEntry.AclType.TOPIC)
                         .resource("ns-")
                         .build())
                     .build(),
@@ -147,7 +147,7 @@ class ConnectorServiceTest {
                         .permission(AccessControlEntry.Permission.READ)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resourceType(AccessControlEntry.AclType.CONNECT)
                         .resource("ns2-")
                         .build())
                     .build(),
@@ -156,7 +156,7 @@ class ConnectorServiceTest {
                         .permission(AccessControlEntry.Permission.WRITE)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resourceType(AccessControlEntry.AclType.CONNECT)
                         .resource("ns3-")
                         .build())
                     .build()
@@ -229,7 +229,7 @@ class ConnectorServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resourceType(AccessControlEntry.AclType.CONNECT)
                         .resource("ns-")
                         .build())
                     .build(),
@@ -238,7 +238,7 @@ class ConnectorServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resourceType(AccessControlEntry.AclType.CONNECT)
                         .resource("other-connect1")
                         .build())
                     .build(),
@@ -247,7 +247,7 @@ class ConnectorServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourceType(AccessControlEntry.AclType.TOPIC)
                         .resource("ns-")
                         .build())
                     .build()
@@ -259,7 +259,7 @@ class ConnectorServiceTest {
                     .permission(AccessControlEntry.Permission.OWNER)
                     .grantedTo("namespace")
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resourceType(AccessControlEntry.AclType.CONNECT)
                     .resource("ns-")
                     .build())
                 .build()));
@@ -758,19 +758,19 @@ class ConnectorServiceTest {
             .thenReturn(Flux.fromIterable(List.of(c5)));
 
         // list of existing Ns4Kafka access control entries
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.CONNECT,
             "ns-connect1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.CONNECT,
             "ns-connect2"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.CONNECT,
             "ns1-connect1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.CONNECT,
             "ns1-connect2"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.CONNECT,
             "ns2-connect1"))
             .thenReturn(false);
 
@@ -781,7 +781,7 @@ class ConnectorServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resourceType(AccessControlEntry.AclType.CONNECT)
                         .resource("ns-")
                         .build())
                     .build(),
@@ -790,7 +790,7 @@ class ConnectorServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resourceType(AccessControlEntry.AclType.CONNECT)
                         .resource("ns1-connect1")
                         .build())
                     .build()));
@@ -854,19 +854,19 @@ class ConnectorServiceTest {
             .thenReturn(List.of(c1, c2, c3, c4, c5));
 
         // list of existing Ns4Kafka access control entries
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.CONNECT,
             "ns-connect1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.CONNECT,
             "ns-connect2"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.CONNECT,
             "ns1-connect1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.CONNECT,
             "ns1-connect2"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.CONNECT,
             "ns2-connect1"))
             .thenReturn(false);
 
@@ -877,7 +877,7 @@ class ConnectorServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resourceType(AccessControlEntry.AclType.CONNECT)
                         .resource("ns-")
                         .build())
                     .build(),
@@ -886,7 +886,7 @@ class ConnectorServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resourceType(AccessControlEntry.AclType.CONNECT)
                         .resource("ns1-connect1")
                         .build())
                     .build(),
@@ -895,7 +895,7 @@ class ConnectorServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resourceType(AccessControlEntry.AclType.CONNECT)
                         .resource("ns1-connect2")
                         .build())
                     .build()
@@ -945,16 +945,16 @@ class ConnectorServiceTest {
 
 
         // list of existing Ns4Kafka access control entries
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.CONNECT,
             "ns-connect1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.CONNECT,
             "ns-connect2"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.CONNECT,
             "ns1-connect1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.CONNECT,
             "ns2-connect1"))
             .thenReturn(false);
 
@@ -965,7 +965,7 @@ class ConnectorServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resourceType(AccessControlEntry.AclType.CONNECT)
                         .resource("ns-")
                         .build())
                     .build(),
@@ -974,7 +974,7 @@ class ConnectorServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resourceType(AccessControlEntry.AclType.CONNECT)
                         .resource("ns1-connect1")
                         .build())
                     .build()

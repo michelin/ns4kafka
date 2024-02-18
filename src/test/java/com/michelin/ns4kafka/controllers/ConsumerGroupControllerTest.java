@@ -244,7 +244,8 @@ class ConsumerGroupControllerTest {
         ResourceValidationException result = assertThrows(ResourceValidationException.class,
             () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
 
-        assertLinesMatch(List.of("Namespace not owner of this consumer group \"groupID\"."),
+        assertLinesMatch(List.of("Invalid value \"groupID\" for field \"group\": "
+                + "namespace is not owner of the resource."),
             result.getValidationErrors());
     }
 

@@ -1,5 +1,13 @@
 package com.michelin.ns4kafka.services;
 
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidAclCollision;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidAclGrantedToMyself;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidAclNotOwnerOfTopLevel;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidAclPatternType;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidAclPermission;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidAclResourceType;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNotFound;
+
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
@@ -37,8 +45,8 @@ public class AccessControlEntryService {
         List<String> validationErrors = new ArrayList<>();
 
         // Which resource can be granted cross namespaces
-        List<AccessControlEntry.ResourceType> allowedResourceTypes =
-            List.of(AccessControlEntry.ResourceType.TOPIC, AccessControlEntry.ResourceType.CONNECT_CLUSTER);
+        List<AccessControlEntry.AclType> allowedAclTypes =
+            List.of(AccessControlEntry.AclType.TOPIC, AccessControlEntry.AclType.CONNECT_CLUSTER);
 
         // Which permission can be granted cross namespaces ? READ, WRITE
         // Only admin can grant OWNER
@@ -51,25 +59,21 @@ public class AccessControlEntryService {
             List.of(AccessControlEntry.ResourcePatternType.LITERAL,
                 AccessControlEntry.ResourcePatternType.PREFIXED);
 
-        if (!allowedResourceTypes.contains(accessControlEntry.getSpec().getResourceType())) {
-            validationErrors.add("Invalid value " + accessControlEntry.getSpec().getResourceType()
-                + " for resourceType: Value must be one of ["
-                + allowedResourceTypes.stream().map(Object::toString).collect(Collectors.joining(", "))
-                + "]");
+        if (!allowedAclTypes.contains(accessControlEntry.getSpec().getResourceType())) {
+            validationErrors.add(invalidAclResourceType(
+                String.valueOf(accessControlEntry.getSpec().getResourceType()),
+                allowedAclTypes.stream().map(Object::toString).collect(Collectors.joining(", "))));
         }
 
         if (!allowedPermissions.contains(accessControlEntry.getSpec().getPermission())) {
-            validationErrors.add("Invalid value " + accessControlEntry.getSpec().getPermission()
-                + " for permission: Value must be one of ["
-                + allowedPermissions.stream().map(Object::toString).collect(Collectors.joining(", "))
-                + "]");
+            validationErrors.add(invalidAclPermission(String.valueOf(accessControlEntry.getSpec().getPermission()),
+                allowedPermissions.stream().map(Object::toString).collect(Collectors.joining(", "))));
         }
 
         if (!allowedPatternTypes.contains(accessControlEntry.getSpec().getResourcePatternType())) {
-            validationErrors.add("Invalid value " + accessControlEntry.getSpec().getResourcePatternType()
-                + " for patternType: Value must be one of ["
-                + allowedPatternTypes.stream().map(Object::toString).collect(Collectors.joining(", "))
-                + "]");
+            validationErrors.add(invalidAclPatternType(
+                String.valueOf(accessControlEntry.getSpec().getResourcePatternType()),
+                allowedPatternTypes.stream().map(Object::toString).collect(Collectors.joining(", "))));
         }
 
         // GrantedTo Namespace exists ?
@@ -77,20 +81,16 @@ public class AccessControlEntryService {
         Optional<Namespace> grantedToNamespace =
             namespaceService.findByName(accessControlEntry.getSpec().getGrantedTo());
         if (grantedToNamespace.isEmpty() && !accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO)) {
-            validationErrors.add("Invalid value " + accessControlEntry.getSpec().getGrantedTo()
-                + " for grantedTo: Namespace doesn't exist");
+            validationErrors.add(invalidNotFound("grantedTo", accessControlEntry.getSpec().getGrantedTo()));
         }
 
-        // Are you dumb ?
         if (namespace.getMetadata().getName().equals(accessControlEntry.getSpec().getGrantedTo())) {
-            validationErrors.add("Invalid value " + accessControlEntry.getSpec().getGrantedTo()
-                + " for grantedTo: Why would you grant to yourself ?!");
+            validationErrors.add(invalidAclGrantedToMyself(accessControlEntry.getSpec().getGrantedTo()));
         }
 
         if (!isOwnerOfTopLevelAcl(accessControlEntry, namespace)) {
-            validationErrors.add("Invalid grant " + accessControlEntry.getSpec().getResourcePatternType() + ":"
-                + accessControlEntry.getSpec().getResource()
-                + " : Namespace is neither OWNER of LITERAL: resource nor top-level PREFIXED:resource");
+            validationErrors.add(invalidAclNotOwnerOfTopLevel(accessControlEntry.getSpec().getResource(),
+                accessControlEntry.getSpec().getResourcePatternType()));
         }
 
         return validationErrors;
@@ -105,7 +105,7 @@ public class AccessControlEntryService {
      */
     public List<String> validateAsAdmin(AccessControlEntry accessControlEntry, Namespace namespace) {
         // another namespace is already OWNER of PREFIXED or LITERAL resource
-        // exemple :
+        // example :
         // if already exists:
         //   namespace1 OWNER:PREFIXED:project1
         //   namespace1 OWNER:LITERAL:project2_t1
@@ -145,7 +145,7 @@ public class AccessControlEntryService {
                 return same || parentOverlap || childOverlap;
 
             })
-            .map(ace -> String.format("AccessControlEntry overlaps with existing one: %s", ace))
+            .map(ace -> invalidAclCollision(accessControlEntry.getMetadata().getName(), ace.getMetadata().getName()))
             .toList();
     }
 
@@ -281,19 +281,19 @@ public class AccessControlEntryService {
     /**
      * Is namespace owner of the given resource.
      *
-     * @param namespace    The namespace
-     * @param resourceType The resource type to filter
-     * @param resource     The resource name
+     * @param namespace The namespace
+     * @param aclType   The resource type to filter
+     * @param resource  The resource name
      * @return true if it is, false otherwise
      */
-    public boolean isNamespaceOwnerOfResource(String namespace, AccessControlEntry.ResourceType resourceType,
+    public boolean isNamespaceOwnerOfResource(String namespace, AccessControlEntry.AclType aclType,
                                               String resource) {
         return accessControlEntryRepository.findAll()
             .stream()
             .filter(accessControlEntry -> accessControlEntry.getSpec().getGrantedTo().equals(namespace))
             .filter(accessControlEntry -> accessControlEntry.getSpec().getPermission()
                 == AccessControlEntry.Permission.OWNER)
-            .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == resourceType)
+            .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == aclType)
             .anyMatch(accessControlEntry -> switch (accessControlEntry.getSpec().getResourcePatternType()) {
                 case PREFIXED -> resource.startsWith(accessControlEntry.getSpec().getResource());
                 case LITERAL -> resource.equals(accessControlEntry.getSpec().getResource());

@@ -1,5 +1,9 @@
 package com.michelin.ns4kafka.controllers;
 
+import static com.michelin.ns4kafka.models.Kind.CONNECTOR;
+import static com.michelin.ns4kafka.utils.exceptions.ResourceValidationMessage.INVALID_FIELD;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidOwner;
+
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.connector.ChangeConnectorState;
@@ -69,6 +73,88 @@ public class ConnectorController extends NamespacedResourceController {
     }
 
     /**
+     * Create a connector.
+     *
+     * @param namespace The namespace
+     * @param connector The connector to create
+     * @param dryrun    Does the creation is a dry run
+     * @return The created connector
+     */
+    @Post("{?dryrun}")
+    public Mono<HttpResponse<Connector>> apply(String namespace, @Valid @Body Connector connector,
+                                               @QueryValue(defaultValue = "false") boolean dryrun) {
+        Namespace ns = getNamespace(namespace);
+
+        if (!connectorService.isNamespaceOwnerOfConnect(ns, connector.getMetadata().getName())) {
+            throw new ResourceValidationException(CONNECTOR, connector.getMetadata().getName(),
+                invalidOwner(connector.getMetadata().getName()));
+        }
+
+        // Set / Override name in spec.config.name, required for several Kafka Connect API calls
+        // This is a response to projects setting a value A in metadata.name, and a value B in spec.config.name
+        // I have considered alternatives :
+        // - Make name in spec.config forbidden, and set it only when necessary (API calls)
+        // - Mask it in the resulting list connectors so that the synchronization process doesn't see changes
+        // I prefer to go this way for 2 reasons:
+        // - It is backward compatible with teams that already define name in spec.config.name
+        // - It doesn't impact the code as much (single line vs 10+ lines)
+        connector.getSpec().getConfig().put("name", connector.getMetadata().getName());
+
+        // Validate locally
+        return connectorService.validateLocally(ns, connector)
+            .flatMap(validationErrors -> {
+                if (!validationErrors.isEmpty()) {
+                    return Mono.error(new ResourceValidationException(CONNECTOR, connector.getMetadata().getName(),
+                        validationErrors));
+                }
+
+                // Validate against connect rest API /validate
+                return connectorService.validateRemotely(ns, connector)
+                    .flatMap(remoteValidationErrors -> {
+                        if (!remoteValidationErrors.isEmpty()) {
+                            return Mono.error(
+                                new ResourceValidationException(CONNECTOR, connector.getMetadata().getName(),
+                                    remoteValidationErrors));
+                        }
+
+                        // Augment with server side fields
+                        connector.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                        connector.getMetadata().setCluster(ns.getMetadata().getCluster());
+                        connector.getMetadata().setNamespace(ns.getMetadata().getName());
+                        connector.setStatus(Connector.ConnectorStatus.builder()
+                            .state(Connector.TaskState.UNASSIGNED)
+                            .build());
+
+                        Optional<Connector> existingConnector =
+                            connectorService.findByName(ns, connector.getMetadata().getName());
+                        if (existingConnector.isPresent() && existingConnector.get().equals(connector)) {
+                            return Mono.just(formatHttpResponse(existingConnector.get(), ApplyStatus.unchanged));
+                        }
+
+                        ApplyStatus status = existingConnector.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
+
+                        // Only check quota on connector creation
+                        if (status.equals(ApplyStatus.created)) {
+                            List<String> quotaErrors = resourceQuotaService.validateConnectorQuota(ns);
+                            if (!quotaErrors.isEmpty()) {
+                                return Mono.error(new ResourceValidationException(CONNECTOR,
+                                    connector.getMetadata().getName(), quotaErrors));
+                            }
+                        }
+
+                        if (dryrun) {
+                            return Mono.just(formatHttpResponse(connector, status));
+                        }
+
+                        sendEventLog(connector.getKind(), connector.getMetadata(), status,
+                            existingConnector.<Object>map(Connector::getSpec).orElse(null), connector.getSpec());
+
+                        return Mono.just(formatHttpResponse(connectorService.createOrUpdate(connector), status));
+                    });
+            });
+    }
+
+    /**
      * Delete a connector.
      *
      * @param namespace The current namespace
@@ -84,8 +170,8 @@ public class ConnectorController extends NamespacedResourceController {
 
         // Validate ownership
         if (!connectorService.isNamespaceOwnerOfConnect(ns, connector)) {
-            return Mono.error(new ResourceValidationException(List.of(String.format(NAMESPACE_NOT_OWNER, connector)),
-                "Connector", connector));
+            throw new ResourceValidationException(CONNECTOR, connector,
+                new InvalidOwner(connector));
         }
 
         Optional<Connector> optionalConnector = connectorService.findByName(ns, connector);
@@ -110,89 +196,6 @@ public class ConnectorController extends NamespacedResourceController {
     }
 
     /**
-     * Create a connector.
-     *
-     * @param namespace The namespace
-     * @param connector The connector to create
-     * @param dryrun    Does the creation is a dry run
-     * @return The created connector
-     */
-    @Post("{?dryrun}")
-    public Mono<HttpResponse<Connector>> apply(String namespace, @Valid @Body Connector connector,
-                                               @QueryValue(defaultValue = "false") boolean dryrun) {
-        Namespace ns = getNamespace(namespace);
-
-        if (!connectorService.isNamespaceOwnerOfConnect(ns, connector.getMetadata().getName())) {
-            return Mono.error(new ResourceValidationException(
-                List.of(String.format(NAMESPACE_NOT_OWNER, connector.getMetadata().getName())),
-                connector.getKind(), connector.getMetadata().getName()));
-        }
-
-        // Set / Override name in spec.config.name, required for several Kafka Connect API calls
-        // This is a response to projects setting a value A in metadata.name, and a value B in spec.config.name
-        // I have considered alternatives :
-        // - Make name in spec.config forbidden, and set it only when necessary (API calls)
-        // - Mask it in the resulting list connectors so that the synchronization process doesn't see changes
-        // I prefer to go this way for 2 reasons:
-        // - It is backward compatible with teams that already define name in spec.config.name
-        // - It doesn't impact the code as much (single line vs 10+ lines)
-        connector.getSpec().getConfig().put("name", connector.getMetadata().getName());
-
-        // Validate locally
-        return connectorService.validateLocally(ns, connector)
-            .flatMap(validationErrors -> {
-                if (!validationErrors.isEmpty()) {
-                    return Mono.error(new ResourceValidationException(validationErrors, connector.getKind(),
-                        connector.getMetadata().getName()));
-                }
-
-                // Validate against connect rest API /validate
-                return connectorService.validateRemotely(ns, connector)
-                    .flatMap(remoteValidationErrors -> {
-                        if (!remoteValidationErrors.isEmpty()) {
-                            return Mono.error(
-                                new ResourceValidationException(remoteValidationErrors, connector.getKind(),
-                                    connector.getMetadata().getName()));
-                        }
-
-                        // Augment with server side fields
-                        connector.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                        connector.getMetadata().setCluster(ns.getMetadata().getCluster());
-                        connector.getMetadata().setNamespace(ns.getMetadata().getName());
-                        connector.setStatus(Connector.ConnectorStatus.builder()
-                            .state(Connector.TaskState.UNASSIGNED)
-                            .build());
-
-                        Optional<Connector> existingConnector =
-                            connectorService.findByName(ns, connector.getMetadata().getName());
-                        if (existingConnector.isPresent() && existingConnector.get().equals(connector)) {
-                            return Mono.just(formatHttpResponse(existingConnector.get(), ApplyStatus.unchanged));
-                        }
-
-                        ApplyStatus status = existingConnector.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
-
-                        // Only check quota on connector creation
-                        if (status.equals(ApplyStatus.created)) {
-                            List<String> quotaErrors = resourceQuotaService.validateConnectorQuota(ns);
-                            if (!quotaErrors.isEmpty()) {
-                                return Mono.error(new ResourceValidationException(quotaErrors, connector.getKind(),
-                                    connector.getMetadata().getName()));
-                            }
-                        }
-
-                        if (dryrun) {
-                            return Mono.just(formatHttpResponse(connector, status));
-                        }
-
-                        sendEventLog(connector.getKind(), connector.getMetadata(), status,
-                            existingConnector.<Object>map(Connector::getSpec).orElse(null), connector.getSpec());
-
-                        return Mono.just(formatHttpResponse(connectorService.createOrUpdate(connector), status));
-                    });
-            });
-    }
-
-    /**
      * Change the state of a connector.
      *
      * @param namespace            The namespace
@@ -206,8 +209,9 @@ public class ConnectorController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         if (!connectorService.isNamespaceOwnerOfConnect(ns, connector)) {
-            return Mono.error(new ResourceValidationException(List.of(String.format(NAMESPACE_NOT_OWNER, connector)),
-                "Connector", connector));
+            throw new ResourceValidationException(List.of(String.format(INVALID_FIELD,
+                connector, "name", NAMESPACE_NOT_OWNER)),
+                CONNECTOR, connector);
         }
 
         Optional<Connector> optionalConnector = connectorService.findByName(ns, connector);

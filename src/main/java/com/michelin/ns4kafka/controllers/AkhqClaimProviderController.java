@@ -83,9 +83,9 @@ public class AkhqClaimProviderController {
             .attributes(
                 Map.of(
                     "topicsFilterRegexp",
-                    computeAllowedRegexListForResourceType(relatedAcl, AccessControlEntry.ResourceType.TOPIC),
+                    computeAllowedRegexListForResourceType(relatedAcl, AccessControlEntry.AclType.TOPIC),
                     "connectsFilterRegexp",
-                    computeAllowedRegexListForResourceType(relatedAcl, AccessControlEntry.ResourceType.CONNECT),
+                    computeAllowedRegexListForResourceType(relatedAcl, AccessControlEntry.AclType.CONNECT),
                     "consumerGroupsFilterRegexp", ADMIN_REGEXP
                 )
             )
@@ -118,9 +118,9 @@ public class AkhqClaimProviderController {
         return AkhqClaimResponseV2.builder()
             .roles(config.getFormerRoles())
             .topicsFilterRegexp(
-                computeAllowedRegexListForResourceType(relatedAcl, AccessControlEntry.ResourceType.TOPIC))
+                computeAllowedRegexListForResourceType(relatedAcl, AccessControlEntry.AclType.TOPIC))
             .connectsFilterRegexp(
-                computeAllowedRegexListForResourceType(relatedAcl, AccessControlEntry.ResourceType.CONNECT))
+                computeAllowedRegexListForResourceType(relatedAcl, AccessControlEntry.AclType.CONNECT))
             .consumerGroupsFilterRegexp(ADMIN_REGEXP)
             .build();
     }
@@ -190,7 +190,7 @@ public class AkhqClaimProviderController {
         // Add the same pattern and cluster filtering for SCHEMA as the TOPIC ones
         result.addAll(result
             .stream()
-            .filter(g -> g.role.equals(config.getRoles().get(AccessControlEntry.ResourceType.TOPIC)))
+            .filter(g -> g.role.equals(config.getRoles().get(AccessControlEntry.AclType.TOPIC)))
             .map(g -> {
                 // Takes all the PREFIXED patterns as-is
                 List<String> patterns = new ArrayList<>(
@@ -203,7 +203,7 @@ public class AkhqClaimProviderController {
                     .toList());
 
                 return AkhqClaimResponseV3.Group.builder()
-                    .role(config.getRoles().get(AccessControlEntry.ResourceType.SCHEMA))
+                    .role(config.getRoles().get(AccessControlEntry.AclType.SCHEMA))
                     .patterns(patterns)
                     .clusters(g.getClusters())
                     .build();
@@ -213,7 +213,7 @@ public class AkhqClaimProviderController {
         // If "GROUP" claim is present, remove the patterns to allow all the groups
         result
             .stream()
-            .filter(group -> group.getRole().equals(config.getRoles().get(AccessControlEntry.ResourceType.GROUP)))
+            .filter(group -> group.getRole().equals(config.getRoles().get(AccessControlEntry.AclType.GROUP)))
             .findFirst()
             .ifPresent(group -> group.setPatterns(null));
 
@@ -300,15 +300,15 @@ public class AkhqClaimProviderController {
     /**
      * Compute AKHQ regexes from given ACLs.
      *
-     * @param acls         The ACLs
-     * @param resourceType The resource type
+     * @param acls    The ACLs
+     * @param aclType The resource type
      * @return A list of regex
      */
     public List<String> computeAllowedRegexListForResourceType(List<AccessControlEntry> acls,
-                                                               AccessControlEntry.ResourceType resourceType) {
+                                                               AccessControlEntry.AclType aclType) {
 
         List<String> allowedRegex = acls.stream()
-            .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == resourceType)
+            .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == aclType)
             .filter(accessControlEntry ->
                 acls.stream()
                     .filter(accessControlEntryOther -> !accessControlEntryOther.getSpec().getResource()
@@ -448,7 +448,7 @@ public class AkhqClaimProviderController {
          * @param newAdminRoles the roles
          * @return the AKHQ response
          */
-        public static AkhqClaimResponseV3 ofAdmin(Map<AccessControlEntry.ResourceType, String> newAdminRoles) {
+        public static AkhqClaimResponseV3 ofAdmin(Map<AccessControlEntry.AclType, String> newAdminRoles) {
             return AkhqClaimResponseV3.builder()
                 .groups(Map.of("group",
                     newAdminRoles.values().stream()

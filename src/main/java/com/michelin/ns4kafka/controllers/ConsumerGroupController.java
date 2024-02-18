@@ -1,5 +1,10 @@
 package com.michelin.ns4kafka.controllers;
 
+import static com.michelin.ns4kafka.models.Kind.CONSUMER_GROUP;
+import static com.michelin.ns4kafka.models.Kind.CONSUMER_GROUP_RESET;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConsumerGroupOperation;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidOwner;
+
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets;
@@ -46,16 +51,14 @@ public class ConsumerGroupController extends NamespacedResourceController {
                                                                 @QueryValue(defaultValue = "false") boolean dryrun)
         throws ExecutionException {
 
-        // Validate spec
         List<String> validationErrors = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
 
-        // Validate ownership
         if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(namespace, consumerGroup)) {
-            validationErrors.add("Namespace not owner of this consumer group \"" + consumerGroup + "\".");
+            throw new ResourceValidationException(CONSUMER_GROUP, consumerGroup, invalidOwner("group", consumerGroup));
         }
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors, "ConsumerGroup", consumerGroup);
+            throw new ResourceValidationException(CONSUMER_GROUP, consumerGroup, validationErrors);
         }
 
         Namespace ns = getNamespace(namespace);
@@ -70,9 +73,8 @@ public class ConsumerGroupController extends NamespacedResourceController {
             // Validate Consumer Group is dead or inactive
             String currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
             if (!List.of("Empty", "Dead").contains(currentState)) {
-                throw new IllegalStateException(
-                    "Assignments can only be reset if the consumer group \"" + consumerGroup
-                        + "\" is inactive, but the current state is " + currentState.toLowerCase() + ".");
+                throw new ResourceValidationException(CONSUMER_GROUP, consumerGroup,
+                    invalidConsumerGroupOperation(consumerGroup, currentState.toLowerCase()));
             }
 
             // List partitions
@@ -85,7 +87,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
                 consumerGroupResetOffsets.getSpec().getMethod());
 
             if (!dryrun) {
-                sendEventLog("ConsumerGroupResetOffsets",
+                sendEventLog(CONSUMER_GROUP_RESET,
                     consumerGroupResetOffsets.getMetadata(),
                     ApplyStatus.changed,
                     null,

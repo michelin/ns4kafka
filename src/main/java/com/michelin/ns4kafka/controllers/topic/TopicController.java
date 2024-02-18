@@ -1,5 +1,10 @@
 package com.michelin.ns4kafka.controllers.topic;
 
+import static com.michelin.ns4kafka.models.Kind.TOPIC;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNotFound;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidOwner;
+import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidTopicCollide;
+
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.DeleteRecordsResponse;
 import com.michelin.ns4kafka.models.Namespace;
@@ -51,8 +56,7 @@ public class TopicController extends NamespacedResourceController {
      */
     @Get
     public List<Topic> list(String namespace) {
-        Namespace ns = getNamespace(namespace);
-        return topicService.findAllForNamespace(ns);
+        return topicService.findAllForNamespace(getNamespace(namespace));
     }
 
     /**
@@ -64,8 +68,7 @@ public class TopicController extends NamespacedResourceController {
      */
     @Get("/{topic}")
     public Optional<Topic> getTopic(String namespace, String topic) {
-        Namespace ns = getNamespace(namespace);
-        return topicService.findByName(ns, topic);
+        return topicService.findByName(getNamespace(namespace), topic);
     }
 
     /**
@@ -92,16 +95,14 @@ public class TopicController extends NamespacedResourceController {
         if (existingTopic.isEmpty()) {
             // Topic namespace ownership validation
             if (!topicService.isNamespaceOwnerOfTopic(namespace, topic.getMetadata().getName())) {
-                validationErrors.add(
-                    String.format("Namespace not owner of this topic %s.", topic.getMetadata().getName()));
+                validationErrors.add(invalidOwner(topic.getMetadata().getName()));
             }
 
             // Topic names with a period ('.') or underscore ('_') could collide
             List<String> collidingTopics = topicService.findCollidingTopics(ns, topic);
             if (!collidingTopics.isEmpty()) {
                 validationErrors.addAll(collidingTopics.stream()
-                    .map(collidingTopic -> String.format("Topic %s collides with existing topics: %s.",
-                        topic.getMetadata().getName(), collidingTopic))
+                    .map(collidingTopic -> invalidTopicCollide(topic.getMetadata().getName(), collidingTopic))
                     .toList());
             }
         } else {
@@ -117,7 +118,7 @@ public class TopicController extends NamespacedResourceController {
         }
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors, topic.getKind(), topic.getMetadata().getName());
+            throw new ResourceValidationException(TOPIC, topic.getMetadata().getName(), validationErrors);
         }
 
         //3. Fill server-side fields (server side metadata + status)
@@ -132,7 +133,7 @@ public class TopicController extends NamespacedResourceController {
 
         validationErrors.addAll(resourceQuotaService.validateTopicQuota(ns, existingTopic, topic));
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors, topic.getKind(), topic.getMetadata().getName());
+            throw new ResourceValidationException(TOPIC, topic.getMetadata().getName(), validationErrors);
         }
 
         ApplyStatus status = existingTopic.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
@@ -164,8 +165,7 @@ public class TopicController extends NamespacedResourceController {
         throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic)) {
-            throw new ResourceValidationException(List.of("Namespace not owner of this topic \"" + topic + "\"."),
-                "Topic", topic);
+            throw new ResourceValidationException(TOPIC, topic, invalidOwner(topic));
         }
 
         Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
@@ -219,7 +219,7 @@ public class TopicController extends NamespacedResourceController {
         return unsynchronizedTopics
             .stream()
             .map(topic -> {
-                sendEventLog("Topic", topic.getMetadata(), ApplyStatus.created, null, topic.getSpec());
+                sendEventLog(TOPIC, topic.getMetadata(), ApplyStatus.created, null, topic.getSpec());
                 return topicService.create(topic);
             })
             .toList();
@@ -241,20 +241,18 @@ public class TopicController extends NamespacedResourceController {
         throws InterruptedException, ExecutionException {
         Namespace ns = getNamespace(namespace);
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic)) {
-            throw new ResourceValidationException(List.of("Namespace not owner of this topic \"" + topic + "\"."),
-                "Topic", topic);
+            throw new ResourceValidationException(TOPIC, topic, invalidOwner(topic));
         }
 
         Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
         if (optionalTopic.isEmpty()) {
-            throw new ResourceValidationException(List.of("Topic \"" + topic + "\" does not exist."), "Topic", topic);
+            throw new ResourceValidationException(TOPIC, topic, invalidNotFound(topic));
         }
 
         Topic deleteRecordsTopic = optionalTopic.get();
         List<String> validationErrors = topicService.validateDeleteRecordsTopic(deleteRecordsTopic);
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors, deleteRecordsTopic.getKind(),
-                deleteRecordsTopic.getMetadata().getName());
+            throw new ResourceValidationException(TOPIC, deleteRecordsTopic.getMetadata().getName(), validationErrors);
         }
 
         Map<TopicPartition, Long> recordsToDelete = topicService.prepareRecordsToDelete(optionalTopic.get());
