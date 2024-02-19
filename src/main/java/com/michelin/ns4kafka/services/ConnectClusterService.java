@@ -126,7 +126,7 @@ public class ConnectClusterService {
                                                    List<AccessControlEntry.Permission> permissions) {
         List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace).stream()
             .filter(acl -> permissions.contains(acl.getSpec().getPermission()))
-            .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.AclType.CONNECT_CLUSTER).toList();
+            .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT_CLUSTER).toList();
 
         return connectClusterRepository.findAllForCluster(namespace.getMetadata().getCluster())
             .stream()
@@ -347,7 +347,7 @@ public class ConnectClusterService {
      */
     public boolean isNamespaceOwnerOfConnectCluster(Namespace namespace, String connectCluster) {
         return accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(),
-            AccessControlEntry.AclType.CONNECT_CLUSTER, connectCluster);
+            AccessControlEntry.ResourceType.CONNECT_CLUSTER, connectCluster);
     }
 
     /**

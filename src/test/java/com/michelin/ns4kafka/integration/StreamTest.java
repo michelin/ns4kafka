@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.michelin.ns4kafka.integration.TopicTest.BearerAccessRefreshToken;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
-import com.michelin.ns4kafka.models.AccessControlEntry.AclType;
+import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
 import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.models.KafkaStream;
@@ -66,7 +66,7 @@ class StreamTest extends AbstractIntegrationTest {
                 .name("nskafkastream-acl-topic")
                 .build())
             .spec(AccessControlEntrySpec.builder()
-                .resourceType(AclType.TOPIC)
+                .resourceType(ResourceType.TOPIC)
                 .resource("kstream-")
                 .resourcePatternType(ResourcePatternType.PREFIXED)
                 .permission(Permission.OWNER)
@@ -90,7 +90,7 @@ class StreamTest extends AbstractIntegrationTest {
                 .name("nskafkastream-acl-group")
                 .build())
             .spec(AccessControlEntrySpec.builder()
-                .resourceType(AclType.GROUP)
+                .resourceType(ResourceType.GROUP)
                 .resource("kstream-")
                 .resourcePatternType(ResourcePatternType.PREFIXED)
                 .permission(Permission.OWNER)

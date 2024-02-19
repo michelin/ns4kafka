@@ -64,7 +64,7 @@ public class ConnectorService {
                 if (accessControlEntry.getSpec().getPermission() != AccessControlEntry.Permission.OWNER) {
                     return false;
                 }
-                if (accessControlEntry.getSpec().getResourceType() == AccessControlEntry.AclType.CONNECT) {
+                if (accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT) {
                     return switch (accessControlEntry.getSpec().getResourcePatternType()) {
                         case PREFIXED -> connector.getMetadata().getName()
                             .startsWith(accessControlEntry.getSpec().getResource());
@@ -162,7 +162,7 @@ public class ConnectorService {
      */
     public boolean isNamespaceOwnerOfConnect(Namespace namespace, String connect) {
         return accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(),
-            AccessControlEntry.AclType.CONNECT, connect);
+            AccessControlEntry.ResourceType.CONNECT, connect);
     }
 
     /**

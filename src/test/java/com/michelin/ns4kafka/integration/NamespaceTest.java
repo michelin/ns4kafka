@@ -114,7 +114,7 @@ class NamespaceTest extends AbstractIntegrationTest {
                 .namespace("accepted.namespace")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.AclType.TOPIC)
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
                 .resource("accepted.namespace.")
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)

@@ -47,7 +47,7 @@ public class ConsumerGroupService {
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceOwnerOfConsumerGroup(String namespace, String groupId) {
-        return accessControlEntryService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.AclType.GROUP,
+        return accessControlEntryService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.GROUP,
             groupId);
     }
 

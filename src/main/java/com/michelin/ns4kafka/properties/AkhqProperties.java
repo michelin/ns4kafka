@@ -15,10 +15,10 @@ import lombok.Setter;
 @ConfigurationProperties("ns4kafka.akhq")
 public class AkhqProperties {
     private String groupLabel;
-    private Map<AccessControlEntry.AclType, String> roles;
+    private Map<AccessControlEntry.ResourceType, String> roles;
     private List<String> formerRoles;
 
     private String adminGroup;
-    private Map<AccessControlEntry.AclType, String> adminRoles;
+    private Map<AccessControlEntry.ResourceType, String> adminRoles;
     private List<String> formerAdminRoles;
 }

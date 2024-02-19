@@ -32,7 +32,7 @@ public class AccessControlEntry {
     /**
      * Resource type managed by Ns4kafka.
      */
-    public enum AclType {
+    public enum ResourceType {
         TOPIC,
         GROUP,
         CONNECT,
@@ -68,7 +68,7 @@ public class AccessControlEntry {
     @AllArgsConstructor
     public static class AccessControlEntrySpec {
         @NotNull
-        protected AccessControlEntry.AclType resourceType;
+        protected AccessControlEntry.ResourceType resourceType;
 
         @NotNull
         @NotBlank

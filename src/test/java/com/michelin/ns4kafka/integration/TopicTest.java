@@ -9,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.michelin.ns4kafka.controllers.AkhqClaimProviderController;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
-import com.michelin.ns4kafka.models.AccessControlEntry.AclType;
+import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
 import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.models.DeleteRecordsResponse;
@@ -115,7 +115,7 @@ class TopicTest extends AbstractIntegrationTest {
                 .namespace("ns1")
                 .build())
             .spec(AccessControlEntrySpec.builder()
-                .resourceType(AclType.TOPIC)
+                .resourceType(ResourceType.TOPIC)
                 .resource("ns1-")
                 .resourcePatternType(ResourcePatternType.PREFIXED)
                 .permission(Permission.OWNER)
@@ -167,7 +167,7 @@ class TopicTest extends AbstractIntegrationTest {
                 .namespace("ns2")
                 .build())
             .spec(AccessControlEntrySpec.builder()
-                .resourceType(AclType.TOPIC)
+                .resourceType(ResourceType.TOPIC)
                 .resource("ns2-")
                 .resourcePatternType(ResourcePatternType.PREFIXED)
                 .permission(Permission.OWNER)
@@ -354,7 +354,7 @@ class TopicTest extends AbstractIntegrationTest {
                 .namespace("ns1")
                 .build())
             .spec(AccessControlEntrySpec.builder()
-                .resourceType(AclType.TOPIC)
+                .resourceType(ResourceType.TOPIC)
                 .resource("ns1-")
                 .resourcePatternType(ResourcePatternType.PREFIXED)
                 .permission(Permission.READ)

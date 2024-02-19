@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.michelin.ns4kafka.integration.TopicTest.BearerAccessRefreshToken;
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
-import com.michelin.ns4kafka.models.AccessControlEntry.AclType;
+import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
 import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.models.Namespace;
@@ -126,7 +126,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .namespace("ns1")
                 .build())
             .spec(AccessControlEntrySpec.builder()
-                .resourceType(AclType.CONNECT)
+                .resourceType(ResourceType.CONNECT)
                 .resource("ns1-")
                 .resourcePatternType(ResourcePatternType.PREFIXED)
                 .permission(Permission.OWNER)
@@ -143,7 +143,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .namespace("ns1")
                 .build())
             .spec(AccessControlEntrySpec.builder()
-                .resourceType(AclType.TOPIC)
+                .resourceType(ResourceType.TOPIC)
                 .resource("ns1-")
                 .resourcePatternType(ResourcePatternType.PREFIXED)
                 .permission(Permission.OWNER)

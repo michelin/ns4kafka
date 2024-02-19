@@ -1,8 +1,8 @@
 package com.michelin.ns4kafka.services.executors;
 
-import static com.michelin.ns4kafka.models.AccessControlEntry.AclType.GROUP;
-import static com.michelin.ns4kafka.models.AccessControlEntry.AclType.TOPIC;
-import static com.michelin.ns4kafka.models.AccessControlEntry.AclType.TRANSACTIONAL_ID;
+import static com.michelin.ns4kafka.models.AccessControlEntry.ResourceType.GROUP;
+import static com.michelin.ns4kafka.models.AccessControlEntry.ResourceType.TOPIC;
+import static com.michelin.ns4kafka.models.AccessControlEntry.ResourceType.TRANSACTIONAL_ID;
 import static com.michelin.ns4kafka.services.AccessControlEntryService.PUBLIC_GRANTED_TO;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
@@ -149,7 +149,7 @@ public class AccessControlEntryAsyncExecutor {
             .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace)
                 .stream()
                 .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType()
-                    == AccessControlEntry.AclType.CONNECT)
+                    == AccessControlEntry.ResourceType.CONNECT)
                 .filter(accessControlEntry -> accessControlEntry.getSpec().getPermission()
                     == AccessControlEntry.Permission.OWNER)
                 .flatMap(accessControlEntry ->
@@ -179,7 +179,9 @@ public class AccessControlEntryAsyncExecutor {
     private List<AclBinding> collectBrokerAcls(boolean managedUsersOnly)
         throws ExecutionException, InterruptedException, TimeoutException {
         List<ResourceType> validResourceTypes =
-            List.of(ResourceType.TOPIC, ResourceType.GROUP, ResourceType.TRANSACTIONAL_ID);
+            List.of(org.apache.kafka.common.resource.ResourceType.TOPIC,
+                org.apache.kafka.common.resource.ResourceType.GROUP,
+                org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID);
 
         AccessControlEntryFilter accessControlEntryFilter = new AccessControlEntryFilter(
             managedClusterProperties.getProvider()
@@ -235,7 +237,8 @@ public class AccessControlEntryAsyncExecutor {
         // Convert pattern, convert resource type from Ns4Kafka to org.apache.kafka.common types
         PatternType patternType =
             PatternType.fromString(accessControlEntry.getSpec().getResourcePatternType().toString());
-        ResourceType resourceType = ResourceType.fromString(accessControlEntry.getSpec().getResourceType().toString());
+        ResourceType resourceType = org.apache.kafka.common.resource.ResourceType.fromString(
+            accessControlEntry.getSpec().getResourceType().toString());
         ResourcePattern resourcePattern =
             new ResourcePattern(resourceType, accessControlEntry.getSpec().getResource(), patternType);
 
@@ -272,18 +275,21 @@ public class AccessControlEntryAsyncExecutor {
         return List.of(
             // CREATE and DELETE on Stream Topics
             new AclBinding(
-                new ResourcePattern(ResourceType.TOPIC, stream.getMetadata().getName(), PatternType.PREFIXED),
+                new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, stream.getMetadata().getName(),
+                    PatternType.PREFIXED),
                 new org.apache.kafka.common.acl.AccessControlEntry(USER_PRINCIPAL + kafkaUser, "*", AclOperation.CREATE,
                     AclPermissionType.ALLOW)
             ),
             new AclBinding(
-                new ResourcePattern(ResourceType.TOPIC, stream.getMetadata().getName(), PatternType.PREFIXED),
+                new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, stream.getMetadata().getName(),
+                    PatternType.PREFIXED),
                 new org.apache.kafka.common.acl.AccessControlEntry(USER_PRINCIPAL + kafkaUser, "*", AclOperation.DELETE,
                     AclPermissionType.ALLOW)
             ),
             // WRITE on TransactionalId
             new AclBinding(
-                new ResourcePattern(ResourceType.TRANSACTIONAL_ID, stream.getMetadata().getName(),
+                new ResourcePattern(
+                    org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID, stream.getMetadata().getName(),
                     PatternType.PREFIXED),
                 new org.apache.kafka.common.acl.AccessControlEntry(USER_PRINCIPAL + kafkaUser, "*", AclOperation.WRITE,
                     AclPermissionType.ALLOW)
@@ -300,7 +306,7 @@ public class AccessControlEntryAsyncExecutor {
      */
     private List<AclBinding> buildAclBindingsFromConnector(AccessControlEntry acl, String kafkaUser) {
         PatternType patternType = PatternType.fromString(acl.getSpec().getResourcePatternType().toString());
-        ResourcePattern resourcePattern = new ResourcePattern(ResourceType.GROUP,
+        ResourcePattern resourcePattern = new ResourcePattern(org.apache.kafka.common.resource.ResourceType.GROUP,
             "connect-" + acl.getSpec().getResource(),
             patternType);
 
@@ -368,7 +374,7 @@ public class AccessControlEntryAsyncExecutor {
                 results.addAll(buildAclBindingsFromAccessControlEntry(ns4kafkaAcl, namespace.getSpec().getKafkaUser()));
             }
 
-            if (ns4kafkaAcl.getSpec().getResourceType() == AccessControlEntry.AclType.CONNECT
+            if (ns4kafkaAcl.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT
                 && ns4kafkaAcl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER) {
                 results.addAll(buildAclBindingsFromConnector(ns4kafkaAcl, namespace.getSpec().getKafkaUser()));
             }

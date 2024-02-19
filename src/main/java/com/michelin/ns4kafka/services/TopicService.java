@@ -70,7 +70,7 @@ public class TopicService {
                 if (accessControlEntry.getSpec().getPermission() != AccessControlEntry.Permission.OWNER) {
                     return false;
                 }
-                if (accessControlEntry.getSpec().getResourceType() == AccessControlEntry.AclType.TOPIC) {
+                if (accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC) {
                     return switch (accessControlEntry.getSpec().getResourcePatternType()) {
                         case PREFIXED ->
                             topic.getMetadata().getName().startsWith(accessControlEntry.getSpec().getResource());
@@ -105,7 +105,7 @@ public class TopicService {
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceOwnerOfTopic(String namespace, String topic) {
-        return accessControlEntryService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.AclType.TOPIC,
+        return accessControlEntryService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.TOPIC,
             topic);
     }
 

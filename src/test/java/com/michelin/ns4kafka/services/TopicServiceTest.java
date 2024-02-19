@@ -95,7 +95,7 @@ class TopicServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.AclType.TOPIC)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resource("ns-")
                         .build())
                     .build(),
@@ -104,7 +104,7 @@ class TopicServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.AclType.TOPIC)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resource("ns1-topic1")
                         .build())
                     .build()
@@ -222,7 +222,7 @@ class TopicServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.AclType.TOPIC)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resource("ns0-topic1")
                         .build())
                     .build(),
@@ -231,7 +231,7 @@ class TopicServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.AclType.TOPIC)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resource("ns-")
                         .build())
                     .build(),
@@ -240,7 +240,7 @@ class TopicServiceTest {
                         .permission(AccessControlEntry.Permission.READ)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.AclType.TOPIC)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resource("ns1-topic1")
                         .build())
                     .build(),
@@ -249,7 +249,7 @@ class TopicServiceTest {
                         .permission(AccessControlEntry.Permission.WRITE)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.AclType.TOPIC)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resource("ns2-topic1")
                         .build())
                     .build()
@@ -291,16 +291,16 @@ class TopicServiceTest {
             "ns1-topic1", "ns2-topic1"));
 
         // list of existing ns4kfk access control entries
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.TOPIC,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             "ns-topic1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.TOPIC,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             "ns-topic2"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.TOPIC,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             "ns1-topic1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.TOPIC,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             "ns2-topic1"))
             .thenReturn(false);
 
@@ -311,7 +311,7 @@ class TopicServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.AclType.TOPIC)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resource("ns-")
                         .build())
                     .build(),
@@ -320,7 +320,7 @@ class TopicServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.AclType.TOPIC)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resource("ns1-topic1")
                         .build())
                     .build()
@@ -378,16 +378,16 @@ class TopicServiceTest {
                 t3.getMetadata().getName(), t4.getMetadata().getName()));
 
         // list of existing ns4kfk access control entries
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.TOPIC,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             t1.getMetadata().getName()))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.TOPIC,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             t2.getMetadata().getName()))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.TOPIC,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             t3.getMetadata().getName()))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.TOPIC,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             t4.getMetadata().getName()))
             .thenReturn(false);
 
@@ -398,7 +398,7 @@ class TopicServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.AclType.TOPIC)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resource("ns-")
                         .build())
                     .build(),
@@ -407,7 +407,7 @@ class TopicServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.AclType.TOPIC)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resource("ns1-topic1")
                         .build())
                     .build()
@@ -450,16 +450,16 @@ class TopicServiceTest {
             "ns1-topic1", "ns2-topic1"));
 
         // list of existing ns4kfk access control entries
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.TOPIC,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             "ns-topic1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.TOPIC,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             "ns-topic2"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.TOPIC,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             "ns1-topic1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.AclType.TOPIC,
+        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             "ns2-topic1"))
             .thenReturn(false);
 
@@ -470,7 +470,7 @@ class TopicServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.AclType.TOPIC)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resource("ns-")
                         .build())
                     .build(),
@@ -479,7 +479,7 @@ class TopicServiceTest {
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.AclType.TOPIC)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resource("ns1-topic1")
                         .build())
                     .build()

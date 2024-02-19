@@ -71,7 +71,7 @@ public class StreamService {
             .filter(accessControlEntry -> resource.startsWith(accessControlEntry.getSpec().getResource()))
             .map(accessControlEntry -> accessControlEntry.getSpec().getResourceType())
             .toList())
-            .containsAll(List.of(AccessControlEntry.AclType.TOPIC, AccessControlEntry.AclType.GROUP));
+            .containsAll(List.of(AccessControlEntry.ResourceType.TOPIC, AccessControlEntry.ResourceType.GROUP));
     }
 
     /**

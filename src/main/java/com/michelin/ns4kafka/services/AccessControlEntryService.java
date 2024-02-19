@@ -45,8 +45,8 @@ public class AccessControlEntryService {
         List<String> validationErrors = new ArrayList<>();
 
         // Which resource can be granted cross namespaces
-        List<AccessControlEntry.AclType> allowedAclTypes =
-            List.of(AccessControlEntry.AclType.TOPIC, AccessControlEntry.AclType.CONNECT_CLUSTER);
+        List<AccessControlEntry.ResourceType> allowedResourceTypes =
+            List.of(AccessControlEntry.ResourceType.TOPIC, AccessControlEntry.ResourceType.CONNECT_CLUSTER);
 
         // Which permission can be granted cross namespaces ? READ, WRITE
         // Only admin can grant OWNER
@@ -59,10 +59,10 @@ public class AccessControlEntryService {
             List.of(AccessControlEntry.ResourcePatternType.LITERAL,
                 AccessControlEntry.ResourcePatternType.PREFIXED);
 
-        if (!allowedAclTypes.contains(accessControlEntry.getSpec().getResourceType())) {
+        if (!allowedResourceTypes.contains(accessControlEntry.getSpec().getResourceType())) {
             validationErrors.add(invalidAclResourceType(
                 String.valueOf(accessControlEntry.getSpec().getResourceType()),
-                allowedAclTypes.stream().map(Object::toString).collect(Collectors.joining(", "))));
+                allowedResourceTypes.stream().map(Object::toString).collect(Collectors.joining(", "))));
         }
 
         if (!allowedPermissions.contains(accessControlEntry.getSpec().getPermission())) {
@@ -281,19 +281,19 @@ public class AccessControlEntryService {
     /**
      * Is namespace owner of the given resource.
      *
-     * @param namespace The namespace
-     * @param aclType   The resource type to filter
-     * @param resource  The resource name
+     * @param namespace    The namespace
+     * @param resourceType The resource type to filter
+     * @param resource     The resource name
      * @return true if it is, false otherwise
      */
-    public boolean isNamespaceOwnerOfResource(String namespace, AccessControlEntry.AclType aclType,
+    public boolean isNamespaceOwnerOfResource(String namespace, AccessControlEntry.ResourceType resourceType,
                                               String resource) {
         return accessControlEntryRepository.findAll()
             .stream()
             .filter(accessControlEntry -> accessControlEntry.getSpec().getGrantedTo().equals(namespace))
             .filter(accessControlEntry -> accessControlEntry.getSpec().getPermission()
                 == AccessControlEntry.Permission.OWNER)
-            .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == aclType)
+            .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == resourceType)
             .anyMatch(accessControlEntry -> switch (accessControlEntry.getSpec().getResourcePatternType()) {
                 case PREFIXED -> resource.startsWith(accessControlEntry.getSpec().getResource());
                 case LITERAL -> resource.equals(accessControlEntry.getSpec().getResource());

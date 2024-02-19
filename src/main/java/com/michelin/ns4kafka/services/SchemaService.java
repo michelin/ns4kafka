@@ -50,7 +50,7 @@ public class SchemaService {
     public Flux<SchemaList> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace).stream()
             .filter(acl -> acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
-            .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.AclType.TOPIC).toList();
+            .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC).toList();
 
         return schemaRegistryClient
             .getSubjects(namespace.getMetadata().getCluster())
@@ -292,7 +292,7 @@ public class SchemaService {
     public boolean isNamespaceOwnerOfSubject(Namespace namespace, String subjectName) {
         String underlyingTopicName = subjectName.replaceAll("(-key|-value)$", "");
         return accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(),
-            AccessControlEntry.AclType.TOPIC,
+            AccessControlEntry.ResourceType.TOPIC,
             underlyingTopicName);
     }
 
