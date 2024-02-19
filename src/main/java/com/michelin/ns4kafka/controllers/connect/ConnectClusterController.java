@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.controllers.connect;
 
-import static com.michelin.ns4kafka.models.Kind.CONNECTOR_CLUSTER;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectClusterDeleteOperation;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectClusterNotAllowed;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidOwner;
@@ -94,7 +93,7 @@ public class ConnectClusterController extends NamespacedResourceController {
             .flatMap(errors -> {
                 validationErrors.addAll(errors);
                 if (!validationErrors.isEmpty()) {
-                    return Mono.error(new ResourceValidationException(CONNECTOR_CLUSTER,
+                    return Mono.error(new ResourceValidationException(ConnectCluster.kind,
                         connectCluster.getMetadata().getName(), validationErrors));
                 }
 
@@ -113,7 +112,7 @@ public class ConnectClusterController extends NamespacedResourceController {
                     return Mono.just(formatHttpResponse(connectCluster, status));
                 }
 
-                sendEventLog(connectCluster.getKind(), connectCluster.getMetadata(), status,
+                sendEventLog(ConnectCluster.kind, connectCluster.getMetadata(), status,
                     existingConnectCluster.<Object>map(ConnectCluster::getSpec).orElse(null),
                     connectCluster.getSpec());
 
@@ -146,7 +145,7 @@ public class ConnectClusterController extends NamespacedResourceController {
         }
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(CONNECTOR_CLUSTER, connectCluster, validationErrors);
+            throw new ResourceValidationException(ConnectCluster.kind, connectCluster, validationErrors);
         }
 
         Optional<ConnectCluster> optionalConnectCluster =
@@ -160,7 +159,7 @@ public class ConnectClusterController extends NamespacedResourceController {
         }
 
         ConnectCluster connectClusterToDelete = optionalConnectCluster.get();
-        sendEventLog(connectClusterToDelete.getKind(), connectClusterToDelete.getMetadata(), ApplyStatus.deleted,
+        sendEventLog(ConnectCluster.kind, connectClusterToDelete.getMetadata(), ApplyStatus.deleted,
             connectClusterToDelete.getSpec(), null);
 
         connectClusterService.delete(connectClusterToDelete);
@@ -201,7 +200,7 @@ public class ConnectClusterController extends NamespacedResourceController {
         validationErrors.addAll(connectClusterService.validateConnectClusterVault(ns, connectCluster));
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(CONNECTOR_CLUSTER, connectCluster, validationErrors);
+            throw new ResourceValidationException(ConnectCluster.kind, connectCluster, validationErrors);
         }
 
         return connectClusterService.vaultPassword(ns, connectCluster, passwords);

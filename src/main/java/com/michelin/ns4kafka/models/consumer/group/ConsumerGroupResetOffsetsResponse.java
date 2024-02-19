@@ -19,8 +19,8 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ConsumerGroupResetOffsetsResponse {
-    private final String apiVersion = "v1";
-    private final String kind = "ConsumerGroupResetOffsetsResponse";
+    private static final String apiVersion = "v1";
+    public static final String kind = "ConsumerGroupResetOffsetsResponse";
 
     /**
      * Resource metadata.

@@ -1,7 +1,5 @@
 package com.michelin.ns4kafka.models.schema;
 
-import static com.michelin.ns4kafka.models.Kind.SCHEMA_COMPAT;
-
 import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
@@ -21,8 +19,8 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SchemaCompatibilityState {
-    private final String apiVersion = "v1";
-    private final String kind = SCHEMA_COMPAT;
+    private static final String apiVersion = "v1";
+    public static final String kind = "SchemaCompatibilityState";
 
     @Valid
     @NotNull

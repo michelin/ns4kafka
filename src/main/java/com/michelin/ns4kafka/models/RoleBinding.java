@@ -1,7 +1,5 @@
 package com.michelin.ns4kafka.models;
 
-import static com.michelin.ns4kafka.models.Kind.ROLE_BINDING;
-
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -22,8 +20,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RoleBinding {
-    private final String apiVersion = "v1";
-    private final String kind = ROLE_BINDING;
+    private static final String apiVersion = "v1";
+    public static final String kind = "RoleBinding";
 
     @Valid
     @NotNull

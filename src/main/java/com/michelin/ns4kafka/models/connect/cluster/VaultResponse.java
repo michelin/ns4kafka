@@ -19,8 +19,8 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 public class VaultResponse {
-    private final String apiVersion = "v1";
-    private final String kind = "VaultResponse";
+    private static final String apiVersion = "v1";
+    public static final String kind = "VaultResponse";
 
     /**
      * The object metadata.

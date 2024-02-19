@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.controllers;
 
-import static com.michelin.ns4kafka.models.Kind.NAMESPACE;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidImmutableValue;
 
 import com.michelin.ns4kafka.controllers.generic.NonNamespacedResourceController;
@@ -83,7 +82,7 @@ public class NamespaceController extends NonNamespacedResourceController {
         validationErrors.addAll(namespaceService.validate(namespace));
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(NAMESPACE, namespace.getMetadata().getName(), validationErrors);
+            throw new ResourceValidationException(Namespace.kind, namespace.getMetadata().getName(), validationErrors);
         }
 
         namespace.getMetadata().setNamespace(namespace.getMetadata().getName());
@@ -99,7 +98,7 @@ public class NamespaceController extends NonNamespacedResourceController {
             return formatHttpResponse(namespace, status);
         }
 
-        sendEventLog(namespace.getKind(),
+        sendEventLog(Namespace.kind,
             namespace.getMetadata(),
             status,
             existingNamespace.<Object>map(Namespace::getSpec).orElse(null),
@@ -128,7 +127,7 @@ public class NamespaceController extends NonNamespacedResourceController {
                 .stream()
                 .map(FormatErrorUtils::invalidNamespaceDeleteOperation)
                 .toList();
-            throw new ResourceValidationException(NAMESPACE, namespace, validationErrors);
+            throw new ResourceValidationException(Namespace.kind, namespace, validationErrors);
         }
 
         if (dryrun) {
@@ -136,7 +135,7 @@ public class NamespaceController extends NonNamespacedResourceController {
         }
 
         var namespaceToDelete = optionalNamespace.get();
-        sendEventLog(namespaceToDelete.getKind(),
+        sendEventLog(Namespace.kind,
             namespaceToDelete.getMetadata(),
             ApplyStatus.deleted,
             namespaceToDelete.getSpec(),

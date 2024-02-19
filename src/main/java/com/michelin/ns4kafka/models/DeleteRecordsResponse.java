@@ -18,8 +18,8 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DeleteRecordsResponse {
-    private final String apiVersion = "v1";
-    private final String kind = "DeleteRecordsResponse";
+    private static final String apiVersion = "v1";
+    public static final String kind = "DeleteRecordsResponse";
 
     @Valid
     @NotNull

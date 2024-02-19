@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.controllers;
 
-import static com.michelin.ns4kafka.models.Kind.KAFKA_STREAM;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidOwner;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
@@ -71,7 +70,7 @@ public class StreamController extends NamespacedResourceController {
                                     @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
         if (!streamService.isNamespaceOwnerOfKafkaStream(ns, stream.getMetadata().getName())) {
-            throw new ResourceValidationException(KAFKA_STREAM, stream.getMetadata().getName(),
+            throw new ResourceValidationException(KafkaStream.kind, stream.getMetadata().getName(),
                 invalidOwner(stream.getMetadata().getName()));
         }
 
@@ -91,7 +90,7 @@ public class StreamController extends NamespacedResourceController {
             return formatHttpResponse(stream, status);
         }
 
-        sendEventLog(stream.getKind(), stream.getMetadata(), status, null, null);
+        sendEventLog(KafkaStream.kind, stream.getMetadata(), status, null, null);
         return formatHttpResponse(streamService.create(stream), status);
     }
 
@@ -108,7 +107,7 @@ public class StreamController extends NamespacedResourceController {
     HttpResponse<Void> delete(String namespace, String stream, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
         if (!streamService.isNamespaceOwnerOfKafkaStream(ns, stream)) {
-            throw new ResourceValidationException(KAFKA_STREAM, stream, invalidOwner(stream));
+            throw new ResourceValidationException(KafkaStream.kind, stream, invalidOwner(stream));
         }
 
         Optional<KafkaStream> optionalStream = streamService.findByName(ns, stream);
@@ -122,7 +121,7 @@ public class StreamController extends NamespacedResourceController {
         }
 
         var streamToDelete = optionalStream.get();
-        sendEventLog(streamToDelete.getKind(), streamToDelete.getMetadata(), ApplyStatus.deleted, null, null);
+        sendEventLog(KafkaStream.kind, streamToDelete.getMetadata(), ApplyStatus.deleted, null, null);
         streamService.delete(ns, optionalStream.get());
         return HttpResponse.noContent();
     }

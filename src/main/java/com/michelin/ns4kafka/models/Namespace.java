@@ -1,7 +1,5 @@
 package com.michelin.ns4kafka.models;
 
-import static com.michelin.ns4kafka.models.Kind.NAMESPACE;
-
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.core.annotation.Introspected;
@@ -23,8 +21,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Namespace {
-    private final String apiVersion = "v1";
-    private final String kind = NAMESPACE;
+    private static final String apiVersion = "v1";
+    public static final String kind = "Namespace";
 
     @Valid
     @NotNull

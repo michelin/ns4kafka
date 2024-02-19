@@ -1,7 +1,5 @@
 package com.michelin.ns4kafka.models;
 
-import static com.michelin.ns4kafka.models.Kind.TOPIC;
-
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
@@ -31,8 +29,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Topic {
-    private final String apiVersion = "v1";
-    private final String kind = TOPIC;
+    private static final String apiVersion = "v1";
+    public static final String kind = "Topic";
 
     @Valid
     @NotNull

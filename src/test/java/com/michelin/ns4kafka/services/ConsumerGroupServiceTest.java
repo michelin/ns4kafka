@@ -268,6 +268,34 @@ class ConsumerGroupServiceTest {
     }
 
     @Test
+    void shouldValidateOffsetFormatInt() {
+        ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
+            .spec(ConsumerGroupResetOffsetsSpec.builder()
+                .topic("namespace_testTopic01:2")
+                .method(ResetOffsetsMethod.TO_OFFSET)
+                .options("not-integer")
+                .build())
+            .build();
+
+        List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
+        assertEquals("Invalid value \"not-integer\" for field \"to-offset\": value must be an integer.", result.get(0));
+    }
+
+    @Test
+    void shouldValidateOffsetFormatPositive() {
+        ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
+            .spec(ConsumerGroupResetOffsetsSpec.builder()
+                .topic("namespace_testTopic01:2")
+                .method(ResetOffsetsMethod.TO_OFFSET)
+                .options("-1")
+                .build())
+            .build();
+
+        List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
+        assertEquals("Invalid value \"-1\" for field \"to-offset\": value must be >= 0.", result.get(0));
+    }
+
+    @Test
     void doGetPartitionsToResetAllTopic() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
             .metadata(ObjectMeta.builder()

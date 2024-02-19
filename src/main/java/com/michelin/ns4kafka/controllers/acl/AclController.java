@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.controllers.acl;
 
-import static com.michelin.ns4kafka.models.Kind.ACL;
 import static com.michelin.ns4kafka.services.AccessControlEntryService.PUBLIC_GRANTED_TO;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidAclDeleteOnlyAdmin;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidImmutableField;
@@ -122,7 +121,8 @@ public class AclController extends NamespacedResourceController {
         }
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(ACL, accessControlEntry.getMetadata().getName(), validationErrors);
+            throw new ResourceValidationException(AccessControlEntry.kind, accessControlEntry.getMetadata().getName(),
+                validationErrors);
         }
 
         // AccessControlEntry spec is immutable
@@ -130,7 +130,7 @@ public class AclController extends NamespacedResourceController {
         Optional<AccessControlEntry> existingAcl =
             accessControlEntryService.findByName(namespace, accessControlEntry.getMetadata().getName());
         if (existingAcl.isPresent() && !existingAcl.get().getSpec().equals(accessControlEntry.getSpec())) {
-            throw new ResourceValidationException(ACL, accessControlEntry.getMetadata().getName(),
+            throw new ResourceValidationException(AccessControlEntry.kind, accessControlEntry.getMetadata().getName(),
                 invalidImmutableField("spec"));
         }
 
@@ -148,7 +148,7 @@ public class AclController extends NamespacedResourceController {
             return formatHttpResponse(accessControlEntry, status);
         }
 
-        sendEventLog(accessControlEntry.getKind(),
+        sendEventLog(AccessControlEntry.kind,
             accessControlEntry.getMetadata(),
             status,
             existingAcl.<Object>map(AccessControlEntry::getSpec).orElse(null),
@@ -172,21 +172,21 @@ public class AclController extends NamespacedResourceController {
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         AccessControlEntry accessControlEntry = accessControlEntryService
             .findByName(namespace, name)
-            .orElseThrow(() -> new ResourceValidationException(ACL, name, invalidNotFound(name)));
+            .orElseThrow(() -> new ResourceValidationException(AccessControlEntry.kind, name, invalidNotFound(name)));
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
         boolean isAdmin = roles.contains(ResourceBasedSecurityRule.IS_ADMIN);
         boolean isSelfAssignedAcl = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
 
         if (isSelfAssignedAcl && !isAdmin) {
-            throw new ResourceValidationException(ACL, name, invalidAclDeleteOnlyAdmin(name));
+            throw new ResourceValidationException(AccessControlEntry.kind, name, invalidAclDeleteOnlyAdmin(name));
         }
 
         if (dryrun) {
             return HttpResponse.noContent();
         }
 
-        sendEventLog(accessControlEntry.getKind(), accessControlEntry.getMetadata(), ApplyStatus.deleted,
+        sendEventLog(AccessControlEntry.kind, accessControlEntry.getMetadata(), ApplyStatus.deleted,
             accessControlEntry.getSpec(), null);
         accessControlEntryService.delete(getNamespace(namespace), accessControlEntry);
         return HttpResponse.noContent();

@@ -1,7 +1,5 @@
 package com.michelin.ns4kafka.models;
 
-import static com.michelin.ns4kafka.models.Kind.KAFKA_USER;
-
 import io.micronaut.core.annotation.Introspected;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,8 +17,9 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class KafkaUserResetPassword {
-    private final String apiVersion = "v1";
-    private final String kind = KAFKA_USER;
+    private static final String apiVersion = "v1";
+    public static final String kind = "KafkaUserResetPassword";
+
     private ObjectMeta metadata;
     private KafkaUserResetPasswordSpec spec;
 

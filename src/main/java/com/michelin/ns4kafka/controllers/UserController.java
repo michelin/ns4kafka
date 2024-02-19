@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.controllers;
 
-import static com.michelin.ns4kafka.models.Kind.KAFKA_USER;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidKafkaUser;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
@@ -41,7 +40,7 @@ public class UserController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         if (!ns.getSpec().getKafkaUser().equals(user)) {
-            throw new ResourceValidationException(KAFKA_USER, user, invalidKafkaUser(user));
+            throw new ResourceValidationException(KafkaUserResetPassword.kind, user, invalidKafkaUser(user));
         }
 
         UserAsyncExecutor userAsyncExecutor =
@@ -61,7 +60,8 @@ public class UserController extends NamespacedResourceController {
                 .build())
             .build();
 
-        sendEventLog(KAFKA_USER, response.getMetadata(), ApplyStatus.changed, null, response.getSpec());
+        sendEventLog(KafkaUserResetPassword.kind, response.getMetadata(), ApplyStatus.changed, null,
+            response.getSpec());
         return HttpResponse.ok(response);
     }
 }

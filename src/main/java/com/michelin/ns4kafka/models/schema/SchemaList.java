@@ -18,8 +18,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SchemaList {
-    private final String apiVersion = "v1";
-    private final String kind = "SchemaList";
+    private static final String apiVersion = "v1";
+    public static final String kind = "SchemaList";
 
     @Valid
     @NotNull

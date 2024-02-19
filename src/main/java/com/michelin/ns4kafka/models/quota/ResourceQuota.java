@@ -1,7 +1,5 @@
 package com.michelin.ns4kafka.models.quota;
 
-import static com.michelin.ns4kafka.models.Kind.RESOURCE_QUOTA;
-
 import com.michelin.ns4kafka.models.ObjectMeta;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
@@ -22,8 +20,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ResourceQuota {
-    private final String apiVersion = "v1";
-    private final String kind = RESOURCE_QUOTA;
+    private static final String apiVersion = "v1";
+    public static final String kind = "ResourceQuota";
 
     @Valid
     @NotNull

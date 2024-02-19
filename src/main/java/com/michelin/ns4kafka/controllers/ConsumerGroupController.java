@@ -1,7 +1,5 @@
 package com.michelin.ns4kafka.controllers;
 
-import static com.michelin.ns4kafka.models.Kind.CONSUMER_GROUP;
-import static com.michelin.ns4kafka.models.Kind.CONSUMER_GROUP_RESET;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConsumerGroupOperation;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidOwner;
 
@@ -54,11 +52,11 @@ public class ConsumerGroupController extends NamespacedResourceController {
         List<String> validationErrors = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
 
         if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(namespace, consumerGroup)) {
-            throw new ResourceValidationException(CONSUMER_GROUP, consumerGroup, invalidOwner("group", consumerGroup));
+            validationErrors.add(invalidOwner("group", consumerGroup));
         }
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(CONSUMER_GROUP, consumerGroup, validationErrors);
+            throw new ResourceValidationException(ConsumerGroupResetOffsets.kind, consumerGroup, validationErrors);
         }
 
         Namespace ns = getNamespace(namespace);
@@ -73,7 +71,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
             // Validate Consumer Group is dead or inactive
             String currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
             if (!List.of("Empty", "Dead").contains(currentState)) {
-                throw new ResourceValidationException(CONSUMER_GROUP, consumerGroup,
+                throw new ResourceValidationException(ConsumerGroupResetOffsets.kind, consumerGroup,
                     invalidConsumerGroupOperation(consumerGroup, currentState.toLowerCase()));
             }
 
@@ -87,7 +85,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
                 consumerGroupResetOffsets.getSpec().getMethod());
 
             if (!dryrun) {
-                sendEventLog(CONSUMER_GROUP_RESET,
+                sendEventLog(ConsumerGroupResetOffsets.kind,
                     consumerGroupResetOffsets.getMetadata(),
                     ApplyStatus.changed,
                     null,

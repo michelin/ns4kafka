@@ -1,7 +1,5 @@
 package com.michelin.ns4kafka.controllers.quota;
 
-import static com.michelin.ns4kafka.models.Kind.RESOURCE_QUOTA;
-
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
@@ -86,7 +84,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, quota);
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(RESOURCE_QUOTA, quota.getMetadata().getName(), validationErrors);
+            throw new ResourceValidationException(ResourceQuota.kind, quota.getMetadata().getName(), validationErrors);
         }
 
         Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByNamespace(namespace);
@@ -99,7 +97,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
             return formatHttpResponse(quota, status);
         }
 
-        sendEventLog(quota.getKind(), quota.getMetadata(), status,
+        sendEventLog(ResourceQuota.kind, quota.getMetadata(), status,
             resourceQuotaOptional.<Object>map(ResourceQuota::getSpec).orElse(null), quota.getSpec());
 
         return formatHttpResponse(resourceQuotaService.create(quota), status);
@@ -127,7 +125,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
         }
 
         ResourceQuota resourceQuotaToDelete = resourceQuota.get();
-        sendEventLog(resourceQuotaToDelete.getKind(), resourceQuotaToDelete.getMetadata(), ApplyStatus.deleted,
+        sendEventLog(ResourceQuota.kind, resourceQuotaToDelete.getMetadata(), ApplyStatus.deleted,
             resourceQuotaToDelete.getSpec(), null);
         resourceQuotaService.delete(resourceQuotaToDelete);
         return HttpResponse.noContent();

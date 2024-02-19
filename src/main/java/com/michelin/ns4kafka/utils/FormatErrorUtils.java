@@ -265,7 +265,7 @@ public class FormatErrorUtils {
      */
     public static String invalidConsumerGroupDuration(String invalidDurationValue) {
         return String.format(INVALID_FIELD, invalidDurationValue, "by-duration",
-            "value must be an ISO 8601 Duration [ PnDTnHnMnS ]");
+            "value must be an ISO 8601 duration [ PnDTnHnMnS ]");
     }
 
     /**

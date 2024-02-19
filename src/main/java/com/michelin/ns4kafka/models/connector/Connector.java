@@ -1,7 +1,5 @@
 package com.michelin.ns4kafka.models.connector;
 
-import static com.michelin.ns4kafka.models.Kind.CONNECTOR;
-
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.michelin.ns4kafka.models.ObjectMeta;
@@ -29,8 +27,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Connector {
-    private final String apiVersion = "v1";
-    private final String kind = CONNECTOR;
+    private static final String apiVersion = "v1";
+    public static final String kind = "Connector";
 
     @Valid
     @NotNull

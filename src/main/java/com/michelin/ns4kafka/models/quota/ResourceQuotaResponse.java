@@ -19,8 +19,8 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ResourceQuotaResponse {
-    private final String apiVersion = "v1";
-    private final String kind = "ResourceQuotaResponse";
+    private static final String apiVersion = "v1";
+    public static final String kind = "ResourceQuotaResponse";
 
     @Valid
     @NotNull

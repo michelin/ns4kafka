@@ -85,7 +85,7 @@ public class RoleBindingController extends NamespacedResourceController {
             return formatHttpResponse(roleBinding, status);
         }
 
-        sendEventLog(roleBinding.getKind(),
+        sendEventLog(RoleBinding.kind,
             roleBinding.getMetadata(),
             status,
             existingRoleBinding.<Object>map(RoleBinding::getSpec).orElse(null),
@@ -116,7 +116,7 @@ public class RoleBindingController extends NamespacedResourceController {
         }
 
         var roleBindingToDelete = roleBinding.get();
-        sendEventLog(roleBindingToDelete.getKind(),
+        sendEventLog(RoleBinding.kind,
             roleBindingToDelete.getMetadata(),
             ApplyStatus.deleted,
             roleBindingToDelete.getSpec(),

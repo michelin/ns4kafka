@@ -22,8 +22,8 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ConsumerGroupResetOffsets {
-    private final String apiVersion = "v1";
-    private final String kind = "ConsumerGroupResetOffsets";
+    private static final String apiVersion = "v1";
+    public static final String kind = "ConsumerGroupResetOffsets";
 
     @Valid
     @NotNull
