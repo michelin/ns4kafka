@@ -2,9 +2,9 @@ package com.michelin.ns4kafka.controllers.acl;
 
 import static com.michelin.ns4kafka.models.Kind.ACL;
 import static com.michelin.ns4kafka.services.AccessControlEntryService.PUBLIC_GRANTED_TO;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidAclDeleteOnlyAdmin;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidImmutableValue;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNotFound;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidAclDeleteOnlyAdmin;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidImmutableField;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNotFound;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.AccessControlEntry;
@@ -131,7 +131,7 @@ public class AclController extends NamespacedResourceController {
             accessControlEntryService.findByName(namespace, accessControlEntry.getMetadata().getName());
         if (existingAcl.isPresent() && !existingAcl.get().getSpec().equals(accessControlEntry.getSpec())) {
             throw new ResourceValidationException(ACL, accessControlEntry.getMetadata().getName(),
-                invalidImmutableValue("spec", accessControlEntry.getSpec().toString()));
+                invalidImmutableField("spec"));
         }
 
         accessControlEntry.getMetadata().setCreationTimestamp(Date.from(Instant.now()));

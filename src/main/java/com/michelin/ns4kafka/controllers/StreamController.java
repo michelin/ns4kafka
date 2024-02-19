@@ -1,7 +1,7 @@
 package com.michelin.ns4kafka.controllers;
 
 import static com.michelin.ns4kafka.models.Kind.KAFKA_STREAM;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidOwner;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidOwner;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.KafkaStream;

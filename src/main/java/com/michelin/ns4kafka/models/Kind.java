@@ -1,5 +1,8 @@
 package com.michelin.ns4kafka.models;
 
+/**
+ * Resource kind.
+ */
 public abstract class Kind {
     public static final String ACL = "AccessControlEntry";
     public static final String CONNECTOR = "Connector";

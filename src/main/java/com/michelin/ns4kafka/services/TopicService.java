@@ -1,9 +1,9 @@
 package com.michelin.ns4kafka.services;
 
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidImmutableValue;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidTopicCleanupPolicy;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidTopicDeleteRecords;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidTopicTags;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidImmutableValue;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicCleanupPolicy;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicDeleteRecords;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicTags;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_DELETE;

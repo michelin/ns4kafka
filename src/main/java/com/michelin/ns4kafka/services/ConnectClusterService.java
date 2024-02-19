@@ -1,11 +1,10 @@
 package com.michelin.ns4kafka.services;
 
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConnectClusterEncryption;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConnectClusterMalformedUrl;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConnectClusterNameAlreadyExistGlobally;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConnectClusterNotAllowed;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConnectClusterNotHealthy;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNotFound;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectClusterEncryptionConfig;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectClusterMalformedUrl;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectClusterNameAlreadyExistGlobally;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectClusterNotHealthy;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNotFound;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
@@ -18,6 +17,7 @@ import com.michelin.ns4kafka.repositories.ConnectClusterRepository;
 import com.michelin.ns4kafka.services.clients.connect.KafkaConnectClient;
 import com.michelin.ns4kafka.services.clients.connect.entities.ServerInfo;
 import com.michelin.ns4kafka.utils.EncryptionUtils;
+import com.michelin.ns4kafka.utils.FormatErrorUtils;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.MutableHttpRequest;
@@ -269,13 +269,14 @@ public class ConnectClusterService {
             Mono<ServerInfo> httpResponse = Mono.from(httpClient.retrieve(request, ServerInfo.class));
 
             return httpResponse
-                .doOnError(error -> errors.add(invalidConnectClusterNotHealthy(error.getMessage())))
+                .doOnError(error -> errors.add(invalidConnectClusterNotHealthy(connectCluster.getMetadata().getName(),
+                    error.getMessage())))
                 .doOnEach(signal -> {
                     // If the key or salt is defined, but one of them is missing
                     if ((signal.isOnError() || signal.isOnNext())
                         && (StringUtils.hasText(connectCluster.getSpec().getAes256Key())
                         ^ StringUtils.hasText(connectCluster.getSpec().getAes256Salt()))) {
-                        errors.add(invalidConnectClusterEncryption());
+                        errors.add(invalidConnectClusterEncryptionConfig());
                     }
                 })
                 .map(response -> errors)
@@ -305,7 +306,7 @@ public class ConnectClusterService {
 
         if (kafkaConnects.stream().noneMatch(cc -> StringUtils.hasText(cc.getSpec().getAes256Key())
             && StringUtils.hasText(cc.getSpec().getAes256Salt()))) {
-            errors.add(invalidConnectClusterEncryption());
+            errors.add(invalidConnectClusterEncryptionConfig());
             return errors;
         }
 
@@ -321,7 +322,7 @@ public class ConnectClusterService {
                     && StringUtils.hasText(cc.getSpec().getAes256Salt()))
                 .map(cc -> cc.getMetadata().getName())
                 .collect(Collectors.joining(", "));
-            errors.add(invalidConnectClusterNotAllowed(connectCluster, allowedConnectClusters));
+            errors.add(FormatErrorUtils.invalidConnectClusterMustBeOneOf(connectCluster, allowedConnectClusters));
             return errors;
         }
 

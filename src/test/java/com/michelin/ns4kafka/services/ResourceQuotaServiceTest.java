@@ -299,7 +299,8 @@ class ResourceQuotaServiceTest {
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
         assertEquals(1, validationErrors.size());
-        assertEquals("Quota already exceeded for count/topics: 3/2 (used/limit)", validationErrors.get(0));
+        assertEquals("Invalid value \"2\" for field \"count/topics\": quota already exceeded (3/2).",
+            validationErrors.get(0));
     }
 
     @Test
@@ -357,7 +358,8 @@ class ResourceQuotaServiceTest {
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
         assertEquals(1, validationErrors.size());
-        assertEquals("Quota already exceeded for count/partitions: 19/10 (used/limit)", validationErrors.get(0));
+        assertEquals("Invalid value \"10\" for field \"count/partitions\": quota already exceeded (19/10).",
+            validationErrors.get(0));
     }
 
     @Test
@@ -382,7 +384,7 @@ class ResourceQuotaServiceTest {
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
         assertEquals(1, validationErrors.size());
-        assertEquals("Invalid value for disk/topics: value must end with either B, KiB, MiB or GiB",
+        assertEquals("Invalid value \"10\" for field \"disk/topics\": value must end with either B, KiB, MiB or GiB.",
             validationErrors.get(0));
     }
 
@@ -433,7 +435,8 @@ class ResourceQuotaServiceTest {
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
         assertEquals(1, validationErrors.size());
-        assertEquals("Quota already exceeded for disk/topics: 8.79KiB/5000B (used/limit)", validationErrors.get(0));
+        assertEquals("Invalid value \"5000B\" for field \"disk/topics\": quota already exceeded (8.79KiB/5000B).",
+            validationErrors.get(0));
     }
 
     @Test
@@ -463,7 +466,8 @@ class ResourceQuotaServiceTest {
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
         assertEquals(1, validationErrors.size());
-        assertEquals("Quota already exceeded for count/connectors: 2/1 (used/limit)", validationErrors.get(0));
+        assertEquals("Invalid value \"1\" for field \"count/connectors\": quota already exceeded (2/1).",
+            validationErrors.get(0));
     }
 
     @Test
@@ -487,8 +491,10 @@ class ResourceQuotaServiceTest {
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
 
         assertEquals(2, validationErrors.size());
-        assertEquals("Number expected for user/producer_byte_rate (producer given)", validationErrors.get(0));
-        assertEquals("Number expected for user/consumer_byte_rate (consumer given)", validationErrors.get(1));
+        assertEquals("Invalid value \"producer\" for field \"user/producer_byte_rate\": value must be a number.",
+            validationErrors.get(0));
+        assertEquals("Invalid value \"consumer\" for field \"user/consumer_byte_rate\": value must be a number.",
+            validationErrors.get(1));
     }
 
     @Test
@@ -852,11 +858,12 @@ class ResourceQuotaServiceTest {
 
         List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, Optional.empty(), newTopic);
         assertEquals(3, validationErrors.size());
-        assertEquals("Exceeding quota for count/topics: 3/3 (used/limit). Cannot add 1 topic.",
+        assertEquals("Invalid \"apply\" operation: exceeding quota for count/topics: 3/3 (used/limit).",
             validationErrors.get(0));
-        assertEquals("Exceeding quota for count/partitions: 19/20 (used/limit). Cannot add 6 partition(s).",
-            validationErrors.get(1));
-        assertEquals("Exceeding quota for disk/topics: 18.555KiB/20.0KiB (used/limit). Cannot add 5.86KiB of data.",
+        assertEquals("Invalid \"apply\" operation: exceeding quota for count/partitions: 19/20 (used/limit). "
+            + "Cannot add 6.", validationErrors.get(1));
+        assertEquals("Invalid \"apply\" operation: exceeding quota for disk/topics: 18.555KiB/20.0KiB (used/limit). "
+                + "Cannot add 5.86KiB.",
             validationErrors.get(2));
     }
 
@@ -932,7 +939,8 @@ class ResourceQuotaServiceTest {
 
         List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, Optional.of(topic1), newTopic);
         assertEquals(1, validationErrors.size());
-        assertEquals("Exceeding quota for disk/topics: 18.555KiB/20.0KiB (used/limit). Cannot add 2.93KiB of data.",
+        assertEquals("Invalid \"apply\" operation: exceeding quota for disk/topics: 18.555KiB/20.0KiB (used/limit). "
+                + "Cannot add 2.93KiB.",
             validationErrors.get(0));
     }
 
@@ -1015,7 +1023,7 @@ class ResourceQuotaServiceTest {
 
         List<String> validationErrors = resourceQuotaService.validateConnectorQuota(ns);
         assertEquals(1, validationErrors.size());
-        assertEquals("Exceeding quota for count/connectors: 2/2 (used/limit). Cannot add 1 connector.",
+        assertEquals("Invalid \"apply\" operation: exceeding quota for count/connectors: 2/2 (used/limit).",
             validationErrors.get(0));
     }
 

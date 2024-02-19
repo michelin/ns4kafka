@@ -140,7 +140,8 @@ class SchemaControllerTest {
             .consumeErrorWith(error -> {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
-                assertEquals("Namespace not owner of this schema prefix.subject-value.",
+                assertEquals("Invalid value \"prefix.subject-value\" for field \"name\": "
+                        + "namespace is not owner of the resource.",
                     ((ResourceValidationException) error).getValidationErrors().get(0));
             })
             .verify();
@@ -362,7 +363,8 @@ class SchemaControllerTest {
             .consumeErrorWith(error -> {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
-                assertEquals("Invalid prefix prefix.subject-value : namespace not owner of this subject",
+                assertEquals("Invalid value \"prefix.subject-value\" for field \"name\": "
+                        + "namespace is not owner of the resource.",
                     ((ResourceValidationException) error).getValidationErrors().get(0));
             })
             .verify();
@@ -381,7 +383,8 @@ class SchemaControllerTest {
             .consumeErrorWith(error -> {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
-                assertEquals("Namespace not owner of this schema prefix.subject-value.",
+                assertEquals("Invalid value \"prefix.subject-value\" for field \"name\": "
+                        + "namespace is not owner of the resource.",
                     ((ResourceValidationException) error).getValidationErrors().get(0));
             })
             .verify();

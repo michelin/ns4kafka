@@ -1,12 +1,12 @@
 package com.michelin.ns4kafka.services;
 
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidAclCollision;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidAclGrantedToMyself;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidAclNotOwnerOfTopLevel;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidAclPatternType;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidAclPermission;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidAclResourceType;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNotFound;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidAclCollision;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidAclGrantedToMyself;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidAclNotOwnerOfTopLevel;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidAclPatternType;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidAclPermission;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidAclResourceType;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNotFound;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;

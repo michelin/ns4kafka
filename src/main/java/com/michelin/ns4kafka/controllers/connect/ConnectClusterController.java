@@ -1,9 +1,9 @@
 package com.michelin.ns4kafka.controllers.connect;
 
 import static com.michelin.ns4kafka.models.Kind.CONNECTOR_CLUSTER;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConnectClusterDeleteOperation;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConnectClusterNotAllowed;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidOwner;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectClusterDeleteOperation;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectClusterNotAllowed;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidOwner;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;

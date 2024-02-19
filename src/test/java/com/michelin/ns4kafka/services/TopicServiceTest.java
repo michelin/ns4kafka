@@ -632,7 +632,8 @@ class TopicServiceTest {
         List<String> actual = topicService.validateDeleteRecordsTopic(topic);
 
         assertEquals(1, actual.size());
-        assertLinesMatch(List.of("Cannot delete records on a compacted topic. Please delete and recreate the topic."),
+        assertLinesMatch(List.of("Invalid \"delete records\" operation: cannot delete records on a compacted topic. "
+                + "Please delete and recreate the topic."),
             actual);
     }
 
@@ -678,7 +679,7 @@ class TopicServiceTest {
         List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
 
         assertEquals(1, actual.size());
-        assertLinesMatch(List.of("Invalid value 6 for configuration partitions: Value is immutable (3)."), actual);
+        assertLinesMatch(List.of("Invalid value \"6\" for field \"partitions\": value is immutable."), actual);
     }
 
     @Test
@@ -721,7 +722,7 @@ class TopicServiceTest {
         List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
 
         assertEquals(1, actual.size());
-        assertLinesMatch(List.of("Invalid value 6 for configuration replication.factor: Value is immutable (3)."),
+        assertLinesMatch(List.of("Invalid value \"6\" for field \"replication.factor\": value is immutable."),
             actual);
     }
 
@@ -767,9 +768,9 @@ class TopicServiceTest {
 
         assertEquals(1, actual.size());
         assertLinesMatch(List.of(
-                "Invalid value compact for configuration cleanup.policy: Altering topic configuration "
-                    + "from `delete` to `compact` is not currently supported. Please create a new topic with "
-                    + "`compact` policy specified instead."),
+                "Invalid value \"compact\" for field \"cleanup.policy\": altering topic cleanup policy "
+                    + "from delete to compact is not currently supported in Confluent Cloud. "
+                    + "Please create a new topic with compact policy instead."),
             actual);
     }
 
@@ -922,6 +923,7 @@ class TopicServiceTest {
 
         List<String> validationErrors = topicService.validateTags(ns, topic);
         assertEquals(1, validationErrors.size());
-        assertEquals("Invalid value TAG_TEST for tags: Tags are not currently supported.", validationErrors.get(0));
+        assertEquals("Invalid value \"TAG_TEST\" for field \"tags\": tags are not currently supported.",
+            validationErrors.get(0));
     }
 }

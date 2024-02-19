@@ -87,7 +87,6 @@ class ResourceQuotaControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.findByName(ns.getMetadata().getName(), "quotaName")).thenReturn(Optional.empty());
 
         Optional<ResourceQuotaResponse> actual = resourceQuotaController.get("test", "quotaName");

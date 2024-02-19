@@ -1,9 +1,9 @@
 package com.michelin.ns4kafka.controllers.topic;
 
 import static com.michelin.ns4kafka.models.Kind.TOPIC;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNotFound;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidOwner;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidTopicCollide;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNotFound;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidOwner;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicCollide;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.DeleteRecordsResponse;

@@ -1,5 +1,8 @@
 package com.michelin.ns4kafka.services.executors;
 
+import static com.michelin.ns4kafka.models.Kind.KAFKA_USER;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidResetPasswordProvider;
+
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
@@ -67,7 +70,7 @@ public class UserAsyncExecutor {
      * Run the user synchronization.
      */
     public void run() {
-        if (this.managedClusterProperties.isManageUsers() && this.userExecutor.canSynchronizeQuotas()) {
+        if (this.managedClusterProperties.isManageUsers() && userExecutor.canSynchronizeQuotas()) {
             synchronizeUsers();
         }
 
@@ -79,7 +82,7 @@ public class UserAsyncExecutor {
     public void synchronizeUsers() {
         log.debug("Starting user collection for cluster {}", managedClusterProperties.getName());
         // List user details from broker
-        Map<String, Map<String, Double>> brokerUserQuotas = this.userExecutor.listQuotas();
+        Map<String, Map<String, Double>> brokerUserQuotas = userExecutor.listQuotas();
         // List user details from ns4kafka
         Map<String, Map<String, Double>> ns4kafkaUserQuotas = collectNs4kafkaQuotas();
 
@@ -116,18 +119,16 @@ public class UserAsyncExecutor {
      * @return The new password
      */
     public String resetPassword(String user) {
-        if (this.userExecutor.canResetPassword()) {
-            return this.userExecutor.resetPassword(user);
+        if (userExecutor.canResetPassword()) {
+            return userExecutor.resetPassword(user);
         } else {
-            throw new ResourceValidationException(
-                List.of("Password reset is not available with provider " + managedClusterProperties.getProvider()),
-                "KafkaUserResetPassword",
-                user);
+            throw new ResourceValidationException(KAFKA_USER, user,
+                invalidResetPasswordProvider(managedClusterProperties.getProvider()));
         }
     }
 
     private Map<String, Map<String, Double>> collectNs4kafkaQuotas() {
-        return namespaceRepository.findAllForCluster(this.managedClusterProperties.getName())
+        return namespaceRepository.findAllForCluster(managedClusterProperties.getName())
             .stream()
             .map(namespace -> {
                 Optional<ResourceQuota> quota = quotaRepository.findForNamespace(namespace.getMetadata().getName());
@@ -146,7 +147,7 @@ public class UserAsyncExecutor {
     }
 
     private void createUserQuotas(Map<String, Map<String, Double>> toCreate) {
-        toCreate.forEach(this.userExecutor::applyQuotas);
+        toCreate.forEach(userExecutor::applyQuotas);
     }
 
     interface AbstractUserSynchronizer {

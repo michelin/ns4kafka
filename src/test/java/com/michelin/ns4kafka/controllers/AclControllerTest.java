@@ -1,7 +1,6 @@
 package com.michelin.ns4kafka.controllers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -319,7 +318,7 @@ class AclControllerTest {
         ResourceValidationException actual = assertThrows(ResourceValidationException.class,
             () -> accessControlListController.apply(auth, "test", ace1, false));
         assertEquals(1, actual.getValidationErrors().size());
-        assertEquals("Invalid modification: `spec` is immutable. You can still update `metadata`",
+        assertEquals("Invalid \"apply\" operation: field \"spec\" is immutable.",
             actual.getValidationErrors().get(0));
 
     }
@@ -439,8 +438,8 @@ class AclControllerTest {
         ResourceValidationException actual = assertThrows(ResourceValidationException.class,
             () -> accessControlListController.delete(auth, "test", "ace1", false));
 
-        assertLinesMatch(List.of("Invalid value ace1 for name: ACL does not exist in this namespace."),
-            actual.getValidationErrors());
+        assertEquals("Invalid value \"ace1\" for field \"name\": resource not found.",
+            actual.getValidationErrors().get(0));
     }
 
     @Test
@@ -461,7 +460,8 @@ class AclControllerTest {
         ResourceValidationException actual = assertThrows(ResourceValidationException.class,
             () -> accessControlListController.delete(auth, "test", "ace1", false));
 
-        assertLinesMatch(List.of("Only admins.*"), actual.getValidationErrors());
+        assertEquals("Invalid value \"ace1\" for field \"name\": only administrators can delete this ACL.",
+            actual.getValidationErrors().get(0));
     }
 
     @Test

@@ -1,11 +1,11 @@
 package com.michelin.ns4kafka.services;
 
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConsumerGroupDatetime;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConsumerGroupDuration;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConsumerGroupOffsetInteger;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConsumerGroupOffsetNegative;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConsumerGroupShiftBy;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConsumerGroupTopic;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConsumerGroupDatetime;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConsumerGroupDuration;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConsumerGroupOffsetInteger;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConsumerGroupOffsetNegative;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConsumerGroupShiftBy;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConsumerGroupTopic;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;

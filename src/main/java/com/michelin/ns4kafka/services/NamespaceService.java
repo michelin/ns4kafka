@@ -1,12 +1,12 @@
 package com.michelin.ns4kafka.services;
 
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNamespaceNoCluster;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNamespaceUserAlreadyExist;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNamespaceNoCluster;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNamespaceUserAlreadyExist;
 
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
-import com.michelin.ns4kafka.utils.exceptions.error.ValidationError;
+import com.michelin.ns4kafka.utils.FormatErrorUtils;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
@@ -75,7 +75,7 @@ public class NamespaceService {
         return namespace.getSpec().getConnectClusters()
             .stream()
             .filter(connectCluster -> !connectClusterExists(namespace.getMetadata().getCluster(), connectCluster))
-            .map(ValidationError::invalidNamespaceNoConnectCluster)
+            .map(FormatErrorUtils::invalidNamespaceNoConnectCluster)
             .toList();
     }
 

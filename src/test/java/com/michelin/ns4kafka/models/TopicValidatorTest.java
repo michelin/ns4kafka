@@ -121,7 +121,8 @@ class TopicValidatorTest {
         validationErrors = nameValidator.validate(invalidTopic);
         assertEquals(2, validationErrors.size());
         assertLinesMatch(
-            List.of(".*Value must not be empty.*", ".*Value must only contain.*"),
+            List.of("Invalid empty value for field \"name\": value must not be empty.",
+                "Invalid value \"\" for field \"name\": value must only contain ASCII alphanumerics, '.', '_' or '-'."),
             validationErrors);
 
         invalidTopic = Topic.builder()
@@ -214,9 +215,9 @@ class TopicValidatorTest {
 
         List<String> actual = topicValidator.validate(topic);
         assertEquals(3, actual.size());
-        assertTrue(actual.contains("Invalid value null for configuration min.insync.replicas: Value must be non-null"));
-        assertTrue(actual.contains("Invalid value null for configuration retention.ms: Value must be non-null"));
-        assertTrue(actual.contains("Invalid value null for configuration cleanup.policy: Value must be non-null"));
+        assertTrue(actual.contains("Invalid empty value for field \"min.insync.replicas\": value must not be null."));
+        assertTrue(actual.contains("Invalid empty value for field \"retention.ms\": value must not be null."));
+        assertTrue(actual.contains("Invalid empty value for field \"cleanup.policy\": value must not be null."));
     }
 
     @Test
@@ -244,6 +245,8 @@ class TopicValidatorTest {
 
         List<String> actual = topicValidator.validate(topic);
         assertEquals(1, actual.size());
-        assertEquals("Configurations [retention.bytes] are not allowed", actual.get(0));
+        assertEquals(
+            "Invalid value \"50\" for field \"retention.bytes\": configuration is not allowed on your namespace.",
+            actual.get(0));
     }
 }

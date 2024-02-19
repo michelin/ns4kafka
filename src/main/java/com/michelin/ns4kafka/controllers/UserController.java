@@ -1,7 +1,7 @@
 package com.michelin.ns4kafka.controllers;
 
 import static com.michelin.ns4kafka.models.Kind.KAFKA_USER;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidKafkaUser;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidKafkaUser;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.KafkaUserResetPassword;

@@ -359,7 +359,8 @@ class ConnectorServiceTest {
         StepVerifier.create(connectorService.validateLocally(ns, connector))
             .consumeNextWith(response -> {
                 assertEquals(1, response.size());
-                assertEquals("Invalid value wrong for spec.connectCluster: Value must be one of [local-name].",
+                assertEquals(
+                    "Invalid value \"wrong\" for field \"connectCluster\": value must be one of \"local-name\".",
                     response.get(0));
             })
             .verifyComplete();
@@ -388,7 +389,7 @@ class ConnectorServiceTest {
         StepVerifier.create(connectorService.validateLocally(ns, connector))
             .consumeNextWith(response -> {
                 assertEquals(1, response.size());
-                assertEquals("Invalid value for spec.config.'connector.class': Value must be non-null.",
+                assertEquals("Invalid empty value for field \"connector.class\": value must not be null.",
                     response.get(0));
             })
             .verifyComplete();
@@ -420,8 +421,9 @@ class ConnectorServiceTest {
             .consumeNextWith(response -> {
                 assertEquals(1, response.size());
                 assertEquals(
-                    "Failed to find any class that implements connector and which name matches "
-                        + "org.apache.kafka.connect.file.FileStreamSinkConnector.",
+                    "Invalid value \"org.apache.kafka.connect.file.FileStreamSinkConnector\" "
+                        + "for field \"connector.class\": failed to find any class that implements connector and "
+                        + "which name matches org.apache.kafka.connect.file.FileStreamSinkConnector.",
                     response.get(0));
             })
             .verifyComplete();
@@ -460,7 +462,7 @@ class ConnectorServiceTest {
         StepVerifier.create(connectorService.validateLocally(ns, connector))
             .consumeNextWith(response -> {
                 assertEquals(1, response.size());
-                assertEquals("Invalid value null for configuration missing.field: Value must be non-null",
+                assertEquals("Invalid empty value for field \"missing.field\": value must not be null.",
                     response.get(0));
             })
             .verifyComplete();
@@ -675,7 +677,7 @@ class ConnectorServiceTest {
         StepVerifier.create(connectorService.validateRemotely(ns, connector))
             .consumeNextWith(response -> {
                 assertEquals(1, response.size());
-                assertEquals("error_message", response.get(0));
+                assertEquals("Invalid \"connect1\": error_message.", response.get(0));
             })
             .verifyComplete();
     }

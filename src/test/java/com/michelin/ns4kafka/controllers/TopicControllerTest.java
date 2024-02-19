@@ -402,7 +402,7 @@ class TopicControllerTest {
         assertEquals(1, actual.getValidationErrors().size());
         assertLinesMatch(List.of("Error on tags"), actual.getValidationErrors());
     }
-    
+
     @Test
     void shouldNotValidateTagsWhenNoNewTag() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
@@ -1028,7 +1028,8 @@ class TopicControllerTest {
             () -> topicController.deleteRecords("test", "topic.empty", false));
 
         assertEquals(1, actual.getValidationErrors().size());
-        assertLinesMatch(List.of("Namespace not owner of this topic \"topic.empty\"."),
+        assertLinesMatch(
+            List.of("Invalid value \"topic.empty\" for field \"name\": namespace is not owner of the resource."),
             actual.getValidationErrors());
     }
 
@@ -1052,7 +1053,7 @@ class TopicControllerTest {
             () -> topicController.deleteRecords("test", "topic.empty", false));
 
         assertEquals(1, actual.getValidationErrors().size());
-        assertLinesMatch(List.of("Topic \"topic.empty\" does not exist."),
+        assertLinesMatch(List.of("Invalid value \"topic.empty\" for field \"name\": resource not found."),
             actual.getValidationErrors());
     }
 
@@ -1090,7 +1091,7 @@ class TopicControllerTest {
             assertThrows(ResourceValidationException.class, () -> topicController.apply("test", topic, false));
         assertEquals(1, actual.getValidationErrors().size());
         assertLinesMatch(
-            List.of("Topic test.topic collides with existing topics: test_topic."),
+            List.of("Invalid value \"test.topic\" for field \"name\": collision with existing topic test_topic."),
             actual.getValidationErrors());
     }
 }

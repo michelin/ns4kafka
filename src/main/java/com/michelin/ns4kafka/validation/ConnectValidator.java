@@ -1,9 +1,9 @@
 package com.michelin.ns4kafka.validation;
 
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNameEmpty;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNameLength;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNameSpecChars;
 import static com.michelin.ns4kafka.utils.config.ConnectorConfig.CONNECTOR_CLASS;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNameEmpty;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNameLength;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNameSpecChars;
 
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;

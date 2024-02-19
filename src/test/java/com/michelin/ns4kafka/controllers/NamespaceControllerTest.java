@@ -128,10 +128,9 @@ class NamespaceControllerTest {
 
         ResourceValidationException actual = assertThrows(ResourceValidationException.class,
             () -> namespaceController.apply(toUpdate, false));
-        assertEquals(2, actual.getValidationErrors().size());
+        assertEquals(1, actual.getValidationErrors().size());
         Assertions.assertIterableEquals(
-            List.of("Invalid value local-change for cluster: Value is immutable (local)",
-                "Invalid value user-change for kafkaUser: Value is immutable (user)"),
+            List.of("Invalid value \"local\" for field \"cluster\": value is immutable."),
             actual.getValidationErrors());
     }
 

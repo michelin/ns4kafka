@@ -302,12 +302,12 @@ class ConsumerGroupControllerTest {
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID"))
             .thenReturn("Active");
 
-        IllegalStateException result = assertThrows(IllegalStateException.class,
+        ResourceValidationException result = assertThrows(ResourceValidationException.class,
             () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
 
         assertEquals(
-            "Assignments can only be reset if the consumer group \"groupID\" is inactive, "
-                + "but the current state is active.",
-            result.getMessage());
+            "Invalid \"reset offset\" operation: assignments can only be reset if the consumer group "
+                + "\"groupID\" is inactive but the current state is active.",
+            result.getValidationErrors().get(0));
     }
 }

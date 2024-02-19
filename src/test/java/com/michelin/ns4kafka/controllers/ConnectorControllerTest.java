@@ -153,7 +153,7 @@ class ConnectorControllerTest {
             .consumeErrorWith(error -> {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
-                assertEquals("Namespace not owner of this connector connect1.",
+                assertEquals("Invalid value \"connect1\" for field \"name\": namespace is not owner of the resource.",
                     ((ResourceValidationException) error).getValidationErrors().get(0));
             })
             .verify();
@@ -252,7 +252,7 @@ class ConnectorControllerTest {
             .consumeErrorWith(error -> {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
-                assertEquals("Namespace not owner of this connector connect1.",
+                assertEquals("Invalid value \"connect1\" for field \"name\": namespace is not owner of the resource.",
                     ((ResourceValidationException) error).getValidationErrors().get(0));
             })
             .verify();
@@ -585,7 +585,7 @@ class ConnectorControllerTest {
             .consumeErrorWith(error -> {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
-                assertEquals("Namespace not owner of this connector connect1.",
+                assertEquals("Invalid value \"connect1\" for field \"name\": namespace is not owner of the resource.",
                     ((ResourceValidationException) error).getValidationErrors().get(0));
             })
             .verify();

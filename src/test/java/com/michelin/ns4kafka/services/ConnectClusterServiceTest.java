@@ -428,8 +428,8 @@ class ConnectClusterServiceTest {
             .consumeNextWith(errors -> {
                 assertEquals(1L, errors.size());
                 assertEquals(
-                    "A Kafka Connect is already defined globally with the name \"test-connect\"."
-                        + " Please provide a different name.",
+                    "Invalid value \"test-connect\" for field \"name\": a Kafka Connect is already defined "
+                        + "globally with this name. Please provide a different name.",
                     errors.get(0));
             })
             .verifyComplete();
@@ -454,7 +454,7 @@ class ConnectClusterServiceTest {
         StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
             .consumeNextWith(errors -> {
                 assertEquals(1L, errors.size());
-                assertEquals("The Kafka Connect \"test-connect\" is not healthy (Error).", errors.get(0));
+                assertEquals("Invalid \"test-connect\": the Kafka Connect is not healthy (error).", errors.get(0));
             })
             .verifyComplete();
     }
@@ -474,7 +474,7 @@ class ConnectClusterServiceTest {
         StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
             .consumeNextWith(errors -> {
                 assertEquals(1L, errors.size());
-                assertEquals("The Kafka Connect \"test-connect\" has a malformed URL \"malformed-url\".",
+                assertEquals("Invalid value \"malformed-url\" for field \"url\": malformed URL.",
                     errors.get(0));
             })
             .verifyComplete();
@@ -503,9 +503,8 @@ class ConnectClusterServiceTest {
         StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
             .consumeNextWith(errors -> {
                 assertEquals(1L, errors.size());
-                assertEquals(
-                    "The Connect cluster \"test-connect\" \"aes256Key\" and \"aes256Salt\" specs are required"
-                        + " to activate the encryption.",
+                assertEquals("Invalid empty value for fields \"aes256Key, aes256Salt\": "
+                        + "AES key and salt are required to activate encryption.",
                     errors.get(0));
             })
             .verifyComplete();
@@ -534,9 +533,8 @@ class ConnectClusterServiceTest {
         StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
             .consumeNextWith(errors -> {
                 assertEquals(1L, errors.size());
-                assertEquals(
-                    "The Connect cluster \"test-connect\" \"aes256Key\" and \"aes256Salt\" specs are required "
-                        + "to activate the encryption.",
+                assertEquals("Invalid empty value for fields \"aes256Key, aes256Salt\": "
+                        + "AES key and salt are required to activate encryption.",
                     errors.get(0));
             })
             .verifyComplete();
@@ -562,10 +560,9 @@ class ConnectClusterServiceTest {
         StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
             .consumeNextWith(errors -> {
                 assertEquals(2L, errors.size());
-                assertTrue(errors.contains("The Kafka Connect \"test-connect\" is not healthy (Error)."));
-                assertTrue(errors.contains(
-                    "The Connect cluster \"test-connect\" \"aes256Key\" and \"aes256Salt\" specs are required"
-                        + " to activate the encryption."));
+                assertTrue(errors.contains("Invalid \"test-connect\": the Kafka Connect is not healthy (error)."));
+                assertTrue(errors.contains("Invalid empty value for fields \"aes256Key, aes256Salt\": "
+                    + "AES key and salt are required to activate encryption."));
             })
             .verifyComplete();
     }
@@ -609,7 +606,8 @@ class ConnectClusterServiceTest {
             connectClusterService.validateConnectClusterVault(namespace, "prefix.fake-connect-cluster");
 
         assertEquals(1L, errors.size());
-        assertEquals("No Connect Cluster available.", errors.get(0));
+        assertEquals("Invalid value \"prefix.fake-connect-cluster\" for field \"name\": resource not found.",
+            errors.get(0));
     }
 
     @Test
@@ -682,7 +680,8 @@ class ConnectClusterServiceTest {
             connectClusterService.validateConnectClusterVault(namespace, "prefix1.fake-connect-cluster");
 
         assertEquals(1L, errors.size());
-        assertEquals("No Connect cluster available with valid aes256 specs configuration.", errors.get(0));
+        assertEquals("Invalid empty value for fields \"aes256Key, aes256Salt\": "
+            + "AES key and salt are required to activate encryption.", errors.get(0));
     }
 
     /**
@@ -761,8 +760,8 @@ class ConnectClusterServiceTest {
             connectClusterService.validateConnectClusterVault(namespace, "prefix1.fake-connect-cluster");
 
         assertEquals(1L, errors.size());
-        assertEquals("Invalid value \"prefix1.fake-connect-cluster\" for Connect Cluster: Value must be one of ["
-            + "prefix2.connect-cluster, prefix3.connect-cluster].", errors.get(0));
+        assertEquals("Invalid value \"prefix1.fake-connect-cluster\" for field \"name\": "
+            + "value must be one of \"prefix2.connect-cluster, prefix3.connect-cluster\".", errors.get(0));
     }
 
     @Test

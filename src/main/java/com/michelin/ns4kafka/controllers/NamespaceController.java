@@ -1,15 +1,15 @@
 package com.michelin.ns4kafka.controllers;
 
 import static com.michelin.ns4kafka.models.Kind.NAMESPACE;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidImmutableValue;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidImmutableValue;
 
 import com.michelin.ns4kafka.controllers.generic.NonNamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
+import com.michelin.ns4kafka.utils.FormatErrorUtils;
 import com.michelin.ns4kafka.utils.enums.ApplyStatus;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
-import com.michelin.ns4kafka.utils.exceptions.error.ValidationError;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
@@ -126,7 +126,7 @@ public class NamespaceController extends NonNamespacedResourceController {
         if (!namespaceResources.isEmpty()) {
             List<String> validationErrors = namespaceResources
                 .stream()
-                .map(ValidationError::invalidNamespaceDeleteOperation)
+                .map(FormatErrorUtils::invalidNamespaceDeleteOperation)
                 .toList();
             throw new ResourceValidationException(NAMESPACE, namespace, validationErrors);
         }

@@ -21,7 +21,7 @@ class ExceptionHandlerControllerTest {
     @Test
     void resourceValidationError() {
         var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
-            new ResourceValidationException(List.of("Error1", "Error2"), "Topic", "Name"));
+            new ResourceValidationException("Topic", "Name", List.of("Error1", "Error2")));
         var status = response.body();
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatus());

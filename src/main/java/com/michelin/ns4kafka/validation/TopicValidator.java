@@ -1,13 +1,13 @@
 package com.michelin.ns4kafka.validation;
 
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidFieldValidationNull;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNameEmpty;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNameLength;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNameSpecChars;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicName;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicSpec;
 import static com.michelin.ns4kafka.utils.config.TopicConfig.PARTITIONS;
 import static com.michelin.ns4kafka.utils.config.TopicConfig.REPLICATION_FACTOR;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidFieldValidationNull;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNameEmpty;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNameLength;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidNameSpecChars;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidTopicName;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidTopicSpec;
 
 import com.michelin.ns4kafka.models.Topic;
 import io.micronaut.core.util.StringUtils;

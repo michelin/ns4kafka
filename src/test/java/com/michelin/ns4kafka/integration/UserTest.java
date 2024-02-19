@@ -196,14 +196,14 @@ class UserTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void updateUserFail_NotMatching() {
+    void shouldUpdateUserFailNotMatching() {
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
             () -> client.toBlocking().retrieve(
                 HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/users/user2/reset-password").bearerAuth(token),
                 KafkaUserResetPassword.class));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
-        assertEquals("Invalid user for user \"user2\": he does not belong to namespace.",
+        assertEquals("Invalid value \"user2\" for field \"user\": user does not belong to namespace.",
             exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
     }
 }

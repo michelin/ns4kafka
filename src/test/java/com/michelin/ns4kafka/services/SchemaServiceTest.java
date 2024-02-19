@@ -219,7 +219,7 @@ class SchemaServiceTest {
         StepVerifier.create(schemaService.validateSchemaCompatibility(namespace.getMetadata().getCluster(), schema))
             .consumeNextWith(errors -> {
                 assertEquals(1, errors.size());
-                assertTrue(errors.contains("Incompatible schema"));
+                assertTrue(errors.contains("Invalid \"prefix.schema-one-value\": incompatible schema."));
             })
             .verifyComplete();
     }
@@ -313,9 +313,10 @@ class SchemaServiceTest {
 
         StepVerifier.create(schemaService.validateSchema(namespace, schema))
             .consumeNextWith(errors -> {
-                assertTrue(errors.contains("Invalid value wrongSubjectName for name: "
-                    + "Value must end with -key or -value."));
-                assertTrue(errors.contains("Reference header-value version 1 not found."));
+                assertTrue(errors.contains("Invalid value \"wrongSubjectName\" for field \"name\": "
+                    + "value must end with -key or -value."));
+                assertTrue(errors.contains("Invalid value \"header-value\" for field \"references\": "
+                    + "subject header-value version 1 not found."));
             })
             .verifyComplete();
     }

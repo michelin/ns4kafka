@@ -72,7 +72,7 @@ class NamespaceServiceTest {
 
         List<String> result = namespaceService.validateCreation(ns);
         assertEquals(1, result.size());
-        assertEquals("Invalid value local for cluster: Cluster doesn't exist", result.get(0));
+        assertEquals("Invalid value \"local\" for field \"cluster\": cluster does not exist.", result.get(0));
 
     }
 
@@ -109,7 +109,8 @@ class NamespaceServiceTest {
 
         List<String> result = namespaceService.validateCreation(ns);
         assertEquals(1, result.size());
-        assertEquals("Invalid value user for user: KafkaUser already exists", result.get(0));
+        assertEquals("Invalid value \"user\" for field \"kafkaUser\": user already exists in another namespace.",
+            result.get(0));
 
     }
 
@@ -221,7 +222,8 @@ class NamespaceServiceTest {
         List<String> result = namespaceService.validate(ns);
 
         assertEquals(1, result.size());
-        assertEquals("Invalid value local-name for Connect Cluster: Connect Cluster doesn't exist", result.get(0));
+        assertEquals("Invalid value \"local-name\" for field \"connectClusters\": connect cluster does not exist.",
+            result.get(0));
     }
 
     @Test

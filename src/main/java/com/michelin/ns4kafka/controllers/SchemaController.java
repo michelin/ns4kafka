@@ -2,7 +2,7 @@ package com.michelin.ns4kafka.controllers;
 
 import static com.michelin.ns4kafka.models.Kind.SCHEMA;
 import static com.michelin.ns4kafka.models.Kind.SCHEMA_COMPAT;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidOwner;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidOwner;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
@@ -87,8 +87,8 @@ public class SchemaController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         if (!schemaService.isNamespaceOwnerOfSubject(ns, schema.getMetadata().getName())) {
-            throw new ResourceValidationException(SCHEMA, schema.getMetadata().getName(),
-                invalidOwner(schema.getMetadata().getName()));
+            return Mono.error(new ResourceValidationException(SCHEMA, schema.getMetadata().getName(),
+                invalidOwner(schema.getMetadata().getName())));
         }
 
         return schemaService.validateSchema(ns, schema)
@@ -155,7 +155,7 @@ public class SchemaController extends NamespacedResourceController {
 
         // Validate ownership
         if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
-            throw new ResourceValidationException(SCHEMA, subject, invalidOwner(subject));
+            return Mono.error(new ResourceValidationException(SCHEMA, subject, invalidOwner(subject)));
         }
 
         return schemaService.getLatestSubject(ns, subject)
@@ -197,7 +197,7 @@ public class SchemaController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
-            throw new ResourceValidationException(SCHEMA, subject, invalidOwner(subject));
+            return Mono.error(new ResourceValidationException(SCHEMA, subject, invalidOwner(subject)));
         }
 
         return schemaService.getLatestSubject(ns, subject)

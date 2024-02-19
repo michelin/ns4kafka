@@ -1,9 +1,9 @@
 package com.michelin.ns4kafka.services;
 
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectorConnectCluster;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectorEmptyConnectorClass;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectorNoPlugin;
 import static com.michelin.ns4kafka.utils.config.ConnectorConfig.CONNECTOR_CLASS;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConnectorConnectCluster;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConnectorEmptyConnectorClass;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidConnectorNoPlugin;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
@@ -12,7 +12,7 @@ import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import com.michelin.ns4kafka.services.clients.connect.KafkaConnectClient;
 import com.michelin.ns4kafka.services.clients.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
-import com.michelin.ns4kafka.utils.exceptions.error.ValidationError;
+import com.michelin.ns4kafka.utils.FormatErrorUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
@@ -181,7 +181,7 @@ public class ConnectorService {
                 .filter(configInfo -> !configInfo.configValue().errors().isEmpty())
                 .flatMap(configInfo -> configInfo.configValue().errors()
                     .stream()
-                    .map(ValidationError::invalidConnectorRemote))
+                    .map(error -> FormatErrorUtils.invalidConnectorRemote(connector.getMetadata().getName(), error)))
                 .toList());
     }
 

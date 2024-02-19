@@ -67,10 +67,12 @@ class AccessControlEntryServiceTest {
             .thenReturn(List.of());
         List<String> actual = accessControlEntryService.validate(badAcl, ns);
         assertLinesMatch(List.of(
-                "^Invalid value CONNECT for resourceType.*",
-                "^Invalid value OWNER for permission.*",
-                "^Invalid value target-ns for grantedTo.*",
-                "^Invalid grant PREFIXED:.*"),
+                "Invalid value \"CONNECT\" for field \"resourceType\": "
+                    + "value must be one of \"TOPIC, CONNECT_CLUSTER\".",
+                "Invalid value \"OWNER\" for field \"permission\": value must be one of \"READ, WRITE\".",
+                "Invalid value \"target-ns\" for field \"grantedTo\": resource not found.",
+                "Invalid value \"test/PREFIXED\" for fields \"resource/resourcePatternType\": "
+                    + "cannot grant ACL to yourself."),
             actual);
 
     }
@@ -106,10 +108,10 @@ class AccessControlEntryServiceTest {
             .thenReturn(List.of());
         List<String> actual = accessControlEntryService.validate(badAcl, ns);
         assertLinesMatch(List.of(
-                "^Invalid value namespace for grantedTo.*",
-                "^Invalid grant PREFIXED:.*"),
+                "Invalid value \"namespace\" for field \"grantedTo\": cannot grant ACL to yourself.",
+                "Invalid value \"test/PREFIXED\" for fields \"resource/resourcePatternType\": "
+                    + "cannot grant ACL to yourself."),
             actual);
-
     }
 
     @Test
@@ -150,7 +152,8 @@ class AccessControlEntryServiceTest {
                 .build()
             ));
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
-        assertLinesMatch(List.of("^Invalid grant PREFIXED:.*"), actual);
+        assertLinesMatch(List.of("Invalid value \"main/PREFIXED\" for fields \"resource/resourcePatternType\": "
+            + "cannot grant ACL to yourself."), actual);
     }
 
     @Test
@@ -193,7 +196,8 @@ class AccessControlEntryServiceTest {
                 .build()
             ));
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
-        assertLinesMatch(List.of("^Invalid grant LITERAL:.*"), actual);
+        assertLinesMatch(List.of("Invalid value \"resource2/LITERAL\" for fields \"resource/resourcePatternType\": "
+            + "cannot grant ACL to yourself."), actual);
     }
 
     @Test

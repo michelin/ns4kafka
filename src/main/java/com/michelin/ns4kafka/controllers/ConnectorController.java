@@ -1,8 +1,7 @@
 package com.michelin.ns4kafka.controllers;
 
 import static com.michelin.ns4kafka.models.Kind.CONNECTOR;
-import static com.michelin.ns4kafka.utils.exceptions.ResourceValidationMessage.INVALID_FIELD;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidOwner;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidOwner;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
@@ -41,8 +40,6 @@ import reactor.core.publisher.Mono;
 @Controller(value = "/api/namespaces/{namespace}/connectors")
 @ExecuteOn(TaskExecutors.IO)
 public class ConnectorController extends NamespacedResourceController {
-    private static final String NAMESPACE_NOT_OWNER = "Namespace not owner of this connector %s.";
-
     @Inject
     ConnectorService connectorService;
 
@@ -86,8 +83,8 @@ public class ConnectorController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         if (!connectorService.isNamespaceOwnerOfConnect(ns, connector.getMetadata().getName())) {
-            throw new ResourceValidationException(CONNECTOR, connector.getMetadata().getName(),
-                invalidOwner(connector.getMetadata().getName()));
+            return Mono.error(new ResourceValidationException(CONNECTOR, connector.getMetadata().getName(),
+                invalidOwner(connector.getMetadata().getName())));
         }
 
         // Set / Override name in spec.config.name, required for several Kafka Connect API calls
@@ -170,8 +167,7 @@ public class ConnectorController extends NamespacedResourceController {
 
         // Validate ownership
         if (!connectorService.isNamespaceOwnerOfConnect(ns, connector)) {
-            throw new ResourceValidationException(CONNECTOR, connector,
-                new InvalidOwner(connector));
+            return Mono.error(new ResourceValidationException(CONNECTOR, connector, invalidOwner(connector)));
         }
 
         Optional<Connector> optionalConnector = connectorService.findByName(ns, connector);
@@ -209,9 +205,7 @@ public class ConnectorController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         if (!connectorService.isNamespaceOwnerOfConnect(ns, connector)) {
-            throw new ResourceValidationException(List.of(String.format(INVALID_FIELD,
-                connector, "name", NAMESPACE_NOT_OWNER)),
-                CONNECTOR, connector);
+            return Mono.error(new ResourceValidationException(CONNECTOR, connector, invalidOwner(connector)));
         }
 
         Optional<Connector> optionalConnector = connectorService.findByName(ns, connector);

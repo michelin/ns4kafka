@@ -1,7 +1,8 @@
 package com.michelin.ns4kafka.services;
 
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidSchemaReference;
-import static com.michelin.ns4kafka.utils.exceptions.error.ValidationError.invalidSchemaSuffix;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidSchemaReference;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidSchemaResource;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidSchemaSuffix;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
@@ -13,7 +14,6 @@ import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilit
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
-import com.michelin.ns4kafka.utils.exceptions.error.ValidationError;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.micronaut.core.util.CollectionUtils;
@@ -255,7 +255,7 @@ public class SchemaService {
                 if (!schemaCompatibilityCheckOptional.get().isCompatible()) {
                     return schemaCompatibilityCheckOptional.get().messages()
                         .stream()
-                        .map(ValidationError::invalidSchemaResource)
+                        .map(error -> invalidSchemaResource(schema.getMetadata().getName(), error))
                         .toList();
                 }
 

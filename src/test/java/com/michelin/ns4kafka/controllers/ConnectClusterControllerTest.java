@@ -267,8 +267,8 @@ class ConnectClusterControllerTest {
 
         assertEquals(1, result.getValidationErrors().size());
         assertEquals(
-            "The Connect cluster connect-cluster has 1 deployed connector(s): connect1. "
-                + "Please remove the associated connector(s) before deleting it.",
+            "Invalid \"delete\" operation: The Kafka Connect \"connect-cluster\" has 1 deployed connector(s): "
+                + "connect1. Please remove the associated connector(s) before deleting it.",
             result.getValidationErrors().get(0));
     }
 
@@ -333,7 +333,8 @@ class ConnectClusterControllerTest {
             .consumeErrorWith(error -> {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
-                assertEquals("Namespace not owner of this Connect cluster connect-cluster.",
+                assertEquals(
+                    "Invalid value \"connect-cluster\" for field \"name\": namespace is not owner of the resource.",
                     ((ResourceValidationException) error).getValidationErrors().get(0));
             })
             .verify();
@@ -556,7 +557,8 @@ class ConnectClusterControllerTest {
         ResourceValidationException result = assertThrows(ResourceValidationException.class,
             () -> connectClusterController.vaultPassword("test", connectClusterName, secrets));
         assertEquals(1, result.getValidationErrors().size());
-        assertEquals("Namespace is not allowed to use this Connect cluster connect-cluster-na.",
+        assertEquals("Invalid value \"connect-cluster-na\" for field \"connect-cluster\": "
+                + "namespace is not allowed to use this Kafka Connect.",
             result.getValidationErrors().get(0));
     }
 
