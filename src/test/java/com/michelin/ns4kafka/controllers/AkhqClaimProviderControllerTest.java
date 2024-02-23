@@ -7,8 +7,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.properties.AkhqProperties;
 import com.michelin.ns4kafka.services.AccessControlEntryService;
 import com.michelin.ns4kafka.services.NamespaceService;
@@ -197,31 +197,31 @@ class AkhqClaimProviderControllerTest {
     @Test
     void generateClaimTestSuccess() {
         Namespace ns1 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1")
                 .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
                 .build())
             .build();
         Namespace ns2 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns2")
                 .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
                 .build())
             .build();
         Namespace ns3 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns3")
                 .labels(Map.of("support-group", "GP-PROJECT2-SUPPORT"))
                 .build())
             .build();
         Namespace ns4 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns4")
                 .labels(Map.of("other-key", "anything"))
                 .build())
             .build();
         Namespace ns5 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns5")
                 .build())
             .build();
@@ -345,31 +345,31 @@ class AkhqClaimProviderControllerTest {
     @Test
     void generateClaimV2TestSuccess() {
         Namespace ns1 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1")
                 .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
                 .build())
             .build();
         Namespace ns2 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns2")
                 .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
                 .build())
             .build();
         Namespace ns3 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns3")
                 .labels(Map.of("support-group", "GP-PROJECT2-SUPPORT"))
                 .build())
             .build();
         Namespace ns4 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns4")
                 .labels(Map.of("other-key", "anything"))
                 .build())
             .build();
         Namespace ns5 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns5")
                 .build())
             .build();

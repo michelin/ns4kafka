@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.models;
 
+import static com.michelin.ns4kafka.utils.enums.Kind.ACCESS_CONTROL_ENTRY;
+
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -7,27 +9,31 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 /**
  * Access control entry.
  */
 @Data
-@Builder
 @Introspected
-@NoArgsConstructor
-@AllArgsConstructor
-public class AccessControlEntry {
-    private static final String apiVersion = "v1";
-    public static final String kind = "AccessControlEntry";
-
-    @Valid
-    @NotNull
-    private ObjectMeta metadata;
-
+@EqualsAndHashCode(callSuper = true)
+public class AccessControlEntry extends MetadataResource {
     @Valid
     @NotNull
     private AccessControlEntrySpec spec;
+
+    /**
+     * Constructor.
+     *
+     * @param metadata The metadata
+     * @param spec     The spec
+     */
+    @Builder
+    public AccessControlEntry(Metadata metadata, AccessControlEntrySpec spec) {
+        super("v1", ACCESS_CONTROL_ENTRY, metadata);
+        this.spec = spec;
+    }
 
     /**
      * Resource type managed by Ns4kafka.

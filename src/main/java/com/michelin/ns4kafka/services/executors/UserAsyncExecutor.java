@@ -1,8 +1,8 @@
 package com.michelin.ns4kafka.services.executors;
 
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidResetPasswordProvider;
+import static com.michelin.ns4kafka.utils.enums.Kind.KAFKA_USER_RESET_PASSWORD;
 
-import com.michelin.ns4kafka.models.KafkaUserResetPassword;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
@@ -122,7 +122,7 @@ public class UserAsyncExecutor {
         if (userExecutor.canResetPassword()) {
             return userExecutor.resetPassword(user);
         } else {
-            throw new ResourceValidationException(KafkaUserResetPassword.kind, user,
+            throw new ResourceValidationException(KAFKA_USER_RESET_PASSWORD, user,
                 invalidResetPasswordProvider(managedClusterProperties.getProvider()));
         }
     }

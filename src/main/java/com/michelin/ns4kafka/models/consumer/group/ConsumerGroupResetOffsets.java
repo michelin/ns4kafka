@@ -1,6 +1,9 @@
 package com.michelin.ns4kafka.models.consumer.group;
 
-import com.michelin.ns4kafka.models.ObjectMeta;
+import static com.michelin.ns4kafka.utils.enums.Kind.CONSUMER_GROUP_RESET_OFFSET;
+
+import com.michelin.ns4kafka.models.Metadata;
+import com.michelin.ns4kafka.models.MetadataResource;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -8,6 +11,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -17,21 +21,24 @@ import lombok.ToString;
  * Consumer group reset offsets.
  */
 @Data
-@Builder
 @Introspected
-@NoArgsConstructor
-@AllArgsConstructor
-public class ConsumerGroupResetOffsets {
-    private static final String apiVersion = "v1";
-    public static final String kind = "ConsumerGroupResetOffsets";
-
-    @Valid
-    @NotNull
-    private ObjectMeta metadata;
-
+@EqualsAndHashCode(callSuper = true)
+public class ConsumerGroupResetOffsets extends MetadataResource {
     @Valid
     @NotNull
     private ConsumerGroupResetOffsetsSpec spec;
+
+    /**
+     * Constructor.
+     *
+     * @param metadata The metadata
+     * @param spec     The spec
+     */
+    @Builder
+    public ConsumerGroupResetOffsets(Metadata metadata, ConsumerGroupResetOffsetsSpec spec) {
+        super("v1", CONSUMER_GROUP_RESET_OFFSET, metadata);
+        this.spec = spec;
+    }
 
     /**
      * Represents the reset offsets method.

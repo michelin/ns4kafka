@@ -9,8 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.models.AuditLog;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
@@ -45,7 +45,7 @@ class NamespaceControllerTest {
     @Test
     void applyCreateInvalid() {
         Namespace toCreate = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("new-namespace")
                 .cluster("local")
                 .build())
@@ -63,7 +63,7 @@ class NamespaceControllerTest {
     @Test
     void applyCreateSuccess() {
         Namespace toCreate = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("new-namespace")
                 .cluster("local")
                 .build())
@@ -88,7 +88,7 @@ class NamespaceControllerTest {
     @Test
     void applyCreateDryRun() {
         Namespace toCreate = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("new-namespace")
                 .cluster("local")
                 .build())
@@ -106,7 +106,7 @@ class NamespaceControllerTest {
     @Test
     void applyUpdateInvalid() {
         Namespace existing = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -115,7 +115,7 @@ class NamespaceControllerTest {
                 .build())
             .build();
         Namespace toUpdate = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local-change")
                 .build())
@@ -137,7 +137,7 @@ class NamespaceControllerTest {
     @Test
     void applyUpdateSuccess() {
         Namespace existing = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -146,7 +146,7 @@ class NamespaceControllerTest {
                 .build())
             .build();
         Namespace toUpdate = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .labels(Map.of("new", "label"))
@@ -177,7 +177,7 @@ class NamespaceControllerTest {
     @Test
     void applyUpdateSuccess_AlreadyExists() {
         Namespace existing = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .namespace("namespace")
                 .cluster("local")
@@ -187,7 +187,7 @@ class NamespaceControllerTest {
                 .build())
             .build();
         Namespace toUpdate = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -208,7 +208,7 @@ class NamespaceControllerTest {
     @Test
     void applyUpdateDryRun() {
         Namespace existing = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -217,7 +217,7 @@ class NamespaceControllerTest {
                 .build())
             .build();
         Namespace toUpdate = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .labels(Map.of("new", "label"))
@@ -237,7 +237,7 @@ class NamespaceControllerTest {
     @Test
     void deleteSuccess() {
         Namespace existing = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -260,7 +260,7 @@ class NamespaceControllerTest {
     @Test
     void deleteSuccessDryRun() {
         Namespace existing = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -294,7 +294,7 @@ class NamespaceControllerTest {
     @Test
     void deleteFailNamespaceNotEmpty() {
         Namespace existing = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())

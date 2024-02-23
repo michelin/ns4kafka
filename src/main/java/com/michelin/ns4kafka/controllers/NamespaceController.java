@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.controllers;
 
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidImmutableValue;
+import static com.michelin.ns4kafka.utils.enums.Kind.NAMESPACE;
 
 import com.michelin.ns4kafka.controllers.generic.NonNamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
@@ -82,7 +83,7 @@ public class NamespaceController extends NonNamespacedResourceController {
         validationErrors.addAll(namespaceService.validate(namespace));
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(Namespace.kind, namespace.getMetadata().getName(), validationErrors);
+            throw new ResourceValidationException(namespace, validationErrors);
         }
 
         namespace.getMetadata().setNamespace(namespace.getMetadata().getName());
@@ -98,10 +99,7 @@ public class NamespaceController extends NonNamespacedResourceController {
             return formatHttpResponse(namespace, status);
         }
 
-        sendEventLog(Namespace.kind,
-            namespace.getMetadata(),
-            status,
-            existingNamespace.<Object>map(Namespace::getSpec).orElse(null),
+        sendEventLog(namespace, status, existingNamespace.<Object>map(Namespace::getSpec).orElse(null),
             namespace.getSpec());
 
         return formatHttpResponse(namespaceService.createOrUpdate(namespace), status);
@@ -127,7 +125,7 @@ public class NamespaceController extends NonNamespacedResourceController {
                 .stream()
                 .map(FormatErrorUtils::invalidNamespaceDeleteOperation)
                 .toList();
-            throw new ResourceValidationException(Namespace.kind, namespace, validationErrors);
+            throw new ResourceValidationException(NAMESPACE, namespace, validationErrors);
         }
 
         if (dryrun) {
@@ -135,11 +133,7 @@ public class NamespaceController extends NonNamespacedResourceController {
         }
 
         var namespaceToDelete = optionalNamespace.get();
-        sendEventLog(Namespace.kind,
-            namespaceToDelete.getMetadata(),
-            ApplyStatus.deleted,
-            namespaceToDelete.getSpec(),
-            null);
+        sendEventLog(namespaceToDelete, ApplyStatus.deleted, namespaceToDelete.getSpec(), null);
         namespaceService.delete(optionalNamespace.get());
         return HttpResponse.noContent();
     }

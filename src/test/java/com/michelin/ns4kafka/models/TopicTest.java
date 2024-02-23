@@ -10,7 +10,7 @@ class TopicTest {
     @Test
     void testEquals() {
         Topic original = Topic.builder()
-            .metadata(ObjectMeta.builder().name("topic1").build())
+            .metadata(Metadata.builder().name("topic1").build())
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
@@ -21,7 +21,7 @@ class TopicTest {
             .build();
 
         Topic same = Topic.builder()
-            .metadata(ObjectMeta.builder().name("topic1").build())
+            .metadata(Metadata.builder().name("topic1").build())
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
@@ -34,7 +34,7 @@ class TopicTest {
         assertEquals(original, same);
 
         Topic differentByMetadata = Topic.builder()
-            .metadata(ObjectMeta.builder().name("topic2").build())
+            .metadata(Metadata.builder().name("topic2").build())
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
@@ -47,7 +47,7 @@ class TopicTest {
         assertNotEquals(original, differentByMetadata);
 
         Topic differentByReplicationFactor = Topic.builder()
-            .metadata(ObjectMeta.builder().name("topic2").build())
+            .metadata(Metadata.builder().name("topic2").build())
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(99)
                 .partitions(3)
@@ -60,7 +60,7 @@ class TopicTest {
         assertNotEquals(original, differentByReplicationFactor);
 
         Topic differentByPartitions = Topic.builder()
-            .metadata(ObjectMeta.builder().name("topic2").build())
+            .metadata(Metadata.builder().name("topic2").build())
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(99)
@@ -73,7 +73,7 @@ class TopicTest {
         assertNotEquals(original, differentByPartitions);
 
         Topic differentByConfigs = Topic.builder()
-            .metadata(ObjectMeta.builder().name("topic2").build())
+            .metadata(Metadata.builder().name("topic2").build())
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)

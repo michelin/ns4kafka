@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.controllers;
 
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConsumerGroupOperation;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidOwner;
+import static com.michelin.ns4kafka.utils.enums.Kind.CONSUMER_GROUP_RESET_OFFSET;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
@@ -56,7 +57,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
         }
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(ConsumerGroupResetOffsets.kind, consumerGroup, validationErrors);
+            throw new ResourceValidationException(CONSUMER_GROUP_RESET_OFFSET, consumerGroup, validationErrors);
         }
 
         Namespace ns = getNamespace(namespace);
@@ -71,7 +72,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
             // Validate Consumer Group is dead or inactive
             String currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
             if (!List.of("Empty", "Dead").contains(currentState)) {
-                throw new ResourceValidationException(ConsumerGroupResetOffsets.kind, consumerGroup,
+                throw new ResourceValidationException(CONSUMER_GROUP_RESET_OFFSET, consumerGroup,
                     invalidConsumerGroupOperation(consumerGroup, currentState.toLowerCase()));
             }
 
@@ -85,11 +86,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
                 consumerGroupResetOffsets.getSpec().getMethod());
 
             if (!dryrun) {
-                sendEventLog(ConsumerGroupResetOffsets.kind,
-                    consumerGroupResetOffsets.getMetadata(),
-                    ApplyStatus.changed,
-                    null,
-                    consumerGroupResetOffsets.getSpec());
+                sendEventLog(consumerGroupResetOffsets, ApplyStatus.changed, null, consumerGroupResetOffsets.getSpec());
                 consumerGroupService.alterConsumerGroupOffsets(ns, consumerGroup, preparedOffsets);
             }
 

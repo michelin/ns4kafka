@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.controllers;
 
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidOwner;
+import static com.michelin.ns4kafka.utils.enums.Kind.SCHEMA;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
@@ -85,7 +86,7 @@ public class SchemaController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         if (!schemaService.isNamespaceOwnerOfSubject(ns, schema.getMetadata().getName())) {
-            return Mono.error(new ResourceValidationException(Schema.kind, schema.getMetadata().getName(),
+            return Mono.error(new ResourceValidationException(schema,
                 invalidOwner(schema.getMetadata().getName())));
         }
 
@@ -93,7 +94,7 @@ public class SchemaController extends NamespacedResourceController {
             .flatMap(errors -> {
                 if (!errors.isEmpty()) {
                     return Mono.error(
-                        new ResourceValidationException(Schema.kind, schema.getMetadata().getName(), errors));
+                        new ResourceValidationException(schema, errors));
                 }
 
                 return schemaService.getAllSubjectVersions(ns, schema.getMetadata().getName())
@@ -108,8 +109,7 @@ public class SchemaController extends NamespacedResourceController {
                                 .validateSchemaCompatibility(ns.getMetadata().getCluster(), schema)
                                 .flatMap(validationErrors -> {
                                     if (!validationErrors.isEmpty()) {
-                                        return Mono.error(new ResourceValidationException(Schema.kind,
-                                            schema.getMetadata().getName(), validationErrors));
+                                        return Mono.error(new ResourceValidationException(schema, validationErrors));
                                     }
 
                                     schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
@@ -125,7 +125,7 @@ public class SchemaController extends NamespacedResourceController {
                                     return schemaService
                                         .register(ns, schema)
                                         .map(id -> {
-                                            sendEventLog(Schema.kind, schema.getMetadata(), status,
+                                            sendEventLog(schema, status,
                                                 oldSchemas.isEmpty() ? null : oldSchemas.stream()
                                                     .max(Comparator.comparingInt(
                                                         (Schema s) -> s.getSpec().getId())),
@@ -154,7 +154,7 @@ public class SchemaController extends NamespacedResourceController {
 
         // Validate ownership
         if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
-            return Mono.error(new ResourceValidationException(Schema.kind, subject, invalidOwner(subject)));
+            return Mono.error(new ResourceValidationException(SCHEMA, subject, invalidOwner(subject)));
         }
 
         return schemaService.getLatestSubject(ns, subject)
@@ -170,11 +170,7 @@ public class SchemaController extends NamespacedResourceController {
                 }
 
                 Schema schemaToDelete = latestSubjectOptional.get();
-                sendEventLog(Schema.kind,
-                    schemaToDelete.getMetadata(),
-                    ApplyStatus.deleted,
-                    schemaToDelete.getSpec(),
-                    null);
+                sendEventLog(schemaToDelete, ApplyStatus.deleted, schemaToDelete.getSpec(), null);
 
                 return schemaService
                     .deleteSubject(ns, subject)
@@ -196,7 +192,7 @@ public class SchemaController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
-            return Mono.error(new ResourceValidationException(Schema.kind, subject, invalidOwner(subject)));
+            return Mono.error(new ResourceValidationException(SCHEMA, subject, invalidOwner(subject)));
         }
 
         return schemaService.getLatestSubject(ns, subject)
@@ -221,11 +217,8 @@ public class SchemaController extends NamespacedResourceController {
                 return schemaService
                     .updateSubjectCompatibility(ns, latestSubjectOptional.get(), compatibility)
                     .map(schemaCompatibility -> {
-                        sendEventLog(SchemaCompatibilityState.kind,
-                            latestSubjectOptional.get().getMetadata(),
-                            ApplyStatus.changed,
-                            latestSubjectOptional.get().getSpec().getCompatibility(),
-                            compatibility);
+                        sendEventLog(latestSubjectOptional.get(), ApplyStatus.changed,
+                            latestSubjectOptional.get().getSpec().getCompatibility(), compatibility);
 
                         return HttpResponse.ok(state);
                     });

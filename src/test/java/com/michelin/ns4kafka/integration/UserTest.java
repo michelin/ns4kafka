@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.models.KafkaUserResetPassword;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Status;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.services.executors.UserAsyncExecutor;
@@ -49,7 +49,7 @@ class UserTest extends AbstractIntegrationTest {
     @BeforeAll
     void init() {
         Namespace ns1 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1")
                 .cluster("test-cluster")
                 .labels(Map.of("support-group", "LDAP-GROUP-1"))
@@ -62,7 +62,7 @@ class UserTest extends AbstractIntegrationTest {
             .build();
 
         Namespace ns2 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns2")
                 .cluster("test-cluster")
                 .labels(Map.of("support-group", "LDAP-GROUP-2"))
@@ -87,7 +87,7 @@ class UserTest extends AbstractIntegrationTest {
             .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns2));
 
         ResourceQuota rqNs2 = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("rqNs2")
                 .namespace("ns2")
                 .build())
@@ -100,7 +100,7 @@ class UserTest extends AbstractIntegrationTest {
             HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns2/resource-quotas").bearerAuth(token).body(rqNs2));
 
         Namespace ns3 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns3")
                 .cluster("test-cluster")
                 .labels(Map.of("support-group", "LDAP-GROUP-3"))
@@ -152,7 +152,7 @@ class UserTest extends AbstractIntegrationTest {
     void checkUpdateQuotas() throws ExecutionException, InterruptedException {
         // Update the namespace user quotas
         ResourceQuota rq3 = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("rqNs3")
                 .namespace("ns3")
                 .build())

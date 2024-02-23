@@ -139,7 +139,7 @@ class ConnectValidatorTest {
             .build();
 
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .build())
             .build();
 
@@ -154,7 +154,7 @@ class ConnectValidatorTest {
             .build();
 
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name(
                     "$thisNameIsDefinitelyToLooooooooooooooooooooooooooooooooooooooooooo"
                         + "ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
@@ -208,7 +208,7 @@ class ConnectValidatorTest {
             .build();
 
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("connect2")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -242,7 +242,7 @@ class ConnectValidatorTest {
             .build();
 
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("connect2")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -264,7 +264,7 @@ class ConnectValidatorTest {
             .build();
 
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("connect2")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -303,7 +303,7 @@ class ConnectValidatorTest {
             .build();
 
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("connect2")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -343,7 +343,7 @@ class ConnectValidatorTest {
             .build();
 
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("connect2")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -384,7 +384,7 @@ class ConnectValidatorTest {
             .build();
 
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("connect2")
                 .build())
             .spec(Connector.ConnectorSpec.builder()

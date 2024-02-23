@@ -3,8 +3,8 @@ package com.michelin.ns4kafka.security;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
@@ -134,7 +134,7 @@ class ResourceBasedSecurityRuleTest {
 
         when(roleBindingRepository.findAllForGroups(groups))
             .thenReturn(List.of(RoleBinding.builder()
-                .metadata(ObjectMeta.builder().namespace("test")
+                .metadata(Metadata.builder().namespace("test")
                     .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                     .role(RoleBinding.Role.builder()
@@ -161,7 +161,7 @@ class ResourceBasedSecurityRuleTest {
 
         when(roleBindingRepository.findAllForGroups(groups))
             .thenReturn(List.of(RoleBinding.builder()
-                .metadata(ObjectMeta.builder().namespace("test")
+                .metadata(Metadata.builder().namespace("test")
                     .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                     .role(RoleBinding.Role.builder()
@@ -195,7 +195,7 @@ class ResourceBasedSecurityRuleTest {
 
         when(roleBindingRepository.findAllForGroups(groups))
             .thenReturn(List.of(RoleBinding.builder()
-                .metadata(ObjectMeta.builder()
+                .metadata(Metadata.builder()
                     .namespace(namespace)
                     .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
@@ -228,7 +228,7 @@ class ResourceBasedSecurityRuleTest {
 
         assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
-    
+
     @Test
     void checkReturnsAllowedResourceWithHyphen() {
         List<String> groups = List.of("group1");
@@ -237,7 +237,7 @@ class ResourceBasedSecurityRuleTest {
 
         when(roleBindingRepository.findAllForGroups(groups))
             .thenReturn(List.of(RoleBinding.builder()
-                .metadata(ObjectMeta.builder().namespace("test")
+                .metadata(Metadata.builder().namespace("test")
                     .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                     .role(RoleBinding.Role.builder()
@@ -264,7 +264,7 @@ class ResourceBasedSecurityRuleTest {
 
         when(roleBindingRepository.findAllForGroups(groups))
             .thenReturn(List.of(RoleBinding.builder()
-                .metadata(ObjectMeta.builder().namespace("test")
+                .metadata(Metadata.builder().namespace("test")
                     .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                     .role(RoleBinding.Role.builder()
@@ -294,7 +294,7 @@ class ResourceBasedSecurityRuleTest {
             .thenReturn(Optional.of(Namespace.builder().build()));
         when(roleBindingRepository.findAllForGroups(groups))
             .thenReturn(List.of(RoleBinding.builder()
-                .metadata(ObjectMeta.builder().namespace("test")
+                .metadata(Metadata.builder().namespace("test")
                     .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                     .role(RoleBinding.Role.builder()
@@ -322,7 +322,7 @@ class ResourceBasedSecurityRuleTest {
             .thenReturn(Optional.of(Namespace.builder().build()));
         when(roleBindingRepository.findAllForGroups(groups))
             .thenReturn(List.of(RoleBinding.builder()
-                .metadata(ObjectMeta.builder().namespace("test")
+                .metadata(Metadata.builder().namespace("test")
                     .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                     .role(RoleBinding.Role.builder()

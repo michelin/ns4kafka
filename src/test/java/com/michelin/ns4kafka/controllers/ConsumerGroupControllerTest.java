@@ -15,8 +15,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.models.AuditLog;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets.ConsumerGroupResetOffsetsSpec;
 import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets.ResetOffsetsMethod;
@@ -60,14 +60,14 @@ class ConsumerGroupControllerTest {
     @Test
     void resetSuccess() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
 
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("groupID")
                 .cluster("local")
                 .build())
@@ -127,14 +127,14 @@ class ConsumerGroupControllerTest {
     @Test
     void resetDryRunSuccess() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
 
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("groupID")
                 .cluster("local")
                 .build())
@@ -189,14 +189,14 @@ class ConsumerGroupControllerTest {
     @Test
     void resetExecutionError() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
 
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("groupID")
                 .cluster("local")
                 .build())
@@ -226,7 +226,7 @@ class ConsumerGroupControllerTest {
     @Test
     void resetValidationErrorNotOwnerOfConsumerGroup() {
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("groupID")
                 .cluster("local")
                 .build())
@@ -252,7 +252,7 @@ class ConsumerGroupControllerTest {
     @Test
     void resetValidationErrorInvalidResource() {
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("groupID")
                 .cluster("local")
                 .build())
@@ -276,14 +276,14 @@ class ConsumerGroupControllerTest {
     @Test
     void resetValidationErrorConsumerGroupActive() throws ExecutionException, InterruptedException {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
 
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("groupID")
                 .cluster("local")
                 .build())

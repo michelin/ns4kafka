@@ -6,8 +6,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets.ConsumerGroupResetOffsetsSpec;
 import com.michelin.ns4kafka.models.consumer.group.ConsumerGroupResetOffsets.ResetOffsetsMethod;
@@ -298,7 +298,7 @@ class ConsumerGroupServiceTest {
     @Test
     void doGetPartitionsToResetAllTopic() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("test")
                 .build())
             .build();
@@ -327,7 +327,7 @@ class ConsumerGroupServiceTest {
     @Test
     void doGetPartitionsToResetOneTopic() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("test")
                 .build())
             .build();
@@ -351,7 +351,7 @@ class ConsumerGroupServiceTest {
     @Test
     void doGetPartitionsToResetOneTopicPartition() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("test")
                 .build())
             .build();
@@ -369,7 +369,7 @@ class ConsumerGroupServiceTest {
     @Test
     void doPrepareOffsetsToResetShiftBy() throws ExecutionException, InterruptedException {
         Namespace namespace = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("test")
                 .build())
             .build();

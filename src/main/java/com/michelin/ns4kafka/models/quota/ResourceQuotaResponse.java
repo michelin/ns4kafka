@@ -1,11 +1,16 @@
 package com.michelin.ns4kafka.models.quota;
 
-import com.michelin.ns4kafka.models.ObjectMeta;
+import static com.michelin.ns4kafka.utils.enums.Kind.RESOURCE_QUOTA_RESPONSE;
+
+import com.michelin.ns4kafka.models.Metadata;
+import com.michelin.ns4kafka.models.MetadataResource;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -13,22 +18,25 @@ import lombok.ToString;
 /**
  * Resource quota response.
  */
-@Getter
-@Builder
+@Data
 @Introspected
-@NoArgsConstructor
-@AllArgsConstructor
-public class ResourceQuotaResponse {
-    private static final String apiVersion = "v1";
-    public static final String kind = "ResourceQuotaResponse";
-
-    @Valid
-    @NotNull
-    private ObjectMeta metadata;
-
+@EqualsAndHashCode(callSuper = true)
+public class ResourceQuotaResponse extends MetadataResource {
     @Valid
     @NotNull
     private ResourceQuotaResponseSpec spec;
+
+    /**
+     * Constructor.
+     *
+     * @param metadata The metadata
+     * @param spec     The spec
+     */
+    @Builder
+    public ResourceQuotaResponse(Metadata metadata, ResourceQuotaResponseSpec spec) {
+        super("v1", RESOURCE_QUOTA_RESPONSE, metadata);
+        this.spec = spec;
+    }
 
     /**
      * Resource quota response spec.

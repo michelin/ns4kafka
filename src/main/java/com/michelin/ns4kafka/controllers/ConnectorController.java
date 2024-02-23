@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.controllers;
 
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidOwner;
+import static com.michelin.ns4kafka.utils.enums.Kind.CONNECTOR;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
@@ -82,7 +83,7 @@ public class ConnectorController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         if (!connectorService.isNamespaceOwnerOfConnect(ns, connector.getMetadata().getName())) {
-            return Mono.error(new ResourceValidationException(Connector.kind, connector.getMetadata().getName(),
+            return Mono.error(new ResourceValidationException(connector,
                 invalidOwner(connector.getMetadata().getName())));
         }
 
@@ -100,8 +101,7 @@ public class ConnectorController extends NamespacedResourceController {
         return connectorService.validateLocally(ns, connector)
             .flatMap(validationErrors -> {
                 if (!validationErrors.isEmpty()) {
-                    return Mono.error(new ResourceValidationException(Connector.kind, connector.getMetadata().getName(),
-                        validationErrors));
+                    return Mono.error(new ResourceValidationException(connector, validationErrors));
                 }
 
                 // Validate against connect rest API /validate
@@ -109,8 +109,7 @@ public class ConnectorController extends NamespacedResourceController {
                     .flatMap(remoteValidationErrors -> {
                         if (!remoteValidationErrors.isEmpty()) {
                             return Mono.error(
-                                new ResourceValidationException(Connector.kind, connector.getMetadata().getName(),
-                                    remoteValidationErrors));
+                                new ResourceValidationException(connector, remoteValidationErrors));
                         }
 
                         // Augment with server side fields
@@ -133,8 +132,7 @@ public class ConnectorController extends NamespacedResourceController {
                         if (status.equals(ApplyStatus.created)) {
                             List<String> quotaErrors = resourceQuotaService.validateConnectorQuota(ns);
                             if (!quotaErrors.isEmpty()) {
-                                return Mono.error(new ResourceValidationException(Connector.kind,
-                                    connector.getMetadata().getName(), quotaErrors));
+                                return Mono.error(new ResourceValidationException(connector, quotaErrors));
                             }
                         }
 
@@ -142,8 +140,8 @@ public class ConnectorController extends NamespacedResourceController {
                             return Mono.just(formatHttpResponse(connector, status));
                         }
 
-                        sendEventLog(Connector.kind, connector.getMetadata(), status,
-                            existingConnector.<Object>map(Connector::getSpec).orElse(null), connector.getSpec());
+                        sendEventLog(connector, status, existingConnector.<Object>map(Connector::getSpec).orElse(null),
+                            connector.getSpec());
 
                         return Mono.just(formatHttpResponse(connectorService.createOrUpdate(connector), status));
                     });
@@ -166,7 +164,7 @@ public class ConnectorController extends NamespacedResourceController {
 
         // Validate ownership
         if (!connectorService.isNamespaceOwnerOfConnect(ns, connector)) {
-            return Mono.error(new ResourceValidationException(Connector.kind, connector, invalidOwner(connector)));
+            return Mono.error(new ResourceValidationException(CONNECTOR, connector, invalidOwner(connector)));
         }
 
         Optional<Connector> optionalConnector = connectorService.findByName(ns, connector);
@@ -179,11 +177,7 @@ public class ConnectorController extends NamespacedResourceController {
         }
 
         Connector connectorToDelete = optionalConnector.get();
-        sendEventLog(Connector.kind,
-            connectorToDelete.getMetadata(),
-            ApplyStatus.deleted,
-            connectorToDelete.getSpec(),
-            null);
+        sendEventLog(connectorToDelete, ApplyStatus.deleted, connectorToDelete.getSpec(), null);
 
         return connectorService
             .delete(ns, optionalConnector.get())
@@ -204,7 +198,7 @@ public class ConnectorController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         if (!connectorService.isNamespaceOwnerOfConnect(ns, connector)) {
-            return Mono.error(new ResourceValidationException(Connector.kind, connector, invalidOwner(connector)));
+            return Mono.error(new ResourceValidationException(CONNECTOR, connector, invalidOwner(connector)));
         }
 
         Optional<Connector> optionalConnector = connectorService.findByName(ns, connector);
@@ -266,8 +260,7 @@ public class ConnectorController extends NamespacedResourceController {
                     return unsynchronizedConnector;
                 }
 
-                sendEventLog(Connector.kind, unsynchronizedConnector.getMetadata(),
-                    ApplyStatus.created, null, unsynchronizedConnector.getSpec());
+                sendEventLog(unsynchronizedConnector, ApplyStatus.created, null, unsynchronizedConnector.getSpec());
 
                 return connectorService.createOrUpdate(unsynchronizedConnector);
             });

@@ -5,8 +5,8 @@ import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidSchemaResource
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidSchemaSuffix;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.schema.Schema;
 import com.michelin.ns4kafka.models.schema.SchemaList;
 import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
@@ -64,7 +64,7 @@ public class SchemaService {
                     });
             })
             .map(subject -> SchemaList.builder()
-                .metadata(ObjectMeta.builder()
+                .metadata(Metadata.builder()
                     .cluster(namespace.getMetadata().getCluster())
                     .namespace(namespace.getMetadata().getName())
                     .name(subject)
@@ -82,7 +82,7 @@ public class SchemaService {
     public Flux<Schema> getAllSubjectVersions(Namespace namespace, String subject) {
         return schemaRegistryClient.getAllSubjectVersions(namespace.getMetadata().getCluster(), subject)
             .map(subjectResponse -> Schema.builder()
-                .metadata(ObjectMeta.builder()
+                .metadata(Metadata.builder()
                     .cluster(namespace.getMetadata().getCluster())
                     .namespace(namespace.getMetadata().getName())
                     .name(subjectResponse.subject())
@@ -119,7 +119,7 @@ public class SchemaService {
                         ? currentCompatibilityOptional.get().compatibilityLevel() : Schema.Compatibility.GLOBAL;
 
                     return Schema.builder()
-                        .metadata(ObjectMeta.builder()
+                        .metadata(Metadata.builder()
                             .cluster(namespace.getMetadata().getCluster())
                             .namespace(namespace.getMetadata().getName())
                             .name(latestSubjectOptional.subject())

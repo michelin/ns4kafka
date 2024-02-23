@@ -17,8 +17,8 @@ import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidQuotaOperation
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidQuotaOperationCannotAdd;
 import static org.apache.kafka.common.config.TopicConfig.RETENTION_BYTES_CONFIG;
 
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.models.quota.ResourceQuotaResponse;
@@ -386,7 +386,7 @@ public class ResourceQuotaService {
             String.format(USER_QUOTA_RESPONSE_FORMAT, UserAsyncExecutor.BYTE_RATE_DEFAULT_VALUE);
 
         return ResourceQuotaResponse.builder()
-            .metadata(resourceQuota.map(ResourceQuota::getMetadata).orElse(ObjectMeta.builder()
+            .metadata(resourceQuota.map(ResourceQuota::getMetadata).orElse(Metadata.builder()
                 .namespace(namespace.getMetadata().getName())
                 .cluster(namespace.getMetadata().getCluster())
                 .build()))

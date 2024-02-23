@@ -11,8 +11,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.models.AuditLog;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.connector.ChangeConnectorState;
 import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
@@ -62,7 +62,7 @@ class ConnectorControllerTest {
     @Test
     void listEmptyConnectors() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -80,7 +80,7 @@ class ConnectorControllerTest {
     @Test
     void listMultipleConnectors() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -90,8 +90,8 @@ class ConnectorControllerTest {
             .thenReturn(Optional.of(ns));
         when(connectorService.findAllForNamespace(ns))
             .thenReturn(List.of(
-                Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
-                Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
+                Connector.builder().metadata(Metadata.builder().name("connect1").build()).build(),
+                Connector.builder().metadata(Metadata.builder().name("connect2").build()).build()));
 
         List<Connector> actual = connectorController.list("test");
         assertEquals(2, actual.size());
@@ -100,7 +100,7 @@ class ConnectorControllerTest {
     @Test
     void getConnectorEmpty() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -118,7 +118,7 @@ class ConnectorControllerTest {
     @Test
     void getConnector() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -128,7 +128,7 @@ class ConnectorControllerTest {
             .thenReturn(Optional.of(ns));
         when(connectorService.findByName(ns, "connect1"))
             .thenReturn(Optional.of(
-                Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build()));
+                Connector.builder().metadata(Metadata.builder().name("connect1").build()).build()));
 
         Optional<Connector> actual = connectorController.getConnector("test", "connect1");
         assertTrue(actual.isPresent());
@@ -138,7 +138,7 @@ class ConnectorControllerTest {
     @Test
     void deleteConnectorNotOwned() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -162,13 +162,13 @@ class ConnectorControllerTest {
     @Test
     void deleteConnectorOwned() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
 
-        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Connector connector = Connector.builder().metadata(Metadata.builder().name("connect1").build()).build();
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
@@ -189,12 +189,12 @@ class ConnectorControllerTest {
     @Test
     void deleteConnectorOwnedDryRun() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
-        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Connector connector = Connector.builder().metadata(Metadata.builder().name("connect1").build()).build();
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
@@ -213,7 +213,7 @@ class ConnectorControllerTest {
     @Test
     void deleteConnectorNotFound() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -235,9 +235,9 @@ class ConnectorControllerTest {
 
     @Test
     void createConnectorNotOwner() {
-        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Connector connector = Connector.builder().metadata(Metadata.builder().name("connect1").build()).build();
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -261,12 +261,12 @@ class ConnectorControllerTest {
     @Test
     void createConnectorLocalErrors() {
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder().name("connect1").build())
+            .metadata(Metadata.builder().name("connect1").build())
             .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
             .build();
 
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -291,12 +291,12 @@ class ConnectorControllerTest {
     @Test
     void createConnectorRemoteErrors() {
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder().name("connect1").build())
+            .metadata(Metadata.builder().name("connect1").build())
             .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
             .build();
 
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -324,17 +324,17 @@ class ConnectorControllerTest {
     @Test
     void createConnectorSuccess() {
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder().name("connect1").build())
+            .metadata(Metadata.builder().name("connect1").build())
             .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
             .build();
         Connector expected = Connector.builder()
-            .metadata(ObjectMeta.builder().name("connect1").build())
+            .metadata(Metadata.builder().name("connect1").build())
             .spec(Connector.ConnectorSpec.builder().config(Map.of("name", "connect1")).build())
             .status(Connector.ConnectorStatus.builder().state(Connector.TaskState.UNASSIGNED).build())
             .build();
 
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -362,12 +362,12 @@ class ConnectorControllerTest {
     @Test
     void createConnectorFailQuotaValidation() {
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder().name("connect1").build())
+            .metadata(Metadata.builder().name("connect1").build())
             .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
             .build();
 
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -394,11 +394,11 @@ class ConnectorControllerTest {
     @Test
     void createConnectorSuccessAlreadyExists() {
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder().name("connect1").build())
+            .metadata(Metadata.builder().name("connect1").build())
             .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
             .build();
         Connector expected = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .namespace("test")
                 .cluster("local")
                 .name("connect1").build())
@@ -407,7 +407,7 @@ class ConnectorControllerTest {
             .build();
 
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -433,13 +433,13 @@ class ConnectorControllerTest {
     @Test
     void createConnectorSuccessChanged() {
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder().name("connect1").build())
+            .metadata(Metadata.builder().name("connect1").build())
             .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
             .build();
         Connector connectorOld = Connector.builder()
-            .metadata(ObjectMeta.builder().name("connect1").labels(Map.of("label", "labelValue")).build()).build();
+            .metadata(Metadata.builder().name("connect1").labels(Map.of("label", "labelValue")).build()).build();
         Connector expected = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("connect1")
                 .labels(Map.of("label", "labelValue"))
                 .build())
@@ -448,7 +448,7 @@ class ConnectorControllerTest {
             .build();
 
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -481,12 +481,12 @@ class ConnectorControllerTest {
     @Test
     void createConnectorDryRun() {
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder().name("connect1").build())
+            .metadata(Metadata.builder().name("connect1").build())
             .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
             .build();
 
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -510,13 +510,13 @@ class ConnectorControllerTest {
     @Test
     void importConnector() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
-        Connector connector1 = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
-        Connector connector2 = Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build();
+        Connector connector1 = Connector.builder().metadata(Metadata.builder().name("connect1").build()).build();
+        Connector connector2 = Connector.builder().metadata(Metadata.builder().name("connect2").build()).build();
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
@@ -536,14 +536,14 @@ class ConnectorControllerTest {
     @Test
     void importConnectorDryRun() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
-        Connector connector1 = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
-        Connector connector2 = Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build();
-        Connector connector3 = Connector.builder().metadata(ObjectMeta.builder().name("connect3").build()).build();
+        Connector connector1 = Connector.builder().metadata(Metadata.builder().name("connect1").build()).build();
+        Connector connector2 = Connector.builder().metadata(Metadata.builder().name("connect2").build()).build();
+        Connector connector3 = Connector.builder().metadata(Metadata.builder().name("connect3").build()).build();
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
@@ -564,7 +564,7 @@ class ConnectorControllerTest {
     @Test
     void restartConnectorNotOwned() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -576,7 +576,7 @@ class ConnectorControllerTest {
             .thenReturn(false);
 
         ChangeConnectorState restart = ChangeConnectorState.builder()
-            .metadata(ObjectMeta.builder().name("connect1").build())
+            .metadata(Metadata.builder().name("connect1").build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
                 .action(ChangeConnectorState.ConnectorAction.restart).build())
             .build();
@@ -594,7 +594,7 @@ class ConnectorControllerTest {
     @Test
     void restartConnectorNotExists() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -607,7 +607,7 @@ class ConnectorControllerTest {
             .thenReturn(Optional.empty());
 
         ChangeConnectorState restart = ChangeConnectorState.builder()
-            .metadata(ObjectMeta.builder().name("connect1").build())
+            .metadata(Metadata.builder().name("connect1").build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
                 .action(ChangeConnectorState.ConnectorAction.restart).build())
             .build();
@@ -622,13 +622,13 @@ class ConnectorControllerTest {
     @Test
     void restartConnectorException() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
 
-        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Connector connector = Connector.builder().metadata(Metadata.builder().name("connect1").build()).build();
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
@@ -640,7 +640,7 @@ class ConnectorControllerTest {
                 Mono.error(new HttpClientResponseException("Rebalancing", HttpResponse.status(HttpStatus.CONFLICT))));
 
         ChangeConnectorState restart = ChangeConnectorState.builder()
-            .metadata(ObjectMeta.builder().name("connect1").build())
+            .metadata(Metadata.builder().name("connect1").build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
                 .action(ChangeConnectorState.ConnectorAction.restart).build())
             .build();
@@ -658,13 +658,13 @@ class ConnectorControllerTest {
     @Test
     void restartConnectorOwned() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
 
-        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Connector connector = Connector.builder().metadata(Metadata.builder().name("connect1").build()).build();
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
@@ -675,7 +675,7 @@ class ConnectorControllerTest {
             .thenReturn(Mono.just(HttpResponse.noContent()));
 
         ChangeConnectorState changeConnectorState = ChangeConnectorState.builder()
-            .metadata(ObjectMeta.builder().name("connect1").build())
+            .metadata(Metadata.builder().name("connect1").build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
                 .action(ChangeConnectorState.ConnectorAction.restart).build())
             .build();
@@ -693,13 +693,13 @@ class ConnectorControllerTest {
     @Test
     void pauseConnectorOwned() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
 
-        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Connector connector = Connector.builder().metadata(Metadata.builder().name("connect1").build()).build();
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
@@ -710,7 +710,7 @@ class ConnectorControllerTest {
             .thenReturn(Mono.just(HttpResponse.noContent()));
 
         ChangeConnectorState changeConnectorState = ChangeConnectorState.builder()
-            .metadata(ObjectMeta.builder().name("connect1").build())
+            .metadata(Metadata.builder().name("connect1").build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec
                 .builder()
                 .action(ChangeConnectorState.ConnectorAction.pause)
@@ -730,12 +730,12 @@ class ConnectorControllerTest {
     @Test
     void resumeConnectorOwned() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
-        Connector connector = Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build();
+        Connector connector = Connector.builder().metadata(Metadata.builder().name("connect1").build()).build();
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
@@ -746,7 +746,7 @@ class ConnectorControllerTest {
             .thenReturn(Mono.just(HttpResponse.noContent()));
 
         ChangeConnectorState changeConnectorState = ChangeConnectorState.builder()
-            .metadata(ObjectMeta.builder().name("connect1").build())
+            .metadata(Metadata.builder().name("connect1").build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec
                 .builder()
                 .action(ChangeConnectorState.ConnectorAction.resume)

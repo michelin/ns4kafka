@@ -1,11 +1,12 @@
 package com.michelin.ns4kafka.controllers;
 
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidKafkaUser;
+import static com.michelin.ns4kafka.utils.enums.Kind.KAFKA_USER_RESET_PASSWORD;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.KafkaUserResetPassword;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.services.executors.UserAsyncExecutor;
 import com.michelin.ns4kafka.utils.enums.ApplyStatus;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
@@ -40,7 +41,7 @@ public class UserController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         if (!ns.getSpec().getKafkaUser().equals(user)) {
-            throw new ResourceValidationException(KafkaUserResetPassword.kind, user, invalidKafkaUser(user));
+            throw new ResourceValidationException(KAFKA_USER_RESET_PASSWORD, user, invalidKafkaUser(user));
         }
 
         UserAsyncExecutor userAsyncExecutor =
@@ -49,7 +50,7 @@ public class UserController extends NamespacedResourceController {
         String password = userAsyncExecutor.resetPassword(ns.getSpec().getKafkaUser());
 
         KafkaUserResetPassword response = KafkaUserResetPassword.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name(ns.getSpec().getKafkaUser())
                 .namespace(namespace)
                 .cluster(ns.getMetadata().getCluster())
@@ -60,8 +61,7 @@ public class UserController extends NamespacedResourceController {
                 .build())
             .build();
 
-        sendEventLog(KafkaUserResetPassword.kind, response.getMetadata(), ApplyStatus.changed, null,
-            response.getSpec());
+        sendEventLog(response, ApplyStatus.changed, null, response.getSpec());
         return HttpResponse.ok(response);
     }
 }

@@ -8,8 +8,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.schema.Schema;
 import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityCheckResponse;
@@ -410,7 +410,7 @@ class SchemaServiceTest {
 
     private Namespace buildNamespace() {
         return Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("myNamespace")
                 .cluster("local")
                 .build())
@@ -421,7 +421,7 @@ class SchemaServiceTest {
 
     private Schema buildSchema() {
         return Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("prefix.schema-one-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -445,7 +445,7 @@ class SchemaServiceTest {
 
     private Schema buildSchemaV2() {
         return Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("prefix.subject-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()

@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.models.Status;
 import com.michelin.ns4kafka.models.Topic;
@@ -50,7 +50,7 @@ class NamespaceTest extends AbstractIntegrationTest {
     @Test
     void shouldValidateNamespaceNameWithAuthorizedChars() {
         Namespace namespace = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("wrong*namespace")
                 .cluster("test-cluster")
                 .labels(Map.of("support-group", "LDAP-GROUP-1"))
@@ -87,7 +87,7 @@ class NamespaceTest extends AbstractIntegrationTest {
         assertEquals(namespace.getSpec(), responseGetNs.getSpec());
 
         RoleBinding roleBinding = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("accepted.namespace-rb")
                 .namespace("accepted.namespace")
                 .build())
@@ -109,7 +109,7 @@ class NamespaceTest extends AbstractIntegrationTest {
             .body(roleBinding));
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("accepted.namespace-acl")
                 .namespace("accepted.namespace")
                 .build())
@@ -128,7 +128,7 @@ class NamespaceTest extends AbstractIntegrationTest {
                 .body(accessControlEntry));
 
         Topic topic = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("accepted.namespace.topic")
                 .namespace("accepted.namespace")
                 .build())

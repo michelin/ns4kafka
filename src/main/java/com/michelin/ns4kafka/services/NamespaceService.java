@@ -2,14 +2,14 @@ package com.michelin.ns4kafka.services;
 
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNamespaceNoCluster;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNamespaceUserAlreadyExist;
+import static com.michelin.ns4kafka.utils.enums.Kind.ACCESS_CONTROL_ENTRY;
+import static com.michelin.ns4kafka.utils.enums.Kind.CONNECTOR;
+import static com.michelin.ns4kafka.utils.enums.Kind.CONNECT_CLUSTER;
+import static com.michelin.ns4kafka.utils.enums.Kind.RESOURCE_QUOTA;
+import static com.michelin.ns4kafka.utils.enums.Kind.ROLE_BINDING;
+import static com.michelin.ns4kafka.utils.enums.Kind.TOPIC;
 
-import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.RoleBinding;
-import com.michelin.ns4kafka.models.Topic;
-import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
-import com.michelin.ns4kafka.models.connector.Connector;
-import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.utils.FormatErrorUtils;
@@ -148,17 +148,17 @@ public class NamespaceService {
     public List<String> listAllNamespaceResources(Namespace namespace) {
         return Stream.of(
                 topicService.findAllForNamespace(namespace).stream()
-                    .map(topic -> Topic.kind + "/" + topic.getMetadata().getName()),
+                    .map(topic -> TOPIC + "/" + topic.getMetadata().getName()),
                 connectorService.findAllForNamespace(namespace).stream()
-                    .map(connector -> Connector.kind + "/" + connector.getMetadata().getName()),
+                    .map(connector -> CONNECTOR + "/" + connector.getMetadata().getName()),
                 connectClusterService.findAllByNamespaceOwner(namespace).stream()
-                    .map(connectCluster -> ConnectCluster.kind + "/" + connectCluster.getMetadata().getName()),
+                    .map(connectCluster -> CONNECT_CLUSTER + "/" + connectCluster.getMetadata().getName()),
                 accessControlEntryService.findAllForNamespace(namespace).stream()
-                    .map(ace -> AccessControlEntry.kind + "/" + ace.getMetadata().getName()),
+                    .map(ace -> ACCESS_CONTROL_ENTRY + "/" + ace.getMetadata().getName()),
                 resourceQuotaService.findByNamespace(namespace.getMetadata().getName()).stream()
-                    .map(resourceQuota -> ResourceQuota.kind + "/" + resourceQuota.getMetadata().getName()),
+                    .map(resourceQuota -> RESOURCE_QUOTA + "/" + resourceQuota.getMetadata().getName()),
                 roleBindingService.list(namespace.getMetadata().getName()).stream()
-                    .map(roleBinding -> RoleBinding.kind + "/" + roleBinding.getMetadata().getName())
+                    .map(roleBinding -> ROLE_BINDING + "/" + roleBinding.getMetadata().getName())
             )
             .reduce(Stream::concat)
             .orElseGet(Stream::empty)

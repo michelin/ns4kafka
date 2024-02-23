@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.controllers.topic;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNotFound;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidOwner;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicCollide;
+import static com.michelin.ns4kafka.utils.enums.Kind.TOPIC;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.DeleteRecordsResponse;
@@ -117,7 +118,7 @@ public class TopicController extends NamespacedResourceController {
         }
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(Topic.kind, topic.getMetadata().getName(), validationErrors);
+            throw new ResourceValidationException(topic, validationErrors);
         }
 
         //3. Fill server-side fields (server side metadata + status)
@@ -132,7 +133,7 @@ public class TopicController extends NamespacedResourceController {
 
         validationErrors.addAll(resourceQuotaService.validateTopicQuota(ns, existingTopic, topic));
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(Topic.kind, topic.getMetadata().getName(), validationErrors);
+            throw new ResourceValidationException(topic, validationErrors);
         }
 
         ApplyStatus status = existingTopic.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
@@ -140,11 +141,7 @@ public class TopicController extends NamespacedResourceController {
             return formatHttpResponse(topic, status);
         }
 
-        sendEventLog(Topic.kind,
-            topic.getMetadata(),
-            status,
-            existingTopic.<Object>map(Topic::getSpec).orElse(null),
-            topic.getSpec());
+        sendEventLog(topic, status, existingTopic.<Object>map(Topic::getSpec).orElse(null), topic.getSpec());
 
         return formatHttpResponse(topicService.create(topic), status);
     }
@@ -164,7 +161,7 @@ public class TopicController extends NamespacedResourceController {
         throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic)) {
-            throw new ResourceValidationException(Topic.kind, topic, invalidOwner(topic));
+            throw new ResourceValidationException(TOPIC, topic, invalidOwner(topic));
         }
 
         Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
@@ -178,11 +175,7 @@ public class TopicController extends NamespacedResourceController {
         }
 
         Topic topicToDelete = optionalTopic.get();
-        sendEventLog(Topic.kind,
-            topicToDelete.getMetadata(),
-            ApplyStatus.deleted,
-            topicToDelete.getSpec(),
-            null);
+        sendEventLog(topicToDelete, ApplyStatus.deleted, topicToDelete.getSpec(), null);
         topicService.delete(optionalTopic.get());
 
         return HttpResponse.noContent();
@@ -218,7 +211,7 @@ public class TopicController extends NamespacedResourceController {
         return unsynchronizedTopics
             .stream()
             .map(topic -> {
-                sendEventLog(Topic.kind, topic.getMetadata(), ApplyStatus.created, null, topic.getSpec());
+                sendEventLog(topic, ApplyStatus.created, null, topic.getSpec());
                 return topicService.create(topic);
             })
             .toList();
@@ -240,20 +233,18 @@ public class TopicController extends NamespacedResourceController {
         throws InterruptedException, ExecutionException {
         Namespace ns = getNamespace(namespace);
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic)) {
-            throw new ResourceValidationException(Topic.kind, topic, invalidOwner(topic));
+            throw new ResourceValidationException(TOPIC, topic, invalidOwner(topic));
         }
 
         Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
         if (optionalTopic.isEmpty()) {
-            throw new ResourceValidationException(Topic.kind, topic, invalidNotFound(topic));
+            throw new ResourceValidationException(TOPIC, topic, invalidNotFound(topic));
         }
 
         Topic deleteRecordsTopic = optionalTopic.get();
         List<String> validationErrors = topicService.validateDeleteRecordsTopic(deleteRecordsTopic);
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(DeleteRecordsResponse.kind,
-                deleteRecordsTopic.getMetadata().getName(),
-                validationErrors);
+            throw new ResourceValidationException(deleteRecordsTopic, validationErrors);
         }
 
         Map<TopicPartition, Long> recordsToDelete = topicService.prepareRecordsToDelete(optionalTopic.get());
@@ -262,8 +253,7 @@ public class TopicController extends NamespacedResourceController {
         if (dryrun) {
             deletedRecords = recordsToDelete;
         } else {
-            sendEventLog(DeleteRecordsResponse.kind, optionalTopic.get().getMetadata(), ApplyStatus.deleted, null,
-                null);
+            sendEventLog(optionalTopic.get(), ApplyStatus.deleted, null, null);
             deletedRecords = topicService.deleteRecords(optionalTopic.get(), recordsToDelete);
         }
 

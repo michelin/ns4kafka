@@ -84,7 +84,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, quota);
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(ResourceQuota.kind, quota.getMetadata().getName(), validationErrors);
+            throw new ResourceValidationException(quota, validationErrors);
         }
 
         Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByNamespace(namespace);
@@ -97,8 +97,8 @@ public class ResourceQuotaController extends NamespacedResourceController {
             return formatHttpResponse(quota, status);
         }
 
-        sendEventLog(ResourceQuota.kind, quota.getMetadata(), status,
-            resourceQuotaOptional.<Object>map(ResourceQuota::getSpec).orElse(null), quota.getSpec());
+        sendEventLog(quota, status, resourceQuotaOptional.<Object>map(ResourceQuota::getSpec).orElse(null),
+            quota.getSpec());
 
         return formatHttpResponse(resourceQuotaService.create(quota), status);
     }
@@ -125,8 +125,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
         }
 
         ResourceQuota resourceQuotaToDelete = resourceQuota.get();
-        sendEventLog(ResourceQuota.kind, resourceQuotaToDelete.getMetadata(), ApplyStatus.deleted,
-            resourceQuotaToDelete.getSpec(), null);
+        sendEventLog(resourceQuotaToDelete, ApplyStatus.deleted, resourceQuotaToDelete.getSpec(), null);
         resourceQuotaService.delete(resourceQuotaToDelete);
         return HttpResponse.noContent();
     }

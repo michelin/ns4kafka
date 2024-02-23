@@ -3,8 +3,8 @@ package com.michelin.ns4kafka.integration;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.michelin.ns4kafka.controllers.ApiResourcesController;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.annotation.Property;
@@ -58,7 +58,7 @@ class ApiResourcesTest extends AbstractIntegrationTest {
     @Test
     void asUser() {
         Namespace ns1 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1")
                 .cluster("test-cluster")
                 .build())
@@ -69,7 +69,7 @@ class ApiResourcesTest extends AbstractIntegrationTest {
             .build();
 
         RoleBinding rb1 = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-rb")
                 .namespace("ns1")
                 .build())

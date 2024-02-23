@@ -12,7 +12,7 @@ class NamespaceTest {
     @Test
     void testEquals() {
         Namespace original = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace1")
                 .cluster("local")
                 .build())
@@ -24,7 +24,7 @@ class NamespaceTest {
                 .build())
             .build();
         Namespace same = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace1")
                 .cluster("local")
                 .build())
@@ -36,7 +36,7 @@ class NamespaceTest {
                 .build())
             .build();
         Namespace differentByMetadata = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace2")
                 .cluster("local")
                 .build())
@@ -53,7 +53,7 @@ class NamespaceTest {
         assertNotEquals(original, differentByMetadata);
 
         Namespace differentByUser = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace1")
                 .cluster("local")
                 .build())
@@ -68,7 +68,7 @@ class NamespaceTest {
         assertNotEquals(original, differentByUser);
 
         Namespace differentByConnectClusters = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace1")
                 .cluster("local")
                 .build())
@@ -83,7 +83,7 @@ class NamespaceTest {
         assertNotEquals(original, differentByConnectClusters);
 
         Namespace differentByTopicValidator = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace1")
                 .cluster("local")
                 .build())
@@ -98,7 +98,7 @@ class NamespaceTest {
         assertNotEquals(original, differentByTopicValidator);
 
         Namespace differentByConnectValidator = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace1")
                 .cluster("local")
                 .build())

@@ -11,8 +11,8 @@ import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.models.AuditLog;
 import com.michelin.ns4kafka.models.KafkaStream;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.StreamService;
@@ -48,7 +48,7 @@ class StreamControllerTest {
     @Test
     void listEmptyStreams() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -65,20 +65,20 @@ class StreamControllerTest {
     @Test
     void listStreams() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test_stream1")
                 .build())
             .build();
 
         KafkaStream stream2 = KafkaStream.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test_stream2")
                 .build())
             .build();
@@ -97,7 +97,7 @@ class StreamControllerTest {
     @Test
     void getEmpty() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -116,14 +116,14 @@ class StreamControllerTest {
     @Test
     void getStreamFound() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test_stream1")
                 .build())
             .build();
@@ -142,14 +142,14 @@ class StreamControllerTest {
     @Test
     void createStreamSuccess() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test_stream1")
                 .build())
             .build();
@@ -178,14 +178,14 @@ class StreamControllerTest {
     @Test
     void createStreamSuccessDryRun() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test_stream1")
                 .build())
             .build();
@@ -209,14 +209,14 @@ class StreamControllerTest {
     @Test
     void updateStreamUnchanged() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test_stream1")
                 .build())
             .build();
@@ -240,14 +240,14 @@ class StreamControllerTest {
     @Test
     void createStreamValidationError() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test_stream1")
                 .build())
             .build();
@@ -265,14 +265,14 @@ class StreamControllerTest {
     @Test
     void deleteStreamSuccess() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test_stream1")
                 .build())
             .build();
@@ -297,14 +297,14 @@ class StreamControllerTest {
     @Test
     void deleteStreamSuccessDryRun() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test_stream1")
                 .build())
             .build();
@@ -326,7 +326,7 @@ class StreamControllerTest {
     @Test
     void deleteStreamNotFound() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -349,7 +349,7 @@ class StreamControllerTest {
     @Test
     void deleteStreamNotOwner() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())

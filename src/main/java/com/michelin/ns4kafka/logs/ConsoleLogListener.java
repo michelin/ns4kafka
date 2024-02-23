@@ -17,7 +17,7 @@ public class ConsoleLogListener implements ApplicationEventListener<AuditLog> {
 
     @Override
     public void onApplicationEvent(AuditLog event) {
-        log.info("{} {} {} {} {} in namespace {} on cluster {}",
+        log.info("{} {} {} {} {} in namespace {} on cluster {}.",
             event.isAdmin() ? "Admin" : "User",
             event.getUser(),
             event.getOperation(),

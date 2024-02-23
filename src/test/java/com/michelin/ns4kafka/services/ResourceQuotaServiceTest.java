@@ -15,8 +15,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.models.connector.Connector;
 import com.michelin.ns4kafka.models.quota.ResourceQuota;
@@ -48,7 +48,7 @@ class ResourceQuotaServiceTest {
     @Test
     void findByNamespace() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -58,7 +58,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -77,7 +77,7 @@ class ResourceQuotaServiceTest {
     @Test
     void findByNamespaceEmpty() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -97,7 +97,7 @@ class ResourceQuotaServiceTest {
     @Test
     void findByName() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -107,7 +107,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -126,7 +126,7 @@ class ResourceQuotaServiceTest {
     @Test
     void findByNameWrongName() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -136,7 +136,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -154,7 +154,7 @@ class ResourceQuotaServiceTest {
     @Test
     void findByNameEmpty() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -174,7 +174,7 @@ class ResourceQuotaServiceTest {
     @Test
     void create() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -192,7 +192,7 @@ class ResourceQuotaServiceTest {
     @Test
     void delete() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -208,7 +208,7 @@ class ResourceQuotaServiceTest {
     @Test
     void validateNewQuotaAgainstCurrentResourceSuccess() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -218,7 +218,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -226,21 +226,21 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic1 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
             .build();
 
         Topic topic2 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
             .build();
 
         Topic topic3 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -256,7 +256,7 @@ class ResourceQuotaServiceTest {
     @Test
     void validateNewQuotaAgainstCurrentResourceForCountTopics() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -266,7 +266,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -274,21 +274,21 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic1 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
             .build();
 
         Topic topic2 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
             .build();
 
         Topic topic3 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -306,7 +306,7 @@ class ResourceQuotaServiceTest {
     @Test
     void validateNewQuotaAgainstCurrentResourceForCountPartitions() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -316,7 +316,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -324,7 +324,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic1 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -334,7 +334,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic2 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -344,7 +344,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic3 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -365,7 +365,7 @@ class ResourceQuotaServiceTest {
     @Test
     void validateNewQuotaDiskTopicsFormat() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -375,7 +375,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -391,7 +391,7 @@ class ResourceQuotaServiceTest {
     @Test
     void validateNewQuotaAgainstCurrentResourceForDiskTopics() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -401,7 +401,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -409,7 +409,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic1 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -420,7 +420,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic2 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -442,7 +442,7 @@ class ResourceQuotaServiceTest {
     @Test
     void validateNewQuotaAgainstCurrentResourceForCountConnectors() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -452,7 +452,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -461,8 +461,8 @@ class ResourceQuotaServiceTest {
 
         when(connectorService.findAllForNamespace(ns))
             .thenReturn(List.of(
-                Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
-                Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
+                Connector.builder().metadata(Metadata.builder().name("connect1").build()).build(),
+                Connector.builder().metadata(Metadata.builder().name("connect2").build()).build()));
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
         assertEquals(1, validationErrors.size());
@@ -473,14 +473,14 @@ class ResourceQuotaServiceTest {
     @Test
     void validateUserQuotaFormatError() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -500,14 +500,14 @@ class ResourceQuotaServiceTest {
     @Test
     void validateUserQuotaFormatSuccess() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -522,7 +522,7 @@ class ResourceQuotaServiceTest {
     @Test
     void getCurrentUsedResourceForCountTopicsByNamespace() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -532,21 +532,21 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic1 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
             .build();
 
         Topic topic2 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
             .build();
 
         Topic topic3 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -562,7 +562,7 @@ class ResourceQuotaServiceTest {
     @Test
     void getCurrentUsedResourceForCountPartitionsByNamespace() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -572,7 +572,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic1 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -582,7 +582,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic2 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -592,7 +592,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic3 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -611,7 +611,7 @@ class ResourceQuotaServiceTest {
     @Test
     void getCurrentUsedResourceForCountConnectorsByNamespace() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -622,8 +622,8 @@ class ResourceQuotaServiceTest {
 
         when(connectorService.findAllForNamespace(ns))
             .thenReturn(List.of(
-                Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
-                Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
+                Connector.builder().metadata(Metadata.builder().name("connect1").build()).build(),
+                Connector.builder().metadata(Metadata.builder().name("connect2").build()).build()));
 
         long currentlyUsed = resourceQuotaService.getCurrentCountConnectorsByNamespace(ns);
         assertEquals(2L, currentlyUsed);
@@ -632,7 +632,7 @@ class ResourceQuotaServiceTest {
     @Test
     void getCurrentUsedResourceForDiskTopicsByNamespace() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -642,7 +642,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic1 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -653,7 +653,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic2 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -664,7 +664,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic3 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -683,7 +683,7 @@ class ResourceQuotaServiceTest {
     @Test
     void validateTopicQuota() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -693,7 +693,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -703,7 +703,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic newTopic = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -715,7 +715,7 @@ class ResourceQuotaServiceTest {
 
 
         Topic topic1 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -726,7 +726,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic2 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -737,7 +737,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic3 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -759,7 +759,7 @@ class ResourceQuotaServiceTest {
     @Test
     void validateTopicQuotaNoQuota() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -769,7 +769,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic newTopic = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -788,7 +788,7 @@ class ResourceQuotaServiceTest {
     @Test
     void validateTopicQuotaExceed() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -798,7 +798,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -807,7 +807,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic newTopic = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -819,7 +819,7 @@ class ResourceQuotaServiceTest {
 
 
         Topic topic1 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -830,7 +830,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic2 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -841,7 +841,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic3 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -870,7 +870,7 @@ class ResourceQuotaServiceTest {
     @Test
     void validateUpdateTopicQuotaExceed() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -880,7 +880,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -889,7 +889,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic newTopic = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -900,7 +900,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic1 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -911,7 +911,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic2 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -922,7 +922,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic3 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -947,7 +947,7 @@ class ResourceQuotaServiceTest {
     @Test
     void validateConnectorQuota() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -957,7 +957,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -968,8 +968,8 @@ class ResourceQuotaServiceTest {
             .thenReturn(Optional.of(resourceQuota));
         when(connectorService.findAllForNamespace(ns))
             .thenReturn(List.of(
-                Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
-                Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
+                Connector.builder().metadata(Metadata.builder().name("connect1").build()).build(),
+                Connector.builder().metadata(Metadata.builder().name("connect2").build()).build()));
 
         List<String> validationErrors = resourceQuotaService.validateConnectorQuota(ns);
         assertEquals(0, validationErrors.size());
@@ -978,7 +978,7 @@ class ResourceQuotaServiceTest {
     @Test
     void validateConnectorQuotaNoQuota() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -997,7 +997,7 @@ class ResourceQuotaServiceTest {
     @Test
     void validateConnectorQuotaExceed() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -1007,7 +1007,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -1018,8 +1018,8 @@ class ResourceQuotaServiceTest {
             .thenReturn(Optional.of(resourceQuota));
         when(connectorService.findAllForNamespace(ns))
             .thenReturn(List.of(
-                Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
-                Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
+                Connector.builder().metadata(Metadata.builder().name("connect1").build()).build(),
+                Connector.builder().metadata(Metadata.builder().name("connect2").build()).build()));
 
         List<String> validationErrors = resourceQuotaService.validateConnectorQuota(ns);
         assertEquals(1, validationErrors.size());
@@ -1030,7 +1030,7 @@ class ResourceQuotaServiceTest {
     @Test
     void getUsedResourcesByQuotaByNamespace() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -1040,7 +1040,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -1051,7 +1051,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic1 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -1062,7 +1062,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic2 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -1073,7 +1073,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic3 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -1087,8 +1087,8 @@ class ResourceQuotaServiceTest {
             .thenReturn(List.of(topic1, topic2, topic3));
         when(connectorService.findAllForNamespace(ns))
             .thenReturn(List.of(
-                Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
-                Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
+                Connector.builder().metadata(Metadata.builder().name("connect1").build()).build(),
+                Connector.builder().metadata(Metadata.builder().name("connect2").build()).build()));
 
         ResourceQuotaResponse response =
             resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.of(resourceQuota));
@@ -1102,7 +1102,7 @@ class ResourceQuotaServiceTest {
     @Test
     void getCurrentResourcesQuotasByNamespaceNoQuota() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -1112,7 +1112,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic1 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -1123,7 +1123,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic2 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -1134,7 +1134,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic3 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -1148,8 +1148,8 @@ class ResourceQuotaServiceTest {
             .thenReturn(List.of(topic1, topic2, topic3));
         when(connectorService.findAllForNamespace(ns))
             .thenReturn(List.of(
-                Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
-                Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
+                Connector.builder().metadata(Metadata.builder().name("connect1").build()).build(),
+                Connector.builder().metadata(Metadata.builder().name("connect2").build()).build()));
 
         ResourceQuotaResponse response = resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.empty());
         assertEquals("namespace", response.getMetadata().getNamespace());
@@ -1163,7 +1163,7 @@ class ResourceQuotaServiceTest {
     @Test
     void getUsedQuotaByNamespaces() {
         Namespace ns1 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -1173,7 +1173,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Namespace ns2 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace2")
                 .cluster("local")
                 .build())
@@ -1183,7 +1183,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Namespace ns3 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace3")
                 .cluster("local")
                 .build())
@@ -1193,7 +1193,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Namespace ns4 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace4")
                 .cluster("local")
                 .build())
@@ -1203,7 +1203,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .cluster("local")
                 .name("test")
                 .build())
@@ -1214,7 +1214,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic1 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -1225,7 +1225,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic2 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace2")
                 .build())
@@ -1236,7 +1236,7 @@ class ResourceQuotaServiceTest {
             .build();
 
         Topic topic3 = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace3")
                 .build())
@@ -1256,8 +1256,8 @@ class ResourceQuotaServiceTest {
             .thenReturn(List.of());
         when(connectorService.findAllForNamespace(any()))
             .thenReturn(List.of(
-                Connector.builder().metadata(ObjectMeta.builder().name("connect1").build()).build(),
-                Connector.builder().metadata(ObjectMeta.builder().name("connect2").build()).build()));
+                Connector.builder().metadata(Metadata.builder().name("connect1").build()).build(),
+                Connector.builder().metadata(Metadata.builder().name("connect2").build()).build()));
         when(resourceQuotaRepository.findForNamespace(any()))
             .thenReturn(Optional.of(resourceQuota));
 
