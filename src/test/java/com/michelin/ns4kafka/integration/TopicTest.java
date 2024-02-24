@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.michelin.ns4kafka.controllers.AkhqClaimProviderController;
@@ -341,6 +342,7 @@ class TopicTest extends AbstractIntegrationTest {
                 .body(topicFirstCreate)));
 
         assertEquals("Invalid Resource", exception.getMessage());
+        assertTrue(exception.getResponse().getBody(Status.class).isPresent());
         assertEquals("topic.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"",
             exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
 

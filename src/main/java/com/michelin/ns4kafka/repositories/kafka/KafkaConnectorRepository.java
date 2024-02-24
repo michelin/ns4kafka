@@ -35,8 +35,8 @@ public class KafkaConnectorRepository extends KafkaStore<Connector> implements C
 
     @Override
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.connectors")
-    void receive(ConsumerRecord<String, Connector> record) {
-        super.receive(record);
+    void receive(ConsumerRecord<String, Connector> message) {
+        super.receive(message);
     }
 
     /**

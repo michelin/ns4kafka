@@ -47,9 +47,10 @@ public class KafkaStreamRepository extends KafkaStore<KafkaStream> implements St
         return this.produce(getMessageKey(stream), stream);
     }
 
+    @Override
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.streams")
-    void receive(ConsumerRecord<String, KafkaStream> record) {
-        super.receive(record);
+    void receive(ConsumerRecord<String, KafkaStream> message) {
+        super.receive(message);
     }
 
     @Override

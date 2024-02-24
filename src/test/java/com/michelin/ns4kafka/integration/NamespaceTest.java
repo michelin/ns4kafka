@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Metadata;
@@ -14,6 +15,8 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.BlockingHttpClient;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
@@ -150,5 +153,60 @@ class NamespaceTest extends AbstractIntegrationTest {
                 .bearerAuth(token), Topic.class);
 
         assertEquals(topic.getSpec(), responseGetTopic.getSpec());
+    }
+
+    @Test
+    void shouldInformWhenRequestedNamespaceIsUnknown() {
+        Namespace namespace = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace")
+                .cluster("test-cluster")
+                .labels(Map.of("support-group", "LDAP-GROUP-1"))
+                .build())
+            .spec(Namespace.NamespaceSpec.builder()
+                .kafkaUser("user2")
+                .connectClusters(List.of("test-connect"))
+                .topicValidator(TopicValidator.makeDefaultOneBroker())
+                .build())
+            .build();
+
+        RoleBinding roleBinding = RoleBinding.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-rb")
+                .namespace("namespace")
+                .build())
+            .spec(RoleBinding.RoleBindingSpec.builder()
+                .role(RoleBinding.Role.builder()
+                    .resourceTypes(List.of("topics", "acls"))
+                    .verbs(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET))
+                    .build())
+                .subject(RoleBinding.Subject.builder()
+                    .subjectName("group1")
+                    .subjectType(RoleBinding.SubjectType.GROUP)
+                    .build())
+                .build())
+            .build();
+
+        client.toBlocking()
+            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token).body(namespace));
+
+        var response = client.toBlocking()
+            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/namespace/role-bindings")
+                .bearerAuth(token).body(roleBinding));
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        HttpRequest<?> request = HttpRequest.create(HttpMethod.POST, "/api/namespaces/namespaceTypo/role-bindings")
+            .bearerAuth(token).body(roleBinding);
+
+        BlockingHttpClient blockingClient = client.toBlocking();
+
+        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
+            () -> blockingClient.exchange(request));
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
+        assertEquals("Unknown namespace \"namespaceTypo\"", exception.getMessage());
+        assertTrue(exception.getResponse().getBody(Status.class).isPresent());
     }
 }

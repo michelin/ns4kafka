@@ -69,12 +69,12 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
     /**
      * Consume messages from resource quotas topic.
      *
-     * @param record The resource quota message
+     * @param message The resource quota message
      */
     @Override
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.resource-quotas")
-    void receive(ConsumerRecord<String, ResourceQuota> record) {
-        super.receive(record);
+    void receive(ConsumerRecord<String, ResourceQuota> message) {
+        super.receive(message);
     }
 
     /**
