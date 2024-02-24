@@ -21,6 +21,8 @@ import java.util.concurrent.ExecutionException;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -33,37 +35,12 @@ class ConsumerGroupServiceTest {
     @InjectMocks
     ConsumerGroupService consumerGroupService;
 
-    @Test
-    void doValidationAllTopics() {
+    @ParameterizedTest
+    @CsvSource({"*", "namespace_testTopic01", "namespace_testTopic01:2"})
+    void doValidationAllTopics(String topic) {
         ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
             .spec(ConsumerGroupResetOffsetsSpec.builder()
-                .topic("*")
-                .method(ResetOffsetsMethod.TO_EARLIEST)
-                .build())
-            .build();
-
-        List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
-        assertTrue(result.isEmpty());
-    }
-
-    @Test
-    void doValidationAllPartitionsFromTopic() {
-        ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
-            .spec(ConsumerGroupResetOffsetsSpec.builder()
-                .topic("namespace_testTopic01")
-                .method(ResetOffsetsMethod.TO_EARLIEST)
-                .build())
-            .build();
-
-        List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
-        assertTrue(result.isEmpty());
-    }
-
-    @Test
-    void doValidationSpecificPartitionFromTopic() {
-        ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
-            .spec(ConsumerGroupResetOffsetsSpec.builder()
-                .topic("namespace_testTopic01:2")
+                .topic(topic)
                 .method(ResetOffsetsMethod.TO_EARLIEST)
                 .build())
             .build();
@@ -141,41 +118,14 @@ class ConsumerGroupServiceTest {
         assertTrue(result.isEmpty());
     }
 
-    @Test
-    void doValidationInvalidDateTimeOption() {
+    @ParameterizedTest
+    @CsvSource({"NOT A DATE", "2021-06-02T11:22:33.249", "2021-06-02T11:22:33+99:99"})
+    void doValidationInvalidDateTimeOption(String option) {
         ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
             .spec(ConsumerGroupResetOffsetsSpec.builder()
                 .topic("namespace_testTopic01:2")
                 .method(ResetOffsetsMethod.TO_DATETIME)
-                .options("NOT A DATE")
-                .build())
-            .build();
-
-        List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
-        assertEquals(1, result.size());
-    }
-
-    @Test
-    void doValidationInvalidDateTimeOptionDateWithoutTz() {
-        ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
-            .spec(ConsumerGroupResetOffsetsSpec.builder()
-                .topic("namespace_testTopic01:2")
-                .method(ResetOffsetsMethod.TO_DATETIME)
-                .options("2021-06-02T11:22:33.249")
-                .build())
-            .build();
-
-        List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
-        assertEquals(1, result.size());
-    }
-
-    @Test
-    void doValidationInvalidDateTimeOptionDateWithInvalidTz() {
-        ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
-            .spec(ConsumerGroupResetOffsetsSpec.builder()
-                .topic("namespace_testTopic01:2")
-                .method(ResetOffsetsMethod.TO_DATETIME)
-                .options("2021-06-02T11:22:33+99:99")
+                .options(option)
                 .build())
             .build();
 

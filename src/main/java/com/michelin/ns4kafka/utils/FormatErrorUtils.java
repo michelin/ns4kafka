@@ -19,6 +19,7 @@ import lombok.NoArgsConstructor;
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class FormatErrorUtils {
+    private static final String OPERATION_APPLY = "apply";
     private static final String FIELD_NAME = "name";
     private static final String INVALID_FIELD = "Invalid value \"%s\" for field \"%s\": %s.";
     private static final String INVALID_FIELDS = "Invalid value \"%s/%s\" for fields \"%s/%s\": %s.";
@@ -414,7 +415,8 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidImmutableField(String invalidFieldName) {
-        return String.format(INVALID_OPERATION, "apply", String.format("field \"%s\" is immutable", invalidFieldName));
+        return String.format(INVALID_OPERATION, OPERATION_APPLY,
+            String.format("field \"%s\" is immutable", invalidFieldName));
     }
 
     /**
@@ -593,7 +595,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidQuotaOperation(ResourceQuota.ResourceQuotaSpecKey quota, long used, long limit) {
-        return String.format(INVALID_OPERATION, "apply",
+        return String.format(INVALID_OPERATION, OPERATION_APPLY,
             String.format("exceeding quota for %s: %s/%s (used/limit)", quota, used, limit));
     }
 
@@ -609,7 +611,7 @@ public class FormatErrorUtils {
     public static String invalidQuotaOperationCannotAdd(ResourceQuota.ResourceQuotaSpecKey quota, String used,
                                                         String limit,
                                                         String toAdd) {
-        return String.format(INVALID_OPERATION, "apply",
+        return String.format(INVALID_OPERATION, OPERATION_APPLY,
             String.format("exceeding quota for %s: %s/%s (used/limit). Cannot add %s", quota, used, limit,
                 toAdd));
     }
