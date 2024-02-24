@@ -93,8 +93,11 @@ class ResourceBasedSecurityRuleTest {
         when(namespaceRepository.findByName("test"))
             .thenReturn(Optional.empty());
 
+        HttpRequest<?> request = HttpRequest.GET("/api/namespaces/test/connectors");
+
         UnknownNamespaceException exception = assertThrows(UnknownNamespaceException.class,
-            () -> resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/connectors"), auth));
+            () -> resourceBasedSecurityRule.checkSecurity(request, auth));
+
         assertEquals("Unknown namespace \"test\"", exception.getMessage());
     }
 
@@ -107,8 +110,11 @@ class ResourceBasedSecurityRuleTest {
         when(namespaceRepository.findByName("admin"))
             .thenReturn(Optional.empty());
 
+        HttpRequest<?> request = HttpRequest.GET("/api/namespaces/admin/connectors");
+
         UnknownNamespaceException exception = assertThrows(UnknownNamespaceException.class,
-            () -> resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/admin/connectors"), auth));
+            () -> resourceBasedSecurityRule.checkSecurity(request, auth));
+
         assertEquals("Unknown namespace \"admin\"", exception.getMessage());
     }
 

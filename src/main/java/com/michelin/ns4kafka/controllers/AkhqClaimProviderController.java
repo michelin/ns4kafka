@@ -34,6 +34,10 @@ import lombok.Getter;
 @RolesAllowed(SecurityRule.IS_ANONYMOUS)
 @Controller("/akhq-claim")
 public class AkhqClaimProviderController {
+    private static final String TOPICS_FILTER_REGEX = "topicsFilterRegexp";
+    private static final String CONNECTS_FILTER_REGEX = "connectsFilterRegexp";
+    private static final String CONSUMER_GROUPS_FILTER_REGEX = "consumerGroupsFilterRegexp";
+
     private static final List<String> EMPTY_REGEXP = List.of("^none$");
 
     private static final List<String> ADMIN_REGEXP = List.of(".*");
@@ -82,11 +86,11 @@ public class AkhqClaimProviderController {
             .roles(config.getFormerRoles())
             .attributes(
                 Map.of(
-                    "topicsFilterRegexp",
+                    TOPICS_FILTER_REGEX,
                     computeAllowedRegexListForResourceType(relatedAcl, AccessControlEntry.ResourceType.TOPIC),
-                    "connectsFilterRegexp",
+                    CONNECTS_FILTER_REGEX,
                     computeAllowedRegexListForResourceType(relatedAcl, AccessControlEntry.ResourceType.CONNECT),
-                    "consumerGroupsFilterRegexp", ADMIN_REGEXP
+                    CONSUMER_GROUPS_FILTER_REGEX, ADMIN_REGEXP
                 )
             )
             .build();
@@ -364,9 +368,9 @@ public class AkhqClaimProviderController {
                 .roles(roles)
                 .attributes(Map.of(
                     // AKHQ considers empty list as "^.*$" so we must return something
-                    "topicsFilterRegexp", EMPTY_REGEXP,
-                    "connectsFilterRegexp", EMPTY_REGEXP,
-                    "consumerGroupsFilterRegexp", EMPTY_REGEXP
+                    TOPICS_FILTER_REGEX, EMPTY_REGEXP,
+                    CONNECTS_FILTER_REGEX, EMPTY_REGEXP,
+                    CONSUMER_GROUPS_FILTER_REGEX, EMPTY_REGEXP
                 ))
                 .build();
         }
@@ -382,9 +386,9 @@ public class AkhqClaimProviderController {
                 .roles(roles)
                 .attributes(Map.of(
                     // AKHQ considers empty list as "^.*$" so we must return something
-                    "topicsFilterRegexp", ADMIN_REGEXP,
-                    "connectsFilterRegexp", ADMIN_REGEXP,
-                    "consumerGroupsFilterRegexp", ADMIN_REGEXP
+                    TOPICS_FILTER_REGEX, ADMIN_REGEXP,
+                    CONNECTS_FILTER_REGEX, ADMIN_REGEXP,
+                    CONSUMER_GROUPS_FILTER_REGEX, ADMIN_REGEXP
                 ))
                 .build();
         }

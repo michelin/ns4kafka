@@ -16,6 +16,7 @@ import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.BlockingHttpClient;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
@@ -196,10 +197,13 @@ class NamespaceTest extends AbstractIntegrationTest {
 
         assertEquals(HttpStatus.OK, response.getStatus());
 
+        HttpRequest<?> request = HttpRequest.create(HttpMethod.POST, "/api/namespaces/namespaceTypo/role-bindings")
+            .bearerAuth(token).body(roleBinding);
+
+        BlockingHttpClient blockingClient = client.toBlocking();
+
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
-            () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,
-                    "/api/namespaces/namespaceTypo/role-bindings")
-                .bearerAuth(token).body(roleBinding)));
+            () -> blockingClient.exchange(request));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
         assertEquals("Unknown namespace \"namespaceTypo\"", exception.getMessage());

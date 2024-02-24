@@ -28,6 +28,7 @@ import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.BlockingHttpClient;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
@@ -166,9 +167,13 @@ class ExceptionHandlerTest extends AbstractIntegrationTest {
 
         String userToken = response.getBody().get().getAccessToken();
 
-        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
-            () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/acls/ns2-acl")
-                .bearerAuth(userToken)));
+        HttpRequest<?> request = HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/acls/ns2-acl")
+            .bearerAuth(userToken);
+
+        BlockingHttpClient blockingClient = client.toBlocking();
+
+        HttpClientResponseException exception =
+            assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
         assertEquals("Resource forbidden", exception.getMessage());

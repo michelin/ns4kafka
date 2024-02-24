@@ -55,9 +55,10 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
         this.produce(getMessageKey(topic), null);
     }
 
+    @Override
     @io.micronaut.configuration.kafka.annotation.Topic(value = "${ns4kafka.store.kafka.topics.prefix}.topics")
-    void receive(ConsumerRecord<String, Topic> record) {
-        super.receive(record);
+    void receive(ConsumerRecord<String, Topic> message) {
+        super.receive(message);
     }
 
     /**

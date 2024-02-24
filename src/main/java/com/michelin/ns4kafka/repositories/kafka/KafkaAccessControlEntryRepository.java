@@ -55,9 +55,10 @@ public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlE
             .findFirst();
     }
 
+    @Override
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.access-control-entries")
-    void receive(ConsumerRecord<String, AccessControlEntry> record) {
-        super.receive(record);
+    void receive(ConsumerRecord<String, AccessControlEntry> message) {
+        super.receive(message);
     }
 
     @Override
