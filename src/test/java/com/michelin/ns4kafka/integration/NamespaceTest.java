@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Metadata;
@@ -202,5 +203,6 @@ class NamespaceTest extends AbstractIntegrationTest {
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
         assertEquals("Unknown namespace \"namespaceTypo\"", exception.getMessage());
+        assertTrue(exception.getResponse().getBody(Status.class).isPresent());
     }
 }

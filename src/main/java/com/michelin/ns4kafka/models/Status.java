@@ -27,15 +27,33 @@ public class Status extends Resource {
 
     /**
      * Constructor.
+     *
+     * @param status  the status
+     * @param message the message
+     * @param reason  the reason
+     * @param details the details
+     * @param code    the code
      */
-    @Builder
-    public Status(StatusPhase status, String message, HttpStatus httpStatus, StatusDetails details) {
+    public Status(StatusPhase status, String message, String reason, StatusDetails details, int code) {
         super("v1", STATUS);
         this.status = status;
         this.message = message;
-        this.reason = httpStatus.getReason();
+        this.reason = reason;
         this.details = details;
-        this.code = httpStatus.getCode();
+        this.code = code;
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param status     the status
+     * @param message    the message
+     * @param httpStatus the http status
+     * @param details    the details
+     */
+    @Builder
+    public Status(StatusPhase status, String message, HttpStatus httpStatus, StatusDetails details) {
+        this(status, message, httpStatus.getReason(), details, httpStatus.getCode());
     }
 
     /**

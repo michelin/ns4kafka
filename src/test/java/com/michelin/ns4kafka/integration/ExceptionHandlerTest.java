@@ -125,6 +125,7 @@ class ExceptionHandlerTest extends AbstractIntegrationTest {
                     "retention.ms", "60000"))
                 .build())
             .build();
+
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
             () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
                 .bearerAuth(token)
@@ -137,17 +138,17 @@ class ExceptionHandlerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void forbiddenTopic() {
+    void shouldThrowUnknownNamespaceForTopic() {
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
             () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns2/topics")
                 .bearerAuth(token)));
 
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
-        assertEquals("Resource forbidden", exception.getMessage());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
+        assertEquals("Unknown namespace \"ns2\"", exception.getMessage());
     }
 
     @Test
-    void unauthorizedTopic() {
+    void shouldThrowUnauthorizedWhenNotAuthenticatedForTopic() {
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
             () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/topics")));
 
