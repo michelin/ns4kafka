@@ -1,6 +1,10 @@
 package com.michelin.ns4kafka.controllers.acl;
 
 import static com.michelin.ns4kafka.services.AccessControlEntryService.PUBLIC_GRANTED_TO;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidAclDeleteOnlyAdmin;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidImmutableField;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNotFound;
+import static com.michelin.ns4kafka.utils.enums.Kind.ACCESS_CONTROL_ENTRY;
 
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.AccessControlEntry;
@@ -118,8 +122,7 @@ public class AclController extends NamespacedResourceController {
         }
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors, accessControlEntry.getKind(),
-                accessControlEntry.getMetadata().getName());
+            throw new ResourceValidationException(accessControlEntry, validationErrors);
         }
 
         // AccessControlEntry spec is immutable
@@ -127,9 +130,8 @@ public class AclController extends NamespacedResourceController {
         Optional<AccessControlEntry> existingAcl =
             accessControlEntryService.findByName(namespace, accessControlEntry.getMetadata().getName());
         if (existingAcl.isPresent() && !existingAcl.get().getSpec().equals(accessControlEntry.getSpec())) {
-            throw new ResourceValidationException(
-                List.of("Invalid modification: `spec` is immutable. You can still update `metadata`"),
-                accessControlEntry.getKind(), accessControlEntry.getMetadata().getName());
+            throw new ResourceValidationException(accessControlEntry,
+                invalidImmutableField("spec"));
         }
 
         accessControlEntry.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
@@ -142,18 +144,13 @@ public class AclController extends NamespacedResourceController {
 
         ApplyStatus status = existingAcl.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
 
-        // Dry run checks
         if (dryrun) {
             return formatHttpResponse(accessControlEntry, status);
         }
 
-        sendEventLog(accessControlEntry.getKind(),
-            accessControlEntry.getMetadata(),
-            status,
-            existingAcl.<Object>map(AccessControlEntry::getSpec).orElse(null),
+        sendEventLog(accessControlEntry, status, existingAcl.<Object>map(AccessControlEntry::getSpec).orElse(null),
             accessControlEntry.getSpec());
 
-        // Store
         return formatHttpResponse(accessControlEntryService.create(accessControlEntry), status);
     }
 
@@ -172,25 +169,22 @@ public class AclController extends NamespacedResourceController {
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         AccessControlEntry accessControlEntry = accessControlEntryService
             .findByName(namespace, name)
-            .orElseThrow(() -> new ResourceValidationException(
-                List.of("Invalid value " + name + " for name: ACL does not exist in this namespace."),
-                "AccessControlEntry", name));
+            .orElseThrow(() -> new ResourceValidationException(ACCESS_CONTROL_ENTRY, name, invalidNotFound(name)));
 
         List<String> roles = (List<String>) authentication.getAttributes().get("roles");
         boolean isAdmin = roles.contains(ResourceBasedSecurityRule.IS_ADMIN);
         boolean isSelfAssignedAcl = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
 
         if (isSelfAssignedAcl && !isAdmin) {
-            throw new ResourceValidationException(List.of("Only admins can delete this ACL."), "AccessControlEntry",
-                name);
+            throw new ResourceValidationException(ACCESS_CONTROL_ENTRY, name, invalidAclDeleteOnlyAdmin(name));
         }
 
         if (dryrun) {
             return HttpResponse.noContent();
         }
 
-        sendEventLog(accessControlEntry.getKind(), accessControlEntry.getMetadata(), ApplyStatus.deleted,
-            accessControlEntry.getSpec(), null);
+        sendEventLog(accessControlEntry, ApplyStatus.deleted, accessControlEntry.getSpec(), null);
+
         accessControlEntryService.delete(getNamespace(namespace), accessControlEntry);
         return HttpResponse.noContent();
     }

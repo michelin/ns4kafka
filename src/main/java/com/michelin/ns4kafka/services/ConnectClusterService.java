@@ -1,8 +1,14 @@
 package com.michelin.ns4kafka.services;
 
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectClusterEncryptionConfig;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectClusterMalformedUrl;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectClusterNameAlreadyExistGlobally;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectClusterNotHealthy;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNotFound;
+
 import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
 import com.michelin.ns4kafka.models.connect.cluster.VaultResponse;
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
@@ -11,6 +17,7 @@ import com.michelin.ns4kafka.repositories.ConnectClusterRepository;
 import com.michelin.ns4kafka.services.clients.connect.KafkaConnectClient;
 import com.michelin.ns4kafka.services.clients.connect.entities.ServerInfo;
 import com.michelin.ns4kafka.utils.EncryptionUtils;
+import com.michelin.ns4kafka.utils.FormatErrorUtils;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.MutableHttpRequest;
@@ -78,7 +85,7 @@ public class ConnectClusterService {
                     .stream()
                     .map(entry ->
                         ConnectCluster.builder()
-                            .metadata(ObjectMeta.builder()
+                            .metadata(Metadata.builder()
                                 .name(entry.getKey())
                                 .cluster(config.getName())
                                 .build())
@@ -250,9 +257,7 @@ public class ConnectClusterService {
         if (managedClusterProperties.stream().anyMatch(cluster ->
             cluster.getConnects().entrySet().stream()
                 .anyMatch(entry -> entry.getKey().equals(connectCluster.getMetadata().getName())))) {
-            errors.add(String.format(
-                "A Kafka Connect is already defined globally with the name \"%s\". Please provide a different name.",
-                connectCluster.getMetadata().getName()));
+            errors.add(invalidConnectClusterNameAlreadyExistGlobally(connectCluster.getMetadata().getName()));
         }
 
         try {
@@ -264,25 +269,20 @@ public class ConnectClusterService {
             Mono<ServerInfo> httpResponse = Mono.from(httpClient.retrieve(request, ServerInfo.class));
 
             return httpResponse
-                .doOnError(error -> errors.add(String.format("The Kafka Connect \"%s\" is not healthy (%s).",
-                    connectCluster.getMetadata().getName(), error.getMessage())))
+                .doOnError(error -> errors.add(invalidConnectClusterNotHealthy(connectCluster.getMetadata().getName(),
+                    error.getMessage())))
                 .doOnEach(signal -> {
                     // If the key or salt is defined, but one of them is missing
                     if ((signal.isOnError() || signal.isOnNext())
                         && (StringUtils.hasText(connectCluster.getSpec().getAes256Key())
                         ^ StringUtils.hasText(connectCluster.getSpec().getAes256Salt()))) {
-                        errors.add(String.format(
-                            "The Connect cluster \"%s\" \"aes256Key\" and \"aes256Salt\" specs are "
-                                + "required to activate the encryption.",
-                            connectCluster.getMetadata().getName()));
-
+                        errors.add(invalidConnectClusterEncryptionConfig());
                     }
                 })
                 .map(response -> errors)
                 .onErrorReturn(errors);
         } catch (MalformedURLException e) {
-            errors.add(String.format("The Kafka Connect \"%s\" has a malformed URL \"%s\".",
-                connectCluster.getMetadata().getName(), connectCluster.getSpec().getUrl()));
+            errors.add(invalidConnectClusterMalformedUrl(connectCluster.getSpec().getUrl()));
             return Mono.just(errors);
         }
     }
@@ -300,13 +300,13 @@ public class ConnectClusterService {
             List.of(AccessControlEntry.Permission.OWNER, AccessControlEntry.Permission.WRITE));
 
         if (kafkaConnects.isEmpty()) {
-            errors.add("No Connect Cluster available.");
+            errors.add(invalidNotFound(connectCluster));
             return errors;
         }
 
         if (kafkaConnects.stream().noneMatch(cc -> StringUtils.hasText(cc.getSpec().getAes256Key())
             && StringUtils.hasText(cc.getSpec().getAes256Salt()))) {
-            errors.add("No Connect cluster available with valid aes256 specs configuration.");
+            errors.add(invalidConnectClusterEncryptionConfig());
             return errors;
         }
 
@@ -322,8 +322,7 @@ public class ConnectClusterService {
                     && StringUtils.hasText(cc.getSpec().getAes256Salt()))
                 .map(cc -> cc.getMetadata().getName())
                 .collect(Collectors.joining(", "));
-            errors.add("Invalid value \"" + connectCluster + "\" for Connect Cluster: Value must be one of ["
-                + allowedConnectClusters + "].");
+            errors.add(FormatErrorUtils.invalidConnectClusterMustBeOneOf(connectCluster, allowedConnectClusters));
             return errors;
         }
 

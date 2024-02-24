@@ -5,9 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
@@ -58,7 +58,7 @@ class NamespaceServiceTest {
     @Test
     void validationCreationNoClusterFail() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -72,7 +72,7 @@ class NamespaceServiceTest {
 
         List<String> result = namespaceService.validateCreation(ns);
         assertEquals(1, result.size());
-        assertEquals("Invalid value local for cluster: Cluster doesn't exist", result.get(0));
+        assertEquals("Invalid value \"local\" for field \"cluster\": cluster does not exist.", result.get(0));
 
     }
 
@@ -80,7 +80,7 @@ class NamespaceServiceTest {
     void validationCreationKafkaUserAlreadyExistFail() {
 
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -91,7 +91,7 @@ class NamespaceServiceTest {
             .build();
 
         Namespace ns2 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace2")
                 .cluster("local")
                 .build())
@@ -109,7 +109,8 @@ class NamespaceServiceTest {
 
         List<String> result = namespaceService.validateCreation(ns);
         assertEquals(1, result.size());
-        assertEquals("Invalid value user for user: KafkaUser already exists", result.get(0));
+        assertEquals("Invalid value \"user\" for field \"kafkaUser\": user already exists in another namespace.",
+            result.get(0));
 
     }
 
@@ -117,7 +118,7 @@ class NamespaceServiceTest {
     void validateCreationNoNamespaceSuccess() {
 
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -141,7 +142,7 @@ class NamespaceServiceTest {
     @Test
     void validateCreationNamespaceAlreadyExistsSuccess() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -151,7 +152,7 @@ class NamespaceServiceTest {
                 .build())
             .build();
         Namespace ns2 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace2")
                 .cluster("local")
                 .build())
@@ -176,7 +177,7 @@ class NamespaceServiceTest {
     void validateSuccess() {
 
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -202,7 +203,7 @@ class NamespaceServiceTest {
     void validateFail() {
 
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -221,14 +222,15 @@ class NamespaceServiceTest {
         List<String> result = namespaceService.validate(ns);
 
         assertEquals(1, result.size());
-        assertEquals("Invalid value local-name for Connect Cluster: Connect Cluster doesn't exist", result.get(0));
+        assertEquals("Invalid value \"local-name\" for field \"connectClusters\": connect cluster does not exist.",
+            result.get(0));
     }
 
     @Test
     void listAll() {
 
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -238,7 +240,7 @@ class NamespaceServiceTest {
                 .build())
             .build();
         Namespace ns2 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace2")
                 .cluster("local")
                 .build())
@@ -248,7 +250,7 @@ class NamespaceServiceTest {
                 .build())
             .build();
         Namespace ns3 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace3")
                 .cluster("other-cluster")
                 .build())
@@ -278,7 +280,7 @@ class NamespaceServiceTest {
     @Test
     void listAllNamespaceResourcesEmpty() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -308,7 +310,7 @@ class NamespaceServiceTest {
     @Test
     void listAllNamespaceResourcesTopic() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -319,7 +321,7 @@ class NamespaceServiceTest {
             .build();
 
         Topic topic = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("topic")
                 .namespace("namespace")
                 .build())
@@ -346,7 +348,7 @@ class NamespaceServiceTest {
     @Test
     void listAllNamespaceResourcesConnect() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -357,7 +359,7 @@ class NamespaceServiceTest {
             .build();
 
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("connector")
                 .namespace("namespace")
                 .build())
@@ -384,7 +386,7 @@ class NamespaceServiceTest {
     @Test
     void listAllNamespaceResourcesRoleBinding() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -395,7 +397,7 @@ class NamespaceServiceTest {
             .build();
 
         RoleBinding rb = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("rolebinding")
                 .namespace("namespace")
                 .build())
@@ -422,7 +424,7 @@ class NamespaceServiceTest {
     @Test
     void listAllNamespaceResourcesAccessControlEntry() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -433,7 +435,7 @@ class NamespaceServiceTest {
             .build();
 
         AccessControlEntry ace = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ace")
                 .namespace("namespace")
                 .build())
@@ -460,7 +462,7 @@ class NamespaceServiceTest {
     @Test
     void listAllNamespaceResourcesConnectCluster() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -471,7 +473,7 @@ class NamespaceServiceTest {
             .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("connect-cluster")
                 .namespace("namespace")
                 .build())
@@ -498,7 +500,7 @@ class NamespaceServiceTest {
     @Test
     void listAllNamespaceResourcesQuota() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
@@ -509,7 +511,7 @@ class NamespaceServiceTest {
             .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("resource-quota")
                 .namespace("namespace")
                 .build())

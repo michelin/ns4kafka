@@ -3,8 +3,8 @@ package com.michelin.ns4kafka.security;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
@@ -126,19 +126,22 @@ class ResourceBasedSecurityRuleTest {
         assertEquals(SecurityRuleResult.ALLOWED, actual);
     }
 
-    @Test
-    void checkReturnsAllowed() {
+    @ParameterizedTest
+    @CsvSource({"connectors,/api/namespaces/test/connectors",
+        "role-bindings,/api/namespaces/test/role-bindings",
+        "topics,/api/namespaces/test/topics/topic.with.dots"})
+    void checkReturnsAllowedWithHyphenAndDot(String resourceType, String path) {
         List<String> groups = List.of("group1");
         Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
         Authentication auth = Authentication.build("user", claims);
 
         when(roleBindingRepository.findAllForGroups(groups))
             .thenReturn(List.of(RoleBinding.builder()
-                .metadata(ObjectMeta.builder().namespace("test")
+                .metadata(Metadata.builder().namespace("test")
                     .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                     .role(RoleBinding.Role.builder()
-                        .resourceTypes(List.of("connectors"))
+                        .resourceTypes(List.of(resourceType))
                         .verbs(List.of(RoleBinding.Verb.GET))
                         .build())
                     .subject(RoleBinding.Subject.builder().subjectName("group1")
@@ -149,7 +152,7 @@ class ResourceBasedSecurityRuleTest {
             .thenReturn(Optional.of(Namespace.builder().build()));
 
         SecurityRuleResult actual =
-            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/connectors"), auth);
+            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET(path), auth);
         assertEquals(SecurityRuleResult.ALLOWED, actual);
     }
 
@@ -161,7 +164,7 @@ class ResourceBasedSecurityRuleTest {
 
         when(roleBindingRepository.findAllForGroups(groups))
             .thenReturn(List.of(RoleBinding.builder()
-                .metadata(ObjectMeta.builder().namespace("test")
+                .metadata(Metadata.builder().namespace("test")
                     .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                     .role(RoleBinding.Role.builder()
@@ -195,7 +198,7 @@ class ResourceBasedSecurityRuleTest {
 
         when(roleBindingRepository.findAllForGroups(groups))
             .thenReturn(List.of(RoleBinding.builder()
-                .metadata(ObjectMeta.builder()
+                .metadata(Metadata.builder()
                     .namespace(namespace)
                     .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
@@ -228,61 +231,6 @@ class ResourceBasedSecurityRuleTest {
 
         assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
-    
-    @Test
-    void checkReturnsAllowedResourceWithHyphen() {
-        List<String> groups = List.of("group1");
-        Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
-        Authentication auth = Authentication.build("user", claims);
-
-        when(roleBindingRepository.findAllForGroups(groups))
-            .thenReturn(List.of(RoleBinding.builder()
-                .metadata(ObjectMeta.builder().namespace("test")
-                    .build())
-                .spec(RoleBinding.RoleBindingSpec.builder()
-                    .role(RoleBinding.Role.builder()
-                        .resourceTypes(List.of("role-bindings"))
-                        .verbs(List.of(RoleBinding.Verb.GET))
-                        .build())
-                    .subject(RoleBinding.Subject.builder().subjectName("group1")
-                        .build())
-                    .build())
-                .build()));
-        when(namespaceRepository.findByName("test"))
-            .thenReturn(Optional.of(Namespace.builder().build()));
-
-        SecurityRuleResult actual =
-            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/role-bindings"), auth);
-        assertEquals(SecurityRuleResult.ALLOWED, actual);
-    }
-
-    @Test
-    void checkReturnsAllowedResourceNameWithDot() {
-        List<String> groups = List.of("group1");
-        Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
-        Authentication auth = Authentication.build("user", claims);
-
-        when(roleBindingRepository.findAllForGroups(groups))
-            .thenReturn(List.of(RoleBinding.builder()
-                .metadata(ObjectMeta.builder().namespace("test")
-                    .build())
-                .spec(RoleBinding.RoleBindingSpec.builder()
-                    .role(RoleBinding.Role.builder()
-                        .resourceTypes(List.of("topics"))
-                        .verbs(List.of(RoleBinding.Verb.GET))
-                        .build())
-                    .subject(RoleBinding.Subject.builder().subjectName("group1")
-                        .build())
-                    .build())
-                .build()));
-        when(namespaceRepository.findByName("test"))
-            .thenReturn(Optional.of(Namespace.builder().build()));
-
-        SecurityRuleResult actual =
-            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/topics/topic.with.dots"),
-                auth);
-        assertEquals(SecurityRuleResult.ALLOWED, actual);
-    }
 
     @Test
     void checkReturnsUnknownSubResource() {
@@ -294,7 +242,7 @@ class ResourceBasedSecurityRuleTest {
             .thenReturn(Optional.of(Namespace.builder().build()));
         when(roleBindingRepository.findAllForGroups(groups))
             .thenReturn(List.of(RoleBinding.builder()
-                .metadata(ObjectMeta.builder().namespace("test")
+                .metadata(Metadata.builder().namespace("test")
                     .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                     .role(RoleBinding.Role.builder()
@@ -322,7 +270,7 @@ class ResourceBasedSecurityRuleTest {
             .thenReturn(Optional.of(Namespace.builder().build()));
         when(roleBindingRepository.findAllForGroups(groups))
             .thenReturn(List.of(RoleBinding.builder()
-                .metadata(ObjectMeta.builder().namespace("test")
+                .metadata(Metadata.builder().namespace("test")
                     .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                     .role(RoleBinding.Role.builder()

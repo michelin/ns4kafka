@@ -1,26 +1,26 @@
 package com.michelin.ns4kafka.models;
 
+import static com.michelin.ns4kafka.utils.enums.Kind.KAFKA_STREAM;
+
 import io.micronaut.core.annotation.Introspected;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
 
 /**
  * Kafka Stream.
  */
 @Data
-@Builder
 @Introspected
-@NoArgsConstructor
-@AllArgsConstructor
-public class KafkaStream {
-    private final String apiVersion = "v1";
-    private final String kind = "KafkaStream";
-
-    @Valid
-    @NotNull
-    private ObjectMeta metadata;
+@EqualsAndHashCode(callSuper = true)
+public class KafkaStream extends MetadataResource {
+    /**
+     * Constructor.
+     *
+     * @param metadata The metadata
+     */
+    @Builder
+    public KafkaStream(Metadata metadata) {
+        super("v1", KAFKA_STREAM, metadata);
+    }
 }

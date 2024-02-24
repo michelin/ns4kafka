@@ -1,8 +1,11 @@
 package com.michelin.ns4kafka.models.connector;
 
+import static com.michelin.ns4kafka.utils.enums.Kind.CONNECTOR;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.Metadata;
+import com.michelin.ns4kafka.models.MetadataResource;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -22,24 +25,29 @@ import lombok.Setter;
  * Connector.
  */
 @Data
-@Builder
 @Introspected
-@NoArgsConstructor
-@AllArgsConstructor
-public class Connector {
-    private final String apiVersion = "v1";
-    private final String kind = "Connector";
-
-    @Valid
-    @NotNull
-    private ObjectMeta metadata;
-
+@EqualsAndHashCode(callSuper = true)
+public class Connector extends MetadataResource {
     @Valid
     @NotNull
     private ConnectorSpec spec;
 
     @EqualsAndHashCode.Exclude
     private ConnectorStatus status;
+
+    /**
+     * Constructor.
+     *
+     * @param metadata The metadata
+     * @param spec     The spec
+     * @param status   The status
+     */
+    @Builder
+    public Connector(Metadata metadata, ConnectorSpec spec, ConnectorStatus status) {
+        super("v1", CONNECTOR, metadata);
+        this.spec = spec;
+        this.status = status;
+    }
 
     /**
      * Connector task state.

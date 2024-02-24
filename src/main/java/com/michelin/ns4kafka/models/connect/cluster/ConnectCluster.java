@@ -1,6 +1,9 @@
 package com.michelin.ns4kafka.models.connect.cluster;
 
-import com.michelin.ns4kafka.models.ObjectMeta;
+import static com.michelin.ns4kafka.utils.enums.Kind.CONNECT_CLUSTER;
+
+import com.michelin.ns4kafka.models.Metadata;
+import com.michelin.ns4kafka.models.MetadataResource;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -14,21 +17,24 @@ import lombok.NoArgsConstructor;
  * Kafka Connect Cluster.
  */
 @Data
-@Builder
 @Introspected
-@NoArgsConstructor
-@AllArgsConstructor
-public class ConnectCluster {
-    private final String apiVersion = "v1";
-    private final String kind = "ConnectCluster";
-
-    @Valid
-    @NotNull
-    private ObjectMeta metadata;
-
+@EqualsAndHashCode(callSuper = true)
+public class ConnectCluster extends MetadataResource {
     @Valid
     @NotNull
     private ConnectClusterSpec spec;
+
+    /**
+     * Constructor.
+     *
+     * @param metadata The metadata
+     * @param spec     The spec
+     */
+    @Builder
+    public ConnectCluster(Metadata metadata, ConnectClusterSpec spec) {
+        super("v1", CONNECT_CLUSTER, metadata);
+        this.spec = spec;
+    }
 
     /**
      * Kafka Connect status.

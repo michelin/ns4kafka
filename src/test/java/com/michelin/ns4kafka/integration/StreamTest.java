@@ -10,9 +10,9 @@ import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
 import com.michelin.ns4kafka.models.KafkaStream;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.services.executors.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.annotation.Property;
@@ -50,7 +50,7 @@ class StreamTest extends AbstractIntegrationTest {
     @BeforeAll
     void init() {
         Namespace ns1 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("nskafkastream")
                 .cluster("test-cluster")
                 .build())
@@ -62,7 +62,7 @@ class StreamTest extends AbstractIntegrationTest {
             .build();
 
         AccessControlEntry acl1 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("nskafkastream-acl-topic")
                 .build())
             .spec(AccessControlEntrySpec.builder()
@@ -86,7 +86,7 @@ class StreamTest extends AbstractIntegrationTest {
             HttpRequest.create(HttpMethod.POST, "/api/namespaces/nskafkastream/acls").bearerAuth(token).body(acl1));
 
         AccessControlEntry acl2 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("nskafkastream-acl-group")
                 .build())
             .spec(AccessControlEntrySpec.builder()
@@ -106,7 +106,7 @@ class StreamTest extends AbstractIntegrationTest {
     void verifyCreationOfAcl() throws InterruptedException, ExecutionException {
 
         KafkaStream stream = KafkaStream.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("kstream-test")
                 .build())
             .build();

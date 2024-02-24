@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 @Introspected
 @NoArgsConstructor
 @AllArgsConstructor
-public class ObjectMeta {
+public class Metadata {
     @NotBlank
     @Pattern(regexp = "^" + RESOURCE_PATTERN + "+$")
     private String name;

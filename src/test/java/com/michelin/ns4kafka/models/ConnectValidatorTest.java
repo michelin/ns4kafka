@@ -139,13 +139,13 @@ class ConnectValidatorTest {
             .build();
 
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .build())
             .build();
 
         List<String> actual = validator.validate(connector, "sink");
         assertEquals(1, actual.size());
-        assertEquals("Invalid value null for name: Value must not be empty", actual.get(0));
+        assertEquals("Invalid empty value for field \"name\": value must not be empty.", actual.get(0));
     }
 
     @Test
@@ -154,7 +154,7 @@ class ConnectValidatorTest {
             .build();
 
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name(
                     "$thisNameIsDefinitelyToLooooooooooooooooooooooooooooooooooooooooooo"
                         + "ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
@@ -174,18 +174,18 @@ class ConnectValidatorTest {
         List<String> actual = validator.validate(connector, "sink");
         assertEquals(2, actual.size());
         assertEquals(
-            "Invalid value $thisNameIsDefinitelyToLoooooooooooooooo"
+            "Invalid value \"$thisNameIsDefinitelyToLoooooooooooooooo"
                 + "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
                 + "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
                 + "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
-                + "ooooooooooooooongToBeAConnectorName$ for name: Value must not be longer than 249",
+                + "ooooooooooooooongToBeAConnectorName$\" for field \"name\": value must not be longer than 249.",
             actual.get(0));
         assertEquals(
-            "Invalid value $thisNameIsDefinitelyToLooooooooooooooooooooooo"
+            "Invalid value \"$thisNameIsDefinitelyToLooooooooooooooooooooooo"
                 + "ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
                 + "ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
-                + "oooooooooooooooooooooooooooooooooooooooooooooooooooongToBeAConnectorName$ for name: "
-                + "Value must only contain ASCII alphanumerics, '.', '_' or '-'",
+                + "oooooooooooooooooooooooooooooooooooooooooooooooooooongToBeAConnectorName$\" "
+                + "for field \"name\": value must only contain ASCII alphanumerics, '.', '_' or '-'.",
             actual.get(1));
     }
 
@@ -208,7 +208,7 @@ class ConnectValidatorTest {
             .build();
 
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("connect2")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -242,7 +242,7 @@ class ConnectValidatorTest {
             .build();
 
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("connect2")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -264,7 +264,7 @@ class ConnectValidatorTest {
             .build();
 
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("connect2")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -303,7 +303,7 @@ class ConnectValidatorTest {
             .build();
 
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("connect2")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -343,7 +343,7 @@ class ConnectValidatorTest {
             .build();
 
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("connect2")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -357,7 +357,7 @@ class ConnectValidatorTest {
 
         List<String> actual = validator.validate(connector, "source");
         assertEquals(1, actual.size());
-        assertEquals("Invalid value null for configuration producer.override.sasl.jaas.config: Value must be non-null",
+        assertEquals("Invalid empty value for field \"producer.override.sasl.jaas.config\": value must not be null.",
             actual.get(0));
     }
 
@@ -384,7 +384,7 @@ class ConnectValidatorTest {
             .build();
 
         Connector connector = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("connect2")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -399,7 +399,7 @@ class ConnectValidatorTest {
         List<String> actual = validator.validate(connector, "sink");
         assertEquals(2, actual.size());
         assertTrue(actual.contains(
-            "Invalid value null for configuration consumer.override.sasl.jaas.config: Value must be non-null"));
-        assertTrue(actual.contains("Invalid value null for configuration db.timezone: Value must be non-null"));
+            "Invalid empty value for field \"consumer.override.sasl.jaas.config\": value must not be null."));
+        assertTrue(actual.contains("Invalid empty value for field \"db.timezone\": value must not be null."));
     }
 }

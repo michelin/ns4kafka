@@ -10,9 +10,9 @@ import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.models.RoleBinding.Role;
 import com.michelin.ns4kafka.models.RoleBinding.RoleBindingSpec;
@@ -75,7 +75,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         connectClient = applicationContext.createBean(HttpClient.class, connectContainer.getUrl());
 
         Namespace ns1 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1")
                 .cluster("test-cluster")
                 .build())
@@ -92,7 +92,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
             .build();
 
         RoleBinding rb1 = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-rb")
                 .namespace("ns1")
                 .build())
@@ -121,7 +121,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
             HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1));
 
         AccessControlEntry aclConnect = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-acl")
                 .namespace("ns1")
                 .build())
@@ -138,7 +138,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
             HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclConnect));
 
         AccessControlEntry aclTopic = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-acl-topic")
                 .namespace("ns1")
                 .build())
@@ -164,7 +164,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
     @Test
     void createNamespaceWithoutConnect() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns-without-connect")
                 .cluster("test-cluster")
                 .build())
@@ -195,7 +195,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         connectorSpecs.put("file", null);
 
         Connector connectorWithNullParameter = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-connectorWithNullParameter")
                 .namespace("ns1")
                 .build())
@@ -206,7 +206,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
             .build();
 
         Topic topic = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-to1")
                 .namespace("ns1")
                 .build())
@@ -227,7 +227,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .body(connectorWithNullParameter));
 
         Connector connectorWithEmptyParameter = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-connectorWithEmptyParameter")
                 .namespace("ns1")
                 .build())
@@ -247,7 +247,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
                 .body(connectorWithEmptyParameter));
 
         Connector connectorWithFillParameter = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-connectorWithFillParameter")
                 .namespace("ns1")
                 .build())
@@ -318,7 +318,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         assertEquals("test", connectorInfo.getBody().get().config().get("file"));
 
         Topic topic = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-to1")
                 .namespace("ns1")
                 .build())
@@ -337,7 +337,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
 
         Connector updateConnector = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-connector")
                 .namespace("ns1")
                 .build())
@@ -367,7 +367,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
     @Test
     void restartConnector() throws InterruptedException {
         Topic to = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-to1")
                 .namespace("ns1")
                 .build())
@@ -381,7 +381,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
             .build();
 
         Connector co = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-co1")
                 .namespace("ns1")
                 .build())
@@ -407,7 +407,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
         Thread.sleep(2000);
 
         ChangeConnectorState restartState = ChangeConnectorState.builder()
-            .metadata(ObjectMeta.builder().name("ns1-co1").build())
+            .metadata(Metadata.builder().name("ns1-co1").build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
                 .action(ChangeConnectorState.ConnectorAction.restart).build())
             .build();
@@ -421,7 +421,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
     @Test
     void pauseAndResumeConnector() throws MalformedURLException, InterruptedException {
         Topic to = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-to1")
                 .namespace("ns1")
                 .build())
@@ -435,7 +435,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
             .build();
 
         Connector co = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-co2")
                 .namespace("ns1")
                 .build())
@@ -462,7 +462,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
 
         // pause the connector
         ChangeConnectorState pauseState = ChangeConnectorState.builder()
-            .metadata(ObjectMeta.builder().name("ns1-co2").build())
+            .metadata(Metadata.builder().name("ns1-co2").build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
                 .action(ChangeConnectorState.ConnectorAction.pause).build())
             .build();
@@ -481,7 +481,7 @@ class ConnectTest extends AbstractIntegrationConnectTest {
 
         // resume the connector
         ChangeConnectorState resumeState = ChangeConnectorState.builder()
-            .metadata(ObjectMeta.builder().name("ns1-co2").build())
+            .metadata(Metadata.builder().name("ns1-co2").build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
                 .action(ChangeConnectorState.ConnectorAction.resume).build())
             .build();

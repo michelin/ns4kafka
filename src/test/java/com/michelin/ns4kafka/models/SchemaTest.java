@@ -11,7 +11,7 @@ class SchemaTest {
     @Test
     void testEquals() {
         Schema original = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("prefix.schema-one")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -28,7 +28,7 @@ class SchemaTest {
             .build();
 
         Schema same = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("prefix.schema-one")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -48,7 +48,7 @@ class SchemaTest {
         assertEquals(original, same);
 
         Schema different = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("prefix.schema-one")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -65,7 +65,7 @@ class SchemaTest {
         assertNotEquals(original, different);
 
         Schema differentByCompat = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("prefix.schema-one")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -84,7 +84,7 @@ class SchemaTest {
         assertNotEquals(original, differentByCompat);
 
         Schema differentByMetadata = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("prefix.schema-two")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -106,19 +106,19 @@ class SchemaTest {
     @Test
     void testSchemaListEquals() {
         SchemaList original = SchemaList.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("prefix.schema-one")
                 .build())
             .build();
 
         SchemaList same = SchemaList.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("prefix.schema-one")
                 .build())
             .build();
 
         SchemaList different = SchemaList.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("prefix.schema-two")
                 .build())
             .build();

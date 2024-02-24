@@ -10,9 +10,9 @@ import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
 import com.michelin.ns4kafka.models.KafkaStream;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.models.RoleBinding.Role;
 import com.michelin.ns4kafka.models.RoleBinding.RoleBindingSpec;
@@ -61,7 +61,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
     @BeforeAll
     void init() {
         Namespace ns1 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1")
                 .cluster("test-cluster")
                 .build())
@@ -73,7 +73,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
             .build();
 
         RoleBinding rb1 = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-rb")
                 .namespace("ns1")
                 .build())
@@ -104,7 +104,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
     @Test
     void createTopicReadAcl() throws InterruptedException, ExecutionException {
         AccessControlEntry aclTopic = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-acl-topic")
                 .namespace("ns1")
                 .build())
@@ -152,7 +152,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
     @Test
     void createPublicTopicReadAcl() throws InterruptedException, ExecutionException {
         AccessControlEntry aclTopicOwner = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-acl-topic-owner")
                 .namespace("ns1")
                 .build())
@@ -172,7 +172,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
         accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
 
         AccessControlEntry aclTopicPublic = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-public-acl-topic")
                 .namespace("ns1")
                 .build())
@@ -220,7 +220,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
     @Test
     void createTopicAclAlreadyExistsInBroker() throws InterruptedException, ExecutionException {
         AccessControlEntry aclTopic = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-acl-topic")
                 .namespace("ns1")
                 .build())
@@ -270,7 +270,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
     @Test
     void createConnectOwnerAcl() throws InterruptedException, ExecutionException {
         AccessControlEntry aclTopic = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-acl-connect")
                 .namespace("ns1")
                 .build())
@@ -319,7 +319,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
     @Test
     void createStreamAcl() throws InterruptedException, ExecutionException {
         AccessControlEntry aclTopic = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-acl-topic")
                 .namespace("ns1")
                 .build())
@@ -333,7 +333,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
             .build();
 
         AccessControlEntry aclGroup = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-acl-group")
                 .namespace("ns1")
                 .build())
@@ -386,7 +386,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
         assertTrue(results.containsAll(List.of(ac1, ac2, ac3, ac4)));
 
         KafkaStream stream = KafkaStream.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-stream1")
                 .namespace("ns1")
                 .build())
@@ -442,7 +442,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
     @Test
     void shouldCreateTransactionalIdOwnerAcl() throws InterruptedException, ExecutionException {
         AccessControlEntry aclTopic = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-acl-transactional-id")
                 .namespace("ns1")
                 .build())

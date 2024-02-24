@@ -1,5 +1,12 @@
 package com.michelin.ns4kafka.validation;
 
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidFieldValidationAtLeast;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidFieldValidationAtMost;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidFieldValidationEmpty;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidFieldValidationNull;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidFieldValidationNumber;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidFieldValidationOneOf;
+
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -108,18 +115,18 @@ public abstract class ResourceValidator {
                 if (optional) {
                     return;
                 }
-                throw new FieldValidationException(name, null, "Value must be non-null");
+                throw new FieldValidationException(invalidFieldValidationNull(name));
             }
             try {
                 n = Double.valueOf(o.toString());
             } catch (NumberFormatException e) {
-                throw new FieldValidationException(name, o.toString(), "Value must be a Number");
+                throw new FieldValidationException(invalidFieldValidationNumber(name, o.toString()));
             }
             if (min != null && n.doubleValue() < min.doubleValue()) {
-                throw new FieldValidationException(name, o, "Value must be at least " + min);
+                throw new FieldValidationException(invalidFieldValidationAtLeast(name, o.toString(), min));
             }
             if (max != null && n.doubleValue() > max.doubleValue()) {
-                throw new FieldValidationException(name, o, "Value must be no more than " + max);
+                throw new FieldValidationException(invalidFieldValidationAtMost(name, o.toString(), max));
             }
         }
 
@@ -171,7 +178,7 @@ public abstract class ResourceValidator {
                 if (optional) {
                     return;
                 }
-                throw new FieldValidationException(name, null, "Value must be non-null");
+                throw new FieldValidationException(invalidFieldValidationNull(name));
             }
             String s = (String) o;
 
@@ -227,12 +234,12 @@ public abstract class ResourceValidator {
                 if (optional) {
                     return;
                 }
-                throw new FieldValidationException(name, null, "Value must be non-null");
+                throw new FieldValidationException(invalidFieldValidationNull(name));
             }
             String s = (String) o;
             if (!validStrings.contains(s)) {
-                throw new FieldValidationException(name, o,
-                    "String must be one of: " + String.join(", ", validStrings));
+                throw new FieldValidationException(invalidFieldValidationOneOf(name, o.toString(),
+                    String.join(",", validStrings)));
             }
 
         }
@@ -260,11 +267,11 @@ public abstract class ResourceValidator {
         @Override
         public void ensureValid(String name, Object o) {
             if (o == null) {
-                throw new FieldValidationException(name, null, "Value must be non-null");
+                throw new FieldValidationException(invalidFieldValidationNull(name));
             }
             String s = (String) o;
             if (s.isEmpty()) {
-                throw new FieldValidationException(name, o, "String must be non-empty");
+                throw new FieldValidationException(invalidFieldValidationEmpty(name));
             }
         }
 
@@ -325,7 +332,7 @@ public abstract class ResourceValidator {
             }
             StringBuilder desc = new StringBuilder();
             for (ResourceValidator.Validator v : validators) {
-                if (desc.length() > 0) {
+                if (!desc.isEmpty()) {
                     desc.append(',').append(' ');
                 }
                 desc.append(v);

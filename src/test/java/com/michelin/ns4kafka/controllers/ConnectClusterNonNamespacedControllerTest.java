@@ -5,7 +5,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.controllers.connect.ConnectClusterNonNamespacedController;
-import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
 import com.michelin.ns4kafka.services.ConnectClusterService;
 import java.util.List;
@@ -31,7 +31,7 @@ class ConnectClusterNonNamespacedControllerTest {
     @Test
     void shouldListAll() {
         ConnectCluster connectCluster = ConnectCluster.builder()
-            .metadata(ObjectMeta.builder().name("connect-cluster")
+            .metadata(Metadata.builder().name("connect-cluster")
                 .build())
             .build();
 

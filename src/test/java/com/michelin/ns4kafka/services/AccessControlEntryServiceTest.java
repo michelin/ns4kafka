@@ -6,8 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
 import io.micronaut.context.ApplicationContext;
 import java.util.List;
@@ -39,14 +39,14 @@ class AccessControlEntryServiceTest {
     @Test
     void validateNotAllowedResources() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
             .build();
 
         AccessControlEntry badAcl = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-name")
                 .namespace("namespace")
                 .build())
@@ -67,10 +67,12 @@ class AccessControlEntryServiceTest {
             .thenReturn(List.of());
         List<String> actual = accessControlEntryService.validate(badAcl, ns);
         assertLinesMatch(List.of(
-                "^Invalid value CONNECT for resourceType.*",
-                "^Invalid value OWNER for permission.*",
-                "^Invalid value target-ns for grantedTo.*",
-                "^Invalid grant PREFIXED:.*"),
+                "Invalid value \"CONNECT\" for field \"resourceType\": "
+                    + "value must be one of \"TOPIC, CONNECT_CLUSTER\".",
+                "Invalid value \"OWNER\" for field \"permission\": value must be one of \"READ, WRITE\".",
+                "Invalid value \"target-ns\" for field \"grantedTo\": resource not found.",
+                "Invalid value \"test/PREFIXED\" for fields \"resource/resourcePatternType\": "
+                    + "cannot grant ACL to yourself."),
             actual);
 
     }
@@ -78,14 +80,14 @@ class AccessControlEntryServiceTest {
     @Test
     void validateNotAllowedSelfGrant() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
             .build();
 
         AccessControlEntry badAcl = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-name")
                 .namespace("namespace")
                 .build())
@@ -106,22 +108,22 @@ class AccessControlEntryServiceTest {
             .thenReturn(List.of());
         List<String> actual = accessControlEntryService.validate(badAcl, ns);
         assertLinesMatch(List.of(
-                "^Invalid value namespace for grantedTo.*",
-                "^Invalid grant PREFIXED:.*"),
+                "Invalid value \"namespace\" for field \"grantedTo\": cannot grant ACL to yourself.",
+                "Invalid value \"test/PREFIXED\" for fields \"resource/resourcePatternType\": "
+                    + "cannot grant ACL to yourself."),
             actual);
-
     }
 
     @Test
     void validateNotAllowedOwnerOfBadPrefix() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
             .build();
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-name")
                 .namespace("namespace")
                 .build())
@@ -150,19 +152,21 @@ class AccessControlEntryServiceTest {
                 .build()
             ));
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
-        assertLinesMatch(List.of("^Invalid grant PREFIXED:.*"), actual);
+        assertLinesMatch(List.of("Invalid value \"main/PREFIXED\" for fields \"resource/resourcePatternType\": "
+            + "cannot grant ACL to yourself."), actual);
     }
 
     @Test
     void validate_NotAllowedOwnerOfBadLiteral() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
             .build();
+
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-name")
                 .namespace("namespace")
                 .build())
@@ -174,6 +178,7 @@ class AccessControlEntryServiceTest {
                 .grantedTo("target-ns")
                 .build())
             .build();
+
         when(applicationContext.getBean(NamespaceService.class))
             .thenReturn(namespaceService);
         when(namespaceService.findByName("target-ns"))
@@ -191,19 +196,20 @@ class AccessControlEntryServiceTest {
                 .build()
             ));
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
-        assertLinesMatch(List.of("^Invalid grant LITERAL:.*"), actual);
+        assertLinesMatch(List.of("Invalid value \"resource2/LITERAL\" for fields \"resource/resourcePatternType\": "
+            + "cannot grant ACL to yourself."), actual);
     }
 
     @Test
     void validate_AllowedOwnerOfLiteral() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
             .build();
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-name")
                 .namespace("namespace")
                 .build())
@@ -238,13 +244,13 @@ class AccessControlEntryServiceTest {
     @Test
     void validate_AllowedOwnerOfPrefix() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
             .build();
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-name")
                 .namespace("namespace")
                 .build())
@@ -260,7 +266,7 @@ class AccessControlEntryServiceTest {
             .thenReturn(namespaceService);
         when(namespaceService.findByName("target-ns"))
             .thenReturn(
-                Optional.of(Namespace.builder().metadata(ObjectMeta.builder().name("target-ns").build()).build()));
+                Optional.of(Namespace.builder().metadata(Metadata.builder().name("target-ns").build()).build()));
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of(AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -280,13 +286,13 @@ class AccessControlEntryServiceTest {
     @Test
     void validate_AllowedPublicGrantedTo() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
             .build();
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-name")
                 .namespace("namespace")
                 .build())
@@ -321,7 +327,7 @@ class AccessControlEntryServiceTest {
     @Test
     void validateAsAdminSuccessUpdatingExistingAcl() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-name")
                 .namespace("target-ns")
                 .cluster("local")
@@ -335,7 +341,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
         Namespace namespace = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("target-ns")
                 .cluster("local")
                 .build())
@@ -368,7 +374,7 @@ class AccessControlEntryServiceTest {
         //   namespace2 OWNER:LITERAL:project2              OK 8
         //   namespace2 OWNER:LITERAL:proj                  OK 9
         AccessControlEntry existing1 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-existing1")
                 .namespace("other-ns")
                 .cluster("local")
@@ -382,7 +388,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
         AccessControlEntry existing2 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-existing2")
                 .namespace("other-ns")
                 .cluster("local")
@@ -396,13 +402,13 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
         Namespace namespace = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("target-ns")
                 .cluster("local")
                 .build())
             .build();
         AccessControlEntry toCreate1 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-tocreate")
                 .namespace("target-ns")
                 .cluster("local")
@@ -416,7 +422,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
         AccessControlEntry toCreate2 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-tocreate")
                 .namespace("target-ns")
                 .cluster("local")
@@ -460,7 +466,7 @@ class AccessControlEntryServiceTest {
         //   namespace2 OWNER:LITERAL:project2              OK 8
         //   namespace2 OWNER:LITERAL:proj                  OK 9
         AccessControlEntry existing1 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-existing1")
                 .namespace("other-ns")
                 .cluster("local")
@@ -474,7 +480,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
         AccessControlEntry existing2 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-existing2")
                 .namespace("other-ns")
                 .cluster("local")
@@ -488,13 +494,13 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
         Namespace namespace = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("target-ns")
                 .cluster("local")
                 .build())
             .build();
         AccessControlEntry toCreate1 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-tocreate")
                 .namespace("target-ns")
                 .cluster("local")
@@ -508,7 +514,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
         AccessControlEntry toCreate2 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-tocreate")
                 .namespace("target-ns")
                 .cluster("local")
@@ -552,7 +558,7 @@ class AccessControlEntryServiceTest {
         //   namespace2 OWNER:LITERAL:project2             OK 8
         //   namespace2 OWNER:LITERAL:proj                  OK 9
         AccessControlEntry existing1 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-existing1")
                 .namespace("other-ns")
                 .cluster("local")
@@ -566,7 +572,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
         AccessControlEntry existing2 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-existing2")
                 .namespace("other-ns")
                 .cluster("local")
@@ -580,13 +586,13 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
         Namespace namespace = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("target-ns")
                 .cluster("local")
                 .build())
             .build();
         AccessControlEntry toCreate1 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-tocreate")
                 .namespace("target-ns")
                 .cluster("local")
@@ -600,7 +606,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
         AccessControlEntry toCreate2 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-tocreate")
                 .namespace("target-ns")
                 .cluster("local")
@@ -646,7 +652,7 @@ class AccessControlEntryServiceTest {
         //   namespace2 OWNER:LITERAL:project2              OK 8   <<<<<<<<
         //   namespace2 OWNER:LITERAL:proj                  OK 9   <<<<<<<<
         AccessControlEntry existing1 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-existing1")
                 .namespace("other-ns")
                 .cluster("local")
@@ -660,7 +666,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
         AccessControlEntry existing2 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-existing2")
                 .namespace("other-ns")
                 .cluster("local")
@@ -674,7 +680,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
         AccessControlEntry existing3 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-existing2")
                 .namespace("other-ns")
                 .cluster("local")
@@ -689,14 +695,14 @@ class AccessControlEntryServiceTest {
             .build();
 
         Namespace namespace = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("target-ns")
                 .cluster("local")
                 .build())
             .build();
 
         AccessControlEntry toCreate1 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-tocreate")
                 .namespace("target-ns")
                 .cluster("local")
@@ -717,7 +723,7 @@ class AccessControlEntryServiceTest {
         assertTrue(actual.isEmpty());
 
         AccessControlEntry toCreate2 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-tocreate")
                 .namespace("target-ns")
                 .cluster("local")
@@ -735,7 +741,7 @@ class AccessControlEntryServiceTest {
         assertTrue(actual.isEmpty());
 
         AccessControlEntry toCreate3 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("acl-tocreate")
                 .namespace("target-ns")
                 .cluster("local")
@@ -756,7 +762,7 @@ class AccessControlEntryServiceTest {
     @Test
     void findAllGrantedToNamespace() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder().name("namespace1").build()).build();
+            .metadata(Metadata.builder().name("namespace1").build()).build();
         AccessControlEntry ace1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
         AccessControlEntry ace2 = AccessControlEntry.builder()
@@ -792,15 +798,15 @@ class AccessControlEntryServiceTest {
     @Test
     void findAllForNamespace() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder().name("namespace1").build()).build();
+            .metadata(Metadata.builder().name("namespace1").build()).build();
         AccessControlEntry ace1 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder().namespace("namespace1").build())
+            .metadata(Metadata.builder().namespace("namespace1").build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
         AccessControlEntry ace2 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder().namespace("namespace1").build())
+            .metadata(Metadata.builder().namespace("namespace1").build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
         AccessControlEntry ace3 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder().namespace("namespace2").build())
+            .metadata(Metadata.builder().namespace("namespace2").build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
 
         when(accessControlEntryRepository.findAll())
@@ -812,13 +818,13 @@ class AccessControlEntryServiceTest {
     @Test
     void findAll() {
         AccessControlEntry ace1 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder().namespace("namespace1").build())
+            .metadata(Metadata.builder().namespace("namespace1").build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
         AccessControlEntry ace2 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder().namespace("namespace2").build())
+            .metadata(Metadata.builder().namespace("namespace2").build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
         AccessControlEntry ace3 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder().namespace("namespace3").build())
+            .metadata(Metadata.builder().namespace("namespace3").build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace3").build()).build();
 
         when(accessControlEntryRepository.findAll())

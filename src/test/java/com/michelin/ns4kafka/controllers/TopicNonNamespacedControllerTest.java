@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.controllers.topic.TopicNonNamespacedController;
-import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.services.TopicService;
 import java.util.List;
@@ -26,8 +26,8 @@ class TopicNonNamespacedControllerTest {
     void listAll() {
         when(topicService.findAll())
             .thenReturn(List.of(
-                Topic.builder().metadata(ObjectMeta.builder().name("topic1").build()).build(),
-                Topic.builder().metadata(ObjectMeta.builder().name("topic2").build()).build()
+                Topic.builder().metadata(Metadata.builder().name("topic1").build()).build(),
+                Topic.builder().metadata(Metadata.builder().name("topic2").build()).build()
             ));
 
         List<Topic> actual = topicController.listAll();

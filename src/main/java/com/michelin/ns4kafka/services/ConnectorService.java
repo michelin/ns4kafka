@@ -1,5 +1,8 @@
 package com.michelin.ns4kafka.services;
 
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectorConnectCluster;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectorEmptyConnectorClass;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectorNoPlugin;
 import static com.michelin.ns4kafka.utils.config.ConnectorConfig.CONNECTOR_CLASS;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
@@ -9,6 +12,7 @@ import com.michelin.ns4kafka.repositories.ConnectorRepository;
 import com.michelin.ns4kafka.services.clients.connect.KafkaConnectClient;
 import com.michelin.ns4kafka.services.clients.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.services.executors.ConnectorAsyncExecutor;
+import com.michelin.ns4kafka.utils.FormatErrorUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
@@ -119,14 +123,13 @@ public class ConnectorService {
             String allowedConnectClusters =
                 Stream.concat(namespace.getSpec().getConnectClusters().stream(), selfDeployedConnectClusters.stream())
                     .collect(Collectors.joining(", "));
-            return Mono.just(
-                List.of("Invalid value " + connector.getSpec().getConnectCluster()
-                    + " for spec.connectCluster: Value must be one of [" + allowedConnectClusters + "]."));
+            return Mono.just(List.of(invalidConnectorConnectCluster(connector.getSpec().getConnectCluster(),
+                allowedConnectClusters)));
         }
 
         // If class does not exist, no need to go further
         if (StringUtils.isEmpty(connector.getSpec().getConfig().get(CONNECTOR_CLASS))) {
-            return Mono.just(List.of("Invalid value for spec.config.'connector.class': Value must be non-null."));
+            return Mono.just(List.of(invalidConnectorEmptyConnectorClass()));
         }
 
         // Connector type exists on this target connect cluster
@@ -141,8 +144,7 @@ public class ConnectorService {
                     .findFirst();
 
                 if (connectorType.isEmpty()) {
-                    return List.of("Failed to find any class that implements connector and which name matches "
-                        + connector.getSpec().getConfig().get(CONNECTOR_CLASS) + ".");
+                    return List.of(invalidConnectorNoPlugin(connector.getSpec().getConfig().get(CONNECTOR_CLASS)));
                 }
 
                 return namespace.getSpec().getConnectValidator() != null
@@ -177,7 +179,9 @@ public class ConnectorService {
             .map(configInfos -> configInfos.configs()
                 .stream()
                 .filter(configInfo -> !configInfo.configValue().errors().isEmpty())
-                .flatMap(configInfo -> configInfo.configValue().errors().stream())
+                .flatMap(configInfo -> configInfo.configValue().errors()
+                    .stream()
+                    .map(error -> FormatErrorUtils.invalidConnectorRemote(connector.getMetadata().getName(), error)))
                 .toList());
     }
 

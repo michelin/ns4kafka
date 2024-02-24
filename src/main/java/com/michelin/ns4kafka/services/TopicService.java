@@ -1,5 +1,9 @@
 package com.michelin.ns4kafka.services;
 
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidImmutableValue;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicCleanupPolicy;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicDeleteRecords;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicTags;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_DELETE;
@@ -9,8 +13,6 @@ import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.repositories.TopicRepository;
-import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
-import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
 import com.michelin.ns4kafka.services.executors.TopicAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
@@ -21,7 +23,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -171,15 +172,13 @@ public class TopicService {
         List<String> validationErrors = new ArrayList<>();
 
         if (existingTopic.getSpec().getPartitions() != newTopic.getSpec().getPartitions()) {
-            validationErrors.add(
-                String.format("Invalid value %s for configuration partitions: Value is immutable (%s).",
-                    newTopic.getSpec().getPartitions(), existingTopic.getSpec().getPartitions()));
+            validationErrors.add(invalidImmutableValue("partitions",
+                String.valueOf(newTopic.getSpec().getPartitions())));
         }
 
         if (existingTopic.getSpec().getReplicationFactor() != newTopic.getSpec().getReplicationFactor()) {
-            validationErrors.add(
-                String.format("Invalid value %s for configuration replication.factor: Value is immutable (%s).",
-                    newTopic.getSpec().getReplicationFactor(), existingTopic.getSpec().getReplicationFactor()));
+            validationErrors.add(invalidImmutableValue("replication.factor",
+                String.valueOf(newTopic.getSpec().getReplicationFactor())));
         }
 
         Optional<ManagedClusterProperties> topicCluster = managedClusterProperties
@@ -189,15 +188,13 @@ public class TopicService {
 
         boolean confluentCloudCluster = topicCluster.isPresent() && topicCluster.get().getProvider().equals(
             ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+
         if (confluentCloudCluster
             && existingTopic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG).equals(CLEANUP_POLICY_DELETE)
             && newTopic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG).equals(CLEANUP_POLICY_COMPACT)) {
-            validationErrors.add(String.format(
-                "Invalid value %s for configuration cleanup.policy: Altering topic configuration "
-                    + "from `delete` to `compact` is not currently supported. "
-                    + "Please create a new topic with `compact` policy specified instead.",
-                newTopic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG)));
+            validationErrors.add(invalidTopicCleanupPolicy(newTopic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG)));
         }
+
         return validationErrors;
     }
 
@@ -269,7 +266,7 @@ public class TopicService {
         List<String> errors = new ArrayList<>();
 
         if (deleteRecordsTopic.getSpec().getConfigs().get("cleanup.policy").equals("compact")) {
-            errors.add("Cannot delete records on a compacted topic. Please delete and recreate the topic.");
+            errors.add(invalidTopicDeleteRecords());
         }
 
         return errors;
@@ -339,9 +336,7 @@ public class TopicService {
 
         if (topicCluster.isPresent()
             && !topicCluster.get().getProvider().equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)) {
-            validationErrors.add(String.format(
-                "Invalid value %s for tags: Tags are not currently supported.",
-                String.join(", ", topic.getSpec().getTags())));
+            validationErrors.add(invalidTopicTags(String.join(",", topic.getSpec().getTags())));
             return validationErrors;
         }
 

@@ -9,15 +9,15 @@ class StreamTest {
     @Test
     void testEquals() {
         KafkaStream original = KafkaStream.builder()
-            .metadata(ObjectMeta.builder().name("stream1").build())
+            .metadata(Metadata.builder().name("stream1").build())
             .build();
 
         KafkaStream same = KafkaStream.builder()
-            .metadata(ObjectMeta.builder().name("stream1").build())
+            .metadata(Metadata.builder().name("stream1").build())
             .build();
 
         KafkaStream different = KafkaStream.builder()
-            .metadata(ObjectMeta.builder().name("stream2").build())
+            .metadata(Metadata.builder().name("stream2").build())
             .build();
 
         assertEquals(original, same);

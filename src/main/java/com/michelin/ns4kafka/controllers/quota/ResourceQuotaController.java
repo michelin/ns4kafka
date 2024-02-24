@@ -44,8 +44,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
      */
     @Get
     public List<ResourceQuotaResponse> list(String namespace) {
-        Namespace ns = getNamespace(namespace);
-        return List.of(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns,
+        return List.of(resourceQuotaService.getUsedResourcesByQuotaByNamespace(getNamespace(namespace),
             resourceQuotaService.findByNamespace(namespace)));
     }
 
@@ -58,12 +57,12 @@ public class ResourceQuotaController extends NamespacedResourceController {
      */
     @Get("/{quota}")
     public Optional<ResourceQuotaResponse> get(String namespace, String quota) {
-        Namespace ns = getNamespace(namespace);
         Optional<ResourceQuota> resourceQuota = resourceQuotaService.findByName(namespace, quota);
         if (resourceQuota.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, resourceQuota));
+        return Optional.of(
+            resourceQuotaService.getUsedResourcesByQuotaByNamespace(getNamespace(namespace), resourceQuota));
     }
 
     /**
@@ -85,7 +84,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, quota);
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors, quota.getKind(), quota.getMetadata().getName());
+            throw new ResourceValidationException(quota, validationErrors);
         }
 
         Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByNamespace(namespace);
@@ -98,8 +97,8 @@ public class ResourceQuotaController extends NamespacedResourceController {
             return formatHttpResponse(quota, status);
         }
 
-        sendEventLog(quota.getKind(), quota.getMetadata(), status,
-            resourceQuotaOptional.<Object>map(ResourceQuota::getSpec).orElse(null), quota.getSpec());
+        sendEventLog(quota, status, resourceQuotaOptional.<Object>map(ResourceQuota::getSpec).orElse(null),
+            quota.getSpec());
 
         return formatHttpResponse(resourceQuotaService.create(quota), status);
     }
@@ -126,8 +125,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
         }
 
         ResourceQuota resourceQuotaToDelete = resourceQuota.get();
-        sendEventLog(resourceQuotaToDelete.getKind(), resourceQuotaToDelete.getMetadata(), ApplyStatus.deleted,
-            resourceQuotaToDelete.getSpec(), null);
+        sendEventLog(resourceQuotaToDelete, ApplyStatus.deleted, resourceQuotaToDelete.getSpec(), null);
         resourceQuotaService.delete(resourceQuotaToDelete);
         return HttpResponse.noContent();
     }

@@ -54,14 +54,14 @@ public class StreamService {
 
     /**
      * Is given namespace owner of the given Kafka Streams.
+     * Kafka Streams ownership is determined by both topic and group ownership on prefixed resource.
+     * This is because Kafka Streams "application.id" is a consumer group but also a prefix for internal topic names.
      *
      * @param namespace The namespace
      * @param resource  The Kafka Streams
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceOwnerOfKafkaStream(Namespace namespace, String resource) {
-        // KafkaStream Ownership is determined by both Topic and Group ownership on PREFIXED resource,
-        // this is because KafkaStream application.id is a consumer group but also a prefix for internal topic names
         return new HashSet<>(accessControlEntryService.findAllGrantedToNamespace(namespace)
             .stream()
             .filter(accessControlEntry -> accessControlEntry.getSpec().getPermission()

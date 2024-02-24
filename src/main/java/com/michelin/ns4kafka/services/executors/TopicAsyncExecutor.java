@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.services.executors;
 
-import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.repositories.TopicRepository;
@@ -229,8 +229,8 @@ public class TopicAsyncExecutor {
             if (tagEntities != null) {
                 topics.forEach((key, value) -> {
                     Optional<List<String>> tags = tagEntities.entities().stream()
-                            .filter(tagEntity -> value.getMetadata().getName().equals(tagEntity.displayText()))
-                            .map(TagEntity::classificationNames).findFirst();
+                        .filter(tagEntity -> value.getMetadata().getName().equals(tagEntity.displayText()))
+                        .map(TagEntity::classificationNames).findFirst();
                     value.getSpec().setTags(tags.orElse(Collections.emptyList()));
                 });
             }
@@ -278,7 +278,7 @@ public class TopicAsyncExecutor {
             .entrySet()
             .stream()
             .map(stringMapEntry -> Topic.builder()
-                .metadata(ObjectMeta.builder()
+                .metadata(Metadata.builder()
                     .cluster(managedClusterProperties.getName())
                     .name(stringMapEntry.getKey())
                     .build())
@@ -385,37 +385,37 @@ public class TopicAsyncExecutor {
      */
     private void createAndAssociateTags(List<TagTopicInfo> tagsToAssociate) {
         List<TagInfo> tagsToCreate = tagsToAssociate
-                .stream()
-                .map(tag -> TagInfo
-                        .builder()
-                        .name(tag.typeName())
-                        .build())
-                .toList();
+            .stream()
+            .map(tag -> TagInfo
+                .builder()
+                .name(tag.typeName())
+                .build())
+            .toList();
 
         String stringTags = String.join(", ", tagsToAssociate
-                .stream()
-                .map(Record::toString)
-                .toList());
+            .stream()
+            .map(Record::toString)
+            .toList());
 
         schemaRegistryClient.createTags(tagsToCreate, managedClusterProperties.getName())
-                .subscribe(
-                        successCreation ->
-                                schemaRegistryClient.associateTags(
-                                        managedClusterProperties.getName(),
-                                        tagsToAssociate)
+            .subscribe(
+                successCreation ->
+                    schemaRegistryClient.associateTags(
+                            managedClusterProperties.getName(),
+                            tagsToAssociate)
                         .subscribe(
-                                successAssociation ->
-                                        log.info(String.format("Success associating tag %s.", stringTags)),
-                                error ->
-                                        log.error(String.format("Error associating tag %s.", stringTags), error)),
-                        error -> log.error(String.format("Error creating tag %s.", stringTags), error));
+                            successAssociation ->
+                                log.info(String.format("Success associating tag %s.", stringTags)),
+                            error ->
+                                log.error(String.format("Error associating tag %s.", stringTags), error)),
+                error -> log.error(String.format("Error creating tag %s.", stringTags), error));
     }
 
     /**
      * Dissociate tags to a topic.
      *
-     * @param tagsToDissociate  The tags to dissociate
-     * @param topicName         The topic name
+     * @param tagsToDissociate The tags to dissociate
+     * @param topicName        The topic name
      */
     private void dissociateTags(Collection<String> tagsToDissociate, String topicName) {
         tagsToDissociate

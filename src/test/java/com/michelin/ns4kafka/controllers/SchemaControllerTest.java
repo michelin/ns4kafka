@@ -10,8 +10,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.models.AuditLog;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.schema.Schema;
 import com.michelin.ns4kafka.models.schema.SchemaList;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
@@ -140,7 +140,8 @@ class SchemaControllerTest {
             .consumeErrorWith(error -> {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
-                assertEquals("Namespace not owner of this schema prefix.subject-value.",
+                assertEquals("Invalid value \"prefix.subject-value\" for field \"name\": "
+                        + "namespace is not owner of the resource.",
                     ((ResourceValidationException) error).getValidationErrors().get(0));
             })
             .verify();
@@ -362,7 +363,8 @@ class SchemaControllerTest {
             .consumeErrorWith(error -> {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
-                assertEquals("Invalid prefix prefix.subject-value : namespace not owner of this subject",
+                assertEquals("Invalid value \"prefix.subject-value\" for field \"name\": "
+                        + "namespace is not owner of the resource.",
                     ((ResourceValidationException) error).getValidationErrors().get(0));
             })
             .verify();
@@ -381,7 +383,8 @@ class SchemaControllerTest {
             .consumeErrorWith(error -> {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
-                assertEquals("Namespace not owner of this schema prefix.subject-value.",
+                assertEquals("Invalid value \"prefix.subject-value\" for field \"name\": "
+                        + "namespace is not owner of the resource.",
                     ((ResourceValidationException) error).getValidationErrors().get(0));
             })
             .verify();
@@ -440,7 +443,7 @@ class SchemaControllerTest {
 
     private Namespace buildNamespace() {
         return Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("myNamespace")
                 .cluster("local")
                 .build())
@@ -451,7 +454,7 @@ class SchemaControllerTest {
 
     private Schema buildSchema() {
         return Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("prefix.subject-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -472,7 +475,7 @@ class SchemaControllerTest {
 
     private Schema buildSchemaV2() {
         return Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("prefix.subject-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -494,7 +497,7 @@ class SchemaControllerTest {
 
     private SchemaList buildSchemaList() {
         return SchemaList.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("prefix.subject-value")
                 .build())
             .build();

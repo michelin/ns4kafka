@@ -6,8 +6,8 @@ import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.KafkaStream;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.repositories.StreamRepository;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
@@ -31,7 +31,7 @@ class StreamServiceTest {
     @Test
     void findAllEmpty() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -46,27 +46,27 @@ class StreamServiceTest {
     @Test
     void findAll() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
         KafkaStream stream1 = KafkaStream.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test_stream1")
                 .namespace("test")
                 .cluster("local")
                 .build())
             .build();
         KafkaStream stream2 = KafkaStream.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test_stream2")
                 .namespace("test")
                 .cluster("local")
                 .build())
             .build();
         KafkaStream stream3 = KafkaStream.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test_stream3")
                 .namespace("test")
                 .cluster("local")
@@ -86,27 +86,27 @@ class StreamServiceTest {
     @Test
     void findByName() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
         KafkaStream stream1 = KafkaStream.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test_stream1")
                 .namespace("test")
                 .cluster("local")
                 .build())
             .build();
         KafkaStream stream2 = KafkaStream.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test_stream2")
                 .namespace("test")
                 .cluster("local")
                 .build())
             .build();
         KafkaStream stream3 = KafkaStream.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test_stream3")
                 .namespace("test")
                 .cluster("local")
@@ -125,7 +125,7 @@ class StreamServiceTest {
     void findByNameEmpty() {
 
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
@@ -140,7 +140,7 @@ class StreamServiceTest {
     @Test
     void isNamespaceOwnerOfKafkaStream() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())

@@ -8,10 +8,10 @@ import java.util.Date;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-class ObjectMetaTest {
+class MetadataTest {
     @Test
     void testEquals() {
-        ObjectMeta original = ObjectMeta.builder()
+        Metadata original = Metadata.builder()
             .name("name1")
             .namespace("namespace1")
             .cluster("local")
@@ -20,7 +20,7 @@ class ObjectMetaTest {
             .creationTimestamp(Date.from(Instant.now()))
             .generation(0)
             .build();
-        ObjectMeta same = ObjectMeta.builder()
+        Metadata same = Metadata.builder()
             .name("name1")
             .namespace("namespace1")
             .cluster("local")
@@ -32,7 +32,7 @@ class ObjectMetaTest {
             // different gen
             .generation(99)
             .build();
-        ObjectMeta different = ObjectMeta.builder()
+        Metadata different = Metadata.builder()
             .name("name2")
             .namespace("namespace1")
             .cluster("local")
