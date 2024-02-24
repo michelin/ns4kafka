@@ -163,7 +163,7 @@ class NamespaceTest extends AbstractIntegrationTest {
                 .labels(Map.of("support-group", "LDAP-GROUP-1"))
                 .build())
             .spec(Namespace.NamespaceSpec.builder()
-                .kafkaUser("user1")
+                .kafkaUser("user2")
                 .connectClusters(List.of("test-connect"))
                 .topicValidator(TopicValidator.makeDefaultOneBroker())
                 .build())

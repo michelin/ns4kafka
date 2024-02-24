@@ -95,7 +95,7 @@ class ResourceBasedSecurityRuleTest {
 
         UnknownNamespaceException exception = assertThrows(UnknownNamespaceException.class,
             () -> resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/connectors"), auth));
-        assertEquals("Namespace \"test\" not found", exception.getMessage());
+        assertEquals("Unknown namespace \"test\"", exception.getMessage());
     }
 
     @Test
@@ -109,7 +109,7 @@ class ResourceBasedSecurityRuleTest {
 
         UnknownNamespaceException exception = assertThrows(UnknownNamespaceException.class,
             () -> resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/admin/connectors"), auth));
-        assertEquals("Namespace \"admin\" not found", exception.getMessage());
+        assertEquals("Unknown namespace \"admin\"", exception.getMessage());
     }
 
     @Test
