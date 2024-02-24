@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.integration.TopicTest.BearerAccessRefreshToken;
 import com.michelin.ns4kafka.models.AccessControlEntry;
@@ -133,6 +134,7 @@ class ExceptionHandlerTest extends AbstractIntegrationTest {
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
         assertEquals("Invalid Resource", exception.getMessage());
+        assertTrue(exception.getResponse().getBody(Status.class).isPresent());
         assertEquals("topic.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"",
             exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
     }
@@ -154,6 +156,22 @@ class ExceptionHandlerTest extends AbstractIntegrationTest {
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
         assertEquals("Client '/': Unauthorized", exception.getMessage());
+    }
+
+    @Test
+    void shouldThrowForbiddenWhenAccessingForbiddenResourceAsUser() {
+        UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("user", "admin");
+        HttpResponse<BearerAccessRefreshToken> response =
+            client.toBlocking().exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
+
+        String userToken = response.getBody().get().getAccessToken();
+
+        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
+            () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/acls/ns2-acl")
+                .bearerAuth(userToken)));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        assertEquals("Resource forbidden", exception.getMessage());
     }
 
     @Test
