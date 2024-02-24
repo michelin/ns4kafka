@@ -4,6 +4,7 @@ import static com.michelin.ns4kafka.utils.enums.Kind.STATUS;
 
 import com.michelin.ns4kafka.utils.enums.Kind;
 import io.micronaut.core.annotation.Introspected;
+import io.micronaut.http.HttpStatus;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,7 +21,7 @@ import lombok.NoArgsConstructor;
 public class Status extends Resource {
     private StatusPhase status;
     private String message;
-    private StatusReason reason;
+    private String reason;
     private StatusDetails details;
     private int code;
 
@@ -28,13 +29,13 @@ public class Status extends Resource {
      * Constructor.
      */
     @Builder
-    public Status(StatusPhase status, String message, StatusReason reason, StatusDetails details, int code) {
+    public Status(StatusPhase status, String message, HttpStatus httpStatus, StatusDetails details) {
         super("v1", STATUS);
         this.status = status;
         this.message = message;
-        this.reason = reason;
+        this.reason = httpStatus.getReason();
         this.details = details;
-        this.code = code;
+        this.code = httpStatus.getCode();
     }
 
     /**
@@ -56,22 +57,5 @@ public class Status extends Resource {
     public enum StatusPhase {
         Success,
         Failed
-    }
-
-    /**
-     * Status reason.
-     */
-    public enum StatusReason {
-        BadRequest,
-        Unauthorized,
-        Forbidden,
-        NotFound,
-        AlreadyExists,
-        Conflict,
-        Invalid,
-        Timeout,
-        ServerTimeout,
-        MethodNotAllowed,
-        InternalError
     }
 }

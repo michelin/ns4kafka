@@ -4,6 +4,7 @@ import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
+import com.michelin.ns4kafka.utils.exceptions.UnknownNamespaceException;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.core.util.StringUtils;
@@ -88,8 +89,8 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
         // Namespace doesn't exist
         String sub = authentication.getName();
         if (namespaceRepository.findByName(namespace).isEmpty()) {
-            log.debug("Namespace not found for user [{}] on path [{}]. Returning unknown.", sub, request.getPath());
-            return SecurityRuleResult.UNKNOWN;
+            log.debug("Namespace not found for user \"{}\" on path \"{}\"", sub, request.getPath());
+            throw new UnknownNamespaceException(namespace);
         }
 
         // Admin are allowed everything (provided that the namespace exists)

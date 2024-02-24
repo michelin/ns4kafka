@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.models.Metadata;
@@ -9,6 +10,7 @@ import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
+import com.michelin.ns4kafka.utils.exceptions.UnknownNamespaceException;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecurityRuleResult;
@@ -55,9 +57,7 @@ class ResourceBasedSecurityRuleTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"/non-namespaced/resource",
-        "/api/namespaces/admin/connectors",
-        "/api/namespaces"})
+    @CsvSource({"/non-namespaced/resource", "/api/namespaces"})
     void checkReturnsUnknownInvalidResource(String path) {
         List<String> groups = List.of("group1");
         Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
@@ -85,7 +85,7 @@ class ResourceBasedSecurityRuleTest {
     }
 
     @Test
-    void checkReturnsUnknownInvalidNamespace() {
+    void shouldReturnUnknownNamespace() {
         List<String> groups = List.of("group1");
         Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
         Authentication auth = Authentication.build("user", claims);
@@ -93,13 +93,13 @@ class ResourceBasedSecurityRuleTest {
         when(namespaceRepository.findByName("test"))
             .thenReturn(Optional.empty());
 
-        SecurityRuleResult actual =
-            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/connectors"), auth);
-        assertEquals(SecurityRuleResult.UNKNOWN, actual);
+        UnknownNamespaceException exception = assertThrows(UnknownNamespaceException.class,
+            () -> resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/connectors"), auth));
+        assertEquals("Namespace \"test\" not found", exception.getMessage());
     }
 
     @Test
-    void checkReturnsUnknownInvalidNamespaceAsAdmin() {
+    void shouldReturnUnknownNamespaceAsAdmin() {
         List<String> groups = List.of("group1");
         Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of("isAdmin()"));
         Authentication auth = Authentication.build("user", List.of("isAdmin()"), claims);
@@ -107,9 +107,9 @@ class ResourceBasedSecurityRuleTest {
         when(namespaceRepository.findByName("admin"))
             .thenReturn(Optional.empty());
 
-        SecurityRuleResult actual =
-            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/admin/connectors"), auth);
-        assertEquals(SecurityRuleResult.UNKNOWN, actual);
+        UnknownNamespaceException exception = assertThrows(UnknownNamespaceException.class,
+            () -> resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/admin/connectors"), auth));
+        assertEquals("Namespace \"admin\" not found", exception.getMessage());
     }
 
     @Test
@@ -220,7 +220,7 @@ class ResourceBasedSecurityRuleTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"name$space", "name/space", "*namespace*"})
+    @CsvSource({"name$space", "*namespace*"})
     void shouldReturnUnknownWhenWrongNamespaceName(String namespace) {
         List<String> groups = List.of("group1");
         Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
