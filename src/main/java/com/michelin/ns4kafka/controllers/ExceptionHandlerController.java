@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.Status;
 import com.michelin.ns4kafka.models.Status.StatusDetails;
 import com.michelin.ns4kafka.models.Status.StatusPhase;
+import com.michelin.ns4kafka.utils.exceptions.ForbiddenNamespaceException;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import com.michelin.ns4kafka.utils.exceptions.UnknownNamespaceException;
 import io.micronaut.http.HttpRequest;
@@ -140,7 +141,7 @@ public class ExceptionHandlerController {
     }
 
     /**
-     * Handle namespace not found exception.
+     * Handle namespace unknown exception.
      *
      * @param request   the request
      * @param exception the exception
@@ -155,6 +156,25 @@ public class ExceptionHandlerController {
             .build();
 
         return HttpResponse.unprocessableEntity()
+            .body(status);
+    }
+
+    /**
+     * Handle namespace forbidden exception.
+     *
+     * @param request   the request
+     * @param exception the exception
+     * @return the http response
+     */
+    @Error(global = true)
+    public HttpResponse<Status> error(HttpRequest<?> request, ForbiddenNamespaceException exception) {
+        var status = Status.builder()
+            .status(StatusPhase.Failed)
+            .message(exception.getMessage())
+            .httpStatus(HttpStatus.FORBIDDEN)
+            .build();
+
+        return HttpResponse.status(HttpStatus.FORBIDDEN)
             .body(status);
     }
 

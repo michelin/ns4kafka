@@ -91,6 +91,7 @@ class ExceptionHandlerTest extends AbstractIntegrationTest {
 
         client.toBlocking()
             .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1));
+
         client.toBlocking().exchange(
             HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1));
 
@@ -147,7 +148,7 @@ class ExceptionHandlerTest extends AbstractIntegrationTest {
                 .bearerAuth(token)));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
-        assertEquals("Unknown namespace \"ns2\"", exception.getMessage());
+        assertEquals("Accessing unknown namespace \"ns2\"", exception.getMessage());
     }
 
     @Test
@@ -160,7 +161,7 @@ class ExceptionHandlerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void shouldThrowForbiddenWhenAccessingForbiddenResourceAsUser() {
+    void shouldThrowNamespaceForbiddenWhenAccessingForbiddenNamespaceAsUser() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("user", "admin");
         HttpResponse<BearerAccessRefreshToken> response =
             client.toBlocking().exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
@@ -168,6 +169,46 @@ class ExceptionHandlerTest extends AbstractIntegrationTest {
         String userToken = response.getBody().get().getAccessToken();
 
         HttpRequest<?> request = HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/acls/ns2-acl")
+            .bearerAuth(userToken);
+
+        BlockingHttpClient blockingClient = client.toBlocking();
+
+        HttpClientResponseException exception =
+            assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        assertEquals("Accessing forbidden namespace \"ns1\"", exception.getMessage());
+    }
+
+    @Test
+    void shouldThrowResourceForbiddenWhenAccessingForbiddenResourceAsUser() {
+        RoleBinding rb2 = RoleBinding.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-rb2")
+                .namespace("ns1")
+                .build())
+            .spec(RoleBindingSpec.builder()
+                .role(Role.builder()
+                    .resourceTypes(List.of("acls"))
+                    .verbs(List.of(Verb.POST, Verb.GET))
+                    .build())
+                .subject(Subject.builder()
+                    .subjectName("userGroup")
+                    .subjectType(SubjectType.GROUP)
+                    .build())
+                .build())
+            .build();
+
+        client.toBlocking().exchange(
+            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb2));
+
+        UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("user", "admin");
+        HttpResponse<BearerAccessRefreshToken> response =
+            client.toBlocking().exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
+
+        String userToken = response.getBody().get().getAccessToken();
+
+        HttpRequest<?> request = HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/topics")
             .bearerAuth(userToken);
 
         BlockingHttpClient blockingClient = client.toBlocking();

@@ -156,7 +156,7 @@ class NamespaceTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void shouldInformWhenRequestedNamespaceIsUnknown() {
+    void shouldFailWhenRequestedNamespaceIsUnknown() {
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -197,6 +197,7 @@ class NamespaceTest extends AbstractIntegrationTest {
 
         assertEquals(HttpStatus.OK, response.getStatus());
 
+        // Accessing unknown namespace
         HttpRequest<?> request = HttpRequest.create(HttpMethod.POST, "/api/namespaces/namespaceTypo/role-bindings")
             .bearerAuth(token).body(roleBinding);
 
@@ -206,7 +207,69 @@ class NamespaceTest extends AbstractIntegrationTest {
             () -> blockingClient.exchange(request));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
-        assertEquals("Unknown namespace \"namespaceTypo\"", exception.getMessage());
+        assertEquals("Accessing unknown namespace \"namespaceTypo\"", exception.getMessage());
+        assertTrue(exception.getResponse().getBody(Status.class).isPresent());
+    }
+
+    @Test
+    void shouldFailWhenRequestedNamespaceIsForbidden() {
+        Namespace namespace = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace2")
+                .cluster("test-cluster")
+                .labels(Map.of("support-group", "LDAP-GROUP-1"))
+                .build())
+            .spec(Namespace.NamespaceSpec.builder()
+                .kafkaUser("user3")
+                .connectClusters(List.of("test-connect"))
+                .topicValidator(TopicValidator.makeDefaultOneBroker())
+                .build())
+            .build();
+
+        RoleBinding roleBinding = RoleBinding.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-rb")
+                .namespace("namespace2")
+                .build())
+            .spec(RoleBinding.RoleBindingSpec.builder()
+                .role(RoleBinding.Role.builder()
+                    .resourceTypes(List.of("topics", "acls"))
+                    .verbs(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET))
+                    .build())
+                .subject(RoleBinding.Subject.builder()
+                    .subjectName("group1")
+                    .subjectType(RoleBinding.SubjectType.GROUP)
+                    .build())
+                .build())
+            .build();
+
+        client.toBlocking()
+            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token).body(namespace));
+
+        client.toBlocking()
+            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/namespace2/role-bindings")
+                .bearerAuth(token).body(roleBinding));
+
+        UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("user", "admin");
+
+        HttpResponse<TopicTest.BearerAccessRefreshToken> response =
+            client.toBlocking().exchange(HttpRequest.POST("/login", credentials),
+                TopicTest.BearerAccessRefreshToken.class);
+
+        String userToken = response.getBody().get().getAccessToken();
+
+        // Accessing unknown namespace
+        HttpRequest<?> request = HttpRequest.create(HttpMethod.GET, "/api/namespaces/namespace2/topics")
+            .bearerAuth(userToken).body(roleBinding);
+
+        BlockingHttpClient blockingClient = client.toBlocking();
+
+        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
+            () -> blockingClient.exchange(request));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        assertEquals("Accessing forbidden namespace \"namespace2\"", exception.getMessage());
         assertTrue(exception.getResponse().getBody(Status.class).isPresent());
     }
 }
