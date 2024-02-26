@@ -10,6 +10,7 @@ import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
+import com.michelin.ns4kafka.utils.exceptions.ForbiddenNamespaceException;
 import com.michelin.ns4kafka.utils.exceptions.UnknownNamespaceException;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.Authentication;
@@ -41,13 +42,13 @@ class ResourceBasedSecurityRuleTest {
     ResourceBasedSecurityRule resourceBasedSecurityRule;
 
     @Test
-    void checkReturnsUnknownUnauthenticated() {
+    void shouldReturnsUnknownWhenUnauthenticated() {
         SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/anything"), null);
         assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
     @Test
-    void checkReturnsUnknownMissingClaims() {
+    void shouldReturnsUnknownWhenMissingClaims() {
         List<String> groups = List.of("group1");
         Map<String, Object> claims = Map.of("sub", "user", "groups", groups);
         Authentication auth = Authentication.build("user", claims);
@@ -58,29 +59,13 @@ class ResourceBasedSecurityRuleTest {
 
     @ParameterizedTest
     @CsvSource({"/non-namespaced/resource", "/api/namespaces"})
-    void checkReturnsUnknownInvalidResource(String path) {
+    void shouldReturnsUnknownWhenInvalidResource(String path) {
         List<String> groups = List.of("group1");
         Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
         Authentication auth = Authentication.build("user", claims);
 
         SecurityRuleResult actual =
             resourceBasedSecurityRule.checkSecurity(HttpRequest.GET(path), auth);
-        assertEquals(SecurityRuleResult.UNKNOWN, actual);
-    }
-
-    @Test
-    void checkReturnsUnknownNoRoleBinding() {
-        List<String> groups = List.of("group1");
-        Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
-        Authentication auth = Authentication.build("user", claims);
-
-        when(namespaceRepository.findByName("test"))
-            .thenReturn(Optional.of(Namespace.builder().build()));
-        when(roleBindingRepository.findAllForGroups(groups))
-            .thenReturn(List.of());
-
-        SecurityRuleResult actual =
-            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/connectors"), auth);
         assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
@@ -98,7 +83,20 @@ class ResourceBasedSecurityRuleTest {
         UnknownNamespaceException exception = assertThrows(UnknownNamespaceException.class,
             () -> resourceBasedSecurityRule.checkSecurity(request, auth));
 
-        assertEquals("Unknown namespace \"test\"", exception.getMessage());
+        assertEquals("Accessing unknown namespace \"test\"", exception.getMessage());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"name$space", "*namespace*"})
+    void shouldReturnUnknownWhenWrongNamespaceName(String namespace) {
+        List<String> groups = List.of("group1");
+        Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
+        Authentication auth = Authentication.build("user", claims);
+
+        SecurityRuleResult actual =
+            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/" + namespace + "/topics"), auth);
+
+        assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
     @Test
@@ -115,7 +113,7 @@ class ResourceBasedSecurityRuleTest {
         UnknownNamespaceException exception = assertThrows(UnknownNamespaceException.class,
             () -> resourceBasedSecurityRule.checkSecurity(request, auth));
 
-        assertEquals("Unknown namespace \"admin\"", exception.getMessage());
+        assertEquals("Accessing unknown namespace \"admin\"", exception.getMessage());
     }
 
     @Test
@@ -136,7 +134,7 @@ class ResourceBasedSecurityRuleTest {
     @CsvSource({"connectors,/api/namespaces/test/connectors",
         "role-bindings,/api/namespaces/test/role-bindings",
         "topics,/api/namespaces/test/topics/topic.with.dots"})
-    void checkReturnsAllowedWithHyphenAndDot(String resourceType, String path) {
+    void shouldReturnsAllowedWhenHyphenAndDotInResources(String resourceType, String path) {
         List<String> groups = List.of("group1");
         Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
         Authentication auth = Authentication.build("user", claims);
@@ -163,7 +161,7 @@ class ResourceBasedSecurityRuleTest {
     }
 
     @Test
-    void checkReturnsAllowedSubresource() {
+    void shouldReturnsAllowedWhenSubresource() {
         List<String> groups = List.of("group1");
         Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
         Authentication auth = Authentication.build("user", claims);
@@ -197,7 +195,7 @@ class ResourceBasedSecurityRuleTest {
 
     @ParameterizedTest
     @CsvSource({"namespace", "name-space", "name.space", "_name_space_", "namespace123"})
-    void shouldReturnAllowedWhenGoodNamespaceName(String namespace) {
+    void shouldReturnsAllowedWhenNamespaceName(String namespace) {
         List<String> groups = List.of("group1");
         Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
         Authentication auth = Authentication.build("user", claims);
@@ -225,17 +223,57 @@ class ResourceBasedSecurityRuleTest {
         assertEquals(SecurityRuleResult.ALLOWED, actual);
     }
 
-    @ParameterizedTest
-    @CsvSource({"name$space", "*namespace*"})
-    void shouldReturnUnknownWhenWrongNamespaceName(String namespace) {
+    @Test
+    void shouldReturnsForbiddenNamespaceWhenNoRoleBinding() {
         List<String> groups = List.of("group1");
         Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
         Authentication auth = Authentication.build("user", claims);
 
-        SecurityRuleResult actual =
-            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/" + namespace + "/topics"), auth);
+        when(namespaceRepository.findByName("test"))
+            .thenReturn(Optional.of(Namespace.builder().build()));
 
-        assertEquals(SecurityRuleResult.UNKNOWN, actual);
+        when(roleBindingRepository.findAllForGroups(groups))
+            .thenReturn(List.of());
+
+        HttpRequest<?> request = HttpRequest.GET("/api/namespaces/test/connectors");
+
+        ForbiddenNamespaceException exception = assertThrows(ForbiddenNamespaceException.class,
+            () -> resourceBasedSecurityRule.checkSecurity(request, auth));
+
+        assertEquals("Accessing forbidden namespace \"test\"", exception.getMessage());
+    }
+
+    @Test
+    void shouldReturnsForbiddenNamespaceWhenNoRoleBindingMatchingRequestedNamespace() {
+        List<String> groups = List.of("group1");
+        Map<String, Object> claims = Map.of("sub", "user", "groups", groups, "roles", List.of());
+        Authentication auth = Authentication.build("user", claims);
+
+        when(namespaceRepository.findByName("forbiddenNamespace"))
+            .thenReturn(Optional.of(Namespace.builder().build()));
+
+        when(roleBindingRepository.findAllForGroups(groups))
+            .thenReturn(List.of(RoleBinding.builder()
+                .metadata(Metadata.builder()
+                    .namespace("test")
+                    .build())
+                .spec(RoleBinding.RoleBindingSpec.builder()
+                    .role(RoleBinding.Role.builder()
+                        .resourceTypes(List.of("connectors"))
+                        .verbs(List.of(RoleBinding.Verb.GET))
+                        .build())
+                    .subject(RoleBinding.Subject.builder()
+                        .subjectName("group1")
+                        .build())
+                    .build())
+                .build()));
+
+        HttpRequest<?> request = HttpRequest.GET("/api/namespaces/forbiddenNamespace/connectors");
+
+        ForbiddenNamespaceException exception = assertThrows(ForbiddenNamespaceException.class,
+            () -> resourceBasedSecurityRule.checkSecurity(request, auth));
+
+        assertEquals("Accessing forbidden namespace \"forbiddenNamespace\"", exception.getMessage());
     }
 
     @Test
