@@ -184,7 +184,7 @@ class NamespaceServiceTest {
 
         assertEquals(1, result.size());
         assertEquals("Invalid value \"min.cleanable.dirty.ratio\" for field \"validationConstraints\": "
-                + "configuration not editable on Confluent Cloud.",
+                + "configuration not editable on a Confluent Cloud cluster.",
             result.get(0));
     }
 

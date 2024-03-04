@@ -100,8 +100,11 @@ public class NamespaceService {
                 .toList());
         }
 
-        if (namespaceRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
-            .anyMatch(namespace1 -> namespace1.getSpec().getKafkaUser().equals(namespace.getSpec().getKafkaUser()))) {
+        if (namespaceRepository.findAllForCluster(namespace.getMetadata().getCluster())
+            .stream()
+            .filter(foundNamespace -> !foundNamespace.getMetadata().getName().equals(namespace.getMetadata().getName()))
+            .anyMatch(foundNamespace -> foundNamespace.getSpec().getKafkaUser()
+                .equals(namespace.getSpec().getKafkaUser()))) {
             validationErrors.add(invalidNamespaceUserAlreadyExist(namespace.getSpec().getKafkaUser()));
         }
 
