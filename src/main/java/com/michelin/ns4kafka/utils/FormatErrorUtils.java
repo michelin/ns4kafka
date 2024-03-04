@@ -474,7 +474,6 @@ public class FormatErrorUtils {
             "configuration not editable on a Confluent Cloud cluster");
     }
 
-
     /**
      * Invalid Kafka user already exist.
      *
