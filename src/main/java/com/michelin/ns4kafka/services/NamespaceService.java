@@ -19,17 +19,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
+import org.apache.kafka.common.config.TopicConfig;
 
 /**
  * Service to manage the namespaces.
  */
 @Singleton
 public class NamespaceService {
+    private static final List<String> NOT_EDITABLE_CONFIGS = List.of(TopicConfig.MIN_CLEANABLE_DIRTY_RATIO_CONFIG);
+
     @Inject
     NamespaceRepository namespaceRepository;
 
     @Inject
-    List<ManagedClusterProperties> managedClusterPropertiesList;
+    List<ManagedClusterProperties> managedClusterProperties;
 
     @Inject
     TopicService topicService;
@@ -58,14 +61,9 @@ public class NamespaceService {
     public List<String> validateCreation(Namespace namespace) {
         List<String> validationErrors = new ArrayList<>();
 
-        if (managedClusterPropertiesList.stream()
+        if (managedClusterProperties.stream()
             .noneMatch(config -> config.getName().equals(namespace.getMetadata().getCluster()))) {
             validationErrors.add(invalidNamespaceNoCluster(namespace.getMetadata().getCluster()));
-        }
-
-        if (namespaceRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
-            .anyMatch(namespace1 -> namespace1.getSpec().getKafkaUser().equals(namespace.getSpec().getKafkaUser()))) {
-            validationErrors.add(invalidNamespaceUserAlreadyExist(namespace.getSpec().getKafkaUser()));
         }
 
         return validationErrors;
@@ -78,24 +76,36 @@ public class NamespaceService {
      * @return A list of validation errors
      */
     public List<String> validate(Namespace namespace) {
-        return namespace.getSpec().getConnectClusters()
-            .stream()
-            .filter(connectCluster -> !connectClusterExists(namespace.getMetadata().getCluster(), connectCluster))
-            .map(FormatErrorUtils::invalidNamespaceNoConnectCluster)
-            .toList();
-    }
+        List<String> validationErrors = new ArrayList<>();
 
-    /**
-     * Check if a given Connect cluster exists on a given Kafka cluster.
-     *
-     * @param kafkaCluster   The Kafka cluster
-     * @param connectCluster The Connect cluster
-     * @return true it does, false otherwise
-     */
-    private boolean connectClusterExists(String kafkaCluster, String connectCluster) {
-        return managedClusterPropertiesList.stream()
-            .anyMatch(kafkaAsyncExecutorConfig -> kafkaAsyncExecutorConfig.getName().equals(kafkaCluster)
-                && kafkaAsyncExecutorConfig.getConnects().containsKey(connectCluster));
+        Optional<ManagedClusterProperties> managedCluster = managedClusterProperties
+            .stream()
+            .filter(cluster -> namespace.getMetadata().getCluster().equals(cluster.getName()))
+            .findFirst();
+
+        if (managedCluster.isPresent()) {
+            if (managedCluster.get().isConfluentCloud()) {
+                validationErrors.addAll(NOT_EDITABLE_CONFIGS
+                    .stream()
+                    .filter(config -> namespace.getSpec().getTopicValidator().getValidationConstraints()
+                        .containsKey(config))
+                    .map(FormatErrorUtils::invalidNamespaceTopicValidatorKeyConfluentCloud)
+                    .toList());
+            }
+
+            validationErrors.addAll(namespace.getSpec().getConnectClusters()
+                .stream()
+                .filter(connectCluster -> !managedCluster.get().getConnects().containsKey(connectCluster))
+                .map(FormatErrorUtils::invalidNamespaceNoConnectCluster)
+                .toList());
+        }
+
+        if (namespaceRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
+            .anyMatch(namespace1 -> namespace1.getSpec().getKafkaUser().equals(namespace.getSpec().getKafkaUser()))) {
+            validationErrors.add(invalidNamespaceUserAlreadyExist(namespace.getSpec().getKafkaUser()));
+        }
+
+        return validationErrors;
     }
 
     /**
@@ -133,7 +143,7 @@ public class NamespaceService {
      * @return The list of namespaces
      */
     public List<Namespace> listAll() {
-        return managedClusterPropertiesList.stream()
+        return managedClusterProperties.stream()
             .map(ManagedClusterProperties::getName)
             .flatMap(s -> namespaceRepository.findAllForCluster(s).stream())
             .toList();

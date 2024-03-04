@@ -463,6 +463,12 @@ public class FormatErrorUtils {
             "cluster does not exist");
     }
 
+    public static String invalidNamespaceTopicValidatorKeyConfluentCloud(String invalidKey) {
+        return String.format(INVALID_FIELD, invalidKey, "validationConstraints",
+            "configuration not editable on Confluent Cloud");
+    }
+
+
     /**
      * Invalid Kafka user already exist.
      *

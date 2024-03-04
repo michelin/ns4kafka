@@ -217,12 +217,6 @@ class TopicAsyncExecutorTest {
     }
 
     @Test
-    void shouldBeConfluentCloud() {
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
-        assertTrue(topicAsyncExecutor.isConfluentCloud());
-    }
-
-    @Test
     void shouldDeleteTopicNoTags() throws ExecutionException, InterruptedException, TimeoutException {
         when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
         when(deleteTopicsResult.all()).thenReturn(kafkaFuture);

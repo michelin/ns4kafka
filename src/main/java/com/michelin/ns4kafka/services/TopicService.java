@@ -186,10 +186,9 @@ public class TopicService {
             .filter(cluster -> namespace.getMetadata().getCluster().equals(cluster.getName()))
             .findFirst();
 
-        boolean confluentCloudCluster = topicCluster.isPresent() && topicCluster.get().getProvider().equals(
-            ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        boolean isConfluentCloud = topicCluster.isPresent() && topicCluster.get().isConfluentCloud();
 
-        if (confluentCloudCluster
+        if (isConfluentCloud
             && existingTopic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG).equals(CLEANUP_POLICY_DELETE)
             && newTopic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG).equals(CLEANUP_POLICY_COMPACT)) {
             validationErrors.add(invalidTopicCleanupPolicy(newTopic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG)));
@@ -334,8 +333,7 @@ public class TopicService {
             .filter(cluster -> namespace.getMetadata().getCluster().equals(cluster.getName()))
             .findFirst();
 
-        if (topicCluster.isPresent()
-            && !topicCluster.get().getProvider().equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)) {
+        if (topicCluster.isPresent() && !topicCluster.get().isConfluentCloud()) {
             validationErrors.add(invalidTopicTags(String.join(",", topic.getSpec().getTags())));
             return validationErrors;
         }

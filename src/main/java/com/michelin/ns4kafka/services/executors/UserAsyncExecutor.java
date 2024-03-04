@@ -81,20 +81,17 @@ public class UserAsyncExecutor {
      */
     public void synchronizeUsers() {
         log.debug("Starting user collection for cluster {}", managedClusterProperties.getName());
+
         // List user details from broker
         Map<String, Map<String, Double>> brokerUserQuotas = userExecutor.listQuotas();
         // List user details from ns4kafka
         Map<String, Map<String, Double>> ns4kafkaUserQuotas = collectNs4kafkaQuotas();
 
-        // Compute toCreate, toDelete, and toUpdate lists
         Map<String, Map<String, Double>> toCreate = ns4kafkaUserQuotas.entrySet()
             .stream()
             .filter(entry -> !brokerUserQuotas.containsKey(entry.getKey()))
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        Map<String, Map<String, Double>> toDelete = brokerUserQuotas.entrySet()
-            .stream()
-            .filter(entry -> !ns4kafkaUserQuotas.containsKey(entry.getKey()))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
         Map<String, Map<String, Double>> toUpdate = ns4kafkaUserQuotas.entrySet()
             .stream()
             .filter(entry -> brokerUserQuotas.containsKey(entry.getKey()))
@@ -102,10 +99,12 @@ public class UserAsyncExecutor {
                 entry -> !entry.getValue().isEmpty() && !entry.getValue().equals(brokerUserQuotas.get(entry.getKey())))
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        if (log.isDebugEnabled()) {
-            log.debug("UserQuotas to create : " + String.join(", ", toCreate.keySet()));
-            log.debug("UserQuotas to delete : " + toDelete.size());
-            log.debug("UserQuotas to update : " + toUpdate.size());
+        if (!toCreate.isEmpty()) {
+            log.debug("User quota(s) to create : " + String.join(", ", toCreate.keySet()));
+        }
+
+        if (!toUpdate.isEmpty()) {
+            log.debug("User quota(s) to update : " + String.join(", ", toUpdate.keySet()));
         }
 
         createUserQuotas(toCreate);
