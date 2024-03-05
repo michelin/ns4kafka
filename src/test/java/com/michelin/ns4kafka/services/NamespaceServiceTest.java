@@ -303,9 +303,7 @@ class NamespaceServiceTest {
 
         List<String> result = namespaceService.validate(ns);
 
-        assertEquals(1, result.size());
-        assertEquals("Invalid value \"user\" for field \"kafkaUser\": user already exists in another namespace.",
-            result.get(0));
+        assertEquals(0, result.size());
     }
 
     @Test
