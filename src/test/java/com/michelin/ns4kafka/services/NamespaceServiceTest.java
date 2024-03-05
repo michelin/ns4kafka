@@ -4,6 +4,7 @@ import static com.michelin.ns4kafka.properties.ManagedClusterProperties.KafkaPro
 import static com.michelin.ns4kafka.properties.ManagedClusterProperties.KafkaProvider.SELF_MANAGED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
@@ -55,7 +56,7 @@ class NamespaceServiceTest {
     ResourceQuotaService resourceQuotaService;
 
     @Mock
-    List<ManagedClusterProperties> managedClusterPropertiesList;
+    List<ManagedClusterProperties> managedClusterProperties;
 
     @InjectMocks
     NamespaceService namespaceService;
@@ -93,7 +94,7 @@ class NamespaceServiceTest {
 
         ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local");
 
-        when(managedClusterPropertiesList.stream())
+        when(managedClusterProperties.stream())
             .thenReturn(Stream.of(managedClusterProperties1));
 
         List<String> result = namespaceService.validateCreation(ns);
@@ -116,13 +117,33 @@ class NamespaceServiceTest {
         ManagedClusterProperties kafka = new ManagedClusterProperties("local");
         kafka.setConnects(Map.of("local-name", new ConnectProperties()));
 
-        when(managedClusterPropertiesList.stream())
+        when(managedClusterProperties.stream())
             .thenReturn(Stream.of(kafka));
 
         List<String> result = namespaceService.validate(ns);
 
         assertTrue(result.isEmpty());
+    }
 
+    @Test
+    void shouldValidationSucceedWhenNoManagedCluster() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .spec(NamespaceSpec.builder()
+                .connectClusters(List.of("local-name"))
+                .kafkaUser("user")
+                .build())
+            .build();
+
+        when(managedClusterProperties.stream())
+            .thenReturn(Stream.empty());
+
+        List<String> result = namespaceService.validate(ns);
+
+        assertTrue(result.isEmpty());
     }
 
     @Test
@@ -131,7 +152,7 @@ class NamespaceServiceTest {
         managedClusterProperties1.setConnects(Map.of("other-connect-config", new ConnectProperties(),
             "other-connect-config2", new ConnectProperties()));
 
-        when(managedClusterPropertiesList.stream())
+        when(managedClusterProperties.stream())
             .thenReturn(Stream.of(managedClusterProperties1));
         when(namespaceRepository.findAllForCluster("local"))
             .thenReturn(List.of());
@@ -160,7 +181,7 @@ class NamespaceServiceTest {
         managedClusterProperties1.setConnects(Map.of("local-name", new ConnectProperties(),
             "local-name2", new ConnectProperties()));
 
-        when(managedClusterPropertiesList.stream())
+        when(managedClusterProperties.stream())
             .thenReturn(Stream.of(managedClusterProperties1));
         when(namespaceRepository.findAllForCluster("local"))
             .thenReturn(List.of());
@@ -194,7 +215,7 @@ class NamespaceServiceTest {
         managedClusterProperties1.setConnects(Map.of("local-name", new ConnectProperties(),
             "local-name2", new ConnectProperties()));
 
-        when(managedClusterPropertiesList.stream())
+        when(managedClusterProperties.stream())
             .thenReturn(Stream.of(managedClusterProperties1));
         when(namespaceRepository.findAllForCluster("local"))
             .thenReturn(List.of());
@@ -235,7 +256,7 @@ class NamespaceServiceTest {
         ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local");
         managedClusterProperties1.setConnects(Map.of("local-name", new ConnectProperties()));
 
-        when(managedClusterPropertiesList.stream())
+        when(managedClusterProperties.stream())
             .thenReturn(Stream.of(managedClusterProperties1));
         when(namespaceRepository.findAllForCluster("local"))
             .thenReturn(List.of(ns2));
@@ -259,6 +280,33 @@ class NamespaceServiceTest {
             result.get(0));
     }
 
+    @Test
+    void shouldNotFailWhenUserAlreadyExistOnSameCluster() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .spec(NamespaceSpec.builder()
+                .connectClusters(List.of("local-name"))
+                .kafkaUser("user")
+                .build())
+            .build();
+
+        ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local");
+        managedClusterProperties1.setConnects(Map.of("local-name", new ConnectProperties()));
+
+        when(managedClusterProperties.stream())
+            .thenReturn(Stream.of(managedClusterProperties1));
+        when(namespaceRepository.findAllForCluster("local"))
+            .thenReturn(List.of(ns));
+
+        List<String> result = namespaceService.validate(ns);
+
+        assertEquals(1, result.size());
+        assertEquals("Invalid value \"user\" for field \"kafkaUser\": user already exists in another namespace.",
+            result.get(0));
+    }
 
     @Test
     void listAll() {
@@ -296,8 +344,7 @@ class NamespaceServiceTest {
         ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local");
         ManagedClusterProperties managedClusterProperties2 = new ManagedClusterProperties("other-cluster");
 
-        when(managedClusterPropertiesList.stream())
-
+        when(managedClusterProperties.stream())
             .thenReturn(Stream.of(managedClusterProperties1, managedClusterProperties2));
         when(namespaceRepository.findAllForCluster("local"))
             .thenReturn(List.of(ns, ns2));
@@ -566,5 +613,23 @@ class NamespaceServiceTest {
         List<String> result = namespaceService.listAllNamespaceResources(ns);
         assertEquals(1, result.size());
         assertEquals("ResourceQuota/resource-quota", result.get(0));
+    }
+
+    @Test
+    void shouldDelete() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .spec(NamespaceSpec.builder()
+                .connectClusters(List.of("local-name"))
+                .kafkaUser("user")
+                .build())
+            .build();
+
+        namespaceService.delete(ns);
+
+        verify(namespaceRepository).delete(ns);
     }
 }

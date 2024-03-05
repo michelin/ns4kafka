@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
@@ -47,6 +50,9 @@ class TopicServiceTest {
 
     @Mock
     ApplicationContext applicationContext;
+
+    @Mock
+    TopicAsyncExecutor topicAsyncExecutor;
 
     @Mock
     List<ManagedClusterProperties> managedClusterProperties;
@@ -882,6 +888,60 @@ class TopicServiceTest {
 
         List<Topic> topics = topicService.findAll();
         assertEquals(4, topics.size());
+    }
+
+    @Test
+    void shouldDelete() throws ExecutionException, InterruptedException, TimeoutException {
+        Topic topic = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic1")
+                .cluster("cluster")
+                .build())
+            .build();
+
+        when(applicationContext.getBean(eq(TopicAsyncExecutor.class), any())).thenReturn(topicAsyncExecutor);
+
+        topicService.delete(topic);
+
+        verify(topicRepository).delete(topic);
+        verify(topicAsyncExecutor).deleteTopic(topic);
+    }
+
+    @Test
+    void shouldListUnsynchronizedTopicNames() throws ExecutionException, InterruptedException, TimeoutException {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .build();
+
+        Topic t1 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic1")
+                .build())
+            .build();
+
+        Topic t2 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic2")
+                .build())
+            .build();
+
+        when(applicationContext.getBean(eq(TopicAsyncExecutor.class), any())).thenReturn(topicAsyncExecutor);
+        when(topicAsyncExecutor.listBrokerTopicNames()).thenReturn(List.of("ns-topic1", "ns-topic2", "ns2-topic1"));
+        when(accessControlEntryService.isNamespaceOwnerOfResource(any(), any(), any()))
+            .thenReturn(true)
+            .thenReturn(true)
+            .thenReturn(false);
+        when(topicAsyncExecutor.collectBrokerTopicsFromNames(List.of("ns-topic1", "ns-topic2"))).thenReturn(
+            Map.of("ns-topic1", t1, "ns-topic2", t2));
+
+        List<Topic> actual = topicService.listUnsynchronizedTopics(ns);
+
+        assertEquals(2, actual.size());
+        assertTrue(actual.contains(t1));
+        assertTrue(actual.contains(t2));
     }
 
     @Test
