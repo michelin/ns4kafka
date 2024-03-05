@@ -217,14 +217,8 @@ class TopicAsyncExecutorTest {
     }
 
     @Test
-    void shouldBeConfluentCloud() {
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
-        assertTrue(topicAsyncExecutor.isConfluentCloud());
-    }
-
-    @Test
     void shouldDeleteTopicNoTags() throws ExecutionException, InterruptedException, TimeoutException {
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
@@ -244,7 +238,7 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldDeleteTopicSelfManagedCluster() throws ExecutionException, InterruptedException, TimeoutException {
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
@@ -267,7 +261,7 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
@@ -294,7 +288,7 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldNotEnrichWithTagsWhenNotConfluentCloud() {
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(false);
 
         Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
             Topic.builder()
@@ -315,7 +309,7 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
         TagEntity tagEntity = TagEntity.builder()
@@ -346,7 +340,7 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
         when(schemaRegistryClient.getTopicWithTags(LOCAL_CLUSTER))

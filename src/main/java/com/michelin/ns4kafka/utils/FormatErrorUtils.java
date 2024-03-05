@@ -464,6 +464,17 @@ public class FormatErrorUtils {
     }
 
     /**
+     * Invalid namespace topic validator key confluent cloud.
+     *
+     * @param invalidKey the invalid key
+     * @return the error message
+     */
+    public static String invalidNamespaceTopicValidatorKeyConfluentCloud(String invalidKey) {
+        return String.format(INVALID_FIELD, invalidKey, "validationConstraints",
+            "configuration not editable on a Confluent Cloud cluster");
+    }
+
+    /**
      * Invalid Kafka user already exist.
      *
      * @param invalidKafkaValue the invalid field value

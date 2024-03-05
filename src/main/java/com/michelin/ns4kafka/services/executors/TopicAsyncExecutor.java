@@ -129,7 +129,7 @@ public class TopicAsyncExecutor {
             createTopics(createTopics);
             alterTopics(updateTopics, checkTopics);
 
-            if (isConfluentCloud()) {
+            if (managedClusterProperties.isConfluentCloud()) {
                 alterTags(checkTopics, brokerTopics);
             }
         } catch (ExecutionException | TimeoutException | CancellationException | KafkaStoreException e) {
@@ -191,7 +191,7 @@ public class TopicAsyncExecutor {
         log.info("Success deleting topic {} on {}", topic.getMetadata().getName(),
             managedClusterProperties.getName());
 
-        if (isConfluentCloud() && !topic.getSpec().getTags().isEmpty()) {
+        if (managedClusterProperties.isConfluentCloud() && !topic.getSpec().getTags().isEmpty()) {
             dissociateTags(topic.getSpec().getTags(), topic.getMetadata().getName());
         }
     }
@@ -224,7 +224,7 @@ public class TopicAsyncExecutor {
      * @param topics Topics to complete
      */
     public void enrichWithTags(Map<String, Topic> topics) {
-        if (isConfluentCloud()) {
+        if (managedClusterProperties.isConfluentCloud()) {
             TagEntities tagEntities = schemaRegistryClient.getTopicWithTags(managedClusterProperties.getName()).block();
             if (tagEntities != null) {
                 topics.forEach((key, value) -> {
@@ -235,15 +235,6 @@ public class TopicAsyncExecutor {
                 });
             }
         }
-    }
-
-    /**
-     * Check if the current cluster is Confluent Cloud.
-     *
-     * @return true if it is, false otherwise
-     */
-    public boolean isConfluentCloud() {
-        return managedClusterProperties.getProvider().equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
     }
 
     /**

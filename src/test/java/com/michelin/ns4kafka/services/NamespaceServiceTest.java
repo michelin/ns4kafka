@@ -1,7 +1,10 @@
 package com.michelin.ns4kafka.services;
 
+import static com.michelin.ns4kafka.properties.ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD;
+import static com.michelin.ns4kafka.properties.ManagedClusterProperties.KafkaProvider.SELF_MANAGED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.models.AccessControlEntry;
@@ -16,10 +19,13 @@ import com.michelin.ns4kafka.models.quota.ResourceQuota;
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.properties.ManagedClusterProperties.ConnectProperties;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
+import com.michelin.ns4kafka.validation.ResourceValidator;
+import com.michelin.ns4kafka.validation.TopicValidator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
+import org.apache.kafka.common.config.TopicConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -50,7 +56,7 @@ class NamespaceServiceTest {
     ResourceQuotaService resourceQuotaService;
 
     @Mock
-    List<ManagedClusterProperties> managedClusterPropertiesList;
+    List<ManagedClusterProperties> managedClusterProperties;
 
     @InjectMocks
     NamespaceService namespaceService;
@@ -67,9 +73,6 @@ class NamespaceServiceTest {
                 .build())
             .build();
 
-        when(namespaceRepository.findAllForCluster("local"))
-            .thenReturn(List.of());
-
         List<String> result = namespaceService.validateCreation(ns);
         assertEquals(1, result.size());
         assertEquals("Invalid value \"local\" for field \"cluster\": cluster does not exist.", result.get(0));
@@ -77,46 +80,7 @@ class NamespaceServiceTest {
     }
 
     @Test
-    void validationCreationKafkaUserAlreadyExistFail() {
-
-        Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("namespace")
-                .cluster("local")
-                .build())
-            .spec(NamespaceSpec.builder()
-                .connectClusters(List.of("local-name"))
-                .kafkaUser("user")
-                .build())
-            .build();
-
-        Namespace ns2 = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("namespace2")
-                .cluster("local")
-                .build())
-            .spec(NamespaceSpec.builder()
-                .connectClusters(List.of("local-name"))
-                .kafkaUser("user")
-                .build())
-            .build();
-        ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local");
-
-        when(managedClusterPropertiesList.stream())
-            .thenReturn(Stream.of(managedClusterProperties1));
-        when(namespaceRepository.findAllForCluster("local"))
-            .thenReturn(List.of(ns2));
-
-        List<String> result = namespaceService.validateCreation(ns);
-        assertEquals(1, result.size());
-        assertEquals("Invalid value \"user\" for field \"kafkaUser\": user already exists in another namespace.",
-            result.get(0));
-
-    }
-
-    @Test
     void validateCreationNoNamespaceSuccess() {
-
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -130,52 +94,15 @@ class NamespaceServiceTest {
 
         ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local");
 
-        when(managedClusterPropertiesList.stream())
+        when(managedClusterProperties.stream())
             .thenReturn(Stream.of(managedClusterProperties1));
-        when(namespaceRepository.findAllForCluster("local"))
-            .thenReturn(List.of());
 
         List<String> result = namespaceService.validateCreation(ns);
         assertTrue(result.isEmpty());
     }
 
     @Test
-    void validateCreationNamespaceAlreadyExistsSuccess() {
-        Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("namespace")
-                .cluster("local")
-                .build())
-            .spec(NamespaceSpec.builder()
-                .connectClusters(List.of("local-name"))
-                .kafkaUser("user")
-                .build())
-            .build();
-        Namespace ns2 = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("namespace2")
-                .cluster("local")
-                .build())
-            .spec(NamespaceSpec.builder()
-                .connectClusters(List.of("local-name"))
-                .kafkaUser("user2")
-                .build())
-            .build();
-
-        ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local");
-
-        when(managedClusterPropertiesList.stream())
-            .thenReturn(Stream.of(managedClusterProperties1));
-        when(namespaceRepository.findAllForCluster("local"))
-            .thenReturn(List.of(ns2));
-
-        List<String> result = namespaceService.validateCreation(ns);
-        assertTrue(result.isEmpty());
-    }
-
-    @Test
-    void validateSuccess() {
-
+    void shouldValidationSucceed() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -190,17 +117,45 @@ class NamespaceServiceTest {
         ManagedClusterProperties kafka = new ManagedClusterProperties("local");
         kafka.setConnects(Map.of("local-name", new ConnectProperties()));
 
-        when(managedClusterPropertiesList.stream())
+        when(managedClusterProperties.stream())
             .thenReturn(Stream.of(kafka));
 
         List<String> result = namespaceService.validate(ns);
 
         assertTrue(result.isEmpty());
-
     }
 
     @Test
-    void validateFail() {
+    void shouldValidationSucceedWhenNoManagedCluster() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .spec(NamespaceSpec.builder()
+                .connectClusters(List.of("local-name"))
+                .kafkaUser("user")
+                .build())
+            .build();
+
+        when(managedClusterProperties.stream())
+            .thenReturn(Stream.empty());
+
+        List<String> result = namespaceService.validate(ns);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void shouldFailWhenConnectClusterDoesNotExist() {
+        ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local");
+        managedClusterProperties1.setConnects(Map.of("other-connect-config", new ConnectProperties(),
+            "other-connect-config2", new ConnectProperties()));
+
+        when(managedClusterProperties.stream())
+            .thenReturn(Stream.of(managedClusterProperties1));
+        when(namespaceRepository.findAllForCluster("local"))
+            .thenReturn(List.of());
 
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -213,12 +168,6 @@ class NamespaceServiceTest {
                 .build())
             .build();
 
-        ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local");
-        managedClusterProperties1.setConnects(Map.of("other-connect-config", new ConnectProperties()));
-
-        when(managedClusterPropertiesList.stream())
-            .thenReturn(Stream.of(managedClusterProperties1));
-
         List<String> result = namespaceService.validate(ns);
 
         assertEquals(1, result.size());
@@ -227,8 +176,138 @@ class NamespaceServiceTest {
     }
 
     @Test
-    void listAll() {
+    void shouldFailWhenNotEditableConfigOnConfluentCloud() {
+        ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local", CONFLUENT_CLOUD);
+        managedClusterProperties1.setConnects(Map.of("local-name", new ConnectProperties(),
+            "local-name2", new ConnectProperties()));
 
+        when(managedClusterProperties.stream())
+            .thenReturn(Stream.of(managedClusterProperties1));
+        when(namespaceRepository.findAllForCluster("local"))
+            .thenReturn(List.of());
+
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .spec(NamespaceSpec.builder()
+                .connectClusters(List.of("local-name"))
+                .kafkaUser("user")
+                .topicValidator(TopicValidator.builder()
+                    .validationConstraints(Map.of(TopicConfig.MIN_CLEANABLE_DIRTY_RATIO_CONFIG,
+                        ResourceValidator.Range.between(0.0, 1.0)))
+                    .build())
+                .build())
+            .build();
+
+        List<String> result = namespaceService.validate(ns);
+
+        assertEquals(1, result.size());
+        assertEquals("Invalid value \"min.cleanable.dirty.ratio\" for field \"validationConstraints\": "
+                + "configuration not editable on a Confluent Cloud cluster.",
+            result.get(0));
+    }
+
+    @Test
+    void shouldNotFailWhenNotEditableConfigOnSelfManaged() {
+        ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local", SELF_MANAGED);
+        managedClusterProperties1.setConnects(Map.of("local-name", new ConnectProperties(),
+            "local-name2", new ConnectProperties()));
+
+        when(managedClusterProperties.stream())
+            .thenReturn(Stream.of(managedClusterProperties1));
+        when(namespaceRepository.findAllForCluster("local"))
+            .thenReturn(List.of());
+
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .spec(NamespaceSpec.builder()
+                .connectClusters(List.of("local-name"))
+                .kafkaUser("user")
+                .topicValidator(TopicValidator.builder()
+                    .validationConstraints(Map.of(TopicConfig.MIN_CLEANABLE_DIRTY_RATIO_CONFIG,
+                        ResourceValidator.Range.between(0.0, 1.0)))
+                    .build())
+                .build())
+            .build();
+
+        List<String> result = namespaceService.validate(ns);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void shouldFailWhenUserAlreadyExist() {
+        Namespace ns2 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace2")
+                .cluster("local")
+                .build())
+            .spec(NamespaceSpec.builder()
+                .connectClusters(List.of("local-name"))
+                .kafkaUser("user")
+                .build())
+            .build();
+
+        ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local");
+        managedClusterProperties1.setConnects(Map.of("local-name", new ConnectProperties()));
+
+        when(managedClusterProperties.stream())
+            .thenReturn(Stream.of(managedClusterProperties1));
+        when(namespaceRepository.findAllForCluster("local"))
+            .thenReturn(List.of(ns2));
+
+
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .spec(NamespaceSpec.builder()
+                .connectClusters(List.of("local-name"))
+                .kafkaUser("user")
+                .build())
+            .build();
+
+        List<String> result = namespaceService.validate(ns);
+
+        assertEquals(1, result.size());
+        assertEquals("Invalid value \"user\" for field \"kafkaUser\": user already exists in another namespace.",
+            result.get(0));
+    }
+
+    @Test
+    void shouldNotFailWhenUserAlreadyExistOnSameCluster() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .spec(NamespaceSpec.builder()
+                .connectClusters(List.of("local-name"))
+                .kafkaUser("user")
+                .build())
+            .build();
+
+        ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local");
+        managedClusterProperties1.setConnects(Map.of("local-name", new ConnectProperties()));
+
+        when(managedClusterProperties.stream())
+            .thenReturn(Stream.of(managedClusterProperties1));
+        when(namespaceRepository.findAllForCluster("local"))
+            .thenReturn(List.of(ns));
+
+        List<String> result = namespaceService.validate(ns);
+
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    void listAll() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -263,8 +342,7 @@ class NamespaceServiceTest {
         ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local");
         ManagedClusterProperties managedClusterProperties2 = new ManagedClusterProperties("other-cluster");
 
-        when(managedClusterPropertiesList.stream())
-
+        when(managedClusterProperties.stream())
             .thenReturn(Stream.of(managedClusterProperties1, managedClusterProperties2));
         when(namespaceRepository.findAllForCluster("local"))
             .thenReturn(List.of(ns, ns2));
@@ -533,5 +611,23 @@ class NamespaceServiceTest {
         List<String> result = namespaceService.listAllNamespaceResources(ns);
         assertEquals(1, result.size());
         assertEquals("ResourceQuota/resource-quota", result.get(0));
+    }
+
+    @Test
+    void shouldDelete() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .spec(NamespaceSpec.builder()
+                .connectClusters(List.of("local-name"))
+                .kafkaUser("user")
+                .build())
+            .build();
+
+        namespaceService.delete(ns);
+
+        verify(namespaceRepository).delete(ns);
     }
 }

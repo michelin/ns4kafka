@@ -341,7 +341,7 @@ class TopicTest extends AbstractIntegrationTest {
                 .bearerAuth(token)
                 .body(topicFirstCreate)));
 
-        assertEquals("Invalid Resource", exception.getMessage());
+        assertEquals("Constraint validation failed", exception.getMessage());
         assertTrue(exception.getResponse().getBody(Status.class).isPresent());
         assertEquals("topic.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"",
             exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
