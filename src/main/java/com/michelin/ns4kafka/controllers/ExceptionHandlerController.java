@@ -38,7 +38,7 @@ public class ExceptionHandlerController {
     public HttpResponse<Status> error(HttpRequest<?> request, ResourceValidationException exception) {
         var status = Status.builder()
             .status(StatusPhase.Failed)
-            .message(String.format("Invalid %s %s", exception.getKind(), exception.getName()))
+            .message("Resource validation failed")
             .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
             .details(StatusDetails.builder()
                 .kind(exception.getKind())
@@ -62,7 +62,7 @@ public class ExceptionHandlerController {
     public HttpResponse<Status> error(HttpRequest<?> request, ConstraintViolationException exception) {
         var status = Status.builder()
             .status(StatusPhase.Failed)
-            .message("Invalid Resource")
+            .message("Constraint validation failed")
             .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
             .details(StatusDetails.builder()
                 .causes(exception.getConstraintViolations().stream().map(this::formatViolation).toList())

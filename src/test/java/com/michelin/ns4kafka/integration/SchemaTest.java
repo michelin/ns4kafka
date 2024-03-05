@@ -255,7 +255,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                     .body(incompatibleSchema)));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, incompatibleActual.getStatus());
-        assertEquals("Invalid Schema ns1-subject1-value", incompatibleActual.getMessage());
+        assertEquals("Resource validation failed", incompatibleActual.getMessage());
     }
 
     @Test
@@ -315,7 +315,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                     .body(schemaPersonWithoutRefs)));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, createException.getStatus());
-        assertEquals("Invalid Schema ns1-person-subject-value", createException.getMessage());
+        assertEquals("Resource validation failed", createException.getMessage());
 
         // Person with refs created
         Schema schemaPersonWithRefs = Schema.builder()
@@ -520,7 +520,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                     .body(wrongSchema)));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, createException.getStatus());
-        assertEquals("Invalid Schema wrongprefix-subject", createException.getMessage());
+        assertEquals("Resource validation failed", createException.getMessage());
 
         // Get all schemas
         var getResponse =
