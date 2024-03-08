@@ -283,7 +283,40 @@ class TopicAsyncExecutorTest {
     }
 
     @Test
-    void shouldRemoveDescription() {
+    void shouldRemoveDescriptionIfEmptyString() {
+        Properties properties = new Properties();
+        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
+
+        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
+        when(managedClusterProperties.getConfig()).thenReturn(properties);
+
+        List<Topic> ns4kafkaTopics = List.of(
+                Topic.builder()
+                        .metadata(ObjectMeta.builder()
+                                .name(TOPIC_NAME)
+                                .build())
+                        .spec(Topic.TopicSpec.builder()
+                                .description("")
+                                .build())
+                        .build());
+
+        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
+                Topic.builder()
+                        .metadata(ObjectMeta.builder()
+                                .name(TOPIC_NAME)
+                                .build())
+                        .spec(Topic.TopicSpec.builder()
+                                .description(DESCRIPTION1)
+                                .build())
+                        .build());
+
+        topicAsyncExecutor.alterDescriptions(ns4kafkaTopics, brokerTopics);
+
+        verify(schemaRegistryClient).updateDescription(LOCAL_CLUSTER, TOPIC_NAME, null);
+    }
+
+    @Test
+    void shouldRemoveDescriptionIfNoDescriptionField() {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
