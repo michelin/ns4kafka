@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.services.clients.schema.entities;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 
 /**

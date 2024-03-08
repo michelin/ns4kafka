@@ -922,7 +922,7 @@ class TopicServiceTest {
 
         List<String> validationErrors = topicService.validateTags(ns, topic);
         assertEquals(1, validationErrors.size());
-        assertEquals("Invalid value TAG_TEST for tags: Tags are not currently supported.", validationErrors.get(0));
+        assertEquals("Invalid value TAG_TEST for tags: Tags are not currently supported.", validationErrors.getFirst());
     }
 
     @Test

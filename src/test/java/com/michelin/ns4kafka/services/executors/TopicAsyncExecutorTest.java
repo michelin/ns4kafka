@@ -136,9 +136,9 @@ class TopicAsyncExecutorTest {
         topicAsyncExecutor.alterTags(ns4kafkaTopics, brokerTopics);
 
         verify(schemaRegistryClient).associateTags(eq(LOCAL_CLUSTER), argThat(tags ->
-                tags.get(0).entityName().equals(CLUSTER_ID_TEST + ":" + TOPIC_NAME)
-                        && tags.get(0).typeName().equals(TAG1)
-                        && tags.get(0).entityType().equals(TOPIC_ENTITY_TYPE)));
+                tags.getFirst().entityName().equals(CLUSTER_ID_TEST + ":" + TOPIC_NAME)
+                        && tags.getFirst().typeName().equals(TAG1)
+                        && tags.getFirst().entityType().equals(TOPIC_ENTITY_TYPE)));
     }
 
     @Test
@@ -175,9 +175,9 @@ class TopicAsyncExecutorTest {
         topicAsyncExecutor.alterTags(ns4kafkaTopics, brokerTopics);
 
         verify(schemaRegistryClient).associateTags(eq(LOCAL_CLUSTER), argThat(tags ->
-                tags.get(0).entityName().equals(CLUSTER_ID_TEST + ":" + TOPIC_NAME)
-                        && tags.get(0).typeName().equals(TAG1)
-                        && tags.get(0).entityType().equals(TOPIC_ENTITY_TYPE)));
+                tags.getFirst().entityName().equals(CLUSTER_ID_TEST + ":" + TOPIC_NAME)
+                        && tags.getFirst().typeName().equals(TAG1)
+                        && tags.getFirst().entityType().equals(TOPIC_ENTITY_TYPE)));
     }
 
     @Test
@@ -212,9 +212,9 @@ class TopicAsyncExecutorTest {
         topicAsyncExecutor.alterTags(ns4kafkaTopics, brokerTopics);
 
         verify(schemaRegistryClient, never()).associateTags(eq(LOCAL_CLUSTER), argThat(tags ->
-                tags.get(0).entityName().equals(CLUSTER_ID_TEST + ":" + TOPIC_NAME)
-                        && tags.get(0).typeName().equals(TAG1)
-                        && tags.get(0).entityType().equals(TOPIC_ENTITY_TYPE)));
+                tags.getFirst().entityName().equals(CLUSTER_ID_TEST + ":" + TOPIC_NAME)
+                        && tags.getFirst().typeName().equals(TAG1)
+                        && tags.getFirst().entityType().equals(TOPIC_ENTITY_TYPE)));
     }
 
     @Test
