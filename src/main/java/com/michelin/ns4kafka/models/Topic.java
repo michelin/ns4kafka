@@ -66,6 +66,9 @@ public class Topic {
         @Builder.Default
         @JsonSetter(nulls = Nulls.AS_EMPTY)
         private List<String> tags = new ArrayList<>();
+        @Builder.Default
+        @JsonSetter(nulls = Nulls.AS_EMPTY)
+        private String description = "";
         private Map<String, String> configs;
     }
 

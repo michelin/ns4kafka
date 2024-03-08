@@ -16,12 +16,8 @@ import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -323,6 +319,18 @@ public class TopicService {
     }
 
     /**
+     * Check if topic tags respect confluent tag format (starts with letter followed by alphanumerical characters or underscore)
+     *
+     * @param topic     The topic which contains tags
+     * @return Boolean
+     */
+    public Boolean tagsFormatIsConform(Topic topic) {
+        return (topic.getSpec().getTags()
+                .stream()
+                .allMatch(tag -> tag.matches("^[a-zA-Z][0-9a-zA-Z_]*$")));
+    }
+
+    /**
      * Validate tags for topic.
      *
      * @param namespace The namespace
@@ -342,6 +350,13 @@ public class TopicService {
             validationErrors.add(String.format(
                 "Invalid value %s for tags: Tags are not currently supported.",
                 String.join(", ", topic.getSpec().getTags())));
+            return validationErrors;
+        }
+
+        if (!tagsFormatIsConform(topic)) {
+            validationErrors.add(String.format(
+                    "Invalid value %s for tags: Tags should start with letter and be followed by alphanumeric or _ characters",
+                    String.join(", ", topic.getSpec().getTags())));
             return validationErrors;
         }
 

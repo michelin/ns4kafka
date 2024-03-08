@@ -924,4 +924,115 @@ class TopicServiceTest {
         assertEquals(1, validationErrors.size());
         assertEquals("Invalid value TAG_TEST for tags: Tags are not currently supported.", validationErrors.get(0));
     }
+
+    @Test
+    void shouldReturnTrueWhenTagFormatIsCorrect() {
+        Topic topicWithTag = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic1").build())
+                .spec(Topic.TopicSpec.builder()
+                        .tags(List.of("test")).build())
+                .build();
+
+        Topic topicWithSimpliestTag = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic2").build())
+                .spec(Topic.TopicSpec.builder()
+                        .tags(List.of("A")).build())
+                .build();
+
+        Topic topicWithUnderscoreAndNumberTag = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic3").build())
+                .spec(Topic.TopicSpec.builder()
+                        .tags(List.of("TEST1_TAG")).build())
+                .build();
+
+        Topic topicWithUnderscoreAndUpperLowerCase = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic4").build())
+                .spec(Topic.TopicSpec.builder()
+                        .tags(List.of("t1_T_a_g2")).build())
+                .build();
+
+        Topic topicWithMultipleCorrectTags = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic5").build())
+                .spec(Topic.TopicSpec.builder()
+                        .tags(List.of("TEST1", "test2", "tEST_3", "T_a_g")).build())
+                .build();
+
+        assertEquals(true, topicService.tagsFormatIsConform(topicWithTag));
+        assertEquals(true, topicService.tagsFormatIsConform(topicWithSimpliestTag));
+        assertEquals(true, topicService.tagsFormatIsConform(topicWithUnderscoreAndNumberTag));
+        assertEquals(true, topicService.tagsFormatIsConform(topicWithUnderscoreAndUpperLowerCase));
+        assertEquals(true, topicService.tagsFormatIsConform(topicWithMultipleCorrectTags));
+    }
+
+    @Test
+    void shouldReturnFalseWhenTagFormatIsIncorrect() {
+        Topic topicWithBeginningDigitTag = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic1").build())
+                .spec(Topic.TopicSpec.builder()
+                        .tags(List.of("0test")).build())
+                .build();
+
+        Topic topicWithBeginningUnderscoreTag = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic2").build())
+                .spec(Topic.TopicSpec.builder()
+                        .tags(List.of("_TEST")).build())
+                .build();
+
+        Topic topicWithForbiddenCharacterTag = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic3").build())
+                .spec(Topic.TopicSpec.builder()
+                        .tags(List.of("test-tag")).build())
+                .build();
+
+        Topic topicWithManyForbiddenCharactersTag = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic4").build())
+                .spec(Topic.TopicSpec.builder()
+                        .tags(List.of("&~#()[]{}-+=*%:.,;!?^°çé")).build())
+                .build();
+
+        Topic topicWithMultipleIncorrectTags = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic5").build())
+                .spec(Topic.TopicSpec.builder()
+                        .tags(List.of("test-tag", "TEST.tag", "0TEST")).build())
+                .build();
+
+        Topic topicWithOneIncorrectAndMultipleCorrectTags = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic5").build())
+                .spec(Topic.TopicSpec.builder()
+                        .tags(List.of("testTag", "0TEST-tag", "TEST")).build())
+                .build();
+
+        assertEquals(false, topicService.tagsFormatIsConform(topicWithBeginningDigitTag));
+        assertEquals(false, topicService.tagsFormatIsConform(topicWithForbiddenCharacterTag));
+        assertEquals(false, topicService.tagsFormatIsConform(topicWithBeginningUnderscoreTag));
+        assertEquals(false, topicService.tagsFormatIsConform(topicWithManyForbiddenCharactersTag));
+        assertEquals(false, topicService.tagsFormatIsConform(topicWithMultipleIncorrectTags));
+        assertEquals(false, topicService.tagsFormatIsConform(topicWithOneIncorrectAndMultipleCorrectTags));
+    }
+
+    @Test
+    void shouldTagsBeInvalidWhenFormatIsWrong() {
+        Namespace ns = Namespace.builder()
+                .metadata(ObjectMeta.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(ObjectMeta.builder().name("ns-topic1").build())
+                .spec(Topic.TopicSpec.builder()
+                        .tags(List.of("0TAG-TEST")).build())
+                .build();
+
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(
+                new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.SELF_MANAGED)));
+
+        List<String> validationErrors = topicService.validateTags(ns, topic);
+        assertEquals(1, validationErrors.size());
+        assertEquals("Invalid value 0TAG-TEST for tags: Tags should start with letter and be followed by alphanumeric or _ characters", validationErrors.getFirst());
+    }
 }
+
+
+
