@@ -122,7 +122,7 @@ public class AccessControlEntryService {
         //   namespace2 OWNER:LITERAL:proj                  OK 9
         return findAllForCluster(namespace.getMetadata().getCluster())
             .stream()
-            // don't include the ACL if it's itself (namespace+name)
+            // Do not include the ACL if it is itself
             .filter(ace -> !ace.getMetadata().getNamespace().equals(namespace.getMetadata().getName())
                 || !ace.getMetadata().getName().equals(accessControlEntry.getMetadata().getName()))
             .filter(ace -> ace.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
@@ -132,21 +132,51 @@ public class AccessControlEntryService {
                 boolean parentOverlap = false;
                 if (accessControlEntry.getSpec().getResourcePatternType()
                     == AccessControlEntry.ResourcePatternType.PREFIXED) {
-                    parentOverlap = ace.getSpec().getResource().startsWith(accessControlEntry.getSpec().getResource());
+                    parentOverlap = ace.getSpec().getResource().startsWith(accessControlEntry.getSpec().getResource())
+                        || topicAclsCollideWithParentOrChild(ace, accessControlEntry);
                 }
                 // new ACL would be covered by a PREFIXED existing ACLs
                 boolean childOverlap = false;
                 if (ace.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.PREFIXED) {
-                    childOverlap = accessControlEntry.getSpec().getResource().startsWith(ace.getSpec().getResource());
+                    childOverlap = accessControlEntry.getSpec().getResource().startsWith(ace.getSpec().getResource())
+                        || topicAclsCollideWithParentOrChild(accessControlEntry, ace);
                 }
 
-                boolean same = accessControlEntry.getSpec().getResource().equals(ace.getSpec().getResource());
+                boolean same = accessControlEntry.getSpec().getResource().equals(ace.getSpec().getResource())
+                    || topicAclsCollide(accessControlEntry, ace);
 
                 return same || parentOverlap || childOverlap;
-
             })
             .map(ace -> invalidAclCollision(accessControlEntry.getMetadata().getName(), ace.getMetadata().getName()))
             .toList();
+    }
+
+    /**
+     * Check if two topic ACLs have a collision with parent or child.
+     *
+     * @param topicAclA The first ACL
+     * @param topicAclB The second ACL
+     * @return true if they have a collision, false otherwise
+     */
+    private boolean topicAclsCollideWithParentOrChild(AccessControlEntry topicAclA, AccessControlEntry topicAclB) {
+        return topicAclA.getSpec().getResourceType().equals(AccessControlEntry.ResourceType.TOPIC)
+            && topicAclB.getSpec().getResourceType().equals(AccessControlEntry.ResourceType.TOPIC)
+            && topicAclA.getSpec().getResource().replace('.', '_')
+            .startsWith(topicAclB.getSpec().getResource().replace('.', '_'));
+    }
+
+    /**
+     * Check if two topic ACLs have a collision.
+     *
+     * @param topicAclA The first ACL
+     * @param topicAclB The second ACL
+     * @return true if they have a collision, false otherwise
+     */
+    private boolean topicAclsCollide(AccessControlEntry topicAclA, AccessControlEntry topicAclB) {
+        return topicAclA.getSpec().getResourceType().equals(AccessControlEntry.ResourceType.TOPIC)
+            && topicAclB.getSpec().getResourceType().equals(AccessControlEntry.ResourceType.TOPIC)
+            && topicAclA.getSpec().getResource().replace('.', '_')
+            .equals(topicAclB.getSpec().getResource().replace('.', '_'));
     }
 
     /**
