@@ -876,4 +876,32 @@ class AccessControlEntryServiceTest {
                 AccessControlEntry.ResourceType.CONNECT,
                 "connect"));
     }
+
+    @Test
+    void shouldNotCollideIfDifferentResource() {
+        AccessControlEntry ace1 = AccessControlEntry.builder()
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("abc.")
+                .grantedTo("namespace")
+                .build())
+            .build();
+
+        AccessControlEntry ace2 = AccessControlEntry.builder()
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("abc_")
+                .grantedTo("namespace")
+                .build())
+            .build();
+
+        Assertions.assertFalse(accessControlEntryService.topicAclsCollideWithParentOrChild(ace1, ace2));
+        Assertions.assertFalse(accessControlEntryService.topicAclsCollideWithParentOrChild(ace2, ace1));
+        Assertions.assertFalse(accessControlEntryService.topicAclsCollide(ace1, ace2));
+        Assertions.assertFalse(accessControlEntryService.topicAclsCollide(ace2, ace1));
+    }
 }

@@ -158,7 +158,7 @@ public class AccessControlEntryService {
      * @param topicAclB The second ACL
      * @return true if they have a collision, false otherwise
      */
-    private boolean topicAclsCollideWithParentOrChild(AccessControlEntry topicAclA, AccessControlEntry topicAclB) {
+    public boolean topicAclsCollideWithParentOrChild(AccessControlEntry topicAclA, AccessControlEntry topicAclB) {
         return topicAclA.getSpec().getResourceType().equals(AccessControlEntry.ResourceType.TOPIC)
             && topicAclB.getSpec().getResourceType().equals(AccessControlEntry.ResourceType.TOPIC)
             && topicAclA.getSpec().getResource().replace('.', '_')
@@ -172,7 +172,7 @@ public class AccessControlEntryService {
      * @param topicAclB The second ACL
      * @return true if they have a collision, false otherwise
      */
-    private boolean topicAclsCollide(AccessControlEntry topicAclA, AccessControlEntry topicAclB) {
+    public boolean topicAclsCollide(AccessControlEntry topicAclA, AccessControlEntry topicAclB) {
         return topicAclA.getSpec().getResourceType().equals(AccessControlEntry.ResourceType.TOPIC)
             && topicAclB.getSpec().getResourceType().equals(AccessControlEntry.ResourceType.TOPIC)
             && topicAclA.getSpec().getResource().replace('.', '_')
