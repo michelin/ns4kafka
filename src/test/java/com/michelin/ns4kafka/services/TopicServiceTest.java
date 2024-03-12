@@ -1097,7 +1097,7 @@ class TopicServiceTest {
                 .build();
 
         when(managedClusterProperties.stream()).thenReturn(Stream.of(
-                new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.SELF_MANAGED)));
+                new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
 
         List<String> validationErrors = topicService.validateTags(ns, topic);
         assertEquals(1, validationErrors.size());
