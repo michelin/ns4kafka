@@ -7,6 +7,7 @@ import lombok.Builder;
  * Topics list response's entities.
  *
  * @param entities List of entities
+ *
  */
 @Builder
 public record TopicListResponse(List<TopicListResponseEntity> entities) {
