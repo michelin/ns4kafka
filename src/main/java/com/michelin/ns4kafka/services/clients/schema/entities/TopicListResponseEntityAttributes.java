@@ -4,7 +4,7 @@ import java.util.Optional;
 import lombok.Builder;
 
 /**
- * Attribute entities.
+ * Topics list response's entity's information.
  *
  * @param qualifiedName topic entity name
  * @param description topic description if any

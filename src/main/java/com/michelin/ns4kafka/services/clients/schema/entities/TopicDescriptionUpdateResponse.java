@@ -4,7 +4,7 @@ import lombok.Builder;
 import org.apache.avro.data.Json;
 
 /**
- * Update topic description input entity's attributes
+ * Update topic description response.
  *
  * @param mutatedEntities   The updated entities
  *

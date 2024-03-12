@@ -9,4 +9,5 @@ import lombok.Builder;
  */
 @Builder
 public record TopicListResponseEntity(TopicListResponseEntityAttributes attributes) {
+
 }

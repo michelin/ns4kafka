@@ -4,13 +4,13 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 
 /**
- * Attribute entities.
+ * Topic description update body's entity's information.
  *
  * @param qualifiedName topic entity name
- * @param description topic description if any
+ * @param description topic description
  */
 @Builder
 @JsonInclude()
-public record TopicDescriptionUpdateAttributes(String description, String qualifiedName) {
+public record TopicDescriptionUpdateAttributes(String qualifiedName, String description) {
 
 }

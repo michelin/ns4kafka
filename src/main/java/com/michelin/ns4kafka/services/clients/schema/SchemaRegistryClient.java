@@ -316,7 +316,7 @@ public class SchemaRegistryClient {
     public Mono<HttpResponse<TopicDescriptionUpdateResponse>> updateDescription(String kafkaCluster,
                                                             String qualifiedName, String description) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
-        TopicDescriptionUpdateAttributes attributes = new TopicDescriptionUpdateAttributes(description, qualifiedName);
+        TopicDescriptionUpdateAttributes attributes = new TopicDescriptionUpdateAttributes(qualifiedName, description);
         TopicDescriptionUpdateEntity entity = new TopicDescriptionUpdateEntity(attributes, "kafka_topic");
         TopicDescriptionUpdateBody body = new TopicDescriptionUpdateBody(entity);
         HttpRequest<?> request = HttpRequest
