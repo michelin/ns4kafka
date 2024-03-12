@@ -395,7 +395,7 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
         TopicListResponseEntityAttributes attributes = TopicListResponseEntityAttributes.builder()
-                .qualifiedName(TOPIC_NAME)
+                .name(TOPIC_NAME)
                 .description(Optional.of(DESCRIPTION1)).build();
         TopicListResponseEntity entity = TopicListResponseEntity.builder().attributes(attributes).build();
         TopicListResponse response1 = TopicListResponse.builder().entities(List.of(entity)).build();
@@ -417,7 +417,7 @@ class TopicAsyncExecutorTest {
                         .build());
 
         topicAsyncExecutor.enrichWithDescription(brokerTopics);
-
+        assertEquals(DESCRIPTION1, brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
         assertEquals(DESCRIPTION1, brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
     }
 
@@ -430,13 +430,13 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
         TopicListResponseEntityAttributes attributes1 = TopicListResponseEntityAttributes.builder()
-                .qualifiedName(TOPIC_NAME)
+                .name(TOPIC_NAME)
                 .description(Optional.of(DESCRIPTION1)).build();
         TopicListResponseEntityAttributes attributes2 = TopicListResponseEntityAttributes.builder()
-                .qualifiedName(TOPIC_NAME2)
+                .name(TOPIC_NAME2)
                 .description(Optional.of(DESCRIPTION2)).build();
         TopicListResponseEntityAttributes attributes3 = TopicListResponseEntityAttributes.builder()
-                .qualifiedName(TOPIC_NAME3).build();
+                .name(TOPIC_NAME3).build();
         TopicListResponseEntity entity1 = TopicListResponseEntity.builder().attributes(attributes1).build();
         TopicListResponseEntity entity2 = TopicListResponseEntity.builder().attributes(attributes2).build();
         TopicListResponseEntity entity3 = TopicListResponseEntity.builder().attributes(attributes3).build();
