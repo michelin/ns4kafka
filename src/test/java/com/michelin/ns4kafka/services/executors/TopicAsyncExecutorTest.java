@@ -2,8 +2,7 @@ package com.michelin.ns4kafka.services.executors;
 
 import static com.michelin.ns4kafka.services.executors.TopicAsyncExecutor.CLUSTER_ID;
 import static com.michelin.ns4kafka.services.executors.TopicAsyncExecutor.TOPIC_ENTITY_TYPE;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -466,19 +465,19 @@ class TopicAsyncExecutorTest {
                         .build(),
 
                         TOPIC_NAME3, Topic.builder()
-                                .metadata(Metadata.builder()
-                                        .name(TOPIC_NAME3)
-                                        .build())
-                                .spec(Topic.TopicSpec.builder()
-                                        .description(DESCRIPTION2)
-                                        .build())
-                                .build());
+                        .metadata(Metadata.builder()
+                                .name(TOPIC_NAME3)
+                                .build())
+                        .spec(Topic.TopicSpec.builder()
+                                .description(DESCRIPTION2)
+                                .build())
+                        .build());
 
         topicAsyncExecutor.enrichWithDescription(brokerTopics);
 
         assertEquals(DESCRIPTION1, brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
         assertEquals(DESCRIPTION2, brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());
-        assertTrue(brokerTopics.get(TOPIC_NAME3).getSpec().getDescription().isEmpty());
+        assertNull(brokerTopics.get(TOPIC_NAME3).getSpec().getDescription());
     }
 
     @Test
