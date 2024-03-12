@@ -298,7 +298,9 @@ public class TopicAsyncExecutor {
             do {
                 topicListResponse = schemaRegistryClient.getTopicWithDescription(managedClusterProperties.getName(),
                         limit, offset).block();
-                assert topicListResponse != null;
+                if (topicListResponse == null) {
+                    break;
+                }
                 entities.addAll(topicListResponse.entities());
                 offset += limit;
             } while (!topicListResponse.entities().isEmpty());

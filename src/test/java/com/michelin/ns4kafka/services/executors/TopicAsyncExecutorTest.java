@@ -402,6 +402,8 @@ class TopicAsyncExecutorTest {
 
         when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 0))
                 .thenReturn(Mono.just(entities));
+        when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 1000))
+                .thenReturn(Mono.empty());
 
         Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
                 Topic.builder()
@@ -441,6 +443,8 @@ class TopicAsyncExecutorTest {
 
         when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 0))
                 .thenReturn(Mono.just(entities));
+        when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 1000))
+                .thenReturn(Mono.empty());
 
         Map<String, Topic> brokerTopics =
                 Map.of(TOPIC_NAME, Topic.builder()
