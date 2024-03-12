@@ -417,7 +417,7 @@ class TopicAsyncExecutorTest {
                         .build());
 
         topicAsyncExecutor.enrichWithDescription(brokerTopics);
-        assertEquals(DESCRIPTION1, brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
+
         assertEquals(DESCRIPTION1, brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
     }
 
@@ -476,8 +476,8 @@ class TopicAsyncExecutorTest {
 
         topicAsyncExecutor.enrichWithDescription(brokerTopics);
 
-        assertEquals(DESCRIPTION2, brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());
         assertEquals(DESCRIPTION1, brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
+        assertEquals(DESCRIPTION2, brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());
         assertTrue(brokerTopics.get(TOPIC_NAME3).getSpec().getDescription().isEmpty());
     }
 
