@@ -399,11 +399,12 @@ class TopicAsyncExecutorTest {
                 .description(Optional.of(DESCRIPTION1)).build();
         TopicListResponseEntity entity = TopicListResponseEntity.builder().attributes(attributes).build();
         TopicListResponse entities = TopicListResponse.builder().entities(List.of(entity, entity, entity)).build();
+        TopicListResponse entities2 = TopicListResponse.builder().entities(List.of()).build();
 
         when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 0))
                 .thenReturn(Mono.just(entities));
         when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 1000))
-                .thenReturn(Mono.empty());
+                .thenReturn(Mono.just(entities2));
 
         Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
                 Topic.builder()
@@ -418,7 +419,6 @@ class TopicAsyncExecutorTest {
 
         assertEquals(DESCRIPTION1, brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
     }
-
 
     @Test
     void shouldEnrichWithDescriptionForMultipleTopics() {
@@ -440,11 +440,12 @@ class TopicAsyncExecutorTest {
         TopicListResponseEntity entity2 = TopicListResponseEntity.builder().attributes(attributes2).build();
         TopicListResponseEntity entity3 = TopicListResponseEntity.builder().attributes(attributes3).build();
         TopicListResponse entities = TopicListResponse.builder().entities(List.of(entity1, entity2, entity3)).build();
+        TopicListResponse entities2 = TopicListResponse.builder().entities(List.of()).build();
 
         when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 0))
                 .thenReturn(Mono.just(entities));
         when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 1000))
-                .thenReturn(Mono.empty());
+                .thenReturn(Mono.just(entities2));
 
         Map<String, Topic> brokerTopics =
                 Map.of(TOPIC_NAME, Topic.builder()

@@ -4,6 +4,7 @@ import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidImmutableValue
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicCleanupPolicy;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicDeleteRecords;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicTags;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicTagsFormat;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_DELETE;
@@ -351,10 +352,7 @@ public class TopicService {
         }
 
         if (!tagsFormatIsConform(topic)) {
-            validationErrors.add(String.format(
-                    "Invalid value %s for tags: "
-                    + "Tags should start with letter and be followed by alphanumeric or _ characters",
-                    String.join(", ", topic.getSpec().getTags())));
+            validationErrors.add(invalidTopicTagsFormat(String.join(",", topic.getSpec().getTags())));
             return validationErrors;
         }
 
