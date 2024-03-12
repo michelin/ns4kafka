@@ -1,11 +1,11 @@
 package com.michelin.ns4kafka.services.clients.schema;
 
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
-import com.michelin.ns4kafka.services.clients.schema.entities.SchemaRequest;
-import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityRequest;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
+import com.michelin.ns4kafka.services.clients.schema.entities.SchemaRequest;
+import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagEntities;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
@@ -224,7 +224,6 @@ public class SchemaRegistryClient {
         return Mono.from(httpClient.retrieve(request, Argument.listOf(TagInfo.class)));
     }
 
-
     /**
      * List tags of a topic.
      *
@@ -315,7 +314,7 @@ public class SchemaRegistryClient {
      * @return Information about description
      */
     public Mono<HttpResponse<TopicDescriptionUpdateResponse>> updateDescription(String kafkaCluster,
-                                                                                String qualifiedName, String description) {
+                                                            String qualifiedName, String description) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         TopicDescriptionUpdateAttributes attributes = new TopicDescriptionUpdateAttributes(description, qualifiedName);
         TopicDescriptionUpdateEntity entity = new TopicDescriptionUpdateEntity(attributes, "kafka_topic");

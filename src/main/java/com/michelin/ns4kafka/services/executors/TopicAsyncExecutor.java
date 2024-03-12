@@ -266,7 +266,7 @@ public class TopicAsyncExecutor {
                                 getEntityName(topic), description)
                     .subscribe(
                         success -> {
-                            topic.getMetadata().setGeneration(topic.getMetadata().getGeneration()+1);
+                            topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
                             topic.setStatus(Topic.TopicStatus.ofSuccess("Topic description updated"));
                             log.info(String.format("Success update description %s",
                                 topic.getMetadata().getName() + ": " + topic.getSpec().getDescription()));
@@ -486,7 +486,7 @@ public class TopicAsyncExecutor {
                             tagsToAssociate)
                     .subscribe(
                             successAssociation -> {
-                                for (TagTopicInfo tagTopicInfo: tagsToAssociate) {
+                                for (TagTopicInfo tagTopicInfo : tagsToAssociate) {
                                     String entityName = tagTopicInfo.entityName();
                                     String topicName = entityName.substring(entityName.lastIndexOf(":") + 1);
                                     Topic topic = brokerTopics.get(topicName);
@@ -496,7 +496,7 @@ public class TopicAsyncExecutor {
                                 log.info(String.format("Success associating tag %s.", stringTags));
                             },
                             error -> {
-                                for (TagTopicInfo tagTopicInfo: tagsToAssociate) {
+                                for (TagTopicInfo tagTopicInfo : tagsToAssociate) {
                                     String entityName = tagTopicInfo.entityName();
                                     String topicName = entityName.substring(entityName.lastIndexOf(":") + 1);
                                     Topic topic = brokerTopics.get(topicName);
@@ -536,7 +536,7 @@ public class TopicAsyncExecutor {
                                     managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
                                             + topic.getMetadata().getName() + "/" + tag), error);
                         })
-            );
+        );
     }
 
     /**

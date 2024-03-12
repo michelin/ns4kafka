@@ -7,7 +7,7 @@ import org.apache.avro.data.Json;
  * Update topic description input entity's attributes
  *
  * @param mutatedEntities   The updated entities
-
+ *
  */
 @Builder
 public record TopicDescriptionUpdateResponse(Json mutatedEntities) {

@@ -994,11 +994,15 @@ class TopicServiceTest {
                         .tags(List.of("test")).build())
                 .build();
 
+        assertEquals(true, topicService.tagsFormatIsConform(topicWithTag));
+
         Topic topicWithSimpliestTag = Topic.builder()
                 .metadata(Metadata.builder().name("ns-topic2").build())
                 .spec(Topic.TopicSpec.builder()
                         .tags(List.of("A")).build())
                 .build();
+
+        assertEquals(true, topicService.tagsFormatIsConform(topicWithSimpliestTag));
 
         Topic topicWithUnderscoreAndNumberTag = Topic.builder()
                 .metadata(Metadata.builder().name("ns-topic3").build())
@@ -1006,11 +1010,15 @@ class TopicServiceTest {
                         .tags(List.of("TEST1_TAG")).build())
                 .build();
 
+        assertEquals(true, topicService.tagsFormatIsConform(topicWithUnderscoreAndNumberTag));
+
         Topic topicWithUnderscoreAndUpperLowerCase = Topic.builder()
                 .metadata(Metadata.builder().name("ns-topic4").build())
                 .spec(Topic.TopicSpec.builder()
                         .tags(List.of("t1_T_a_g2")).build())
                 .build();
+
+        assertEquals(true, topicService.tagsFormatIsConform(topicWithUnderscoreAndUpperLowerCase));
 
         Topic topicWithMultipleCorrectTags = Topic.builder()
                 .metadata(Metadata.builder().name("ns-topic5").build())
@@ -1018,10 +1026,6 @@ class TopicServiceTest {
                         .tags(List.of("TEST1", "test2", "tEST_3", "T_a_g")).build())
                 .build();
 
-        assertEquals(true, topicService.tagsFormatIsConform(topicWithTag));
-        assertEquals(true, topicService.tagsFormatIsConform(topicWithSimpliestTag));
-        assertEquals(true, topicService.tagsFormatIsConform(topicWithUnderscoreAndNumberTag));
-        assertEquals(true, topicService.tagsFormatIsConform(topicWithUnderscoreAndUpperLowerCase));
         assertEquals(true, topicService.tagsFormatIsConform(topicWithMultipleCorrectTags));
     }
 
@@ -1033,11 +1037,15 @@ class TopicServiceTest {
                         .tags(List.of("0test")).build())
                 .build();
 
+        assertEquals(false, topicService.tagsFormatIsConform(topicWithBeginningDigitTag));
+
         Topic topicWithBeginningUnderscoreTag = Topic.builder()
                 .metadata(Metadata.builder().name("ns-topic2").build())
                 .spec(Topic.TopicSpec.builder()
                         .tags(List.of("_TEST")).build())
                 .build();
+
+        assertEquals(false, topicService.tagsFormatIsConform(topicWithBeginningUnderscoreTag));
 
         Topic topicWithForbiddenCharacterTag = Topic.builder()
                 .metadata(Metadata.builder().name("ns-topic3").build())
@@ -1045,11 +1053,15 @@ class TopicServiceTest {
                         .tags(List.of("test-tag")).build())
                 .build();
 
+        assertEquals(false, topicService.tagsFormatIsConform(topicWithForbiddenCharacterTag));
+
         Topic topicWithManyForbiddenCharactersTag = Topic.builder()
                 .metadata(Metadata.builder().name("ns-topic4").build())
                 .spec(Topic.TopicSpec.builder()
                         .tags(List.of("&~#()[]{}-+=*%:.,;!?^°çé")).build())
                 .build();
+
+        assertEquals(false, topicService.tagsFormatIsConform(topicWithManyForbiddenCharactersTag));
 
         Topic topicWithMultipleIncorrectTags = Topic.builder()
                 .metadata(Metadata.builder().name("ns-topic5").build())
@@ -1057,17 +1069,14 @@ class TopicServiceTest {
                         .tags(List.of("test-tag", "TEST.tag", "0TEST")).build())
                 .build();
 
+        assertEquals(false, topicService.tagsFormatIsConform(topicWithMultipleIncorrectTags));
+
         Topic topicWithOneIncorrectAndMultipleCorrectTags = Topic.builder()
                 .metadata(Metadata.builder().name("ns-topic5").build())
                 .spec(Topic.TopicSpec.builder()
                         .tags(List.of("testTag", "0TEST-tag", "TEST")).build())
                 .build();
 
-        assertEquals(false, topicService.tagsFormatIsConform(topicWithBeginningDigitTag));
-        assertEquals(false, topicService.tagsFormatIsConform(topicWithForbiddenCharacterTag));
-        assertEquals(false, topicService.tagsFormatIsConform(topicWithBeginningUnderscoreTag));
-        assertEquals(false, topicService.tagsFormatIsConform(topicWithManyForbiddenCharactersTag));
-        assertEquals(false, topicService.tagsFormatIsConform(topicWithMultipleIncorrectTags));
         assertEquals(false, topicService.tagsFormatIsConform(topicWithOneIncorrectAndMultipleCorrectTags));
     }
 
@@ -1091,7 +1100,9 @@ class TopicServiceTest {
 
         List<String> validationErrors = topicService.validateTags(ns, topic);
         assertEquals(1, validationErrors.size());
-        assertEquals("Invalid value 0TAG-TEST for tags: Tags should start with letter and be followed by alphanumeric or _ characters", validationErrors.getFirst());
+        assertEquals("Invalid value 0TAG-TEST for tags: "
+                + "Tags should start with letter and be followed by alphanumeric or _ characters",
+                validationErrors.getFirst());
     }
 }
 
