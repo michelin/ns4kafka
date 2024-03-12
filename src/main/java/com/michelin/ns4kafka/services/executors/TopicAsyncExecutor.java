@@ -288,7 +288,7 @@ public class TopicAsyncExecutor {
      */
 
     public void enrichWithDescription(Map<String, Topic> topics) {
-        if (isConfluentCloud()) {
+        if (managedClusterProperties.isConfluentCloud()) {
             List<TopicListResponseEntity> entities = new ArrayList<>();
             TopicListResponse topicListResponse;
 
