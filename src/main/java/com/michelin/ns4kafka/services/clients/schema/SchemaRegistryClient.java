@@ -1,7 +1,19 @@
 package com.michelin.ns4kafka.services.clients.schema;
 
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
-import com.michelin.ns4kafka.services.clients.schema.entities.*;
+import com.michelin.ns4kafka.services.clients.schema.entities.SchemaRequest;
+import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
+import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityCheckResponse;
+import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityRequest;
+import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagEntities;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
+import com.michelin.ns4kafka.services.clients.schema.entities.TopicDescriptionUpdateAttributes;
+import com.michelin.ns4kafka.services.clients.schema.entities.TopicDescriptionUpdateBody;
+import com.michelin.ns4kafka.services.clients.schema.entities.TopicDescriptionUpdateEntity;
+import com.michelin.ns4kafka.services.clients.schema.entities.TopicDescriptionUpdateResponse;
+import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponse;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.core.type.Argument;
 import io.micronaut.core.util.StringUtils;
@@ -288,28 +300,29 @@ public class SchemaRegistryClient {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest
                 .GET(URI.create(StringUtils.prependUri(
-                        config.getUrl(), "/catalog/v1/search/basic?type=kafka_topic&limit=" + limit +"&offset=" + offset)))
+                        config.getUrl(), "/catalog/v1/search/basic?type=kafka_topic&limit="
+                                + limit + "&offset=" + offset)))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, TopicListResponse.class));
     }
 
     /**
-     * Update a topic description
+     * Update a topic description.
      *
      * @param kafkaCluster The Kafka cluster
      * @param qualifiedName     Topic name
      * @param description     Description to add
      * @return Information about description
      */
-    public Mono<HttpResponse<TopicDescriptionUpdateResponse>> updateDescription(String kafkaCluster, String qualifiedName, String description) {
+    public Mono<HttpResponse<TopicDescriptionUpdateResponse>> updateDescription(String kafkaCluster,
+                                                                                String qualifiedName, String description) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         TopicDescriptionUpdateAttributes attributes = new TopicDescriptionUpdateAttributes(description, qualifiedName);
         TopicDescriptionUpdateEntity entity = new TopicDescriptionUpdateEntity(attributes, "kafka_topic");
         TopicDescriptionUpdateBody body = new TopicDescriptionUpdateBody(entity);
         HttpRequest<?> request = HttpRequest
                 .PUT(URI.create(StringUtils.prependUri(
-                        config.getUrl(),
-                        "/catalog/v1/entity")), body)
+                        config.getUrl(), "/catalog/v1/entity")), body)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.exchange(request, TopicDescriptionUpdateResponse.class));
     }

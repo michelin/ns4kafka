@@ -319,7 +319,7 @@ public class TopicService {
     }
 
     /**
-     * Check if topic tags respect confluent tag format (starts with letter followed by alphanumerical characters or underscore)
+     * Check if topic tags respect confluent format (starts with letter followed by alphanumerical or underscore).
      *
      * @param topic     The topic which contains tags
      * @return Boolean
@@ -352,7 +352,8 @@ public class TopicService {
 
         if (!tagsFormatIsConform(topic)) {
             validationErrors.add(String.format(
-                    "Invalid value %s for tags: Tags should start with letter and be followed by alphanumeric or _ characters",
+                    "Invalid value %s for tags: "
+                    + "Tags should start with letter and be followed by alphanumeric or _ characters",
                     String.join(", ", topic.getSpec().getTags())));
             return validationErrors;
         }

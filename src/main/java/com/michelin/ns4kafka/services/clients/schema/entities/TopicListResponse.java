@@ -1,11 +1,10 @@
 package com.michelin.ns4kafka.services.clients.schema.entities;
 
+import java.util.List;
 import lombok.Builder;
 
-import java.util.List;
-
 /**
- * Topics list response's entities
+ * Topics list response's entities.
  *
  * @param entities List of entities
  */

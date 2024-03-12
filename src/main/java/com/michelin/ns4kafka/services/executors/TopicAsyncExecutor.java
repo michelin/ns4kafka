@@ -10,9 +10,9 @@ import com.michelin.ns4kafka.services.clients.schema.entities.TagEntities;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagEntity;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
+import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponseEntity;
 import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponseEntityAttributes;
-import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponse;
 import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Singleton;
 import java.time.Instant;
@@ -145,7 +145,7 @@ public class TopicAsyncExecutor {
     }
 
     /**
-     * Get the entity name (qualified name) of a topic
+     * Get the entity name (qualified name) of a topic.
      *
      * @param topic Topic
      */
@@ -262,18 +262,21 @@ public class TopicAsyncExecutor {
                 if (description.isEmpty()) {
                     description = null;
                 }
-                schemaRegistryClient.updateDescription(managedClusterProperties.getName(), getEntityName(topic), description)
-                        .subscribe(success -> {
-                                topic.getMetadata().setGeneration(topic.getMetadata().getGeneration()+1);
-                                topic.setStatus(Topic.TopicStatus.ofSuccess("Topic description updated"));
-                                log.info(String.format("Success update description %s",
-                                        topic.getMetadata().getName() + ": " + topic.getSpec().getDescription()));
-                            },
-                                    error -> {
-                                topic.setStatus(Topic.TopicStatus.ofFailed("Error while updating topic description:" + error.getMessage()));
-                                log.error(String.format("Error update description %s",
-                                                topic.getMetadata().getName() + ": " + topic.getSpec().getDescription()), error);
-                            });
+                schemaRegistryClient.updateDescription(managedClusterProperties.getName(),
+                                getEntityName(topic), description)
+                    .subscribe(
+                        success -> {
+                            topic.getMetadata().setGeneration(topic.getMetadata().getGeneration()+1);
+                            topic.setStatus(Topic.TopicStatus.ofSuccess("Topic description updated"));
+                            log.info(String.format("Success update description %s",
+                                topic.getMetadata().getName() + ": " + topic.getSpec().getDescription()));
+                        },
+                        error -> {
+                            topic.setStatus(Topic.TopicStatus.ofFailed("Error while updating topic description:"
+                                    + error.getMessage()));
+                            log.error(String.format("Error update description %s",
+                                topic.getMetadata().getName() + ": " + topic.getSpec().getDescription()), error);
+                        });
             }
         }
     }
@@ -293,7 +296,8 @@ public class TopicAsyncExecutor {
             int offset = 0;
             int limit = 1000;
             do {
-                topicListResponse = schemaRegistryClient.getTopicWithDescription(managedClusterProperties.getName(), limit, offset).block();
+                topicListResponse = schemaRegistryClient.getTopicWithDescription(managedClusterProperties.getName(),
+                        limit, offset).block();
                 assert topicListResponse != null;
                 entities.addAll(topicListResponse.entities());
                 offset += limit;
@@ -484,7 +488,7 @@ public class TopicAsyncExecutor {
                             successAssociation -> {
                                 for (TagTopicInfo tagTopicInfo: tagsToAssociate) {
                                     String entityName = tagTopicInfo.entityName();
-                                    String topicName = entityName.substring(entityName.lastIndexOf(":")+1);
+                                    String topicName = entityName.substring(entityName.lastIndexOf(":") + 1);
                                     Topic topic = brokerTopics.get(topicName);
                                     topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
                                     topic.setStatus(Topic.TopicStatus.ofSuccess("Topic tags updated"));
@@ -494,10 +498,11 @@ public class TopicAsyncExecutor {
                             error -> {
                                 for (TagTopicInfo tagTopicInfo: tagsToAssociate) {
                                     String entityName = tagTopicInfo.entityName();
-                                    String topicName = entityName.substring(entityName.lastIndexOf(":")+1);
+                                    String topicName = entityName.substring(entityName.lastIndexOf(":") + 1);
                                     Topic topic = brokerTopics.get(topicName);
                                     topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
-                                    topic.setStatus(Topic.TopicStatus.ofFailed("Error while associating topic tags:" + error.getMessage()));
+                                    topic.setStatus(Topic.TopicStatus.ofFailed("Error while associating topic tags:"
+                                            + error.getMessage()));
                                 }
                                 log.error(String.format("Error associating tag %s.", stringTags), error);
                             }),
@@ -525,9 +530,10 @@ public class TopicAsyncExecutor {
                         },
                         error -> {
                             topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
-                            topic.setStatus(Topic.TopicStatus.ofFailed("Error while dissociating topic tags:" + error.getMessage()));
+                            topic.setStatus(Topic.TopicStatus.ofFailed("Error while dissociating topic tags:"
+                                    + error.getMessage()));
                             log.error(String.format("Error dissociating tag %s.",
-                                managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
+                                    managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
                                             + topic.getMetadata().getName() + "/" + tag), error);
                         })
             );

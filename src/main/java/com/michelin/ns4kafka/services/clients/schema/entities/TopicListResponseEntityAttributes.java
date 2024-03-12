@@ -1,8 +1,7 @@
 package com.michelin.ns4kafka.services.clients.schema.entities;
 
-import lombok.Builder;
-
 import java.util.Optional;
+import lombok.Builder;
 
 /**
  * Attribute entities.
