@@ -60,7 +60,7 @@ class RoleBindingTest {
     @Test
     void testEqualsRoleBinding() {
         RoleBinding original = RoleBinding.builder()
-            .metadata(ObjectMeta.builder().name("rb1").build())
+            .metadata(Metadata.builder().name("rb1").build())
             .spec(RoleBinding.RoleBindingSpec.builder()
                 .role(RoleBinding.Role.builder()
                     .resourceTypes(List.of("res1", "res2"))
@@ -74,7 +74,7 @@ class RoleBindingTest {
             .build();
 
         RoleBinding same = RoleBinding.builder()
-            .metadata(ObjectMeta.builder().name("rb1").build())
+            .metadata(Metadata.builder().name("rb1").build())
             .spec(RoleBinding.RoleBindingSpec.builder()
                 .role(RoleBinding.Role.builder()
                     .resourceTypes(List.of("res1", "res2"))
@@ -90,7 +90,7 @@ class RoleBindingTest {
         assertEquals(original, same);
 
         RoleBinding differentByMetadata = RoleBinding.builder()
-            .metadata(ObjectMeta.builder().name("rb1").cluster("cluster").build())
+            .metadata(Metadata.builder().name("rb1").cluster("cluster").build())
             .spec(RoleBinding.RoleBindingSpec.builder()
                 .role(RoleBinding.Role.builder()
                     .resourceTypes(List.of("res1", "res2"))
@@ -106,7 +106,7 @@ class RoleBindingTest {
         assertNotEquals(original, differentByMetadata);
 
         RoleBinding differentByRole = RoleBinding.builder()
-            .metadata(ObjectMeta.builder().name("rb1").build())
+            .metadata(Metadata.builder().name("rb1").build())
             .spec(RoleBinding.RoleBindingSpec.builder()
                 .role(RoleBinding.Role.builder().build())
                 .subject(RoleBinding.Subject.builder()
@@ -119,7 +119,7 @@ class RoleBindingTest {
         assertNotEquals(original, differentByRole);
 
         RoleBinding differentBySubject = RoleBinding.builder()
-            .metadata(ObjectMeta.builder().name("rb1").build())
+            .metadata(Metadata.builder().name("rb1").build())
             .spec(RoleBinding.RoleBindingSpec.builder()
                 .role(RoleBinding.Role.builder()
                     .resourceTypes(List.of("res1", "res2"))

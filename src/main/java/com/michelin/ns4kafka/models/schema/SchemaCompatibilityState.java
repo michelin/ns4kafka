@@ -1,11 +1,16 @@
 package com.michelin.ns4kafka.models.schema;
 
-import com.michelin.ns4kafka.models.ObjectMeta;
+import static com.michelin.ns4kafka.utils.enums.Kind.SCHEMA_COMPATIBILITY_STATE;
+
+import com.michelin.ns4kafka.models.Metadata;
+import com.michelin.ns4kafka.models.MetadataResource;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -13,22 +18,26 @@ import lombok.ToString;
 /**
  * Schema compatibility state.
  */
-@Getter
-@Builder
+@Data
 @Introspected
-@NoArgsConstructor
-@AllArgsConstructor
-public class SchemaCompatibilityState {
-    private final String apiVersion = "v1";
-    private final String kind = "SchemaCompatibilityState";
-
-    @Valid
-    @NotNull
-    private ObjectMeta metadata;
-
+@EqualsAndHashCode(callSuper = true)
+public class SchemaCompatibilityState extends MetadataResource {
     @Valid
     @NotNull
     private SchemaCompatibilityState.SchemaCompatibilityStateSpec spec;
+
+    /**
+     * Constructor.
+     *
+     * @param metadata The metadata
+     * @param spec     The spec
+     */
+    @Builder
+    public SchemaCompatibilityState(Metadata metadata,
+                                    SchemaCompatibilityState.SchemaCompatibilityStateSpec spec) {
+        super("v1", SCHEMA_COMPATIBILITY_STATE, metadata);
+        this.spec = spec;
+    }
 
     /**
      * Schema compatibility state spec.

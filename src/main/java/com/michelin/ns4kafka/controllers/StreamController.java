@@ -1,5 +1,8 @@
 package com.michelin.ns4kafka.controllers;
 
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidOwner;
+import static com.michelin.ns4kafka.utils.enums.Kind.KAFKA_STREAM;
+
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.KafkaStream;
 import com.michelin.ns4kafka.models.Namespace;
@@ -40,9 +43,7 @@ public class StreamController extends NamespacedResourceController {
      */
     @Get("/")
     List<KafkaStream> list(String namespace) {
-        Namespace ns = getNamespace(namespace);
-        return streamService.findAllForNamespace(ns);
-
+        return streamService.findAllForNamespace(getNamespace(namespace));
     }
 
     /**
@@ -54,9 +55,7 @@ public class StreamController extends NamespacedResourceController {
      */
     @Get("/{stream}")
     Optional<KafkaStream> get(String namespace, String stream) {
-        Namespace ns = getNamespace(namespace);
-        return streamService.findByName(ns, stream);
-
+        return streamService.findByName(getNamespace(namespace), stream);
     }
 
     /**
@@ -72,12 +71,9 @@ public class StreamController extends NamespacedResourceController {
                                     @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
         if (!streamService.isNamespaceOwnerOfKafkaStream(ns, stream.getMetadata().getName())) {
-            throw new ResourceValidationException(List.of("Invalid value " + stream.getMetadata().getName()
-                + " for name: Namespace not OWNER of underlying Topic prefix and Group prefix"), "Stream",
-                stream.getMetadata().getName());
+            throw new ResourceValidationException(stream, invalidOwner(stream.getMetadata().getName()));
         }
 
-        // Augment the Stream
         stream.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
         stream.getMetadata().setCluster(ns.getMetadata().getCluster());
         stream.getMetadata().setNamespace(ns.getMetadata().getName());
@@ -94,11 +90,8 @@ public class StreamController extends NamespacedResourceController {
             return formatHttpResponse(stream, status);
         }
 
-        sendEventLog(stream.getKind(),
-            stream.getMetadata(),
-            status,
-            null,
-            null);
+        sendEventLog(stream, status, existingStream.<Object>map(KafkaStream::getMetadata).orElse(null),
+            stream.getMetadata());
 
         return formatHttpResponse(streamService.create(stream), status);
     }
@@ -116,8 +109,7 @@ public class StreamController extends NamespacedResourceController {
     HttpResponse<Void> delete(String namespace, String stream, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
         if (!streamService.isNamespaceOwnerOfKafkaStream(ns, stream)) {
-            throw new ResourceValidationException(List.of("Invalid value " + stream
-                + " for name: Namespace not OWNER of underlying Topic prefix and Group prefix"), "Stream", stream);
+            throw new ResourceValidationException(KAFKA_STREAM, stream, invalidOwner(stream));
         }
 
         Optional<KafkaStream> optionalStream = streamService.findByName(ns, stream);
@@ -131,11 +123,7 @@ public class StreamController extends NamespacedResourceController {
         }
 
         var streamToDelete = optionalStream.get();
-        sendEventLog(streamToDelete.getKind(),
-            streamToDelete.getMetadata(),
-            ApplyStatus.deleted,
-            null,
-            null);
+        sendEventLog(streamToDelete, ApplyStatus.deleted, streamToDelete.getMetadata(), null);
         streamService.delete(ns, optionalStream.get());
         return HttpResponse.noContent();
     }

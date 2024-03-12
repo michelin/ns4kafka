@@ -13,14 +13,21 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
-import com.michelin.ns4kafka.services.clients.schema.entities.*;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagEntities;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagEntity;
+import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponseEntityAttributes;
+import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponseEntity;
+import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponse;
 import io.micronaut.http.HttpResponse;
 import java.io.IOException;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.clients.admin.Admin;
@@ -78,7 +85,7 @@ class TopicAsyncExecutorTest {
 
         List<Topic> ns4kafkaTopics = List.of(
             Topic.builder()
-                .metadata(ObjectMeta.builder()
+                .metadata(Metadata.builder()
                     .name(TOPIC_NAME)
                     .build())
                 .spec(Topic.TopicSpec.builder()
@@ -88,7 +95,7 @@ class TopicAsyncExecutorTest {
 
         Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
             Topic.builder()
-                .metadata(ObjectMeta.builder()
+                .metadata(Metadata.builder()
                     .name(TOPIC_NAME)
                     .build())
                 .spec(Topic.TopicSpec.builder()
@@ -108,37 +115,37 @@ class TopicAsyncExecutorTest {
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
         when(schemaRegistryClient.associateTags(anyString(), anyList()))
-                .thenReturn(Mono.just(List.of()));
+            .thenReturn(Mono.just(List.of()));
         when(schemaRegistryClient.createTags(anyList(), anyString()))
-                .thenReturn(Mono.just(List.of()));
+            .thenReturn(Mono.just(List.of()));
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
         when(managedClusterProperties.getConfig()).thenReturn(properties);
 
         List<Topic> ns4kafkaTopics = List.of(
-                Topic.builder()
-                        .metadata(ObjectMeta.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .tags(List.of(TAG1))
-                                .build())
-                        .build());
+            Topic.builder()
+                .metadata(Metadata.builder()
+                    .name(TOPIC_NAME)
+                    .build())
+                .spec(Topic.TopicSpec.builder()
+                    .tags(List.of(TAG1))
+                    .build())
+                .build());
 
         Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-                Topic.builder()
-                        .metadata(ObjectMeta.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .build())
-                        .build());
+            Topic.builder()
+                .metadata(Metadata.builder()
+                    .name(TOPIC_NAME)
+                    .build())
+                .spec(Topic.TopicSpec.builder()
+                    .build())
+                .build());
 
         topicAsyncExecutor.alterTags(ns4kafkaTopics, brokerTopics);
 
         verify(schemaRegistryClient).associateTags(eq(LOCAL_CLUSTER), argThat(tags ->
-                tags.getFirst().entityName().equals(CLUSTER_ID_TEST + ":" + TOPIC_NAME)
-                        && tags.getFirst().typeName().equals(TAG1)
-                        && tags.getFirst().entityType().equals(TOPIC_ENTITY_TYPE)));
+            tags.get(0).entityName().equals(CLUSTER_ID_TEST + ":" + TOPIC_NAME)
+                && tags.get(0).typeName().equals(TAG1)
+                && tags.get(0).entityType().equals(TOPIC_ENTITY_TYPE)));
     }
 
     @Test
@@ -147,37 +154,37 @@ class TopicAsyncExecutorTest {
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
         when(schemaRegistryClient.associateTags(anyString(), anyList()))
-                .thenReturn(Mono.error(new IOException()));
+            .thenReturn(Mono.error(new IOException()));
         when(schemaRegistryClient.createTags(anyList(), anyString()))
-                .thenReturn(Mono.just(List.of()));
+            .thenReturn(Mono.just(List.of()));
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
         when(managedClusterProperties.getConfig()).thenReturn(properties);
 
         List<Topic> ns4kafkaTopics = List.of(
-                Topic.builder()
-                        .metadata(ObjectMeta.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .tags(List.of(TAG1))
-                                .build())
-                        .build());
+            Topic.builder()
+                .metadata(Metadata.builder()
+                    .name(TOPIC_NAME)
+                    .build())
+                .spec(Topic.TopicSpec.builder()
+                    .tags(List.of(TAG1))
+                    .build())
+                .build());
 
         Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-                Topic.builder()
-                        .metadata(ObjectMeta.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .build())
-                        .build());
+            Topic.builder()
+                .metadata(Metadata.builder()
+                    .name(TOPIC_NAME)
+                    .build())
+                .spec(Topic.TopicSpec.builder()
+                    .build())
+                .build());
 
         topicAsyncExecutor.alterTags(ns4kafkaTopics, brokerTopics);
 
         verify(schemaRegistryClient).associateTags(eq(LOCAL_CLUSTER), argThat(tags ->
-                tags.getFirst().entityName().equals(CLUSTER_ID_TEST + ":" + TOPIC_NAME)
-                        && tags.getFirst().typeName().equals(TAG1)
-                        && tags.getFirst().entityType().equals(TOPIC_ENTITY_TYPE)));
+            tags.get(0).entityName().equals(CLUSTER_ID_TEST + ":" + TOPIC_NAME)
+                && tags.get(0).typeName().equals(TAG1)
+                && tags.get(0).entityType().equals(TOPIC_ENTITY_TYPE)));
     }
 
     @Test
@@ -186,182 +193,46 @@ class TopicAsyncExecutorTest {
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
         when(schemaRegistryClient.createTags(anyList(), anyString()))
-                .thenReturn(Mono.error(new IOException()));
+            .thenReturn(Mono.error(new IOException()));
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
         when(managedClusterProperties.getConfig()).thenReturn(properties);
 
         List<Topic> ns4kafkaTopics = List.of(
-                Topic.builder()
-                        .metadata(ObjectMeta.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .tags(List.of(TAG1))
-                                .build())
-                        .build());
+            Topic.builder()
+                .metadata(Metadata.builder()
+                    .name(TOPIC_NAME)
+                    .build())
+                .spec(Topic.TopicSpec.builder()
+                    .tags(List.of(TAG1))
+                    .build())
+                .build());
 
         Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-                Topic.builder()
-                        .metadata(ObjectMeta.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .build())
-                        .build());
+            Topic.builder()
+                .metadata(Metadata.builder()
+                    .name(TOPIC_NAME)
+                    .build())
+                .spec(Topic.TopicSpec.builder()
+                    .build())
+                .build());
 
         topicAsyncExecutor.alterTags(ns4kafkaTopics, brokerTopics);
 
         verify(schemaRegistryClient, never()).associateTags(eq(LOCAL_CLUSTER), argThat(tags ->
-                tags.getFirst().entityName().equals(CLUSTER_ID_TEST + ":" + TOPIC_NAME)
-                        && tags.getFirst().typeName().equals(TAG1)
-                        && tags.getFirst().entityType().equals(TOPIC_ENTITY_TYPE)));
-    }
-
-    @Test
-    void shouldAddDescription() {
-        Properties properties = new Properties();
-        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
-
-        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
-        when(managedClusterProperties.getConfig()).thenReturn(properties);
-
-        List<Topic> ns4kafkaTopics = List.of(
-                Topic.builder()
-                        .metadata(ObjectMeta.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .description(DESCRIPTION1)
-                                .build())
-                        .build());
-
-        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-                Topic.builder()
-                        .metadata(ObjectMeta.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .build())
-                        .build());
-
-        topicAsyncExecutor.alterDescriptions(ns4kafkaTopics, brokerTopics);
-
-        verify(schemaRegistryClient).updateDescription(LOCAL_CLUSTER, TOPIC_NAME, DESCRIPTION1);
-    }
-
-    @Test
-    void shouldUpdateDescriptionIfDifferent() {
-        Properties properties = new Properties();
-        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
-
-        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
-        when(managedClusterProperties.getConfig()).thenReturn(properties);
-
-        List<Topic> ns4kafkaTopics = List.of(
-                Topic.builder()
-                        .metadata(ObjectMeta.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .description(DESCRIPTION1)
-                                .build())
-                        .build());
-
-        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-                Topic.builder()
-                        .metadata(ObjectMeta.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .description(DESCRIPTION2)
-                                .build())
-                        .build());
-
-        topicAsyncExecutor.alterDescriptions(ns4kafkaTopics, brokerTopics);
-
-        verify(schemaRegistryClient).updateDescription(LOCAL_CLUSTER, TOPIC_NAME, DESCRIPTION2);
-    }
-
-    @Test
-    void shouldRemoveDescriptionIfEmptyString() {
-        Properties properties = new Properties();
-        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
-
-        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
-        when(managedClusterProperties.getConfig()).thenReturn(properties);
-
-        List<Topic> ns4kafkaTopics = List.of(
-                Topic.builder()
-                        .metadata(ObjectMeta.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .description("")
-                                .build())
-                        .build());
-
-        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-                Topic.builder()
-                        .metadata(ObjectMeta.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .description(DESCRIPTION1)
-                                .build())
-                        .build());
-
-        topicAsyncExecutor.alterDescriptions(ns4kafkaTopics, brokerTopics);
-
-        verify(schemaRegistryClient).updateDescription(LOCAL_CLUSTER, TOPIC_NAME, null);
-    }
-
-    @Test
-    void shouldRemoveDescriptionIfNoDescriptionField() {
-        Properties properties = new Properties();
-        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
-
-        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
-        when(managedClusterProperties.getConfig()).thenReturn(properties);
-
-        List<Topic> ns4kafkaTopics = List.of(
-                Topic.builder()
-                        .metadata(ObjectMeta.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .build())
-                        .build());
-
-        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-                Topic.builder()
-                        .metadata(ObjectMeta.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .description(DESCRIPTION1)
-                                .build())
-                        .build());
-
-        topicAsyncExecutor.alterDescriptions(ns4kafkaTopics, brokerTopics);
-
-        verify(schemaRegistryClient).updateDescription(LOCAL_CLUSTER, TOPIC_NAME, null);
-    }
-
-    @Test
-    void shouldBeConfluentCloud() {
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
-        assertTrue(topicAsyncExecutor.isConfluentCloud());
+            tags.get(0).entityName().equals(CLUSTER_ID_TEST + ":" + TOPIC_NAME)
+                && tags.get(0).typeName().equals(TAG1)
+                && tags.get(0).entityType().equals(TOPIC_ENTITY_TYPE)));
     }
 
     @Test
     void shouldDeleteTopicNoTags() throws ExecutionException, InterruptedException, TimeoutException {
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
 
         Topic topic = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name(TOPIC_NAME)
                 .build())
             .spec(Topic.TopicSpec.builder()
@@ -375,13 +246,13 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldDeleteTopicSelfManagedCluster() throws ExecutionException, InterruptedException, TimeoutException {
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
 
         Topic topic = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name(TOPIC_NAME)
                 .build())
             .spec(Topic.TopicSpec.builder()
@@ -398,7 +269,7 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
@@ -410,7 +281,7 @@ class TopicAsyncExecutorTest {
             .thenReturn(Mono.error(new Exception("error")));
 
         Topic topic = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name(TOPIC_NAME)
                 .build())
             .spec(Topic.TopicSpec.builder()
@@ -425,11 +296,11 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldNotEnrichWithTagsWhenNotConfluentCloud() {
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(false);
 
         Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
             Topic.builder()
-                .metadata(ObjectMeta.builder()
+                .metadata(Metadata.builder()
                     .name(TOPIC_NAME)
                     .build())
                 .spec(Topic.TopicSpec.builder()
@@ -446,12 +317,12 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
         TagEntity tagEntity = TagEntity.builder()
-                .classificationNames(List.of("typeName"))
-                .displayText(TOPIC_NAME).build();
+            .classificationNames(List.of("typeName"))
+            .displayText(TOPIC_NAME).build();
         List<TagEntity> tagEntityList = List.of(tagEntity);
         TagEntities tagEntities = TagEntities.builder().entities(tagEntityList).build();
 
@@ -460,7 +331,7 @@ class TopicAsyncExecutorTest {
 
         Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
             Topic.builder()
-                .metadata(ObjectMeta.builder()
+                .metadata(Metadata.builder()
                     .name(TOPIC_NAME)
                     .build())
                 .spec(Topic.TopicSpec.builder()
@@ -477,7 +348,7 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
         when(schemaRegistryClient.getTopicWithTags(LOCAL_CLUSTER))
@@ -485,7 +356,7 @@ class TopicAsyncExecutorTest {
 
         Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
             Topic.builder()
-                .metadata(ObjectMeta.builder()
+                .metadata(Metadata.builder()
                     .name(TOPIC_NAME)
                     .build())
                 .spec(Topic.TopicSpec.builder()
@@ -499,11 +370,11 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldNotEnrichWithDescriptionWhenNotConfluentCloud() {
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(false);
 
         Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
                 Topic.builder()
-                        .metadata(ObjectMeta.builder()
+                        .metadata(Metadata.builder()
                                 .name(TOPIC_NAME)
                                 .build())
                         .spec(Topic.TopicSpec.builder()
@@ -520,7 +391,7 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
         TopicListResponseEntityAttributes attributes = TopicListResponseEntityAttributes.builder()
@@ -534,7 +405,7 @@ class TopicAsyncExecutorTest {
 
         Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
                 Topic.builder()
-                        .metadata(ObjectMeta.builder()
+                        .metadata(Metadata.builder()
                                 .name(TOPIC_NAME)
                                 .build())
                         .spec(Topic.TopicSpec.builder()
@@ -552,7 +423,7 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
         TopicListResponseEntityAttributes attributes1 = TopicListResponseEntityAttributes.builder()
@@ -573,14 +444,14 @@ class TopicAsyncExecutorTest {
 
         Map<String, Topic> brokerTopics =
                 Map.of(TOPIC_NAME, Topic.builder()
-                        .metadata(ObjectMeta.builder()
+                        .metadata(Metadata.builder()
                                 .name(TOPIC_NAME)
                                 .build())
                         .spec(Topic.TopicSpec.builder()
                                 .build())
                         .build(),
                         TOPIC_NAME2, Topic.builder()
-                        .metadata(ObjectMeta.builder()
+                        .metadata(Metadata.builder()
                                 .name(TOPIC_NAME2)
                                 .build())
                         .spec(Topic.TopicSpec.builder()
@@ -589,7 +460,7 @@ class TopicAsyncExecutorTest {
                         .build(),
 
                         TOPIC_NAME3, Topic.builder()
-                                .metadata(ObjectMeta.builder()
+                                .metadata(Metadata.builder()
                                         .name(TOPIC_NAME3)
                                         .build())
                                 .spec(Topic.TopicSpec.builder()
@@ -609,7 +480,7 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
-        when(managedClusterProperties.getProvider()).thenReturn(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
         when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 0))
@@ -617,7 +488,7 @@ class TopicAsyncExecutorTest {
 
         Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
                 Topic.builder()
-                        .metadata(ObjectMeta.builder()
+                        .metadata(Metadata.builder()
                                 .name(TOPIC_NAME)
                                 .build())
                         .spec(Topic.TopicSpec.builder()

@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.integration.TopicTest.BearerAccessRefreshToken;
 import com.michelin.ns4kafka.models.AccessControlEntry;
@@ -9,9 +10,9 @@ import com.michelin.ns4kafka.models.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.models.RoleBinding.Role;
 import com.michelin.ns4kafka.models.RoleBinding.RoleBindingSpec;
@@ -27,6 +28,7 @@ import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.BlockingHttpClient;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
@@ -53,7 +55,7 @@ class ExceptionHandlerTest extends AbstractIntegrationTest {
     @BeforeAll
     void init() {
         Namespace ns1 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1")
                 .cluster("test-cluster")
                 .build())
@@ -65,7 +67,7 @@ class ExceptionHandlerTest extends AbstractIntegrationTest {
             .build();
 
         RoleBinding rb1 = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-rb")
                 .namespace("ns1")
                 .build())
@@ -89,11 +91,12 @@ class ExceptionHandlerTest extends AbstractIntegrationTest {
 
         client.toBlocking()
             .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1));
+
         client.toBlocking().exchange(
             HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1));
 
         AccessControlEntry ns1acl = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-acl")
                 .namespace("ns1")
                 .build())
@@ -113,7 +116,7 @@ class ExceptionHandlerTest extends AbstractIntegrationTest {
     @Test
     void invalidTopicName() {
         Topic topicFirstCreate = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-invalid-é")
                 .namespace("ns1")
                 .build())
@@ -125,34 +128,96 @@ class ExceptionHandlerTest extends AbstractIntegrationTest {
                     "retention.ms", "60000"))
                 .build())
             .build();
+
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
             () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
                 .bearerAuth(token)
                 .body(topicFirstCreate)));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
-        assertEquals("Invalid Resource", exception.getMessage());
+        assertEquals("Constraint validation failed", exception.getMessage());
+        assertTrue(exception.getResponse().getBody(Status.class).isPresent());
         assertEquals("topic.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"",
             exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
     }
 
     @Test
-    void forbiddenTopic() {
+    void shouldThrowUnknownNamespaceForTopic() {
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
             () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns2/topics")
                 .bearerAuth(token)));
 
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
-        assertEquals("Resource forbidden", exception.getMessage());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
+        assertEquals("Accessing unknown namespace \"ns2\"", exception.getMessage());
     }
 
     @Test
-    void unauthorizedTopic() {
+    void shouldThrowUnauthorizedWhenNotAuthenticatedForTopic() {
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
             () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/topics")));
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
         assertEquals("Client '/': Unauthorized", exception.getMessage());
+    }
+
+    @Test
+    void shouldThrowNamespaceForbiddenWhenAccessingForbiddenNamespaceAsUser() {
+        UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("user", "admin");
+        HttpResponse<BearerAccessRefreshToken> response =
+            client.toBlocking().exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
+
+        String userToken = response.getBody().get().getAccessToken();
+
+        HttpRequest<?> request = HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/acls/ns2-acl")
+            .bearerAuth(userToken);
+
+        BlockingHttpClient blockingClient = client.toBlocking();
+
+        HttpClientResponseException exception =
+            assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        assertEquals("Accessing forbidden namespace \"ns1\"", exception.getMessage());
+    }
+
+    @Test
+    void shouldThrowResourceForbiddenWhenAccessingForbiddenResourceAsUser() {
+        RoleBinding rb2 = RoleBinding.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-rb2")
+                .namespace("ns1")
+                .build())
+            .spec(RoleBindingSpec.builder()
+                .role(Role.builder()
+                    .resourceTypes(List.of("acls"))
+                    .verbs(List.of(Verb.POST, Verb.GET))
+                    .build())
+                .subject(Subject.builder()
+                    .subjectName("userGroup")
+                    .subjectType(SubjectType.GROUP)
+                    .build())
+                .build())
+            .build();
+
+        client.toBlocking().exchange(
+            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb2));
+
+        UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("user", "admin");
+        HttpResponse<BearerAccessRefreshToken> response =
+            client.toBlocking().exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
+
+        String userToken = response.getBody().get().getAccessToken();
+
+        HttpRequest<?> request = HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/topics")
+            .bearerAuth(userToken);
+
+        BlockingHttpClient blockingClient = client.toBlocking();
+
+        HttpClientResponseException exception =
+            assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        assertEquals("Resource forbidden", exception.getMessage());
     }
 
     @Test

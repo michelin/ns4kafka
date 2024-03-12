@@ -11,7 +11,7 @@ class ConnectorTest {
     @Test
     void testEquals() {
         Connector original = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("connect1")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -25,7 +25,7 @@ class ConnectorTest {
             .build();
 
         Connector same = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("connect1")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -64,7 +64,7 @@ class ConnectorTest {
         assertNotEquals(original, differentByConfig);
 
         Connector differentByMetadata = Connector.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("connect2")
                 .build())
             .spec(Connector.ConnectorSpec.builder()

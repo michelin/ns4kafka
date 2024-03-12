@@ -1,5 +1,13 @@
 package com.michelin.ns4kafka.services;
 
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidAclCollision;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidAclGrantedToMyself;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidAclNotOwnerOfTopLevel;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidAclPatternType;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidAclPermission;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidAclResourceType;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNotFound;
+
 import com.michelin.ns4kafka.models.AccessControlEntry;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.repositories.AccessControlEntryRepository;
@@ -52,24 +60,20 @@ public class AccessControlEntryService {
                 AccessControlEntry.ResourcePatternType.PREFIXED);
 
         if (!allowedResourceTypes.contains(accessControlEntry.getSpec().getResourceType())) {
-            validationErrors.add("Invalid value " + accessControlEntry.getSpec().getResourceType()
-                + " for resourceType: Value must be one of ["
-                + allowedResourceTypes.stream().map(Object::toString).collect(Collectors.joining(", "))
-                + "]");
+            validationErrors.add(invalidAclResourceType(
+                String.valueOf(accessControlEntry.getSpec().getResourceType()),
+                allowedResourceTypes.stream().map(Object::toString).collect(Collectors.joining(", "))));
         }
 
         if (!allowedPermissions.contains(accessControlEntry.getSpec().getPermission())) {
-            validationErrors.add("Invalid value " + accessControlEntry.getSpec().getPermission()
-                + " for permission: Value must be one of ["
-                + allowedPermissions.stream().map(Object::toString).collect(Collectors.joining(", "))
-                + "]");
+            validationErrors.add(invalidAclPermission(String.valueOf(accessControlEntry.getSpec().getPermission()),
+                allowedPermissions.stream().map(Object::toString).collect(Collectors.joining(", "))));
         }
 
         if (!allowedPatternTypes.contains(accessControlEntry.getSpec().getResourcePatternType())) {
-            validationErrors.add("Invalid value " + accessControlEntry.getSpec().getResourcePatternType()
-                + " for patternType: Value must be one of ["
-                + allowedPatternTypes.stream().map(Object::toString).collect(Collectors.joining(", "))
-                + "]");
+            validationErrors.add(invalidAclPatternType(
+                String.valueOf(accessControlEntry.getSpec().getResourcePatternType()),
+                allowedPatternTypes.stream().map(Object::toString).collect(Collectors.joining(", "))));
         }
 
         // GrantedTo Namespace exists ?
@@ -77,20 +81,16 @@ public class AccessControlEntryService {
         Optional<Namespace> grantedToNamespace =
             namespaceService.findByName(accessControlEntry.getSpec().getGrantedTo());
         if (grantedToNamespace.isEmpty() && !accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO)) {
-            validationErrors.add("Invalid value " + accessControlEntry.getSpec().getGrantedTo()
-                + " for grantedTo: Namespace doesn't exist");
+            validationErrors.add(invalidNotFound("grantedTo", accessControlEntry.getSpec().getGrantedTo()));
         }
 
-        // Are you dumb ?
         if (namespace.getMetadata().getName().equals(accessControlEntry.getSpec().getGrantedTo())) {
-            validationErrors.add("Invalid value " + accessControlEntry.getSpec().getGrantedTo()
-                + " for grantedTo: Why would you grant to yourself ?!");
+            validationErrors.add(invalidAclGrantedToMyself(accessControlEntry.getSpec().getGrantedTo()));
         }
 
         if (!isOwnerOfTopLevelAcl(accessControlEntry, namespace)) {
-            validationErrors.add("Invalid grant " + accessControlEntry.getSpec().getResourcePatternType() + ":"
-                + accessControlEntry.getSpec().getResource()
-                + " : Namespace is neither OWNER of LITERAL: resource nor top-level PREFIXED:resource");
+            validationErrors.add(invalidAclNotOwnerOfTopLevel(accessControlEntry.getSpec().getResource(),
+                accessControlEntry.getSpec().getResourcePatternType()));
         }
 
         return validationErrors;
@@ -105,7 +105,7 @@ public class AccessControlEntryService {
      */
     public List<String> validateAsAdmin(AccessControlEntry accessControlEntry, Namespace namespace) {
         // another namespace is already OWNER of PREFIXED or LITERAL resource
-        // exemple :
+        // example :
         // if already exists:
         //   namespace1 OWNER:PREFIXED:project1
         //   namespace1 OWNER:LITERAL:project2_t1
@@ -145,7 +145,7 @@ public class AccessControlEntryService {
                 return same || parentOverlap || childOverlap;
 
             })
-            .map(ace -> String.format("AccessControlEntry overlaps with existing one: %s", ace))
+            .map(ace -> invalidAclCollision(accessControlEntry.getMetadata().getName(), ace.getMetadata().getName()))
             .toList();
     }
 

@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.security.gitlab.GitlabAuthenticationProvider;
@@ -53,7 +53,7 @@ class GitlabAuthenticationProviderTest {
         List<String> groups = List.of("group-1", "group-2");
 
         RoleBinding roleBinding = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace-rb1")
                 .cluster("local")
                 .build())

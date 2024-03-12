@@ -1,8 +1,12 @@
 package com.michelin.ns4kafka.services;
 
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidSchemaReference;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidSchemaResource;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidSchemaSuffix;
+
 import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.schema.Schema;
 import com.michelin.ns4kafka.models.schema.SchemaList;
 import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
@@ -60,7 +64,7 @@ public class SchemaService {
                     });
             })
             .map(subject -> SchemaList.builder()
-                .metadata(ObjectMeta.builder()
+                .metadata(Metadata.builder()
                     .cluster(namespace.getMetadata().getCluster())
                     .namespace(namespace.getMetadata().getName())
                     .name(subject)
@@ -78,7 +82,7 @@ public class SchemaService {
     public Flux<Schema> getAllSubjectVersions(Namespace namespace, String subject) {
         return schemaRegistryClient.getAllSubjectVersions(namespace.getMetadata().getCluster(), subject)
             .map(subjectResponse -> Schema.builder()
-                .metadata(ObjectMeta.builder()
+                .metadata(Metadata.builder()
                     .cluster(namespace.getMetadata().getCluster())
                     .namespace(namespace.getMetadata().getName())
                     .name(subjectResponse.subject())
@@ -115,7 +119,7 @@ public class SchemaService {
                         ? currentCompatibilityOptional.get().compatibilityLevel() : Schema.Compatibility.GLOBAL;
 
                     return Schema.builder()
-                        .metadata(ObjectMeta.builder()
+                        .metadata(Metadata.builder()
                             .cluster(namespace.getMetadata().getCluster())
                             .namespace(namespace.getMetadata().getName())
                             .name(latestSubjectOptional.subject())
@@ -158,8 +162,7 @@ public class SchemaService {
             // https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject/TopicNameStrategy.java
             if (!schema.getMetadata().getName().endsWith("-key")
                 && !schema.getMetadata().getName().endsWith("-value")) {
-                validationErrors.add(String.format("Invalid value %s for name: Value must end with -key or -value.",
-                    schema.getMetadata().getName()));
+                validationErrors.add(invalidSchemaSuffix(schema.getMetadata().getName()));
             }
 
             if (!CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
@@ -188,8 +191,7 @@ public class SchemaService {
                 .defaultIfEmpty(Optional.empty())
                 .mapNotNull(schemaOptional -> {
                     if (schemaOptional.isEmpty()) {
-                        return String.format("Reference %s version %s not found.",
-                            reference.getSubject(), reference.getVersion());
+                        return invalidSchemaReference(reference.getSubject(), String.valueOf(reference.getVersion()));
                     }
                     return null;
                 }))
@@ -251,7 +253,10 @@ public class SchemaService {
                 }
 
                 if (!schemaCompatibilityCheckOptional.get().isCompatible()) {
-                    return schemaCompatibilityCheckOptional.get().messages();
+                    return schemaCompatibilityCheckOptional.get().messages()
+                        .stream()
+                        .map(error -> invalidSchemaResource(schema.getMetadata().getName(), error))
+                        .toList();
                 }
 
                 return List.of();

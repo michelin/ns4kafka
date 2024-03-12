@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.models;
 
+import static com.michelin.ns4kafka.utils.enums.Kind.ROLE_BINDING;
+
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -9,27 +11,31 @@ import java.util.Collection;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 /**
  * Role binding.
  */
 @Data
-@Builder
 @Introspected
-@NoArgsConstructor
-@AllArgsConstructor
-public class RoleBinding {
-    private final String apiVersion = "v1";
-    private final String kind = "RoleBinding";
-
-    @Valid
-    @NotNull
-    private ObjectMeta metadata;
-
+@EqualsAndHashCode(callSuper = true)
+public class RoleBinding extends MetadataResource {
     @Valid
     @NotNull
     private RoleBindingSpec spec;
+
+    /**
+     * Constructor.
+     *
+     * @param metadata The metadata
+     * @param spec     The spec
+     */
+    @Builder
+    public RoleBinding(Metadata metadata, RoleBindingSpec spec) {
+        super("v1", ROLE_BINDING, metadata);
+        this.spec = spec;
+    }
 
     /**
      * HTTP verbs.

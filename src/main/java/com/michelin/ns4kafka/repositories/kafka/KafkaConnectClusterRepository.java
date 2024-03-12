@@ -54,8 +54,8 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
 
     @Override
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.connect-workers")
-    void receive(ConsumerRecord<String, ConnectCluster> record) {
-        super.receive(record);
+    void receive(ConsumerRecord<String, ConnectCluster> message) {
+        super.receive(message);
     }
 
     @Override

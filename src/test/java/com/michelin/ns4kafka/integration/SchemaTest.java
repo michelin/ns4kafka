@@ -6,8 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.integration.TopicTest.BearerAccessRefreshToken;
 import com.michelin.ns4kafka.models.AccessControlEntry;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.models.schema.Schema;
 import com.michelin.ns4kafka.models.schema.SchemaCompatibilityState;
@@ -55,7 +55,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         schemaRegistryClient = applicationContext.createBean(HttpClient.class, schemaRegistryContainer.getUrl());
 
         Namespace namespace = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1")
                 .cluster("test-cluster")
                 .build())
@@ -65,7 +65,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
             .build();
 
         RoleBinding roleBinding = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-rb")
                 .namespace("ns1")
                 .build())
@@ -95,7 +95,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                 .body(roleBinding));
 
         AccessControlEntry aclSchema = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-acl")
                 .namespace("ns1")
                 .build())
@@ -116,7 +116,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
     void registerSchemaCompatibility() {
         // Register schema, first name is optional
         Schema schema = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-subject0-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -158,7 +158,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         // Register compatible schema v2, removing optional "first name" field
         Schema incompatibleSchema = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-subject0-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -190,7 +190,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
     void registerSchemaIncompatibility() {
         // Register schema, first name is non-optional
         Schema schema = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-subject1-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -234,7 +234,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         // Register incompatible schema v2, removing non-optional "first name" field
         Schema incompatibleSchema = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-subject1-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -255,13 +255,13 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                     .body(incompatibleSchema)));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, incompatibleActual.getStatus());
-        assertEquals("Invalid Schema ns1-subject1-value", incompatibleActual.getMessage());
+        assertEquals("Resource validation failed", incompatibleActual.getMessage());
     }
 
     @Test
     void shouldRegisterSchemaWithReferences() {
         Schema schemaHeader = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-header-subject-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -289,7 +289,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         // Person without refs not created
         Schema schemaPersonWithoutRefs = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-person-subject-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -315,11 +315,11 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                     .body(schemaPersonWithoutRefs)));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, createException.getStatus());
-        assertEquals("Invalid Schema ns1-person-subject-value", createException.getMessage());
+        assertEquals("Resource validation failed", createException.getMessage());
 
         // Person with refs created
         Schema schemaPersonWithRefs = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-person-subject-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -360,7 +360,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
     void shouldCheckSchemaStatus() {
         // Create header
         Schema schemaHeader = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-header-subject-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -376,7 +376,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         // Create person
         Schema schemaPersonWithRefs = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-person-subject-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -411,7 +411,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         // Create person v2, result should be changed
         Schema newSchemaVersionPersonWithRefs = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-person-subject-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -457,7 +457,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
         assertEquals("unchanged", personCreateV1Response.header("X-Ns4kafka-Result"));
 
         Schema schemaHeaderV2 = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-header-subject-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -498,7 +498,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
     @Test
     void registerSchemaWrongPrefix() {
         Schema wrongSchema = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("wrongprefix-subject")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -520,7 +520,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
                     .body(wrongSchema)));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, createException.getStatus());
-        assertEquals("Invalid Schema wrongprefix-subject", createException.getMessage());
+        assertEquals("Resource validation failed", createException.getMessage());
 
         // Get all schemas
         var getResponse =
@@ -543,7 +543,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
     @Test
     void registerSchema() {
         Schema schema = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-subject2-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -604,7 +604,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
     @Test
     void registerSameSchemaTwice() {
         Schema schema = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-subject3-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
@@ -639,7 +639,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
 
         // Apply the same schema with swapped fields
         Schema sameSchemaWithSwappedFields = Schema.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-subject3-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.michelin.ns4kafka.controllers.AkhqClaimProviderController;
@@ -13,9 +14,9 @@ import com.michelin.ns4kafka.models.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.models.AccessControlEntry.ResourceType;
 import com.michelin.ns4kafka.models.DeleteRecordsResponse;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.Namespace.NamespaceSpec;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.models.RoleBinding.Role;
 import com.michelin.ns4kafka.models.RoleBinding.RoleBindingSpec;
@@ -69,7 +70,7 @@ class TopicTest extends AbstractIntegrationTest {
     @BeforeAll
     void init() {
         Namespace ns1 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1")
                 .cluster("test-cluster")
                 .labels(Map.of("support-group", "LDAP-GROUP-1"))
@@ -82,7 +83,7 @@ class TopicTest extends AbstractIntegrationTest {
             .build();
 
         RoleBinding rb1 = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-rb")
                 .namespace("ns1")
                 .build())
@@ -110,7 +111,7 @@ class TopicTest extends AbstractIntegrationTest {
             HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1));
 
         AccessControlEntry ns1acl = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-acl")
                 .namespace("ns1")
                 .build())
@@ -127,7 +128,7 @@ class TopicTest extends AbstractIntegrationTest {
             .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(ns1acl));
 
         Namespace ns2 = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns2")
                 .cluster("test-cluster")
                 .build())
@@ -142,7 +143,7 @@ class TopicTest extends AbstractIntegrationTest {
             .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns2));
 
         RoleBinding rb2 = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns2-rb")
                 .namespace("ns2")
                 .build())
@@ -162,7 +163,7 @@ class TopicTest extends AbstractIntegrationTest {
             HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns2/role-bindings").bearerAuth(token).body(rb2));
 
         AccessControlEntry ns2acl = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns2-acl")
                 .namespace("ns2")
                 .build())
@@ -211,7 +212,7 @@ class TopicTest extends AbstractIntegrationTest {
     @Test
     void createTopic() throws InterruptedException, ExecutionException {
         Topic topicFirstCreate = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-topicFirstCreate")
                 .namespace("ns1")
                 .build())
@@ -253,7 +254,7 @@ class TopicTest extends AbstractIntegrationTest {
     @Test
     void updateTopic() throws InterruptedException, ExecutionException {
         Topic topic2Create = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-topic2Create")
                 .namespace("ns1")
                 .build())
@@ -277,7 +278,7 @@ class TopicTest extends AbstractIntegrationTest {
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
 
         Topic topic2Update = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-topic2Create")
                 .namespace("ns1")
                 .build())
@@ -322,7 +323,7 @@ class TopicTest extends AbstractIntegrationTest {
     @Test
     void invalidTopicName() {
         Topic topicFirstCreate = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-invalid-é")
                 .namespace("ns1")
                 .build())
@@ -340,7 +341,8 @@ class TopicTest extends AbstractIntegrationTest {
                 .bearerAuth(token)
                 .body(topicFirstCreate)));
 
-        assertEquals("Invalid Resource", exception.getMessage());
+        assertEquals("Constraint validation failed", exception.getMessage());
+        assertTrue(exception.getResponse().getBody(Status.class).isPresent());
         assertEquals("topic.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"",
             exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
 
@@ -349,7 +351,7 @@ class TopicTest extends AbstractIntegrationTest {
     @Test
     void updateTopicNoChange() {
         AccessControlEntry aclns1Tons2 = AccessControlEntry.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-acltons2")
                 .namespace("ns1")
                 .build())
@@ -363,7 +365,7 @@ class TopicTest extends AbstractIntegrationTest {
             .build();
 
         Topic topicToModify = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-topicToModify")
                 .namespace("ns1")
                 .build())
@@ -408,7 +410,7 @@ class TopicTest extends AbstractIntegrationTest {
     @Test
     void testDeleteRecords() {
         Topic topicToDelete = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-topicToDelete")
                 .namespace("ns1")
                 .build())
@@ -470,7 +472,7 @@ class TopicTest extends AbstractIntegrationTest {
     @Test
     void testDeleteRecordsCompactTopic() {
         Topic topicToDelete = Topic.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("ns1-compactTopicToDelete")
                 .namespace("ns1")
                 .build())

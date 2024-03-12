@@ -1,5 +1,10 @@
 package com.michelin.ns4kafka.controllers.connect;
 
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectClusterDeleteOperation;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidConnectClusterNotAllowed;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidOwner;
+import static com.michelin.ns4kafka.utils.enums.Kind.CONNECT_CLUSTER;
+
 import com.michelin.ns4kafka.controllers.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.models.connect.cluster.ConnectCluster;
@@ -29,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import reactor.core.publisher.Mono;
 
 /**
@@ -83,16 +87,14 @@ public class ConnectClusterController extends NamespacedResourceController {
 
         List<String> validationErrors = new ArrayList<>();
         if (!connectClusterService.isNamespaceOwnerOfConnectCluster(ns, connectCluster.getMetadata().getName())) {
-            validationErrors.add(String.format("Namespace not owner of this Connect cluster %s.",
-                connectCluster.getMetadata().getName()));
+            validationErrors.add(invalidOwner(connectCluster.getMetadata().getName()));
         }
 
         return connectClusterService.validateConnectClusterCreation(connectCluster)
             .flatMap(errors -> {
                 validationErrors.addAll(errors);
                 if (!validationErrors.isEmpty()) {
-                    return Mono.error(new ResourceValidationException(validationErrors, connectCluster.getKind(),
-                        connectCluster.getMetadata().getName()));
+                    return Mono.error(new ResourceValidationException(connectCluster, validationErrors));
                 }
 
                 connectCluster.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
@@ -110,9 +112,8 @@ public class ConnectClusterController extends NamespacedResourceController {
                     return Mono.just(formatHttpResponse(connectCluster, status));
                 }
 
-                sendEventLog(connectCluster.getKind(), connectCluster.getMetadata(), status,
-                    existingConnectCluster.<Object>map(ConnectCluster::getSpec).orElse(null),
-                    connectCluster.getSpec());
+                sendEventLog(connectCluster, status,
+                    existingConnectCluster.<Object>map(ConnectCluster::getSpec).orElse(null), connectCluster.getSpec());
 
                 return Mono.just(formatHttpResponse(connectClusterService.create(connectCluster), status));
             });
@@ -134,21 +135,16 @@ public class ConnectClusterController extends NamespacedResourceController {
 
         List<String> validationErrors = new ArrayList<>();
         if (!connectClusterService.isNamespaceOwnerOfConnectCluster(ns, connectCluster)) {
-            validationErrors.add(String.format("Namespace not owner of this Connect cluster %s.", connectCluster));
+            validationErrors.add(invalidOwner(connectCluster));
         }
 
         List<Connector> connectors = connectorService.findAllByConnectCluster(ns, connectCluster);
         if (!connectors.isEmpty()) {
-            validationErrors.add(String.format(
-                "The Connect cluster %s has %s deployed connector(s): %s. "
-                    + "Please remove the associated connector(s) before deleting it.",
-                connectCluster, connectors.size(), connectors.stream().map(connector ->
-                        connector.getMetadata().getName())
-                    .collect(Collectors.joining(", "))));
+            validationErrors.add(invalidConnectClusterDeleteOperation(connectCluster, connectors));
         }
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors, "ConnectCluster", connectCluster);
+            throw new ResourceValidationException(CONNECT_CLUSTER, connectCluster, validationErrors);
         }
 
         Optional<ConnectCluster> optionalConnectCluster =
@@ -162,8 +158,7 @@ public class ConnectClusterController extends NamespacedResourceController {
         }
 
         ConnectCluster connectClusterToDelete = optionalConnectCluster.get();
-        sendEventLog(connectClusterToDelete.getKind(), connectClusterToDelete.getMetadata(), ApplyStatus.deleted,
-            connectClusterToDelete.getSpec(), null);
+        sendEventLog(connectClusterToDelete, ApplyStatus.deleted, connectClusterToDelete.getSpec(), null);
 
         connectClusterService.delete(connectClusterToDelete);
         return HttpResponse.noContent();
@@ -176,8 +171,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      */
     @Get("/_/vaults")
     public List<ConnectCluster> listVaults(final String namespace) {
-        final Namespace ns = getNamespace(namespace);
-        return connectClusterService.findAllByNamespaceWrite(ns)
+        return connectClusterService.findAllByNamespaceWrite(getNamespace(namespace))
             .stream()
             .filter(connectCluster -> StringUtils.hasText(connectCluster.getSpec().getAes256Key()))
             .toList();
@@ -198,14 +192,13 @@ public class ConnectClusterController extends NamespacedResourceController {
 
         final var validationErrors = new ArrayList<String>();
         if (!connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectCluster)) {
-            validationErrors.add(
-                String.format("Namespace is not allowed to use this Connect cluster %s.", connectCluster));
+            validationErrors.add(invalidConnectClusterNotAllowed(connectCluster));
         }
 
         validationErrors.addAll(connectClusterService.validateConnectClusterVault(ns, connectCluster));
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors, "ConnectCluster", connectCluster);
+            throw new ResourceValidationException(CONNECT_CLUSTER, connectCluster, validationErrors);
         }
 
         return connectClusterService.vaultPassword(ns, connectCluster, passwords);

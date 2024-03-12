@@ -179,12 +179,14 @@ public class AccessControlEntryAsyncExecutor {
     private List<AclBinding> collectBrokerAcls(boolean managedUsersOnly)
         throws ExecutionException, InterruptedException, TimeoutException {
         List<ResourceType> validResourceTypes =
-            List.of(ResourceType.TOPIC, ResourceType.GROUP, ResourceType.TRANSACTIONAL_ID);
+            List.of(org.apache.kafka.common.resource.ResourceType.TOPIC,
+                org.apache.kafka.common.resource.ResourceType.GROUP,
+                org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID);
 
         AccessControlEntryFilter accessControlEntryFilter = new AccessControlEntryFilter(
-                managedClusterProperties.getProvider()
-                        .equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD) ? "UserV2:*" : null,
-                null, AclOperation.ANY, AclPermissionType.ANY);
+            managedClusterProperties.getProvider()
+                .equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD) ? "UserV2:*" : null,
+            null, AclOperation.ANY, AclPermissionType.ANY);
         AclBindingFilter aclBindingFilter = new AclBindingFilter(ResourcePatternFilter.ANY, accessControlEntryFilter);
 
         List<AclBinding> userAcls = getAdminClient()
@@ -235,7 +237,8 @@ public class AccessControlEntryAsyncExecutor {
         // Convert pattern, convert resource type from Ns4Kafka to org.apache.kafka.common types
         PatternType patternType =
             PatternType.fromString(accessControlEntry.getSpec().getResourcePatternType().toString());
-        ResourceType resourceType = ResourceType.fromString(accessControlEntry.getSpec().getResourceType().toString());
+        ResourceType resourceType = org.apache.kafka.common.resource.ResourceType.fromString(
+            accessControlEntry.getSpec().getResourceType().toString());
         ResourcePattern resourcePattern =
             new ResourcePattern(resourceType, accessControlEntry.getSpec().getResource(), patternType);
 
@@ -272,18 +275,21 @@ public class AccessControlEntryAsyncExecutor {
         return List.of(
             // CREATE and DELETE on Stream Topics
             new AclBinding(
-                new ResourcePattern(ResourceType.TOPIC, stream.getMetadata().getName(), PatternType.PREFIXED),
+                new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, stream.getMetadata().getName(),
+                    PatternType.PREFIXED),
                 new org.apache.kafka.common.acl.AccessControlEntry(USER_PRINCIPAL + kafkaUser, "*", AclOperation.CREATE,
                     AclPermissionType.ALLOW)
             ),
             new AclBinding(
-                new ResourcePattern(ResourceType.TOPIC, stream.getMetadata().getName(), PatternType.PREFIXED),
+                new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, stream.getMetadata().getName(),
+                    PatternType.PREFIXED),
                 new org.apache.kafka.common.acl.AccessControlEntry(USER_PRINCIPAL + kafkaUser, "*", AclOperation.DELETE,
                     AclPermissionType.ALLOW)
             ),
             // WRITE on TransactionalId
             new AclBinding(
-                new ResourcePattern(ResourceType.TRANSACTIONAL_ID, stream.getMetadata().getName(),
+                new ResourcePattern(
+                    org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID, stream.getMetadata().getName(),
                     PatternType.PREFIXED),
                 new org.apache.kafka.common.acl.AccessControlEntry(USER_PRINCIPAL + kafkaUser, "*", AclOperation.WRITE,
                     AclPermissionType.ALLOW)
@@ -300,7 +306,7 @@ public class AccessControlEntryAsyncExecutor {
      */
     private List<AclBinding> buildAclBindingsFromConnector(AccessControlEntry acl, String kafkaUser) {
         PatternType patternType = PatternType.fromString(acl.getSpec().getResourcePatternType().toString());
-        ResourcePattern resourcePattern = new ResourcePattern(ResourceType.GROUP,
+        ResourcePattern resourcePattern = new ResourcePattern(org.apache.kafka.common.resource.ResourceType.GROUP,
             "connect-" + acl.getSpec().getResource(),
             patternType);
 

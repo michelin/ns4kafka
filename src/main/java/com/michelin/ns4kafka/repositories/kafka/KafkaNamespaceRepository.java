@@ -45,9 +45,10 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
         produce(getMessageKey(namespace), null);
     }
 
+    @Override
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.namespaces")
-    void receive(ConsumerRecord<String, Namespace> record) {
-        super.receive(record);
+    void receive(ConsumerRecord<String, Namespace> message) {
+        super.receive(message);
     }
 
     @Override

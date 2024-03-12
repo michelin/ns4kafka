@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.models;
 
+import static com.michelin.ns4kafka.utils.enums.Kind.TOPIC;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
@@ -24,18 +26,9 @@ import lombok.Setter;
  * Topic.
  */
 @Data
-@Builder
 @Introspected
-@NoArgsConstructor
-@AllArgsConstructor
-public class Topic {
-    private final String apiVersion = "v1";
-    private final String kind = "Topic";
-
-    @Valid
-    @NotNull
-    private ObjectMeta metadata;
-
+@EqualsAndHashCode(callSuper = true)
+public class Topic extends MetadataResource {
     @Valid
     @NotNull
     private TopicSpec spec;
@@ -44,12 +37,17 @@ public class Topic {
     private TopicStatus status;
 
     /**
-     * Topic phase.
+     * Constructor.
+     *
+     * @param metadata The metadata
+     * @param spec     The spec
+     * @param status   The status
      */
-    public enum TopicPhase {
-        Pending,
-        Success,
-        Failed
+    @Builder
+    public Topic(Metadata metadata, TopicSpec spec, TopicStatus status) {
+        super("v1", TOPIC, metadata);
+        this.spec = spec;
+        this.status = status;
     }
 
     /**
@@ -127,5 +125,14 @@ public class Topic {
                 .message("Awaiting processing by executor")
                 .build();
         }
+    }
+
+    /**
+     * Topic phase.
+     */
+    public enum TopicPhase {
+        Pending,
+        Success,
+        Failed
     }
 }

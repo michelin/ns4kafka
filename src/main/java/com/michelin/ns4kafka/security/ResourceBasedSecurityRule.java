@@ -4,6 +4,8 @@ import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
+import com.michelin.ns4kafka.utils.exceptions.ForbiddenNamespaceException;
+import com.michelin.ns4kafka.utils.exceptions.UnknownNamespaceException;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.core.util.StringUtils;
@@ -88,22 +90,32 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
         // Namespace doesn't exist
         String sub = authentication.getName();
         if (namespaceRepository.findByName(namespace).isEmpty()) {
-            log.debug("Namespace not found for user [{}] on path [{}]. Returning unknown.", sub, request.getPath());
-            return SecurityRuleResult.UNKNOWN;
+            log.debug("Namespace not found for user \"{}\" on path \"{}\"", sub, request.getPath());
+            throw new UnknownNamespaceException(namespace);
         }
 
         // Admin are allowed everything (provided that the namespace exists)
         Collection<String> roles = authentication.getRoles();
         if (roles.contains(IS_ADMIN)) {
-            log.debug("Authorized admin user [{}] on path [{}]. Returning ALLOWED.", sub, request.getPath());
+            log.debug("Authorized admin \"{}\" on path \"{}\"", sub, request.getPath());
             return SecurityRuleResult.ALLOWED;
         }
 
         // Collect all roleBindings for this user
         List<String> groups = (List<String>) authentication.getAttributes().get("groups");
-        Collection<RoleBinding> roleBindings = roleBindingRepository.findAllForGroups(groups);
-        List<RoleBinding> authorizedRoleBindings = roleBindings.stream()
+        List<RoleBinding> namespaceRoleBindings = roleBindingRepository.findAllForGroups(groups)
+            .stream()
             .filter(roleBinding -> roleBinding.getMetadata().getNamespace().equals(namespace))
+            .toList();
+
+        if (namespaceRoleBindings.isEmpty()) {
+            log.debug("No matching role binding for user \"{}\" and namespace \"{}\" on path \"{}\"", sub,
+                namespace, request.getPath());
+            throw new ForbiddenNamespaceException(namespace);
+        }
+
+        List<RoleBinding> authorizedRoleBindings = namespaceRoleBindings
+            .stream()
             .filter(roleBinding -> roleBinding.getSpec().getRole().getResourceTypes().contains(resourceType))
             .filter(roleBinding -> roleBinding.getSpec().getRole().getVerbs()
                 .stream()
@@ -114,14 +126,16 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
 
         // User not authorized to access requested resource
         if (authorizedRoleBindings.isEmpty()) {
-            log.debug("No matching RoleBinding for user [{}] on path [{}]. Returning unknown.", sub, request.getPath());
+            log.debug("No matching role binding for user \"{}\", namespace \"{}\", resource type \"{}\" "
+                    + "and HTTP verb \"{}\" on path \"{}\"",
+                sub, namespace, resourceType, request.getMethodName(), request.getPath());
             return SecurityRuleResult.UNKNOWN;
         }
 
         if (log.isDebugEnabled()) {
             authorizedRoleBindings.forEach(
-                roleBinding -> log.debug("Found matching RoleBinding : {}", roleBinding.toString()));
-            log.debug("Authorized user [{}] on path [{}]", sub, request.getPath());
+                roleBinding -> log.debug("Found matching role binding \"{}\"", roleBinding.toString()));
+            log.debug("Authorized user \"{}\" on path \"{}\"", sub, request.getPath());
         }
 
         return SecurityRuleResult.ALLOWED;

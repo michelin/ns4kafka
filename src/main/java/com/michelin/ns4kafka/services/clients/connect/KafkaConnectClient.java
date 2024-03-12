@@ -227,8 +227,8 @@ public class KafkaConnectClient {
             .findFirst();
 
         if (config.isEmpty()) {
-            throw new ResourceValidationException(List.of("Kafka cluster \"" + kafkaCluster + "\" not found"), null,
-                null);
+            throw new ResourceValidationException(null, null,
+                List.of("Kafka cluster \"" + kafkaCluster + "\" not found"));
         }
 
         Optional<ConnectCluster> connectClusterOptional = connectClusterRepository.findAll()
@@ -247,8 +247,7 @@ public class KafkaConnectClient {
 
         ManagedClusterProperties.ConnectProperties connectConfig = config.get().getConnects().get(connectCluster);
         if (connectConfig == null) {
-            throw new ResourceValidationException(List.of("Connect cluster \"" + connectCluster + "\" not found"), null,
-                null);
+            throw new ResourceValidationException(null, null, "Connect cluster \"" + connectCluster + "\" not found");
         }
 
         return KafkaConnectClient.KafkaConnectHttpConfig.builder()

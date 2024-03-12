@@ -3,7 +3,7 @@ package com.michelin.ns4kafka.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.models.ObjectMeta;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
 import java.util.List;
@@ -24,19 +24,19 @@ class RoleBindingServiceTest {
     @Test
     void findByName() {
         RoleBinding rb1 = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace-rb1")
                 .cluster("local")
                 .build())
             .build();
         RoleBinding rb2 = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace-rb2")
                 .cluster("local")
                 .build())
             .build();
         RoleBinding rb3 = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace-rb3")
                 .cluster("local")
                 .build())

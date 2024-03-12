@@ -1,9 +1,9 @@
 plugins {
     id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("io.micronaut.application") version "4.3.1"
+    id("io.micronaut.application") version "4.3.4"
     id("jacoco")
     id("org.sonarqube") version "4.4.1.3373"
-    id("pl.allegro.tech.build.axion-release") version "1.16.1"
+    id("pl.allegro.tech.build.axion-release") version "1.17.0"
     id("checkstyle")
 }
 
@@ -37,7 +37,7 @@ dependencies {
     implementation("io.swagger.core.v3:swagger-annotations")
     implementation("jakarta.annotation:jakarta.annotation-api")
     implementation("jakarta.validation:jakarta.validation-api")
-    implementation('io.confluent:kafka-schema-registry-client:7.5.3')
+    implementation('io.confluent:kafka-schema-registry-client:7.6.0')
 
 
     compileOnly("org.projectlombok:lombok")
@@ -49,7 +49,7 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:testcontainers")
     testImplementation("org.testcontainers:kafka")
-    testImplementation("org.mockito:mockito-junit-jupiter:5.10.0")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.11.0")
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.10.2")
     testImplementation("io.projectreactor:reactor-test")
 

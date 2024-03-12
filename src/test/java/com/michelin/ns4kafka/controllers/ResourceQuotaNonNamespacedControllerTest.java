@@ -5,8 +5,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.controllers.quota.ResourceQuotaNonNamespacedController;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.quota.ResourceQuotaResponse;
 import com.michelin.ns4kafka.services.NamespaceService;
 import com.michelin.ns4kafka.services.ResourceQuotaService;
@@ -31,7 +31,7 @@ class ResourceQuotaNonNamespacedControllerTest {
     @Test
     void listAll() {
         Namespace namespace = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())

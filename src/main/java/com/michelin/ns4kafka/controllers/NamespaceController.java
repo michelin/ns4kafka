@@ -1,9 +1,13 @@
 package com.michelin.ns4kafka.controllers;
 
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidImmutableValue;
+import static com.michelin.ns4kafka.utils.enums.Kind.NAMESPACE;
+
 import com.michelin.ns4kafka.controllers.generic.NonNamespacedResourceController;
 import com.michelin.ns4kafka.models.Namespace;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
+import com.michelin.ns4kafka.utils.FormatErrorUtils;
 import com.michelin.ns4kafka.utils.enums.ApplyStatus;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.http.HttpResponse;
@@ -71,22 +75,15 @@ public class NamespaceController extends NonNamespacedResourceController {
             validationErrors.addAll(namespaceService.validateCreation(namespace));
         } else {
             if (!namespace.getMetadata().getCluster().equals(existingNamespace.get().getMetadata().getCluster())) {
-                validationErrors.add("Invalid value " + namespace.getMetadata().getCluster()
-                    + " for cluster: Value is immutable ("
-                    + existingNamespace.get().getMetadata().getCluster() + ")");
-            }
-            if (!namespace.getMetadata().getCluster().equals(existingNamespace.get().getMetadata().getCluster())) {
-                validationErrors.add("Invalid value " + namespace.getSpec().getKafkaUser()
-                    + " for kafkaUser: Value is immutable ("
-                    + existingNamespace.get().getSpec().getKafkaUser() + ")");
+                validationErrors.add(invalidImmutableValue("cluster",
+                    existingNamespace.get().getMetadata().getCluster()));
             }
         }
 
         validationErrors.addAll(namespaceService.validate(namespace));
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(validationErrors, namespace.getKind(),
-                namespace.getMetadata().getName());
+            throw new ResourceValidationException(namespace, validationErrors);
         }
 
         namespace.getMetadata().setNamespace(namespace.getMetadata().getName());
@@ -102,10 +99,7 @@ public class NamespaceController extends NonNamespacedResourceController {
             return formatHttpResponse(namespace, status);
         }
 
-        sendEventLog(namespace.getKind(),
-            namespace.getMetadata(),
-            status,
-            existingNamespace.<Object>map(Namespace::getSpec).orElse(null),
+        sendEventLog(namespace, status, existingNamespace.<Object>map(Namespace::getSpec).orElse(null),
             namespace.getSpec());
 
         return formatHttpResponse(namespaceService.createOrUpdate(namespace), status);
@@ -127,10 +121,11 @@ public class NamespaceController extends NonNamespacedResourceController {
 
         List<String> namespaceResources = namespaceService.listAllNamespaceResources(optionalNamespace.get());
         if (!namespaceResources.isEmpty()) {
-            List<String> validationErrors = namespaceResources.stream()
-                .map(s -> "Namespace resource must be deleted first: " + s)
+            List<String> validationErrors = namespaceResources
+                .stream()
+                .map(FormatErrorUtils::invalidNamespaceDeleteOperation)
                 .toList();
-            throw new ResourceValidationException(validationErrors, "Namespace", namespace);
+            throw new ResourceValidationException(NAMESPACE, namespace, validationErrors);
         }
 
         if (dryrun) {
@@ -138,11 +133,7 @@ public class NamespaceController extends NonNamespacedResourceController {
         }
 
         var namespaceToDelete = optionalNamespace.get();
-        sendEventLog(namespaceToDelete.getKind(),
-            namespaceToDelete.getMetadata(),
-            ApplyStatus.deleted,
-            namespaceToDelete.getSpec(),
-            null);
+        sendEventLog(namespaceToDelete, ApplyStatus.deleted, namespaceToDelete.getSpec(), null);
         namespaceService.delete(optionalNamespace.get());
         return HttpResponse.noContent();
     }

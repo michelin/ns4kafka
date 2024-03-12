@@ -3,8 +3,9 @@ package com.michelin.ns4kafka.controllers;
 import com.michelin.ns4kafka.models.Status;
 import com.michelin.ns4kafka.models.Status.StatusDetails;
 import com.michelin.ns4kafka.models.Status.StatusPhase;
-import com.michelin.ns4kafka.models.Status.StatusReason;
+import com.michelin.ns4kafka.utils.exceptions.ForbiddenNamespaceException;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
+import com.michelin.ns4kafka.utils.exceptions.UnknownNamespaceException;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -37,14 +38,13 @@ public class ExceptionHandlerController {
     public HttpResponse<Status> error(HttpRequest<?> request, ResourceValidationException exception) {
         var status = Status.builder()
             .status(StatusPhase.Failed)
-            .message(String.format("Invalid %s %s", exception.getKind(), exception.getName()))
-            .reason(StatusReason.Invalid)
+            .message("Resource validation failed")
+            .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
             .details(StatusDetails.builder()
                 .kind(exception.getKind())
                 .name(exception.getName())
                 .causes(exception.getValidationErrors())
                 .build())
-            .code(HttpStatus.UNPROCESSABLE_ENTITY.getCode())
             .build();
 
         return HttpResponse.unprocessableEntity()
@@ -62,12 +62,11 @@ public class ExceptionHandlerController {
     public HttpResponse<Status> error(HttpRequest<?> request, ConstraintViolationException exception) {
         var status = Status.builder()
             .status(StatusPhase.Failed)
-            .message("Invalid Resource")
-            .reason(StatusReason.Invalid)
+            .message("Constraint validation failed")
+            .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
             .details(StatusDetails.builder()
                 .causes(exception.getConstraintViolations().stream().map(this::formatViolation).toList())
                 .build())
-            .code(HttpStatus.UNPROCESSABLE_ENTITY.getCode())
             .build();
 
         return HttpResponse.unprocessableEntity()
@@ -85,11 +84,10 @@ public class ExceptionHandlerController {
         var status = Status.builder()
             .status(StatusPhase.Failed)
             .message("Not Found")
-            .reason(StatusReason.NotFound)
-            .code(HttpStatus.NOT_FOUND.getCode())
+            .httpStatus(HttpStatus.NOT_FOUND)
             .build();
 
-        return HttpResponse.status(HttpStatus.NOT_FOUND)
+        return HttpResponse.notFound()
             .body(status);
     }
 
@@ -105,10 +103,11 @@ public class ExceptionHandlerController {
         var status = Status.builder()
             .status(StatusPhase.Failed)
             .message(exception.getMessage())
-            .reason(StatusReason.Unauthorized)
-            .code(HttpStatus.UNAUTHORIZED.getCode())
+            .httpStatus(HttpStatus.UNAUTHORIZED)
             .build();
-        return HttpResponse.unauthorized().body(status);
+
+        return HttpResponse.unauthorized()
+            .body(status);
     }
 
     /**
@@ -124,9 +123,9 @@ public class ExceptionHandlerController {
             var status = Status.builder()
                 .status(StatusPhase.Failed)
                 .message("Resource forbidden")
-                .reason(StatusReason.Forbidden)
-                .code(HttpStatus.FORBIDDEN.getCode())
+                .httpStatus(HttpStatus.FORBIDDEN)
                 .build();
+
             return HttpResponse.status(HttpStatus.FORBIDDEN)
                 .body(status);
         }
@@ -134,12 +133,49 @@ public class ExceptionHandlerController {
         var status = Status.builder()
             .status(StatusPhase.Failed)
             .message(exception.getMessage())
-            .reason(StatusReason.Unauthorized)
-            .code(HttpStatus.UNAUTHORIZED.getCode())
+            .httpStatus(HttpStatus.UNAUTHORIZED)
             .build();
 
-        return HttpResponse.unauthorized().body(status);
+        return HttpResponse.unauthorized()
+            .body(status);
+    }
 
+    /**
+     * Handle namespace unknown exception.
+     *
+     * @param request   the request
+     * @param exception the exception
+     * @return the http response
+     */
+    @Error(global = true)
+    public HttpResponse<Status> error(HttpRequest<?> request, UnknownNamespaceException exception) {
+        var status = Status.builder()
+            .status(StatusPhase.Failed)
+            .message(exception.getMessage())
+            .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+            .build();
+
+        return HttpResponse.unprocessableEntity()
+            .body(status);
+    }
+
+    /**
+     * Handle namespace forbidden exception.
+     *
+     * @param request   the request
+     * @param exception the exception
+     * @return the http response
+     */
+    @Error(global = true)
+    public HttpResponse<Status> error(HttpRequest<?> request, ForbiddenNamespaceException exception) {
+        var status = Status.builder()
+            .status(StatusPhase.Failed)
+            .message(exception.getMessage())
+            .httpStatus(HttpStatus.FORBIDDEN)
+            .build();
+
+        return HttpResponse.status(HttpStatus.FORBIDDEN)
+            .body(status);
     }
 
     /**
@@ -157,15 +193,13 @@ public class ExceptionHandlerController {
         Status status = Status.builder()
             .status(StatusPhase.Failed)
             .message("Internal server error")
-            .reason(StatusReason.InternalError)
+            .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
             .details(StatusDetails.builder()
                 .causes(List.of(exception.getMessage() != null ? exception.getMessage() : exception.toString()))
                 .build())
-            .code(HttpStatus.INTERNAL_SERVER_ERROR.getCode())
             .build();
 
-        return HttpResponse
-            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        return HttpResponse.serverError()
             .body(status);
     }
 

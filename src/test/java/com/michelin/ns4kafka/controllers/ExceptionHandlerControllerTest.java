@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.controllers;
 
+import static com.michelin.ns4kafka.utils.enums.Kind.TOPIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
@@ -21,13 +22,13 @@ class ExceptionHandlerControllerTest {
     @Test
     void resourceValidationError() {
         var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
-            new ResourceValidationException(List.of("Error1", "Error2"), "Topic", "Name"));
+            new ResourceValidationException(TOPIC, "Name", List.of("Error1", "Error2")));
         var status = response.body();
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatus());
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.getCode(), status.getCode());
 
-        assertEquals("Topic", status.getDetails().getKind());
+        assertEquals(TOPIC, status.getDetails().getKind());
         assertEquals("Name", status.getDetails().getName());
         assertEquals("Error1", status.getDetails().getCauses().get(0));
         assertEquals("Error2", status.getDetails().getCauses().get(1));

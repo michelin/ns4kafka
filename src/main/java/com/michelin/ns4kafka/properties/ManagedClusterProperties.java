@@ -82,4 +82,13 @@ public class ManagedClusterProperties {
         String basicAuthUsername;
         String basicAuthPassword;
     }
+
+    /**
+     * Check if the provider is Confluent Cloud.
+     *
+     * @return true if it is, false otherwise
+     */
+    public boolean isConfluentCloud() {
+        return provider == KafkaProvider.CONFLUENT_CLOUD;
+    }
 }

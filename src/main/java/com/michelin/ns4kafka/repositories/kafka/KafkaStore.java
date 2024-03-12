@@ -131,7 +131,7 @@ public abstract class KafkaStore<T> {
 
         Set<String> topics = Collections.singleton(kafkaTopic);
         Map<String, TopicDescription> topicDescription = adminClient.describeTopics(topics)
-            .all()
+            .allTopicNames()
             .get(initTimeout, TimeUnit.MILLISECONDS);
 
         TopicDescription description = topicDescription.get(kafkaTopic);
@@ -184,15 +184,16 @@ public abstract class KafkaStore<T> {
 
         int numLiveBrokers = adminClient.describeCluster()
             .nodes()
-            .get(initTimeout, TimeUnit.MILLISECONDS).size();
+            .get(initTimeout, TimeUnit.MILLISECONDS)
+            .size();
 
-        if (numLiveBrokers <= 0) {
+        if (numLiveBrokers == 0) {
             throw new KafkaStoreException("No live Kafka brokers.");
         }
 
         int schemaTopicReplicationFactor = Math.min(numLiveBrokers, kafkaStoreProperties.getReplicationFactor());
         if (schemaTopicReplicationFactor < kafkaStoreProperties.getReplicationFactor() && log.isWarnEnabled()) {
-            log.warn("Creating the kafkaTopic {}" + kafkaTopic + " using a replication factor of "
+            log.warn("Creating the kafkaTopic " + kafkaTopic + " using a replication factor of "
                 + schemaTopicReplicationFactor + ", which is less than the desired one of "
                 + kafkaStoreProperties.getReplicationFactor() + ". If this is a production environment, it's "
                 + "crucial to add more brokers and increase the replication factor of the kafkaTopic.");

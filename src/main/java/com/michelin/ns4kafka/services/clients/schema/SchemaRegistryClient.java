@@ -326,13 +326,13 @@ public class SchemaRegistryClient {
             .findFirst();
 
         if (config.isEmpty()) {
-            throw new ResourceValidationException(List.of("Kafka Cluster [" + kafkaCluster + "] not found"), null,
-                null);
+            throw new ResourceValidationException(null, null,
+                List.of("Kafka Cluster [" + kafkaCluster + "] not found"));
         }
 
         if (config.get().getSchemaRegistry() == null) {
-            throw new ResourceValidationException(
-                List.of("Kafka Cluster [" + kafkaCluster + "] has no schema registry"), null, null);
+            throw new ResourceValidationException(null, null,
+                List.of("Kafka Cluster [" + kafkaCluster + "] has no schema registry"));
         }
 
         return config.get().getSchemaRegistry();

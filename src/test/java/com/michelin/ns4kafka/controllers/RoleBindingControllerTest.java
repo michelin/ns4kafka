@@ -9,8 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.models.AuditLog;
+import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.ObjectMeta;
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.services.NamespaceService;
@@ -46,13 +46,13 @@ class RoleBindingControllerTest {
     @Test
     void applySuccess() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
         RoleBinding rolebinding = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test.rolebinding")
                 .build())
             .build();
@@ -71,13 +71,13 @@ class RoleBindingControllerTest {
     @Test
     void applySuccess_AlreadyExists() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
         RoleBinding rolebinding = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test.rolebinding")
                 .build())
             .build();
@@ -96,18 +96,18 @@ class RoleBindingControllerTest {
     @Test
     void applySuccess_Changed() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
         RoleBinding rolebinding = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test.rolebinding")
                 .build())
             .build();
         RoleBinding rolebindingOld = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test.rolebinding")
                 .labels(Map.of("old", "label"))
                 .build())
@@ -129,13 +129,13 @@ class RoleBindingControllerTest {
     @Test
     void createDryRun() {
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
         RoleBinding rolebinding = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test.rolebinding")
                 .build())
             .build();
@@ -152,13 +152,13 @@ class RoleBindingControllerTest {
     void deleteSucess() {
 
         Namespace ns = Namespace.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
         RoleBinding rolebinding = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test.rolebinding")
                 .build())
             .build();
@@ -177,7 +177,7 @@ class RoleBindingControllerTest {
     @Test
     void deleteSuccessDryRun() {
         RoleBinding rolebinding = RoleBinding.builder()
-            .metadata(ObjectMeta.builder()
+            .metadata(Metadata.builder()
                 .name("test.rolebinding")
                 .build())
             .build();
