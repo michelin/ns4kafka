@@ -983,7 +983,7 @@ class TopicServiceTest {
 
         List<String> validationErrors = topicService.validateTags(ns, topic);
         assertEquals(1, validationErrors.size());
-        assertEquals("Invalid value \"TAG_TEST\" for \"tags\": tags are not currently supported.",
+        assertEquals("Invalid value \"TAG_TEST\" for field \"tags\": tags are not currently supported.",
                 validationErrors.getFirst());
     }
 
@@ -1101,7 +1101,7 @@ class TopicServiceTest {
 
         List<String> validationErrors = topicService.validateTags(ns, topic);
         assertEquals(1, validationErrors.size());
-        assertEquals("Invalid value \"0TAG-TEST\" for \"tags\": "
+        assertEquals("Invalid value \"0TAG-TEST\" for field \"tags\": "
                 + "tags should start with letter and be followed by alphanumeric or _ characters",
                 validationErrors.getFirst());
     }

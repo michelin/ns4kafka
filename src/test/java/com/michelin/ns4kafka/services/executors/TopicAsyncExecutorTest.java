@@ -398,13 +398,13 @@ class TopicAsyncExecutorTest {
                 .qualifiedName(TOPIC_NAME)
                 .description(Optional.of(DESCRIPTION1)).build();
         TopicListResponseEntity entity = TopicListResponseEntity.builder().attributes(attributes).build();
-        TopicListResponse entities = TopicListResponse.builder().entities(List.of(entity, entity, entity)).build();
-        TopicListResponse entities2 = TopicListResponse.builder().entities(List.of()).build();
+        TopicListResponse response1 = TopicListResponse.builder().entities(List.of(entity)).build();
+        TopicListResponse response2 = TopicListResponse.builder().entities(List.of()).build();
 
         when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 0))
-                .thenReturn(Mono.just(entities));
+                .thenReturn(Mono.just(response1));
         when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 1000))
-                .thenReturn(Mono.just(entities2));
+                .thenReturn(Mono.just(response2));
 
         Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
                 Topic.builder()
@@ -439,13 +439,13 @@ class TopicAsyncExecutorTest {
         TopicListResponseEntity entity1 = TopicListResponseEntity.builder().attributes(attributes1).build();
         TopicListResponseEntity entity2 = TopicListResponseEntity.builder().attributes(attributes2).build();
         TopicListResponseEntity entity3 = TopicListResponseEntity.builder().attributes(attributes3).build();
-        TopicListResponse entities = TopicListResponse.builder().entities(List.of(entity1, entity2, entity3)).build();
-        TopicListResponse entities2 = TopicListResponse.builder().entities(List.of()).build();
+        TopicListResponse response1 = TopicListResponse.builder().entities(List.of(entity1, entity2, entity3)).build();
+        TopicListResponse response2 = TopicListResponse.builder().entities(List.of()).build();
 
         when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 0))
-                .thenReturn(Mono.just(entities));
+                .thenReturn(Mono.just(response1));
         when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 1000))
-                .thenReturn(Mono.just(entities2));
+                .thenReturn(Mono.just(response2));
 
         Map<String, Topic> brokerTopics =
                 Map.of(TOPIC_NAME, Topic.builder()
@@ -487,7 +487,6 @@ class TopicAsyncExecutorTest {
 
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
-
         when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 0))
                 .thenReturn(Mono.empty());
 
