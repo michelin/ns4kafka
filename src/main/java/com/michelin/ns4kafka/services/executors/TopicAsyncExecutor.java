@@ -292,7 +292,7 @@ public class TopicAsyncExecutor {
             List<TopicListResponseEntity> entities = new ArrayList<>();
             TopicListResponse topicListResponse;
 
-            // retrieve list of topics entity in entities by managing offset & limit
+            // put list of topics in entities by managing offset & limit
             int offset = 0;
             int limit = 1000;
             do {
