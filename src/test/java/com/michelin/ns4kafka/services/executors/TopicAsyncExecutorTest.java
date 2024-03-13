@@ -455,6 +455,7 @@ class TopicAsyncExecutorTest {
                                 .name(TOPIC_NAME)
                                 .build())
                         .spec(Topic.TopicSpec.builder()
+                                .description("")
                                 .build())
                         .build(),
                         TOPIC_NAME2, Topic.builder()
