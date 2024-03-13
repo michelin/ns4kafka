@@ -481,7 +481,7 @@ class TopicAsyncExecutorTest {
 
         assertEquals(DESCRIPTION1, brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
         assertEquals(DESCRIPTION2, brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());
-        assertNull(brokerTopics.get(TOPIC_NAME3).getSpec().getDescription());
+        assertEquals("", brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());
     }
 
     @Test
