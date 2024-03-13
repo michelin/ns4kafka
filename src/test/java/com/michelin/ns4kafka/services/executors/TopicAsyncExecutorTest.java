@@ -437,7 +437,8 @@ class TopicAsyncExecutorTest {
                 .name(TOPIC_NAME2)
                 .description(Optional.of(DESCRIPTION2)).build();
         TopicListResponseEntityAttributes attributes3 = TopicListResponseEntityAttributes.builder()
-                .name(TOPIC_NAME3).build();
+                .name(TOPIC_NAME3)
+                .description(Optional.of("")).build();
         TopicListResponseEntity entity1 = TopicListResponseEntity.builder().attributes(attributes1).build();
         TopicListResponseEntity entity2 = TopicListResponseEntity.builder().attributes(attributes2).build();
         TopicListResponseEntity entity3 = TopicListResponseEntity.builder().attributes(attributes3).build();
@@ -480,7 +481,7 @@ class TopicAsyncExecutorTest {
 
         assertEquals(DESCRIPTION1, brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
         assertEquals(DESCRIPTION2, brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());
-        assertNull(brokerTopics.get(TOPIC_NAME3).getSpec().getDescription());
+        assertEquals("", brokerTopics.get(TOPIC_NAME3).getSpec().getDescription());
     }
 
     @Test
