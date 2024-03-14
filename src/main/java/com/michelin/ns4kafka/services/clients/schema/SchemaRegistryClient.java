@@ -313,7 +313,7 @@ public class SchemaRegistryClient {
      * @param description     Description to add
      * @return Information about description
      */
-    public Mono<HttpResponse<TopicDescriptionUpdateResponse>> updateDescription(String kafkaCluster,
+    public Mono<TopicDescriptionUpdateResponse> updateDescription(String kafkaCluster,
                                                             String qualifiedName, String description) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         TopicDescriptionUpdateAttributes attributes = new TopicDescriptionUpdateAttributes(qualifiedName, description);
@@ -323,7 +323,7 @@ public class SchemaRegistryClient {
                 .PUT(URI.create(StringUtils.prependUri(
                         config.getUrl(), "/catalog/v1/entity")), body)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-        return Mono.from(httpClient.exchange(request, TopicDescriptionUpdateResponse.class));
+        return Mono.from(httpClient.retrieve(request, TopicDescriptionUpdateResponse.class));
     }
 
     /**

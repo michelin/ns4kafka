@@ -3,7 +3,6 @@ package com.michelin.ns4kafka.services.executors;
 import static com.michelin.ns4kafka.services.executors.TopicAsyncExecutor.CLUSTER_ID;
 import static com.michelin.ns4kafka.services.executors.TopicAsyncExecutor.TOPIC_ENTITY_TYPE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -20,6 +19,7 @@ import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagEntities;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagEntity;
+import com.michelin.ns4kafka.services.clients.schema.entities.TopicDescriptionUpdateResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponseEntity;
 import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponseEntityAttributes;
@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
+import org.apache.avro.data.Json;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.common.KafkaFuture;
@@ -367,6 +368,79 @@ class TopicAsyncExecutorTest {
         topicAsyncExecutor.enrichWithTags(brokerTopics);
 
         assertTrue(brokerTopics.get(TOPIC_NAME).getSpec().getTags().isEmpty());
+    }
+
+    @Test
+    void shouldUpdateDescriptionWhenSucceed() {
+        Properties properties = new Properties();
+        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
+
+        List<Topic> ns4kafkaTopics = List.of(
+                Topic.builder()
+                        .metadata(Metadata.builder()
+                                .name(TOPIC_NAME)
+                                .build())
+                        .spec(Topic.TopicSpec.builder()
+                                .description(DESCRIPTION1)
+                                .build())
+                        .build());
+
+        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
+                Topic.builder()
+                        .metadata(Metadata.builder()
+                                .name(TOPIC_NAME)
+                                .generation(0)
+                                .build())
+                        .spec(Topic.TopicSpec.builder()
+                                .description(DESCRIPTION2)
+                                .build())
+                        .build());
+
+        TopicDescriptionUpdateResponse response = new TopicDescriptionUpdateResponse(null);
+
+        when(schemaRegistryClient.updateDescription(anyString(),
+                anyString(), anyString())).thenReturn(Mono.just(response));
+
+        topicAsyncExecutor.alterDescriptions(ns4kafkaTopics, brokerTopics);
+
+        assertEquals(Topic.TopicStatus.ofSuccess("Topic description updated"),
+                brokerTopics.get(TOPIC_NAME).getStatus());
+        assertEquals(1, brokerTopics.get(TOPIC_NAME).getMetadata().getGeneration());
+    }
+
+    @Test
+    void shouldUpdateDescriptionWhenFail() {
+        Properties properties = new Properties();
+        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
+
+        List<Topic> ns4kafkaTopics = List.of(
+                Topic.builder()
+                        .metadata(Metadata.builder()
+                                .name(TOPIC_NAME)
+                                .build())
+                        .spec(Topic.TopicSpec.builder()
+                                .description(DESCRIPTION1)
+                                .build())
+                        .build());
+
+        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
+                Topic.builder()
+                        .metadata(Metadata.builder()
+                                .name(TOPIC_NAME)
+                                .generation(0)
+                                .build())
+                        .spec(Topic.TopicSpec.builder()
+                                .description(DESCRIPTION2)
+                                .build())
+                        .build());
+
+        when(schemaRegistryClient.updateDescription(anyString(), anyString(), anyString()))
+                .thenReturn(Mono.error(new IOException()));
+
+        topicAsyncExecutor.alterDescriptions(ns4kafkaTopics, brokerTopics);
+
+        assertEquals(0, brokerTopics.get(TOPIC_NAME).getMetadata().getGeneration());
+        assertEquals(Topic.TopicPhase.Failed, brokerTopics.get(TOPIC_NAME).getStatus().getPhase());
     }
 
     @Test
