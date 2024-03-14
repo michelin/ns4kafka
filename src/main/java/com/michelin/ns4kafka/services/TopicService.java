@@ -351,7 +351,7 @@ public class TopicService {
             return validationErrors;
         }
 
-        if (tagsFormatNotConform(topic)) {
+        if (Boolean.TRUE.equals(tagsFormatNotConform(topic))) {
             validationErrors.add(invalidTopicTagsFormat(String.join(",", topic.getSpec().getTags())));
             return validationErrors;
         }

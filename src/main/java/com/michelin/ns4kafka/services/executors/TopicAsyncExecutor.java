@@ -10,6 +10,9 @@ import com.michelin.ns4kafka.services.clients.schema.entities.TagEntities;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagEntity;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
+import com.michelin.ns4kafka.services.clients.schema.entities.TopicDescriptionUpdateAttributes;
+import com.michelin.ns4kafka.services.clients.schema.entities.TopicDescriptionUpdateBody;
+import com.michelin.ns4kafka.services.clients.schema.entities.TopicDescriptionUpdateEntity;
 import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponseEntity;
 import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponseEntityAttributes;
@@ -145,15 +148,6 @@ public class TopicAsyncExecutor {
     }
 
     /**
-     * Get the entity name (qualified name) of a topic.
-     *
-     * @param topic Topic
-     */
-    public String getEntityName(Topic topic) {
-        return managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":" + topic.getMetadata().getName();
-    }
-
-    /**
      * Alter tags.
      *
      * @param ns4kafkaTopics Topics from ns4kafka
@@ -177,7 +171,8 @@ public class TopicAsyncExecutor {
                 return newTags
                     .stream()
                     .map(tag -> TagTopicInfo.builder()
-                        .entityName(getEntityName(topic))
+                        .entityName(managedClusterProperties.getConfig().getProperty(CLUSTER_ID)
+                                + ":" + topic.getMetadata().getName())
                         .typeName(tag)
                         .entityType(TOPIC_ENTITY_TYPE)
                         .build());
@@ -185,7 +180,7 @@ public class TopicAsyncExecutor {
             .toList();
 
         if (!tagsToCreate.isEmpty()) {
-            createAndAssociateTags(tagsToCreate, brokerTopics);
+            createAndAssociateTags(tagsToCreate, ns4kafkaTopics);
         }
     }
 
@@ -262,9 +257,12 @@ public class TopicAsyncExecutor {
                 if (description.isEmpty()) {
                     description = null;
                 }
-                schemaRegistryClient.updateDescription(managedClusterProperties.getName(),
-                        managedClusterProperties.getConfig().getProperty(CLUSTER_ID)
-                                + ":" + topic.getMetadata().getName(), description)
+                TopicDescriptionUpdateAttributes attributes = new TopicDescriptionUpdateAttributes(
+                    managedClusterProperties.getConfig().getProperty(CLUSTER_ID)
+                    + ":" + topic.getMetadata().getName(), description);
+                TopicDescriptionUpdateEntity entity = new TopicDescriptionUpdateEntity(attributes, TOPIC_ENTITY_TYPE);
+                TopicDescriptionUpdateBody body = new TopicDescriptionUpdateBody(entity);
+                schemaRegistryClient.updateDescription(managedClusterProperties.getName(), body)
                     .subscribe(
                         success -> {
                             topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
@@ -317,15 +315,6 @@ public class TopicAsyncExecutor {
                 value.getSpec().setDescription((description.orElse(Optional.empty())).orElse(""));
             });
         }
-    }
-
-    /**
-     * Check if the current cluster is Confluent Cloud.
-     *
-     * @return true if it is, false otherwise
-     */
-    public boolean isConfluentCloud() {
-        return managedClusterProperties.getProvider().equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
     }
 
     /**
@@ -465,9 +454,9 @@ public class TopicAsyncExecutor {
      * Create tags and associate them.
      *
      * @param tagsToAssociate The tags to create and associate
-     * @param brokerTopics The list of broker topics
+     * @param ns4kafkaTopics  The list of topics
      */
-    private void createAndAssociateTags(List<TagTopicInfo> tagsToAssociate, Map<String, Topic> brokerTopics) {
+    private void createAndAssociateTags(List<TagTopicInfo> tagsToAssociate, List<Topic> ns4kafkaTopics) {
         List<TagInfo> tagsToCreate = tagsToAssociate
             .stream()
             .map(tag -> TagInfo
@@ -484,32 +473,33 @@ public class TopicAsyncExecutor {
         schemaRegistryClient.createTags(tagsToCreate, managedClusterProperties.getName())
             .subscribe(
                 successCreation ->
-                    schemaRegistryClient.associateTags(
-                            managedClusterProperties.getName(),
-                            tagsToAssociate)
+                    schemaRegistryClient.associateTags(managedClusterProperties.getName(), tagsToAssociate)
                     .subscribe(
-                            successAssociation -> {
-                                for (TagTopicInfo tagTopicInfo : tagsToAssociate) {
-                                    String entityName = tagTopicInfo.entityName();
-                                    String topicName = entityName.substring(entityName.lastIndexOf(":") + 1);
-                                    Topic topic = brokerTopics.get(topicName);
+                        successAssociation -> {
+                            ns4kafkaTopics.stream()
+                                .filter(topic -> tagsToAssociate
+                                    .stream()
+                                    .map(TagTopicInfo::entityName)
+                                    .map(name -> name.substring(name.lastIndexOf(":") + 1))
+                                    .anyMatch(name -> topic.getMetadata().getName().equals(name)))
+                                .forEach(topic -> {
                                     topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
                                     topic.setStatus(Topic.TopicStatus.ofSuccess("Topic tags updated"));
-                                }
-                                log.info(String.format("Success associating tag %s.", stringTags));
-                            },
-                            error -> {
-                                for (TagTopicInfo tagTopicInfo : tagsToAssociate) {
-                                    String entityName = tagTopicInfo.entityName();
-                                    String topicName = entityName.substring(entityName.lastIndexOf(":") + 1);
-                                    Topic topic = brokerTopics.get(topicName);
-                                    topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
-                                    topic.setStatus(Topic.TopicStatus.ofFailed("Error while associating topic tags:"
-                                            + error.getMessage()));
-                                }
-                                log.error(String.format("Error associating tag %s.", stringTags), error);
-                            }),
-                    error -> log.error(String.format("Error creating tag %s.", stringTags), error));
+                                });
+                            log.info(String.format("Success associating tag %s.", stringTags));
+                        },
+                        error -> {
+                            ns4kafkaTopics.stream()
+                                .filter(topic -> tagsToAssociate
+                                    .stream()
+                                    .map(TagTopicInfo::entityName)
+                                    .map(name -> name.substring(name.lastIndexOf(":") + 1))
+                                    .anyMatch(name -> topic.getMetadata().getName().equals(name)))
+                                .forEach(topic -> topic.setStatus(Topic.TopicStatus.ofFailed(
+                                    "Error while associating topic tags:" + error.getMessage())));
+                            log.error(String.format("Error associating tag %s.", stringTags), error);
+                        }),
+                error -> log.error(String.format("Error creating tag %s.", stringTags), error));
     }
 
     /**
@@ -532,7 +522,6 @@ public class TopicAsyncExecutor {
                                             + topic.getMetadata().getName() + "/" + tag));
                         },
                         error -> {
-                            topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
                             topic.setStatus(Topic.TopicStatus.ofFailed("Error while dissociating topic tags:"
                                     + error.getMessage()));
                             log.error(String.format("Error dissociating tag %s.",

@@ -31,7 +31,6 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
-import org.apache.avro.data.Json;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.common.KafkaFuture;
@@ -430,8 +429,43 @@ class TopicAsyncExecutorTest {
         TopicDescriptionUpdateResponse response = new TopicDescriptionUpdateResponse(null);
 
         when(managedClusterProperties.getConfig()).thenReturn(properties);
-        when(schemaRegistryClient.updateDescription(null,
-                "cluster_id_test:topic", DESCRIPTION1)).thenReturn(Mono.just(response));
+        when(schemaRegistryClient.updateDescription(any(), any())).thenReturn(Mono.just(response));
+
+        topicAsyncExecutor.alterDescriptions(ns4kafkaTopics, brokerTopics);
+
+        assertEquals(0, brokerTopics.get(TOPIC_NAME).getMetadata().getGeneration());
+    }
+
+    @Test
+    void shouldUpdateNullDescriptionWhenSucceed() {
+        Properties properties = new Properties();
+        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
+
+        List<Topic> ns4kafkaTopics = List.of(
+                Topic.builder()
+                        .metadata(Metadata.builder()
+                                .name(TOPIC_NAME)
+                                .build())
+                        .spec(Topic.TopicSpec.builder()
+                                .description("")
+                                .build())
+                        .build());
+
+        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
+                Topic.builder()
+                        .metadata(Metadata.builder()
+                                .name(TOPIC_NAME)
+                                .generation(0)
+                                .build())
+                        .spec(Topic.TopicSpec.builder()
+                                .description(DESCRIPTION2)
+                                .build())
+                        .build());
+
+        TopicDescriptionUpdateResponse response = new TopicDescriptionUpdateResponse(null);
+
+        when(managedClusterProperties.getConfig()).thenReturn(properties);
+        when(schemaRegistryClient.updateDescription(any(), any())).thenReturn(Mono.just(response));
 
         topicAsyncExecutor.alterDescriptions(ns4kafkaTopics, brokerTopics);
 
@@ -465,8 +499,7 @@ class TopicAsyncExecutorTest {
                         .build());
 
         when(managedClusterProperties.getConfig()).thenReturn(properties);
-        when(schemaRegistryClient.updateDescription(null, "cluster_id_test:topic",
-                DESCRIPTION1)).thenReturn(Mono.error(new IOException()));
+        when(schemaRegistryClient.updateDescription(any(), any())).thenReturn(Mono.error(new IOException()));
 
         topicAsyncExecutor.alterDescriptions(ns4kafkaTopics, brokerTopics);
 

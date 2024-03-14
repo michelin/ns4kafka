@@ -309,16 +309,12 @@ public class SchemaRegistryClient {
      * Update a topic description.
      *
      * @param kafkaCluster The Kafka cluster
-     * @param qualifiedName     Topic name
-     * @param description     Description to add
+     * @param body         The body of the request
      * @return Information about description
      */
     public Mono<TopicDescriptionUpdateResponse> updateDescription(String kafkaCluster,
-                                                            String qualifiedName, String description) {
+                                                                  TopicDescriptionUpdateBody body) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
-        TopicDescriptionUpdateAttributes attributes = new TopicDescriptionUpdateAttributes(qualifiedName, description);
-        TopicDescriptionUpdateEntity entity = new TopicDescriptionUpdateEntity(attributes, "kafka_topic");
-        TopicDescriptionUpdateBody body = new TopicDescriptionUpdateBody(entity);
         HttpRequest<?> request = HttpRequest
                 .PUT(URI.create(StringUtils.prependUri(
                         config.getUrl(), "/catalog/v1/entity")), body)
