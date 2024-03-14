@@ -263,7 +263,8 @@ public class TopicAsyncExecutor {
                     description = null;
                 }
                 schemaRegistryClient.updateDescription(managedClusterProperties.getName(),
-                                getEntityName(topic), description)
+                        managedClusterProperties.getConfig().getProperty(CLUSTER_ID)
+                                + ":" + topic.getMetadata().getName(), description)
                     .subscribe(
                         success -> {
                             topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
