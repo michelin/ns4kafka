@@ -208,21 +208,6 @@ public class SchemaRegistryClient {
     }
 
     /**
-     * List tags.
-     *
-     * @param kafkaCluster The Kafka cluster
-     * @return A list of tags
-     */
-    public Mono<List<TagInfo>> getTags(String kafkaCluster) {
-        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
-        HttpRequest<?> request = HttpRequest
-            .GET(URI.create(StringUtils.prependUri(
-                config.getUrl(), "/catalog/v1/types/tagdefs")))
-            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-        return Mono.from(httpClient.retrieve(request, Argument.listOf(TagInfo.class)));
-    }
-
-    /**
      * List tags of a topic.
      *
      * @param kafkaCluster The Kafka cluster

@@ -57,9 +57,6 @@ class TopicServiceTest {
     @Mock
     List<ManagedClusterProperties> managedClusterProperties;
 
-    @Mock
-    SchemaRegistryClient schemaRegistryClient;
-
     /**
      * Validate find topic by name.
      */

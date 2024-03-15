@@ -28,7 +28,6 @@ import io.micronaut.http.HttpResponse;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -316,9 +315,6 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldEnrichWithTagsWhenConfluentCloud() {
-        Properties properties = new Properties();
-        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
-
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
@@ -347,9 +343,6 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldEnrichWithTagsWhenConfluentCloudAndResponseIsNull() {
-        Properties properties = new Properties();
-        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
-
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
@@ -372,9 +365,6 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldNotUpdateSameDescriptionWhenSucceed() {
-        Properties properties = new Properties();
-        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
-
         List<Topic> ns4kafkaTopics = List.of(
             Topic.builder()
             .metadata(Metadata.builder()
@@ -501,9 +491,6 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldEnrichWithDescriptionWhenConfluentCloud() {
-        Properties properties = new Properties();
-        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
-
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
@@ -536,9 +523,6 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldEnrichWithDescriptionForMultipleTopics() {
-        Properties properties = new Properties();
-        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
-
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
@@ -598,9 +582,6 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldEnrichWithDescriptionWhenConfluentCloudAndResponseIsNull() {
-        Properties properties = new Properties();
-        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
-
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
         when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 0))

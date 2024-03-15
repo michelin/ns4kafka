@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.services.clients.schema.entities;
 
-import java.util.Optional;
 import lombok.Builder;
 
 /**
