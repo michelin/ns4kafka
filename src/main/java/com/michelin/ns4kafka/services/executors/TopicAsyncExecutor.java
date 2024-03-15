@@ -269,20 +269,20 @@ public class TopicAsyncExecutor {
                 schemaRegistryClient.updateDescription(managedClusterProperties.getName(), body)
                     .subscribe(
                         success -> {
-                            topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
-                            topic.setStatus(Topic.TopicStatus.ofSuccess("Topic description updated"));
-                            topicRepository.create(topic);
                             log.info(String.format("Success update description %s",
                                 managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
                                     + topic.getMetadata().getName() + ": " + topic.getSpec().getDescription()));
+                            topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
+                            topic.setStatus(Topic.TopicStatus.ofSuccess("Topic description updated"));
+                            topicRepository.create(topic);
                         },
                         error -> {
-                            topic.setStatus(Topic.TopicStatus.ofFailed("Error while updating topic description:"
-                                    + error.getMessage()));
-                            topicRepository.create(topic);
                             log.error(String.format("Error update description %s",
                                 managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
                                     + topic.getMetadata().getName() + ": " + topic.getSpec().getDescription()), error);
+                            topic.setStatus(Topic.TopicStatus.ofFailed("Error while updating topic description:"
+                                    + error.getMessage()));
+                            topicRepository.create(topic);
                         });
             }
         }
@@ -485,27 +485,29 @@ public class TopicAsyncExecutor {
                     .subscribe(
                         successAssociation -> topicTagsMapping
                             .forEach((topic, tags) -> {
-                                topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
-                                topic.setStatus(Topic.TopicStatus.ofSuccess("Topic tags updated"));
-                                topicRepository.create(topic);
                                 log.info(String.format("Success associating tag %s.",
                                     managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
                                         + topic.getMetadata().getName() + "/" + String.join(", ", tags
                                             .stream()
                                             .map(TagTopicInfo::typeName)
                                             .toList())));
+                                topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
+                                topic.setStatus(Topic.TopicStatus.ofSuccess("Topic tags updated"));
+                                topicRepository.create(topic);
+
                             }),
                         error -> topicTagsMapping
                             .forEach((topic, tags) -> {
-                                topic.setStatus(Topic.TopicStatus.ofFailed(
-                                    "Error while associating topic tags:" + error.getMessage()));
-                                topicRepository.create(topic);
                                 log.error(String.format("Error associating tag %s.",
                                     managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
                                         + topic.getMetadata().getName() + "/" + String.join(", ", tags
                                             .stream()
                                             .map(TagTopicInfo::typeName)
                                             .toList())), error);
+                                topic.setStatus(Topic.TopicStatus.ofFailed(
+                                    "Error while associating topic tags:" + error.getMessage()));
+                                topicRepository.create(topic);
+
                             })),
                 error -> log.error(String.format("Error creating tag %s.",
                     String.join(", ", tagsToCreate
@@ -527,18 +529,18 @@ public class TopicAsyncExecutor {
                         + ":" + topic.getMetadata().getName(), tag)
                 .subscribe(
                         success -> {
-                            topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
-                            topic.setStatus(Topic.TopicStatus.ofSuccess("Topic tags updated"));
                             log.info(String.format("Success dissociating tag %s.",
                                 managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
                                     + topic.getMetadata().getName() + "/" + tag));
+                            topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
+                            topic.setStatus(Topic.TopicStatus.ofSuccess("Topic tags updated"));
                         },
                         error -> {
-                            topic.setStatus(Topic.TopicStatus.ofFailed("Error while dissociating topic tags:"
-                                + error.getMessage()));
                             log.error(String.format("Error dissociating tag %s.",
                                 managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
                                     + topic.getMetadata().getName() + "/" + tag), error);
+                            topic.setStatus(Topic.TopicStatus.ofFailed("Error while dissociating topic tags:"
+                                + error.getMessage()));
                         })
         );
     }

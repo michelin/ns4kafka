@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import com.michelin.ns4kafka.models.Metadata;
 import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
+import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagEntities;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagEntity;
@@ -59,6 +60,9 @@ class TopicAsyncExecutorTest {
 
     @Mock
     ManagedClusterProperties managedClusterProperties;
+
+    @Mock
+    TopicRepository topicRepository;
 
     @Mock
     Admin adminClient;
@@ -203,14 +207,14 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getConfig()).thenReturn(properties);
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder()
-                        .name(TOPIC_NAME)
-                        .generation(0)
-                        .build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(List.of(TAG1))
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name(TOPIC_NAME)
+                .generation(0)
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .tags(List.of(TAG1))
+                .build())
+            .build();
 
         TagTopicInfo tagTopicInfo = TagTopicInfo.builder()
                 .entityName(managedClusterProperties
@@ -228,7 +232,7 @@ class TopicAsyncExecutorTest {
 
         topicAsyncExecutor.createAndAssociateTags(topicTagsMapping);
 
-        assertEquals(0, topic.getMetadata().getGeneration());
+        verify(topicRepository).create(topic);
     }
 
     @Test
@@ -271,7 +275,7 @@ class TopicAsyncExecutorTest {
 
         topicAsyncExecutor.createAndAssociateTags(topicTagsMapping);
 
-        assertEquals(1, topic.getMetadata().getGeneration());
+        verify(topicRepository).create(topic);
     }
 
     @Test
@@ -296,7 +300,7 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldDeleteTopicSelfManagedCluster() throws ExecutionException, InterruptedException, TimeoutException {
-        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(false);
         when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
@@ -445,15 +449,16 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
-        List<Topic> ns4kafkaTopics = List.of(
-            Topic.builder()
+        Topic topic = Topic.builder()
             .metadata(Metadata.builder()
                 .name(TOPIC_NAME)
                 .build())
             .spec(Topic.TopicSpec.builder()
                 .description(DESCRIPTION1)
                 .build())
-            .build());
+            .build();
+
+        List<Topic> ns4kafkaTopics = List.of(topic);
 
         Map<String, Topic> brokerTopics = Map.of(
             TOPIC_NAME, Topic.builder()
@@ -473,7 +478,7 @@ class TopicAsyncExecutorTest {
 
         topicAsyncExecutor.alterDescriptions(ns4kafkaTopics, brokerTopics);
 
-        assertEquals(0, brokerTopics.get(TOPIC_NAME).getMetadata().getGeneration());
+        verify(topicRepository).create(topic);
     }
 
     @Test
@@ -481,15 +486,16 @@ class TopicAsyncExecutorTest {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
-        List<Topic> ns4kafkaTopics = List.of(
-            Topic.builder()
+        Topic topic = Topic.builder()
             .metadata(Metadata.builder()
                 .name(TOPIC_NAME)
                 .build())
             .spec(Topic.TopicSpec.builder()
                 .description(DESCRIPTION1)
                 .build())
-            .build());
+            .build();
+
+        List<Topic> ns4kafkaTopics = List.of(topic);
 
         Map<String, Topic> brokerTopics = Map.of(
             TOPIC_NAME, Topic.builder()
@@ -507,7 +513,7 @@ class TopicAsyncExecutorTest {
 
         topicAsyncExecutor.alterDescriptions(ns4kafkaTopics, brokerTopics);
 
-        assertEquals(0, brokerTopics.get(TOPIC_NAME).getMetadata().getGeneration());
+        verify(topicRepository).create(topic);
     }
 
     @Test
