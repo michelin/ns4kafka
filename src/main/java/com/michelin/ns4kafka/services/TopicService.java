@@ -320,13 +320,13 @@ public class TopicService {
     }
 
     /**
-     * Check if topic tags respect confluent format (starts with letter followed by alphanumerical or underscore).
+     * Check if all topic tags respect confluent format (starts with letter followed by alphanumerical or underscore).
      *
      * @param topic     The topic which contains tags
-     * @return Boolean
+     * @return true if yes, false otherwise
      */
-    public Boolean tagsFormatNotConform(Topic topic) {
-        return !(topic.getSpec().getTags()
+    public Boolean isTagsFormatValid(Topic topic) {
+        return (topic.getSpec().getTags()
                 .stream()
                 .allMatch(tag -> tag.matches("^[a-zA-Z]\\w*$")));
     }
@@ -351,7 +351,7 @@ public class TopicService {
             return validationErrors;
         }
 
-        if (Boolean.TRUE.equals(tagsFormatNotConform(topic))) {
+        if (Boolean.FALSE.equals(isTagsFormatValid(topic))) {
             validationErrors.add(invalidTopicTagsFormat(String.join(",", topic.getSpec().getTags())));
             return validationErrors;
         }

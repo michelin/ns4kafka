@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.services.executors;
 import static com.michelin.ns4kafka.services.executors.TopicAsyncExecutor.CLUSTER_ID;
 import static com.michelin.ns4kafka.services.executors.TopicAsyncExecutor.TOPIC_ENTITY_TYPE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -375,25 +376,25 @@ class TopicAsyncExecutorTest {
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
         List<Topic> ns4kafkaTopics = List.of(
-                Topic.builder()
-                        .metadata(Metadata.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .description(DESCRIPTION1)
-                                .build())
-                        .build());
+            Topic.builder()
+            .metadata(Metadata.builder()
+                .name(TOPIC_NAME)
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .description(DESCRIPTION1)
+                .build())
+            .build());
 
-        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-                Topic.builder()
-                        .metadata(Metadata.builder()
-                                .name(TOPIC_NAME)
-                                .generation(0)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .description(DESCRIPTION1)
-                                .build())
-                        .build());
+        Map<String, Topic> brokerTopics = Map.of(
+            TOPIC_NAME, Topic.builder()
+            .metadata(Metadata.builder()
+                .name(TOPIC_NAME)
+                .generation(0)
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .description(DESCRIPTION1)
+                .build())
+            .build());
 
         topicAsyncExecutor.alterDescriptions(ns4kafkaTopics, brokerTopics);
 
@@ -406,61 +407,25 @@ class TopicAsyncExecutorTest {
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
         List<Topic> ns4kafkaTopics = List.of(
-                Topic.builder()
-                        .metadata(Metadata.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .description(DESCRIPTION1)
-                                .build())
-                        .build());
+            Topic.builder()
+            .metadata(Metadata.builder()
+                .name(TOPIC_NAME)
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .description(DESCRIPTION1)
+                .build())
+            .build());
 
-        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-                Topic.builder()
-                        .metadata(Metadata.builder()
-                                .name(TOPIC_NAME)
-                                .generation(0)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .description(DESCRIPTION2)
-                                .build())
-                        .build());
-
-        TopicDescriptionUpdateResponse response = new TopicDescriptionUpdateResponse(null);
-
-        when(managedClusterProperties.getConfig()).thenReturn(properties);
-        when(schemaRegistryClient.updateDescription(any(), any())).thenReturn(Mono.just(response));
-
-        topicAsyncExecutor.alterDescriptions(ns4kafkaTopics, brokerTopics);
-
-        assertEquals(0, brokerTopics.get(TOPIC_NAME).getMetadata().getGeneration());
-    }
-
-    @Test
-    void shouldUpdateNullDescriptionWhenSucceed() {
-        Properties properties = new Properties();
-        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
-
-        List<Topic> ns4kafkaTopics = List.of(
-                Topic.builder()
-                        .metadata(Metadata.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .description("")
-                                .build())
-                        .build());
-
-        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-                Topic.builder()
-                        .metadata(Metadata.builder()
-                                .name(TOPIC_NAME)
-                                .generation(0)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .description(DESCRIPTION2)
-                                .build())
-                        .build());
+        Map<String, Topic> brokerTopics = Map.of(
+            TOPIC_NAME, Topic.builder()
+            .metadata(Metadata.builder()
+                .name(TOPIC_NAME)
+                .generation(0)
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .description(DESCRIPTION2)
+                .build())
+            .build());
 
         TopicDescriptionUpdateResponse response = new TopicDescriptionUpdateResponse(null);
 
@@ -478,25 +443,25 @@ class TopicAsyncExecutorTest {
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
         List<Topic> ns4kafkaTopics = List.of(
-                Topic.builder()
-                        .metadata(Metadata.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .description(DESCRIPTION1)
-                                .build())
-                        .build());
+            Topic.builder()
+            .metadata(Metadata.builder()
+                .name(TOPIC_NAME)
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .description(DESCRIPTION1)
+                .build())
+            .build());
 
-        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-                Topic.builder()
-                        .metadata(Metadata.builder()
-                                .name(TOPIC_NAME)
-                                .generation(0)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .description(DESCRIPTION2)
-                                .build())
-                        .build());
+        Map<String, Topic> brokerTopics = Map.of(
+            TOPIC_NAME, Topic.builder()
+            .metadata(Metadata.builder()
+                .name(TOPIC_NAME)
+                .generation(0)
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .description(DESCRIPTION2)
+                .build())
+            .build());
 
         when(managedClusterProperties.getConfig()).thenReturn(properties);
         when(schemaRegistryClient.updateDescription(any(), any())).thenReturn(Mono.error(new IOException()));
@@ -510,18 +475,28 @@ class TopicAsyncExecutorTest {
     void shouldNotEnrichWithDescriptionWhenNotConfluentCloud() {
         when(managedClusterProperties.isConfluentCloud()).thenReturn(false);
 
-        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-                Topic.builder()
-                        .metadata(Metadata.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .build())
-                        .build());
+        Map<String, Topic> brokerTopics = Map.of(
+            TOPIC_NAME, Topic.builder()
+            .metadata(Metadata.builder()
+                .name(TOPIC_NAME)
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .build())
+            .build(),
+
+            TOPIC_NAME2, Topic.builder()
+            .metadata(Metadata.builder()
+                .name(TOPIC_NAME2)
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .description(DESCRIPTION1)
+                .build())
+            .build());
 
         topicAsyncExecutor.enrichWithDescription(brokerTopics);
 
-        assertTrue(brokerTopics.get(TOPIC_NAME).getSpec().getDescription().isEmpty());
+        assertNull(brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
+        assertEquals(DESCRIPTION1, brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());
     }
 
     @Test
@@ -533,26 +508,26 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
         TopicListResponseEntityAttributes attributes = TopicListResponseEntityAttributes.builder()
-                .name(TOPIC_NAME)
-                .description(Optional.of(DESCRIPTION1)).build();
+            .name(TOPIC_NAME)
+            .description(DESCRIPTION1).build();
         TopicListResponseEntity entity = TopicListResponseEntity.builder().attributes(attributes).build();
         TopicListResponse response1 = TopicListResponse.builder().entities(List.of(entity)).build();
         TopicListResponse response2 = TopicListResponse.builder().entities(List.of()).build();
 
         when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 0))
-                .thenReturn(Mono.just(response1));
+            .thenReturn(Mono.just(response1));
         when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 1000))
-                .thenReturn(Mono.just(response2));
+            .thenReturn(Mono.just(response2));
 
-        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-                Topic.builder()
-                        .metadata(Metadata.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .description(DESCRIPTION2)
-                                .build())
-                        .build());
+        Map<String, Topic> brokerTopics = Map.of(
+            TOPIC_NAME, Topic.builder()
+            .metadata(Metadata.builder()
+                .name(TOPIC_NAME)
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .description(DESCRIPTION2)
+                .build())
+            .build());
 
         topicAsyncExecutor.enrichWithDescription(brokerTopics);
 
@@ -568,14 +543,14 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
         TopicListResponseEntityAttributes attributes1 = TopicListResponseEntityAttributes.builder()
-                .name(TOPIC_NAME)
-                .description(Optional.of(DESCRIPTION1)).build();
+            .name(TOPIC_NAME)
+            .description(DESCRIPTION1).build();
         TopicListResponseEntityAttributes attributes2 = TopicListResponseEntityAttributes.builder()
-                .name(TOPIC_NAME2)
-                .description(Optional.of(DESCRIPTION2)).build();
+            .name(TOPIC_NAME2)
+            .description(DESCRIPTION2).build();
         TopicListResponseEntityAttributes attributes3 = TopicListResponseEntityAttributes.builder()
-                .name(TOPIC_NAME3)
-                .description(Optional.of("")).build();
+            .name(TOPIC_NAME3)
+            .build();
         TopicListResponseEntity entity1 = TopicListResponseEntity.builder().attributes(attributes1).build();
         TopicListResponseEntity entity2 = TopicListResponseEntity.builder().attributes(attributes2).build();
         TopicListResponseEntity entity3 = TopicListResponseEntity.builder().attributes(attributes3).build();
@@ -583,42 +558,42 @@ class TopicAsyncExecutorTest {
         TopicListResponse response2 = TopicListResponse.builder().entities(List.of()).build();
 
         when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 0))
-                .thenReturn(Mono.just(response1));
+            .thenReturn(Mono.just(response1));
         when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 1000))
-                .thenReturn(Mono.just(response2));
+            .thenReturn(Mono.just(response2));
 
-        Map<String, Topic> brokerTopics =
-                Map.of(TOPIC_NAME, Topic.builder()
-                        .metadata(Metadata.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .description("")
-                                .build())
-                        .build(),
-                        TOPIC_NAME2, Topic.builder()
-                        .metadata(Metadata.builder()
-                                .name(TOPIC_NAME2)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .description(DESCRIPTION1)
-                                .build())
-                        .build(),
+        Map<String, Topic> brokerTopics = Map.of(
+            TOPIC_NAME, Topic.builder()
+            .metadata(Metadata.builder()
+                .name(TOPIC_NAME)
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .build())
+            .build(),
 
-                        TOPIC_NAME3, Topic.builder()
-                        .metadata(Metadata.builder()
-                                .name(TOPIC_NAME3)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .description(DESCRIPTION2)
-                                .build())
-                        .build());
+            TOPIC_NAME2, Topic.builder()
+            .metadata(Metadata.builder()
+                .name(TOPIC_NAME2)
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .description(DESCRIPTION1)
+                .build())
+            .build(),
+
+            TOPIC_NAME3, Topic.builder()
+            .metadata(Metadata.builder()
+                .name(TOPIC_NAME3)
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .description(DESCRIPTION2)
+                .build())
+            .build());
 
         topicAsyncExecutor.enrichWithDescription(brokerTopics);
 
         assertEquals(DESCRIPTION1, brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
         assertEquals(DESCRIPTION2, brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());
-        assertEquals("", brokerTopics.get(TOPIC_NAME3).getSpec().getDescription());
+        assertNull(brokerTopics.get(TOPIC_NAME3).getSpec().getDescription());
     }
 
     @Test
@@ -629,19 +604,29 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
         when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 0))
-                .thenReturn(Mono.empty());
+            .thenReturn(Mono.empty());
 
-        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-                Topic.builder()
-                        .metadata(Metadata.builder()
-                                .name(TOPIC_NAME)
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .build())
-                        .build());
+        Map<String, Topic> brokerTopics = Map.of(
+            TOPIC_NAME, Topic.builder()
+            .metadata(Metadata.builder()
+                .name(TOPIC_NAME)
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .build())
+            .build(),
+
+            TOPIC_NAME2, Topic.builder()
+            .metadata(Metadata.builder()
+                .name(TOPIC_NAME2)
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .description(DESCRIPTION1)
+                .build())
+            .build());
 
         topicAsyncExecutor.enrichWithDescription(brokerTopics);
 
-        assertTrue(brokerTopics.get(TOPIC_NAME).getSpec().getDescription().isEmpty());
+        assertNull(brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
+        assertNull(brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());
     }
 }

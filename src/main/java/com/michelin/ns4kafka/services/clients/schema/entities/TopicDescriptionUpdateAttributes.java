@@ -10,7 +10,7 @@ import lombok.Builder;
  * @param description topic description
  */
 @Builder
-@JsonInclude()
+@JsonInclude
 public record TopicDescriptionUpdateAttributes(String qualifiedName, String description) {
 
 }

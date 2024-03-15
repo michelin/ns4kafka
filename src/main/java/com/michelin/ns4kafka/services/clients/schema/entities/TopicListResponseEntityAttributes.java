@@ -11,6 +11,6 @@ import lombok.Builder;
  * @param name topic name
  */
 @Builder
-public record TopicListResponseEntityAttributes(String qualifiedName, Optional<String> description, String name) {
+public record TopicListResponseEntityAttributes(String qualifiedName, String description, String name) {
 
 }

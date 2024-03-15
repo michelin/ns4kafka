@@ -65,8 +65,7 @@ public class Topic extends MetadataResource {
         @JsonSetter(nulls = Nulls.AS_EMPTY)
         private List<String> tags = new ArrayList<>();
         @Builder.Default
-        @JsonSetter(nulls = Nulls.AS_EMPTY)
-        private String description = "";
+        private String description = null;
         private Map<String, String> configs;
     }
 
