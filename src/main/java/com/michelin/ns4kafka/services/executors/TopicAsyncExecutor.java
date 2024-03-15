@@ -463,7 +463,7 @@ public class TopicAsyncExecutor {
      *
      * @param topicTagsMapping Mapping between topics and their list of tags info
      */
-    private void createAndAssociateTags(Map<Topic, List<TagTopicInfo>> topicTagsMapping) {
+    public void createAndAssociateTags(Map<Topic, List<TagTopicInfo>> topicTagsMapping) {
         List<TagTopicInfo> tagsToAssociate = topicTagsMapping
             .values()
             .stream()
@@ -478,7 +478,7 @@ public class TopicAsyncExecutor {
                 .build())
             .toList();
 
-        schemaRegistryClient.createTags(tagsToCreate, managedClusterProperties.getName())
+        schemaRegistryClient.createTags(managedClusterProperties.getName(), tagsToCreate)
             .subscribe(
                 successCreation ->
                     schemaRegistryClient.associateTags(managedClusterProperties.getName(), tagsToAssociate)

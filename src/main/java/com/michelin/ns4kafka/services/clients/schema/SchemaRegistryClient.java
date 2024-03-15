@@ -246,7 +246,7 @@ public class SchemaRegistryClient {
      * @param kafkaCluster The Kafka cluster
      * @return Information about created tags
      */
-    public Mono<List<TagInfo>> createTags(List<TagInfo> tags, String kafkaCluster) {
+    public Mono<List<TagInfo>> createTags(String kafkaCluster, List<TagInfo> tags) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.POST(URI.create(StringUtils.prependUri(
                 config.getUrl(), "/catalog/v1/types/tagdefs")), tags)

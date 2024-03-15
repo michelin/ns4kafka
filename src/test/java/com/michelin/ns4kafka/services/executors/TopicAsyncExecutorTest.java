@@ -20,6 +20,8 @@ import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagEntities;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagEntity;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
+import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
 import com.michelin.ns4kafka.services.clients.schema.entities.TopicDescriptionUpdateResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponseEntity;
@@ -111,14 +113,14 @@ class TopicAsyncExecutorTest {
     }
 
     @Test
-    void shouldCreateTags() {
+    void shouldDeleteTagsAndCreateAssociateIfNotEmpty() {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
-        when(schemaRegistryClient.associateTags(anyString(), anyList()))
-            .thenReturn(Mono.just(List.of()));
-        when(schemaRegistryClient.createTags(anyList(), anyString()))
-            .thenReturn(Mono.just(List.of()));
+        when(schemaRegistryClient.dissociateTag(anyString(),
+                anyString(), anyString()))
+                .thenReturn(Mono.empty())
+                .thenReturn(Mono.error(new Exception("error")));
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
         when(managedClusterProperties.getConfig()).thenReturn(properties);
 
@@ -128,7 +130,7 @@ class TopicAsyncExecutorTest {
                     .name(TOPIC_NAME)
                     .build())
                 .spec(Topic.TopicSpec.builder()
-                    .tags(List.of(TAG1))
+                    .tags(List.of(TAG1, TAG3))
                     .build())
                 .build());
 
@@ -138,91 +140,140 @@ class TopicAsyncExecutorTest {
                     .name(TOPIC_NAME)
                     .build())
                 .spec(Topic.TopicSpec.builder()
+                    .tags(List.of(TAG1, TAG2))
                     .build())
                 .build());
 
+        List<TagInfo> tagsToCreate = List.of(TagInfo.builder().name(TAG3).build());
+        List<TagTopicInfo> tagsToAssociate = List.of(TagTopicInfo.builder()
+            .entityName(managedClusterProperties
+                .getConfig()
+                .getProperty(CLUSTER_ID) + ":" + TOPIC_NAME)
+            .typeName(TAG3)
+            .entityType(TOPIC_ENTITY_TYPE)
+            .build());
+
+        when(schemaRegistryClient.createTags(any(), any())).thenReturn(Mono.just(tagsToCreate));
+        when(schemaRegistryClient.associateTags(any(), any())).thenReturn(Mono.just(tagsToAssociate));
+
         topicAsyncExecutor.alterTags(ns4kafkaTopics, brokerTopics);
 
-        verify(schemaRegistryClient).associateTags(eq(LOCAL_CLUSTER), argThat(tags ->
-            tags.get(0).entityName().equals(CLUSTER_ID_TEST + ":" + TOPIC_NAME)
-                && tags.get(0).typeName().equals(TAG1)
-                && tags.get(0).entityType().equals(TOPIC_ENTITY_TYPE)));
+        verify(schemaRegistryClient).dissociateTag(LOCAL_CLUSTER, CLUSTER_ID_TEST + ":" + TOPIC_NAME, TAG2);
+        verify(schemaRegistryClient).createTags(LOCAL_CLUSTER, tagsToCreate);
+        verify(schemaRegistryClient).associateTags(LOCAL_CLUSTER, tagsToAssociate);
     }
 
     @Test
-    void shouldCreateTagsButNotAssociateThem() {
+    void shouldNotCreateTagsWhenFail() {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
-        when(schemaRegistryClient.associateTags(anyString(), anyList()))
-            .thenReturn(Mono.error(new IOException()));
-        when(schemaRegistryClient.createTags(anyList(), anyString()))
-            .thenReturn(Mono.just(List.of()));
-        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
         when(managedClusterProperties.getConfig()).thenReturn(properties);
 
-        List<Topic> ns4kafkaTopics = List.of(
-            Topic.builder()
-                .metadata(Metadata.builder()
-                    .name(TOPIC_NAME)
-                    .build())
-                .spec(Topic.TopicSpec.builder()
-                    .tags(List.of(TAG1))
-                    .build())
-                .build());
+        Topic topic = Topic.builder()
+            .metadata(Metadata.builder()
+                .name(TOPIC_NAME)
+                .generation(0)
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .tags(List.of(TAG1))
+                .build())
+            .build();
 
-        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-            Topic.builder()
-                .metadata(Metadata.builder()
-                    .name(TOPIC_NAME)
-                    .build())
-                .spec(Topic.TopicSpec.builder()
-                    .build())
-                .build());
+        TagTopicInfo tagTopicInfo = TagTopicInfo.builder()
+            .entityName(managedClusterProperties
+                .getConfig()
+                .getProperty(CLUSTER_ID) + ":" + topic.getMetadata().getName())
+            .typeName(TAG1)
+            .entityType(TOPIC_ENTITY_TYPE)
+            .build();
 
-        topicAsyncExecutor.alterTags(ns4kafkaTopics, brokerTopics);
+        Map<Topic, List<TagTopicInfo>> topicTagsMapping = Map.of(topic, List.of(tagTopicInfo));
 
-        verify(schemaRegistryClient).associateTags(eq(LOCAL_CLUSTER), argThat(tags ->
-            tags.get(0).entityName().equals(CLUSTER_ID_TEST + ":" + TOPIC_NAME)
-                && tags.get(0).typeName().equals(TAG1)
-                && tags.get(0).entityType().equals(TOPIC_ENTITY_TYPE)));
+        when(schemaRegistryClient.createTags(any(), any())).thenReturn(Mono.error(new IOException()));
+
+        topicAsyncExecutor.createAndAssociateTags(topicTagsMapping);
+
+        assertEquals(0, topic.getMetadata().getGeneration());
     }
 
     @Test
-    void shouldNotAssociateTagsWhenCreationFails() {
+    void shouldNotAssociateTagsWhenFail() {
         Properties properties = new Properties();
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
-        when(schemaRegistryClient.createTags(anyList(), anyString()))
-            .thenReturn(Mono.error(new IOException()));
-        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
         when(managedClusterProperties.getConfig()).thenReturn(properties);
 
-        List<Topic> ns4kafkaTopics = List.of(
-            Topic.builder()
+        Topic topic = Topic.builder()
                 .metadata(Metadata.builder()
-                    .name(TOPIC_NAME)
-                    .build())
+                        .name(TOPIC_NAME)
+                        .generation(0)
+                        .build())
                 .spec(Topic.TopicSpec.builder()
-                    .tags(List.of(TAG1))
-                    .build())
-                .build());
+                        .tags(List.of(TAG1))
+                        .build())
+                .build();
 
-        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-            Topic.builder()
-                .metadata(Metadata.builder()
-                    .name(TOPIC_NAME)
-                    .build())
-                .spec(Topic.TopicSpec.builder()
-                    .build())
-                .build());
+        TagTopicInfo tagTopicInfo = TagTopicInfo.builder()
+                .entityName(managedClusterProperties
+                        .getConfig()
+                        .getProperty(CLUSTER_ID) + ":" + topic.getMetadata().getName())
+                .typeName(TAG1)
+                .entityType(TOPIC_ENTITY_TYPE)
+                .build();
 
-        topicAsyncExecutor.alterTags(ns4kafkaTopics, brokerTopics);
+        Map<Topic, List<TagTopicInfo>> topicTagsMapping = Map.of(topic, List.of(tagTopicInfo));
+        List<TagInfo> response = List.of(TagInfo.builder().name(TAG1).build());
 
-        verify(schemaRegistryClient, never()).associateTags(eq(LOCAL_CLUSTER), argThat(tags ->
-            tags.get(0).entityName().equals(CLUSTER_ID_TEST + ":" + TOPIC_NAME)
-                && tags.get(0).typeName().equals(TAG1)
-                && tags.get(0).entityType().equals(TOPIC_ENTITY_TYPE)));
+        when(schemaRegistryClient.createTags(any(), any())).thenReturn(Mono.just(response));
+        when(schemaRegistryClient.associateTags(any(), any())).thenReturn(Mono.error(new IOException()));
+
+        topicAsyncExecutor.createAndAssociateTags(topicTagsMapping);
+
+        assertEquals(0, topic.getMetadata().getGeneration());
+    }
+
+    @Test
+    void shouldCreateAndAssociateTags() {
+        Properties properties = new Properties();
+        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
+
+        when(managedClusterProperties.getConfig()).thenReturn(properties);
+
+        Topic topic = Topic.builder()
+            .metadata(Metadata.builder()
+                .name(TOPIC_NAME)
+                .generation(0)
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .tags(List.of(TAG1))
+                .build())
+            .build();
+
+        TagTopicInfo tagTopicInfo = TagTopicInfo.builder()
+            .entityName(managedClusterProperties
+                .getConfig()
+                .getProperty(CLUSTER_ID) + ":" + topic.getMetadata().getName())
+            .typeName(TAG1)
+            .entityType(TOPIC_ENTITY_TYPE)
+            .build();
+
+        Map<Topic, List<TagTopicInfo>> topicTagsMapping = Map.of(topic, List.of(tagTopicInfo));
+
+        List<TagInfo> response = List.of(TagInfo.builder().name(TAG1).build());
+        List<TagTopicInfo> response2 = List.of(TagTopicInfo.builder()
+            .entityName(tagTopicInfo.entityName())
+            .entityStatus("")
+            .typeName(TAG1)
+            .entityType(TOPIC_ENTITY_TYPE)
+            .build());
+
+        when(schemaRegistryClient.createTags(any(), any())).thenReturn(Mono.just(response));
+        when(schemaRegistryClient.associateTags(any(), any())).thenReturn(Mono.just(response2));
+
+        topicAsyncExecutor.createAndAssociateTags(topicTagsMapping);
+
+        assertEquals(1, topic.getMetadata().getGeneration());
     }
 
     @Test
