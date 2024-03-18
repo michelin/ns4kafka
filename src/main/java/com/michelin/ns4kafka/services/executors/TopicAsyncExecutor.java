@@ -6,8 +6,6 @@ import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.repositories.kafka.KafkaStoreException;
 import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
-import com.michelin.ns4kafka.services.clients.schema.entities.TagEntities;
-import com.michelin.ns4kafka.services.clients.schema.entities.TagEntity;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
 import com.michelin.ns4kafka.services.clients.schema.entities.TopicDescriptionUpdateAttributes;
@@ -229,25 +227,6 @@ public class TopicAsyncExecutor {
     }
 
     /**
-     * Enrich topics with confluent tags.
-     *
-     * @param topics Topics to complete
-     */
-    public void enrichWithTags(Map<String, Topic> topics) {
-        if (managedClusterProperties.isConfluentCloud()) {
-            TagEntities tagEntities = schemaRegistryClient.getTopicWithTags(managedClusterProperties.getName()).block();
-            if (tagEntities != null) {
-                topics.forEach((key, value) -> {
-                    Optional<List<String>> tags = tagEntities.entities().stream()
-                        .filter(tagEntity -> value.getMetadata().getName().equals(tagEntity.displayText()))
-                        .map(TagEntity::classificationNames).findFirst();
-                    value.getSpec().setTags(tags.orElse(Collections.emptyList()));
-                });
-            }
-        }
-    }
-
-    /**
      * Alter description.
      *
      * @param ns4kafkaTopics Topics from ns4kafka
@@ -280,7 +259,7 @@ public class TopicAsyncExecutor {
                             log.error(String.format("Error update description %s",
                                 managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
                                     + topic.getMetadata().getName() + ": " + topic.getSpec().getDescription()), error);
-                            topic.setStatus(Topic.TopicStatus.ofFailed("Error while updating topic description:"
+                            topic.setStatus(Topic.TopicStatus.ofFailed("Error while updating topic description: "
                                     + error.getMessage()));
                             topicRepository.create(topic);
                         });
@@ -294,17 +273,17 @@ public class TopicAsyncExecutor {
      * @param topics Topics to complete
      */
 
-    public void enrichWithDescription(Map<String, Topic> topics) {
+    public void enrichWithCatalogInfo(Map<String, Topic> topics) {
         if (managedClusterProperties.isConfluentCloud()) {
             List<TopicListResponseEntity> entities = new ArrayList<>();
             TopicListResponse topicListResponse;
 
             // put list of topics in entities by managing offset & limit
             int offset = 0;
-            int limit = 1000;
+            int limit = 5000;
             do {
-                topicListResponse = schemaRegistryClient.getTopicWithDescription(managedClusterProperties.getName(),
-                    limit, offset).block();
+                topicListResponse = schemaRegistryClient.getTopicWithCatalogInfo(
+                    managedClusterProperties.getName(), limit, offset).block();
                 if (topicListResponse == null) {
                     break;
                 }
@@ -312,15 +291,24 @@ public class TopicAsyncExecutor {
                 offset += limit;
             } while (!topicListResponse.entities().isEmpty());
 
+            List<TopicListResponseEntity> filteredEntities = entities
+                .stream()
+                .filter(e -> e.attributes().description() != null || !e.classificationNames().isEmpty())
+                .toList();
+
             topics.forEach((key, value) -> {
-                Optional<TopicListResponseEntityAttributes> entity = entities
+                TopicListResponseEntity entity = filteredEntities
                     .stream()
-                    .map(TopicListResponseEntity::attributes)
-                    .filter(attributes -> value.getMetadata().getName().equals(attributes.name()))
-                    .findFirst();
-                String description = entity.orElse(TopicListResponseEntityAttributes.builder()
-                    .description(null).build()).description();
-                value.getSpec().setDescription(description);
+                    .filter(e -> value.getMetadata().getName().equals(e.attributes().name()))
+                    .findFirst()
+                    .orElse(TopicListResponseEntity.builder()
+                        .classificationNames(Collections.emptyList())
+                        .attributes(TopicListResponseEntityAttributes.builder().description(null).build())
+                        .build()
+                    );
+
+                value.getSpec().setDescription(entity.attributes().description());
+                value.getSpec().setTags(entity.classificationNames());
             });
         }
     }
@@ -371,8 +359,7 @@ public class TopicAsyncExecutor {
             )
             .collect(Collectors.toMap(topic -> topic.getMetadata().getName(), Function.identity()));
 
-        enrichWithTags(topics);
-        enrichWithDescription(topics);
+        enrichWithCatalogInfo(topics);
 
         return topics;
     }
@@ -476,44 +463,46 @@ public class TopicAsyncExecutor {
                 .builder()
                 .name(tag.typeName())
                 .build())
+            .collect(Collectors.toSet())
+            .stream()
             .toList();
+
+        String tagsListString = String.join(", ", tagsToCreate.stream().map(TagInfo::name).toList());
 
         schemaRegistryClient.createTags(managedClusterProperties.getName(), tagsToCreate)
             .subscribe(
-                successCreation ->
+                successCreation -> {
+                    log.info(String.format("Success creating tag %s.", tagsListString));
                     schemaRegistryClient.associateTags(managedClusterProperties.getName(), tagsToAssociate)
-                    .subscribe(
-                        successAssociation -> topicTagsMapping
-                            .forEach((topic, tags) -> {
-                                log.info(String.format("Success associating tag %s.",
-                                    managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
-                                        + topic.getMetadata().getName() + "/" + String.join(", ", tags
-                                            .stream()
-                                            .map(TagTopicInfo::typeName)
-                                            .toList())));
-                                topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
-                                topic.setStatus(Topic.TopicStatus.ofSuccess("Topic tags updated"));
-                                topicRepository.create(topic);
-
-                            }),
-                        error -> topicTagsMapping
-                            .forEach((topic, tags) -> {
-                                log.error(String.format("Error associating tag %s.",
-                                    managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
-                                        + topic.getMetadata().getName() + "/" + String.join(", ", tags
-                                            .stream()
-                                            .map(TagTopicInfo::typeName)
-                                            .toList())), error);
-                                topic.setStatus(Topic.TopicStatus.ofFailed(
-                                    "Error while associating topic tags:" + error.getMessage()));
-                                topicRepository.create(topic);
-
-                            })),
-                error -> log.error(String.format("Error creating tag %s.",
-                    String.join(", ", tagsToCreate
-                        .stream()
-                        .map(TagInfo::name)
-                        .toList())), error));
+                        .subscribe(
+                            successAssociation -> topicTagsMapping
+                                .forEach((topic, tags) -> {
+                                    log.info(String.format("Success associating tag %s.",
+                                        managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
+                                            + topic.getMetadata().getName() + "/" + String.join(", ", tags
+                                                .stream()
+                                                .map(TagTopicInfo::typeName)
+                                                .toList())));
+                                    topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
+                                    topic.setStatus(Topic.TopicStatus.ofSuccess("Topic tags updated"));
+                                    topicRepository.create(topic);
+                                }),
+                            error -> topicTagsMapping
+                                .forEach((topic, tags) -> {
+                                    log.error(String.format("Error associating tag %s.",
+                                        managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
+                                            + topic.getMetadata().getName() + "/" + String.join(", ", tags
+                                                .stream()
+                                                .map(TagTopicInfo::typeName)
+                                                .toList())), error);
+                                    topic.setStatus(Topic.TopicStatus.ofFailed(
+                                        "Error while associating topic tags: " + error.getMessage()));
+                                    topicRepository.create(topic);
+                                })
+                        );
+                },
+                error -> log.error(String.format("Error creating tag %s.", tagsListString), error)
+            );
     }
 
     /**
@@ -534,13 +523,15 @@ public class TopicAsyncExecutor {
                                     + topic.getMetadata().getName() + "/" + tag));
                             topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
                             topic.setStatus(Topic.TopicStatus.ofSuccess("Topic tags updated"));
+                            topicRepository.create(topic);
                         },
                         error -> {
                             log.error(String.format("Error dissociating tag %s.",
                                 managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
                                     + topic.getMetadata().getName() + "/" + tag), error);
-                            topic.setStatus(Topic.TopicStatus.ofFailed("Error while dissociating topic tags:"
+                            topic.setStatus(Topic.TopicStatus.ofFailed("Error while dissociating topic tags: "
                                 + error.getMessage()));
+                            topicRepository.create(topic);
                         })
         );
     }

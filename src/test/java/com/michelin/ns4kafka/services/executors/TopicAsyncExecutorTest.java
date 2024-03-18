@@ -17,8 +17,6 @@ import com.michelin.ns4kafka.models.Topic;
 import com.michelin.ns4kafka.properties.ManagedClusterProperties;
 import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
-import com.michelin.ns4kafka.services.clients.schema.entities.TagEntities;
-import com.michelin.ns4kafka.services.clients.schema.entities.TagEntity;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
 import com.michelin.ns4kafka.services.clients.schema.entities.TopicDescriptionUpdateResponse;
@@ -49,6 +47,7 @@ class TopicAsyncExecutorTest {
     private static final String TOPIC_NAME = "topic";
     private static final String TOPIC_NAME2 = "topic2";
     private static final String TOPIC_NAME3 = "topic3";
+    private static final String TOPIC_NAME4 = "topic4";
     private static final String TAG1 = "TAG1";
     private static final String TAG2 = "TAG2";
     private static final String TAG3 = "TAG3";
@@ -349,99 +348,22 @@ class TopicAsyncExecutorTest {
     }
 
     @Test
-    void shouldNotEnrichWithTagsWhenNotConfluentCloud() {
-        when(managedClusterProperties.isConfluentCloud()).thenReturn(false);
-
-        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-            Topic.builder()
-                .metadata(Metadata.builder()
-                    .name(TOPIC_NAME)
-                    .build())
-                .spec(Topic.TopicSpec.builder()
-                    .build())
-                .build());
-
-        topicAsyncExecutor.enrichWithTags(brokerTopics);
-
-        assertTrue(brokerTopics.get(TOPIC_NAME).getSpec().getTags().isEmpty());
-    }
-
-    @Test
-    void shouldEnrichWithTagsWhenConfluentCloud() {
-        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
-        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
-
-        TagEntity tagEntity = TagEntity.builder()
-            .classificationNames(List.of("typeName"))
-            .displayText(TOPIC_NAME).build();
-        List<TagEntity> tagEntityList = List.of(tagEntity);
-        TagEntities tagEntities = TagEntities.builder().entities(tagEntityList).build();
-
-        when(schemaRegistryClient.getTopicWithTags(LOCAL_CLUSTER))
-            .thenReturn(Mono.just(tagEntities));
-
-        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-            Topic.builder()
-                .metadata(Metadata.builder()
-                    .name(TOPIC_NAME)
-                    .build())
-                .spec(Topic.TopicSpec.builder()
-                    .build())
-                .build());
-
-        topicAsyncExecutor.enrichWithTags(brokerTopics);
-
-        assertEquals("typeName", brokerTopics.get(TOPIC_NAME).getSpec().getTags().get(0));
-    }
-
-    @Test
-    void shouldEnrichWithTagsWhenConfluentCloudAndResponseIsNull() {
-        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
-        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
-
-        when(schemaRegistryClient.getTopicWithTags(LOCAL_CLUSTER))
-            .thenReturn(Mono.empty());
-
-        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME,
-            Topic.builder()
-                .metadata(Metadata.builder()
-                    .name(TOPIC_NAME)
-                    .build())
-                .spec(Topic.TopicSpec.builder()
-                    .build())
-                .build());
-
-        topicAsyncExecutor.enrichWithTags(brokerTopics);
-
-        assertTrue(brokerTopics.get(TOPIC_NAME).getSpec().getTags().isEmpty());
-    }
-
-    @Test
     void shouldNotUpdateSameDescriptionWhenSucceed() {
-        List<Topic> ns4kafkaTopics = List.of(
-            Topic.builder()
+        Topic topic = Topic.builder()
             .metadata(Metadata.builder()
                 .name(TOPIC_NAME)
                 .build())
             .spec(Topic.TopicSpec.builder()
                 .description(DESCRIPTION1)
                 .build())
-            .build());
+            .build();
 
-        Map<String, Topic> brokerTopics = Map.of(
-            TOPIC_NAME, Topic.builder()
-            .metadata(Metadata.builder()
-                .name(TOPIC_NAME)
-                .generation(0)
-                .build())
-            .spec(Topic.TopicSpec.builder()
-                .description(DESCRIPTION1)
-                .build())
-            .build());
+        List<Topic> ns4kafkaTopics = List.of(topic);
+        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME, topic);
 
         topicAsyncExecutor.alterDescriptions(ns4kafkaTopics, brokerTopics);
 
-        assertEquals(0, brokerTopics.get(TOPIC_NAME).getMetadata().getGeneration());
+        verify(topicRepository, never()).create(topic);
     }
 
     @Test
@@ -471,10 +393,8 @@ class TopicAsyncExecutorTest {
                 .build())
             .build());
 
-        TopicDescriptionUpdateResponse response = new TopicDescriptionUpdateResponse(null);
-
         when(managedClusterProperties.getConfig()).thenReturn(properties);
-        when(schemaRegistryClient.updateDescription(any(), any())).thenReturn(Mono.just(response));
+        when(schemaRegistryClient.updateDescription(any(), any())).thenReturn(Mono.just(HttpResponse.ok()));
 
         topicAsyncExecutor.alterDescriptions(ns4kafkaTopics, brokerTopics);
 
@@ -517,7 +437,7 @@ class TopicAsyncExecutorTest {
     }
 
     @Test
-    void shouldNotEnrichWithDescriptionWhenNotConfluentCloud() {
+    void shouldNotEnrichWithCatalogInfoWhenNotConfluentCloud() {
         when(managedClusterProperties.isConfluentCloud()).thenReturn(false);
 
         Map<String, Topic> brokerTopics = Map.of(
@@ -527,95 +447,99 @@ class TopicAsyncExecutorTest {
                 .build())
             .spec(Topic.TopicSpec.builder()
                 .build())
-            .build(),
-
-            TOPIC_NAME2, Topic.builder()
-            .metadata(Metadata.builder()
-                .name(TOPIC_NAME2)
-                .build())
-            .spec(Topic.TopicSpec.builder()
-                .description(DESCRIPTION1)
-                .build())
             .build());
 
-        topicAsyncExecutor.enrichWithDescription(brokerTopics);
+        topicAsyncExecutor.enrichWithCatalogInfo(brokerTopics);
 
+        assertTrue(brokerTopics.get(TOPIC_NAME).getSpec().getTags().isEmpty());
         assertNull(brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
-        assertEquals(DESCRIPTION1, brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());
     }
 
     @Test
-    void shouldEnrichWithDescriptionWhenConfluentCloud() {
+    void shouldEnrichWithCatalogInfoWhenConfluentCloud() {
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
-        TopicListResponseEntityAttributes attributes = TopicListResponseEntityAttributes.builder()
-            .name(TOPIC_NAME)
-            .description(DESCRIPTION1).build();
-        TopicListResponseEntity entity = TopicListResponseEntity.builder().attributes(attributes).build();
+        TopicListResponseEntity entity = TopicListResponseEntity.builder()
+            .classificationNames(List.of(TAG1))
+            .attributes(TopicListResponseEntityAttributes.builder()
+                .name(TOPIC_NAME)
+                .description(DESCRIPTION1)
+                .build())
+            .build();
         TopicListResponse response1 = TopicListResponse.builder().entities(List.of(entity)).build();
         TopicListResponse response2 = TopicListResponse.builder().entities(List.of()).build();
 
-        when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 0))
+        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, 5000, 0))
             .thenReturn(Mono.just(response1));
-        when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 1000))
+        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, 5000, 5000))
             .thenReturn(Mono.just(response2));
 
         Map<String, Topic> brokerTopics = Map.of(
             TOPIC_NAME, Topic.builder()
             .metadata(Metadata.builder()
                 .name(TOPIC_NAME)
-                .build())
-            .spec(Topic.TopicSpec.builder()
-                .description(DESCRIPTION2)
                 .build())
             .build());
 
-        topicAsyncExecutor.enrichWithDescription(brokerTopics);
+        topicAsyncExecutor.enrichWithCatalogInfo(brokerTopics);
 
         assertEquals(DESCRIPTION1, brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
+        assertEquals(TAG1, brokerTopics.get(TOPIC_NAME).getSpec().getTags().getFirst());
     }
 
     @Test
-    void shouldEnrichWithDescriptionForMultipleTopics() {
+    void shouldEnrichWithCatalogInfoForMultipleTopics() {
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
-        TopicListResponseEntityAttributes attributes1 = TopicListResponseEntityAttributes.builder()
-            .name(TOPIC_NAME)
-            .description(DESCRIPTION1).build();
-        TopicListResponseEntityAttributes attributes2 = TopicListResponseEntityAttributes.builder()
-            .name(TOPIC_NAME2)
-            .description(DESCRIPTION2).build();
-        TopicListResponseEntityAttributes attributes3 = TopicListResponseEntityAttributes.builder()
-            .name(TOPIC_NAME3)
+        TopicListResponseEntity entity1 = TopicListResponseEntity.builder()
+            .attributes(TopicListResponseEntityAttributes.builder()
+                .name(TOPIC_NAME)
+                .build())
             .build();
-        TopicListResponseEntity entity1 = TopicListResponseEntity.builder().attributes(attributes1).build();
-        TopicListResponseEntity entity2 = TopicListResponseEntity.builder().attributes(attributes2).build();
-        TopicListResponseEntity entity3 = TopicListResponseEntity.builder().attributes(attributes3).build();
-        TopicListResponse response1 = TopicListResponse.builder().entities(List.of(entity1, entity2, entity3)).build();
+
+        TopicListResponseEntity entity2 = TopicListResponseEntity.builder()
+            .classificationNames(List.of(TAG1))
+            .attributes(TopicListResponseEntityAttributes.builder()
+                .name(TOPIC_NAME2)
+                .build())
+            .build();
+
+        TopicListResponseEntity entity3 = TopicListResponseEntity.builder()
+            .attributes(TopicListResponseEntityAttributes.builder()
+                .name(TOPIC_NAME3)
+                .description(DESCRIPTION1)
+                .build())
+            .build();
+
+        TopicListResponseEntity entity4 = TopicListResponseEntity.builder()
+            .classificationNames(List.of(TAG2))
+            .attributes(TopicListResponseEntityAttributes.builder()
+                .name(TOPIC_NAME4)
+                .description(DESCRIPTION2)
+                .build())
+            .build();
+
+        TopicListResponse response1 = TopicListResponse.builder().entities(
+                List.of(entity1, entity2, entity3, entity4)).build();
         TopicListResponse response2 = TopicListResponse.builder().entities(List.of()).build();
 
-        when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 0))
+        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, 5000, 0))
             .thenReturn(Mono.just(response1));
-        when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 1000))
+        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, 5000, 5000))
             .thenReturn(Mono.just(response2));
 
         Map<String, Topic> brokerTopics = Map.of(
             TOPIC_NAME, Topic.builder()
             .metadata(Metadata.builder()
                 .name(TOPIC_NAME)
-                .build())
-            .spec(Topic.TopicSpec.builder()
                 .build())
             .build(),
 
             TOPIC_NAME2, Topic.builder()
             .metadata(Metadata.builder()
                 .name(TOPIC_NAME2)
-                .build())
-            .spec(Topic.TopicSpec.builder()
-                .description(DESCRIPTION1)
                 .build())
             .build(),
 
@@ -623,31 +547,39 @@ class TopicAsyncExecutorTest {
             .metadata(Metadata.builder()
                 .name(TOPIC_NAME3)
                 .build())
-            .spec(Topic.TopicSpec.builder()
-                .description(DESCRIPTION2)
+            .build(),
+
+            TOPIC_NAME4, Topic.builder()
+            .metadata(Metadata.builder()
+                .name(TOPIC_NAME4)
                 .build())
             .build());
 
-        topicAsyncExecutor.enrichWithDescription(brokerTopics);
+        topicAsyncExecutor.enrichWithCatalogInfo(brokerTopics);
 
-        assertEquals(DESCRIPTION1, brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
-        assertEquals(DESCRIPTION2, brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());
-        assertNull(brokerTopics.get(TOPIC_NAME3).getSpec().getDescription());
+        assertNull(brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
+        assertEquals(TAG1, brokerTopics.get(TOPIC_NAME).getSpec().getTags().getFirst());
+
+        assertNull(brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());
+        assertEquals(TAG1, brokerTopics.get(TOPIC_NAME2).getSpec().getTags().getFirst());
+
+        assertEquals(DESCRIPTION1, brokerTopics.get(TOPIC_NAME3).getSpec().getDescription());
+        assertTrue(brokerTopics.get(TOPIC_NAME3).getSpec().getTags().isEmpty());
+
+        assertEquals(DESCRIPTION2, brokerTopics.get(TOPIC_NAME4).getSpec().getDescription());
+        assertEquals(TAG2, brokerTopics.get(TOPIC_NAME4).getSpec().getTags().getFirst());
     }
 
     @Test
-    void shouldEnrichWithDescriptionWhenConfluentCloudAndResponseIsNull() {
+    void shouldEnrichWithCatalogInfoWhenConfluentCloudAndResponseIsNull() {
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
-        when(schemaRegistryClient.getTopicWithDescription(LOCAL_CLUSTER, 1000, 0))
-            .thenReturn(Mono.empty());
+        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, 5000, 0)).thenReturn(Mono.empty());
 
         Map<String, Topic> brokerTopics = Map.of(
             TOPIC_NAME, Topic.builder()
             .metadata(Metadata.builder()
                 .name(TOPIC_NAME)
-                .build())
-            .spec(Topic.TopicSpec.builder()
                 .build())
             .build(),
 
@@ -655,12 +587,9 @@ class TopicAsyncExecutorTest {
             .metadata(Metadata.builder()
                 .name(TOPIC_NAME2)
                 .build())
-            .spec(Topic.TopicSpec.builder()
-                .description(DESCRIPTION1)
-                .build())
             .build());
 
-        topicAsyncExecutor.enrichWithDescription(brokerTopics);
+        topicAsyncExecutor.enrichWithCatalogInfo(brokerTopics);
 
         assertNull(brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
         assertNull(brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());

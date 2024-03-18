@@ -6,7 +6,6 @@ import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilit
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
-import com.michelin.ns4kafka.services.clients.schema.entities.TagEntities;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
 import com.michelin.ns4kafka.services.clients.schema.entities.TopicDescriptionUpdateBody;
@@ -208,21 +207,6 @@ public class SchemaRegistryClient {
     }
 
     /**
-     * List tags of a topic.
-     *
-     * @param kafkaCluster The Kafka cluster
-     * @return A list of tags
-     */
-    public Mono<TagEntities> getTopicWithTags(String kafkaCluster) {
-        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
-        HttpRequest<?> request = HttpRequest
-            .GET(URI.create(StringUtils.prependUri(
-                config.getUrl(), "/catalog/v1/search/basic?type=kafka_topic&tag=*")))
-            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-        return Mono.from(httpClient.retrieve(request, TagEntities.class));
-    }
-
-    /**
      * Add a tag to a topic.
      *
      * @param kafkaCluster The Kafka cluster
@@ -273,18 +257,18 @@ public class SchemaRegistryClient {
     }
 
     /**
-     * List topics with a description.
+     * List topics with catalog info, including tag & description.
      *
      * @param kafkaCluster The Kafka cluster
      * @return A list of description
      */
-    public Mono<TopicListResponse> getTopicWithDescription(String kafkaCluster, int limit, int offset) {
+    public Mono<TopicListResponse> getTopicWithCatalogInfo(String kafkaCluster, int limit, int offset) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest
-                .GET(URI.create(StringUtils.prependUri(
-                        config.getUrl(), "/catalog/v1/search/basic?type=kafka_topic&limit="
-                                + limit + "&offset=" + offset)))
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+            .GET(URI.create(StringUtils.prependUri(
+                config.getUrl(), "/catalog/v1/search/basic?type=kafka_topic&limit="
+                    + limit + "&offset=" + offset)))
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, TopicListResponse.class));
     }
 
@@ -292,17 +276,17 @@ public class SchemaRegistryClient {
      * Update a topic description.
      *
      * @param kafkaCluster The Kafka cluster
-     * @param body         The body of the request
+     * @param body         The body passed to the request
      * @return Information about description
      */
-    public Mono<TopicDescriptionUpdateResponse> updateDescription(String kafkaCluster,
-                                                                  TopicDescriptionUpdateBody body) {
+    public Mono<HttpResponse<TopicDescriptionUpdateResponse>> updateDescription(String kafkaCluster,
+                                                                                TopicDescriptionUpdateBody body) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest
-                .PUT(URI.create(StringUtils.prependUri(
-                        config.getUrl(), "/catalog/v1/entity")), body)
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-        return Mono.from(httpClient.retrieve(request, TopicDescriptionUpdateResponse.class));
+            .PUT(URI.create(StringUtils.prependUri(
+                config.getUrl(), "/catalog/v1/entity")), body)
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+        return Mono.from(httpClient.exchange(request, TopicDescriptionUpdateResponse.class));
     }
 
     /**

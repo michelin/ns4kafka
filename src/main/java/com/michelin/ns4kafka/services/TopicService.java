@@ -325,10 +325,10 @@ public class TopicService {
      * @param topic     The topic which contains tags
      * @return true if yes, false otherwise
      */
-    public Boolean isTagsFormatValid(Topic topic) {
-        return (topic.getSpec().getTags()
+    public boolean isTagsFormatValid(Topic topic) {
+        return topic.getSpec().getTags()
                 .stream()
-                .allMatch(tag -> tag.matches("^[a-zA-Z]\\w*$")));
+                .allMatch(tag -> tag.matches("^[a-zA-Z]\\w*$"));
     }
 
     /**
@@ -351,7 +351,7 @@ public class TopicService {
             return validationErrors;
         }
 
-        if (Boolean.FALSE.equals(isTagsFormatValid(topic))) {
+        if (!isTagsFormatValid(topic)) {
             validationErrors.add(invalidTopicTagsFormat(String.join(",", topic.getSpec().getTags())));
             return validationErrors;
         }

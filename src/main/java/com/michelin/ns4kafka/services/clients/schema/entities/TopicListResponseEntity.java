@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.services.clients.schema.entities;
 
+import java.util.List;
 import lombok.Builder;
 
 /**
@@ -8,6 +9,6 @@ import lombok.Builder;
  * @param attributes attributes of the topic
  */
 @Builder
-public record TopicListResponseEntity(TopicListResponseEntityAttributes attributes) {
+public record TopicListResponseEntity(TopicListResponseEntityAttributes attributes, List<String> classificationNames) {
 
 }
