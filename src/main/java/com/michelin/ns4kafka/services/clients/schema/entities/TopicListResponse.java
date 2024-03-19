@@ -10,6 +10,6 @@ import lombok.Builder;
  *
  */
 @Builder
-public record TopicListResponse(List<TopicListResponseEntity> entities) {
+public record TopicListResponse(List<TopicEntity> entities) {
 
 }

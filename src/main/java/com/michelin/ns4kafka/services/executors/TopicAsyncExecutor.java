@@ -12,21 +12,17 @@ import com.michelin.ns4kafka.services.clients.schema.entities.TopicDescriptionUp
 import com.michelin.ns4kafka.services.clients.schema.entities.TopicDescriptionUpdateBody;
 import com.michelin.ns4kafka.services.clients.schema.entities.TopicDescriptionUpdateEntity;
 import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponse;
-import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponseEntity;
-import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponseEntityAttributes;
 import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -275,10 +271,9 @@ public class TopicAsyncExecutor {
 
     public void enrichWithCatalogInfo(Map<String, Topic> topics) {
         if (managedClusterProperties.isConfluentCloud()) {
-            List<TopicListResponseEntity> entities = new ArrayList<>();
             TopicListResponse topicListResponse;
 
-            // put list of topics in entities by managing offset & limit
+            // getting list of topics by managing offset & limit
             int offset = 0;
             int limit = 5000;
             do {
@@ -287,29 +282,19 @@ public class TopicAsyncExecutor {
                 if (topicListResponse == null) {
                     break;
                 }
-                entities.addAll(topicListResponse.entities());
+                topicListResponse.entities()
+                    .stream()
+                    .filter(topicEntity -> (topicEntity.attributes().description() != null
+                        || !topicEntity.classificationNames().isEmpty())
+                        && topics.containsKey(topicEntity.attributes().name()))
+                    .forEach(topicEntity -> {
+                        topics.get(topicEntity.attributes().name()).getSpec()
+                            .setTags(topicEntity.classificationNames());
+                        topics.get(topicEntity.attributes().name()).getSpec()
+                            .setDescription(topicEntity.attributes().description());
+                    });
                 offset += limit;
             } while (!topicListResponse.entities().isEmpty());
-
-            List<TopicListResponseEntity> filteredEntities = entities
-                .stream()
-                .filter(e -> e.attributes().description() != null || !e.classificationNames().isEmpty())
-                .toList();
-
-            topics.forEach((key, value) -> {
-                TopicListResponseEntity entity = filteredEntities
-                    .stream()
-                    .filter(e -> value.getMetadata().getName().equals(e.attributes().name()))
-                    .findFirst()
-                    .orElse(TopicListResponseEntity.builder()
-                        .classificationNames(Collections.emptyList())
-                        .attributes(TopicListResponseEntityAttributes.builder().description(null).build())
-                        .build()
-                    );
-
-                value.getSpec().setDescription(entity.attributes().description());
-                value.getSpec().setTags(entity.classificationNames());
-            });
         }
     }
 

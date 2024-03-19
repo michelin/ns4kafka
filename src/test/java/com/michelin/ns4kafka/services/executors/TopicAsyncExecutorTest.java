@@ -19,10 +19,9 @@ import com.michelin.ns4kafka.repositories.TopicRepository;
 import com.michelin.ns4kafka.services.clients.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
-import com.michelin.ns4kafka.services.clients.schema.entities.TopicDescriptionUpdateResponse;
+import com.michelin.ns4kafka.services.clients.schema.entities.TopicEntity;
+import com.michelin.ns4kafka.services.clients.schema.entities.TopicEntityAttributes;
 import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponse;
-import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponseEntity;
-import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponseEntityAttributes;
 import io.micronaut.http.HttpResponse;
 import java.io.IOException;
 import java.util.List;
@@ -460,9 +459,9 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
-        TopicListResponseEntity entity = TopicListResponseEntity.builder()
+        TopicEntity entity = TopicEntity.builder()
             .classificationNames(List.of(TAG1))
-            .attributes(TopicListResponseEntityAttributes.builder()
+            .attributes(TopicEntityAttributes.builder()
                 .name(TOPIC_NAME)
                 .description(DESCRIPTION1)
                 .build())
@@ -480,12 +479,14 @@ class TopicAsyncExecutorTest {
             .metadata(Metadata.builder()
                 .name(TOPIC_NAME)
                 .build())
+            .spec(Topic.TopicSpec.builder().build())
             .build());
 
         topicAsyncExecutor.enrichWithCatalogInfo(brokerTopics);
 
-        assertEquals(DESCRIPTION1, brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
-        assertEquals(TAG1, brokerTopics.get(TOPIC_NAME).getSpec().getTags().getFirst());
+        assertEquals(Topic.TopicSpec.builder()
+                .description(DESCRIPTION1)
+                .tags(List.of(TAG1)).build(), brokerTopics.get(TOPIC_NAME).getSpec());
     }
 
     @Test
@@ -493,36 +494,40 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
-        TopicListResponseEntity entity1 = TopicListResponseEntity.builder()
-            .attributes(TopicListResponseEntityAttributes.builder()
+        TopicEntity entity1 = TopicEntity.builder()
+            .classificationNames(List.of())
+            .attributes(TopicEntityAttributes.builder()
                 .name(TOPIC_NAME)
+                .description(null)
                 .build())
             .build();
 
-        TopicListResponseEntity entity2 = TopicListResponseEntity.builder()
+        TopicEntity entity2 = TopicEntity.builder()
             .classificationNames(List.of(TAG1))
-            .attributes(TopicListResponseEntityAttributes.builder()
+            .attributes(TopicEntityAttributes.builder()
                 .name(TOPIC_NAME2)
+                .description(null)
                 .build())
             .build();
 
-        TopicListResponseEntity entity3 = TopicListResponseEntity.builder()
-            .attributes(TopicListResponseEntityAttributes.builder()
+        TopicEntity entity3 = TopicEntity.builder()
+            .classificationNames(List.of())
+            .attributes(TopicEntityAttributes.builder()
                 .name(TOPIC_NAME3)
                 .description(DESCRIPTION1)
                 .build())
             .build();
 
-        TopicListResponseEntity entity4 = TopicListResponseEntity.builder()
+        TopicEntity entity4 = TopicEntity.builder()
             .classificationNames(List.of(TAG2))
-            .attributes(TopicListResponseEntityAttributes.builder()
+            .attributes(TopicEntityAttributes.builder()
                 .name(TOPIC_NAME4)
                 .description(DESCRIPTION2)
                 .build())
             .build();
 
-        TopicListResponse response1 = TopicListResponse.builder().entities(
-                List.of(entity1, entity2, entity3, entity4)).build();
+        TopicListResponse response1 = TopicListResponse.builder()
+                .entities(List.of(entity1, entity2, entity3, entity4)).build();
         TopicListResponse response2 = TopicListResponse.builder().entities(List.of()).build();
 
         when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, 5000, 0))
@@ -535,30 +540,34 @@ class TopicAsyncExecutorTest {
             .metadata(Metadata.builder()
                 .name(TOPIC_NAME)
                 .build())
+            .spec(Topic.TopicSpec.builder().build())
             .build(),
 
             TOPIC_NAME2, Topic.builder()
             .metadata(Metadata.builder()
                 .name(TOPIC_NAME2)
                 .build())
+            .spec(Topic.TopicSpec.builder().build())
             .build(),
 
             TOPIC_NAME3, Topic.builder()
             .metadata(Metadata.builder()
                 .name(TOPIC_NAME3)
                 .build())
+            .spec(Topic.TopicSpec.builder().build())
             .build(),
 
             TOPIC_NAME4, Topic.builder()
             .metadata(Metadata.builder()
                 .name(TOPIC_NAME4)
                 .build())
+            .spec(Topic.TopicSpec.builder().build())
             .build());
 
         topicAsyncExecutor.enrichWithCatalogInfo(brokerTopics);
 
         assertNull(brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
-        assertEquals(TAG1, brokerTopics.get(TOPIC_NAME).getSpec().getTags().getFirst());
+        assertTrue(brokerTopics.get(TOPIC_NAME).getSpec().getTags().isEmpty());
 
         assertNull(brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());
         assertEquals(TAG1, brokerTopics.get(TOPIC_NAME2).getSpec().getTags().getFirst());
@@ -574,24 +583,29 @@ class TopicAsyncExecutorTest {
     void shouldEnrichWithCatalogInfoWhenConfluentCloudAndResponseIsNull() {
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
-        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, 5000, 0)).thenReturn(Mono.empty());
+        when(schemaRegistryClient.getTopicWithCatalogInfo(anyString(), any(Integer.class), any(Integer.class)))
+            .thenReturn(Mono.empty());
 
         Map<String, Topic> brokerTopics = Map.of(
             TOPIC_NAME, Topic.builder()
             .metadata(Metadata.builder()
                 .name(TOPIC_NAME)
                 .build())
+            .spec(Topic.TopicSpec.builder().build())
             .build(),
 
             TOPIC_NAME2, Topic.builder()
             .metadata(Metadata.builder()
                 .name(TOPIC_NAME2)
                 .build())
+            .spec(Topic.TopicSpec.builder().build())
             .build());
 
         topicAsyncExecutor.enrichWithCatalogInfo(brokerTopics);
 
         assertNull(brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
         assertNull(brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());
+        assertTrue(brokerTopics.get(TOPIC_NAME).getSpec().getTags().isEmpty());
+        assertTrue(brokerTopics.get(TOPIC_NAME2).getSpec().getTags().isEmpty());
     }
 }

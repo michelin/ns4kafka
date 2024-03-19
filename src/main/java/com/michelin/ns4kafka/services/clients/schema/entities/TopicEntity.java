@@ -9,6 +9,6 @@ import lombok.Builder;
  * @param attributes attributes of the topic
  */
 @Builder
-public record TopicListResponseEntity(TopicListResponseEntityAttributes attributes, List<String> classificationNames) {
+public record TopicEntity(TopicEntityAttributes attributes, List<String> classificationNames) {
 
 }
