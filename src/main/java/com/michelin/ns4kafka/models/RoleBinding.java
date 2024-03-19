@@ -106,6 +106,5 @@ public class RoleBinding extends MetadataResource {
         @NotNull
         @NotBlank
         private String subjectName;
-
     }
 }

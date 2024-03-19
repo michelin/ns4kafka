@@ -1,4 +1,4 @@
-package com.michelin.ns4kafka.security.local;
+package com.michelin.ns4kafka.security.auth.local;
 
 import io.micronaut.core.annotation.Introspected;
 import java.nio.charset.StandardCharsets;

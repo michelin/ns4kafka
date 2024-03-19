@@ -1,4 +1,4 @@
-package com.michelin.ns4kafka.security.gitlab;
+package com.michelin.ns4kafka.security.auth.gitlab;
 
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;

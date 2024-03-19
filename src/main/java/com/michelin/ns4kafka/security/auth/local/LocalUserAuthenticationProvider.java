@@ -1,7 +1,7 @@
-package com.michelin.ns4kafka.security.local;
+package com.michelin.ns4kafka.security.auth.local;
 
 import com.michelin.ns4kafka.properties.SecurityProperties;
-import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
+import com.michelin.ns4kafka.security.auth.AuthenticationService;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.AuthenticationException;
@@ -12,7 +12,6 @@ import io.micronaut.security.authentication.AuthenticationRequest;
 import io.micronaut.security.authentication.AuthenticationResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
@@ -28,7 +27,7 @@ public class LocalUserAuthenticationProvider implements AuthenticationProvider<H
     SecurityProperties securityProperties;
 
     @Inject
-    ResourceBasedSecurityRule resourceBasedSecurityRule;
+    AuthenticationService authenticationService;
 
     @Override
     public Publisher<AuthenticationResponse> authenticate(@Nullable HttpRequest<?> httpRequest,
@@ -44,10 +43,8 @@ public class LocalUserAuthenticationProvider implements AuthenticationProvider<H
                 .findFirst();
 
             if (authenticatedUser.isPresent()) {
-                AuthenticationResponse user = AuthenticationResponse.success(username,
-                    resourceBasedSecurityRule.computeRolesFromGroups(authenticatedUser.get().getGroups()),
-                    Map.of("groups", authenticatedUser.get().getGroups()));
-                emitter.success(user);
+                emitter.success(
+                    authenticationService.buildAuthJwtGroups(username, authenticatedUser.get().getGroups()));
             } else {
                 emitter.error(new AuthenticationException(
                     new AuthenticationFailed(AuthenticationFailureReason.CREDENTIALS_DO_NOT_MATCH)));

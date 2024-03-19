@@ -1,9 +1,9 @@
 package com.michelin.ns4kafka.security;
 
-import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
+import com.michelin.ns4kafka.security.auth.JwtRoleBinding;
 import com.michelin.ns4kafka.utils.exceptions.ForbiddenNamespaceException;
 import com.michelin.ns4kafka.utils.exceptions.UnknownNamespaceException;
 import io.micronaut.core.annotation.Nullable;
@@ -64,7 +64,7 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
             return SecurityRuleResult.UNKNOWN;
         }
 
-        if (!authentication.getAttributes().keySet().containsAll(List.of("groups", "sub", "roles"))) {
+        if (!authentication.getAttributes().keySet().containsAll(List.of("role-bindings", "sub", "roles"))) {
             log.debug("No authentication available for path [{}]. Returning unknown.", request.getPath());
             return SecurityRuleResult.UNKNOWN;
         }
@@ -101,12 +101,12 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
             return SecurityRuleResult.ALLOWED;
         }
 
-        // Collect all roleBindings for this user
-        List<String> groups = (List<String>) authentication.getAttributes().get("groups");
-        List<RoleBinding> namespaceRoleBindings = roleBindingRepository.findAllForGroups(groups)
-            .stream()
-            .filter(roleBinding -> roleBinding.getMetadata().getNamespace().equals(namespace))
-            .toList();
+        // No role binding for the target namespace. User is targeting a namespace that he is not allowed to access
+        List<JwtRoleBinding> namespaceRoleBindings =
+            ((List<JwtRoleBinding>) authentication.getAttributes().get("role-bindings"))
+                .stream()
+                .filter(roleBinding -> roleBinding.getNamespace().equals(namespace))
+                .toList();
 
         if (namespaceRoleBindings.isEmpty()) {
             log.debug("No matching role binding for user \"{}\" and namespace \"{}\" on path \"{}\"", sub,
@@ -114,10 +114,10 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
             throw new ForbiddenNamespaceException(namespace);
         }
 
-        List<RoleBinding> authorizedRoleBindings = namespaceRoleBindings
+        List<JwtRoleBinding> authorizedRoleBindings = namespaceRoleBindings
             .stream()
-            .filter(roleBinding -> roleBinding.getSpec().getRole().getResourceTypes().contains(resourceType))
-            .filter(roleBinding -> roleBinding.getSpec().getRole().getVerbs()
+            .filter(roleBinding -> roleBinding.getResources().contains(resourceType))
+            .filter(roleBinding -> roleBinding.getVerbs()
                 .stream()
                 .map(Enum::name)
                 .toList()

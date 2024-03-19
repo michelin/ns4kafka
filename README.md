@@ -123,6 +123,12 @@ To get started, you'll need to perform the following steps:
 
 ### GitLab Authentication
 
+Ns4Kafka mainly uses GitLab for authentication.
+It uses GitLab groups to grant access to namespaces.
+From a given GiLab token, it retrieves the user's GitLab groups and checks if any of them match any of the role
+bindings.
+After a successful authentication, Ns4Kafka delivers a JWT token containing the authorized role bindings.
+
 To set up authentication with GitLab, you can use the following configuration:
 
 ```yaml
