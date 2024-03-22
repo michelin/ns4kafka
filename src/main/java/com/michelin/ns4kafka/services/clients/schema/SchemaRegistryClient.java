@@ -6,9 +6,11 @@ import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilit
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.services.clients.schema.entities.SchemaResponse;
-import com.michelin.ns4kafka.services.clients.schema.entities.TagEntities;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagInfo;
 import com.michelin.ns4kafka.services.clients.schema.entities.TagTopicInfo;
+import com.michelin.ns4kafka.services.clients.schema.entities.TopicDescriptionUpdateBody;
+import com.michelin.ns4kafka.services.clients.schema.entities.TopicDescriptionUpdateResponse;
+import com.michelin.ns4kafka.services.clients.schema.entities.TopicListResponse;
 import com.michelin.ns4kafka.utils.exceptions.ResourceValidationException;
 import io.micronaut.core.type.Argument;
 import io.micronaut.core.util.StringUtils;
@@ -205,37 +207,6 @@ public class SchemaRegistryClient {
     }
 
     /**
-     * List tags.
-     *
-     * @param kafkaCluster The Kafka cluster
-     * @return A list of tags
-     */
-    public Mono<List<TagInfo>> getTags(String kafkaCluster) {
-        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
-        HttpRequest<?> request = HttpRequest
-            .GET(URI.create(StringUtils.prependUri(
-                config.getUrl(), "/catalog/v1/types/tagdefs")))
-            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-        return Mono.from(httpClient.retrieve(request, Argument.listOf(TagInfo.class)));
-    }
-
-
-    /**
-     * List tags of a topic.
-     *
-     * @param kafkaCluster The Kafka cluster
-     * @return A list of tags
-     */
-    public Mono<TagEntities> getTopicWithTags(String kafkaCluster) {
-        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
-        HttpRequest<?> request = HttpRequest
-            .GET(URI.create(StringUtils.prependUri(
-                config.getUrl(), "/catalog/v1/search/basic?type=kafka_topic&tag=*")))
-            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-        return Mono.from(httpClient.retrieve(request, TagEntities.class));
-    }
-
-    /**
      * Add a tag to a topic.
      *
      * @param kafkaCluster The Kafka cluster
@@ -259,7 +230,7 @@ public class SchemaRegistryClient {
      * @param kafkaCluster The Kafka cluster
      * @return Information about created tags
      */
-    public Mono<List<TagInfo>> createTags(List<TagInfo> tags, String kafkaCluster) {
+    public Mono<List<TagInfo>> createTags(String kafkaCluster, List<TagInfo> tags) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.POST(URI.create(StringUtils.prependUri(
                 config.getUrl(), "/catalog/v1/types/tagdefs")), tags)
@@ -283,6 +254,39 @@ public class SchemaRegistryClient {
                 "/catalog/v1/entity/type/kafka_topic/name/" + entityName + "/tags/" + tagName)))
             .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.exchange(request, Void.class));
+    }
+
+    /**
+     * List topics with catalog info, including tag & description.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @return A list of description
+     */
+    public Mono<TopicListResponse> getTopicWithCatalogInfo(String kafkaCluster, int limit, int offset) {
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
+        HttpRequest<?> request = HttpRequest
+            .GET(URI.create(StringUtils.prependUri(
+                config.getUrl(), "/catalog/v1/search/basic?type=kafka_topic&limit="
+                    + limit + "&offset=" + offset)))
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+        return Mono.from(httpClient.retrieve(request, TopicListResponse.class));
+    }
+
+    /**
+     * Update a topic description.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @param body         The body passed to the request
+     * @return Information about description
+     */
+    public Mono<HttpResponse<TopicDescriptionUpdateResponse>> updateDescription(String kafkaCluster,
+                                                                                TopicDescriptionUpdateBody body) {
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
+        HttpRequest<?> request = HttpRequest
+            .PUT(URI.create(StringUtils.prependUri(
+                config.getUrl(), "/catalog/v1/entity")), body)
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+        return Mono.from(httpClient.exchange(request, TopicDescriptionUpdateResponse.class));
     }
 
     /**

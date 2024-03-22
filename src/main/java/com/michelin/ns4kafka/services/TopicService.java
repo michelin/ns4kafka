@@ -4,6 +4,7 @@ import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidImmutableValue
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicCleanupPolicy;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicDeleteRecords;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicTags;
+import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicTagsFormat;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_DELETE;
@@ -319,6 +320,18 @@ public class TopicService {
     }
 
     /**
+     * Check if all topic tags respect confluent format (starts with letter followed by alphanumerical or underscore).
+     *
+     * @param topic     The topic which contains tags
+     * @return true if yes, false otherwise
+     */
+    public boolean isTagsFormatValid(Topic topic) {
+        return topic.getSpec().getTags()
+                .stream()
+                .allMatch(tag -> tag.matches("^[a-zA-Z]\\w*$"));
+    }
+
+    /**
      * Validate tags for topic.
      *
      * @param namespace The namespace
@@ -335,6 +348,11 @@ public class TopicService {
 
         if (topicCluster.isPresent() && !topicCluster.get().isConfluentCloud()) {
             validationErrors.add(invalidTopicTags(String.join(",", topic.getSpec().getTags())));
+            return validationErrors;
+        }
+
+        if (!isTagsFormatValid(topic)) {
+            validationErrors.add(invalidTopicTagsFormat(String.join(",", topic.getSpec().getTags())));
             return validationErrors;
         }
 

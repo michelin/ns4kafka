@@ -726,4 +726,16 @@ public class FormatErrorUtils {
     public static String invalidTopicTags(String invalidTagValue) {
         return String.format(INVALID_FIELD, invalidTagValue, "tags", "tags are not currently supported");
     }
+
+
+    /**
+     * Invalid topic tags format.
+     *
+     * @param invalidTagFormatValue the invalid field value
+     * @return the error message
+     */
+    public static String invalidTopicTagsFormat(String invalidTagFormatValue) {
+        return String.format(INVALID_FIELD, invalidTagFormatValue, "tags",
+                "tags should start with letter and be followed by alphanumeric or _ characters");
+    }
 }

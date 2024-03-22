@@ -4,10 +4,12 @@ import java.util.List;
 import lombok.Builder;
 
 /**
- * Tag entities.
+ * Topics list response.
  *
- * @param entities List of Tag entity
+ * @param entities List of entities
+ *
  */
 @Builder
-public record TagEntities(List<TagEntity> entities) {
+public record TopicListResponse(List<TopicEntity> entities) {
+
 }
