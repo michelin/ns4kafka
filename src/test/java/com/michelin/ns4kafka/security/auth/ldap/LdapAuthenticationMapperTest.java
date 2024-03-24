@@ -22,7 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * Ldap authentication mapper test.
  */
 @ExtendWith(MockitoExtension.class)
-public class LdapAuthenticationMapperTest {
+class LdapAuthenticationMapperTest {
     @Mock
     AuthenticationService authenticationService;
 

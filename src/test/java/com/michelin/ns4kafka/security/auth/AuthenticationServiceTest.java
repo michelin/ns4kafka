@@ -26,7 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * Authentication service test.
  */
 @ExtendWith(MockitoExtension.class)
-public class AuthenticationServiceTest {
+class AuthenticationServiceTest {
     @Mock
     RoleBindingService roleBindingService;
 
@@ -47,8 +47,9 @@ public class AuthenticationServiceTest {
         when(securityProperties.getAdminGroup())
             .thenReturn("admin");
 
+        List<String> groups = List.of("group");
         AuthenticationException exception = assertThrows(AuthenticationException.class,
-            () -> authenticationService.buildAuthJwtGroups("username", List.of("group")));
+            () -> authenticationService.buildAuthJwtGroups("username", groups));
 
         assertTrue(exception.getResponse().getMessage().isPresent());
         assertEquals("No namespace matches your groups", exception.getResponse().getMessage().get());

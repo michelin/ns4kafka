@@ -15,6 +15,7 @@ public class JwtField {
     /**
      * JWT role binding field constants.
      */
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static class JwtRoleBindingField {
         public static final String NAMESPACE = "namespace";
         public static final String VERBS = "verbs";
