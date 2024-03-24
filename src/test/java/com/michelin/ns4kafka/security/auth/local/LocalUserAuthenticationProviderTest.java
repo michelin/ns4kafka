@@ -81,11 +81,11 @@ class LocalUserAuthenticationProviderTest {
         JwtRoleBinding jwtRoleBinding = JwtRoleBinding.builder()
             .namespace("namespace")
             .verbs(List.of(RoleBinding.Verb.GET))
-            .resources(List.of("topics"))
+            .resourceTypes(List.of("topics"))
             .build();
 
         AuthenticationResponse authenticationResponse = AuthenticationResponse.success("admin", null,
-            Map.of("role-bindings", List.of(jwtRoleBinding)));
+            Map.of("roleBindings", List.of(jwtRoleBinding)));
 
         when(authenticationService.buildAuthJwtGroups("admin", List.of("admin")))
             .thenReturn(authenticationResponse);
@@ -99,7 +99,7 @@ class LocalUserAuthenticationProviderTest {
                 assertTrue(response.getAuthentication().isPresent());
                 assertEquals("admin", response.getAuthentication().get().getName());
                 assertIterableEquals(List.of(jwtRoleBinding),
-                    (List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("role-bindings"));
+                    (List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings"));
             })
             .verifyComplete();
     }

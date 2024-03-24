@@ -34,11 +34,11 @@ public class LdapAuthenticationMapperTest {
         JwtRoleBinding jwtRoleBinding = JwtRoleBinding.builder()
             .namespace("namespace")
             .verbs(List.of(RoleBinding.Verb.GET))
-            .resources(List.of("topics"))
+            .resourceTypes(List.of("topics"))
             .build();
 
         AuthenticationResponse authenticationResponse = AuthenticationResponse.success("username", null,
-            Map.of("role-bindings", List.of(jwtRoleBinding)));
+            Map.of("roleBindings", List.of(jwtRoleBinding)));
 
         when(authenticationService.buildAuthJwtGroups("username", List.of("group-1")))
             .thenReturn(authenticationResponse);
@@ -50,6 +50,6 @@ public class LdapAuthenticationMapperTest {
         assertTrue(response.getAuthentication().isPresent());
         assertEquals("username", response.getAuthentication().get().getName());
         assertIterableEquals(List.of(jwtRoleBinding),
-            (List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("role-bindings"));
+            (List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings"));
     }
 }

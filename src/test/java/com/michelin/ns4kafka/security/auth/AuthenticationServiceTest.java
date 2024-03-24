@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.security.auth;
 
+import static com.michelin.ns4kafka.security.auth.JwtField.ROLE_BINDINGS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -70,9 +71,9 @@ public class AuthenticationServiceTest {
         assertEquals("admin", response.getAuthentication().get().getName());
         assertTrue(response.getAuthentication().get().getRoles().contains(ResourceBasedSecurityRule.IS_ADMIN));
         assertTrue(response.getAuthentication().get().getAttributes()
-            .containsKey("role-bindings"));
+            .containsKey(ROLE_BINDINGS));
         assertTrue(
-            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("role-bindings")).isEmpty());
+            ((List<?>) response.getAuthentication().get().getAttributes().get(ROLE_BINDINGS)).isEmpty());
     }
 
     @Test
@@ -106,17 +107,17 @@ public class AuthenticationServiceTest {
         assertEquals("admin", response.getAuthentication().get().getName());
         assertTrue(response.getAuthentication().get().getRoles().contains(ResourceBasedSecurityRule.IS_ADMIN));
         assertTrue(response.getAuthentication().get().getAttributes()
-            .containsKey("role-bindings"));
+            .containsKey("roleBindings"));
         assertEquals("ns1",
-            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("role-bindings")).get(0)
+            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings")).get(0)
                 .getNamespace());
         assertTrue(
-            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("role-bindings")).get(0)
+            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings")).get(0)
                 .getVerbs()
                 .containsAll(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET)));
         assertTrue(
-            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("role-bindings")).get(0)
-                .getResources()
+            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings")).get(0)
+                .getResourceTypes()
                 .containsAll(List.of("topics", "acls")));
     }
 
@@ -151,17 +152,17 @@ public class AuthenticationServiceTest {
         assertEquals("user", response.getAuthentication().get().getName());
         assertTrue(response.getAuthentication().get().getRoles().isEmpty());
         assertTrue(response.getAuthentication().get().getAttributes()
-            .containsKey("role-bindings"));
+            .containsKey("roleBindings"));
         assertEquals("ns1",
-            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("role-bindings")).get(0)
+            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings")).get(0)
                 .getNamespace());
         assertTrue(
-            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("role-bindings")).get(0)
+            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings")).get(0)
                 .getVerbs()
                 .containsAll(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET)));
         assertTrue(
-            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("role-bindings")).get(0)
-                .getResources()
+            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings")).get(0)
+                .getResourceTypes()
                 .containsAll(List.of("topics", "acls")));
     }
 }

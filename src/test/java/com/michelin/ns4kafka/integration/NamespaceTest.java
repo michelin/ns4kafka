@@ -251,6 +251,44 @@ class NamespaceTest extends AbstractIntegrationTest {
             .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/namespace2/role-bindings")
                 .bearerAuth(token).body(roleBinding));
 
+        Namespace otherNamespace = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace3")
+                .cluster("test-cluster")
+                .labels(Map.of("support-group", "LDAP-GROUP-1"))
+                .build())
+            .spec(Namespace.NamespaceSpec.builder()
+                .kafkaUser("user4")
+                .connectClusters(List.of("test-connect"))
+                .topicValidator(TopicValidator.makeDefaultOneBroker())
+                .build())
+            .build();
+
+        RoleBinding otherRb = RoleBinding.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-rb2")
+                .namespace("namespace3")
+                .build())
+            .spec(RoleBinding.RoleBindingSpec.builder()
+                .role(RoleBinding.Role.builder()
+                    .resourceTypes(List.of("topics", "acls"))
+                    .verbs(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET))
+                    .build())
+                .subject(RoleBinding.Subject.builder()
+                    .subjectName("userGroup")
+                    .subjectType(RoleBinding.SubjectType.GROUP)
+                    .build())
+                .build())
+            .build();
+
+        client.toBlocking()
+            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token).body(otherNamespace));
+
+        client.toBlocking()
+            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/namespace3/role-bindings")
+                .bearerAuth(token).body(otherRb));
+
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("user", "admin");
 
         HttpResponse<TopicTest.BearerAccessRefreshToken> response =
@@ -259,7 +297,7 @@ class NamespaceTest extends AbstractIntegrationTest {
 
         String userToken = response.getBody().get().getAccessToken();
 
-        // Accessing unknown namespace
+        // Accessing forbidden namespace when only having access to namespace3
         HttpRequest<?> request = HttpRequest.create(HttpMethod.GET, "/api/namespaces/namespace2/topics")
             .bearerAuth(userToken).body(roleBinding);
 

@@ -162,12 +162,48 @@ class ExceptionHandlerTest extends AbstractIntegrationTest {
 
     @Test
     void shouldThrowNamespaceForbiddenWhenAccessingForbiddenNamespaceAsUser() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("userNs")
+                .cluster("test-cluster")
+                .build())
+            .spec(NamespaceSpec.builder()
+                .kafkaUser("user2")
+                .connectClusters(List.of("test-connect"))
+                .topicValidator(TopicValidator.makeDefaultOneBroker())
+                .build())
+            .build();
+
+        RoleBinding rb = RoleBinding.builder()
+            .metadata(Metadata.builder()
+                .name("userNs-rb")
+                .namespace("userNs")
+                .build())
+            .spec(RoleBindingSpec.builder()
+                .role(Role.builder()
+                    .resourceTypes(List.of("topics", "acls"))
+                    .verbs(List.of(Verb.POST, Verb.GET))
+                    .build())
+                .subject(Subject.builder()
+                    .subjectName("userGroup")
+                    .subjectType(SubjectType.GROUP)
+                    .build())
+                .build())
+            .build();
+
+        client.toBlocking()
+            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns));
+
+        client.toBlocking().exchange(
+            HttpRequest.create(HttpMethod.POST, "/api/namespaces/userNs/role-bindings").bearerAuth(token).body(rb));
+
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("user", "admin");
         HttpResponse<BearerAccessRefreshToken> response =
             client.toBlocking().exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
 
         String userToken = response.getBody().get().getAccessToken();
 
+        // Trying to access ns1 when having no role binding for it
         HttpRequest<?> request = HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/acls/ns2-acl")
             .bearerAuth(userToken);
 
@@ -208,6 +244,7 @@ class ExceptionHandlerTest extends AbstractIntegrationTest {
 
         String userToken = response.getBody().get().getAccessToken();
 
+        // Trying to access ns1 topics when the only role binding is for acls
         HttpRequest<?> request = HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/topics")
             .bearerAuth(userToken);
 

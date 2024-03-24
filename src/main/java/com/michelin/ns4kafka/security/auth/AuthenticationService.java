@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.security.auth;
 
+import static com.michelin.ns4kafka.security.auth.JwtField.ROLE_BINDINGS;
+
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
@@ -44,12 +46,12 @@ public class AuthenticationService {
         }
 
         return AuthenticationResponse.success(username, resourceBasedSecurityRule.computeRolesFromGroups(groups),
-            Map.of("role-bindings", roleBindings
+            Map.of(ROLE_BINDINGS, roleBindings
                 .stream()
                 .map(roleBinding -> JwtRoleBinding.builder()
                     .namespace(roleBinding.getMetadata().getNamespace())
                     .verbs(new ArrayList<>(roleBinding.getSpec().getRole().getVerbs()))
-                    .resources(new ArrayList<>(roleBinding.getSpec().getRole().getResourceTypes()))
+                    .resourceTypes(new ArrayList<>(roleBinding.getSpec().getRole().getResourceTypes()))
                     .build())
                 .toList()));
     }
