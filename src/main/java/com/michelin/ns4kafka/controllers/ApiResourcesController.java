@@ -1,8 +1,15 @@
 package com.michelin.ns4kafka.controllers;
 
+import static com.michelin.ns4kafka.security.auth.JwtField.JwtRoleBindingField.RESOURCE_TYPES;
+import static com.michelin.ns4kafka.security.auth.JwtField.JwtRoleBindingField.VERBS;
+import static com.michelin.ns4kafka.security.auth.JwtField.ROLES;
+import static com.michelin.ns4kafka.security.auth.JwtField.ROLE_BINDINGS;
+
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
+import com.michelin.ns4kafka.security.auth.JwtField;
+import com.michelin.ns4kafka.security.auth.JwtRoleBinding;
 import io.micronaut.core.annotation.Introspected;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.annotation.Controller;
@@ -12,8 +19,8 @@ import io.micronaut.security.rules.SecurityRule;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
-import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -154,20 +161,28 @@ public class ApiResourcesController {
             return all; // Backward compatibility for cli <= 1.3.0
         }
 
-        List<String> roles = (List<String>) authentication.getAttributes().getOrDefault("roles", List.of());
-        List<String> groups = (List<String>) authentication.getAttributes().getOrDefault("groups", List.of());
-
+        List<String> roles = (List<String>) authentication.getAttributes().getOrDefault(ROLES, List.of());
         if (roles.contains(ResourceBasedSecurityRule.IS_ADMIN)) {
             return all;
         }
 
-        Collection<RoleBinding> roleBindings = roleBindingRepository.findAllForGroups(groups);
-        List<String> authorizedResources = roleBindings.stream()
-            .flatMap(roleBinding -> roleBinding.getSpec().getRole().getResourceTypes().stream())
+        List<JwtRoleBinding> roleBindings = ((List<Map<String, ?>>) authentication.getAttributes().get(ROLE_BINDINGS))
+            .stream()
+            .map(roleBinding -> JwtRoleBinding.builder()
+                .namespace(roleBinding.get(JwtField.JwtRoleBindingField.NAMESPACE).toString())
+                .verbs((List<RoleBinding.Verb>) roleBinding.get(VERBS))
+                .resourceTypes((List<String>) roleBinding.get(RESOURCE_TYPES))
+                .build())
+            .toList();
+
+        List<String> authorizedResources = roleBindings
+            .stream()
+            .flatMap(roleBinding -> roleBinding.getResourceTypes().stream())
             .distinct()
             .toList();
 
-        return all.stream()
+        return all
+            .stream()
             .filter(resourceDefinition -> authorizedResources.contains(resourceDefinition.getPath()))
             .toList();
     }

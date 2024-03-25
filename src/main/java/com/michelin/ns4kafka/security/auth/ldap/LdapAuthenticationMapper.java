@@ -1,6 +1,6 @@
-package com.michelin.ns4kafka.security.ldap;
+package com.michelin.ns4kafka.security.auth.ldap;
 
-import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
+import com.michelin.ns4kafka.security.auth.AuthenticationService;
 import io.micronaut.context.annotation.Replaces;
 import io.micronaut.context.annotation.Requires;
 import io.micronaut.core.convert.value.ConvertibleValues;
@@ -12,7 +12,6 @@ import io.micronaut.security.ldap.configuration.LdapConfiguration;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -23,11 +22,10 @@ import java.util.Set;
 @Requires(property = LdapConfiguration.PREFIX + ".enabled", notEquals = StringUtils.FALSE)
 public class LdapAuthenticationMapper implements ContextAuthenticationMapper {
     @Inject
-    ResourceBasedSecurityRule resourceBasedSecurityRule;
+    AuthenticationService authenticationService;
 
     @Override
     public AuthenticationResponse map(ConvertibleValues<Object> attributes, String username, Set<String> groups) {
-        return AuthenticationResponse.success(username,
-            resourceBasedSecurityRule.computeRolesFromGroups(List.copyOf(groups)), Map.of("groups", groups));
+        return authenticationService.buildAuthJwtGroups(username, List.copyOf(groups));
     }
 }

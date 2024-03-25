@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.properties;
 
-import com.michelin.ns4kafka.security.local.LocalUser;
+import com.michelin.ns4kafka.security.auth.local.LocalUser;
 import io.micronaut.context.annotation.ConfigurationProperties;
 import java.util.List;
 import lombok.Getter;

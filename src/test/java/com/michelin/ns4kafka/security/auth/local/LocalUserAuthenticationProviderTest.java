@@ -1,19 +1,21 @@
-package com.michelin.ns4kafka.security;
+package com.michelin.ns4kafka.security.auth.local;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
+import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.properties.SecurityProperties;
-import com.michelin.ns4kafka.security.local.LocalUser;
-import com.michelin.ns4kafka.security.local.LocalUserAuthenticationProvider;
+import com.michelin.ns4kafka.security.auth.AuthenticationService;
+import com.michelin.ns4kafka.security.auth.JwtRoleBinding;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthenticationResponse;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -23,10 +25,10 @@ import reactor.test.StepVerifier;
 @ExtendWith(MockitoExtension.class)
 class LocalUserAuthenticationProviderTest {
     @Mock
-    SecurityProperties securityProperties;
+    AuthenticationService authenticationService;
 
     @Mock
-    ResourceBasedSecurityRule resourceBasedSecurityRule;
+    SecurityProperties securityProperties;
 
     @InjectMocks
     LocalUserAuthenticationProvider localUserAuthenticationProvider;
@@ -76,8 +78,17 @@ class LocalUserAuthenticationProviderTest {
                 .groups(List.of("admin"))
                 .build()));
 
-        when(resourceBasedSecurityRule.computeRolesFromGroups(ArgumentMatchers.any()))
-            .thenReturn(List.of());
+        JwtRoleBinding jwtRoleBinding = JwtRoleBinding.builder()
+            .namespace("namespace")
+            .verbs(List.of(RoleBinding.Verb.GET))
+            .resourceTypes(List.of("topics"))
+            .build();
+
+        AuthenticationResponse authenticationResponse = AuthenticationResponse.success("admin", null,
+            Map.of("roleBindings", List.of(jwtRoleBinding)));
+
+        when(authenticationService.buildAuthJwtGroups("admin", List.of("admin")))
+            .thenReturn(authenticationResponse);
 
         Publisher<AuthenticationResponse> authenticationResponsePublisher =
             localUserAuthenticationProvider.authenticate(null, credentials);
@@ -87,6 +98,8 @@ class LocalUserAuthenticationProviderTest {
                 assertTrue(response.isAuthenticated());
                 assertTrue(response.getAuthentication().isPresent());
                 assertEquals("admin", response.getAuthentication().get().getName());
+                assertIterableEquals(List.of(jwtRoleBinding),
+                    (List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings"));
             })
             .verifyComplete();
     }

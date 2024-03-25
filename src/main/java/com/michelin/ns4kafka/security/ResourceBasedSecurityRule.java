@@ -1,9 +1,17 @@
 package com.michelin.ns4kafka.security;
 
+import static com.michelin.ns4kafka.security.auth.JwtField.JwtRoleBindingField.NAMESPACE;
+import static com.michelin.ns4kafka.security.auth.JwtField.JwtRoleBindingField.RESOURCE_TYPES;
+import static com.michelin.ns4kafka.security.auth.JwtField.JwtRoleBindingField.VERBS;
+import static com.michelin.ns4kafka.security.auth.JwtField.ROLES;
+import static com.michelin.ns4kafka.security.auth.JwtField.ROLE_BINDINGS;
+import static com.michelin.ns4kafka.security.auth.JwtField.SUB;
+
 import com.michelin.ns4kafka.models.RoleBinding;
 import com.michelin.ns4kafka.properties.SecurityProperties;
 import com.michelin.ns4kafka.repositories.NamespaceRepository;
 import com.michelin.ns4kafka.repositories.RoleBindingRepository;
+import com.michelin.ns4kafka.security.auth.JwtRoleBinding;
 import com.michelin.ns4kafka.utils.exceptions.ForbiddenNamespaceException;
 import com.michelin.ns4kafka.utils.exceptions.UnknownNamespaceException;
 import io.micronaut.core.annotation.Nullable;
@@ -18,6 +26,7 @@ import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
@@ -64,7 +73,7 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
             return SecurityRuleResult.UNKNOWN;
         }
 
-        if (!authentication.getAttributes().keySet().containsAll(List.of("groups", "sub", "roles"))) {
+        if (!authentication.getAttributes().keySet().containsAll(List.of(ROLE_BINDINGS, SUB, ROLES))) {
             log.debug("No authentication available for path [{}]. Returning unknown.", request.getPath());
             return SecurityRuleResult.UNKNOWN;
         }
@@ -101,12 +110,17 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
             return SecurityRuleResult.ALLOWED;
         }
 
-        // Collect all roleBindings for this user
-        List<String> groups = (List<String>) authentication.getAttributes().get("groups");
-        List<RoleBinding> namespaceRoleBindings = roleBindingRepository.findAllForGroups(groups)
-            .stream()
-            .filter(roleBinding -> roleBinding.getMetadata().getNamespace().equals(namespace))
-            .toList();
+        // No role binding for the target namespace. User is targeting a namespace that he is not allowed to access
+        List<JwtRoleBinding> namespaceRoleBindings =
+            ((List<Map<String, ?>>) authentication.getAttributes().get(ROLE_BINDINGS))
+                .stream()
+                .map(roleBinding -> JwtRoleBinding.builder()
+                    .namespace(roleBinding.get(NAMESPACE).toString())
+                    .verbs((List<RoleBinding.Verb>) roleBinding.get(VERBS))
+                    .resourceTypes((List<String>) roleBinding.get(RESOURCE_TYPES))
+                    .build())
+                .filter(roleBinding -> roleBinding.getNamespace().equals(namespace))
+                .toList();
 
         if (namespaceRoleBindings.isEmpty()) {
             log.debug("No matching role binding for user \"{}\" and namespace \"{}\" on path \"{}\"", sub,
@@ -114,10 +128,10 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
             throw new ForbiddenNamespaceException(namespace);
         }
 
-        List<RoleBinding> authorizedRoleBindings = namespaceRoleBindings
+        List<JwtRoleBinding> authorizedRoleBindings = namespaceRoleBindings
             .stream()
-            .filter(roleBinding -> roleBinding.getSpec().getRole().getResourceTypes().contains(resourceType))
-            .filter(roleBinding -> roleBinding.getSpec().getRole().getVerbs()
+            .filter(roleBinding -> roleBinding.getResourceTypes().contains(resourceType))
+            .filter(roleBinding -> roleBinding.getVerbs()
                 .stream()
                 .map(Enum::name)
                 .toList()

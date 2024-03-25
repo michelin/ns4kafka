@@ -1,10 +1,8 @@
-package com.michelin.ns4kafka.security;
+package com.michelin.ns4kafka.security.auth.gitlab;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.security.gitlab.GitlabApiClient;
-import com.michelin.ns4kafka.security.gitlab.GitlabAuthenticationService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MutableHttpResponse;
 import java.util.List;
