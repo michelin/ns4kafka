@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.controllers.acl;
 
-import static com.michelin.ns4kafka.security.auth.JwtField.ROLES;
 import static com.michelin.ns4kafka.services.AccessControlEntryService.PUBLIC_GRANTED_TO;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidAclDeleteOnlyAdmin;
 import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidImmutableField;
@@ -110,8 +109,7 @@ public class AclController extends NamespacedResourceController {
                                                   @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
-        List<String> roles = (List<String>) authentication.getAttributes().get(ROLES);
-        boolean isAdmin = roles.contains(ResourceBasedSecurityRule.IS_ADMIN);
+        boolean isAdmin = authentication.getRoles().contains(ResourceBasedSecurityRule.IS_ADMIN);
         boolean isSelfAssignedAcl = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
 
         List<String> validationErrors;
@@ -172,8 +170,7 @@ public class AclController extends NamespacedResourceController {
             .findByName(namespace, name)
             .orElseThrow(() -> new ResourceValidationException(ACCESS_CONTROL_ENTRY, name, invalidNotFound(name)));
 
-        List<String> roles = (List<String>) authentication.getAttributes().get(ROLES);
-        boolean isAdmin = roles.contains(ResourceBasedSecurityRule.IS_ADMIN);
+        boolean isAdmin = authentication.getRoles().contains(ResourceBasedSecurityRule.IS_ADMIN);
         boolean isSelfAssignedAcl = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
 
         if (isSelfAssignedAcl && !isAdmin) {

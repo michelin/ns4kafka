@@ -6,8 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.models.RoleBinding;
+import com.michelin.ns4kafka.security.auth.AuthenticationRoleBinding;
 import com.michelin.ns4kafka.security.auth.AuthenticationService;
-import com.michelin.ns4kafka.security.auth.JwtRoleBinding;
 import io.micronaut.security.authentication.AuthenticationResponse;
 import java.util.List;
 import java.util.Map;
@@ -31,14 +31,14 @@ class LdapAuthenticationMapperTest {
 
     @Test
     void shouldMapAttributesToAuthenticationResponse() {
-        JwtRoleBinding jwtRoleBinding = JwtRoleBinding.builder()
+        AuthenticationRoleBinding authenticationRoleBinding = AuthenticationRoleBinding.builder()
             .namespace("namespace")
             .verbs(List.of(RoleBinding.Verb.GET))
             .resourceTypes(List.of("topics"))
             .build();
 
         AuthenticationResponse authenticationResponse = AuthenticationResponse.success("username", null,
-            Map.of("roleBindings", List.of(jwtRoleBinding)));
+            Map.of("roleBindings", List.of(authenticationRoleBinding)));
 
         when(authenticationService.buildAuthJwtGroups("username", List.of("group-1")))
             .thenReturn(authenticationResponse);
@@ -49,7 +49,7 @@ class LdapAuthenticationMapperTest {
         assertTrue(response.isAuthenticated());
         assertTrue(response.getAuthentication().isPresent());
         assertEquals("username", response.getAuthentication().get().getName());
-        assertIterableEquals(List.of(jwtRoleBinding),
-            (List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings"));
+        assertIterableEquals(List.of(authenticationRoleBinding),
+            (List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings"));
     }
 }

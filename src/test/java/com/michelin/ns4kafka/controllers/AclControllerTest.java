@@ -1,5 +1,6 @@
 package com.michelin.ns4kafka.controllers;
 
+import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -197,8 +198,13 @@ class AclControllerTest {
 
     @Test
     void applyAsAdminFailure() {
-        Namespace ns =
-            Namespace.builder().metadata(Metadata.builder().name("test").cluster("local").build()).build();
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
+
         AccessControlEntry ace1 =
             AccessControlEntry.builder().metadata(Metadata.builder().namespace("test").cluster("local").build())
                 .spec(
@@ -207,7 +213,9 @@ class AclControllerTest {
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                         .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build())
                 .build();
-        Authentication auth = Authentication.build("admin", Map.of("roles", List.of("isAdmin()")));
+
+        Authentication auth = Authentication.build("admin", List.of("isAdmin()"),
+            Map.of(ROLES, List.of("isAdmin()")));
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(accessControlEntryService.validateAsAdmin(ace1, ns)).thenReturn(List.of("ValidationError"));
@@ -219,8 +227,13 @@ class AclControllerTest {
 
     @Test
     void applyAsAdminSuccess() {
-        Namespace ns =
-            Namespace.builder().metadata(Metadata.builder().name("test").cluster("local").build()).build();
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
+
         AccessControlEntry ace1 =
             AccessControlEntry.builder().metadata(Metadata.builder().name("acl-test").build())
                 .spec(
@@ -229,7 +242,9 @@ class AclControllerTest {
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                         .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build())
                 .build();
-        Authentication auth = Authentication.build("admin", Map.of("roles", List.of("isAdmin()")));
+
+        Authentication auth = Authentication.build("admin", List.of("isAdmin()"),
+            Map.of(ROLES, List.of("isAdmin()")));
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(accessControlEntryService.validateAsAdmin(ace1, ns)).thenReturn(List.of());
@@ -428,8 +443,13 @@ class AclControllerTest {
 
     @Test
     void applyDryRunAdmin() {
-        Namespace ns =
-            Namespace.builder().metadata(Metadata.builder().name("test").cluster("local").build()).build();
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
+
         AccessControlEntry ace1 =
             AccessControlEntry.builder().metadata(Metadata.builder().namespace("admin").cluster("local").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -437,7 +457,9 @@ class AclControllerTest {
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                     .permission(AccessControlEntry.Permission.OWNER).resource("prefix").grantedTo("test").build())
                 .build();
-        Authentication auth = Authentication.build("admin", Map.of("roles", List.of("isAdmin()")));
+
+        Authentication auth = Authentication.build("admin", List.of("isAdmin()"),
+            Map.of(ROLES, List.of("isAdmin()")));
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(accessControlEntryService.validateAsAdmin(ace1, ns)).thenReturn(List.of());
@@ -509,7 +531,7 @@ class AclControllerTest {
     }
 
     @Test
-    void deleteSuccessSelfAssigned_AsAdmin() {
+    void deleteSuccessSelfAssignedAsAdmin() {
         Namespace ns =
             Namespace.builder().metadata(Metadata.builder().name("test").cluster("local").build()).build();
 
@@ -520,7 +542,8 @@ class AclControllerTest {
                     .permission(AccessControlEntry.Permission.READ).resource("prefix").grantedTo("test").build())
             .build();
 
-        Authentication auth = Authentication.build("user", Map.of("roles", List.of("isAdmin()")));
+        Authentication auth = Authentication.build("user", List.of("isAdmin()"),
+            Map.of("roles", List.of("isAdmin()")));
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(accessControlEntryService.findByName("test", "ace1")).thenReturn(Optional.of(ace1));

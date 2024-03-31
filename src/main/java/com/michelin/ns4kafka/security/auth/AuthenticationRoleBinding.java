@@ -8,13 +8,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Authentication JWT group.
+ * Authentication role binding.
  */
 @Data
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
-public class JwtRoleBinding {
+@AllArgsConstructor
+public class AuthenticationRoleBinding {
     private String namespace;
     private List<RoleBinding.Verb> verbs;
     private List<String> resourceTypes;

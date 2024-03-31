@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.security.auth;
 
-import static com.michelin.ns4kafka.security.auth.JwtField.ROLE_BINDINGS;
+import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLE_BINDINGS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -110,14 +110,17 @@ class AuthenticationServiceTest {
         assertTrue(response.getAuthentication().get().getAttributes()
             .containsKey("roleBindings"));
         assertEquals("ns1",
-            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings")).get(0)
+            ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
+                .get("roleBindings")).get(0)
                 .getNamespace());
         assertTrue(
-            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings")).get(0)
+            ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
+                .get("roleBindings")).get(0)
                 .getVerbs()
                 .containsAll(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET)));
         assertTrue(
-            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings")).get(0)
+            ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
+                .get("roleBindings")).get(0)
                 .getResourceTypes()
                 .containsAll(List.of("topics", "acls")));
     }
@@ -155,14 +158,17 @@ class AuthenticationServiceTest {
         assertTrue(response.getAuthentication().get().getAttributes()
             .containsKey("roleBindings"));
         assertEquals("ns1",
-            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings")).get(0)
+            ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
+                .get("roleBindings")).get(0)
                 .getNamespace());
         assertTrue(
-            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings")).get(0)
+            ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
+                .get("roleBindings")).get(0)
                 .getVerbs()
                 .containsAll(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET)));
         assertTrue(
-            ((List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings")).get(0)
+            ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
+                .get("roleBindings")).get(0)
                 .getResourceTypes()
                 .containsAll(List.of("topics", "acls")));
     }
