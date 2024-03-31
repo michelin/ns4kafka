@@ -2,10 +2,10 @@ package com.michelin.ns4kafka.security.auth;
 
 import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLE_BINDINGS;
 
-import com.michelin.ns4kafka.models.RoleBinding;
-import com.michelin.ns4kafka.properties.SecurityProperties;
+import com.michelin.ns4kafka.model.RoleBinding;
+import com.michelin.ns4kafka.property.SecurityProperties;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
-import com.michelin.ns4kafka.services.RoleBindingService;
+import com.michelin.ns4kafka.service.RoleBindingService;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthenticationFailed;
 import io.micronaut.security.authentication.AuthenticationResponse;

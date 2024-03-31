@@ -1,11 +1,11 @@
 package com.michelin.ns4kafka.validation;
 
-import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidFieldValidationAtLeast;
-import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidFieldValidationAtMost;
-import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidFieldValidationEmpty;
-import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidFieldValidationNull;
-import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidFieldValidationNumber;
-import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidFieldValidationOneOf;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationAtLeast;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationAtMost;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationEmpty;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationNull;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationNumber;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationOneOf;
 
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.JsonSubTypes;

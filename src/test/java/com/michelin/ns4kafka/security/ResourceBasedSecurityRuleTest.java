@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.security;
 
-import static com.michelin.ns4kafka.models.RoleBinding.Verb.GET;
+import static com.michelin.ns4kafka.model.RoleBinding.Verb.GET;
 import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLES;
 import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLE_BINDINGS;
 import static com.nimbusds.jwt.JWTClaimNames.SUBJECT;
@@ -8,12 +8,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.properties.SecurityProperties;
-import com.michelin.ns4kafka.repositories.NamespaceRepository;
+import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.property.SecurityProperties;
+import com.michelin.ns4kafka.repository.NamespaceRepository;
 import com.michelin.ns4kafka.security.auth.AuthenticationRoleBinding;
-import com.michelin.ns4kafka.utils.exceptions.ForbiddenNamespaceException;
-import com.michelin.ns4kafka.utils.exceptions.UnknownNamespaceException;
+import com.michelin.ns4kafka.util.exception.ForbiddenNamespaceException;
+import com.michelin.ns4kafka.util.exception.UnknownNamespaceException;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecurityRuleResult;

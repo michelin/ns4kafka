@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.models.RoleBinding;
-import com.michelin.ns4kafka.properties.SecurityProperties;
+import com.michelin.ns4kafka.model.RoleBinding;
+import com.michelin.ns4kafka.property.SecurityProperties;
 import com.michelin.ns4kafka.security.auth.AuthenticationRoleBinding;
 import com.michelin.ns4kafka.security.auth.AuthenticationService;
 import io.micronaut.security.authentication.AuthenticationException;

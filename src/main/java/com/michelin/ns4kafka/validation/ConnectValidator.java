@@ -1,13 +1,13 @@
 package com.michelin.ns4kafka.validation;
 
-import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNameEmpty;
-import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNameLength;
-import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNameSpecChars;
-import static com.michelin.ns4kafka.utils.config.ConnectorConfig.CONNECTOR_CLASS;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameEmpty;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameLength;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameSpecChars;
+import static com.michelin.ns4kafka.util.config.ConnectorConfig.CONNECTOR_CLASS;
 
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
-import com.michelin.ns4kafka.models.connector.Connector;
+import com.michelin.ns4kafka.model.connector.Connector;
 import io.micronaut.core.util.StringUtils;
 import java.util.ArrayList;
 import java.util.HashMap;

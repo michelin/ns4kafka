@@ -2,14 +2,14 @@ package com.michelin.ns4kafka.security;
 
 import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLE_BINDINGS;
 
-import com.michelin.ns4kafka.models.RoleBinding;
-import com.michelin.ns4kafka.properties.SecurityProperties;
-import com.michelin.ns4kafka.repositories.NamespaceRepository;
-import com.michelin.ns4kafka.repositories.RoleBindingRepository;
+import com.michelin.ns4kafka.model.RoleBinding;
+import com.michelin.ns4kafka.property.SecurityProperties;
+import com.michelin.ns4kafka.repository.NamespaceRepository;
+import com.michelin.ns4kafka.repository.RoleBindingRepository;
 import com.michelin.ns4kafka.security.auth.AuthenticationInfo;
 import com.michelin.ns4kafka.security.auth.AuthenticationRoleBinding;
-import com.michelin.ns4kafka.utils.exceptions.ForbiddenNamespaceException;
-import com.michelin.ns4kafka.utils.exceptions.UnknownNamespaceException;
+import com.michelin.ns4kafka.util.exception.ForbiddenNamespaceException;
+import com.michelin.ns4kafka.util.exception.UnknownNamespaceException;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.core.util.StringUtils;
