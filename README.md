@@ -184,6 +184,7 @@ The delivered JWT token will have the following format:
 ```
 
 The token will be valid for 1 hour by default.
+
 The `roleBindings` field contains the permissions granted to the user.
 
 An ID provider is required to authenticate users. The following ID providers are supported.
@@ -239,15 +240,15 @@ micronaut:
 
 ns4kafka:
   security:
-    admin-group: MY_ADMIN_GROUP
+    admin-group: ADMIN_GROUP
 ```
 
 The `micronaut.gitlab.url` property is set to the GitLab instance URL.
 The `micronaut.token.jwt.signatures.secret.generator.secret` property is used to sign the JWT token and should be
 changed update to a secure value.
 
-The admin group is set to "MY_ADMIN_GROUP" in the example above. Users will be granted admin privileges if they belong
-to the GitLab group "MY_ADMIN_GROUP".
+The admin group is set to "ADMIN_GROUP" in the example above. Users will be granted admin privileges if they belong
+to the GitLab group "ADMIN_GROUP".
 
 ### Kafka Broker
 
