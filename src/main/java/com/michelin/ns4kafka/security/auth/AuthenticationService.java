@@ -1,11 +1,11 @@
 package com.michelin.ns4kafka.security.auth;
 
-import static com.michelin.ns4kafka.security.auth.JwtField.ROLE_BINDINGS;
+import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLE_BINDINGS;
 
-import com.michelin.ns4kafka.models.RoleBinding;
-import com.michelin.ns4kafka.properties.SecurityProperties;
+import com.michelin.ns4kafka.model.RoleBinding;
+import com.michelin.ns4kafka.property.SecurityProperties;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
-import com.michelin.ns4kafka.services.RoleBindingService;
+import com.michelin.ns4kafka.service.RoleBindingService;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthenticationFailed;
 import io.micronaut.security.authentication.AuthenticationResponse;
@@ -22,6 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Singleton
 public class AuthenticationService {
+
+
     @Inject
     ResourceBasedSecurityRule resourceBasedSecurityRule;
 
@@ -48,7 +50,7 @@ public class AuthenticationService {
         return AuthenticationResponse.success(username, resourceBasedSecurityRule.computeRolesFromGroups(groups),
             Map.of(ROLE_BINDINGS, roleBindings
                 .stream()
-                .map(roleBinding -> JwtRoleBinding.builder()
+                .map(roleBinding -> AuthenticationRoleBinding.builder()
                     .namespace(roleBinding.getMetadata().getNamespace())
                     .verbs(new ArrayList<>(roleBinding.getSpec().getRole().getVerbs()))
                     .resourceTypes(new ArrayList<>(roleBinding.getSpec().getRole().getResourceTypes()))

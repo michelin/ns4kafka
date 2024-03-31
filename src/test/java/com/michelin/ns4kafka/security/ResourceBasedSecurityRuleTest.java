@@ -1,21 +1,19 @@
 package com.michelin.ns4kafka.security;
 
-import static com.michelin.ns4kafka.models.RoleBinding.Verb.GET;
-import static com.michelin.ns4kafka.security.auth.JwtField.JwtRoleBindingField.NAMESPACE;
-import static com.michelin.ns4kafka.security.auth.JwtField.JwtRoleBindingField.RESOURCE_TYPES;
-import static com.michelin.ns4kafka.security.auth.JwtField.JwtRoleBindingField.VERBS;
-import static com.michelin.ns4kafka.security.auth.JwtField.ROLES;
-import static com.michelin.ns4kafka.security.auth.JwtField.ROLE_BINDINGS;
-import static com.michelin.ns4kafka.security.auth.JwtField.SUB;
+import static com.michelin.ns4kafka.model.RoleBinding.Verb.GET;
+import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLES;
+import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLE_BINDINGS;
+import static com.nimbusds.jwt.JWTClaimNames.SUBJECT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.properties.SecurityProperties;
-import com.michelin.ns4kafka.repositories.NamespaceRepository;
-import com.michelin.ns4kafka.utils.exceptions.ForbiddenNamespaceException;
-import com.michelin.ns4kafka.utils.exceptions.UnknownNamespaceException;
+import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.property.SecurityProperties;
+import com.michelin.ns4kafka.repository.NamespaceRepository;
+import com.michelin.ns4kafka.security.auth.AuthenticationRoleBinding;
+import com.michelin.ns4kafka.util.exception.ForbiddenNamespaceException;
+import com.michelin.ns4kafka.util.exception.UnknownNamespaceException;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecurityRuleResult;
@@ -33,6 +31,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class ResourceBasedSecurityRuleTest {
+    private static final String NAMESPACE = "namespace";
+    private static final String VERBS = "verbs";
+    private static final String RESOURCE_TYPES = "resourceTypes";
+
     @Mock
     NamespaceRepository namespaceRepository;
 
@@ -43,14 +45,14 @@ class ResourceBasedSecurityRuleTest {
     ResourceBasedSecurityRule resourceBasedSecurityRule;
 
     @Test
-    void shouldReturnsUnknownWhenUnauthenticated() {
+    void shouldReturnUnknownWhenUnauthenticated() {
         SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/anything"), null);
         assertEquals(SecurityRuleResult.UNKNOWN, actual);
     }
 
     @Test
-    void shouldReturnsUnknownWhenMissingClaims() {
-        Map<String, Object> claims = Map.of(SUB, "user", ROLES, List.of());
+    void shouldReturnUnknownWhenMissingClaims() {
+        Map<String, Object> claims = Map.of(SUBJECT, "user", ROLES, List.of());
         Authentication auth = Authentication.build("user", claims);
 
         SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/anything"), auth);
@@ -59,8 +61,8 @@ class ResourceBasedSecurityRuleTest {
 
     @ParameterizedTest
     @CsvSource({"/non-namespaced/resource", "/api/namespaces"})
-    void shouldReturnsUnknownWhenInvalidResource(String path) {
-        Map<String, Object> claims = Map.of(SUB, "user", ROLE_BINDINGS, List.of(), ROLES, List.of());
+    void shouldReturnUnknownWhenInvalidResource(String path) {
+        Map<String, Object> claims = Map.of(SUBJECT, "user", ROLES, List.of(), ROLE_BINDINGS, List.of());
         Authentication auth = Authentication.build("user", claims);
 
         SecurityRuleResult actual =
@@ -70,7 +72,7 @@ class ResourceBasedSecurityRuleTest {
 
     @Test
     void shouldReturnUnknownNamespace() {
-        Map<String, Object> claims = Map.of(SUB, "user", ROLE_BINDINGS, List.of(), ROLES, List.of());
+        Map<String, Object> claims = Map.of(SUBJECT, "user", ROLES, List.of(), ROLE_BINDINGS, List.of());
         Authentication auth = Authentication.build("user", claims);
 
         when(namespaceRepository.findByName("test"))
@@ -87,7 +89,7 @@ class ResourceBasedSecurityRuleTest {
     @ParameterizedTest
     @CsvSource({"name$space", "*namespace*"})
     void shouldReturnUnknownWhenWrongNamespaceName(String namespace) {
-        Map<String, Object> claims = Map.of(SUB, "user", ROLE_BINDINGS, List.of(), ROLES, List.of());
+        Map<String, Object> claims = Map.of(SUBJECT, "user", ROLES, List.of(), ROLE_BINDINGS, List.of());
         Authentication auth = Authentication.build("user", claims);
 
         SecurityRuleResult actual =
@@ -98,7 +100,7 @@ class ResourceBasedSecurityRuleTest {
 
     @Test
     void shouldReturnUnknownNamespaceAsAdmin() {
-        Map<String, Object> claims = Map.of(SUB, "user", ROLE_BINDINGS, List.of(), ROLES, List.of("isAdmin()"));
+        Map<String, Object> claims = Map.of(SUBJECT, "user", ROLES, List.of("isAdmin()"), ROLE_BINDINGS, List.of());
         Authentication auth = Authentication.build("user", List.of("isAdmin()"), claims);
 
         when(namespaceRepository.findByName("admin"))
@@ -114,7 +116,7 @@ class ResourceBasedSecurityRuleTest {
 
     @Test
     void checkReturnsAllowedNamespaceAsAdmin() {
-        Map<String, Object> claims = Map.of(SUB, "user", ROLE_BINDINGS, List.of(), ROLES, List.of("isAdmin()"));
+        Map<String, Object> claims = Map.of(SUBJECT, "user", ROLES, List.of("isAdmin()"), ROLE_BINDINGS, List.of());
         Authentication auth = Authentication.build("user", List.of("isAdmin()"), claims);
 
         when(namespaceRepository.findByName("test"))
@@ -129,56 +131,72 @@ class ResourceBasedSecurityRuleTest {
     @CsvSource({"connectors,/api/namespaces/test/connectors",
         "role-bindings,/api/namespaces/test/role-bindings",
         "topics,/api/namespaces/test/topics/topic.with.dots"})
-    void shouldReturnsAllowedWhenHyphenAndDotInResources(String resourceType, String path) {
-        List<Map<String, ?>> roleBindings = List.of(
+    void shouldReturnAllowedWhenHyphenAndDotResourcesAndHandleRoleBindingsType(String resourceType, String path) {
+        List<Map<String, ?>> jwtRoleBindings = List.of(
             Map.of(NAMESPACE, "test",
                 VERBS, List.of(GET),
                 RESOURCE_TYPES, List.of(resourceType)));
 
-        Map<String, Object> claims = Map.of(SUB, "user", ROLE_BINDINGS, roleBindings, ROLES, List.of());
-        Authentication auth = Authentication.build("user", claims);
+        Map<String, Object> jwtClaims = Map.of(SUBJECT, "user", ROLES, List.of(), ROLE_BINDINGS, jwtRoleBindings);
+        Authentication jwtAuth = Authentication.build("user", jwtClaims);
 
         when(namespaceRepository.findByName("test"))
             .thenReturn(Optional.of(Namespace.builder().build()));
 
-        SecurityRuleResult actual =
-            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET(path), auth);
-        assertEquals(SecurityRuleResult.ALLOWED, actual);
+        SecurityRuleResult jwtActual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET(path), jwtAuth);
+        assertEquals(SecurityRuleResult.ALLOWED, jwtActual);
+
+        List<AuthenticationRoleBinding> basicAuthRoleBindings = List.of(
+            AuthenticationRoleBinding.builder()
+                .namespace("test")
+                .verbs(List.of(GET))
+                .resourceTypes(List.of(resourceType))
+                .build());
+
+        Map<String, Object> basicAuthClaims =
+            Map.of(SUBJECT, "user", ROLES, List.of(), ROLE_BINDINGS, basicAuthRoleBindings);
+        Authentication basicAuth = Authentication.build("user", basicAuthClaims);
+
+        when(namespaceRepository.findByName("test"))
+            .thenReturn(Optional.of(Namespace.builder().build()));
+
+        SecurityRuleResult basicAuthActual = resourceBasedSecurityRule.checkSecurity(HttpRequest.GET(path), basicAuth);
+        assertEquals(SecurityRuleResult.ALLOWED, basicAuthActual);
     }
 
     @Test
-    void shouldReturnsAllowedWhenSubresource() {
-        List<Map<String, ?>> roleBindings = List.of(
+    void shouldReturnAllowedWhenSubResource() {
+        List<Map<String, ?>> jwtRoleBindings = List.of(
             Map.of(NAMESPACE, "test",
                 VERBS, List.of(GET),
                 RESOURCE_TYPES, List.of("connectors/restart", "topics/delete-records")));
 
-        Map<String, Object> claims = Map.of(SUB, "user", ROLE_BINDINGS, roleBindings, ROLES, List.of());
-        Authentication auth = Authentication.build("user", claims);
+        Map<String, Object> jwtClaims = Map.of(SUBJECT, "user", ROLES, List.of(), ROLE_BINDINGS, jwtRoleBindings);
+        Authentication jwtAuth = Authentication.build("user", jwtClaims);
 
         when(namespaceRepository.findByName("test"))
             .thenReturn(Optional.of(Namespace.builder().build()));
 
-        SecurityRuleResult actual =
-            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/connectors/name/restart"),
-                auth);
+        SecurityRuleResult actual = resourceBasedSecurityRule
+            .checkSecurity(HttpRequest.GET("/api/namespaces/test/connectors/name/restart"), jwtAuth);
+
         assertEquals(SecurityRuleResult.ALLOWED, actual);
 
-        actual =
-            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/test/topics/name/delete-records"),
-                auth);
+        actual = resourceBasedSecurityRule
+            .checkSecurity(HttpRequest.GET("/api/namespaces/test/topics/name/delete-records"), jwtAuth);
+
         assertEquals(SecurityRuleResult.ALLOWED, actual);
     }
 
     @ParameterizedTest
     @CsvSource({"namespace", "name-space", "name.space", "_name_space_", "namespace123"})
-    void shouldReturnsAllowedWhenSpecialNamespaceName(String namespace) {
+    void shouldReturnAllowedWhenSpecialNamespaceName(String namespace) {
         List<Map<String, ?>> roleBindings = List.of(
             Map.of(NAMESPACE, namespace,
                 VERBS, List.of(GET),
                 RESOURCE_TYPES, List.of("topics")));
 
-        Map<String, Object> claims = Map.of(SUB, "user", ROLE_BINDINGS, roleBindings, ROLES, List.of());
+        Map<String, Object> claims = Map.of(SUBJECT, "user", ROLES, List.of(), ROLE_BINDINGS, roleBindings);
         Authentication auth = Authentication.build("user", claims);
 
         when(namespaceRepository.findByName(namespace))
@@ -190,8 +208,8 @@ class ResourceBasedSecurityRuleTest {
     }
 
     @Test
-    void shouldReturnsForbiddenNamespaceWhenNoRoleBinding() {
-        Map<String, Object> claims = Map.of(SUB, "user", ROLE_BINDINGS, List.of(), ROLES, List.of());
+    void shouldReturnForbiddenNamespaceWhenNoRoleBinding() {
+        Map<String, Object> claims = Map.of(SUBJECT, "user", ROLES, List.of(), ROLE_BINDINGS, List.of());
         Authentication auth = Authentication.build("user", claims);
 
         when(namespaceRepository.findByName("test"))
@@ -206,13 +224,13 @@ class ResourceBasedSecurityRuleTest {
     }
 
     @Test
-    void shouldReturnsForbiddenNamespaceWhenNoRoleBindingMatchingRequestedNamespace() {
+    void shouldReturnForbiddenNamespaceWhenNoRoleBindingMatchingRequestedNamespace() {
         List<Map<String, ?>> roleBindings = List.of(
             Map.of(NAMESPACE, "namespace",
                 VERBS, List.of(GET),
                 RESOURCE_TYPES, List.of("connectors")));
 
-        Map<String, Object> claims = Map.of(SUB, "user", ROLE_BINDINGS, roleBindings, ROLES, List.of());
+        Map<String, Object> claims = Map.of(SUBJECT, "user", ROLES, List.of(), ROLE_BINDINGS, roleBindings);
         Authentication auth = Authentication.build("user", claims);
 
         when(namespaceRepository.findByName("forbiddenNamespace"))
@@ -233,7 +251,7 @@ class ResourceBasedSecurityRuleTest {
                 VERBS, List.of(GET),
                 RESOURCE_TYPES, List.of("connectors")));
 
-        Map<String, Object> claims = Map.of(SUB, "user", ROLE_BINDINGS, roleBindings, ROLES, List.of());
+        Map<String, Object> claims = Map.of(SUBJECT, "user", ROLES, List.of(), ROLE_BINDINGS, roleBindings);
         Authentication auth = Authentication.build("user", claims);
 
         when(namespaceRepository.findByName("test"))
@@ -252,7 +270,7 @@ class ResourceBasedSecurityRuleTest {
                 VERBS, List.of(GET),
                 RESOURCE_TYPES, List.of("connectors")));
 
-        Map<String, Object> claims = Map.of(SUB, "user", ROLE_BINDINGS, roleBindings, ROLES, List.of());
+        Map<String, Object> claims = Map.of(SUBJECT, "user", ROLES, List.of(), ROLE_BINDINGS, roleBindings);
         Authentication auth = Authentication.build("user", claims);
 
         when(namespaceRepository.findByName("test"))

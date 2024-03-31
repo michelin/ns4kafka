@@ -1,15 +1,15 @@
 package com.michelin.ns4kafka.validation;
 
-import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidFieldValidationNull;
-import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNameEmpty;
-import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNameLength;
-import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidNameSpecChars;
-import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicName;
-import static com.michelin.ns4kafka.utils.FormatErrorUtils.invalidTopicSpec;
-import static com.michelin.ns4kafka.utils.config.TopicConfig.PARTITIONS;
-import static com.michelin.ns4kafka.utils.config.TopicConfig.REPLICATION_FACTOR;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationNull;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameEmpty;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameLength;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameSpecChars;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicName;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicSpec;
+import static com.michelin.ns4kafka.util.config.TopicConfig.PARTITIONS;
+import static com.michelin.ns4kafka.util.config.TopicConfig.REPLICATION_FACTOR;
 
-import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.model.Topic;
 import io.micronaut.core.util.StringUtils;
 import java.util.ArrayList;
 import java.util.List;

@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.security.auth.local;
 
-import com.michelin.ns4kafka.properties.SecurityProperties;
+import com.michelin.ns4kafka.property.SecurityProperties;
 import com.michelin.ns4kafka.security.auth.AuthenticationService;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpRequest;

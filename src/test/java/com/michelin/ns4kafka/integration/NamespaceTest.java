@@ -4,12 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.michelin.ns4kafka.models.AccessControlEntry;
-import com.michelin.ns4kafka.models.Metadata;
-import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.RoleBinding;
-import com.michelin.ns4kafka.models.Status;
-import com.michelin.ns4kafka.models.Topic;
+import com.michelin.ns4kafka.model.AccessControlEntry;
+import com.michelin.ns4kafka.model.Metadata;
+import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.RoleBinding;
+import com.michelin.ns4kafka.model.Status;
+import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;

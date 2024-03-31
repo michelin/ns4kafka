@@ -2,10 +2,10 @@ package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.michelin.ns4kafka.controllers.ApiResourcesController;
-import com.michelin.ns4kafka.models.Metadata;
-import com.michelin.ns4kafka.models.Namespace;
-import com.michelin.ns4kafka.models.RoleBinding;
+import com.michelin.ns4kafka.controller.ApiResourcesController;
+import com.michelin.ns4kafka.model.Metadata;
+import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.core.type.Argument;

@@ -5,10 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.models.RoleBinding;
+import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
+import com.michelin.ns4kafka.security.auth.AuthenticationRoleBinding;
 import com.michelin.ns4kafka.security.auth.AuthenticationService;
-import com.michelin.ns4kafka.security.auth.JwtRoleBinding;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.AuthenticationException;
@@ -50,14 +50,14 @@ class GitlabAuthenticationProviderTest {
         when(gitlabAuthenticationService.findAllGroups(authenticationRequest.getSecret()))
             .thenReturn(Flux.fromIterable(groups));
 
-        JwtRoleBinding jwtRoleBinding = JwtRoleBinding.builder()
+        AuthenticationRoleBinding authenticationRoleBinding = AuthenticationRoleBinding.builder()
             .namespace("namespace")
             .verbs(List.of(RoleBinding.Verb.GET))
             .resourceTypes(List.of("topics"))
             .build();
 
         AuthenticationResponse authenticationResponse = AuthenticationResponse.success("username", null,
-            Map.of("roleBindings", List.of(jwtRoleBinding)));
+            Map.of("roleBindings", List.of(authenticationRoleBinding)));
 
         when(authenticationService.buildAuthJwtGroups("username", groups))
             .thenReturn(authenticationResponse);
@@ -70,8 +70,9 @@ class GitlabAuthenticationProviderTest {
                 assertTrue(response.isAuthenticated());
                 assertTrue(response.getAuthentication().isPresent());
                 assertEquals("username", response.getAuthentication().get().getName());
-                assertIterableEquals(List.of(jwtRoleBinding),
-                    (List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings"));
+                assertIterableEquals(List.of(authenticationRoleBinding),
+                    (List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
+                        .get("roleBindings"));
                 assertIterableEquals(List.of(), response.getAuthentication().get().getRoles(),
                     "User has no custom roles");
             })
@@ -90,14 +91,14 @@ class GitlabAuthenticationProviderTest {
         when(gitlabAuthenticationService.findAllGroups(authenticationRequest.getSecret()))
             .thenReturn(Flux.fromIterable(groups));
 
-        JwtRoleBinding jwtRoleBinding = JwtRoleBinding.builder()
+        AuthenticationRoleBinding authenticationRoleBinding = AuthenticationRoleBinding.builder()
             .namespace("namespace")
             .verbs(List.of(RoleBinding.Verb.GET))
             .resourceTypes(List.of("topics"))
             .build();
 
         AuthenticationResponse authenticationResponse = AuthenticationResponse.success("usernameAdmin",
-            List.of(ResourceBasedSecurityRule.IS_ADMIN), Map.of("roleBindings", List.of(jwtRoleBinding)));
+            List.of(ResourceBasedSecurityRule.IS_ADMIN), Map.of("roleBindings", List.of(authenticationRoleBinding)));
 
         when(authenticationService.buildAuthJwtGroups("usernameAdmin", groups))
             .thenReturn(authenticationResponse);
@@ -110,8 +111,9 @@ class GitlabAuthenticationProviderTest {
                 assertTrue(response.isAuthenticated());
                 assertTrue(response.getAuthentication().isPresent());
                 assertEquals("usernameAdmin", response.getAuthentication().get().getName());
-                assertIterableEquals(List.of(jwtRoleBinding),
-                    (List<JwtRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings"));
+                assertIterableEquals(List.of(authenticationRoleBinding),
+                    (List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
+                        .get("roleBindings"));
                 assertIterableEquals(List.of(ResourceBasedSecurityRule.IS_ADMIN),
                     response.getAuthentication().get().getRoles(),
                     "User has no custom roles");
