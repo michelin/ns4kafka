@@ -25,9 +25,10 @@ using [Kafkactl](https://github.com/michelin/kafkactl), which follows best pract
 * [Install](#install)
 * [Demo Environment](#demo-environment)
 * [Configuration](#configuration)
-    * [GitLab Authentication](#gitlab-authentication)
-        * [Admin Account](#admin-account)
-    * [Kafka Broker Authentication](#kafka-broker-authentication)
+    * [Authentication](#authentication)
+        * [Local](#local)
+        * [GitLab](#gitlab)
+    * [Kafka Broker](#kafka-broker)
     * [Managed clusters](#managed-clusters)
     * [AKHQ](#akhq)
 * [Administration](#administration)
@@ -121,45 +122,134 @@ To get started, you'll need to perform the following steps:
 
 ## Configuration
 
-### GitLab Authentication
+### Authentication
 
-Ns4Kafka mainly uses GitLab for authentication.
+Ns4Kafka supports two types of authentication:
+
+- Basic authentication
+
+```shell
+curl -u username:password http://localhost:8080/api/namespaces/myNamespace/topics
+```
+
+- Bearer token authentication
+
+By generating a JWT access token from the
+built-in [Micronaut LoginController](https://micronaut-projects.github.io/micronaut-security/latest/guide/#login)
+and using it in the `Authorization` header.
+
+```shell
+curl -X POST -d '{"username":"username","password":"password"}' -H "Content-Type: application/json" http://localhost:8080/login
+```
+
+The delivered JWT token will have the following format:
+
+```yml
+{
+  "roleBindings": [
+    {
+      "namespace": "myNamespace",
+      "verbs": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
+      "resourceTypes": [
+        "schemas",
+        "schemas/config",
+        "topics",
+        "topics/import",
+        "topics/delete-records",
+        "connectors",
+        "connectors/import",
+        "connectors/change-state",
+        "connect-clusters",
+        "connect-clusters/vaults",
+        "acls",
+        "consumer-groups/reset",
+        "streams"
+      ]
+    }
+  ],
+  "sub": "user.name@mail.com",
+  "nbf": 1711905057,
+  "roles": [
+    "isAdmin()"
+  ],
+  "iss": "ns4kafka",
+  "exp": 1711908657,
+  "iat": 1711905057
+}
+```
+
+The token will be valid for 1 hour by default.
+The `roleBindings` field contains the permissions granted to the user.
+
+An ID provider is required to authenticate users. The following ID providers are supported.
+
+#### Local
+
+The local ID provider is used for testing purposes. It is not recommended for production environments.
+
+To set up authentication with the local ID provider, you can use the following configuration:
+
+```yaml
+ns4kafka:
+  security:
+    admin-group: adminGroup
+    local-users:
+      - username: admin
+        password: 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+        groups:
+          - "adminGroup"
+      - username: user
+        password: 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+        groups:
+          - "userGroup"
+```
+
+Identities are stored in the `local-users` configuration.
+The password is hashed using the SHA-256 algorithm.
+The groups used to grant access to namespaces are defined in the `groups` field.
+
+The admin group is set to "adminGroup" in the example above. Users will be granted admin privileges if they belong to
+the local group "adminGroup".
+
+#### GitLab
+
+GitLab is recommended for production environments.
 It uses GitLab groups to grant access to namespaces.
-From a given GiLab token, it retrieves the user's GitLab groups and checks if any of them match any of the role
+From a given GitLab token, it retrieves the user's GitLab groups and checks if any of them match any of the role
 bindings.
-After a successful authentication, Ns4Kafka delivers a JWT token containing the authorized role bindings.
 
 To set up authentication with GitLab, you can use the following configuration:
 
 ```yaml
 micronaut:
-  security:
+  gitlab:
     enabled: true
-    gitlab:
-      enabled: true
-      url: https://gitlab.com
-    token:
-      jwt:
-        signatures:
-          secret:
-            generator:
-              secret: "changeit"
-```
+    url: https://gitlab.com
+  token:
+    jwt:
+      signatures:
+        secret:
+          generator:
+            secret: "changeit"
 
-#### Admin Account
-
-To configure the admin user, you can use the following:
-
-```yaml
 ns4kafka:
   security:
-    admin-group: "MY_ADMIN_GROUP"
+    admin-group: MY_ADMIN_GROUP
 ```
 
-If the admin group is set to "MY_ADMIN_GROUP", users will be granted admin privileges if they belong to the GitLab
-group "MY_ADMIN_GROUP".
+The `micronaut.gitlab.url` property is set to the GitLab instance URL.
+The `micronaut.token.jwt.signatures.secret.generator.secret` property is used to sign the JWT token and should be
+changed update to a secure value.
 
-### Kafka Broker Authentication
+The admin group is set to "MY_ADMIN_GROUP" in the example above. Users will be granted admin privileges if they belong
+to the GitLab group "MY_ADMIN_GROUP".
+
+### Kafka Broker
 
 You can configure authentication to the Kafka brokers using the following:
 

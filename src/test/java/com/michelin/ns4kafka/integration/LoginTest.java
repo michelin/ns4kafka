@@ -21,10 +21,18 @@ class LoginTest extends AbstractIntegrationTest {
     HttpClient client;
 
     @Test
-    void login() {
+    void shouldLoginWithJwt() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<String> response =
-            client.toBlocking().exchange(HttpRequest.POST("/login", credentials), String.class);
+        HttpResponse<String> response = client.toBlocking()
+            .exchange(HttpRequest.POST("/login", credentials), String.class);
+        assertEquals(HttpStatus.OK, response.status());
+    }
+
+    @Test
+    void shouldLoginWithBasicAuth() {
+        HttpResponse<String> response = client.toBlocking()
+            .exchange(HttpRequest.GET("/api/namespaces")
+                .basicAuth("admin", "admin"), String.class);
         assertEquals(HttpStatus.OK, response.status());
     }
 }
