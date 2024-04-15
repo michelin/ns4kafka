@@ -1,88 +1,77 @@
 ---
 version: '2'
 services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.3.3
-    hostname: zookeeper
-    container_name: zookeeper
-    networks:
-      - ns4kafka-network
-    ports:
-      - "2181:2181"
-    volumes:
-      - ./kafka/zookeeper_server_jaas.conf:/etc/kafka/zookeeper_server_jaas.conf
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-      KAFKA_OPTS: -Djava.security.auth.login.config=/etc/kafka/zookeeper_server_jaas.conf
-        -Dzookeeper.authProvider.1=org.apache.zookeeper.server.auth.SASLAuthenticationProvider
-        -Dzookeeper.allowSaslFailedClients=false 
-        -Dzookeeper.requireClientAuthScheme=sasl
-
-  add-kafka-users:
-    image: confluentinc/cp-kafka:7.3.3
-    container_name: "add-kafka-users"
-    depends_on:
-      - zookeeper
-    command: "bash -c 'echo Waiting for Zookeeper to be ready... && \
-      cub zk-ready zookeeper:2181 120 && \
-      kafka-configs --zookeeper zookeeper:2181 --alter --add-config 'SCRAM-SHA-512=[password=admin]' --entity-type users --entity-name admin '"
-    volumes:
-      - ./kafka/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
-    environment:
-      KAFKA_BROKER_ID: ignored
-      KAFKA_ZOOKEEPER_CONNECT: ignored
-      KAFKA_OPTS: -Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf
-    networks:
-      - ns4kafka-network
-
   broker:
-    image: confluentinc/cp-server:7.3.3
+    image: confluentinc/cp-server:7.6.1
     hostname: broker
     container_name: broker
-    depends_on:
-      - zookeeper
     networks:
       - ns4kafka-network
     ports:
       - "9092:9092"
       - "9101:9101"
     volumes:
+      - ./kafka/update_storage.sh:/tmp/kraft/update_storage.sh
       - ./kafka/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
       - ./kafka/client.properties:/home/appuser/client.properties
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_LISTENERS: INTERNAL://broker:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://broker:29093
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://broker:29092,EXTERNAL://localhost:9092
-      KAFKA_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
-      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: SCRAM-SHA-512
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT,CONTROLLER:SASL_PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512,PLAIN
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: SCRAM-SHA-512
+      KAFKA_SASL_MECHANISM_CONTROLLER_PROTOCOL: PLAIN
+      KAFKA_LISTENER_NAME_CONTROLLER_PLAIN_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin";
+      KAFKA_LISTENER_NAME_INTERNAL_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
+      KAFKA_LISTENER_NAME_INTERNAL_SCRAM-SHA-512_SASL_JAAS_CONFIG: org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="admin";
+      KAFKA_LISTENER_NAME_EXTERNAL_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
+      KAFKA_LISTENER_NAME_EXTERNAL_SCRAM-SHA-512_SASL_JAAS_CONFIG: org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="admin";
+
       # Confluent Metrics Reporter
-      KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
-      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: broker:29092
-      CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
-      CONFLUENT_METRICS_ENABLE: 'true'
-      CONFLUENT_METRICS_REPORTER_SASL_MECHANISM: SCRAM-SHA-512
-      CONFLUENT_METRICS_REPORTER_SECURITY_PROTOCOL: SASL_PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_JMX_PORT: 9101
-      KAFKA_JMX_HOSTNAME: localhost
+      # KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
+      # CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: broker:29092
+      # CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+      # CONFLUENT_METRICS_ENABLE: 'true'
+      # CONFLUENT_METRICS_REPORTER_SASL_MECHANISM: SCRAM-SHA-512
+      # CONFLUENT_METRICS_REPORTER_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      # KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      # KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
+      # KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
+      # KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      # KAFKA_JMX_PORT: 9101
+      # KAFKA_JMX_HOSTNAME: localhost
+
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker:29093
       KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
-      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
-      KAFKA_SUPER_USERS: 'User:admin'
-      KAFKA_ZOOKEEPER_SET_ACL: 'true'
+      # CONFLUENT_SUPPORT_CUSTOMER_ID: anonymous
+      KAFKA_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
+      KAFKA_SUPER_USERS: User:admin
       KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: 'false'
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
       KAFKA_OPTS: -Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf
 
+  add-kafka-users:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: "add-kafka-users"
+    depends_on:
+      - broker
+    command: "kafka-configs --bootstrap-server broker:9092 --alter --add-config 'SCRAM-SHA-512=[password=admin]' --entity-type users --entity-name admin '"
+    volumes:
+      - ./kafka/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
+    environment:
+      KAFKA_BROKER_ID: ignored
+      KAFKA_OPTS: -Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf
+    networks:
+      - ns4kafka-network
+
   schema-registry:
-    image: confluentinc/cp-schema-registry:7.3.3
+    image: confluentinc/cp-schema-registry:7.6.1
     hostname: schema-registry
     container_name: schema-registry
     depends_on:
@@ -100,7 +89,7 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_SASL_JAAS_CONFIG: org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="admin";
 
   connect:
-    image: cnfldemos/cp-server-connect-datagen:0.5.3-7.1.0
+    image: cnfldemos/cp-server-connect-datagen:0.6.4-7.6.0
     hostname: connect
     container_name: connect
     depends_on:
@@ -149,7 +138,7 @@ services:
       CONNECT_CONSUMER_CONFLUENT_MONITORING_INTERCEPTOR_SASL_MECHANISM: SCRAM-SHA-512
 
   control-center:
-    image: confluentinc/cp-enterprise-control-center:7.3.3
+    image: confluentinc/cp-enterprise-control-center:7.6.1
     hostname: control-center
     container_name: control-center
     networks:
@@ -197,7 +186,7 @@ services:
       - MICRONAUT_CONFIG_FILES=/home/app/application.yml
 
   kafkactl:
-    image: michelin/kafkactl:1.11.2-SNAPSHOT-native
+    image: michelin/kafkactl:latest-native
     hostname: kafkactl
     container_name: kafkactl
     networks:
@@ -206,7 +195,7 @@ services:
       - broker
       - schema-registry
       - connect
-    entrypoint: ["tail", "-f", "/dev/null"]
+    entrypoint: [ "tail", "-f", "/dev/null" ]
     volumes:
       - ./config.yml:/root/.kafkactl/config.yml
       - ./resources:/resources
