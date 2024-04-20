@@ -19,7 +19,7 @@ kafka:
 
 ns4kafka:
   security:
-    admin-group: "MY_ADMIN_GROUP"
+    admin-group: "ns4kafka"
   managed-clusters:
     local:
       manage-users: true
