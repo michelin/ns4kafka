@@ -92,7 +92,7 @@ java -jar ns4kafka.jar
 
 ## Demo Environment
 
-To run and try out the application, you can use the provided `docker-compose` file located in the `.docker` directory.
+To run and try out the application, you can use the provided `docker-compose` files located in the `.docker` directory.
 
 ```console
 docker-compose up -d
@@ -100,8 +100,7 @@ docker-compose up -d
 
 This command will start multiple containers, including:
 
-- 1 Zookeeper
-- 1 Kafka broker
+- 1 Kafka broker (KRaft mode)
 - 1 Schema registry
 - 1 Kafka Connect
 - 1 Control Center
@@ -119,6 +118,12 @@ To get started, you'll need to perform the following steps:
    instructions [here](https://github.com/michelin/kafkactl#install).
 3. Define a GitLab group you belong to in the role bindings of the `resources/admin/namespace.yml` file. This is
    demonstrated in the example [here](https://github.com/michelin/kafkactl#role-binding).
+
+Alternatively, a `docker-compose` file running AKHQ instead of Control Center is available in the `.docker` directory.
+
+```console
+docker-compose -f docker-compose-akhq.yml up -d
+```
 
 ## Configuration
 
