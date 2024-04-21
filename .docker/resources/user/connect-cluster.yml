@@ -4,6 +4,6 @@ kind: ConnectCluster
 metadata:
   name: abc.myConnectCluster
 spec:
-  url: http://localhost:8083
+  url: http://connect:8083
   aes256Key: key
   aes256Salt: salt
