@@ -3,8 +3,8 @@ kafkactl:
     - context:
         api: http://ns4kafka:8080
         namespace: myNamespace
-        user-token: glpat-1qtXyQ7otuNAbteBoirP
+        user-token: gitlabToken
       name: local
   current-namespace: myNamespace
   api: http://ns4kafka:8080
-  user-token: glpat-1qtXyQ7otuNAbteBoirP
+  user-token: gitlabToken
