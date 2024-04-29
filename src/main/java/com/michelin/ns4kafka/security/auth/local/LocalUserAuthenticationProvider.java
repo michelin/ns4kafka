@@ -2,14 +2,15 @@ package com.michelin.ns4kafka.security.auth.local;
 
 import com.michelin.ns4kafka.property.SecurityProperties;
 import com.michelin.ns4kafka.security.auth.AuthenticationService;
+import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthenticationFailed;
 import io.micronaut.security.authentication.AuthenticationFailureReason;
-import io.micronaut.security.authentication.AuthenticationProvider;
 import io.micronaut.security.authentication.AuthenticationRequest;
 import io.micronaut.security.authentication.AuthenticationResponse;
+import io.micronaut.security.authentication.provider.ReactiveAuthenticationProvider;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.Optional;
@@ -22,7 +23,7 @@ import reactor.core.publisher.Mono;
  */
 @Slf4j
 @Singleton
-public class LocalUserAuthenticationProvider implements AuthenticationProvider<HttpRequest<?>> {
+public class LocalUserAuthenticationProvider implements ReactiveAuthenticationProvider<HttpRequest<?>, String, String> {
     @Inject
     SecurityProperties securityProperties;
 
@@ -30,11 +31,12 @@ public class LocalUserAuthenticationProvider implements AuthenticationProvider<H
     AuthenticationService authenticationService;
 
     @Override
-    public Publisher<AuthenticationResponse> authenticate(@Nullable HttpRequest<?> httpRequest,
-                                                          AuthenticationRequest<?, ?> authenticationRequest) {
+    public @NonNull Publisher<AuthenticationResponse> authenticate(@Nullable HttpRequest<?> requestContext,
+                                                                   @NonNull AuthenticationRequest<String, String>
+                                                                       authenticationRequest) {
         return Mono.create(emitter -> {
-            String username = authenticationRequest.getIdentity().toString();
-            String password = authenticationRequest.getSecret().toString();
+            String username = authenticationRequest.getIdentity();
+            String password = authenticationRequest.getSecret();
             log.debug("Checking local authentication for user: {}", username);
 
             Optional<LocalUser> authenticatedUser = securityProperties.getLocalUsers().stream()
