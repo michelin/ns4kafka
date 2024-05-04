@@ -10,6 +10,6 @@ cat /etc/kafka/kafka.properties
 
 echo "Create admin user"
 kafka-storage format --config /etc/kafka/kafka.properties \
- --cluster-id MkU3OEVBNTcwNTJENDM2Qk \
- --add-scram 'SCRAM-SHA-512=[name=admin,password=admin]' \
- --ignore-formatted
+  --cluster-id MkU3OEVBNTcwNTJENDM2Qk \
+  --add-scram 'SCRAM-SHA-512=[name=admin,password=admin]' \
+  --ignore-formatted
