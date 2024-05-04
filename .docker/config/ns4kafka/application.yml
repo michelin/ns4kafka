@@ -20,6 +20,11 @@ kafka:
 ns4kafka:
   security:
     admin-group: "ns4kafka"
+    local-users:
+      - username: gitlab
+        password: 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+        groups:
+          - "ns4kafka"
   managed-clusters:
     local:
       manage-users: true
