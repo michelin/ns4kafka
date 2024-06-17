@@ -194,10 +194,6 @@ public class TopicAsyncExecutor {
 
         log.info("Success deleting topic {} on {}", topic.getMetadata().getName(),
             managedClusterProperties.getName());
-
-        if (managedClusterProperties.isConfluentCloud() && !topic.getSpec().getTags().isEmpty()) {
-            dissociateTags(topic.getSpec().getTags(), topic);
-        }
     }
 
     /**
