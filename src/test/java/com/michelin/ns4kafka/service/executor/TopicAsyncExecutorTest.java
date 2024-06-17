@@ -540,13 +540,13 @@ class TopicAsyncExecutorTest {
         assertTrue(brokerTopics.get(TOPIC_NAME).getSpec().getTags().isEmpty());
 
         assertNull(brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());
-        assertEquals(TAG1, brokerTopics.get(TOPIC_NAME2).getSpec().getTags().getFirst());
+        assertEquals(TAG1, brokerTopics.get(TOPIC_NAME2).getSpec().getTags().get(0));
 
         assertEquals(DESCRIPTION1, brokerTopics.get(TOPIC_NAME3).getSpec().getDescription());
         assertTrue(brokerTopics.get(TOPIC_NAME3).getSpec().getTags().isEmpty());
 
         assertEquals(DESCRIPTION2, brokerTopics.get(TOPIC_NAME4).getSpec().getDescription());
-        assertEquals(TAG2, brokerTopics.get(TOPIC_NAME4).getSpec().getTags().getFirst());
+        assertEquals(TAG2, brokerTopics.get(TOPIC_NAME4).getSpec().getTags().get(0));
     }
 
     @Test
