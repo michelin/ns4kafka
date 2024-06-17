@@ -1102,6 +1102,3 @@ class TopicServiceTest {
                 validationErrors.get(0));
     }
 }
-
-
-

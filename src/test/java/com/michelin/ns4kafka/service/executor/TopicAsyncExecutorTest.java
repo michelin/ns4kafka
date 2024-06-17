@@ -583,3 +583,4 @@ class TopicAsyncExecutorTest {
         assertTrue(brokerTopics.get(TOPIC_NAME2).getSpec().getTags().isEmpty());
     }
 }
+
