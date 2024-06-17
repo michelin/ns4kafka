@@ -37,6 +37,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
 import reactor.core.publisher.Mono;
 
 @ExtendWith(MockitoExtension.class)
@@ -64,6 +65,9 @@ class TopicAsyncExecutorTest {
 
     @Mock
     Admin adminClient;
+
+    @Mock
+    Logger log;
 
     @Mock
     DeleteTopicsResult deleteTopicsResult;
@@ -278,7 +282,6 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldDeleteTopicNoTags() throws ExecutionException, InterruptedException, TimeoutException {
-        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
@@ -293,44 +296,15 @@ class TopicAsyncExecutorTest {
 
         topicAsyncExecutor.deleteTopic(topic);
 
-        verify(schemaRegistryClient, never()).dissociateTag(any(), any(), any());
-    }
-
-    @Test
-    void shouldDeleteTopicSelfManagedCluster() throws ExecutionException, InterruptedException, TimeoutException {
-        when(managedClusterProperties.isConfluentCloud()).thenReturn(false);
-        when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
-        when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
-        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
-
-        Topic topic = Topic.builder()
-            .metadata(Metadata.builder()
-                .name(TOPIC_NAME)
-                .build())
-            .spec(Topic.TopicSpec.builder()
-                .build())
-            .build();
-
-        topicAsyncExecutor.deleteTopic(topic);
-
-        verify(schemaRegistryClient, never()).dissociateTag(any(), any(), any());
+        verify(adminClient).deleteTopics(anyList());
     }
 
     @Test
     void shouldDeleteTopicAndTags() throws ExecutionException, InterruptedException, TimeoutException {
-        Properties properties = new Properties();
-        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
-
-        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
-        when(managedClusterProperties.getConfig()).thenReturn(properties);
-        when(schemaRegistryClient.dissociateTag(anyString(),
-            anyString(), anyString()))
-            .thenReturn(Mono.just(HttpResponse.ok()))
-            .thenReturn(Mono.error(new Exception("error")));
 
         Topic topic = Topic.builder()
             .metadata(Metadata.builder()
@@ -343,7 +317,7 @@ class TopicAsyncExecutorTest {
 
         topicAsyncExecutor.deleteTopic(topic);
 
-        verify(schemaRegistryClient).dissociateTag(LOCAL_CLUSTER, CLUSTER_ID_TEST + ":" + TOPIC_NAME, TAG1);
+        verify(adminClient).deleteTopics(anyList());
     }
 
     @Test
@@ -570,13 +544,13 @@ class TopicAsyncExecutorTest {
         assertTrue(brokerTopics.get(TOPIC_NAME).getSpec().getTags().isEmpty());
 
         assertNull(brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());
-        assertEquals(TAG1, brokerTopics.get(TOPIC_NAME2).getSpec().getTags().getFirst());
+        assertEquals(TAG1, brokerTopics.get(TOPIC_NAME2).getSpec().getTags().get(0));
 
         assertEquals(DESCRIPTION1, brokerTopics.get(TOPIC_NAME3).getSpec().getDescription());
         assertTrue(brokerTopics.get(TOPIC_NAME3).getSpec().getTags().isEmpty());
 
         assertEquals(DESCRIPTION2, brokerTopics.get(TOPIC_NAME4).getSpec().getDescription());
-        assertEquals(TAG2, brokerTopics.get(TOPIC_NAME4).getSpec().getTags().getFirst());
+        assertEquals(TAG2, brokerTopics.get(TOPIC_NAME4).getSpec().getTags().get(0));
     }
 
     @Test
