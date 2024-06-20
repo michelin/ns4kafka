@@ -278,7 +278,6 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldDeleteTopicNoTags() throws ExecutionException, InterruptedException, TimeoutException {
-        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
@@ -293,44 +292,15 @@ class TopicAsyncExecutorTest {
 
         topicAsyncExecutor.deleteTopic(topic);
 
-        verify(schemaRegistryClient, never()).dissociateTag(any(), any(), any());
-    }
-
-    @Test
-    void shouldDeleteTopicSelfManagedCluster() throws ExecutionException, InterruptedException, TimeoutException {
-        when(managedClusterProperties.isConfluentCloud()).thenReturn(false);
-        when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
-        when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
-        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
-
-        Topic topic = Topic.builder()
-            .metadata(Metadata.builder()
-                .name(TOPIC_NAME)
-                .build())
-            .spec(Topic.TopicSpec.builder()
-                .build())
-            .build();
-
-        topicAsyncExecutor.deleteTopic(topic);
-
-        verify(schemaRegistryClient, never()).dissociateTag(any(), any(), any());
+        verify(adminClient).deleteTopics(anyList());
     }
 
     @Test
     void shouldDeleteTopicAndTags() throws ExecutionException, InterruptedException, TimeoutException {
-        Properties properties = new Properties();
-        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
-
-        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
-        when(managedClusterProperties.getConfig()).thenReturn(properties);
-        when(schemaRegistryClient.dissociateTag(anyString(),
-            anyString(), anyString()))
-            .thenReturn(Mono.just(HttpResponse.ok()))
-            .thenReturn(Mono.error(new Exception("error")));
 
         Topic topic = Topic.builder()
             .metadata(Metadata.builder()
@@ -343,7 +313,7 @@ class TopicAsyncExecutorTest {
 
         topicAsyncExecutor.deleteTopic(topic);
 
-        verify(schemaRegistryClient).dissociateTag(LOCAL_CLUSTER, CLUSTER_ID_TEST + ":" + TOPIC_NAME, TAG1);
+        verify(adminClient).deleteTopics(anyList());
     }
 
     @Test
