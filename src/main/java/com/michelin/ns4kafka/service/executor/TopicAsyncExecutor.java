@@ -116,14 +116,17 @@ public class TopicAsyncExecutor {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
             if (!createTopics.isEmpty()) {
-                log.debug("Topic(s) to create: {}", String.join(", ", createTopics.stream().map(topic -> topic.getMetadata().getName()).toList()));
+                log.debug("Topic(s) to create: {}", String.join(", ",
+                    createTopics.stream().map(topic -> topic.getMetadata().getName()).toList()));
             }
 
             if (!updateTopics.isEmpty()) {
-                log.debug("Topic(s) to update: {}", String.join(", ", updateTopics.keySet().stream().map(ConfigResource::name).toList()));
+                log.debug("Topic(s) to update: {}",
+                    String.join(", ", updateTopics.keySet().stream().map(ConfigResource::name).toList()));
                 for (Map.Entry<ConfigResource, Collection<AlterConfigOp>> e : updateTopics.entrySet()) {
                     for (AlterConfigOp op : e.getValue()) {
-                        log.debug("{} {} {}({})", e.getKey().name(), op.opType().toString(), op.configEntry().name(), op.configEntry().value());
+                        log.debug("{} {} {}({})",
+                            e.getKey().name(), op.opType().toString(), op.configEntry().name(), op.configEntry().value());
                     }
                 }
             }
