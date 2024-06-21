@@ -337,7 +337,7 @@ public class TopicAsyncExecutor {
                     .build())
                 .spec(Topic.TopicSpec.builder()
                     .replicationFactor(
-                        topicDescriptions.get(stringMapEntry.getKey()).partitions().get(0).replicas().size())
+                        topicDescriptions.get(stringMapEntry.getKey()).partitions().getFirst().replicas().size())
                     .partitions(topicDescriptions.get(stringMapEntry.getKey()).partitions().size())
                     .configs(stringMapEntry.getValue())
                     .build())
