@@ -64,8 +64,7 @@ public class TopicAsyncExecutor {
 
     private SchemaRegistryClient schemaRegistryClient;
 
-    @Inject
-    StreamCatalogProperties streamCatalogConfig;
+    private StreamCatalogProperties streamCatalogConfig;
 
     private Admin getAdminClient() {
         return managedClusterProperties.getAdminClient();
