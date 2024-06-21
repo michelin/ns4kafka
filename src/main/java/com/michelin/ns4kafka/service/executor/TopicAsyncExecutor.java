@@ -121,12 +121,12 @@ public class TopicAsyncExecutor {
             }
 
             if (!updateTopics.isEmpty()) {
-                log.debug("Topic(s) to update: {}",
-                    String.join(", ", updateTopics.keySet().stream().map(ConfigResource::name).toList()));
+                log.debug("Topic(s) to update: {}", String.join(", ",
+                    updateTopics.keySet().stream().map(ConfigResource::name).toList()));
                 for (Map.Entry<ConfigResource, Collection<AlterConfigOp>> e : updateTopics.entrySet()) {
                     for (AlterConfigOp op : e.getValue()) {
-                        log.debug("{} {} {}({})",
-                            e.getKey().name(), op.opType().toString(), op.configEntry().name(), op.configEntry().value());
+                        log.debug("{} {} {}({})", e.getKey().name(), op.opType().toString(),
+                            op.configEntry().name(), op.configEntry().value());
                     }
                 }
             }
