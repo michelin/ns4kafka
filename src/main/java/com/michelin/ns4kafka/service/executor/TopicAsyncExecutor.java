@@ -2,8 +2,8 @@ package com.michelin.ns4kafka.service.executor;
 
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Topic;
+import com.michelin.ns4kafka.property.ConfluentCloudProperties;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
-import com.michelin.ns4kafka.property.StreamCatalogProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
 import com.michelin.ns4kafka.repository.kafka.KafkaStoreException;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
@@ -14,7 +14,6 @@ import com.michelin.ns4kafka.service.client.schema.entities.TopicDescriptionUpda
 import com.michelin.ns4kafka.service.client.schema.entities.TopicDescriptionUpdateEntity;
 import com.michelin.ns4kafka.service.client.schema.entities.TopicListResponse;
 import io.micronaut.context.annotation.EachBean;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.AbstractMap;
@@ -64,7 +63,7 @@ public class TopicAsyncExecutor {
 
     private SchemaRegistryClient schemaRegistryClient;
 
-    private StreamCatalogProperties streamCatalogConfig;
+    private ConfluentCloudProperties confluentCloudConfig;
 
     private Admin getAdminClient() {
         return managedClusterProperties.getAdminClient();
@@ -274,7 +273,7 @@ public class TopicAsyncExecutor {
 
             // getting list of topics by managing offset & limit
             int offset = 0;
-            int limit = streamCatalogConfig.getPageSize();
+            int limit = confluentCloudConfig.getStreamCatalog().getPageSize();
             do {
                 topicListResponse = schemaRegistryClient.getTopicWithCatalogInfo(
                     managedClusterProperties.getName(), limit, offset).block();
