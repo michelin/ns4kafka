@@ -273,7 +273,7 @@ public class TopicAsyncExecutor {
 
             // getting list of topics by managing offset & limit
             int offset = 0;
-            int limit = confluentCloudProperties.getStreamCatalog().getPageSize();;
+            int limit = confluentCloudProperties.getStreamCatalog().getPageSize();
             do {
                 topicListResponse = schemaRegistryClient.getTopicWithCatalogInfo(
                     managedClusterProperties.getName(), limit, offset).block();
