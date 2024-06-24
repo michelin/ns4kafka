@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.service.executor;
 
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Topic;
+import com.michelin.ns4kafka.property.ConfluentCloudProperties;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
 import com.michelin.ns4kafka.repository.kafka.KafkaStoreException;
@@ -62,6 +63,8 @@ public class TopicAsyncExecutor {
 
     private SchemaRegistryClient schemaRegistryClient;
 
+    private ConfluentCloudProperties confluentCloudProperties;
+
     private Admin getAdminClient() {
         return managedClusterProperties.getAdminClient();
     }
@@ -111,18 +114,17 @@ public class TopicAsyncExecutor {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
             if (!createTopics.isEmpty()) {
-                log.debug("Topic(s) to create: "
-                    + String.join(", ", createTopics.stream().map(topic -> topic.getMetadata().getName()).toList()));
+                log.debug("Topic(s) to create: {}", String.join(", ",
+                    createTopics.stream().map(topic -> topic.getMetadata().getName()).toList()));
             }
 
             if (!updateTopics.isEmpty()) {
-                log.debug("Topic(s) to update: "
-                    + String.join(", ", updateTopics.keySet().stream().map(ConfigResource::name).toList()));
+                log.debug("Topic(s) to update: {}", String.join(", ",
+                    updateTopics.keySet().stream().map(ConfigResource::name).toList()));
                 for (Map.Entry<ConfigResource, Collection<AlterConfigOp>> e : updateTopics.entrySet()) {
                     for (AlterConfigOp op : e.getValue()) {
-                        log.debug(
-                            e.getKey().name() + " " + op.opType().toString() + " " + op.configEntry().name() + "("
-                                + op.configEntry().value() + ")");
+                        log.debug("{} {} {}({})", e.getKey().name(), op.opType().toString(),
+                            op.configEntry().name(), op.configEntry().value());
                     }
                 }
             }
@@ -271,7 +273,7 @@ public class TopicAsyncExecutor {
 
             // getting list of topics by managing offset & limit
             int offset = 0;
-            int limit = 5000;
+            int limit = confluentCloudProperties.getStreamCatalog().getPageSize();;
             do {
                 topicListResponse = schemaRegistryClient.getTopicWithCatalogInfo(
                     managedClusterProperties.getName(), limit, offset).block();
@@ -332,7 +334,7 @@ public class TopicAsyncExecutor {
                     .build())
                 .spec(Topic.TopicSpec.builder()
                     .replicationFactor(
-                        topicDescriptions.get(stringMapEntry.getKey()).partitions().get(0).replicas().size())
+                        topicDescriptions.get(stringMapEntry.getKey()).partitions().getFirst().replicas().size())
                     .partitions(topicDescriptions.get(stringMapEntry.getKey()).partitions().size())
                     .configs(stringMapEntry.getValue())
                     .build())

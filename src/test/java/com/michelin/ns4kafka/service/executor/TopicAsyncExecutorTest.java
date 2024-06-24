@@ -14,6 +14,8 @@ import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Topic;
+import com.michelin.ns4kafka.property.ConfluentCloudProperties;
+import com.michelin.ns4kafka.property.ConfluentCloudProperties.StreamCatalogProperties;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
@@ -58,6 +60,12 @@ class TopicAsyncExecutorTest {
 
     @Mock
     ManagedClusterProperties managedClusterProperties;
+
+    @Mock
+    ConfluentCloudProperties confluentCloudProperties;
+
+    @Mock
+    StreamCatalogProperties streamCatalogProperties;
 
     @Mock
     TopicRepository topicRepository;
@@ -428,6 +436,10 @@ class TopicAsyncExecutorTest {
     void shouldEnrichWithCatalogInfoWhenConfluentCloud() {
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
+        when(confluentCloudProperties.getStreamCatalog()).thenReturn(streamCatalogProperties);
+        when(streamCatalogProperties.getPageSize()).thenReturn(500);
+
+        int limit = 500;
 
         TopicEntity entity = TopicEntity.builder()
             .classificationNames(List.of(TAG1))
@@ -439,9 +451,9 @@ class TopicAsyncExecutorTest {
         TopicListResponse response1 = TopicListResponse.builder().entities(List.of(entity)).build();
         TopicListResponse response2 = TopicListResponse.builder().entities(List.of()).build();
 
-        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, 5000, 0))
+        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, limit, 0))
             .thenReturn(Mono.just(response1));
-        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, 5000, 5000))
+        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, limit, limit))
             .thenReturn(Mono.just(response2));
 
         Map<String, Topic> brokerTopics = Map.of(
@@ -463,6 +475,10 @@ class TopicAsyncExecutorTest {
     void shouldEnrichWithCatalogInfoForMultipleTopics() {
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
+        when(confluentCloudProperties.getStreamCatalog()).thenReturn(streamCatalogProperties);
+        when(streamCatalogProperties.getPageSize()).thenReturn(500);
+
+        int limit = 500;
 
         TopicEntity entity1 = TopicEntity.builder()
             .classificationNames(List.of())
@@ -500,9 +516,9 @@ class TopicAsyncExecutorTest {
                 .entities(List.of(entity1, entity2, entity3, entity4)).build();
         TopicListResponse response2 = TopicListResponse.builder().entities(List.of()).build();
 
-        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, 5000, 0))
+        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, limit, 0))
             .thenReturn(Mono.just(response1));
-        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, 5000, 5000))
+        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, limit, limit))
             .thenReturn(Mono.just(response2));
 
         Map<String, Topic> brokerTopics = Map.of(
@@ -553,6 +569,8 @@ class TopicAsyncExecutorTest {
     void shouldEnrichWithCatalogInfoWhenConfluentCloudAndResponseIsNull() {
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
+        when(confluentCloudProperties.getStreamCatalog()).thenReturn(streamCatalogProperties);
+        when(streamCatalogProperties.getPageSize()).thenReturn(500);
         when(schemaRegistryClient.getTopicWithCatalogInfo(anyString(), any(Integer.class), any(Integer.class)))
             .thenReturn(Mono.empty());
 
