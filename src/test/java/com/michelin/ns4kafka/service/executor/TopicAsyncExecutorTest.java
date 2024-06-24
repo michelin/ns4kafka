@@ -439,6 +439,8 @@ class TopicAsyncExecutorTest {
         when(confluentCloudProperties.getStreamCatalog()).thenReturn(streamCatalogProperties);
         when(streamCatalogProperties.getPageSize()).thenReturn(500);
 
+        int limit = 500;
+
         TopicEntity entity = TopicEntity.builder()
             .classificationNames(List.of(TAG1))
             .attributes(TopicEntityAttributes.builder()
@@ -449,10 +451,9 @@ class TopicAsyncExecutorTest {
         TopicListResponse response1 = TopicListResponse.builder().entities(List.of(entity)).build();
         TopicListResponse response2 = TopicListResponse.builder().entities(List.of()).build();
 
-        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, streamCatalogProperties.getPageSize(), 0))
+        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, limit, 0))
             .thenReturn(Mono.just(response1));
-        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, streamCatalogProperties.getPageSize(),
-            streamCatalogProperties.getPageSize()))
+        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, limit, limit))
             .thenReturn(Mono.just(response2));
 
         Map<String, Topic> brokerTopics = Map.of(
@@ -476,6 +477,8 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
         when(confluentCloudProperties.getStreamCatalog()).thenReturn(streamCatalogProperties);
         when(streamCatalogProperties.getPageSize()).thenReturn(500);
+
+        int limit = 500;
 
         TopicEntity entity1 = TopicEntity.builder()
             .classificationNames(List.of())
@@ -513,10 +516,9 @@ class TopicAsyncExecutorTest {
                 .entities(List.of(entity1, entity2, entity3, entity4)).build();
         TopicListResponse response2 = TopicListResponse.builder().entities(List.of()).build();
 
-        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, streamCatalogProperties.getPageSize(), 0))
+        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, limit, 0))
             .thenReturn(Mono.just(response1));
-        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, streamCatalogProperties.getPageSize(),
-            streamCatalogProperties.getPageSize()))
+        when(schemaRegistryClient.getTopicWithCatalogInfo(LOCAL_CLUSTER, limit, limit))
             .thenReturn(Mono.just(response2));
 
         Map<String, Topic> brokerTopics = Map.of(
