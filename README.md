@@ -31,6 +31,7 @@ using [Kafkactl](https://github.com/michelin/kafkactl), which follows best pract
     * [Kafka Broker](#kafka-broker)
     * [Managed clusters](#managed-clusters)
     * [AKHQ](#akhq)
+    * [Sensitive Endpoints](#sensitive-endpoints)
 * [Administration](#administration)
 * [Contribution](#contribution)
 
@@ -408,6 +409,16 @@ metadata:
 
 Once the configuration is in place, after successful authentication in AKHQ, users belonging to
 the `NAMESPACE-LDAP-GROUP` will be able to access the resources within the `myNamespace` namespace.
+
+### Sensitive Endpoints
+
+Micronaut sensitive endpoints can be enabled or disabled in the application configuration.
+The list of sensitive endpoints can be found in
+the [Micronaut documentation](https://docs.micronaut.io/latest/guide/#providedEndpoints).
+
+These endpoints are disabled by default in Ns4Kafka and can be enabled by setting the `endpoints.*.enabled` property
+to `true`.
+When enabled, these endpoints require to be authenticated as an admin user to be accessed.
 
 ## Administration
 
