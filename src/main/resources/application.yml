@@ -65,6 +65,24 @@ jackson:
   serialization:
     indent-output: true # Pretty-print JSON
 
+endpoints:
+  env:
+    enabled: false
+  beans:
+    enabled: false
+  info:
+    enabled: false
+  loggers:
+    enabled: false
+  metrics:
+    enabled: false
+  refresh:
+    enabled: false
+  routes:
+    enabled: false
+  threaddump:
+    enabled: false
+
 kafka:
   health:
     enabled: false
@@ -147,22 +165,4 @@ ns4kafka:
     console:
       enabled: true
     kafka:
-      enabled: false
-
-  endpoints:
-    env:
-      enabled: false
-    beans:
-      enabled: false
-    info:
-      enabled: false
-    loggers:
-      enabled: false
-    metrics:
-      enabled: false
-    refresh:
-      enabled: false
-    routes:
-      enabled: false
-    threaddump:
       enabled: false
