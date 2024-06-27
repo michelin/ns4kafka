@@ -18,9 +18,9 @@ public class ConfluentCloudProperties {
      */
     @Getter
     @Setter
-    @ConfigurationProperties("ns4kafka.confluent-cloud.stream-catalog")
+    @ConfigurationProperties("stream-catalog")
     public static class StreamCatalogProperties {
-        private int pageSize = 500;
+        int pageSize = 500;
     }
 
 }
