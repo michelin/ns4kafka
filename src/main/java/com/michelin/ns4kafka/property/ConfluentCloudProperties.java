@@ -22,5 +22,4 @@ public class ConfluentCloudProperties {
     public static class StreamCatalogProperties {
         int pageSize = 500;
     }
-
 }
