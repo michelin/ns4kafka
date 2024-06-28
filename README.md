@@ -29,6 +29,7 @@ using [Kafkactl](https://github.com/michelin/kafkactl), which follows best pract
         * [Local](#local)
         * [GitLab](#gitlab)
     * [Kafka Broker](#kafka-broker)
+    * [Stream Catalog](#stream-catalog)
     * [Managed clusters](#managed-clusters)
     * [AKHQ](#akhq)
     * [Sensitive Endpoints](#sensitive-endpoints)
@@ -269,6 +270,20 @@ kafka:
 ```
 
 The configuration will depend on the authentication method selected for your broker.
+
+### Stream Catalog
+
+For Confluent Cloud only, the Stream Catalog API is used to retrieve the list of topics with their tags and their description.
+You can configure the page size of the response of the API using the following properties:
+
+```yaml
+ns4kafka:
+  confluent-cloud:
+    stream-catalog:
+      page-size: 500
+```
+
+The max page size is at 500 as described in the [Confluent Cloud documentation](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#list-all-topics).
 
 ### Managed clusters
 
