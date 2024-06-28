@@ -29,6 +29,7 @@ using [Kafkactl](https://github.com/michelin/kafkactl), which follows best pract
         * [Local](#local)
         * [GitLab](#gitlab)
     * [Kafka Broker](#kafka-broker)
+    * [Stream Catalog](#stream-catalog)
     * [Managed clusters](#managed-clusters)
     * [AKHQ](#akhq)
     * [Sensitive Endpoints](#sensitive-endpoints)
