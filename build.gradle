@@ -3,7 +3,7 @@ plugins {
     id("io.micronaut.application") version "4.4.0"
     id("jacoco")
     id("org.sonarqube") version "5.0.0.4638"
-    id("pl.allegro.tech.build.axion-release") version "1.17.2"
+    id("pl.allegro.tech.build.axion-release") version "1.18.0"
     id("checkstyle")
 }
 
