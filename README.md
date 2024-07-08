@@ -29,6 +29,7 @@ using [Kafkactl](https://github.com/michelin/kafkactl), which follows best pract
         * [Local](#local)
         * [GitLab](#gitlab)
     * [Kafka Broker](#kafka-broker)
+    * [Stream Catalog](#stream-catalog)
     * [Managed clusters](#managed-clusters)
     * [AKHQ](#akhq)
     * [Sensitive Endpoints](#sensitive-endpoints)
@@ -270,6 +271,21 @@ kafka:
 
 The configuration will depend on the authentication method selected for your broker.
 
+### Stream Catalog
+
+For Confluent Cloud only, the Stream Catalog API is used to retrieve the list of topics with their tags and their description. Reminder that the `config.cluster.id` parameter from [managed cluster properties](#managed-clusters) must be set to use Confluent Cloud.
+
+You can configure the page size of the response of the API using the following properties:
+
+```yaml
+ns4kafka:
+  confluent-cloud:
+    stream-catalog:
+      page-size: 500
+```
+
+The max page size is at 500 as described in the [Confluent Cloud documentation](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#list-all-topics).
+
 ### Managed clusters
 
 Managed clusters are the clusters where Ns4Kafka namespaces are deployed, and Kafka resources are managed.
@@ -315,7 +331,7 @@ of your namespace descriptors.
 | drop-unsync-acls                        | boolean | Should Ns4Kafka drop unsynchronized ACLs                                                                                               |
 | provider                                | boolean | The kind of cluster. Either SELF_MANAGED or CONFLUENT_CLOUD                                                                            |
 | config.bootstrap.servers                | string  | The location of the clusters servers                                                                                                   |
-| config.cluster.id                       | string  | The cluster id. Required to use [Confluent Cloud tags](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog.html). |
+| config.cluster.id                       | string  | The cluster id. Required to use [Confluent Cloud tags](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog.html). In this case, [Stream Catalog properties](#stream-catalog) must be set. |
 | schema-registry.url                     | string  | The location of the Schema Registry                                                                                                    |
 | schema-registry.basicAuthUsername       | string  | Basic authentication username to the Schema Registry                                                                                   |
 | schema-registry.basicAuthPassword       | string  | Basic authentication password to the Schema Registry                                                                                   |
