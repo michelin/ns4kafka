@@ -273,7 +273,7 @@ The configuration will depend on the authentication method selected for your bro
 
 ### Stream Catalog
 
-For Confluent Cloud only, the Stream Catalog API is used to retrieve the list of topics with their tags and their description. Reminder that the config.cluster.id parameter from [managed cluster properties](#managed-clusters) must be set to use Confluent Cloud.
+For Confluent Cloud only, the Stream Catalog API is used to retrieve the list of topics with their tags and their description. Reminder that the ``config.cluster.id`` parameter from [managed cluster properties](#managed-clusters) must be set to use Confluent Cloud.
 
 You can configure the page size of the response of the API using the following properties:
 
