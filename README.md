@@ -30,7 +30,7 @@ using [Kafkactl](https://github.com/michelin/kafkactl), which follows best pract
         * [GitLab](#gitlab)
     * [Kafka Broker](#kafka-broker)
     * [Stream Catalog](#stream-catalog)
-    * [Managed clusters](#managed-clusters)
+    * [Managed Kafka Clusters](#managed-kafka-clusters)
     * [AKHQ](#akhq)
     * [Sensitive Endpoints](#sensitive-endpoints)
 * [Administration](#administration)
@@ -259,6 +259,8 @@ to the GitLab group "ADMIN_GROUP".
 
 ### Kafka Broker
 
+Ns4Kafka requires a Kafka broker to store data.
+
 You can configure authentication to the Kafka brokers using the following:
 
 ```yaml
@@ -286,7 +288,7 @@ ns4kafka:
 
 The max page size is at 500 as described in the [Confluent Cloud documentation](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#list-all-topics).
 
-### Managed clusters
+### Managed Kafka Clusters
 
 Managed clusters are the clusters where Ns4Kafka namespaces are deployed, and Kafka resources are managed.
 
