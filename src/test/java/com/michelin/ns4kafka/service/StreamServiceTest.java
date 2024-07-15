@@ -9,6 +9,7 @@ import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.repository.StreamRepository;
+import com.michelin.ns4kafka.service.client.connect.entities.KafkaStreamSearchParams;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -81,6 +82,196 @@ class StreamServiceTest {
         assertTrue(actual.contains(stream1));
         assertTrue(actual.contains(stream2));
         assertTrue(actual.contains(stream3));
+    }
+
+    @Test
+    void findKafkaStreamWithNameParameter() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
+        KafkaStream stream1 = KafkaStream.builder()
+            .metadata(Metadata.builder()
+                .name("test_stream1")
+                .namespace("test")
+                .cluster("local")
+                .build())
+            .build();
+        KafkaStream stream2 = KafkaStream.builder()
+            .metadata(Metadata.builder()
+                .name("test_stream2")
+                .namespace("test")
+                .cluster("local")
+                .build())
+            .build();
+        KafkaStream stream3 = KafkaStream.builder()
+            .metadata(Metadata.builder()
+                .name("test_stream3")
+                .namespace("test")
+                .cluster("local")
+                .build())
+            .build();
+
+        when(streamRepository.findAllForCluster("local")).thenReturn(List.of(stream1, stream2, stream3));
+
+        KafkaStreamSearchParams params1 = KafkaStreamSearchParams.builder().name(List.of("test_stream3")).build();
+        List<KafkaStream> list1 = streamService.findAllForNamespace(ns, params1);
+        assertEquals(List.of(stream3), list1);
+
+        KafkaStreamSearchParams params2 = KafkaStreamSearchParams.builder().name(List.of("test_stream5")).build();
+        List<KafkaStream> list2 = streamService.findAllForNamespace(ns, params2);
+        assertTrue(list2.isEmpty());
+
+        KafkaStreamSearchParams params3 = KafkaStreamSearchParams.builder().name(List.of("")).build();
+        List<KafkaStream> list3 = streamService.findAllForNamespace(ns, params3);
+        assertEquals(List.of(stream1, stream2, stream3), list3);
+    }
+
+    @Test
+    void findKafkaStreamWithWildcardNameParameter() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
+        KafkaStream stream1 = KafkaStream.builder()
+            .metadata(Metadata.builder()
+                .name("test_stream1")
+                .namespace("test")
+                .cluster("local")
+                .build())
+            .build();
+        KafkaStream stream2 = KafkaStream.builder()
+            .metadata(Metadata.builder()
+                .name("test_stream2")
+                .namespace("test")
+                .cluster("local")
+                .build())
+            .build();
+        KafkaStream stream3 = KafkaStream.builder()
+            .metadata(Metadata.builder()
+                .name("test_stream3")
+                .namespace("test")
+                .cluster("local")
+                .build())
+            .build();
+        KafkaStream stream4 = KafkaStream.builder()
+            .metadata(Metadata.builder()
+                .name("test.stream1")
+                .namespace("test")
+                .cluster("local")
+                .build())
+            .build();
+        KafkaStream stream5 = KafkaStream.builder()
+            .metadata(Metadata.builder()
+                .name("stream2_test")
+                .namespace("test")
+                .cluster("local")
+                .build())
+            .build();
+
+        when(streamRepository.findAllForCluster("local"))
+            .thenReturn(List.of(stream1, stream2, stream3, stream4, stream5));
+
+        KafkaStreamSearchParams params1 = KafkaStreamSearchParams.builder().name(List.of("test_*")).build();
+        assertEquals(List.of(stream1, stream2, stream3), streamService.findAllForNamespace(ns, params1));
+
+        KafkaStreamSearchParams params2 = KafkaStreamSearchParams.builder().name(List.of("test_stream?")).build();
+        assertEquals(List.of(stream1, stream2, stream3), streamService.findAllForNamespace(ns, params2));
+
+        KafkaStreamSearchParams params3 = KafkaStreamSearchParams.builder().name(List.of("*_*")).build();
+        assertEquals(List.of(stream1, stream2, stream3, stream5), streamService.findAllForNamespace(ns, params3));
+
+        KafkaStreamSearchParams params4 = KafkaStreamSearchParams.builder().name(List.of("test?stream1")).build();
+        assertEquals(List.of(stream1, stream4), streamService.findAllForNamespace(ns, params4));
+
+        KafkaStreamSearchParams params5 = KafkaStreamSearchParams.builder().name(List.of("*stream2*")).build();
+        assertEquals(List.of(stream2, stream5), streamService.findAllForNamespace(ns, params5));
+
+        KafkaStreamSearchParams params6 = KafkaStreamSearchParams.builder().name(List.of("*stream5")).build();
+        assertTrue(streamService.findAllForNamespace(ns, params6).isEmpty());
+
+        KafkaStreamSearchParams params7 = KafkaStreamSearchParams.builder().name(List.of("test??stream1")).build();
+        assertTrue(streamService.findAllForNamespace(ns, params7).isEmpty());
+
+        KafkaStreamSearchParams params8 = KafkaStreamSearchParams.builder().name(List.of(".*")).build();
+        assertTrue(streamService.findAllForNamespace(ns, params8).isEmpty());
+    }
+
+    @Test
+    void findKafkaStreamWithMultipleNameParameters() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
+        KafkaStream stream1 = KafkaStream.builder()
+            .metadata(Metadata.builder()
+                .name("test_stream1")
+                .namespace("test")
+                .cluster("local")
+                .build())
+            .build();
+        KafkaStream stream2 = KafkaStream.builder()
+            .metadata(Metadata.builder()
+                .name("test_stream2")
+                .namespace("test")
+                .cluster("local")
+                .build())
+            .build();
+        KafkaStream stream3 = KafkaStream.builder()
+            .metadata(Metadata.builder()
+                .name("test_stream3")
+                .namespace("test")
+                .cluster("local")
+                .build())
+            .build();
+        KafkaStream stream4 = KafkaStream.builder()
+            .metadata(Metadata.builder()
+                .name("test.stream1")
+                .namespace("test")
+                .cluster("local")
+                .build())
+            .build();
+        KafkaStream stream5 = KafkaStream.builder()
+            .metadata(Metadata.builder()
+                .name("stream2_test")
+                .namespace("test")
+                .cluster("local")
+                .build())
+            .build();
+
+        when(streamRepository.findAllForCluster("local"))
+                .thenReturn(List.of(stream1, stream2, stream3, stream4, stream5));
+
+        KafkaStreamSearchParams params1 = KafkaStreamSearchParams.builder()
+            .name(List.of("test_stream?", "test.stream?")).build();
+        assertEquals(List.of(stream1, stream2, stream3, stream5), streamService.findAllForNamespace(ns, params1));
+
+        KafkaStreamSearchParams params2 = KafkaStreamSearchParams.builder().name(List.of("test_stream?")).build();
+        assertEquals(List.of(stream1, stream2, stream3), streamService.findAllForNamespace(ns, params2));
+
+        KafkaStreamSearchParams params3 = KafkaStreamSearchParams.builder().name(List.of("*_*")).build();
+        assertEquals(List.of(stream1, stream2, stream3, stream5), streamService.findAllForNamespace(ns, params3));
+
+        KafkaStreamSearchParams params4 = KafkaStreamSearchParams.builder().name(List.of("test?stream1")).build();
+        assertEquals(List.of(stream1, stream4), streamService.findAllForNamespace(ns, params4));
+
+        KafkaStreamSearchParams params5 = KafkaStreamSearchParams.builder().name(List.of("*stream2*")).build();
+        assertEquals(List.of(stream2, stream5), streamService.findAllForNamespace(ns, params5));
+
+        KafkaStreamSearchParams params6 = KafkaStreamSearchParams.builder().name(List.of("*stream5")).build();
+        assertTrue(streamService.findAllForNamespace(ns, params6).isEmpty());
+
+        KafkaStreamSearchParams params7 = KafkaStreamSearchParams.builder().name(List.of("test??stream1")).build();
+        assertTrue(streamService.findAllForNamespace(ns, params7).isEmpty());
+
+        KafkaStreamSearchParams params8 = KafkaStreamSearchParams.builder().name(List.of(".*")).build();
+        assertTrue(streamService.findAllForNamespace(ns, params8).isEmpty());
     }
 
     @Test
