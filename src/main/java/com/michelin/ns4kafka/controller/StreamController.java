@@ -7,6 +7,7 @@ import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.service.StreamService;
+import com.michelin.ns4kafka.service.client.connect.entities.KafkaStreamSearchParams;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.http.HttpResponse;
@@ -41,9 +42,12 @@ public class StreamController extends NamespacedResourceController {
      * @param namespace The namespace
      * @return A list of Kafka Streams
      */
-    @Get("/")
-    List<KafkaStream> list(String namespace) {
-        return streamService.findAllForNamespace(getNamespace(namespace));
+    @Get
+    List<KafkaStream> list(String namespace, @QueryValue Optional<List<String>> name) {
+        KafkaStreamSearchParams params = KafkaStreamSearchParams.builder()
+            .name(name.orElse(List.of("*")))
+            .build();
+        return streamService.findAllForNamespace(getNamespace(namespace), params);
     }
 
     /**

@@ -4,7 +4,9 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.repository.StreamRepository;
+import com.michelin.ns4kafka.service.client.connect.entities.KafkaStreamSearchParams;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
+import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import jakarta.inject.Inject;
@@ -12,6 +14,7 @@ import jakarta.inject.Singleton;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 /**
  * Service to manage Kafka Streams.
@@ -28,7 +31,7 @@ public class StreamService {
     ApplicationContext applicationContext;
 
     /**
-     * Find all Kafka Streams by given namespace.
+     * Find all Kafka Streams of a given namespace.
      *
      * @param namespace The namespace
      * @return A list of Kafka Streams
@@ -36,6 +39,21 @@ public class StreamService {
     public List<KafkaStream> findAllForNamespace(Namespace namespace) {
         return streamRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
             .filter(stream -> stream.getMetadata().getNamespace().equals(namespace.getMetadata().getName()))
+            .toList();
+    }
+
+    /**
+     * Find all Kafka Streams of a given namespace, filtered by given parameters.
+     *
+     * @param namespace The namespace
+     * @return A list of Kafka Streams
+     */
+    public List<KafkaStream> findAllForNamespace(Namespace namespace, KafkaStreamSearchParams params) {
+        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(params.name());
+        return streamRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
+            .filter(stream -> stream.getMetadata().getNamespace().equals(namespace.getMetadata().getName())
+                && nameFilterPatterns.stream()
+                    .anyMatch(pattern -> Pattern.compile(pattern).matcher(stream.getMetadata().getName()).matches()))
             .toList();
     }
 
