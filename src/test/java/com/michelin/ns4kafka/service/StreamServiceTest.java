@@ -181,7 +181,7 @@ class StreamServiceTest {
             .build();
 
         when(streamRepository.findAllForCluster("local"))
-            .thenReturn(List.of(stream1, stream2, stream3, stream4, stream5));
+            .thenReturn(List.of(stream1, stream2, stream3, stream4, stream5, stream6));
 
         KafkaStreamSearchParams params1 = KafkaStreamSearchParams.builder().name(List.of("test_*")).build();
         assertEquals(List.of(stream1, stream2, stream3), streamService.findAllForNamespace(ns, params1));
