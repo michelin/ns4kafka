@@ -172,6 +172,13 @@ class StreamServiceTest {
                 .cluster("local")
                 .build())
             .build();
+        KafkaStream stream6 = KafkaStream.builder()
+            .metadata(Metadata.builder()
+                .name("prefix.stream_test1")
+                .namespace("test2")
+                .cluster("local")
+                .build())
+            .build();
 
         when(streamRepository.findAllForCluster("local"))
             .thenReturn(List.of(stream1, stream2, stream3, stream4, stream5));
