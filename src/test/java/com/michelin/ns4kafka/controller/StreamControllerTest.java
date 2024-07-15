@@ -56,7 +56,7 @@ class StreamControllerTest {
             .build();
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(streamService.findAllForNamespace(ns))
+        when(streamService.findAllForNamespace(ns, KafkaStreamSearchParams.builder().name(List.of("*")).build()))
             .thenReturn(List.of());
 
         List<KafkaStream> actual = streamController.list("test", Optional.empty());
@@ -86,7 +86,7 @@ class StreamControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(streamService.findAllForNamespace(ns))
+        when(streamService.findAllForNamespace(ns, KafkaStreamSearchParams.builder().name(List.of("*")).build()))
             .thenReturn(List.of(stream1, stream2));
 
         List<KafkaStream> actual = streamController.list("test", Optional.empty());

@@ -1,9 +1,12 @@
 package com.michelin.ns4kafka.util;
 
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import java.util.List;
 
+/**
+ * Regex utils.
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class RegexUtils {
     /**
@@ -14,11 +17,11 @@ public class RegexUtils {
      */
     public static List<String> wildcardStringsToRegexPatterns(List<String> wildcardStrings) {
         return wildcardStrings.stream()
-            .map(wildcardString -> "^" + wildcardString
-                .replace(".", "\\.")
-                .replace("*", ".*")
-                .replace("?", ".")
-                .replaceAll("^$", ".*") + "$")
-            .toList();
+                .map(wildcardString -> "^" + wildcardString
+                        .replace(".", "\\.")
+                        .replace("*", ".*")
+                        .replace("?", ".")
+                        .replaceAll("^$", ".*") + "$")
+                .toList();
     }
 }

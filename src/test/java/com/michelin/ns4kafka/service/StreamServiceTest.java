@@ -199,6 +199,10 @@ class StreamServiceTest {
 
         KafkaStreamSearchParams params8 = KafkaStreamSearchParams.builder().name(List.of(".*")).build();
         assertTrue(streamService.findAllForNamespace(ns, params8).isEmpty());
+
+        KafkaStreamSearchParams params9 = KafkaStreamSearchParams.builder().name(List.of("*")).build();
+        assertEquals(List.of(stream1, stream2, stream3, stream4, stream5),
+            streamService.findAllForNamespace(ns, params9));
     }
 
     @Test
@@ -249,29 +253,52 @@ class StreamServiceTest {
                 .thenReturn(List.of(stream1, stream2, stream3, stream4, stream5));
 
         KafkaStreamSearchParams params1 = KafkaStreamSearchParams.builder()
-            .name(List.of("test_stream?", "test.stream?")).build();
-        assertEquals(List.of(stream1, stream2, stream3, stream5), streamService.findAllForNamespace(ns, params1));
+            .name(List.of("test_stream1", "test_stream2")).build();
+        assertEquals(List.of(stream1, stream2), streamService.findAllForNamespace(ns, params1));
 
-        KafkaStreamSearchParams params2 = KafkaStreamSearchParams.builder().name(List.of("test_stream?")).build();
-        assertEquals(List.of(stream1, stream2, stream3), streamService.findAllForNamespace(ns, params2));
+        KafkaStreamSearchParams params2 = KafkaStreamSearchParams.builder()
+            .name(List.of("stream2_test", "test.stream10")).build();
+        assertEquals(List.of(stream5), streamService.findAllForNamespace(ns, params2));
 
-        KafkaStreamSearchParams params3 = KafkaStreamSearchParams.builder().name(List.of("*_*")).build();
-        assertEquals(List.of(stream1, stream2, stream3, stream5), streamService.findAllForNamespace(ns, params3));
+        KafkaStreamSearchParams params3 = KafkaStreamSearchParams.builder()
+            .name(List.of("streamTEST", "TEST-stream3")).build();
+        assertTrue(streamService.findAllForNamespace(ns, params3).isEmpty());
 
-        KafkaStreamSearchParams params4 = KafkaStreamSearchParams.builder().name(List.of("test?stream1")).build();
-        assertEquals(List.of(stream1, stream4), streamService.findAllForNamespace(ns, params4));
+        KafkaStreamSearchParams params4 = KafkaStreamSearchParams.builder()
+            .name(List.of("test_stream1", "test_stream1", "test_stream1")).build();
+        assertEquals(List.of(stream1), streamService.findAllForNamespace(ns, params4));
 
-        KafkaStreamSearchParams params5 = KafkaStreamSearchParams.builder().name(List.of("*stream2*")).build();
-        assertEquals(List.of(stream2, stream5), streamService.findAllForNamespace(ns, params5));
+        KafkaStreamSearchParams params5 = KafkaStreamSearchParams.builder()
+            .name(List.of("test_*", "stream?_test")).build();
+        assertEquals(List.of(stream1, stream2, stream3, stream5), streamService.findAllForNamespace(ns, params5));
 
-        KafkaStreamSearchParams params6 = KafkaStreamSearchParams.builder().name(List.of("*stream5")).build();
-        assertTrue(streamService.findAllForNamespace(ns, params6).isEmpty());
+        KafkaStreamSearchParams params6 = KafkaStreamSearchParams.builder()
+            .name(List.of("test*", "stream??_test")).build();
+        assertEquals(List.of(stream1, stream2, stream3, stream4), streamService.findAllForNamespace(ns, params6));
 
-        KafkaStreamSearchParams params7 = KafkaStreamSearchParams.builder().name(List.of("test??stream1")).build();
+        KafkaStreamSearchParams params7 = KafkaStreamSearchParams.builder()
+            .name(List.of("stream??_test", "kafka*stream*")).build();
         assertTrue(streamService.findAllForNamespace(ns, params7).isEmpty());
 
-        KafkaStreamSearchParams params8 = KafkaStreamSearchParams.builder().name(List.of(".*")).build();
-        assertTrue(streamService.findAllForNamespace(ns, params8).isEmpty());
+        KafkaStreamSearchParams params8 = KafkaStreamSearchParams.builder()
+            .name(List.of("*_test", "*_test")).build();
+        assertEquals(List.of(stream5), streamService.findAllForNamespace(ns, params8));
+
+        KafkaStreamSearchParams params9 = KafkaStreamSearchParams.builder()
+            .name(List.of("test_stream1", "test_stream3", "*_test")).build();
+        assertEquals(List.of(stream1, stream3, stream5), streamService.findAllForNamespace(ns, params9));
+
+        KafkaStreamSearchParams params10 = KafkaStreamSearchParams.builder()
+            .name(List.of("test_stream9", "*_test")).build();
+        assertEquals(List.of(stream5), streamService.findAllForNamespace(ns, params10));
+
+        KafkaStreamSearchParams params11 = KafkaStreamSearchParams.builder()
+            .name(List.of("*-dev", "stream_topic")).build();
+        assertTrue(streamService.findAllForNamespace(ns, params11).isEmpty());
+
+        KafkaStreamSearchParams params12 = KafkaStreamSearchParams.builder()
+            .name(List.of("test_stream?", "test_stream1")).build();
+        assertEquals(List.of(stream1, stream2, stream3), streamService.findAllForNamespace(ns, params12));
     }
 
     @Test
