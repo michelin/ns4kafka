@@ -46,7 +46,7 @@ class RoleBindingServiceTest {
         when(roleBindingRepository.findAllForNamespace("namespace")).thenReturn(List.of(rb1, rb2, rb3));
 
         var result = roleBindingService.findByName("namespace", "namespace-rb2");
-        assertEquals(rb2, result.get());
+        assertEquals(rb2, result.orElse(null));
     }
 
     @Test
