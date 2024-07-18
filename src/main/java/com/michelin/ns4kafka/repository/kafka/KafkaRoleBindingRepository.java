@@ -1,7 +1,9 @@
 package com.michelin.ns4kafka.repository.kafka;
 
 import com.michelin.ns4kafka.model.RoleBinding;
+import com.michelin.ns4kafka.model.query.RoleBindingFilterParams;
 import com.michelin.ns4kafka.repository.RoleBindingRepository;
+import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.configuration.kafka.annotation.KafkaClient;
 import io.micronaut.configuration.kafka.annotation.KafkaListener;
 import io.micronaut.configuration.kafka.annotation.OffsetReset;
@@ -11,6 +13,7 @@ import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import java.util.Collection;
 import java.util.List;
+import java.util.regex.Pattern;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
@@ -107,6 +110,24 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
         return getKafkaStore().values()
             .stream()
             .filter(roleBinding -> roleBinding.getMetadata().getNamespace().equals(namespace))
+            .toList();
+    }
+
+    /**
+     * List role bindings of a given namespace, filtered by given parameters.
+     *
+     * @param namespace The namespace used to research
+     * @param params The filter parameters
+     * @return The list of associated role bindings
+     */
+    @Override
+    public List<RoleBinding> findAllForNamespace(String namespace, RoleBindingFilterParams params) {
+        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(params.name());
+        return getKafkaStore().values()
+            .stream()
+            .filter(roleBinding -> roleBinding.getMetadata().getNamespace().equals(namespace)
+                && nameFilterPatterns.stream().anyMatch(pattern ->
+                    Pattern.compile(pattern).matcher(roleBinding.getMetadata().getName()).matches()))
             .toList();
     }
 }

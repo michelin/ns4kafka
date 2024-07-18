@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.controller;
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.RoleBinding;
+import com.michelin.ns4kafka.model.query.RoleBindingFilterParams;
 import com.michelin.ns4kafka.service.RoleBindingService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import io.micronaut.http.HttpResponse;
@@ -41,8 +42,11 @@ public class RoleBindingController extends NamespacedResourceController {
      * @return A list of role bindings
      */
     @Get
-    public List<RoleBinding> list(String namespace) {
-        return roleBindingService.list(namespace);
+    public List<RoleBinding> list(String namespace, @QueryValue Optional<List<String>> name) {
+        RoleBindingFilterParams params = RoleBindingFilterParams.builder()
+            .name(name.orElse(List.of("*")))
+            .build();
+        return roleBindingService.list(namespace, params);
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.service;
 
 import com.michelin.ns4kafka.model.RoleBinding;
+import com.michelin.ns4kafka.model.query.RoleBindingFilterParams;
 import com.michelin.ns4kafka.repository.RoleBindingRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -35,13 +36,23 @@ public class RoleBindingService {
     }
 
     /**
-     * List role bindings by namespace.
+     * List role bindings of a given namespace.
      *
      * @param namespace The namespace used to research
      * @return The list of associated role bindings
      */
     public List<RoleBinding> list(String namespace) {
         return roleBindingRepository.findAllForNamespace(namespace);
+    }
+
+    /**
+     * List role bindings of a given namespace, filtered by given parameters.
+     *
+     * @param namespace The namespace used to research
+     * @return The list of associated role bindings
+     */
+    public List<RoleBinding> list(String namespace, RoleBindingFilterParams params) {
+        return roleBindingRepository.findAllForNamespace(namespace, params);
     }
 
     /**
