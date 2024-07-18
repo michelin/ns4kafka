@@ -13,10 +13,10 @@ import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.query.KafkaStreamFilterParams;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.StreamService;
-import com.michelin.ns4kafka.service.client.connect.entities.KafkaStreamSearchParams;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpStatus;
@@ -56,7 +56,7 @@ class StreamControllerTest {
             .build();
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(streamService.findAllForNamespace(ns, KafkaStreamSearchParams.builder().name(List.of("*")).build()))
+        when(streamService.findAllForNamespace(ns, KafkaStreamFilterParams.builder().name(List.of("*")).build()))
             .thenReturn(List.of());
 
         List<KafkaStream> actual = streamController.list("test", Optional.empty());
@@ -86,7 +86,7 @@ class StreamControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(streamService.findAllForNamespace(ns, KafkaStreamSearchParams.builder().name(List.of("*")).build()))
+        when(streamService.findAllForNamespace(ns, KafkaStreamFilterParams.builder().name(List.of("*")).build()))
             .thenReturn(List.of(stream1, stream2));
 
         List<KafkaStream> actual = streamController.list("test", Optional.empty());
@@ -109,7 +109,7 @@ class StreamControllerTest {
 
         List<String> nameParamsList = List.of("prefix.s1", "prefix.s2");
         Optional<List<String>> nameParams = Optional.of(nameParamsList);
-        KafkaStreamSearchParams searchParams = KafkaStreamSearchParams.builder().name(nameParamsList).build();
+        KafkaStreamFilterParams searchParams = KafkaStreamFilterParams.builder().name(nameParamsList).build();
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
@@ -137,7 +137,7 @@ class StreamControllerTest {
 
         when(namespaceService.findByName("test"))
                 .thenReturn(Optional.of(ns));
-        when(streamService.findAllForNamespace(ns, KafkaStreamSearchParams.builder().name(List.of("")).build()))
+        when(streamService.findAllForNamespace(ns, KafkaStreamFilterParams.builder().name(List.of("")).build()))
                 .thenReturn(List.of(stream1, stream2));
 
         List<KafkaStream> actual = streamController.list("test", Optional.of(List.of("")));

@@ -3,8 +3,8 @@ package com.michelin.ns4kafka.service;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.query.KafkaStreamFilterParams;
 import com.michelin.ns4kafka.repository.StreamRepository;
-import com.michelin.ns4kafka.service.client.connect.entities.KafkaStreamSearchParams;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
@@ -48,7 +48,7 @@ public class StreamService {
      * @param namespace The namespace
      * @return A list of Kafka Streams
      */
-    public List<KafkaStream> findAllForNamespace(Namespace namespace, KafkaStreamSearchParams params) {
+    public List<KafkaStream> findAllForNamespace(Namespace namespace, KafkaStreamFilterParams params) {
         List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(params.name());
         return streamRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
             .filter(stream -> stream.getMetadata().getNamespace().equals(namespace.getMetadata().getName())
