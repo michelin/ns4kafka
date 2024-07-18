@@ -3,11 +3,13 @@ package com.michelin.ns4kafka.service;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.model.query.RoleBindingFilterParams;
 import com.michelin.ns4kafka.repository.RoleBindingRepository;
+import com.michelin.ns4kafka.util.RegexUtils;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 /**
  * Service to manage role bindings.
@@ -49,10 +51,16 @@ public class RoleBindingService {
      * List role bindings of a given namespace, filtered by given parameters.
      *
      * @param namespace The namespace used to research
+     * @param params The filter parameters
      * @return The list of associated role bindings
      */
     public List<RoleBinding> list(String namespace, RoleBindingFilterParams params) {
-        return roleBindingRepository.findAllForNamespace(namespace, params);
+        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(params.name());
+        return roleBindingRepository.findAllForNamespace(namespace)
+            .stream()
+            .filter(roleBinding -> nameFilterPatterns.stream()
+                .anyMatch(pattern -> Pattern.compile(pattern).matcher(roleBinding.getMetadata().getName()).matches()))
+            .toList();
     }
 
     /**

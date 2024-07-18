@@ -1,7 +1,6 @@
 package com.michelin.ns4kafka.repository;
 
 import com.michelin.ns4kafka.model.RoleBinding;
-import com.michelin.ns4kafka.model.query.RoleBindingFilterParams;
 import java.util.Collection;
 import java.util.List;
 
@@ -24,14 +23,6 @@ public interface RoleBindingRepository {
      * @return The list of associated role bindings
      */
     List<RoleBinding> findAllForNamespace(String namespace);
-
-    /**
-     * List role bindings of a given namespace, filtered by given parameters.
-     *
-     * @param namespace The namespace used to research
-     * @return The list of associated role bindings
-     */
-    List<RoleBinding> findAllForNamespace(String namespace, RoleBindingFilterParams params);
 
     /**
      * Create a role binding.
