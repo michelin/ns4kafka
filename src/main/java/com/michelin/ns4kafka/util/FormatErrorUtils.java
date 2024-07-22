@@ -87,7 +87,7 @@ public class FormatErrorUtils {
                                                           invalidResourcePatternTypeValue) {
         return String.format(INVALID_FIELDS, invalidResourceValue, invalidResourcePatternTypeValue, "resource",
             "resourcePatternType",
-            "cannot grant ACL to yourself");
+            "cannot grant ACL because namespace is not owner of the top level resource");
     }
 
     /**
@@ -736,6 +736,6 @@ public class FormatErrorUtils {
      */
     public static String invalidTopicTagsFormat(String invalidTagFormatValue) {
         return String.format(INVALID_FIELD, invalidTagFormatValue, "tags",
-                "tags should start with letter and be followed by alphanumeric or _ characters");
+            "tags should start with letter and be followed by alphanumeric or _ characters");
     }
 }

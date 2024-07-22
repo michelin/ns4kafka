@@ -110,10 +110,10 @@ public class AclController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         boolean isAdmin = authentication.getRoles().contains(ResourceBasedSecurityRule.IS_ADMIN);
-        boolean isSelfAssignedAcl = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
+        boolean isSelfAssigned = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
 
         List<String> validationErrors;
-        if (isAdmin && isSelfAssignedAcl) {
+        if (isAdmin && isSelfAssigned) {
             // Validate overlapping OWNER
             validationErrors = accessControlEntryService.validateAsAdmin(accessControlEntry, ns);
         } else {

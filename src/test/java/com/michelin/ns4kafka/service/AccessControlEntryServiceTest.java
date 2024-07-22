@@ -74,7 +74,7 @@ class AccessControlEntryServiceTest {
                 "Invalid value \"OWNER\" for field \"permission\": value must be one of \"READ, WRITE\".",
                 "Invalid value \"target-ns\" for field \"grantedTo\": resource not found.",
                 "Invalid value \"test/PREFIXED\" for fields \"resource/resourcePatternType\": "
-                    + "cannot grant ACL to yourself."),
+                    + "cannot grant ACL because namespace is not owner of the top level resource."),
             actual);
 
     }
@@ -112,7 +112,7 @@ class AccessControlEntryServiceTest {
         assertLinesMatch(List.of(
                 "Invalid value \"namespace\" for field \"grantedTo\": cannot grant ACL to yourself.",
                 "Invalid value \"test/PREFIXED\" for fields \"resource/resourcePatternType\": "
-                    + "cannot grant ACL to yourself."),
+                    + "cannot grant ACL because namespace is not owner of the top level resource."),
             actual);
     }
 
@@ -124,6 +124,7 @@ class AccessControlEntryServiceTest {
                 .cluster("local")
                 .build())
             .build();
+
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-name")
@@ -137,6 +138,7 @@ class AccessControlEntryServiceTest {
                 .grantedTo("target-ns")
                 .build())
             .build();
+
         when(applicationContext.getBean(NamespaceService.class))
             .thenReturn(namespaceService);
         when(namespaceService.findByName("target-ns"))
@@ -155,11 +157,11 @@ class AccessControlEntryServiceTest {
             ));
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
         assertLinesMatch(List.of("Invalid value \"main/PREFIXED\" for fields \"resource/resourcePatternType\": "
-            + "cannot grant ACL to yourself."), actual);
+            + "cannot grant ACL because namespace is not owner of the top level resource."), actual);
     }
 
     @Test
-    void validate_NotAllowedOwnerOfBadLiteral() {
+    void validateNotAllowedOwnerOfBadLiteral() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -193,13 +195,13 @@ class AccessControlEntryServiceTest {
                     .permission(AccessControlEntry.Permission.OWNER)
                     .resource("resource1")
                     .grantedTo("namespace")
-                    .build()
-                )
+                    .build())
                 .build()
             ));
+
         List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
         assertLinesMatch(List.of("Invalid value \"resource2/LITERAL\" for fields \"resource/resourcePatternType\": "
-            + "cannot grant ACL to yourself."), actual);
+            + "cannot grant ACL because namespace is not owner of the top level resource."), actual);
     }
 
     @Test
@@ -286,7 +288,7 @@ class AccessControlEntryServiceTest {
     }
 
     @Test
-    void validate_AllowedPublicGrantedTo() {
+    void validateAllowedPublicGrantedTo() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
