@@ -51,16 +51,16 @@ import org.junit.jupiter.api.Test;
 class AccessControlListTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
-    HttpClient client;
+    HttpClient ns4KafkaClient;
 
     @Inject
-    List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutorList;
+    List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutors;
 
     private String token;
 
     @BeforeAll
     void init() {
-        Namespace ns1 = Namespace.builder()
+        Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("ns1")
                 .cluster("test-cluster")
@@ -72,7 +72,7 @@ class AccessControlListTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        RoleBinding rb1 = RoleBinding.builder()
+        RoleBinding roleBinding = RoleBinding.builder()
             .metadata(Metadata.builder()
                 .name("ns1-rb")
                 .namespace("ns1")
@@ -91,19 +91,29 @@ class AccessControlListTest extends AbstractIntegrationTest {
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
         HttpResponse<BearerAccessRefreshToken> response =
-            client.toBlocking().exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
+            ns4KafkaClient.toBlocking()
+                .exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
 
         token = response.getBody().get().getAccessToken();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1));
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token)
+                .body(namespace));
+
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings")
+                .bearerAuth(token)
+                .body(roleBinding));
     }
 
     @Test
-    void createTopicReadAcl() throws InterruptedException, ExecutionException {
-        AccessControlEntry aclTopic = AccessControlEntry.builder()
+    void shouldCreateAndDeleteTopicReadAcl() throws InterruptedException, ExecutionException {
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("ns1-acl-topic")
                 .namespace("ns1")
@@ -117,40 +127,62 @@ class AccessControlListTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                .bearerAuth(token)
+                .body(accessControlEntry));
 
         // Force ACLs synchronization
-        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
         Admin kafkaClient = getAdminClient();
 
-        AclBindingFilter user1Filter = new AclBindingFilter(
+        AclBindingFilter aclBindingFilter = new AclBindingFilter(
             ResourcePatternFilter.ANY,
-            new AccessControlEntryFilter("User:user1", null, AclOperation.ANY, AclPermissionType.ANY));
-        Collection<AclBinding> results = kafkaClient.describeAcls(user1Filter).values().get();
+            new AccessControlEntryFilter(
+                "User:user1",
+                null,
+                AclOperation.ANY,
+                AclPermissionType.ANY
+            )
+        );
+
+        Collection<AclBinding> results = kafkaClient.describeAcls(aclBindingFilter).values().get();
 
         AclBinding expected = new AclBinding(
-            new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, "ns1-", PatternType.PREFIXED),
-            new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.READ,
-                AclPermissionType.ALLOW));
+            new ResourcePattern(
+                org.apache.kafka.common.resource.ResourceType.TOPIC,
+                "ns1-",
+                PatternType.PREFIXED),
+            new org.apache.kafka.common.acl.AccessControlEntry(
+                "User:user1",
+                "*",
+                AclOperation.READ,
+                AclPermissionType.ALLOW
+            )
+        );
 
         assertEquals(1, results.size());
         assertEquals(expected, results.stream().findFirst().get());
 
         // DELETE the ACL and verify
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-topic").bearerAuth(token));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-topic")
+                .bearerAuth(token));
 
-        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
-        results = kafkaClient.describeAcls(user1Filter).values().get();
+        results = kafkaClient.describeAcls(aclBindingFilter).values().get();
 
         assertTrue(results.isEmpty());
     }
 
     @Test
-    void createPublicTopicReadAcl() throws InterruptedException, ExecutionException {
+    void shouldCreateAndDeletePublicAcl() throws InterruptedException, ExecutionException {
         AccessControlEntry aclTopicOwner = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("ns1-acl-topic-owner")
@@ -165,11 +197,15 @@ class AccessControlListTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopicOwner));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                .bearerAuth(token)
+                .body(aclTopicOwner));
 
         // Force ACLs synchronization
-        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
         AccessControlEntry aclTopicPublic = AccessControlEntry.builder()
             .metadata(Metadata.builder()
@@ -185,32 +221,61 @@ class AccessControlListTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopicPublic));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                .bearerAuth(token)
+                .body(aclTopicPublic));
 
         // Force ACLs synchronization
-        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
         Admin kafkaClient = getAdminClient();
-        AclBindingFilter publicFilter = new AclBindingFilter(ResourcePatternFilter.ANY,
-            new AccessControlEntryFilter("User:*", null, AclOperation.ANY, AclPermissionType.ANY));
+
+        AclBindingFilter publicFilter = new AclBindingFilter(
+            ResourcePatternFilter.ANY,
+            new AccessControlEntryFilter(
+                "User:*",
+                null,
+                AclOperation.ANY,
+                AclPermissionType.ANY
+            )
+        );
+
         Collection<AclBinding> results = kafkaClient.describeAcls(publicFilter).values().get();
 
         AclBinding expected = new AclBinding(
-            new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, "ns1-", PatternType.PREFIXED),
-            new org.apache.kafka.common.acl.AccessControlEntry("User:*", "*", AclOperation.READ,
-                AclPermissionType.ALLOW));
+            new ResourcePattern(
+                org.apache.kafka.common.resource.ResourceType.TOPIC,
+                "ns1-",
+                PatternType.PREFIXED
+            ),
+            new org.apache.kafka.common.acl.AccessControlEntry(
+                "User:*",
+                "*",
+                AclOperation.READ,
+                AclPermissionType.ALLOW
+            )
+        );
 
         assertEquals(1, results.size());
         assertEquals(expected, results.stream().findFirst().get());
 
         // DELETE the ACLs and verify
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-public-acl-topic").bearerAuth(token));
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-topic-owner").bearerAuth(token));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-public-acl-topic")
+                .bearerAuth(token));
 
-        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-topic-owner")
+                .bearerAuth(token));
+
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
         results = kafkaClient.describeAcls(publicFilter).values().get();
 
@@ -218,8 +283,8 @@ class AccessControlListTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void createTopicAclAlreadyExistsInBroker() throws InterruptedException, ExecutionException {
-        AccessControlEntry aclTopic = AccessControlEntry.builder()
+    void shouldCreateAclThatDoesAlreadyExistOnBroker() throws InterruptedException, ExecutionException {
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("ns1-acl-topic")
                 .namespace("ns1")
@@ -234,42 +299,64 @@ class AccessControlListTest extends AbstractIntegrationTest {
             .build();
 
         AclBinding aclBinding = new AclBinding(
-            new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, "ns1-", PatternType.PREFIXED),
-            new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.READ,
-                AclPermissionType.ALLOW));
+            new ResourcePattern(
+                org.apache.kafka.common.resource.ResourceType.TOPIC,
+                "ns1-",
+                PatternType.PREFIXED
+            ),
+            new org.apache.kafka.common.acl.AccessControlEntry(
+                "User:user1",
+                "*",
+                AclOperation.READ,
+                AclPermissionType.ALLOW
+            )
+        );
 
         Admin kafkaClient = getAdminClient();
         kafkaClient.createAcls(Collections.singletonList(aclBinding));
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                .bearerAuth(token)
+                .body(accessControlEntry));
 
         // Force ACLs synchronization
-        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
-        AclBindingFilter user1Filter = new AclBindingFilter(
+        AclBindingFilter aclBindingFilter = new AclBindingFilter(
             ResourcePatternFilter.ANY,
-            new AccessControlEntryFilter("User:user1", null, AclOperation.ANY, AclPermissionType.ANY));
-        Collection<AclBinding> results = kafkaClient.describeAcls(user1Filter).values().get();
+            new AccessControlEntryFilter(
+                "User:user1",
+                null,
+                AclOperation.ANY,
+                AclPermissionType.ANY
+            )
+        );
+
+        Collection<AclBinding> results = kafkaClient.describeAcls(aclBindingFilter).values().get();
 
         assertEquals(1, results.size());
         assertEquals(aclBinding, results.stream().findFirst().get());
 
         // Remove ACL
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-topic")
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-topic")
                 .bearerAuth(token));
 
-        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
-        results = kafkaClient.describeAcls(user1Filter).values().get();
+        results = kafkaClient.describeAcls(aclBindingFilter).values().get();
 
         assertTrue(results.isEmpty());
     }
 
     @Test
-    void createConnectOwnerAcl() throws InterruptedException, ExecutionException {
-        AccessControlEntry aclTopic = AccessControlEntry.builder()
+    void shouldCreateConnectAclWithOwnerPermission() throws InterruptedException, ExecutionException {
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("ns1-acl-connect")
                 .namespace("ns1")
@@ -283,33 +370,52 @@ class AccessControlListTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                .bearerAuth(token)
+                .body(accessControlEntry));
 
-        //force ACL Sync
-        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
         Admin kafkaClient = getAdminClient();
 
         AclBindingFilter user1Filter = new AclBindingFilter(
             ResourcePatternFilter.ANY,
-            new AccessControlEntryFilter("User:user1", null, AclOperation.ANY, AclPermissionType.ANY));
+            new AccessControlEntryFilter(
+                "User:user1",
+                null,
+                AclOperation.ANY,
+                AclPermissionType.ANY
+            )
+        );
+
         Collection<AclBinding> results = kafkaClient.describeAcls(user1Filter).values().get();
 
         AclBinding expected = new AclBinding(
-            new ResourcePattern(org.apache.kafka.common.resource.ResourceType.GROUP, "connect-ns1-",
+            new ResourcePattern(
+                org.apache.kafka.common.resource.ResourceType.GROUP,
+                "connect-ns1-",
                 PatternType.PREFIXED),
-            new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.READ,
-                AclPermissionType.ALLOW));
+            new org.apache.kafka.common.acl.AccessControlEntry(
+                "User:user1",
+                "*",
+                AclOperation.READ,
+                AclPermissionType.ALLOW
+            )
+        );
 
         assertEquals(1, results.size());
         assertEquals(expected, results.stream().findFirst().get());
 
         // DELETE the ACL and verify
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-connect").bearerAuth(token));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-connect")
+                .bearerAuth(token));
 
-        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
         results = kafkaClient.describeAcls(user1Filter).values().get();
 
@@ -317,8 +423,8 @@ class AccessControlListTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void createStreamAcl() throws InterruptedException, ExecutionException {
-        AccessControlEntry aclTopic = AccessControlEntry.builder()
+    void shouldCreateKafkaStreamsAcl() throws InterruptedException, ExecutionException {
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("ns1-acl-topic")
                 .namespace("ns1")
@@ -346,102 +452,200 @@ class AccessControlListTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic));
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclGroup));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                .bearerAuth(token)
+                .body(accessControlEntry));
 
-        //force ACL Sync
-        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                .bearerAuth(token)
+                .body(aclGroup));
+
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
         Admin kafkaClient = getAdminClient();
 
-        AclBindingFilter user1Filter = new AclBindingFilter(
+        AclBindingFilter aclBindingFilter = new AclBindingFilter(
             ResourcePatternFilter.ANY,
-            new AccessControlEntryFilter("User:user1", null, AclOperation.ANY, AclPermissionType.ANY));
-        Collection<AclBinding> results = kafkaClient.describeAcls(user1Filter).values().get();
+            new AccessControlEntryFilter(
+                "User:user1",
+                null,
+                AclOperation.ANY,
+                AclPermissionType.ANY
+            )
+        );
 
-        // Topic ns1- READ
-        // Topic ns1- WRITE
-        // Group ns1- READ
+        Collection<AclBinding> results = kafkaClient.describeAcls(aclBindingFilter).values().get();
 
-        AclBinding ac1 = new AclBinding(
-            new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, "ns1-", PatternType.PREFIXED),
-            new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.READ,
-                AclPermissionType.ALLOW));
-        AclBinding ac2 = new AclBinding(
-            new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, "ns1-", PatternType.PREFIXED),
-            new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.WRITE,
-                AclPermissionType.ALLOW));
-        AclBinding ac3 = new AclBinding(
-            new ResourcePattern(org.apache.kafka.common.resource.ResourceType.GROUP, "ns1-", PatternType.PREFIXED),
-            new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.READ,
-                AclPermissionType.ALLOW));
-        AclBinding ac4 = new AclBinding(
-            new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, "ns1-", PatternType.PREFIXED),
-            new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.DESCRIBE_CONFIGS,
-                AclPermissionType.ALLOW));
+        AclBinding aclBindingTopicRead = new AclBinding(
+            new ResourcePattern(
+                org.apache.kafka.common.resource.ResourceType.TOPIC,
+                "ns1-",
+                PatternType.PREFIXED
+            ),
+            new org.apache.kafka.common.acl.AccessControlEntry(
+                "User:user1",
+                "*",
+                AclOperation.READ,
+                AclPermissionType.ALLOW
+            )
+        );
+
+        AclBinding aclBindingTopicWrite = new AclBinding(
+            new ResourcePattern(
+                org.apache.kafka.common.resource.ResourceType.TOPIC,
+                "ns1-",
+                PatternType.PREFIXED),
+            new org.apache.kafka.common.acl.AccessControlEntry(
+                "User:user1",
+                "*",
+                AclOperation.WRITE,
+                AclPermissionType.ALLOW
+            )
+        );
+
+        AclBinding aclBindingGroupRead = new AclBinding(
+            new ResourcePattern(
+                org.apache.kafka.common.resource.ResourceType.GROUP,
+                "ns1-",
+                PatternType.PREFIXED
+            ),
+            new org.apache.kafka.common.acl.AccessControlEntry(
+                "User:user1",
+                "*",
+                AclOperation.READ,
+                AclPermissionType.ALLOW
+            )
+        );
+
+        AclBinding aclBindingTopicDescribeConfigs = new AclBinding(
+            new ResourcePattern(
+                org.apache.kafka.common.resource.ResourceType.TOPIC,
+                "ns1-",
+                PatternType.PREFIXED
+            ),
+            new org.apache.kafka.common.acl.AccessControlEntry(
+                "User:user1",
+                "*",
+                AclOperation.DESCRIBE_CONFIGS,
+                AclPermissionType.ALLOW
+            )
+        );
 
         assertEquals(4, results.size());
-        assertTrue(results.containsAll(List.of(ac1, ac2, ac3, ac4)));
+        assertTrue(results.containsAll(List.of(
+            aclBindingTopicRead,
+            aclBindingTopicWrite,
+            aclBindingGroupRead,
+            aclBindingTopicDescribeConfigs)
+        ));
 
-        KafkaStream stream = KafkaStream.builder()
+        KafkaStream kafkaStream = KafkaStream.builder()
             .metadata(Metadata.builder()
                 .name("ns1-stream1")
                 .namespace("ns1")
                 .build())
             .build();
 
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/streams").bearerAuth(token).body(stream));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/streams")
+                .bearerAuth(token)
+                .body(kafkaStream));
 
         // Force ACLs synchronization
-        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
-        results = kafkaClient.describeAcls(user1Filter).values().get();
+        results = kafkaClient.describeAcls(aclBindingFilter).values().get();
 
-        // Topic ns1- READ
-        // Topic ns1- WRITE
-        // Group ns1- READ
-        // Topic ns1-stream1 CREATE
-        // Topic ns1-stream1 DELETE
-        AclBinding ac5 = new AclBinding(
-            new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, "ns1-stream1",
-                PatternType.PREFIXED),
-            new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.CREATE,
-                AclPermissionType.ALLOW));
-        AclBinding ac6 = new AclBinding(
-            new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, "ns1-stream1",
-                PatternType.PREFIXED),
-            new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.DELETE,
-                AclPermissionType.ALLOW));
-        AclBinding ac7 = new AclBinding(
-            new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID, "ns1-stream1",
-                PatternType.PREFIXED),
-            new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.WRITE,
-                AclPermissionType.ALLOW));
+        AclBinding aclBindingTopicCreateForKafkaStreams = new AclBinding(
+            new ResourcePattern(
+                org.apache.kafka.common.resource.ResourceType.TOPIC,
+                "ns1-stream1",
+                PatternType.PREFIXED
+            ),
+            new org.apache.kafka.common.acl.AccessControlEntry(
+                "User:user1",
+                "*",
+                AclOperation.CREATE,
+                AclPermissionType.ALLOW
+            )
+        );
+
+        AclBinding aclBindingTopicDeleteForKafkaStreams = new AclBinding(
+            new ResourcePattern(
+                org.apache.kafka.common.resource.ResourceType.TOPIC,
+                "ns1-stream1",
+                PatternType.PREFIXED
+            ),
+            new org.apache.kafka.common.acl.AccessControlEntry(
+                "User:user1",
+                "*",
+                AclOperation.DELETE,
+                AclPermissionType.ALLOW
+            )
+        );
+
+        AclBinding aclBindingTransactionalForKafkaStreams = new AclBinding(
+            new ResourcePattern(
+                org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
+                "ns1-stream1",
+                PatternType.PREFIXED
+            ),
+            new org.apache.kafka.common.acl.AccessControlEntry(
+                "User:user1",
+                "*",
+                AclOperation.WRITE,
+                AclPermissionType.ALLOW
+            )
+        );
 
         assertEquals(7, results.size());
-        assertTrue(results.containsAll(List.of(ac1, ac2, ac3, ac4, ac5, ac6, ac7)));
+        assertTrue(results.containsAll(List.of(
+            aclBindingTopicRead,
+            aclBindingTopicWrite,
+            aclBindingGroupRead,
+            aclBindingTopicDescribeConfigs,
+            aclBindingTopicCreateForKafkaStreams,
+            aclBindingTopicDeleteForKafkaStreams,
+            aclBindingTransactionalForKafkaStreams)
+        ));
 
         // DELETE the Stream & ACL and verify
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/streams/ns1-stream1").bearerAuth(token));
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-topic").bearerAuth(token));
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-group").bearerAuth(token));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/streams/ns1-stream1")
+                .bearerAuth(token));
 
-        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-topic")
+                .bearerAuth(token));
 
-        results = kafkaClient.describeAcls(user1Filter).values().get();
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-group")
+                .bearerAuth(token));
+
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
+
+        results = kafkaClient.describeAcls(aclBindingFilter).values().get();
 
         assertTrue(results.isEmpty());
     }
 
     @Test
-    void shouldCreateTransactionalIdOwnerAcl() throws InterruptedException, ExecutionException {
-        AccessControlEntry aclTopic = AccessControlEntry.builder()
+    void shouldCreateTransactionalIdAclWithOwnerPermission() throws InterruptedException, ExecutionException {
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("ns1-acl-transactional-id")
                 .namespace("ns1")
@@ -455,42 +659,213 @@ class AccessControlListTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                .bearerAuth(token)
+                .body(accessControlEntry));
 
         // Force ACL Sync
-        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
         Admin kafkaClient = getAdminClient();
 
-        AclBindingFilter user1Filter = new AclBindingFilter(ResourcePatternFilter.ANY,
-            new AccessControlEntryFilter("User:user1", null, AclOperation.ANY, AclPermissionType.ANY));
-        Collection<AclBinding> results = kafkaClient.describeAcls(user1Filter).values().get();
+        AclBindingFilter aclBindingFilter = new AclBindingFilter(
+            ResourcePatternFilter.ANY,
+            new AccessControlEntryFilter(
+                "User:user1",
+                null,
+                AclOperation.ANY,
+                AclPermissionType.ANY
+            )
+        );
+
+        Collection<AclBinding> results = kafkaClient.describeAcls(aclBindingFilter).values().get();
 
         AclBinding expected = new AclBinding(
-            new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID, "ns1-",
-                PatternType.PREFIXED),
-            new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.WRITE,
-                AclPermissionType.ALLOW));
+            new ResourcePattern(
+                org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
+                "ns1-",
+                PatternType.PREFIXED
+            ),
+            new org.apache.kafka.common.acl.AccessControlEntry(
+                "User:user1",
+                "*",
+                AclOperation.WRITE,
+                AclPermissionType.ALLOW
+            )
+        );
 
         AclBinding expected2 = new AclBinding(
-            new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID, "ns1-",
-                PatternType.PREFIXED),
-            new org.apache.kafka.common.acl.AccessControlEntry("User:user1", "*", AclOperation.DESCRIBE,
-                AclPermissionType.ALLOW));
+            new ResourcePattern(
+                org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
+                "ns1-",
+                PatternType.PREFIXED
+            ),
+            new org.apache.kafka.common.acl.AccessControlEntry(
+                "User:user1",
+                "*",
+                AclOperation.DESCRIBE,
+                AclPermissionType.ALLOW
+            )
+        );
 
         assertEquals(2, results.size());
         assertTrue(results.containsAll(List.of(expected, expected2)));
 
-        // DELETE the ACL and verify
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-transactional-id")
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-transactional-id")
                 .bearerAuth(token));
 
-        accessControlEntryAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
-        results = kafkaClient.describeAcls(user1Filter).values().get();
+        results = kafkaClient.describeAcls(aclBindingFilter).values().get();
 
         assertTrue(results.isEmpty());
+    }
+
+    @Test
+    void shouldGrantAclToAnotherNamespace() throws ExecutionException, InterruptedException {
+        // Ownership of first namespace
+        AccessControlEntry accessControlEntryNamespace1 = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-acl-topic-owner")
+                .namespace("ns1")
+                .build())
+            .spec(AccessControlEntrySpec.builder()
+                .resourceType(ResourceType.TOPIC)
+                .resource("ns1-")
+                .resourcePatternType(ResourcePatternType.PREFIXED)
+                .permission(Permission.OWNER)
+                .grantedTo("ns1")
+                .build())
+            .build();
+
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                .bearerAuth(token)
+                .body(accessControlEntryNamespace1));
+
+        // Force ACLs synchronization
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
+
+        // Create second namespace
+        Namespace namespace = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns2")
+                .cluster("test-cluster")
+                .build())
+            .spec(NamespaceSpec.builder()
+                .kafkaUser("user2")
+                .topicValidator(TopicValidator.makeDefaultOneBroker())
+                .build())
+            .build();
+
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token)
+                .body(namespace));
+
+        // Grant ACL from namespace 1 to namespace 2 on topic prefixed by ns1-
+        AccessControlEntry grantedAclOnPrefix = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-granted-acl-on-prefix")
+                .namespace("ns1")
+                .build())
+            .spec(AccessControlEntrySpec.builder()
+                .resourceType(ResourceType.TOPIC)
+                .resource("ns1-")
+                .resourcePatternType(ResourcePatternType.PREFIXED)
+                .permission(Permission.READ)
+                .grantedTo("ns2")
+                .build())
+            .build();
+
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                .bearerAuth(token)
+                .body(grantedAclOnPrefix));
+
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
+
+        Admin kafkaClient = getAdminClient();
+
+        AclBindingFilter namespace2AclBindingFilter = new AclBindingFilter(
+            ResourcePatternFilter.ANY,
+            new AccessControlEntryFilter(
+                "User:user2",
+                null,
+                AclOperation.ANY,
+                AclPermissionType.ANY
+            )
+        );
+
+        // Verify namespace 2 has READ permission on topic prefixed by ns1-
+        Collection<AclBinding> results = kafkaClient.describeAcls(namespace2AclBindingFilter).values().get();
+
+        AclBinding expectedNamespace2TopicReadAcl = new AclBinding(
+            new ResourcePattern(
+                org.apache.kafka.common.resource.ResourceType.TOPIC,
+                "ns1-",
+                PatternType.PREFIXED
+            ),
+            new org.apache.kafka.common.acl.AccessControlEntry(
+                "User:user2",
+                "*",
+                AclOperation.READ,
+                AclPermissionType.ALLOW
+            )
+        );
+
+        assertEquals(1, results.size());
+        assertTrue(results.contains(expectedNamespace2TopicReadAcl));
+
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-granted-acl-on-prefix")
+                .bearerAuth(token));
+
+        results = kafkaClient.describeAcls(namespace2AclBindingFilter).values().get();
+        assertTrue(results.isEmpty());
+
+        // Verify namespace 1 is still owner of the topic
+        AclBindingFilter namespace1AclBindingFilter = new AclBindingFilter(
+            ResourcePatternFilter.ANY,
+            new AccessControlEntryFilter(
+                "User:user1",
+                "*",
+                AclOperation.READ,
+                AclPermissionType.ALLOW
+            )
+        );
+
+        results = kafkaClient.describeAcls(namespace1AclBindingFilter).values().get();
+
+        AclBinding expectedNamespace1TopicReadAcl = new AclBinding(
+            new ResourcePattern(
+                org.apache.kafka.common.resource.ResourceType.TOPIC,
+                "ns1-",
+                PatternType.PREFIXED
+            ),
+            new org.apache.kafka.common.acl.AccessControlEntry(
+                "User:user1",
+                "*",
+                AclOperation.READ,
+                AclPermissionType.ALLOW
+            )
+        );
+
+        assertEquals(1, results.size());
+        assertTrue(results.contains(expectedNamespace1TopicReadAcl));
     }
 }

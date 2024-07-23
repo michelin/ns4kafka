@@ -541,7 +541,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
     }
 
     @Test
-    void registerSchema() {
+    void shouldRegisterSchema() {
         Schema schema = Schema.builder()
             .metadata(Metadata.builder()
                 .name("ns1-subject2-value")
@@ -559,8 +559,8 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
             .build();
 
         // Apply schema
-        var createResponse =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+        var createResponse = ns4KafkaClient
+            .toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token)
                 .body(schema), Schema.class);
 
