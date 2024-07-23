@@ -374,116 +374,13 @@ class AclServiceTest {
 
     @ParameterizedTest
     @CsvSource({
-        "project1,project2_t1,project1,project2_t1",
-        "project1.,project2_t1,project1_,project2.t1"
-    })
-    void shouldValidateFailAsAdminWhenAclOverlap(String existingA,
-                                                 String existingB,
-                                                 String toCreateA,
-                                                 String toCreateB) {
-        // Another namespace is already OWNER of PREFIXED or LITERAL resource.
-        // Example :
-        // If already exists:
-        //   namespace1 OWNER:PREFIXED:project1
-        //   namespace1 OWNER:LITERAL:project2_t1
-        // And we try to create:
-        //   namespace2 OWNER:PREFIXED:project1             KO 1 same          <<<<<<
-        //   namespace2 OWNER:LITERAL:project1              KO 2 same          <<<<<<
-        //   namespace2 OWNER:PREFIXED:project1_sub         KO 3 child overlap
-        //   namespace2 OWNER:LITERAL:project1_t1           KO 4 child overlap
-        //   namespace2 OWNER:PREFIXED:proj                 KO 5 parent overlap
-        //   namespace2 OWNER:PREFIXED:project2             KO 6 parent overlap
-        //
-        //   namespace2 OWNER:PREFIXED:project3_topic1_sub  OK 7
-        //   namespace2 OWNER:LITERAL:project2              OK 8
-        //   namespace2 OWNER:LITERAL:proj                  OK 9
-
-        AccessControlEntry aceTopicPrefixedOwnerOtherNsToOtherNs = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("acl-existing1")
-                .namespace("other-ns")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource(existingA)
-                .grantedTo("other-ns")
-                .build())
-            .build();
-
-        AccessControlEntry aceTopicLiteralOwnerOtherNsToOtherNs = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("acl-existing2")
-                .namespace("other-ns")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource(existingB)
-                .grantedTo("other-ns")
-                .build())
-            .build();
-
-        Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("target-ns")
-                .cluster("local")
-                .build())
-            .build();
-
-        AccessControlEntry aceTopicPrefixedOwnerTargetNsToTargetNs = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("acl-tocreate")
-                .namespace("target-ns")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource(toCreateA)
-                .grantedTo("target-ns")
-                .build())
-            .build();
-
-        AccessControlEntry aceTopicLiteralOwnerTargetNsToTargetNs = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("acl-tocreate")
-                .namespace("target-ns")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource(toCreateB)
-                .grantedTo("target-ns")
-                .build())
-            .build();
-
-        when(accessControlEntryRepository.findAll())
-            .thenReturn(List.of(aceTopicPrefixedOwnerOtherNsToOtherNs, aceTopicLiteralOwnerOtherNsToOtherNs));
-
-        List<String> actual = aclService.validateAsAdmin(aceTopicPrefixedOwnerTargetNsToTargetNs, namespace);
-        assertEquals(1, actual.size());
-
-        actual = aclService.validateAsAdmin(aceTopicLiteralOwnerTargetNsToTargetNs, namespace);
-        assertEquals(1, actual.size());
-    }
-
-    @ParameterizedTest
-    @CsvSource({
         "project1,project2_t1,proj,project2",
         "project1.abc,project1.def_ghi,project1_,project1_def"
     })
-    void shouldValidateFailAsAdminWhenParentAclOverlap(String existingA,
-                                                       String existingB,
-                                                       String toCreateA,
-                                                       String toCreateB) {
+    void shouldValidateFailAsAdminWhenAclOverlapAsParent(String existingA,
+                                                         String existingB,
+                                                         String toCreateA,
+                                                         String toCreateB) {
         AccessControlEntry aceTopicPrefixedOwnerOtherNsToOtherNs = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-existing1")
@@ -563,13 +460,32 @@ class AclServiceTest {
 
     @ParameterizedTest
     @CsvSource({
+        "project1,project2_t1,project1,project2_t1",
+        "project1.,project2_t1,project1_,project2.t1",
         "project1,project2_t1,project1_sub,project1_t1",
         "project1.,project2_t1,project1_sub,project1_t1"
     })
-    void shouldValidateFailAsAdminWhenChildAclOverlap(String existingA,
-                                                      String existingB,
-                                                      String toCreateA,
-                                                      String toCreateB) {
+    void shouldValidateFailAsAdminWhenAclOverlapAsChild(String existingA,
+                                                        String existingB,
+                                                        String toCreateA,
+                                                        String toCreateB) {
+        // Another namespace is already OWNER of PREFIXED or LITERAL resource.
+        // Example :
+        // If already exists:
+        //   namespace1 OWNER:PREFIXED:project1
+        //   namespace1 OWNER:LITERAL:project2_t1
+        // And we try to create:
+        //   namespace2 OWNER:PREFIXED:project1             KO 1 same          <<<<<<
+        //   namespace2 OWNER:LITERAL:project1              KO 2 same          <<<<<<
+        //   namespace2 OWNER:PREFIXED:project1_sub         KO 3 child overlap
+        //   namespace2 OWNER:LITERAL:project1_t1           KO 4 child overlap
+        //   namespace2 OWNER:PREFIXED:proj                 KO 5 parent overlap
+        //   namespace2 OWNER:PREFIXED:project2             KO 6 parent overlap
+        //
+        //   namespace2 OWNER:PREFIXED:project3_topic1_sub  OK 7
+        //   namespace2 OWNER:LITERAL:project2              OK 8
+        //   namespace2 OWNER:LITERAL:proj                  OK 9
+
         AccessControlEntry aceTopicPrefixedOwnerOtherNsToOtherNs = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-existing1")

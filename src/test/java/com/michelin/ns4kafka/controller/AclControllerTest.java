@@ -726,13 +726,6 @@ class AclControllerTest {
 
     @Test
     void shouldDeleteSelfAssignedAclWithSuccessAsAdmin() {
-        Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
-
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("ace1")
@@ -759,13 +752,6 @@ class AclControllerTest {
 
     @Test
     void shouldDeleteAclWithSuccess() {
-        Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
-
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("ace1")
