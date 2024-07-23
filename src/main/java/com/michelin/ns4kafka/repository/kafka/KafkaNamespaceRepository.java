@@ -66,5 +66,4 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
             .filter(ns -> ns.getMetadata().getName().equals(namespace))
             .findFirst();
     }
-
 }

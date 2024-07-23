@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.michelin.ns4kafka.integration.TopicTest.BearerAccessRefreshToken;
+import com.michelin.ns4kafka.integration.TopicIntegrationTest.BearerAccessRefreshToken;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
@@ -37,7 +37,7 @@ import org.junit.jupiter.api.Test;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
-class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
+class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
     @Inject
     private ApplicationContext applicationContext;
 
@@ -541,7 +541,7 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
     }
 
     @Test
-    void registerSchema() {
+    void shouldRegisterSchema() {
         Schema schema = Schema.builder()
             .metadata(Metadata.builder()
                 .name("ns1-subject2-value")
@@ -559,8 +559,8 @@ class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
             .build();
 
         // Apply schema
-        var createResponse =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+        var createResponse = ns4KafkaClient
+            .toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token)
                 .body(schema), Schema.class);
 

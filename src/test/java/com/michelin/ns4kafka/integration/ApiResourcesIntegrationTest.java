@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
  */
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
-class ApiResourcesTest extends AbstractIntegrationTest {
+class ApiResourcesIntegrationTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
     HttpClient client;
@@ -33,8 +33,8 @@ class ApiResourcesTest extends AbstractIntegrationTest {
     @Test
     void asAdmin() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<TopicTest.BearerAccessRefreshToken> response = client.toBlocking()
-            .exchange(HttpRequest.POST("/login", credentials), TopicTest.BearerAccessRefreshToken.class);
+        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response = client.toBlocking()
+            .exchange(HttpRequest.POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
 
         String token = response.getBody().get().getAccessToken();
         List<ApiResourcesController.ResourceDefinition> resources = client.toBlocking().retrieve(
@@ -86,8 +86,8 @@ class ApiResourcesTest extends AbstractIntegrationTest {
             .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<TopicTest.BearerAccessRefreshToken> response = client.toBlocking()
-            .exchange(HttpRequest.POST("/login", credentials), TopicTest.BearerAccessRefreshToken.class);
+        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response = client.toBlocking()
+            .exchange(HttpRequest.POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
 
         String token = response.getBody().get().getAccessToken();
 
@@ -97,8 +97,8 @@ class ApiResourcesTest extends AbstractIntegrationTest {
             HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1));
 
         UsernamePasswordCredentials userCredentials = new UsernamePasswordCredentials("user", "admin");
-        HttpResponse<TopicTest.BearerAccessRefreshToken> userResponse = client.toBlocking()
-            .exchange(HttpRequest.POST("/login", userCredentials), TopicTest.BearerAccessRefreshToken.class);
+        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> userResponse = client.toBlocking()
+            .exchange(HttpRequest.POST("/login", userCredentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
         String userToken = userResponse.getBody().get().getAccessToken();
 
         List<ApiResourcesController.ResourceDefinition> resources = client.toBlocking().retrieve(

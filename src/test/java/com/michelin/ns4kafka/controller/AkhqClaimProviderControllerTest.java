@@ -10,7 +10,7 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.property.AkhqProperties;
-import com.michelin.ns4kafka.service.AccessControlEntryService;
+import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +28,7 @@ class AkhqClaimProviderControllerTest {
     NamespaceService namespaceService;
 
     @Mock
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     @InjectMocks
     AkhqClaimProviderController akhqClaimProviderController;
@@ -276,11 +276,11 @@ class AkhqClaimProviderControllerTest {
 
         when(namespaceService.listAll())
             .thenReturn(List.of(ns1, ns2, ns3, ns4, ns5));
-        when(accessControlEntryService.findAllGrantedToNamespace(ns1))
+        when(aclService.findAllGrantedToNamespace(ns1))
             .thenReturn(List.of(ns1Ace1, ns1Ace2, pubAce1));
-        when(accessControlEntryService.findAllGrantedToNamespace(ns2))
+        when(aclService.findAllGrantedToNamespace(ns2))
             .thenReturn(List.of(ns2Ace1, ns2Ace2, pubAce1));
-        when(accessControlEntryService.findAllGrantedToNamespace(ns3))
+        when(aclService.findAllGrantedToNamespace(ns3))
             .thenReturn(List.of(ns3Ace1, pubAce1));
 
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
@@ -310,12 +310,12 @@ class AkhqClaimProviderControllerTest {
             actual.getAttributes().get("topicsFilterRegexp")
         );
 
-        verify(accessControlEntryService).findAllGrantedToNamespace(ns1);
-        verify(accessControlEntryService).findAllGrantedToNamespace(ns2);
-        verify(accessControlEntryService).findAllGrantedToNamespace(ns3);
-        verify(accessControlEntryService, never()).findAllGrantedToNamespace(ns4);
-        verify(accessControlEntryService, never()).findAllGrantedToNamespace(ns5);
-        verify(accessControlEntryService).findAllPublicGrantedTo();
+        verify(aclService).findAllGrantedToNamespace(ns1);
+        verify(aclService).findAllGrantedToNamespace(ns2);
+        verify(aclService).findAllGrantedToNamespace(ns3);
+        verify(aclService, never()).findAllGrantedToNamespace(ns4);
+        verify(aclService, never()).findAllGrantedToNamespace(ns5);
+        verify(aclService).findAllPublicGrantedTo();
     }
 
     @Test
@@ -418,11 +418,11 @@ class AkhqClaimProviderControllerTest {
             .build();
         when(namespaceService.listAll())
             .thenReturn(List.of(ns1, ns2, ns3, ns4, ns5));
-        when(accessControlEntryService.findAllGrantedToNamespace(ns1))
+        when(aclService.findAllGrantedToNamespace(ns1))
             .thenReturn(List.of(ns1Ace1, ns1Ace2, pubAce1));
-        when(accessControlEntryService.findAllGrantedToNamespace(ns2))
+        when(aclService.findAllGrantedToNamespace(ns2))
             .thenReturn(List.of(ns2Ace1, ns2Ace2, pubAce1));
-        when(accessControlEntryService.findAllGrantedToNamespace(ns3))
+        when(aclService.findAllGrantedToNamespace(ns3))
             .thenReturn(List.of(ns3Ace1, pubAce1));
 
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
@@ -451,12 +451,12 @@ class AkhqClaimProviderControllerTest {
             actual.getTopicsFilterRegexp()
         );
 
-        verify(accessControlEntryService).findAllGrantedToNamespace(ns1);
-        verify(accessControlEntryService).findAllGrantedToNamespace(ns2);
-        verify(accessControlEntryService).findAllGrantedToNamespace(ns3);
-        verify(accessControlEntryService, never()).findAllGrantedToNamespace(ns4);
-        verify(accessControlEntryService, never()).findAllGrantedToNamespace(ns5);
-        verify(accessControlEntryService).findAllPublicGrantedTo();
+        verify(aclService).findAllGrantedToNamespace(ns1);
+        verify(aclService).findAllGrantedToNamespace(ns2);
+        verify(aclService).findAllGrantedToNamespace(ns3);
+        verify(aclService, never()).findAllGrantedToNamespace(ns4);
+        verify(aclService, never()).findAllGrantedToNamespace(ns5);
+        verify(aclService).findAllPublicGrantedTo();
     }
 
     @Test

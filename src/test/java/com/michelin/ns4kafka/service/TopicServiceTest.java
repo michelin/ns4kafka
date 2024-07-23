@@ -42,7 +42,7 @@ class TopicServiceTest {
     TopicService topicService;
 
     @Mock
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     @Mock
     TopicRepository topicRepository;
@@ -90,7 +90,7 @@ class TopicServiceTest {
         when(topicRepository.findAllForCluster("local"))
             .thenReturn(List.of(t1, t2, t3, t4));
 
-        when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(aclService.findAllGrantedToNamespace(ns))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -136,7 +136,7 @@ class TopicServiceTest {
             .build();
 
         // no ns4kfk access control entries
-        when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(aclService.findAllGrantedToNamespace(ns))
             .thenReturn(List.of());
 
         // no ns4kfk topics 
@@ -179,7 +179,7 @@ class TopicServiceTest {
             .thenReturn(List.of(t1, t2, t3, t4));
 
         // no ns4kfk access control entries
-        when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(aclService.findAllGrantedToNamespace(ns))
             .thenReturn(List.of());
 
         // list of topics is empty 
@@ -217,7 +217,7 @@ class TopicServiceTest {
         when(topicRepository.findAllForCluster("local"))
             .thenReturn(List.of(t0, t1, t2, t3, t4));
 
-        when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(aclService.findAllGrantedToNamespace(ns))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -293,20 +293,20 @@ class TopicServiceTest {
             "ns1-topic1", "ns2-topic1"));
 
         // list of existing ns4kfk access control entries
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             "ns-topic1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             "ns-topic2"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             "ns1-topic1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             "ns2-topic1"))
             .thenReturn(false);
 
-        when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(aclService.findAllGrantedToNamespace(ns))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -380,20 +380,20 @@ class TopicServiceTest {
                 t3.getMetadata().getName(), t4.getMetadata().getName()));
 
         // list of existing ns4kfk access control entries
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             t1.getMetadata().getName()))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             t2.getMetadata().getName()))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             t3.getMetadata().getName()))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             t4.getMetadata().getName()))
             .thenReturn(false);
 
-        when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(aclService.findAllGrantedToNamespace(ns))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -452,20 +452,20 @@ class TopicServiceTest {
             "ns1-topic1", "ns2-topic1"));
 
         // list of existing ns4kfk access control entries
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             "ns-topic1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             "ns-topic2"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             "ns1-topic1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
             "ns2-topic1"))
             .thenReturn(false);
 
-        when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(aclService.findAllGrantedToNamespace(ns))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -926,7 +926,7 @@ class TopicServiceTest {
 
         when(applicationContext.getBean(eq(TopicAsyncExecutor.class), any())).thenReturn(topicAsyncExecutor);
         when(topicAsyncExecutor.listBrokerTopicNames()).thenReturn(List.of("ns-topic1", "ns-topic2", "ns2-topic1"));
-        when(accessControlEntryService.isNamespaceOwnerOfResource(any(), any(), any()))
+        when(aclService.isNamespaceOwnerOfResource(any(), any(), any()))
             .thenReturn(true)
             .thenReturn(true)
             .thenReturn(false);
@@ -980,48 +980,48 @@ class TopicServiceTest {
         List<String> validationErrors = topicService.validateTags(ns, topic);
         assertEquals(1, validationErrors.size());
         assertEquals("Invalid value \"TAG_TEST\" for field \"tags\": tags are not currently supported.",
-                validationErrors.getFirst());
+            validationErrors.getFirst());
     }
 
     @Test
     void shouldReturnTrueWhenTagFormatIsValid() {
         Topic topicWithTag = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic1").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(List.of("test")).build())
-                .build();
+            .metadata(Metadata.builder().name("ns-topic1").build())
+            .spec(Topic.TopicSpec.builder()
+                .tags(List.of("test")).build())
+            .build();
 
         assertEquals(true, topicService.isTagsFormatValid(topicWithTag));
 
         Topic topicWithSimpliestTag = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic2").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(List.of("A")).build())
-                .build();
+            .metadata(Metadata.builder().name("ns-topic2").build())
+            .spec(Topic.TopicSpec.builder()
+                .tags(List.of("A")).build())
+            .build();
 
         assertEquals(true, topicService.isTagsFormatValid(topicWithSimpliestTag));
 
         Topic topicWithUnderscoreAndNumberTag = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic3").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(List.of("TEST1_TAG")).build())
-                .build();
+            .metadata(Metadata.builder().name("ns-topic3").build())
+            .spec(Topic.TopicSpec.builder()
+                .tags(List.of("TEST1_TAG")).build())
+            .build();
 
         assertEquals(true, topicService.isTagsFormatValid(topicWithUnderscoreAndNumberTag));
 
         Topic topicWithUnderscoreAndUpperLowerCase = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic4").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(List.of("t1_T_a_g2")).build())
-                .build();
+            .metadata(Metadata.builder().name("ns-topic4").build())
+            .spec(Topic.TopicSpec.builder()
+                .tags(List.of("t1_T_a_g2")).build())
+            .build();
 
         assertEquals(true, topicService.isTagsFormatValid(topicWithUnderscoreAndUpperLowerCase));
 
         Topic topicWithMultipleCorrectTags = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic5").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(List.of("TEST1", "test2", "tEST_3", "T_a_g")).build())
-                .build();
+            .metadata(Metadata.builder().name("ns-topic5").build())
+            .spec(Topic.TopicSpec.builder()
+                .tags(List.of("TEST1", "test2", "tEST_3", "T_a_g")).build())
+            .build();
 
         assertEquals(true, topicService.isTagsFormatValid(topicWithMultipleCorrectTags));
     }
@@ -1029,50 +1029,50 @@ class TopicServiceTest {
     @Test
     void shouldReturnFalseWhenTagFormatIsInvalid() {
         Topic topicWithBeginningDigitTag = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic1").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(List.of("0test")).build())
-                .build();
+            .metadata(Metadata.builder().name("ns-topic1").build())
+            .spec(Topic.TopicSpec.builder()
+                .tags(List.of("0test")).build())
+            .build();
 
         assertEquals(false, topicService.isTagsFormatValid(topicWithBeginningDigitTag));
 
         Topic topicWithBeginningUnderscoreTag = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic2").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(List.of("_TEST")).build())
-                .build();
+            .metadata(Metadata.builder().name("ns-topic2").build())
+            .spec(Topic.TopicSpec.builder()
+                .tags(List.of("_TEST")).build())
+            .build();
 
         assertEquals(false, topicService.isTagsFormatValid(topicWithBeginningUnderscoreTag));
 
         Topic topicWithForbiddenCharacterTag = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic3").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(List.of("test-tag")).build())
-                .build();
+            .metadata(Metadata.builder().name("ns-topic3").build())
+            .spec(Topic.TopicSpec.builder()
+                .tags(List.of("test-tag")).build())
+            .build();
 
         assertEquals(false, topicService.isTagsFormatValid(topicWithForbiddenCharacterTag));
 
         Topic topicWithManyForbiddenCharactersTag = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic4").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(List.of("&~#()[]{}-+=*%:.,;!?^°çé")).build())
-                .build();
+            .metadata(Metadata.builder().name("ns-topic4").build())
+            .spec(Topic.TopicSpec.builder()
+                .tags(List.of("&~#()[]{}-+=*%:.,;!?^°çé")).build())
+            .build();
 
         assertEquals(false, topicService.isTagsFormatValid(topicWithManyForbiddenCharactersTag));
 
         Topic topicWithMultipleIncorrectTags = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic5").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(List.of("test-tag", "TEST.tag", "0TEST")).build())
-                .build();
+            .metadata(Metadata.builder().name("ns-topic5").build())
+            .spec(Topic.TopicSpec.builder()
+                .tags(List.of("test-tag", "TEST.tag", "0TEST")).build())
+            .build();
 
         assertEquals(false, topicService.isTagsFormatValid(topicWithMultipleIncorrectTags));
 
         Topic topicWithOneIncorrectAndMultipleCorrectTags = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic5").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(List.of("testTag", "0TEST-tag", "TEST")).build())
-                .build();
+            .metadata(Metadata.builder().name("ns-topic5").build())
+            .spec(Topic.TopicSpec.builder()
+                .tags(List.of("testTag", "0TEST-tag", "TEST")).build())
+            .build();
 
         assertEquals(false, topicService.isTagsFormatValid(topicWithOneIncorrectAndMultipleCorrectTags));
     }
@@ -1080,26 +1080,26 @@ class TopicServiceTest {
     @Test
     void shouldTagsBeInvalidWhenFormatIsWrong() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic1").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(List.of("0TAG-TEST")).build())
-                .build();
+            .metadata(Metadata.builder().name("ns-topic1").build())
+            .spec(Topic.TopicSpec.builder()
+                .tags(List.of("0TAG-TEST")).build())
+            .build();
 
         when(managedClusterProperties.stream()).thenReturn(Stream.of(
-                new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
+            new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
 
         List<String> validationErrors = topicService.validateTags(ns, topic);
         assertEquals(1, validationErrors.size());
         assertEquals("Invalid value \"0TAG-TEST\" for field \"tags\": "
                 + "tags should start with letter and be followed by alphanumeric or _ characters.",
-                validationErrors.getFirst());
+            validationErrors.getFirst());
     }
 }
 

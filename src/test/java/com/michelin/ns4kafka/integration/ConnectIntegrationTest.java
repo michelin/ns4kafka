@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.michelin.ns4kafka.integration.TopicTest.BearerAccessRefreshToken;
+import com.michelin.ns4kafka.integration.TopicIntegrationTest.BearerAccessRefreshToken;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.model.AccessControlEntry.Permission;
@@ -52,7 +52,7 @@ import reactor.core.publisher.Flux;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
-class ConnectTest extends AbstractIntegrationConnectTest {
+class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
     @Inject
     private ApplicationContext applicationContext;
 

@@ -48,7 +48,7 @@ import reactor.test.StepVerifier;
 @ExtendWith(MockitoExtension.class)
 class ConnectorServiceTest {
     @Mock
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     @Mock
     KafkaConnectClient kafkaConnectClient;
@@ -113,7 +113,7 @@ class ConnectorServiceTest {
             .metadata(Metadata.builder().name("ns2-connect1").build())
             .build();
 
-        when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(aclService.findAllGrantedToNamespace(ns))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -222,7 +222,7 @@ class ConnectorServiceTest {
             .metadata(Metadata.builder().name("other-connect1").build())
             .build();
 
-        when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(aclService.findAllGrantedToNamespace(ns))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -253,7 +253,7 @@ class ConnectorServiceTest {
                     .build()
             ));
 
-        when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(aclService.findAllGrantedToNamespace(ns))
             .thenReturn(List.of(AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .permission(AccessControlEntry.Permission.OWNER)
@@ -760,23 +760,23 @@ class ConnectorServiceTest {
             .thenReturn(Flux.fromIterable(List.of(c5)));
 
         // list of existing Ns4Kafka access control entries
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
             "ns-connect1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
             "ns-connect2"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
             "ns1-connect1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
             "ns1-connect2"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
             "ns2-connect1"))
             .thenReturn(false);
 
-        when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(aclService.findAllGrantedToNamespace(ns))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -856,23 +856,23 @@ class ConnectorServiceTest {
             .thenReturn(List.of(c1, c2, c3, c4, c5));
 
         // list of existing Ns4Kafka access control entries
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
             "ns-connect1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
             "ns-connect2"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
             "ns1-connect1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
             "ns1-connect2"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
             "ns2-connect1"))
             .thenReturn(false);
 
-        when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(aclService.findAllGrantedToNamespace(ns))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -947,20 +947,20 @@ class ConnectorServiceTest {
 
 
         // list of existing Ns4Kafka access control entries
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
             "ns-connect1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
             "ns-connect2"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
             "ns1-connect1"))
             .thenReturn(true);
-        when(accessControlEntryService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
             "ns2-connect1"))
             .thenReturn(false);
 
-        when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(aclService.findAllGrantedToNamespace(ns))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()

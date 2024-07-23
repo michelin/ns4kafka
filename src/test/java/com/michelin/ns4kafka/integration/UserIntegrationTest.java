@@ -36,7 +36,7 @@ import org.junit.jupiter.api.Test;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
-class UserTest extends AbstractIntegrationTest {
+class UserIntegrationTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
     HttpClient client;
@@ -75,8 +75,8 @@ class UserTest extends AbstractIntegrationTest {
             .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<TopicTest.BearerAccessRefreshToken> response = client.toBlocking()
-            .exchange(HttpRequest.POST("/login", credentials), TopicTest.BearerAccessRefreshToken.class);
+        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response = client.toBlocking()
+            .exchange(HttpRequest.POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
 
         token = response.getBody().get().getAccessToken();
 

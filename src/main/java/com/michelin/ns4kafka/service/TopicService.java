@@ -39,7 +39,7 @@ public class TopicService {
     TopicRepository topicRepository;
 
     @Inject
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     @Inject
     ApplicationContext applicationContext;
@@ -63,7 +63,7 @@ public class TopicService {
      * @return A list of topics
      */
     public List<Topic> findAllForNamespace(Namespace namespace) {
-        List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace);
+        List<AccessControlEntry> acls = aclService.findAllGrantedToNamespace(namespace);
         return topicRepository.findAllForCluster(namespace.getMetadata().getCluster())
             .stream()
             .filter(topic -> acls.stream().anyMatch(accessControlEntry -> {
@@ -106,7 +106,7 @@ public class TopicService {
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceOwnerOfTopic(String namespace, String topic) {
-        return accessControlEntryService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.TOPIC,
+        return aclService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.TOPIC,
             topic);
     }
 
@@ -322,13 +322,13 @@ public class TopicService {
     /**
      * Check if all topic tags respect confluent format (starts with letter followed by alphanumerical or underscore).
      *
-     * @param topic     The topic which contains tags
+     * @param topic The topic which contains tags
      * @return true if yes, false otherwise
      */
     public boolean isTagsFormatValid(Topic topic) {
         return topic.getSpec().getTags()
-                .stream()
-                .allMatch(tag -> tag.matches("^[a-zA-Z]\\w*$"));
+            .stream()
+            .allMatch(tag -> tag.matches("^[a-zA-Z]\\w*$"));
     }
 
     /**

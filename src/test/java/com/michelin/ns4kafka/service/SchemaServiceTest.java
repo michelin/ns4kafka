@@ -34,7 +34,7 @@ class SchemaServiceTest {
     SchemaService schemaService;
 
     @Mock
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     @Mock
     SchemaRegistryClient schemaRegistryClient;
@@ -47,7 +47,7 @@ class SchemaServiceTest {
 
         when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster())).thenReturn(
             Flux.fromIterable(subjectsResponse));
-        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+        when(aclService.findAllGrantedToNamespace(namespace))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -276,7 +276,7 @@ class SchemaServiceTest {
     @Test
     void isNamespaceOwnerOfSubjectTest() {
         Namespace ns = buildNamespace();
-        when(accessControlEntryService.isNamespaceOwnerOfResource("myNamespace", AccessControlEntry.ResourceType.TOPIC,
+        when(aclService.isNamespaceOwnerOfResource("myNamespace", AccessControlEntry.ResourceType.TOPIC,
             "prefix.schema-one"))
             .thenReturn(true);
 

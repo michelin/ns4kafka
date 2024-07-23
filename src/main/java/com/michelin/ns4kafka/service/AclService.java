@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
  * Access control entry service.
  */
 @Singleton
-public class AccessControlEntryService {
+public class AclService {
     public static final String PUBLIC_GRANTED_TO = "*";
 
     @Inject
@@ -135,6 +135,7 @@ public class AccessControlEntryService {
                     parentOverlap = ace.getSpec().getResource().startsWith(accessControlEntry.getSpec().getResource())
                         || topicAclsCollideWithParentOrChild(ace, accessControlEntry);
                 }
+
                 // new ACL would be covered by a PREFIXED existing ACLs
                 boolean childOverlap = false;
                 if (ace.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.PREFIXED) {
@@ -234,14 +235,13 @@ public class AccessControlEntryService {
     /**
      * Delete an ACL from broker and from internal topic.
      *
-     * @param namespace          The namespace
      * @param accessControlEntry The ACL
      */
-    public void delete(Namespace namespace, AccessControlEntry accessControlEntry) {
+    public void delete(AccessControlEntry accessControlEntry) {
         AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor =
             applicationContext.getBean(AccessControlEntryAsyncExecutor.class,
                 Qualifiers.byName(accessControlEntry.getMetadata().getCluster()));
-        accessControlEntryAsyncExecutor.deleteNs4KafkaAcl(namespace, accessControlEntry);
+        accessControlEntryAsyncExecutor.deleteAcl(accessControlEntry);
 
         accessControlEntryRepository.delete(accessControlEntry);
     }

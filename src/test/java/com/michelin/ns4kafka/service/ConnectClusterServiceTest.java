@@ -50,7 +50,7 @@ class ConnectClusterServiceTest {
     ConnectClusterRepository connectClusterRepository;
 
     @Mock
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     @Mock
     List<ManagedClusterProperties> managedClusterPropertiesList;
@@ -169,7 +169,7 @@ class ConnectClusterServiceTest {
         when(connectClusterRepository.findAllForCluster("local"))
             .thenReturn(List.of(connectCluster, connectClusterTwo, connectClusterThree, connectClusterFour));
 
-        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+        when(aclService.findAllGrantedToNamespace(namespace))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -252,7 +252,7 @@ class ConnectClusterServiceTest {
         when(connectClusterRepository.findAllForCluster("local"))
             .thenReturn(List.of(connectCluster));
 
-        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+        when(aclService.findAllGrantedToNamespace(namespace))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -300,7 +300,7 @@ class ConnectClusterServiceTest {
         when(connectClusterRepository.findAllForCluster("local"))
             .thenReturn(List.of(connectCluster));
 
-        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+        when(aclService.findAllGrantedToNamespace(namespace))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -349,7 +349,7 @@ class ConnectClusterServiceTest {
         when(connectClusterRepository.findAllForCluster("local"))
             .thenReturn(List.of(connectCluster));
 
-        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+        when(aclService.findAllGrantedToNamespace(namespace))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -589,7 +589,7 @@ class ConnectClusterServiceTest {
         when(connectClusterRepository.findAllForCluster("local"))
             .thenReturn(List.of(connectCluster));
 
-        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+        when(aclService.findAllGrantedToNamespace(namespace))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -645,7 +645,7 @@ class ConnectClusterServiceTest {
         when(connectClusterRepository.findAllForCluster("local"))
             .thenReturn(List.of(connectCluster1, connectCluster2, connectCluster3));
 
-        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+        when(aclService.findAllGrantedToNamespace(namespace))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -725,7 +725,7 @@ class ConnectClusterServiceTest {
         when(connectClusterRepository.findAllForCluster("local"))
             .thenReturn(List.of(connectCluster1, connectCluster2, connectCluster3));
 
-        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+        when(aclService.findAllGrantedToNamespace(namespace))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -787,7 +787,7 @@ class ConnectClusterServiceTest {
         when(connectClusterRepository.findAllForCluster("local"))
             .thenReturn(List.of(connectCluster));
 
-        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+        when(aclService.findAllGrantedToNamespace(namespace))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -827,7 +827,7 @@ class ConnectClusterServiceTest {
         when(connectClusterRepository.findAllForCluster("local"))
             .thenReturn(List.of(connectCluster));
 
-        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+        when(aclService.findAllGrantedToNamespace(namespace))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -891,7 +891,7 @@ class ConnectClusterServiceTest {
         when(connectClusterRepository.findAllForCluster("local"))
             .thenReturn(List.of(connectCluster, connectClusterOwner));
 
-        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+        when(aclService.findAllGrantedToNamespace(namespace))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -955,7 +955,7 @@ class ConnectClusterServiceTest {
                 .build())
             .build();
 
-        when(accessControlEntryService.isNamespaceOwnerOfResource(any(), any(), any()))
+        when(aclService.isNamespaceOwnerOfResource(any(), any(), any()))
             .thenReturn(true);
 
         boolean actual = connectClusterService.isNamespaceOwnerOfConnectCluster(namespace, "prefix.connect-cluster");
@@ -998,7 +998,7 @@ class ConnectClusterServiceTest {
         when(connectClusterRepository.findAllForCluster("local"))
             .thenReturn(List.of(connectCluster, connectClusterOwner));
 
-        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+        when(aclService.findAllGrantedToNamespace(namespace))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -1060,7 +1060,7 @@ class ConnectClusterServiceTest {
         when(connectClusterRepository.findAllForCluster("local"))
             .thenReturn(List.of(connectCluster, connectClusterOwner));
 
-        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+        when(aclService.findAllGrantedToNamespace(namespace))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -1116,7 +1116,7 @@ class ConnectClusterServiceTest {
         when(connectClusterRepository.findAllForCluster("local"))
             .thenReturn(List.of(connectCluster));
 
-        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+        when(aclService.findAllGrantedToNamespace(namespace))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -1166,7 +1166,7 @@ class ConnectClusterServiceTest {
         when(connectClusterRepository.findAllForCluster("local"))
             .thenReturn(List.of(connectCluster));
 
-        when(accessControlEntryService.findAllGrantedToNamespace(namespace))
+        when(aclService.findAllGrantedToNamespace(namespace))
             .thenReturn(List.of(
                 AccessControlEntry.builder()
                     .spec(AccessControlEntry.AccessControlEntrySpec.builder()

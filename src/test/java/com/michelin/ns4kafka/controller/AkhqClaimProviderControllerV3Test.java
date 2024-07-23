@@ -7,7 +7,7 @@ import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.property.AkhqProperties;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
-import com.michelin.ns4kafka.service.AccessControlEntryService;
+import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +25,7 @@ class AkhqClaimProviderControllerV3Test {
     NamespaceService namespaceService;
 
     @Mock
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     @InjectMocks
     AkhqClaimProviderController akhqClaimProviderController;
@@ -69,7 +69,7 @@ class AkhqClaimProviderControllerV3Test {
             List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
         when(namespaceService.listAll())
             .thenReturn(List.of(ns1Cluster1));
-        when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1))
+        when(aclService.findAllGrantedToNamespace(ns1Cluster1))
             .thenReturn(List.of(ace1Ns1Cluster1));
 
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
@@ -118,7 +118,7 @@ class AkhqClaimProviderControllerV3Test {
             List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
         when(namespaceService.listAll())
             .thenReturn(List.of(ns1Cluster1));
-        when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1))
+        when(aclService.findAllGrantedToNamespace(ns1Cluster1))
             .thenReturn(List.of(ace1Ns1Cluster1, ace2Ns1Cluster1));
 
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
@@ -159,7 +159,7 @@ class AkhqClaimProviderControllerV3Test {
             List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
         when(namespaceService.listAll())
             .thenReturn(List.of(ns1Cluster1));
-        when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1))
+        when(aclService.findAllGrantedToNamespace(ns1Cluster1))
             .thenReturn(List.of(ace1Ns1Cluster1));
 
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
@@ -223,7 +223,7 @@ class AkhqClaimProviderControllerV3Test {
         akhqClaimProviderController.managedClusters =
             List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
         when(namespaceService.listAll()).thenReturn(List.of(ns1Cluster1, ns1Cluster2));
-        when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1))
+        when(aclService.findAllGrantedToNamespace(ns1Cluster1))
             .thenReturn(List.of(ace1Ns1Cluster1));
 
         AccessControlEntry ace1Ns1Cluster2 = AccessControlEntry.builder()
@@ -235,7 +235,7 @@ class AkhqClaimProviderControllerV3Test {
                 .build())
             .build();
 
-        when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster2))
+        when(aclService.findAllGrantedToNamespace(ns1Cluster2))
             .thenReturn(List.of(ace1Ns1Cluster2));
 
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
@@ -279,7 +279,7 @@ class AkhqClaimProviderControllerV3Test {
         akhqClaimProviderController.managedClusters =
             List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
         when(namespaceService.listAll()).thenReturn(List.of(ns1Cluster1, ns2Cluster1));
-        when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1))
+        when(aclService.findAllGrantedToNamespace(ns1Cluster1))
             .thenReturn(List.of(ace1Ns1Cluster1));
 
         AccessControlEntry ace2Ns2Cluster1 = AccessControlEntry.builder()
@@ -291,7 +291,7 @@ class AkhqClaimProviderControllerV3Test {
                 .build())
             .build();
 
-        when(accessControlEntryService.findAllGrantedToNamespace(ns2Cluster1))
+        when(aclService.findAllGrantedToNamespace(ns2Cluster1))
             .thenReturn(List.of(ace2Ns2Cluster1));
 
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
@@ -335,7 +335,7 @@ class AkhqClaimProviderControllerV3Test {
         akhqClaimProviderController.managedClusters =
             List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
         when(namespaceService.listAll()).thenReturn(List.of(ns1Cluster1, ns1Cluster2));
-        when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1))
+        when(aclService.findAllGrantedToNamespace(ns1Cluster1))
             .thenReturn(List.of(ace1Cluster1));
 
         AccessControlEntry ace1Cluster2 = AccessControlEntry.builder()
@@ -347,7 +347,7 @@ class AkhqClaimProviderControllerV3Test {
                 .build())
             .build();
 
-        when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster2))
+        when(aclService.findAllGrantedToNamespace(ns1Cluster2))
             .thenReturn(List.of(ace1Cluster2));
 
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
@@ -391,7 +391,7 @@ class AkhqClaimProviderControllerV3Test {
         akhqClaimProviderController.managedClusters =
             List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
         when(namespaceService.listAll()).thenReturn(List.of(ns1Cluster1, ns2Cluster2));
-        when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1))
+        when(aclService.findAllGrantedToNamespace(ns1Cluster1))
             .thenReturn(List.of(ace1Ns1Cluster1));
 
         AccessControlEntry ace1Ns2Cluster2 = AccessControlEntry.builder()
@@ -403,7 +403,7 @@ class AkhqClaimProviderControllerV3Test {
                 .build())
             .build();
 
-        when(accessControlEntryService.findAllGrantedToNamespace(ns2Cluster2))
+        when(aclService.findAllGrantedToNamespace(ns2Cluster2))
             .thenReturn(List.of(ace1Ns2Cluster2));
 
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
@@ -523,7 +523,7 @@ class AkhqClaimProviderControllerV3Test {
         akhqClaimProviderController.managedClusters =
             List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
         when(namespaceService.listAll()).thenReturn(List.of(ns1Cluster1));
-        when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(inputAcls);
+        when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(inputAcls);
 
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
             .groups(List.of("GP-PROJECT1&2-SUPPORT"))
@@ -613,7 +613,7 @@ class AkhqClaimProviderControllerV3Test {
             new ManagedClusterProperties("cluster2"), new ManagedClusterProperties("cluster3"),
             new ManagedClusterProperties("cluster4"));
         when(namespaceService.listAll()).thenReturn(List.of(ns1Cluster1));
-        when(accessControlEntryService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(inputAcls);
+        when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(inputAcls);
 
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
             .groups(List.of("GP-PROJECT1&2-SUPPORT"))
