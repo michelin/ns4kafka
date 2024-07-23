@@ -41,7 +41,7 @@ public class NamespaceService {
     RoleBindingService roleBindingService;
 
     @Inject
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     @Inject
     ConnectorService connectorService;
@@ -166,7 +166,7 @@ public class NamespaceService {
                     .map(connector -> CONNECTOR + "/" + connector.getMetadata().getName()),
                 connectClusterService.findAllByNamespaceOwner(namespace).stream()
                     .map(connectCluster -> CONNECT_CLUSTER + "/" + connectCluster.getMetadata().getName()),
-                accessControlEntryService.findAllForNamespace(namespace).stream()
+                aclService.findAllForNamespace(namespace).stream()
                     .map(ace -> ACCESS_CONTROL_ENTRY + "/" + ace.getMetadata().getName()),
                 resourceQuotaService.findByNamespace(namespace.getMetadata().getName()).stream()
                     .map(resourceQuota -> RESOURCE_QUOTA + "/" + resourceQuota.getMetadata().getName()),

@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
@@ -12,7 +13,6 @@ import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
 import io.micronaut.context.ApplicationContext;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -25,7 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * Access control entry service test.
  */
 @ExtendWith(MockitoExtension.class)
-class AccessControlEntryServiceTest {
+class AclServiceTest {
     @Mock
     AccessControlEntryRepository accessControlEntryRepository;
 
@@ -36,11 +36,11 @@ class AccessControlEntryServiceTest {
     NamespaceService namespaceService;
 
     @InjectMocks
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     @Test
-    void validateNotAllowedResources() {
-        Namespace ns = Namespace.builder()
+    void shouldNotValidateAcl() {
+        Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
@@ -67,7 +67,8 @@ class AccessControlEntryServiceTest {
             .thenReturn(Optional.empty());
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of());
-        List<String> actual = accessControlEntryService.validate(badAcl, ns);
+
+        List<String> actual = aclService.validate(badAcl, namespace);
         assertLinesMatch(List.of(
                 "Invalid value \"CONNECT\" for field \"resourceType\": "
                     + "value must be one of \"TOPIC, CONNECT_CLUSTER\".",
@@ -80,8 +81,8 @@ class AccessControlEntryServiceTest {
     }
 
     @Test
-    void validateNotAllowedSelfGrant() {
-        Namespace ns = Namespace.builder()
+    void shouldNotValidateAclBecauseSelfGranted() {
+        Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
@@ -105,10 +106,11 @@ class AccessControlEntryServiceTest {
         when(applicationContext.getBean(NamespaceService.class))
             .thenReturn(namespaceService);
         when(namespaceService.findByName("namespace"))
-            .thenReturn(Optional.of(ns));
+            .thenReturn(Optional.of(namespace));
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of());
-        List<String> actual = accessControlEntryService.validate(badAcl, ns);
+
+        List<String> actual = aclService.validate(badAcl, namespace);
         assertLinesMatch(List.of(
                 "Invalid value \"namespace\" for field \"grantedTo\": cannot grant ACL to yourself.",
                 "Invalid value \"test/PREFIXED\" for fields \"resource/resourcePatternType\": "
@@ -117,7 +119,7 @@ class AccessControlEntryServiceTest {
     }
 
     @Test
-    void validateNotAllowedOwnerOfBadPrefix() {
+    void shouldNotValidateAclBecauseNotOwnerOfTopLevelResourceHavingBadPrefix() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -155,14 +157,15 @@ class AccessControlEntryServiceTest {
                 )
                 .build()
             ));
-        List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
+
+        List<String> actual = aclService.validate(accessControlEntry, ns);
         assertLinesMatch(List.of("Invalid value \"main/PREFIXED\" for fields \"resource/resourcePatternType\": "
             + "cannot grant ACL because namespace is not owner of the top level resource."), actual);
     }
 
     @Test
-    void validateNotAllowedOwnerOfBadLiteral() {
-        Namespace ns = Namespace.builder()
+    void shouldNotValidateAclBecauseNotOwnerOfTopLevelResourceHavingBadLiteral() {
+        Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
@@ -199,19 +202,20 @@ class AccessControlEntryServiceTest {
                 .build()
             ));
 
-        List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
+        List<String> actual = aclService.validate(accessControlEntry, namespace);
         assertLinesMatch(List.of("Invalid value \"resource2/LITERAL\" for fields \"resource/resourcePatternType\": "
             + "cannot grant ACL because namespace is not owner of the top level resource."), actual);
     }
 
     @Test
-    void validate_AllowedOwnerOfLiteral() {
-        Namespace ns = Namespace.builder()
+    void shouldValidateAclBecauseOwnerOfLiteral() {
+        Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
             .build();
+
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-name")
@@ -225,6 +229,7 @@ class AccessControlEntryServiceTest {
                 .grantedTo("target-ns")
                 .build())
             .build();
+
         when(applicationContext.getBean(NamespaceService.class))
             .thenReturn(namespaceService);
         when(namespaceService.findByName("target-ns"))
@@ -241,18 +246,20 @@ class AccessControlEntryServiceTest {
                 )
                 .build()
             ));
-        List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
+
+        List<String> actual = aclService.validate(accessControlEntry, namespace);
         assertTrue(actual.isEmpty());
     }
 
     @Test
-    void validate_AllowedOwnerOfPrefix() {
-        Namespace ns = Namespace.builder()
+    void shouldValidateAclBecauseOwnerOfPrefix() {
+        Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
             .build();
+
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-name")
@@ -266,6 +273,7 @@ class AccessControlEntryServiceTest {
                 .grantedTo("target-ns")
                 .build())
             .build();
+
         when(applicationContext.getBean(NamespaceService.class))
             .thenReturn(namespaceService);
         when(namespaceService.findByName("target-ns"))
@@ -283,18 +291,20 @@ class AccessControlEntryServiceTest {
                 )
                 .build()
             ));
-        List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
+
+        List<String> actual = aclService.validate(accessControlEntry, namespace);
         assertTrue(actual.isEmpty());
     }
 
     @Test
-    void validateAllowedPublicGrantedTo() {
-        Namespace ns = Namespace.builder()
+    void shouldValidateAclWhenGrantedToAll() {
+        Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
             .build();
+
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-name")
@@ -308,6 +318,7 @@ class AccessControlEntryServiceTest {
                 .grantedTo("*")
                 .build())
             .build();
+
         when(applicationContext.getBean(NamespaceService.class))
             .thenReturn(namespaceService);
         when(namespaceService.findByName("*"))
@@ -324,12 +335,13 @@ class AccessControlEntryServiceTest {
                 )
                 .build()
             ));
-        List<String> actual = accessControlEntryService.validate(accessControlEntry, ns);
+
+        List<String> actual = aclService.validate(accessControlEntry, namespace);
         assertTrue(actual.isEmpty());
     }
 
     @Test
-    void validateAsAdminSuccessUpdatingExistingAcl() {
+    void shouldValidateAsAdminUpdatingExistingAcl() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-name")
@@ -344,6 +356,7 @@ class AccessControlEntryServiceTest {
                 .grantedTo("target-ns")
                 .build())
             .build();
+
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("target-ns")
@@ -354,21 +367,26 @@ class AccessControlEntryServiceTest {
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of(accessControlEntry));
 
-        List<String> actual = accessControlEntryService.validateAsAdmin(accessControlEntry, namespace);
+        List<String> actual = aclService.validateAsAdmin(accessControlEntry, namespace);
 
         assertTrue(actual.isEmpty());
     }
 
     @ParameterizedTest
-    @CsvSource({"project1,project2_t1,project1,project2_t1",
-        "project1.,project2_t1,project1_,project2.t1"})
-    void validateAsAdminFailSameOverlap(String existingA, String existingB, String toCreateA, String toCreateB) {
-        // another namespace is already OWNER of PREFIXED or LITERAL resource
-        // example :
-        // if already exists:
+    @CsvSource({
+        "project1,project2_t1,project1,project2_t1",
+        "project1.,project2_t1,project1_,project2.t1"
+    })
+    void shouldValidateFailAsAdminWhenAclOverlap(String existingA,
+                                                 String existingB,
+                                                 String toCreateA,
+                                                 String toCreateB) {
+        // Another namespace is already OWNER of PREFIXED or LITERAL resource.
+        // Example :
+        // If already exists:
         //   namespace1 OWNER:PREFIXED:project1
         //   namespace1 OWNER:LITERAL:project2_t1
-        // and we try to create:
+        // And we try to create:
         //   namespace2 OWNER:PREFIXED:project1             KO 1 same          <<<<<<
         //   namespace2 OWNER:LITERAL:project1              KO 2 same          <<<<<<
         //   namespace2 OWNER:PREFIXED:project1_sub         KO 3 child overlap
@@ -379,7 +397,8 @@ class AccessControlEntryServiceTest {
         //   namespace2 OWNER:PREFIXED:project3_topic1_sub  OK 7
         //   namespace2 OWNER:LITERAL:project2              OK 8
         //   namespace2 OWNER:LITERAL:proj                  OK 9
-        AccessControlEntry existing1 = AccessControlEntry.builder()
+
+        AccessControlEntry aceTopicPrefixedOwnerOtherNsToOtherNs = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-existing1")
                 .namespace("other-ns")
@@ -394,7 +413,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
 
-        AccessControlEntry existing2 = AccessControlEntry.builder()
+        AccessControlEntry aceTopicLiteralOwnerOtherNsToOtherNs = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-existing2")
                 .namespace("other-ns")
@@ -416,7 +435,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
 
-        AccessControlEntry toCreate1 = AccessControlEntry.builder()
+        AccessControlEntry aceTopicPrefixedOwnerTargetNsToTargetNs = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-tocreate")
                 .namespace("target-ns")
@@ -431,7 +450,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
 
-        AccessControlEntry toCreate2 = AccessControlEntry.builder()
+        AccessControlEntry aceTopicLiteralOwnerTargetNsToTargetNs = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-tocreate")
                 .namespace("target-ns")
@@ -447,21 +466,25 @@ class AccessControlEntryServiceTest {
             .build();
 
         when(accessControlEntryRepository.findAll())
-            .thenReturn(List.of(existing1, existing2));
+            .thenReturn(List.of(aceTopicPrefixedOwnerOtherNsToOtherNs, aceTopicLiteralOwnerOtherNsToOtherNs));
 
-        List<String> actual = accessControlEntryService.validateAsAdmin(toCreate1, namespace);
+        List<String> actual = aclService.validateAsAdmin(aceTopicPrefixedOwnerTargetNsToTargetNs, namespace);
         assertEquals(1, actual.size());
 
-        actual = accessControlEntryService.validateAsAdmin(toCreate2, namespace);
+        actual = aclService.validateAsAdmin(aceTopicLiteralOwnerTargetNsToTargetNs, namespace);
         assertEquals(1, actual.size());
     }
 
     @ParameterizedTest
-    @CsvSource({"project1,project2_t1,proj,project2",
-        "project1.abc,project1.def_ghi,project1_,project1_def"})
-    void shouldValidateAsAdminFailParentOverlap(String existingA, String existingB, String toCreateA,
-                                                String toCreateB) {
-        AccessControlEntry existing1 = AccessControlEntry.builder()
+    @CsvSource({
+        "project1,project2_t1,proj,project2",
+        "project1.abc,project1.def_ghi,project1_,project1_def"
+    })
+    void shouldValidateFailAsAdminWhenParentAclOverlap(String existingA,
+                                                       String existingB,
+                                                       String toCreateA,
+                                                       String toCreateB) {
+        AccessControlEntry aceTopicPrefixedOwnerOtherNsToOtherNs = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-existing1")
                 .namespace("other-ns")
@@ -476,7 +499,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
 
-        AccessControlEntry existing2 = AccessControlEntry.builder()
+        AccessControlEntry aceTopicLiteralOwnerOtherNsToOtherNs = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-existing2")
                 .namespace("other-ns")
@@ -498,7 +521,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
 
-        AccessControlEntry toCreate1 = AccessControlEntry.builder()
+        AccessControlEntry aceTopicPrefixedOwnerTargetNsToTargetNs = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-tocreate")
                 .namespace("target-ns")
@@ -513,7 +536,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
 
-        AccessControlEntry toCreate2 = AccessControlEntry.builder()
+        AccessControlEntry aceTopicPrefixedOwnerTargetNsToTargetNs2 = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-tocreate")
                 .namespace("target-ns")
@@ -527,22 +550,27 @@ class AccessControlEntryServiceTest {
                 .grantedTo("target-ns")
                 .build())
             .build();
-        when(accessControlEntryRepository.findAll())
-            .thenReturn(List.of(existing1, existing2));
 
-        List<String> actual = accessControlEntryService.validateAsAdmin(toCreate1, namespace);
+        when(accessControlEntryRepository.findAll())
+            .thenReturn(List.of(aceTopicPrefixedOwnerOtherNsToOtherNs, aceTopicLiteralOwnerOtherNsToOtherNs));
+
+        List<String> actual = aclService.validateAsAdmin(aceTopicPrefixedOwnerTargetNsToTargetNs, namespace);
         assertEquals(2, actual.size());
 
-        actual = accessControlEntryService.validateAsAdmin(toCreate2, namespace);
+        actual = aclService.validateAsAdmin(aceTopicPrefixedOwnerTargetNsToTargetNs2, namespace);
         assertEquals(1, actual.size());
     }
 
     @ParameterizedTest
-    @CsvSource({"project1,project2_t1,project1_sub,project1_t1",
-        "project1.,project2_t1,project1_sub,project1_t1"})
-    void shouldValidateAsAdminFailChildOverlap(String existingA, String existingB, String toCreateA,
-                                               String toCreateB) {
-        AccessControlEntry existing1 = AccessControlEntry.builder()
+    @CsvSource({
+        "project1,project2_t1,project1_sub,project1_t1",
+        "project1.,project2_t1,project1_sub,project1_t1"
+    })
+    void shouldValidateFailAsAdminWhenChildAclOverlap(String existingA,
+                                                      String existingB,
+                                                      String toCreateA,
+                                                      String toCreateB) {
+        AccessControlEntry aceTopicPrefixedOwnerOtherNsToOtherNs = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-existing1")
                 .namespace("other-ns")
@@ -557,7 +585,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
 
-        AccessControlEntry existing2 = AccessControlEntry.builder()
+        AccessControlEntry aceTopicLiteralOwnerOtherNsToOtherNs = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-existing2")
                 .namespace("other-ns")
@@ -579,7 +607,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
 
-        AccessControlEntry toCreate1 = AccessControlEntry.builder()
+        AccessControlEntry aceTopicPrefixedOwnerTargetNsToTargetNs = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-tocreate")
                 .namespace("target-ns")
@@ -594,7 +622,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
 
-        AccessControlEntry toCreate2 = AccessControlEntry.builder()
+        AccessControlEntry aceTopicLiteralOwnerTargetNsToTargetNs = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-tocreate")
                 .namespace("target-ns")
@@ -610,25 +638,25 @@ class AccessControlEntryServiceTest {
             .build();
 
         when(accessControlEntryRepository.findAll())
-            .thenReturn(List.of(existing1, existing2));
+            .thenReturn(List.of(aceTopicPrefixedOwnerOtherNsToOtherNs, aceTopicLiteralOwnerOtherNsToOtherNs));
 
-        List<String> actual = accessControlEntryService.validateAsAdmin(toCreate1, namespace);
+        List<String> actual = aclService.validateAsAdmin(aceTopicPrefixedOwnerTargetNsToTargetNs, namespace);
         assertEquals(1, actual.size());
 
-        actual = accessControlEntryService.validateAsAdmin(toCreate2, namespace);
+        actual = aclService.validateAsAdmin(aceTopicLiteralOwnerTargetNsToTargetNs, namespace);
         assertEquals(1, actual.size());
     }
 
     @Test
-    void shouldValidateAsAdmin() {
-        // another namespace is already OWNER of PREFIXED or LITERAL resource
-        // example :
-        // if already exists:
+    void shouldValidateAclsAsAdmin() {
+        // Another namespace is already OWNER of PREFIXED or LITERAL resource
+        // Example :
+        // If already exists:
         //   namespace1 OWNER:PREFIXED:project1
         //   namespace1 OWNER:LITERAL:project2_t1
         //   namespace1 OWNER:PREFIXED:p of CONNECT (should not interfere)
         //   namespace1 READ:PREFIXED:p OF TOPIC (should not interfere)
-        // and we try to create:
+        // And we try to create:
         //   namespace2 OWNER:PREFIXED:project1             KO 1 same
         //   namespace2 OWNER:LITERAL:project1              KO 2 same
         //   namespace2 OWNER:PREFIXED:project1_sub         KO 3 child overlap
@@ -639,7 +667,8 @@ class AccessControlEntryServiceTest {
         //   namespace2 OWNER:PREFIXED:project3_topic1_sub  OK 7   <<<<<<<<
         //   namespace2 OWNER:LITERAL:project2              OK 8   <<<<<<<<
         //   namespace2 OWNER:LITERAL:proj                  OK 9   <<<<<<<<
-        AccessControlEntry existing1 = AccessControlEntry.builder()
+
+        AccessControlEntry aceTopicPrefixedOwnerOtherNsToOtherNs = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-existing1")
                 .namespace("other-ns")
@@ -654,7 +683,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
 
-        AccessControlEntry existing2 = AccessControlEntry.builder()
+        AccessControlEntry aceTopicLiteralOwnerOtherNsToOtherNs = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-existing2")
                 .namespace("other-ns")
@@ -669,7 +698,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
 
-        AccessControlEntry existing3 = AccessControlEntry.builder()
+        AccessControlEntry aceConnectPrefixedOwnerOtherNsToOtherNs = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-existing2")
                 .namespace("other-ns")
@@ -691,7 +720,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
 
-        AccessControlEntry toCreate1 = AccessControlEntry.builder()
+        AccessControlEntry aceTopicPrefixedOwnerTargetNsToTargetNs = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-tocreate")
                 .namespace("target-ns")
@@ -707,9 +736,10 @@ class AccessControlEntryServiceTest {
             .build();
 
         when(accessControlEntryRepository.findAll())
-            .thenReturn(List.of(existing1, existing2, existing3));
+            .thenReturn(List.of(aceTopicPrefixedOwnerOtherNsToOtherNs, aceTopicLiteralOwnerOtherNsToOtherNs,
+                aceConnectPrefixedOwnerOtherNsToOtherNs));
 
-        List<String> actual = accessControlEntryService.validateAsAdmin(toCreate1, namespace);
+        List<String> actual = aclService.validateAsAdmin(aceTopicPrefixedOwnerTargetNsToTargetNs, namespace);
         assertTrue(actual.isEmpty());
 
         AccessControlEntry toCreate2 = AccessControlEntry.builder()
@@ -727,10 +757,10 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
 
-        actual = accessControlEntryService.validateAsAdmin(toCreate2, namespace);
+        actual = aclService.validateAsAdmin(toCreate2, namespace);
         assertTrue(actual.isEmpty());
 
-        AccessControlEntry toCreate3 = AccessControlEntry.builder()
+        AccessControlEntry aceTopicLiteralOwnerTargetNsToTargetNs = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-tocreate")
                 .namespace("target-ns")
@@ -745,143 +775,223 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
 
-        actual = accessControlEntryService.validateAsAdmin(toCreate3, namespace);
+        actual = aclService.validateAsAdmin(aceTopicLiteralOwnerTargetNsToTargetNs, namespace);
         assertTrue(actual.isEmpty());
     }
 
     @Test
-    void findAllGrantedToNamespace() {
-        Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder().name("namespace1").build()).build();
+    void shouldFindAllAclsGrantedToNamespace() {
+        Namespace namespace = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace1")
+                .build())
+            .build();
+
         AccessControlEntry ace1 = AccessControlEntry.builder()
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .grantedTo("namespace1")
+                .build())
+            .build();
+
         AccessControlEntry ace2 = AccessControlEntry.builder()
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .grantedTo("namespace1")
+                .build())
+            .build();
+
         AccessControlEntry ace3 = AccessControlEntry.builder()
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .grantedTo("namespace2")
+                .build())
+            .build();
+
         AccessControlEntry ace4 = AccessControlEntry.builder()
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("*").build()).build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .grantedTo("*")
+                .build())
+            .build();
 
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of(ace1, ace2, ace3, ace4));
-        List<AccessControlEntry> actual = accessControlEntryService.findAllGrantedToNamespace(ns);
+
+        List<AccessControlEntry> actual = aclService.findAllGrantedToNamespace(namespace);
         assertEquals(3, actual.size());
     }
 
     @Test
-    void findAllPublicGrantedTo() {
+    void shouldFindAllAclsGrantedToAll() {
         AccessControlEntry ace1 = AccessControlEntry.builder()
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .grantedTo("namespace1")
+                .build())
+            .build();
+
         AccessControlEntry ace2 = AccessControlEntry.builder()
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .grantedTo("namespace1")
+                .build())
+            .build();
+
         AccessControlEntry ace3 = AccessControlEntry.builder()
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .grantedTo("namespace2")
+                .build())
+            .build();
+
         AccessControlEntry ace4 = AccessControlEntry.builder()
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("*").build()).build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .grantedTo("*")
+                .build())
+            .build();
 
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of(ace1, ace2, ace3, ace4));
-        List<AccessControlEntry> actual = accessControlEntryService.findAllPublicGrantedTo();
+
+        List<AccessControlEntry> actual = aclService.findAllPublicGrantedTo();
         assertEquals(1, actual.size());
     }
 
     @Test
-    void findAllForNamespace() {
+    void shouldFindAllAclForNamespace() {
         Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder().name("namespace1").build()).build();
+            .metadata(Metadata.builder()
+                .name("namespace1")
+                .build())
+            .build();
+
         AccessControlEntry ace1 = AccessControlEntry.builder()
-            .metadata(Metadata.builder().namespace("namespace1").build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
+            .metadata(Metadata.builder()
+                .namespace("namespace1")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .grantedTo("namespace1")
+                .build())
+            .build();
+
         AccessControlEntry ace2 = AccessControlEntry.builder()
-            .metadata(Metadata.builder().namespace("namespace1").build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
+            .metadata(Metadata.builder()
+                .namespace("namespace1")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .grantedTo("namespace2")
+                .build())
+            .build();
+
         AccessControlEntry ace3 = AccessControlEntry.builder()
-            .metadata(Metadata.builder().namespace("namespace2").build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
+            .metadata(Metadata.builder()
+                .namespace("namespace2")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .grantedTo("namespace2")
+                .build())
+            .build();
 
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of(ace1, ace2, ace3));
-        List<AccessControlEntry> actual = accessControlEntryService.findAllForNamespace(ns);
+
+        List<AccessControlEntry> actual = aclService.findAllForNamespace(ns);
         assertEquals(2, actual.size());
     }
 
     @Test
-    void findAll() {
+    void shouldFindAllAcls() {
         AccessControlEntry ace1 = AccessControlEntry.builder()
-            .metadata(Metadata.builder().namespace("namespace1").build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace1").build()).build();
+            .metadata(Metadata.builder()
+                .namespace("namespace1")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .grantedTo("namespace1")
+                .build())
+            .build();
+
         AccessControlEntry ace2 = AccessControlEntry.builder()
-            .metadata(Metadata.builder().namespace("namespace2").build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace2").build()).build();
+            .metadata(Metadata.builder()
+                .namespace("namespace2")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .grantedTo("namespace2")
+                .build())
+            .build();
+
         AccessControlEntry ace3 = AccessControlEntry.builder()
-            .metadata(Metadata.builder().namespace("namespace3").build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder().grantedTo("namespace3").build()).build();
+            .metadata(Metadata.builder()
+                .namespace("namespace3")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .grantedTo("namespace3")
+                .build()).build();
 
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of(ace1, ace2, ace3));
-        List<AccessControlEntry> actual = accessControlEntryService.findAll();
+
+        List<AccessControlEntry> actual = aclService.findAll();
         assertEquals(3, actual.size());
     }
 
     @Test
-    void isNamespaceOwnerOfResource() {
-        AccessControlEntry ace1 = AccessControlEntry.builder()
+    void shouldCheckIfNamespaceIsOwnerOfResource() {
+        AccessControlEntry aceTopicPrefixedOwner = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("main")
                 .grantedTo("namespace")
-                .build()
-            )
+                .build())
             .build();
-        AccessControlEntry ace2 = AccessControlEntry.builder()
+
+        AccessControlEntry aceConnectLiteralOwner = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.CONNECT)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .resource("connect")
                 .grantedTo("namespace")
-                .build()
-            )
+                .build())
             .build();
-        AccessControlEntry ace3 = AccessControlEntry.builder()
+
+        AccessControlEntry aceConnectLiteralWrite = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.CONNECT)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                 .permission(AccessControlEntry.Permission.WRITE)
                 .resource("connect")
                 .grantedTo("namespace-other")
-                .build()
-            )
+                .build())
             .build();
+
         when(accessControlEntryRepository.findAll())
-            .thenReturn(List.of(ace1, ace2, ace3));
+            .thenReturn(List.of(aceTopicPrefixedOwner, aceConnectLiteralOwner, aceConnectLiteralWrite));
+
         assertTrue(
-            accessControlEntryService.isNamespaceOwnerOfResource("namespace",
+            aclService.isNamespaceOwnerOfResource("namespace",
                 AccessControlEntry.ResourceType.CONNECT,
                 "connect"));
+
         assertTrue(
-            accessControlEntryService.isNamespaceOwnerOfResource("namespace",
+            aclService.isNamespaceOwnerOfResource("namespace",
                 AccessControlEntry.ResourceType.TOPIC,
                 "main"));
+
         assertTrue(
-            accessControlEntryService.isNamespaceOwnerOfResource("namespace",
+            aclService.isNamespaceOwnerOfResource("namespace",
                 AccessControlEntry.ResourceType.TOPIC,
                 "main.sub"), "subresource");
-        Assertions.assertFalse(
-            accessControlEntryService.isNamespaceOwnerOfResource("namespace-other",
+
+        assertFalse(
+            aclService.isNamespaceOwnerOfResource("namespace-other",
                 AccessControlEntry.ResourceType.TOPIC,
                 "main"));
-        Assertions.assertFalse(
-            accessControlEntryService.isNamespaceOwnerOfResource("namespace-other",
+
+        assertFalse(
+            aclService.isNamespaceOwnerOfResource("namespace-other",
                 AccessControlEntry.ResourceType.CONNECT,
                 "connect"));
     }
 
     @Test
     void shouldNotCollideIfDifferentResource() {
-        AccessControlEntry ace1 = AccessControlEntry.builder()
+        AccessControlEntry aceTopicPrefixedOwner = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -891,7 +1001,7 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
 
-        AccessControlEntry ace2 = AccessControlEntry.builder()
+        AccessControlEntry aceConnectLiteralOwner = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.CONNECT)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
@@ -901,9 +1011,9 @@ class AccessControlEntryServiceTest {
                 .build())
             .build();
 
-        Assertions.assertFalse(accessControlEntryService.topicAclsCollideWithParentOrChild(ace1, ace2));
-        Assertions.assertFalse(accessControlEntryService.topicAclsCollideWithParentOrChild(ace2, ace1));
-        Assertions.assertFalse(accessControlEntryService.topicAclsCollide(ace1, ace2));
-        Assertions.assertFalse(accessControlEntryService.topicAclsCollide(ace2, ace1));
+        assertFalse(aclService.topicAclsCollideWithParentOrChild(aceTopicPrefixedOwner, aceConnectLiteralOwner));
+        assertFalse(aclService.topicAclsCollideWithParentOrChild(aceConnectLiteralOwner, aceTopicPrefixedOwner));
+        assertFalse(aclService.topicAclsCollide(aceTopicPrefixedOwner, aceConnectLiteralOwner));
+        assertFalse(aclService.topicAclsCollide(aceConnectLiteralOwner, aceTopicPrefixedOwner));
     }
 }

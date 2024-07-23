@@ -37,7 +37,7 @@ public class ConsumerGroupService {
     ApplicationContext applicationContext;
 
     @Inject
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     /**
      * Check if a given namespace is owner of a given group.
@@ -47,7 +47,7 @@ public class ConsumerGroupService {
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceOwnerOfConsumerGroup(String namespace, String groupId) {
-        return accessControlEntryService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.GROUP,
+        return aclService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.GROUP,
             groupId);
     }
 

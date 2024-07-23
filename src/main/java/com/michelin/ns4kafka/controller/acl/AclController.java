@@ -1,6 +1,6 @@
 package com.michelin.ns4kafka.controller.acl;
 
-import static com.michelin.ns4kafka.service.AccessControlEntryService.PUBLIC_GRANTED_TO;
+import static com.michelin.ns4kafka.service.AclService.PUBLIC_GRANTED_TO;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidAclDeleteOnlyAdmin;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidImmutableField;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNotFound;
@@ -10,7 +10,7 @@ import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
-import com.michelin.ns4kafka.service.AccessControlEntryService;
+import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.http.HttpResponse;
@@ -39,7 +39,7 @@ import java.util.Optional;
 @Controller("/api/namespaces/{namespace}/acls")
 public class AclController extends NamespacedResourceController {
     @Inject
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     /**
      * List ACLs by namespace.
@@ -56,11 +56,11 @@ public class AclController extends NamespacedResourceController {
 
         Namespace ns = getNamespace(namespace);
         return switch (limit.get()) {
-            case GRANTEE -> accessControlEntryService.findAllGrantedToNamespace(ns)
+            case GRANTEE -> aclService.findAllGrantedToNamespace(ns)
                 .stream()
                 .sorted(Comparator.comparing(o -> o.getMetadata().getNamespace()))
                 .toList();
-            case GRANTOR -> accessControlEntryService.findAllForCluster(ns.getMetadata().getCluster())
+            case GRANTOR -> aclService.findAllForCluster(ns.getMetadata().getCluster())
                 .stream()
                 // granted by me
                 .filter(accessControlEntry -> accessControlEntry.getMetadata().getNamespace().equals(namespace))
@@ -68,7 +68,7 @@ public class AclController extends NamespacedResourceController {
                 .filter(accessControlEntry -> !accessControlEntry.getSpec().getGrantedTo().equals(namespace))
                 .sorted(Comparator.comparing(o -> o.getSpec().getGrantedTo()))
                 .toList();
-            default -> accessControlEntryService.findAllForCluster(ns.getMetadata().getCluster())
+            default -> aclService.findAllForCluster(ns.getMetadata().getCluster())
                 .stream()
                 .filter(accessControlEntry ->
                     accessControlEntry.getMetadata().getNamespace().equals(namespace)
@@ -115,9 +115,9 @@ public class AclController extends NamespacedResourceController {
         List<String> validationErrors;
         if (isAdmin && isSelfAssigned) {
             // Validate overlapping OWNER
-            validationErrors = accessControlEntryService.validateAsAdmin(accessControlEntry, ns);
+            validationErrors = aclService.validateAsAdmin(accessControlEntry, ns);
         } else {
-            validationErrors = accessControlEntryService.validate(accessControlEntry, ns);
+            validationErrors = aclService.validate(accessControlEntry, ns);
         }
 
         if (!validationErrors.isEmpty()) {
@@ -127,7 +127,7 @@ public class AclController extends NamespacedResourceController {
         // AccessControlEntry spec is immutable
         // This prevents accidental updates on ACL resources already declared with the same name (with different rules)
         Optional<AccessControlEntry> existingAcl =
-            accessControlEntryService.findByName(namespace, accessControlEntry.getMetadata().getName());
+            aclService.findByName(namespace, accessControlEntry.getMetadata().getName());
         if (existingAcl.isPresent() && !existingAcl.get().getSpec().equals(accessControlEntry.getSpec())) {
             throw new ResourceValidationException(accessControlEntry,
                 invalidImmutableField("spec"));
@@ -150,7 +150,7 @@ public class AclController extends NamespacedResourceController {
         sendEventLog(accessControlEntry, status, existingAcl.<Object>map(AccessControlEntry::getSpec).orElse(null),
             accessControlEntry.getSpec());
 
-        return formatHttpResponse(accessControlEntryService.create(accessControlEntry), status);
+        return formatHttpResponse(aclService.create(accessControlEntry), status);
     }
 
     /**
@@ -166,7 +166,7 @@ public class AclController extends NamespacedResourceController {
     @Status(HttpStatus.NO_CONTENT)
     public HttpResponse<Void> delete(Authentication authentication, String namespace, String name,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
-        AccessControlEntry accessControlEntry = accessControlEntryService
+        AccessControlEntry accessControlEntry = aclService
             .findByName(namespace, name)
             .orElseThrow(() -> new ResourceValidationException(ACCESS_CONTROL_ENTRY, name, invalidNotFound(name)));
 
@@ -183,7 +183,7 @@ public class AclController extends NamespacedResourceController {
 
         sendEventLog(accessControlEntry, ApplyStatus.deleted, accessControlEntry.getSpec(), null);
 
-        accessControlEntryService.delete(getNamespace(namespace), accessControlEntry);
+        aclService.delete(accessControlEntry);
         return HttpResponse.noContent();
     }
 

@@ -23,7 +23,7 @@ class StreamServiceTest {
     StreamService streamService;
 
     @Mock
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     @Mock
     StreamRepository streamRepository;
@@ -217,7 +217,7 @@ class StreamServiceTest {
             )
             .build();
 
-        when(accessControlEntryService.findAllGrantedToNamespace(ns))
+        when(aclService.findAllGrantedToNamespace(ns))
             .thenReturn(List.of(ace1, ace2, ace3, ace4, ace5, ace6, ace7));
 
         assertTrue(

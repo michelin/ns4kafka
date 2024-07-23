@@ -54,7 +54,7 @@ public class ConnectClusterService {
     KafkaConnectClient kafkaConnectClient;
 
     @Inject
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     @Inject
     ConnectClusterRepository connectClusterRepository;
@@ -124,7 +124,7 @@ public class ConnectClusterService {
      */
     public List<ConnectCluster> findAllByNamespace(Namespace namespace,
                                                    List<AccessControlEntry.Permission> permissions) {
-        List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace).stream()
+        List<AccessControlEntry> acls = aclService.findAllGrantedToNamespace(namespace).stream()
             .filter(acl -> permissions.contains(acl.getSpec().getPermission()))
             .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT_CLUSTER).toList();
 
@@ -346,7 +346,7 @@ public class ConnectClusterService {
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceOwnerOfConnectCluster(Namespace namespace, String connectCluster) {
-        return accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(),
+        return aclService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(),
             AccessControlEntry.ResourceType.CONNECT_CLUSTER, connectCluster);
     }
 

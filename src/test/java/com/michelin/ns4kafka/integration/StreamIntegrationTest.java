@@ -3,7 +3,7 @@ package com.michelin.ns4kafka.integration;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.michelin.ns4kafka.integration.TopicTest.BearerAccessRefreshToken;
+import com.michelin.ns4kafka.integration.TopicIntegrationTest.BearerAccessRefreshToken;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.model.AccessControlEntry.Permission;
@@ -37,7 +37,7 @@ import org.junit.jupiter.api.Test;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
-class StreamTest extends AbstractIntegrationTest {
+class StreamIntegrationTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
     HttpClient client;

@@ -44,7 +44,7 @@ class NamespaceServiceTest {
     RoleBindingService roleBindingService;
 
     @Mock
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     @Mock
     ConnectorService connectorService;
@@ -374,7 +374,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(roleBindingService.list("namespace"))
             .thenReturn(List.of());
-        when(accessControlEntryService.findAllForNamespace(ns))
+        when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of());
         when(connectClusterService.findAllByNamespaceOwner(ns))
             .thenReturn(List.of());
@@ -411,7 +411,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(roleBindingService.list("namespace"))
             .thenReturn(List.of());
-        when(accessControlEntryService.findAllForNamespace(ns))
+        when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of());
         when(connectClusterService.findAllByNamespaceOwner(ns))
             .thenReturn(List.of());
@@ -449,7 +449,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of(connector));
         when(roleBindingService.list("namespace"))
             .thenReturn(List.of());
-        when(accessControlEntryService.findAllForNamespace(ns))
+        when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of());
         when(connectClusterService.findAllByNamespaceOwner(ns))
             .thenReturn(List.of());
@@ -487,7 +487,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(roleBindingService.list("namespace"))
             .thenReturn(List.of(rb));
-        when(accessControlEntryService.findAllForNamespace(ns))
+        when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of());
         when(connectClusterService.findAllByNamespaceOwner(ns))
             .thenReturn(List.of());
@@ -525,7 +525,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(roleBindingService.list("namespace"))
             .thenReturn(List.of());
-        when(accessControlEntryService.findAllForNamespace(ns))
+        when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of(ace));
         when(connectClusterService.findAllByNamespaceOwner(ns))
             .thenReturn(List.of());
@@ -563,7 +563,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(roleBindingService.list("namespace"))
             .thenReturn(List.of());
-        when(accessControlEntryService.findAllForNamespace(ns))
+        when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of());
         when(connectClusterService.findAllByNamespaceOwner(ns))
             .thenReturn(List.of(connectCluster));
@@ -601,7 +601,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(roleBindingService.list("namespace"))
             .thenReturn(List.of());
-        when(accessControlEntryService.findAllForNamespace(ns))
+        when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of());
         when(connectClusterService.findAllByNamespaceOwner(ns))
             .thenReturn(List.of());

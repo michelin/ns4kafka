@@ -3,7 +3,7 @@ package com.michelin.ns4kafka.controller;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.property.AkhqProperties;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
-import com.michelin.ns4kafka.service.AccessControlEntryService;
+import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import io.micronaut.core.annotation.Introspected;
 import io.micronaut.http.annotation.Body;
@@ -46,7 +46,7 @@ public class AkhqClaimProviderController {
     AkhqProperties config;
 
     @Inject
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     @Inject
     NamespaceService namespaceService;
@@ -76,11 +76,11 @@ public class AkhqClaimProviderController {
             .stream()
             .filter(namespace -> namespace.getMetadata().getLabels() != null
                 && groups.contains(namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_")))
-            .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace).stream())
+            .flatMap(namespace -> aclService.findAllGrantedToNamespace(namespace).stream())
             .collect(Collectors.toList());
 
         // Add all public ACLs.
-        relatedAcl.addAll(accessControlEntryService.findAllPublicGrantedTo());
+        relatedAcl.addAll(aclService.findAllPublicGrantedTo());
 
         return AkhqClaimResponse.builder()
             .roles(config.getFormerRoles())
@@ -117,7 +117,7 @@ public class AkhqClaimProviderController {
         List<AccessControlEntry> relatedAcl = getAclsByGroups(groups);
 
         // Add all public ACLs.
-        relatedAcl.addAll(accessControlEntryService.findAllPublicGrantedTo());
+        relatedAcl.addAll(aclService.findAllPublicGrantedTo());
 
         return AkhqClaimResponseV2.builder()
             .roles(config.getFormerRoles())
@@ -146,7 +146,7 @@ public class AkhqClaimProviderController {
         List<AccessControlEntry> acls = getAclsByGroups(groups);
 
         // Add all public ACLs
-        acls.addAll(accessControlEntryService.findAllPublicGrantedTo());
+        acls.addAll(aclService.findAllPublicGrantedTo());
 
         // Remove unnecessary ACLs
         // E.g., project.topic1 when project.* is granted on the same resource type and cluster
@@ -297,7 +297,7 @@ public class AkhqClaimProviderController {
                 && !Collections.disjoint(groups, List.of(namespace.getMetadata().getLabels()
                 .getOrDefault(config.getGroupLabel(), "_")
                 .split(","))))
-            .flatMap(namespace -> accessControlEntryService.findAllGrantedToNamespace(namespace).stream())
+            .flatMap(namespace -> aclService.findAllGrantedToNamespace(namespace).stream())
             .collect(Collectors.toList());
     }
 

@@ -36,7 +36,7 @@ import reactor.core.publisher.Mono;
 @Singleton
 public class ConnectorService {
     @Inject
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     @Inject
     KafkaConnectClient kafkaConnectClient;
@@ -57,7 +57,7 @@ public class ConnectorService {
      * @return A list of connectors
      */
     public List<Connector> findAllForNamespace(Namespace namespace) {
-        List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace);
+        List<AccessControlEntry> acls = aclService.findAllGrantedToNamespace(namespace);
         return connectorRepository.findAllForCluster(namespace.getMetadata().getCluster())
             .stream()
             .filter(connector -> acls.stream().anyMatch(accessControlEntry -> {
@@ -161,7 +161,7 @@ public class ConnectorService {
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceOwnerOfConnect(Namespace namespace, String connect) {
-        return accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(),
+        return aclService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(),
             AccessControlEntry.ResourceType.CONNECT, connect);
     }
 

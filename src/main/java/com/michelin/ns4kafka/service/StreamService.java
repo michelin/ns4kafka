@@ -22,7 +22,7 @@ public class StreamService {
     StreamRepository streamRepository;
 
     @Inject
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     @Inject
     ApplicationContext applicationContext;
@@ -62,7 +62,7 @@ public class StreamService {
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceOwnerOfKafkaStream(Namespace namespace, String resource) {
-        return new HashSet<>(accessControlEntryService.findAllGrantedToNamespace(namespace)
+        return new HashSet<>(aclService.findAllGrantedToNamespace(namespace)
             .stream()
             .filter(accessControlEntry -> accessControlEntry.getSpec().getPermission()
                 == AccessControlEntry.Permission.OWNER)

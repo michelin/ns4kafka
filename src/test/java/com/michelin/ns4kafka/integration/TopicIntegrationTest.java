@@ -57,7 +57,7 @@ import org.junit.jupiter.api.Test;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
-class TopicTest extends AbstractIntegrationTest {
+class TopicIntegrationTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
     HttpClient client;

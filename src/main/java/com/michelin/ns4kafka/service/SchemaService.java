@@ -36,7 +36,7 @@ import reactor.core.publisher.Mono;
 @Singleton
 public class SchemaService {
     @Inject
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     @Inject
     SchemaRegistryClient schemaRegistryClient;
@@ -48,7 +48,7 @@ public class SchemaService {
      * @return A list of schemas
      */
     public Flux<SchemaList> findAllForNamespace(Namespace namespace) {
-        List<AccessControlEntry> acls = accessControlEntryService.findAllGrantedToNamespace(namespace).stream()
+        List<AccessControlEntry> acls = aclService.findAllGrantedToNamespace(namespace).stream()
             .filter(acl -> acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
             .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC).toList();
 
@@ -291,7 +291,7 @@ public class SchemaService {
      */
     public boolean isNamespaceOwnerOfSubject(Namespace namespace, String subjectName) {
         String underlyingTopicName = subjectName.replaceAll("(-key|-value)$", "");
-        return accessControlEntryService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(),
+        return aclService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(),
             AccessControlEntry.ResourceType.TOPIC,
             underlyingTopicName);
     }

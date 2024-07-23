@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.michelin.ns4kafka.integration.TopicTest.BearerAccessRefreshToken;
+import com.michelin.ns4kafka.integration.TopicIntegrationTest.BearerAccessRefreshToken;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
@@ -37,7 +37,7 @@ import org.junit.jupiter.api.Test;
 
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
-class SchemaTest extends AbstractIntegrationSchemaRegistryTest {
+class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
     @Inject
     private ApplicationContext applicationContext;
 

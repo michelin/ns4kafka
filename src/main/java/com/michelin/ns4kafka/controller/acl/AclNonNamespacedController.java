@@ -3,7 +3,7 @@ package com.michelin.ns4kafka.controller.acl;
 import com.michelin.ns4kafka.controller.generic.NonNamespacedResourceController;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
-import com.michelin.ns4kafka.service.AccessControlEntryService;
+import com.michelin.ns4kafka.service.AclService;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,7 +19,7 @@ import java.util.List;
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 public class AclNonNamespacedController extends NonNamespacedResourceController {
     @Inject
-    AccessControlEntryService accessControlEntryService;
+    AclService aclService;
 
     /**
      * List ACLs.
@@ -28,6 +28,6 @@ public class AclNonNamespacedController extends NonNamespacedResourceController 
      */
     @Get
     public List<AccessControlEntry> listAll() {
-        return accessControlEntryService.findAll();
+        return aclService.findAll();
     }
 }
