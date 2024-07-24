@@ -49,14 +49,15 @@ public class TopicController extends NamespacedResourceController {
     ResourceQuotaService resourceQuotaService;
 
     /**
-     * List topics by namespace.
+     * List topics by namespace, filtered by name parameter.
      *
      * @param namespace The namespace
+     * @param name The name filter
      * @return A list of topics
      */
     @Get
-    public List<Topic> list(String namespace) {
-        return topicService.findAllForNamespace(getNamespace(namespace));
+    public List<Topic> list(String namespace, @QueryValue(defaultValue = "*") String name) {
+        return topicService.findAllForNamespace(getNamespace(namespace), name);
     }
 
     /**

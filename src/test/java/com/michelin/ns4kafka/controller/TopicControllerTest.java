@@ -73,17 +73,14 @@ class TopicControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.findByName("test"))
-            .thenReturn(Optional.of(ns));
-        when(topicService.findAllForNamespace(ns))
-            .thenReturn(List.of());
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(topicService.findAllForNamespace(ns, "*")).thenReturn(List.of());
 
-        List<Topic> actual = topicController.list("test");
-        assertEquals(0, actual.size());
+        assertEquals(List.of(), topicController.list("test", "*"));
     }
 
     @Test
-    void listMultipleTopics() {
+    void listTopicWithoutParameter() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -91,19 +88,30 @@ class TopicControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.findByName("test"))
-            .thenReturn(Optional.of(ns));
-        when(topicService.findAllForNamespace(ns))
-            .thenReturn(List.of(
-                Topic.builder().metadata(Metadata.builder().name("topic1").build()).build(),
-                Topic.builder().metadata(Metadata.builder().name("topic2").build()).build()
-            ));
+        Topic topic1 = Topic.builder().metadata(Metadata.builder().name("topic1").build()).build();
+        Topic topic2 = Topic.builder().metadata(Metadata.builder().name("topic2").build()).build();
 
-        List<Topic> actual = topicController.list("test");
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(topicService.findAllForNamespace(ns, "*")).thenReturn(List.of(topic1, topic2));
 
-        assertEquals(2, actual.size());
-        assertEquals("topic1", actual.get(0).getMetadata().getName());
-        assertEquals("topic2", actual.get(1).getMetadata().getName());
+        assertEquals(List.of(topic1, topic2), topicController.list("test", "*"));
+    }
+
+    @Test
+    void listTopicWithNameParameter() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
+
+        Topic topic1 = Topic.builder().metadata(Metadata.builder().name("topic1").build()).build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(topicService.findAllForNamespace(ns, "topic1")).thenReturn(List.of(topic1));
+
+        assertEquals(List.of(topic1), topicController.list("test", "topic1"));
     }
 
     @Test
@@ -456,7 +464,7 @@ class TopicControllerTest {
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertEquals("test.topic", actual.getMetadata().getName());
         assertEquals(1, actual.getSpec().getTags().size());
-        assertEquals("TAG1", actual.getSpec().getTags().get(0));
+        assertEquals("TAG1", actual.getSpec().getTags().getFirst());
     }
 
     /**

@@ -15,6 +15,7 @@ import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
 import com.michelin.ns4kafka.service.executor.TopicAsyncExecutor;
+import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import jakarta.inject.Inject;
@@ -63,25 +64,32 @@ public class TopicService {
      * @return A list of topics
      */
     public List<Topic> findAllForNamespace(Namespace namespace) {
-        List<AccessControlEntry> acls = aclService.findAllGrantedToNamespace(namespace);
+        List<AccessControlEntry> acls = aclService
+            .findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
         return topicRepository.findAllForCluster(namespace.getMetadata().getCluster())
             .stream()
-            .filter(topic -> acls.stream().anyMatch(accessControlEntry -> {
-                //need to check accessControlEntry.Permission, we want OWNER
-                if (accessControlEntry.getSpec().getPermission() != AccessControlEntry.Permission.OWNER) {
-                    return false;
-                }
-                if (accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC) {
-                    return switch (accessControlEntry.getSpec().getResourcePatternType()) {
-                        case PREFIXED ->
-                            topic.getMetadata().getName().startsWith(accessControlEntry.getSpec().getResource());
-                        case LITERAL ->
-                            topic.getMetadata().getName().equals(accessControlEntry.getSpec().getResource());
-                    };
-                }
-                return false;
-            }))
+            .filter(topic -> aclService.isAnyAclOfResource(acls, topic.getMetadata().getName()))
             .toList();
+    }
+
+    /**
+     * Find all topics of a given namespace, filtered by given parameters.
+     *
+     * @param namespace The namespace
+     * @param name The name filter
+     * @return A list of topics
+     */
+    public List<Topic> findAllForNamespace(Namespace namespace, String name) {
+        // find owner ACL on topics for this namespace
+        List<AccessControlEntry> acls = aclService
+            .findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
+        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
+        return topicRepository.findAllForCluster(namespace.getMetadata().getCluster())
+            .stream()
+            // filter topics based on acl & name
+            .filter(topic -> aclService.isAnyAclOfResource(acls, topic.getMetadata().getName())
+                && RegexUtils.filterByPattern(topic.getMetadata().getName(), nameFilterPatterns))
+                .toList();
     }
 
     /**

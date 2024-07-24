@@ -932,4 +932,115 @@ class AclServiceTest {
         assertFalse(aclService.topicAclsCollide(aceTopicPrefixedOwner, aceConnectLiteralOwner));
         assertFalse(aclService.topicAclsCollide(aceConnectLiteralOwner, aceTopicPrefixedOwner));
     }
+
+    @Test
+    void findResourceOwnerAclGrantedToNamespace() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder().name("namespace1").build()).build();
+        AccessControlEntry acl1 = AccessControlEntry.builder()
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .grantedTo("namespace1").build())
+            .build();
+        AccessControlEntry acl2 = AccessControlEntry.builder()
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .permission(AccessControlEntry.Permission.READ)
+                .grantedTo("namespace1").build())
+            .build();
+        AccessControlEntry acl3 = AccessControlEntry.builder()
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .grantedTo("namespace1").build())
+            .build();
+        AccessControlEntry acl4 = AccessControlEntry.builder()
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .grantedTo("namespace2").build())
+            .build();
+        AccessControlEntry acl5 = AccessControlEntry.builder()
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .permission(AccessControlEntry.Permission.READ)
+                .grantedTo("*").build())
+            .build();
+        AccessControlEntry acl6 = AccessControlEntry.builder()
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.GROUP)
+                .permission(AccessControlEntry.Permission.WRITE)
+                .grantedTo("namespace1").build())
+            .build();
+
+        when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, acl3, acl4, acl5, acl6));
+
+        assertEquals(List.of(acl1),
+            aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC));
+        assertEquals(List.of(acl3),
+            aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT));
+        assertEquals(List.of(),
+            aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.GROUP));
+    }
+
+    @Test
+    void isPrefixedAclOfResource() {
+        AccessControlEntry acl1 = AccessControlEntry.builder()
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("abc.")
+                .grantedTo("namespace")
+                .build())
+            .build();
+
+        AccessControlEntry acl2 = AccessControlEntry.builder()
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("abc_")
+                .grantedTo("namespace")
+                .build())
+            .build();
+        List<AccessControlEntry> acls = List.of(acl1, acl2);
+
+        assertFalse(aclService.isAnyAclOfResource(acls, "xyz.topic1"));
+        assertFalse(aclService.isAnyAclOfResource(acls, "topic1-abc"));
+        assertFalse(aclService.isAnyAclOfResource(acls, "abc-topic1"));
+        assertTrue(aclService.isAnyAclOfResource(acls, "abc.topic1"));
+        assertTrue(aclService.isAnyAclOfResource(acls, "abc_topic1"));
+    }
+
+    @Test
+    void isLiteralAclOfResource() {
+        AccessControlEntry acl1 = AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("abc.topic1")
+                        .grantedTo("namespace")
+                        .build())
+                .build();
+
+        AccessControlEntry acl2 = AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("abc-topic1")
+                        .grantedTo("namespace")
+                        .build())
+                .build();
+        List<AccessControlEntry> acls = List.of(acl1, acl2);
+
+        assertFalse(aclService.isAnyAclOfResource(acls, "xyz.topic1"));
+        assertFalse(aclService.isAnyAclOfResource(acls, "abc.topic12"));
+        assertFalse(aclService.isAnyAclOfResource(acls, "abc_topic1"));
+        assertTrue(aclService.isAnyAclOfResource(acls, "abc.topic1"));
+        assertTrue(aclService.isAnyAclOfResource(acls, "abc-topic1"));
+    }
 }
