@@ -13,7 +13,6 @@ import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
-import com.michelin.ns4kafka.model.query.KafkaStreamFilterParams;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.StreamService;
@@ -56,10 +55,10 @@ class StreamControllerTest {
             .build();
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(streamService.findAllForNamespace(ns, KafkaStreamFilterParams.builder().name(List.of("*")).build()))
+        when(streamService.findAllForNamespace(ns, "*"))
             .thenReturn(List.of());
 
-        List<KafkaStream> actual = streamController.list("test", Optional.empty());
+        List<KafkaStream> actual = streamController.list("test", "*");
         assertEquals(0, actual.size());
     }
 
@@ -86,10 +85,10 @@ class StreamControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(streamService.findAllForNamespace(ns, KafkaStreamFilterParams.builder().name(List.of("*")).build()))
+        when(streamService.findAllForNamespace(ns, "*"))
             .thenReturn(List.of(stream1, stream2));
 
-        List<KafkaStream> actual = streamController.list("test", Optional.empty());
+        List<KafkaStream> actual = streamController.list("test", "*");
         assertEquals(2, actual.size());
         assertTrue(actual.contains(stream1));
         assertTrue(actual.contains(stream2));
@@ -107,20 +106,15 @@ class StreamControllerTest {
         KafkaStream stream1 = KafkaStream.builder().metadata(Metadata.builder().name("prefix.s1").build()).build();
         KafkaStream stream2 = KafkaStream.builder().metadata(Metadata.builder().name("prefix.s2").build()).build();
 
-        List<String> nameParamsList = List.of("prefix.s1", "prefix.s2");
-        Optional<List<String>> nameParams = Optional.of(nameParamsList);
-        KafkaStreamFilterParams searchParams = KafkaStreamFilterParams.builder().name(nameParamsList).build();
-
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(streamService.findAllForNamespace(ns, searchParams))
-            .thenReturn(List.of(stream1, stream2));
+        when(streamService.findAllForNamespace(ns, "prefix.s1"))
+            .thenReturn(List.of(stream1));
 
-        List<KafkaStream> actual = streamController.list("test", nameParams);
+        List<KafkaStream> actual = streamController.list("test", "prefix.s1");
 
-        assertEquals(2, actual.size());
-        assertEquals("prefix.s1", actual.get(0).getMetadata().getName());
-        assertEquals("prefix.s2", actual.get(1).getMetadata().getName());
+        assertEquals(1, actual.size());
+        assertEquals("prefix.s1", actual.getFirst().getMetadata().getName());
     }
 
     @Test
@@ -136,11 +130,11 @@ class StreamControllerTest {
         KafkaStream stream2 = KafkaStream.builder().metadata(Metadata.builder().name("prefix.s2").build()).build();
 
         when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
-        when(streamService.findAllForNamespace(ns, KafkaStreamFilterParams.builder().name(List.of("")).build()))
-                .thenReturn(List.of(stream1, stream2));
+            .thenReturn(Optional.of(ns));
+        when(streamService.findAllForNamespace(ns, ""))
+            .thenReturn(List.of(stream1, stream2));
 
-        List<KafkaStream> actual = streamController.list("test", Optional.of(List.of("")));
+        List<KafkaStream> actual = streamController.list("test", "");
 
         assertEquals(2, actual.size());
         assertEquals("prefix.s1", actual.get(0).getMetadata().getName());
