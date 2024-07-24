@@ -12,87 +12,123 @@ import org.junit.jupiter.api.Test;
  */
 class RegexUtilsTest {
     @Test
-    void wildcardStringsToRegexPatterns() {
+    void defaultStringToRegexPatterns() {
         assertEquals(List.of("^.*$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("")));
+        assertEquals(List.of("^.*$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("*")));
+    }
+
+    @Test
+    void simpleWildcardToRegexPatterns() {
         assertEquals(List.of("^prefix.*$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("prefix*")));
         assertEquals(List.of("^.*suffix$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("*suffix")));
-        assertEquals(List.of("^prefix.*suffix$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("prefix*suffix")));
         assertEquals(List.of("^abc\\..*$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("abc.*")));
         assertEquals(List.of("^item.$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("item?")));
+    }
+
+    @Test
+    void complexWildcardToRegexPatterns() {
+        assertEquals(List.of("^prefix.*suffix$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("prefix*suffix")));
         assertEquals(List.of("^...xyz$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("???xyz")));
         assertEquals(List.of("^.*\\.topic.$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("*.topic?")));
         assertEquals(List.of("^.*\\.topic.$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("*.topic?")));
         assertEquals(List.of("^abc.\\..*-test.$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("abc?.*-test?")));
+    }
 
+    @Test
+    void multipleWildcardsToRegexPatterns() {
         assertEquals(List.of("^prefix.*$", "^.*suffix$"),
             RegexUtils.wildcardStringsToRegexPatterns(List.of("prefix*", "*suffix")));
     }
 
     @Test
-    void filterByPattern() {
+    void noFilterRegexPattern() {
         assertTrue(RegexUtils.filterByPattern("topic1", List.of("^.*$")));
+    }
 
-        assertTrue(RegexUtils.filterByPattern("prefix.topic1", List.of("^prefix.*$")));
-        assertTrue(RegexUtils.filterByPattern("prefix1.topic1", List.of("^prefix.*$")));
-        assertFalse(RegexUtils.filterByPattern("topic1", List.of("^prefix.*$")));
+    @Test
+    void prefixWithRegexPattern() {
+        List<String> pattern = List.of("^prefix.*$");
+        assertTrue(RegexUtils.filterByPattern("prefix.topic1", pattern));
+        assertTrue(RegexUtils.filterByPattern("prefix1.topic1", pattern));
+        assertFalse(RegexUtils.filterByPattern("topic1", pattern));
+    }
 
-        assertTrue(RegexUtils.filterByPattern("abc1.topic-test2", List.of("^abc.\\..*-test.$")));
-        assertTrue(RegexUtils.filterByPattern("abc1.stream-test2", List.of("^abc.\\..*-test.$")));
-        assertFalse(RegexUtils.filterByPattern("abc1.topic-test20", List.of("^abc.\\..*-test.$")));
-        assertFalse(RegexUtils.filterByPattern("abc.topic-test2", List.of("^abc.\\..*-test.$")));
-        assertFalse(RegexUtils.filterByPattern("abc1.topic-test", List.of("^abc.\\..*-test.$")));
-        assertFalse(RegexUtils.filterByPattern("abc1.topic-prod2", List.of("^abc.\\..*-test.$")));
+    @Test
+    void prefixAndSuffixWithRegexPattern() {
+        List<String> pattern = List.of("^abc.\\..*-test.$");
+        assertTrue(RegexUtils.filterByPattern("abc1.topic-test2", pattern));
+        assertTrue(RegexUtils.filterByPattern("abc1.stream-test2", pattern));
+        assertFalse(RegexUtils.filterByPattern("abc1.topic-test20", pattern));
+        assertFalse(RegexUtils.filterByPattern("abc.topic-test2", pattern));
+        assertFalse(RegexUtils.filterByPattern("abc1.topic-test", pattern));
+        assertFalse(RegexUtils.filterByPattern("abc1.topic-prod2", pattern));
+    }
 
-        assertTrue(RegexUtils.filterByPattern("prefix1.topic", List.of("^prefix1.*$", "^prefix2.*$")));
-        assertTrue(RegexUtils.filterByPattern("prefix2.topic", List.of("^prefix1.*$", "^prefix2.*$")));
-        assertFalse(RegexUtils.filterByPattern("prefix3.topic", List.of("^prefix1.*$", "^prefix2.*$")));
-        assertFalse(RegexUtils.filterByPattern("topic", List.of("^prefix1.*$", "^prefix2.*$")));
+    @Test
+    void filterWithMultipleRegexPattern() {
+        List<String> pattern = List.of("^prefix1.*$", "^prefix2.*$");
+        assertTrue(RegexUtils.filterByPattern("prefix1.topic", pattern));
+        assertTrue(RegexUtils.filterByPattern("prefix2.topic", pattern));
+        assertFalse(RegexUtils.filterByPattern("prefix3.topic", pattern));
+        assertFalse(RegexUtils.filterByPattern("topic", pattern));
     }
 
     /**
      * Functional tests of the wildcard filter.
      */
     @Test
-    void filterByWildcard() {
-        List<String> patterns1 = List.of("abc.my*");
-        assertTrue(RegexUtils.filterByWildcard("abc.myTopic", patterns1));
-        assertTrue(RegexUtils.filterByWildcard("abc.myStream", patterns1));
-        assertTrue(RegexUtils.filterByWildcard("abc.myConnect.xyz", patterns1));
-        assertTrue(RegexUtils.filterByWildcard("abc.my", patterns1));
-        assertFalse(RegexUtils.filterByWildcard("abc.topic", patterns1));
-        assertFalse(RegexUtils.filterByWildcard("myTopic", patterns1));
+    void noFilterWildcard() {
+        List<String> pattern1 = RegexUtils.wildcardStringsToRegexPatterns(List.of("*"));
+        assertTrue(RegexUtils.filterByPattern("prefix.myTopic", pattern1));
+        assertTrue(RegexUtils.filterByPattern("prefix10.yourSchema", pattern1));
+        assertTrue(RegexUtils.filterByPattern("whatever.whatsoever", pattern1));
+        assertTrue(RegexUtils.filterByPattern("whatever", pattern1));
 
-        List<String> patterns2 = List.of("abc.myT*op?c");
-        assertTrue(RegexUtils.filterByWildcard("abc.myTopic", patterns2));
-        assertTrue(RegexUtils.filterByWildcard("abc.myTopicTopic", patterns2));
-        assertTrue(RegexUtils.filterByWildcard("abc.myTaaaaaopac", patterns2));
-        assertFalse(RegexUtils.filterByWildcard("abc.myTopiiic", patterns2));
-        assertFalse(RegexUtils.filterByWildcard("abc.yourTopic", patterns2));
-        assertFalse(RegexUtils.filterByWildcard("abc.myTopic.suffix", patterns2));
+        List<String> patterns2 = RegexUtils.wildcardStringsToRegexPatterns(List.of(""));
+        assertTrue(RegexUtils.filterByPattern("prefix.myTopic", patterns2));
+        assertTrue(RegexUtils.filterByPattern("prefix10.yourSchema", patterns2));
+        assertTrue(RegexUtils.filterByPattern("whatever.whatsoever", patterns2));
+        assertTrue(RegexUtils.filterByPattern("whatever", patterns2));
+    }
 
-        List<String> patterns3 = List.of("*.myTopic?");
-        assertTrue(RegexUtils.filterByWildcard("abc.myTopic1", patterns3));
-        assertTrue(RegexUtils.filterByWildcard("prefix.myTopic2", patterns3));
-        assertFalse(RegexUtils.filterByWildcard("abc.myTopic", patterns3));
-        assertFalse(RegexUtils.filterByWildcard("abc.myTopic.suffix", patterns3));
-        assertFalse(RegexUtils.filterByWildcard("abc.myTopic13", patterns3));
+    @Test
+    void filterWithSimpleSuffixWildcard() {
+        List<String> pattern = RegexUtils.wildcardStringsToRegexPatterns(List.of("abc.my*"));
+        assertTrue(RegexUtils.filterByPattern("abc.myTopic", pattern));
+        assertTrue(RegexUtils.filterByPattern("abc.myStream", pattern));
+        assertTrue(RegexUtils.filterByPattern("abc.myConnect.xyz", pattern));
+        assertTrue(RegexUtils.filterByPattern("abc.my", pattern));
+        assertFalse(RegexUtils.filterByPattern("abc.topic", pattern));
+        assertFalse(RegexUtils.filterByPattern("myTopic", pattern));
+    }
 
-        List<String> patterns4 = List.of("***.myTopic");
-        assertTrue(RegexUtils.filterByWildcard("abc.myTopic", patterns4));
-        assertTrue(RegexUtils.filterByWildcard("prefix.myTopic", patterns4));
-        assertTrue(RegexUtils.filterByWildcard(".myTopic", patterns4));
-        assertFalse(RegexUtils.filterByWildcard("prefix.myStream", patterns4));
+    @Test
+    void filterWithMultipleWildcard() {
+        List<String> pattern = RegexUtils.wildcardStringsToRegexPatterns(List.of("abc.myT*op?c"));
+        assertTrue(RegexUtils.filterByPattern("abc.myTopic", pattern));
+        assertTrue(RegexUtils.filterByPattern("abc.myTopicTopic", pattern));
+        assertTrue(RegexUtils.filterByPattern("abc.myTaaaaaopac", pattern));
+        assertFalse(RegexUtils.filterByPattern("abc.myTopiiic", pattern));
+        assertFalse(RegexUtils.filterByPattern("abc.yourTopic", pattern));
+        assertFalse(RegexUtils.filterByPattern("abc.myTopic.suffix", pattern));
+    }
 
-        List<String> patterns5 = List.of("*");
-        assertTrue(RegexUtils.filterByWildcard("prefix.myTopic", patterns5));
-        assertTrue(RegexUtils.filterByWildcard("prefix10.yourSchema", patterns5));
-        assertTrue(RegexUtils.filterByWildcard("whatever.whatsoever", patterns5));
-        assertTrue(RegexUtils.filterByWildcard("whatever", patterns5));
+    @Test
+    void filterWithSuffixWildcard() {
+        List<String> pattern = RegexUtils.wildcardStringsToRegexPatterns(List.of("*.myTopic?"));
+        assertTrue(RegexUtils.filterByPattern("abc.myTopic1", pattern));
+        assertTrue(RegexUtils.filterByPattern("prefix.myTopic2", pattern));
+        assertFalse(RegexUtils.filterByPattern("abc.myTopic", pattern));
+        assertFalse(RegexUtils.filterByPattern("abc.myTopic.suffix", pattern));
+        assertFalse(RegexUtils.filterByPattern("abc.myTopic13", pattern));
+    }
 
-        List<String> patterns6 = List.of("");
-        assertTrue(RegexUtils.filterByWildcard("prefix.myTopic", patterns6));
-        assertTrue(RegexUtils.filterByWildcard("prefix10.yourSchema", patterns6));
-        assertTrue(RegexUtils.filterByWildcard("whatever.whatsoever", patterns6));
-        assertTrue(RegexUtils.filterByWildcard("whatever", patterns6));
+    @Test
+    void filterWithMultipleSameWildcard() {
+        List<String> pattern = RegexUtils.wildcardStringsToRegexPatterns(List.of("***.myTopic"));
+        assertTrue(RegexUtils.filterByPattern("abc.myTopic", pattern));
+        assertTrue(RegexUtils.filterByPattern("prefix.myTopic", pattern));
+        assertTrue(RegexUtils.filterByPattern(".myTopic", pattern));
+        assertFalse(RegexUtils.filterByPattern("prefix.myStream", pattern));
     }
 }

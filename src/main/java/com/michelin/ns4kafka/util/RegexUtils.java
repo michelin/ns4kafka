@@ -37,15 +37,4 @@ public class RegexUtils {
         return regexPatterns.stream()
             .anyMatch(pattern -> Pattern.compile(pattern).matcher(resourceName).matches());
     }
-
-    /**
-     * Check if a string matches any wildcard of a given list.
-     *
-     * @param resourceName The string
-     * @param wildcardStrings The regex patterns
-     * @return true if any wildcard matches the resourceName, false otherwise
-     */
-    public static boolean filterByWildcard(String resourceName, List<String> wildcardStrings) {
-        return filterByPattern(resourceName, wildcardStringsToRegexPatterns(wildcardStrings));
-    }
 }
