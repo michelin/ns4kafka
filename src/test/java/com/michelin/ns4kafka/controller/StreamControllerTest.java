@@ -104,7 +104,6 @@ class StreamControllerTest {
             .build();
 
         KafkaStream stream1 = KafkaStream.builder().metadata(Metadata.builder().name("prefix.s1").build()).build();
-        KafkaStream stream2 = KafkaStream.builder().metadata(Metadata.builder().name("prefix.s2").build()).build();
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
