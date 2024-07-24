@@ -12,7 +12,6 @@ import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.RoleBinding;
-import com.michelin.ns4kafka.model.query.RoleBindingFilterParams;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.RoleBindingService;
@@ -152,7 +151,6 @@ class RoleBindingControllerTest {
 
     @Test
     void deleteSucess() {
-
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -165,7 +163,6 @@ class RoleBindingControllerTest {
                 .build())
             .build();
 
-        //when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
         when(roleBindingService.findByName(any(), any())).thenReturn(Optional.of(rolebinding));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
@@ -193,20 +190,10 @@ class RoleBindingControllerTest {
     @Test
     void listRoleBindingWithNameParameters() {
         RoleBinding rb1 = RoleBinding.builder().metadata(Metadata.builder().name("namespace-rb1").build()).build();
-        RoleBinding rb2 = RoleBinding.builder().metadata(Metadata.builder().name("namespace-rb2").build()).build();
 
-        List<String> nameParamsList = List.of("namespace-rb1", "namespace-rb2");
-        Optional<List<String>> nameParams = Optional.of(nameParamsList);
-        RoleBindingFilterParams searchParams = RoleBindingFilterParams.builder().name(nameParamsList).build();
+        when(roleBindingService.list("test", "namespace-rb1")).thenReturn(List.of(rb1));
 
-        when(roleBindingService.list("test", searchParams))
-            .thenReturn(List.of(rb1, rb2));
-
-        List<RoleBinding> actual = roleBindingController.list("test", nameParams);
-
-        assertEquals(2, actual.size());
-        assertEquals("namespace-rb1", actual.get(0).getMetadata().getName());
-        assertEquals("namespace-rb2", actual.get(1).getMetadata().getName());
+        assertEquals(List.of(rb1), roleBindingController.list("test", "namespace-rb1"));
     }
 
     @Test
@@ -214,13 +201,10 @@ class RoleBindingControllerTest {
         RoleBinding rb1 = RoleBinding.builder().metadata(Metadata.builder().name("namespace-rb1").build()).build();
         RoleBinding rb2 = RoleBinding.builder().metadata(Metadata.builder().name("namespace-rb2").build()).build();
 
-        when(roleBindingService.list("test", RoleBindingFilterParams.builder().name(List.of("")).build()))
-            .thenReturn(List.of(rb1, rb2));
+        when(roleBindingService.list("test", "*")).thenReturn(List.of(rb1, rb2));
+        when(roleBindingService.list("test", "")).thenReturn(List.of(rb1, rb2));
 
-        List<RoleBinding> actual = roleBindingController.list("test", Optional.of(List.of("")));
-
-        assertEquals(2, actual.size());
-        assertEquals("namespace-rb1", actual.get(0).getMetadata().getName());
-        assertEquals("namespace-rb2", actual.get(1).getMetadata().getName());
+        assertEquals(List.of(rb1, rb2), roleBindingController.list("test", "*"));
+        assertEquals(List.of(rb1, rb2), roleBindingController.list("test", ""));
     }
 }
