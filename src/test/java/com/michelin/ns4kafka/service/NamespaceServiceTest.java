@@ -172,7 +172,7 @@ class NamespaceServiceTest {
 
         assertEquals(1, result.size());
         assertEquals("Invalid value \"local-name\" for field \"connectClusters\": connect cluster does not exist.",
-            result.get(0));
+            result.getFirst());
     }
 
     @Test
@@ -206,7 +206,7 @@ class NamespaceServiceTest {
         assertEquals(1, result.size());
         assertEquals("Invalid value \"min.cleanable.dirty.ratio\" for field \"validationConstraints\": "
                 + "configuration not editable on a Confluent Cloud cluster.",
-            result.get(0));
+            result.getFirst());
     }
 
     @Test
@@ -277,7 +277,7 @@ class NamespaceServiceTest {
 
         assertEquals(1, result.size());
         assertEquals("Invalid value \"user\" for field \"kafkaUser\": user already exists in another namespace.",
-            result.get(0));
+            result.getFirst());
     }
 
     @Test
@@ -484,7 +484,7 @@ class NamespaceServiceTest {
 
         List<String> result = namespaceService.listAllNamespaceResources(ns);
         assertEquals(1, result.size());
-        assertEquals("Topic/topic", result.get(0));
+        assertEquals("Topic/topic", result.getFirst());
     }
 
     @Test
@@ -522,7 +522,7 @@ class NamespaceServiceTest {
 
         List<String> result = namespaceService.listAllNamespaceResources(ns);
         assertEquals(1, result.size());
-        assertEquals("Connector/connector", result.get(0));
+        assertEquals("Connector/connector", result.getFirst());
     }
 
     @Test
@@ -560,7 +560,7 @@ class NamespaceServiceTest {
 
         List<String> result = namespaceService.listAllNamespaceResources(ns);
         assertEquals(1, result.size());
-        assertEquals("RoleBinding/rolebinding", result.get(0));
+        assertEquals("RoleBinding/rolebinding", result.getFirst());
     }
 
     @Test
@@ -598,7 +598,7 @@ class NamespaceServiceTest {
 
         List<String> result = namespaceService.listAllNamespaceResources(ns);
         assertEquals(1, result.size());
-        assertEquals("AccessControlEntry/ace", result.get(0));
+        assertEquals("AccessControlEntry/ace", result.getFirst());
     }
 
     @Test
@@ -636,7 +636,7 @@ class NamespaceServiceTest {
 
         List<String> result = namespaceService.listAllNamespaceResources(ns);
         assertEquals(1, result.size());
-        assertEquals("ConnectCluster/connect-cluster", result.get(0));
+        assertEquals("ConnectCluster/connect-cluster", result.getFirst());
     }
 
     @Test
