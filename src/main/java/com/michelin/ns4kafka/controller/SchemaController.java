@@ -44,10 +44,10 @@ public class SchemaController extends NamespacedResourceController {
     SchemaService schemaService;
 
     /**
-     * List schemas by namespace, filtered by query parameters.
+     * List schemas by namespace, filtered by name parameter.
      *
      * @param namespace The namespace
-     * @param name The name filter
+     * @param name The name parameter
      * @return A list of schemas
      */
     @Get

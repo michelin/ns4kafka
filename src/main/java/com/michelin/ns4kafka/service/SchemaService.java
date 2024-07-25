@@ -67,7 +67,7 @@ public class SchemaService {
     }
 
     /**
-     * Get all the schemas of a given namespace, filtered by given parameters.
+     * Get all the schemas of a given namespace, filtered by name parameter.
      *
      * @param namespace The namespace
      * @param name The name filter
