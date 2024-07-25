@@ -674,7 +674,7 @@ class NamespaceServiceTest {
 
         List<String> result = namespaceService.listAllNamespaceResources(ns);
         assertEquals(1, result.size());
-        assertEquals("ResourceQuota/resource-quota", result.get(0));
+        assertEquals("ResourceQuota/resource-quota", result.getFirst());
     }
 
     @Test
