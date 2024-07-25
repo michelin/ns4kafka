@@ -13,6 +13,7 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.NamespaceRepository;
 import com.michelin.ns4kafka.util.FormatErrorUtils;
+import com.michelin.ns4kafka.util.RegexUtils;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
@@ -141,7 +142,7 @@ public class NamespaceService {
     }
 
     /**
-     * List all namespaces.
+     * List all namespaces, filtered by name parameter.
      *
      * @return The list of namespaces
      */
@@ -149,6 +150,21 @@ public class NamespaceService {
         return managedClusterProperties.stream()
             .map(ManagedClusterProperties::getName)
             .flatMap(s -> namespaceRepository.findAllForCluster(s).stream())
+            .toList();
+    }
+
+    /**
+     * List all namespaces, filtered by name parameter.
+     *
+     * @param name The name filter
+     * @return The list of namespaces
+     */
+    public List<Namespace> listAll(String name) {
+        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
+        return managedClusterProperties.stream()
+            .map(ManagedClusterProperties::getName)
+            .flatMap(s -> namespaceRepository.findAllForCluster(s).stream())
+            .filter(ns -> RegexUtils.filterByPattern(ns.getMetadata().getName(), nameFilterPatterns))
             .toList();
     }
 

@@ -38,13 +38,14 @@ public class NamespaceController extends NonNamespacedResourceController {
     NamespaceService namespaceService;
 
     /**
-     * List namespaces.
+     * List namespaces, filtered by name parameter.
      *
+     * @param name The name parameter
      * @return A list of namespaces
      */
-    @Get("/")
-    public List<Namespace> list() {
-        return namespaceService.listAll();
+    @Get
+    public List<Namespace> list(@QueryValue(defaultValue = "*") String name) {
+        return namespaceService.listAll(name);
     }
 
     /**
