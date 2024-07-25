@@ -13,7 +13,7 @@ public class RegexUtils {
     /**
      * Convert wildcard strings list to regex patterns list.
      *
-     * @param wildcardStrings The wildcard strings
+     * @param wildcardStrings The list of wildcard strings
      * @return A list of regex patterns
      */
     public static List<String> wildcardStringsToRegexPatterns(List<String> wildcardStrings) {
