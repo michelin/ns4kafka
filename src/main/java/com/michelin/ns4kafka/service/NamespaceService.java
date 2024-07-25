@@ -142,7 +142,7 @@ public class NamespaceService {
     }
 
     /**
-     * List all namespaces, filtered by name parameter.
+     * List all namespaces.
      *
      * @return The list of namespaces
      */
