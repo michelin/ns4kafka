@@ -14,6 +14,7 @@ import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityR
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
+import com.michelin.ns4kafka.util.RegexUtils;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.micronaut.core.util.CollectionUtils;
@@ -42,26 +43,46 @@ public class SchemaService {
     SchemaRegistryClient schemaRegistryClient;
 
     /**
-     * Get all the schemas by namespace.
+     * Get all the schemas of a given namespace.
      *
      * @param namespace The namespace
      * @return A list of schemas
      */
     public Flux<SchemaList> findAllForNamespace(Namespace namespace) {
-        List<AccessControlEntry> acls = aclService.findAllGrantedToNamespace(namespace).stream()
-            .filter(acl -> acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
-            .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC).toList();
-
+        List<AccessControlEntry> acls = aclService
+            .findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
         return schemaRegistryClient
             .getSubjects(namespace.getMetadata().getCluster())
             .filter(subject -> {
-                String underlyingTopicName = subject.replaceAll("(-key|-value)$", "");
+                String underlyingTopicName = subject.replaceAll("-(key|value)$", "");
+                return aclService.isAnyAclOfResource(acls, underlyingTopicName);
+            })
+            .map(subject -> SchemaList.builder()
+                .metadata(Metadata.builder()
+                    .cluster(namespace.getMetadata().getCluster())
+                    .namespace(namespace.getMetadata().getName())
+                    .name(subject)
+                    .build())
+                .build());
+    }
 
-                return acls.stream()
-                    .anyMatch(accessControlEntry -> switch (accessControlEntry.getSpec().getResourcePatternType()) {
-                        case PREFIXED -> underlyingTopicName.startsWith(accessControlEntry.getSpec().getResource());
-                        case LITERAL -> underlyingTopicName.equals(accessControlEntry.getSpec().getResource());
-                    });
+    /**
+     * Get all the schemas of a given namespace, filtered by given parameters.
+     *
+     * @param namespace The namespace
+     * @param name The name filter
+     * @return A list of schemas
+     */
+    public Flux<SchemaList> findAllForNamespace(Namespace namespace, String name) {
+        List<AccessControlEntry> acls = aclService
+            .findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
+        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
+        return schemaRegistryClient
+            .getSubjects(namespace.getMetadata().getCluster())
+            .filter(subject -> {
+                String underlyingTopicName = subject.replaceAll("-(key|value)$", "");
+                return aclService.isAnyAclOfResource(acls, underlyingTopicName)
+                    && RegexUtils.filterByPattern(subject, nameFilterPatterns);
             })
             .map(subject -> SchemaList.builder()
                 .metadata(Metadata.builder()

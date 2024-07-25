@@ -3,6 +3,8 @@ package com.michelin.ns4kafka.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,52 +42,40 @@ class SchemaServiceTest {
     SchemaRegistryClient schemaRegistryClient;
 
     @Test
-    void getAllByNamespace() {
+    void listSchemaWithoutParameter() {
         Namespace namespace = buildNamespace();
         List<String> subjectsResponse =
             Arrays.asList("prefix.schema-one", "prefix2.schema-two", "prefix2.schema-three");
 
+        List<AccessControlEntry> acls = List.of(
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("myNamespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resource("prefix.")
+                    .build())
+                .build(),
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("myNamespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resource("prefix2.schema-two")
+                    .build())
+                .build()
+        );
+
+        when(aclService.findResourceOwnerGrantedToNamespace(namespace,
+            AccessControlEntry.ResourceType.TOPIC)).thenReturn(acls);
+
         when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster())).thenReturn(
             Flux.fromIterable(subjectsResponse));
-        when(aclService.findAllGrantedToNamespace(namespace))
-            .thenReturn(List.of(
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("prefix.")
-                        .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("prefix2.schema-two")
-                        .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.READ)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("prefix3.")
-                        .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resource("ns-")
-                        .build())
-                    .build()
-            ));
+        when(aclService.isAnyAclOfResource(acls, "prefix.schema-one")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "prefix2.schema-two")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "prefix2.schema-three")).thenReturn(false);
 
         StepVerifier.create(schemaService.findAllForNamespace(namespace))
             .consumeNextWith(schema -> assertEquals("prefix.schema-one", schema.getMetadata().getName()))
@@ -93,13 +83,131 @@ class SchemaServiceTest {
             .verifyComplete();
     }
 
+
     @Test
-    void getAllByNamespaceEmptyResponse() {
+    void listSchemaEmptyResponse() {
         Namespace namespace = buildNamespace();
 
         when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster())).thenReturn(Flux.empty());
 
         StepVerifier.create(schemaService.findAllForNamespace(namespace))
+            .verifyComplete();
+    }
+
+    @Test
+    void listSchemaWithNameParameter() {
+        Namespace namespace = buildNamespace();
+        List<String> subjectsResponse = List.of("prefix.schema-one", "prefix2.schema-two", "prefix2.schema-three");
+
+        List<AccessControlEntry> acls = List.of(
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("myNamespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resource("prefix.")
+                    .build())
+                .build(),
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("myNamespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resource("prefix2.schema-two")
+                    .build())
+                .build()
+        );
+
+        when(aclService.findResourceOwnerGrantedToNamespace(namespace,
+            AccessControlEntry.ResourceType.TOPIC)).thenReturn(acls);
+        when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster())).thenReturn(
+            Flux.fromIterable(subjectsResponse));
+        when(aclService.isAnyAclOfResource(acls, "prefix.schema-one")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "prefix2.schema-two")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "prefix2.schema-three")).thenReturn(false);
+
+        StepVerifier.create(schemaService.findAllForNamespace(namespace, "prefix.schema-one"))
+            .consumeNextWith(schema -> assertEquals("prefix.schema-one", schema.getMetadata().getName()))
+            .verifyComplete();
+        StepVerifier.create(schemaService.findAllForNamespace(namespace, "prefix2.schema-three")).verifyComplete();
+        StepVerifier.create(schemaService.findAllForNamespace(namespace, "prefix3.schema-four")).verifyComplete();
+        StepVerifier.create(schemaService.findAllForNamespace(namespace, ""))
+            .consumeNextWith(schema -> assertEquals("prefix.schema-one", schema.getMetadata().getName()))
+            .consumeNextWith(schema -> assertEquals("prefix2.schema-two", schema.getMetadata().getName()))
+            .verifyComplete();
+    }
+
+    @Test
+    void listSchemaWithWildcardNameParameter() {
+        Namespace namespace = buildNamespace();
+        List<String> subjectsResponse = List.of("prefix1.schema1-value", "prefix1.schema1-key", "prefix1.schema-one",
+            "prefix2.schema2-value", "prefix4.schema1-value", "prefix4.schema2-key");
+
+        List<AccessControlEntry> acls = List.of(
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("myNamespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resource("prefix1.")
+                    .build())
+                .build(),
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("myNamespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resource("prefix2.schema2-value")
+                    .build())
+                .build(),
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("myNamespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resource("prefix4.")
+                    .build())
+                .build()
+        );
+
+        when(aclService.findResourceOwnerGrantedToNamespace(namespace,
+            AccessControlEntry.ResourceType.TOPIC)).thenReturn(acls);
+        when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster())).thenReturn(
+            Flux.fromIterable(subjectsResponse));
+        when(aclService.isAnyAclOfResource(eq(acls), anyString())).thenReturn(true);
+
+        StepVerifier.create(schemaService.findAllForNamespace(namespace, "prefix1.*"))
+            .consumeNextWith(schema -> assertEquals("prefix1.schema1-value", schema.getMetadata().getName()))
+            .consumeNextWith(schema -> assertEquals("prefix1.schema1-key", schema.getMetadata().getName()))
+            .consumeNextWith(schema -> assertEquals("prefix1.schema-one", schema.getMetadata().getName()))
+            .verifyComplete();
+
+        StepVerifier.create(schemaService.findAllForNamespace(namespace, "*-value"))
+            .consumeNextWith(schema -> assertEquals("prefix1.schema1-value", schema.getMetadata().getName()))
+            .consumeNextWith(schema -> assertEquals("prefix2.schema2-value", schema.getMetadata().getName()))
+            .consumeNextWith(schema -> assertEquals("prefix4.schema1-value", schema.getMetadata().getName()))
+            .verifyComplete();
+
+        StepVerifier.create(schemaService.findAllForNamespace(namespace, "prefix?.schema1-key"))
+            .consumeNextWith(schema -> assertEquals("prefix1.schema1-key", schema.getMetadata().getName()))
+            .verifyComplete();
+
+        StepVerifier.create(schemaService.findAllForNamespace(namespace, "prefix?.schema-*"))
+            .consumeNextWith(schema -> assertEquals("prefix1.schema-one", schema.getMetadata().getName()))
+            .verifyComplete();
+
+        StepVerifier.create(schemaService.findAllForNamespace(namespace, "*"))
+            .consumeNextWith(schema -> assertEquals("prefix1.schema1-value", schema.getMetadata().getName()))
+            .consumeNextWith(schema -> assertEquals("prefix1.schema1-key", schema.getMetadata().getName()))
+            .consumeNextWith(schema -> assertEquals("prefix1.schema-one", schema.getMetadata().getName()))
+            .consumeNextWith(schema -> assertEquals("prefix2.schema2-value", schema.getMetadata().getName()))
+            .consumeNextWith(schema -> assertEquals("prefix4.schema1-value", schema.getMetadata().getName()))
+            .consumeNextWith(schema -> assertEquals("prefix4.schema2-key", schema.getMetadata().getName()))
             .verifyComplete();
     }
 

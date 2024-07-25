@@ -44,14 +44,15 @@ public class SchemaController extends NamespacedResourceController {
     SchemaService schemaService;
 
     /**
-     * List schemas by namespace.
+     * List schemas by namespace, filtered by query parameters.
      *
      * @param namespace The namespace
+     * @param name The name filter
      * @return A list of schemas
      */
     @Get
-    public Flux<SchemaList> list(String namespace) {
-        return schemaService.findAllForNamespace(getNamespace(namespace));
+    public Flux<SchemaList> list(String namespace, @QueryValue(defaultValue = "*") String name) {
+        return schemaService.findAllForNamespace(getNamespace(namespace), name);
     }
 
     /**

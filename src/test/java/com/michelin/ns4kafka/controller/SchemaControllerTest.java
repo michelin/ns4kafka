@@ -142,7 +142,7 @@ class SchemaControllerTest {
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
                 assertEquals("Invalid value \"prefix.subject-value\" for field \"name\": "
                         + "namespace is not owner of the resource.",
-                    ((ResourceValidationException) error).getValidationErrors().get(0));
+                    ((ResourceValidationException) error).getValidationErrors().getFirst());
             })
             .verify();
     }
@@ -161,7 +161,7 @@ class SchemaControllerTest {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
                 assertEquals("Errors",
-                    ((ResourceValidationException) error).getValidationErrors().get(0));
+                    ((ResourceValidationException) error).getValidationErrors().getFirst());
             })
             .verify();
     }
@@ -237,7 +237,7 @@ class SchemaControllerTest {
             .consumeErrorWith(error -> {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
-                assertEquals("Not compatible", ((ResourceValidationException) error).getValidationErrors().get(0));
+                assertEquals("Not compatible", ((ResourceValidationException) error).getValidationErrors().getFirst());
             })
             .verify();
 
@@ -245,14 +245,29 @@ class SchemaControllerTest {
     }
 
     @Test
-    void list() {
+    void listWithoutParameter() {
         Namespace namespace = buildNamespace();
         SchemaList schema = buildSchemaList();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
-        when(schemaService.findAllForNamespace(namespace)).thenReturn(Flux.fromIterable(List.of(schema)));
+        when(schemaService.findAllForNamespace(namespace, "*")).thenReturn(Flux.fromIterable(List.of(schema)));
 
-        StepVerifier.create(schemaController.list("myNamespace"))
+        StepVerifier.create(schemaController.list("myNamespace", "*"))
+            .consumeNextWith(
+                schemaResponse -> assertEquals("prefix.subject-value", schemaResponse.getMetadata().getName()))
+            .verifyComplete();
+    }
+
+    @Test
+    void listWithNameParameter() {
+        Namespace namespace = buildNamespace();
+        SchemaList schema = buildSchemaList();
+
+        when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
+        when(schemaService.findAllForNamespace(namespace, "prefix.subject-value"))
+            .thenReturn(Flux.fromIterable(List.of(schema)));
+
+        StepVerifier.create(schemaController.list("myNamespace", "prefix.subject-value"))
             .consumeNextWith(
                 schemaResponse -> assertEquals("prefix.subject-value", schemaResponse.getMetadata().getName()))
             .verifyComplete();
@@ -365,7 +380,7 @@ class SchemaControllerTest {
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
                 assertEquals("Invalid value \"prefix.subject-value\" for field \"name\": "
                         + "namespace is not owner of the resource.",
-                    ((ResourceValidationException) error).getValidationErrors().get(0));
+                    ((ResourceValidationException) error).getValidationErrors().getFirst());
             })
             .verify();
 
@@ -385,7 +400,7 @@ class SchemaControllerTest {
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
                 assertEquals("Invalid value \"prefix.subject-value\" for field \"name\": "
                         + "namespace is not owner of the resource.",
-                    ((ResourceValidationException) error).getValidationErrors().get(0));
+                    ((ResourceValidationException) error).getValidationErrors().getFirst());
             })
             .verify();
 
