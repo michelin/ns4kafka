@@ -68,13 +68,10 @@ class ConnectorControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.findByName("test"))
-            .thenReturn(Optional.of(ns));
-        when(connectorService.findAllForNamespace(ns))
-            .thenReturn(List.of());
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.findAllForNamespace(ns, "*")).thenReturn(List.of());
 
-        List<Connector> actual = connectorController.list("test");
-        assertTrue(actual.isEmpty());
+        assertTrue(connectorController.list("test", "*").isEmpty());
     }
 
     @Test
@@ -86,15 +83,30 @@ class ConnectorControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.findByName("test"))
-            .thenReturn(Optional.of(ns));
-        when(connectorService.findAllForNamespace(ns))
-            .thenReturn(List.of(
-                Connector.builder().metadata(Metadata.builder().name("connect1").build()).build(),
-                Connector.builder().metadata(Metadata.builder().name("connect2").build()).build()));
+        Connector connector1 = Connector.builder().metadata(Metadata.builder().name("connect1").build()).build();
+        Connector connector2 = Connector.builder().metadata(Metadata.builder().name("connect2").build()).build();
 
-        List<Connector> actual = connectorController.list("test");
-        assertEquals(2, actual.size());
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.findAllForNamespace(ns, "*")).thenReturn(List.of(connector1, connector2));
+
+        assertEquals(List.of(connector1, connector2), connectorController.list("test", "*"));
+    }
+
+    @Test
+    void listConnectorWithNameParameter() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
+
+        Connector connector = Connector.builder().metadata(Metadata.builder().name("connect1").build()).build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.findAllForNamespace(ns, "connect1")).thenReturn(List.of(connector));
+
+        assertEquals(List.of(connector), connectorController.list("test", "connect1"));
     }
 
     @Test

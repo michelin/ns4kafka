@@ -66,23 +66,17 @@ class ConnectorServiceTest {
     ConnectClusterService connectClusterService;
 
     @Test
-    void findByNamespaceNone() {
+    void listNoConnector() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
-            .spec(NamespaceSpec.builder()
-                .connectClusters(List.of("local-name"))
-                .build())
             .build();
 
-        when(connectorRepository.findAllForCluster("local"))
-            .thenReturn(List.of());
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of());
 
-        List<Connector> actual = connectorService.findAllForNamespace(ns);
-
-        assertTrue(actual.isEmpty());
+        assertTrue(connectorService.findAllForNamespace(ns).isEmpty());
     }
 
     @Test
@@ -92,93 +86,196 @@ class ConnectorServiceTest {
                 .name("namespace")
                 .cluster("local")
                 .build())
-            .spec(NamespaceSpec.builder()
-                .connectClusters(List.of("local-name"))
+            .build();
+
+        Connector c1 = Connector.builder().metadata(Metadata.builder().name("ns-connect1").build()).build();
+        Connector c2 = Connector.builder().metadata(Metadata.builder().name("ns-connect2").build()).build();
+        Connector c3 = Connector.builder().metadata(Metadata.builder().name("other-connect1").build()).build();
+        Connector c4 = Connector.builder().metadata(Metadata.builder().name("other-connect2").build()).build();
+        Connector c5 = Connector.builder().metadata(Metadata.builder().name("ns2-connect1").build()).build();
+
+        List<AccessControlEntry> acls = List.of(
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("namespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resource("ns-")
+                    .build())
+                .build(),
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("namespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resource("other-connect1")
+                    .build())
+                .build()
+        );
+
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
+            .thenReturn(acls);
+
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1, c2, c3, c4, c5));
+        when(aclService.isAnyAclOfResource(acls, "ns-connect1")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "ns-connect2")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "other-connect1")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "other-connect2")).thenReturn(false);
+        when(aclService.isAnyAclOfResource(acls, "ns2-connect1")).thenReturn(false);
+
+        assertEquals(List.of(c1, c2, c3), connectorService.findAllForNamespace(ns));
+    }
+
+    @Test
+    void listConnectorWithoutParameter() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace")
+                .cluster("local")
                 .build())
             .build();
 
-        Connector c1 = Connector.builder()
-            .metadata(Metadata.builder().name("ns-connect1").build())
-            .build();
-        Connector c2 = Connector.builder()
-            .metadata(Metadata.builder().name("ns-connect2").build())
-            .build();
-        Connector c3 = Connector.builder()
-            .metadata(Metadata.builder().name("other-connect1").build())
-            .build();
-        Connector c4 = Connector.builder()
-            .metadata(Metadata.builder().name("other-connect2").build())
-            .build();
-        Connector c5 = Connector.builder()
-            .metadata(Metadata.builder().name("ns2-connect1").build())
+        Connector c1 = Connector.builder().metadata(Metadata.builder().name("ns-connect1").build()).build();
+        Connector c2 = Connector.builder().metadata(Metadata.builder().name("other-connect1").build()).build();
+        Connector c3 = Connector.builder().metadata(Metadata.builder().name("other-connect2").build()).build();
+        Connector c4 = Connector.builder().metadata(Metadata.builder().name("ns2-connect1").build()).build();
+
+        List<AccessControlEntry> acls = List.of(
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("namespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resource("ns-")
+                    .build())
+                .build(),
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("namespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resource("other-connect1")
+                    .build())
+                .build()
+        );
+
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
+            .thenReturn(acls);
+
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1, c2, c3, c4));
+        when(aclService.isAnyAclOfResource(acls, "ns-connect1")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "other-connect1")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "other-connect2")).thenReturn(false);
+        when(aclService.isAnyAclOfResource(acls, "ns2-connect1")).thenReturn(false);
+
+        assertEquals(List.of(c1, c2), connectorService.findAllForNamespace(ns, "*"));
+    }
+
+    @Test
+    void listConnectorWithNameParameter() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
             .build();
 
-        when(aclService.findAllGrantedToNamespace(ns))
-            .thenReturn(List.of(
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resource("ns-")
-                        .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resource("other-connect1")
-                        .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns-")
-                        .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.READ)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resource("ns2-")
-                        .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resource("ns3-")
-                        .build())
-                    .build()
-            ));
+        Connector c1 = Connector.builder().metadata(Metadata.builder().name("ns-connect1").build()).build();
+        Connector c2 = Connector.builder().metadata(Metadata.builder().name("other-connect1").build()).build();
+        Connector c3 = Connector.builder().metadata(Metadata.builder().name("other-connect2").build()).build();
+        Connector c4 = Connector.builder().metadata(Metadata.builder().name("ns2-connect1").build()).build();
 
-        when(connectorRepository.findAllForCluster("local"))
-            .thenReturn(List.of(c1, c2, c3, c4, c5));
+        List<AccessControlEntry> acls = List.of(
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("namespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resource("ns-")
+                    .build())
+                .build(),
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("namespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resource("other-connect1")
+                    .build())
+                .build()
+        );
 
-        List<Connector> actual = connectorService.findAllForNamespace(ns);
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
+            .thenReturn(acls);
 
-        assertEquals(3, actual.size());
-        // contains
-        assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect1")));
-        assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect2")));
-        assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("other-connect1")));
-        // doesn't contain
-        assertFalse(
-            actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("other-connect2")));
-        assertFalse(
-            actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns2-connect1")));
-        assertFalse(
-            actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns3-connect1")));
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1, c2, c3, c4));
+        when(aclService.isAnyAclOfResource(acls, "ns-connect1")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "other-connect1")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "other-connect2")).thenReturn(false);
+        when(aclService.isAnyAclOfResource(acls, "ns2-connect1")).thenReturn(false);
+
+        assertEquals(List.of(c1), connectorService.findAllForNamespace(ns, "ns-connect1"));
+        assertEquals(List.of(c2), connectorService.findAllForNamespace(ns, "other-connect1"));
+        assertTrue(connectorService.findAllForNamespace(ns, "ns2-connect1").isEmpty());
+        assertTrue(connectorService.findAllForNamespace(ns, "ns4-connect1").isEmpty());
+    }
+
+    @Test
+    void listConnectorWithWildcardNameParameter() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .build();
+
+        Connector c1 = Connector.builder().metadata(Metadata.builder().name("ns-connect1").build()).build();
+        Connector c2 = Connector.builder().metadata(Metadata.builder().name("ns-connect2").build()).build();
+        Connector c3 = Connector.builder().metadata(Metadata.builder().name("other-connect1").build()).build();
+        Connector c4 = Connector.builder().metadata(Metadata.builder().name("other-connect2").build()).build();
+        Connector c5 = Connector.builder().metadata(Metadata.builder().name("ns2-connect1").build()).build();
+
+        List<AccessControlEntry> acls = List.of(
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("namespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resource("ns-")
+                    .build())
+                .build(),
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("namespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resource("other-")
+                    .build())
+                .build()
+        );
+
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
+            .thenReturn(acls);
+
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1, c2, c3, c4, c5));
+        when(aclService.isAnyAclOfResource(acls, "ns-connect1")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "ns-connect2")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "other-connect1")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "other-connect2")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "ns2-connect1")).thenReturn(false);
+
+        assertEquals(List.of(c1, c2), connectorService.findAllForNamespace(ns, "ns-connect?"));
+        assertEquals(List.of(c1, c3), connectorService.findAllForNamespace(ns, "*-connect1"));
+        assertEquals(List.of(c1, c2, c3, c4), connectorService.findAllForNamespace(ns, "*-connect?"));
+        assertTrue(connectorService.findAllForNamespace(ns, "ns2-*").isEmpty());
+        assertTrue(connectorService.findAllForNamespace(ns, "ns*4-connect?").isEmpty());
     }
 
     @Test
@@ -188,17 +285,11 @@ class ConnectorServiceTest {
                 .name("namespace")
                 .cluster("local")
                 .build())
-            .spec(NamespaceSpec.builder()
-                .connectClusters(List.of("local-name"))
-                .build())
             .build();
 
-        when(connectorRepository.findAllForCluster("local"))
-            .thenReturn(List.of());
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of());
 
-        Optional<Connector> actual = connectorService.findByName(ns, "ns-connect1");
-
-        assertTrue(actual.isEmpty());
+        assertTrue(connectorService.findByName(ns, "ns-connect1").isEmpty());
     }
 
     @Test
@@ -212,49 +303,12 @@ class ConnectorServiceTest {
                 .connectClusters(List.of("local-name"))
                 .build())
             .build();
-        Connector c1 = Connector.builder()
-            .metadata(Metadata.builder().name("ns-connect1").build())
-            .build();
-        Connector c2 = Connector.builder()
-            .metadata(Metadata.builder().name("ns-connect2").build())
-            .build();
-        Connector c3 = Connector.builder()
-            .metadata(Metadata.builder().name("other-connect1").build())
-            .build();
+        Connector c1 = Connector.builder().metadata(Metadata.builder().name("ns-connect1").build()).build();
+        Connector c2 = Connector.builder().metadata(Metadata.builder().name("ns-connect2").build()).build();
+        Connector c3 = Connector.builder().metadata(Metadata.builder().name("other-connect1").build()).build();
 
-        when(aclService.findAllGrantedToNamespace(ns))
-            .thenReturn(List.of(
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resource("ns-")
-                        .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resource("other-connect1")
-                        .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns-")
-                        .build())
-                    .build()
-            ));
-
-        when(aclService.findAllGrantedToNamespace(ns))
-            .thenReturn(List.of(AccessControlEntry.builder()
+        List<AccessControlEntry> acls = List.of(
+            AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .permission(AccessControlEntry.Permission.OWNER)
                     .grantedTo("namespace")
@@ -262,10 +316,24 @@ class ConnectorServiceTest {
                     .resourceType(AccessControlEntry.ResourceType.CONNECT)
                     .resource("ns-")
                     .build())
-                .build()));
+                .build(),
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("namespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resource("other-connect1")
+                    .build())
+                .build()
+        );
 
-        when(connectorRepository.findAllForCluster("local"))
-            .thenReturn(List.of(c1, c2, c3));
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
+            .thenReturn(acls);
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1, c2, c3));
+        when(aclService.isAnyAclOfResource(acls, "ns-connect1")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "ns-connect2")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "other-connect1")).thenReturn(true);
 
         Optional<Connector> actual = connectorService.findByName(ns, "ns-connect1");
 
@@ -737,21 +805,31 @@ class ConnectorServiceTest {
             .metadata(Metadata.builder().name("ns-connect-cluster").build())
             .build();
 
-        Connector c1 = Connector.builder()
-            .metadata(Metadata.builder().name("ns-connect1").build())
-            .build();
-        Connector c2 = Connector.builder()
-            .metadata(Metadata.builder().name("ns-connect2").build())
-            .build();
-        Connector c3 = Connector.builder()
-            .metadata(Metadata.builder().name("ns1-connect1").build())
-            .build();
-        Connector c4 = Connector.builder()
-            .metadata(Metadata.builder().name("ns2-connect1").build())
-            .build();
-        Connector c5 = Connector.builder()
-            .metadata(Metadata.builder().name("ns1-connect2").build())
-            .build();
+        Connector c1 = Connector.builder().metadata(Metadata.builder().name("ns-connect1").build()).build();
+        Connector c2 = Connector.builder().metadata(Metadata.builder().name("ns-connect2").build()).build();
+        Connector c3 = Connector.builder().metadata(Metadata.builder().name("ns1-connect1").build()).build();
+        Connector c5 = Connector.builder().metadata(Metadata.builder().name("ns2-connect1").build()).build();
+        Connector c4 = Connector.builder().metadata(Metadata.builder().name("ns1-connect2").build()).build();
+
+        List<AccessControlEntry> acls = List.of(
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("namespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resource("ns-")
+                    .build())
+                .build(),
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("namespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resource("ns1-connect1")
+                    .build())
+                .build());
 
         when(connectClusterService.findAllForNamespaceWithWritePermission(ns))
             .thenReturn(List.of(connectCluster));
@@ -777,30 +855,11 @@ class ConnectorServiceTest {
             "ns2-connect1"))
             .thenReturn(false);
 
-        when(aclService.findAllGrantedToNamespace(ns))
-            .thenReturn(List.of(
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resource("ns-")
-                        .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resource("ns1-connect1")
-                        .build())
-                    .build()));
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
+            .thenReturn(acls);
 
         // no connects exists into Ns4Kafka
-        when(connectorRepository.findAllForCluster("local"))
-            .thenReturn(List.of());
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of());
 
         StepVerifier.create(connectorService.listUnsynchronizedConnectors(ns))
             .consumeNextWith(connector -> assertEquals("ns-connect1", connector.getMetadata().getName()))
@@ -826,26 +885,45 @@ class ConnectorServiceTest {
         when(applicationContext.getBean(ConnectorAsyncExecutor.class,
             Qualifiers.byName(ns.getMetadata().getCluster()))).thenReturn(connectorAsyncExecutor);
 
-
         ConnectCluster connectCluster = ConnectCluster.builder()
             .metadata(Metadata.builder().name("ns-connect-cluster").build())
             .build();
 
-        Connector c1 = Connector.builder()
-            .metadata(Metadata.builder().name("ns-connect1").build())
-            .build();
-        Connector c2 = Connector.builder()
-            .metadata(Metadata.builder().name("ns-connect2").build())
-            .build();
-        Connector c3 = Connector.builder()
-            .metadata(Metadata.builder().name("ns1-connect1").build())
-            .build();
-        Connector c4 = Connector.builder()
-            .metadata(Metadata.builder().name("ns2-connect1").build())
-            .build();
-        Connector c5 = Connector.builder()
-            .metadata(Metadata.builder().name("ns1-connect2").build())
-            .build();
+        Connector c1 = Connector.builder().metadata(Metadata.builder().name("ns-connect1").build()).build();
+        Connector c2 = Connector.builder().metadata(Metadata.builder().name("ns-connect2").build()).build();
+        Connector c3 = Connector.builder().metadata(Metadata.builder().name("ns1-connect1").build()).build();
+        Connector c4 = Connector.builder().metadata(Metadata.builder().name("ns2-connect1").build()).build();
+        Connector c5 = Connector.builder().metadata(Metadata.builder().name("ns1-connect2").build()).build();
+
+        List<AccessControlEntry> acls = List.of(
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("namespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resource("ns-")
+                    .build())
+                .build(),
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("namespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resource("ns1-connect1")
+                    .build())
+                .build(),
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("namespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resource("ns1-connect2")
+                    .build())
+                .build()
+        );
 
         when(connectClusterService.findAllForNamespaceWithWritePermission(ns))
             .thenReturn(List.of(connectCluster));
@@ -873,36 +951,13 @@ class ConnectorServiceTest {
             "ns2-connect1"))
             .thenReturn(false);
 
-        when(aclService.findAllGrantedToNamespace(ns))
-            .thenReturn(List.of(
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resource("ns-")
-                        .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resource("ns1-connect1")
-                        .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resource("ns1-connect2")
-                        .build())
-                    .build()
-            ));
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
+            .thenReturn(acls);
+        when(aclService.isAnyAclOfResource(acls, "ns-connect1")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "ns-connect2")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "ns1-connect1")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "ns1-connect2")).thenReturn(true);
+        when(aclService.isAnyAclOfResource(acls, "ns2-connect1")).thenReturn(false);
 
         StepVerifier.create(connectorService.listUnsynchronizedConnectors(ns))
             .verifyComplete();
@@ -926,26 +981,37 @@ class ConnectorServiceTest {
             Qualifiers.byName(ns.getMetadata().getCluster()))).thenReturn(connectorAsyncExecutor);
 
         // list of existing broker connectors
-        Connector c1 = Connector.builder()
-            .metadata(Metadata.builder().name("ns-connect1").build())
-            .build();
-        Connector c2 = Connector.builder()
-            .metadata(Metadata.builder().name("ns-connect2").build())
-            .build();
-        Connector c3 = Connector.builder()
-            .metadata(Metadata.builder().name("ns1-connect1").build())
-            .build();
-        Connector c4 = Connector.builder()
-            .metadata(Metadata.builder().name("ns2-connect1").build())
-            .build();
+        Connector c1 = Connector.builder().metadata(Metadata.builder().name("ns-connect1").build()).build();
+        Connector c2 = Connector.builder().metadata(Metadata.builder().name("ns-connect2").build()).build();
+        Connector c3 = Connector.builder().metadata(Metadata.builder().name("ns1-connect1").build()).build();
+        Connector c4 = Connector.builder().metadata(Metadata.builder().name("ns2-connect1").build()).build();
 
-        when(connectorAsyncExecutor.collectBrokerConnectors("local-name")).thenReturn(Flux.fromIterable(List.of(
-            c1, c2, c3, c4)));
+        List<AccessControlEntry> acls = List.of(
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("namespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resource("ns-")
+                    .build())
+                .build(),
+            AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .grantedTo("namespace")
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                    .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                    .resource("ns1-connect1")
+                    .build())
+                .build()
+        );
+
+        when(connectorAsyncExecutor.collectBrokerConnectors("local-name"))
+            .thenReturn(Flux.fromIterable(List.of(c1, c2, c3, c4)));
 
         // list of existing broker connects
-        when(connectorRepository.findAllForCluster("local"))
-            .thenReturn(List.of(c1, c2, c3, c4));
-
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1, c2, c3, c4));
 
         // list of existing Ns4Kafka access control entries
         when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT,
@@ -961,30 +1027,10 @@ class ConnectorServiceTest {
             "ns2-connect1"))
             .thenReturn(false);
 
-        when(aclService.findAllGrantedToNamespace(ns))
-            .thenReturn(List.of(
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resource("ns-")
-                        .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resource("ns1-connect1")
-                        .build())
-                    .build()
-            ));
-
-        when(connectorRepository.findAllForCluster("local"))
-            .thenReturn(List.of(c1));
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
+            .thenReturn(acls);
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1));
+        when(aclService.isAnyAclOfResource(acls, "ns-connect1")).thenReturn(true);
 
         StepVerifier.create(connectorService.listUnsynchronizedConnectors(ns))
             .consumeNextWith(connector -> assertEquals("ns-connect2", connector.getMetadata().getName()))

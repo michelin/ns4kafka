@@ -47,14 +47,15 @@ public class ConnectorController extends NamespacedResourceController {
     ResourceQuotaService resourceQuotaService;
 
     /**
-     * List connectors by namespace.
+     * List connectors by namespace, filtered by name parameter.
      *
      * @param namespace The namespace
+     * @param name The name parameter
      * @return A list of connectors
      */
     @Get
-    public List<Connector> list(String namespace) {
-        return connectorService.findAllForNamespace(getNamespace(namespace));
+    public List<Connector> list(String namespace, @QueryValue(defaultValue = "*") String name) {
+        return connectorService.findAllForNamespace(getNamespace(namespace), name);
     }
 
     /**
