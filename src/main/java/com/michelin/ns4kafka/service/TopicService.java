@@ -73,7 +73,7 @@ public class TopicService {
     }
 
     /**
-     * Find all topics of a given namespace, filtered by given parameters.
+     * Find all topics of a given namespace, filtered by name parameter.
      *
      * @param namespace The namespace
      * @param name The name filter
