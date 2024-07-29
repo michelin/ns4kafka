@@ -35,10 +35,10 @@ public class RoleBindingController extends NamespacedResourceController {
     RoleBindingService roleBindingService;
 
     /**
-     * List role bindings by namespace.
+     * List role bindings by namespace, filtered by name parameter.
      *
      * @param namespace The namespace
-     * @param name The name filter
+     * @param name The name parameter
      * @return A list of role bindings
      */
     @Get

@@ -46,10 +46,10 @@ public class RoleBindingService {
     }
 
     /**
-     * List role bindings of a given namespace, filtered by given parameters.
+     * List role bindings of a given namespace, filtered by name parameter.
      *
      * @param namespace The namespace used to research
-     * @param name The name parameter
+     * @param name The name filter
      * @return The list of associated role bindings
      */
     public List<RoleBinding> list(String namespace, String name) {
