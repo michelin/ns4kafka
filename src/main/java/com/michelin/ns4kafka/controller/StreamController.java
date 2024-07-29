@@ -36,10 +36,10 @@ public class StreamController extends NamespacedResourceController {
     StreamService streamService;
 
     /**
-     * List Kafka Streams by namespace.
+     * List Kafka Streams by namespace, filtered by name parameter.
      *
      * @param namespace The namespace
-     * @param name The name filter
+     * @param name The name parameter
      * @return A list of Kafka Streams
      */
     @Get

@@ -41,9 +41,10 @@ public class StreamService {
     }
 
     /**
-     * Find all Kafka Streams of a given namespace, filtered by given parameters.
+     * Find all Kafka Streams of a given namespace, filtered by name parameter.
      *
      * @param namespace The namespace
+     * @param name The name filter
      * @return A list of Kafka Streams
      */
     public List<KafkaStream> findAllForNamespace(Namespace namespace, String name) {
