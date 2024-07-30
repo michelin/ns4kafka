@@ -114,7 +114,8 @@ public class ConnectorService {
      */
     public Mono<List<String>> validateLocally(Namespace namespace, Connector connector) {
         // Check whether target Connect Cluster is allowed for this namespace
-        List<String> selfDeployedConnectClusters = connectClusterService.findAllByNamespaceWrite(namespace)
+        List<String> selfDeployedConnectClusters = connectClusterService
+            .findAllByNamespaceWithWritePermission(namespace)
             .stream()
             .map(connectCluster -> connectCluster.getMetadata().getName()).toList();
 
@@ -230,7 +231,7 @@ public class ConnectorService {
 
         // Get all connectors from all connect clusters
         Stream<String> connectClusters = Stream.concat(namespace.getSpec().getConnectClusters().stream(),
-            connectClusterService.findAllByNamespaceWrite(namespace)
+            connectClusterService.findAllByNamespaceWithWritePermission(namespace)
                 .stream()
                 .map(connectCluster -> connectCluster.getMetadata().getName()));
 

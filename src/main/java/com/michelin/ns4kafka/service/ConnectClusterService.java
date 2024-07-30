@@ -122,9 +122,10 @@ public class ConnectClusterService {
      * @param permissions The list of permission to filter on
      * @return A list of Connect clusters
      */
-    public List<ConnectCluster> findAllByNamespace(Namespace namespace,
-                                                   List<AccessControlEntry.Permission> permissions) {
-        List<AccessControlEntry> acls = aclService.findAllGrantedToNamespace(namespace).stream()
+    public List<ConnectCluster> findAllByNamespaceAndPermissions(Namespace namespace,
+                                                                 List<AccessControlEntry.Permission> permissions) {
+        List<AccessControlEntry> acls = aclService.findAllGrantedToNamespace(namespace)
+            .stream()
             .filter(acl -> permissions.contains(acl.getSpec().getPermission()))
             .filter(acl -> acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT_CLUSTER).toList();
 
@@ -145,8 +146,8 @@ public class ConnectClusterService {
      * @param namespace The namespace
      * @return The list of owned Connect cluster
      */
-    public List<ConnectCluster> findAllByNamespaceOwner(Namespace namespace) {
-        return findAllByNamespace(namespace, List.of(AccessControlEntry.Permission.OWNER))
+    public List<ConnectCluster> findAllByNamespaceWithOwnerPermission(Namespace namespace) {
+        return findAllByNamespaceAndPermissions(namespace, List.of(AccessControlEntry.Permission.OWNER))
             .stream()
             .map(connectCluster -> {
                 var builder = ConnectCluster.ConnectClusterSpec.builder()
@@ -183,10 +184,10 @@ public class ConnectClusterService {
      * @param namespace The namespace
      * @return The list of Connect cluster with write access
      */
-    public List<ConnectCluster> findAllByNamespaceWrite(Namespace namespace) {
+    public List<ConnectCluster> findAllByNamespaceWithWritePermission(Namespace namespace) {
         return Stream.concat(
-            this.findAllByNamespaceOwner(namespace).stream(),
-            this.findAllByNamespace(namespace, List.of(AccessControlEntry.Permission.WRITE)).stream()
+            findAllByNamespaceWithOwnerPermission(namespace).stream(),
+            findAllByNamespaceAndPermissions(namespace, List.of(AccessControlEntry.Permission.WRITE)).stream()
                 .map(connectCluster -> ConnectCluster.builder()
                     .metadata(connectCluster.getMetadata())
                     .spec(ConnectCluster.ConnectClusterSpec.builder()
@@ -208,8 +209,9 @@ public class ConnectClusterService {
      * @param connectClusterName The connect worker name
      * @return An optional connect worker
      */
-    public Optional<ConnectCluster> findByNamespaceAndNameOwner(Namespace namespace, String connectClusterName) {
-        return findAllByNamespaceOwner(namespace)
+    public Optional<ConnectCluster> findByNamespaceWithOwnerPermissionAndName(Namespace namespace,
+                                                                              String connectClusterName) {
+        return findAllByNamespaceWithOwnerPermission(namespace)
             .stream()
             .filter(connectCluster -> connectCluster.getMetadata().getName().equals(connectClusterName))
             .findFirst();
@@ -254,9 +256,12 @@ public class ConnectClusterService {
     public Mono<List<String>> validateConnectClusterCreation(ConnectCluster connectCluster) {
         List<String> errors = new ArrayList<>();
 
-        if (managedClusterProperties.stream().anyMatch(cluster ->
-            cluster.getConnects().entrySet().stream()
-                .anyMatch(entry -> entry.getKey().equals(connectCluster.getMetadata().getName())))) {
+        if (managedClusterProperties
+                .stream()
+                .filter(cluster -> cluster.getConnects() != null)
+                .anyMatch(cluster -> cluster.getConnects().entrySet()
+                    .stream()
+                    .anyMatch(entry -> entry.getKey().equals(connectCluster.getMetadata().getName())))) {
             errors.add(invalidConnectClusterNameAlreadyExistGlobally(connectCluster.getMetadata().getName()));
         }
 
@@ -296,7 +301,7 @@ public class ConnectClusterService {
     public List<String> validateConnectClusterVault(final Namespace namespace, final String connectCluster) {
         final var errors = new ArrayList<String>();
 
-        final List<ConnectCluster> kafkaConnects = findAllByNamespace(namespace,
+        final List<ConnectCluster> kafkaConnects = findAllByNamespaceAndPermissions(namespace,
             List.of(AccessControlEntry.Permission.OWNER, AccessControlEntry.Permission.WRITE));
 
         if (kafkaConnects.isEmpty()) {
@@ -358,7 +363,7 @@ public class ConnectClusterService {
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceAllowedForConnectCluster(Namespace namespace, String connectCluster) {
-        return findAllByNamespaceWrite(namespace)
+        return findAllByNamespaceWithWritePermission(namespace)
             .stream()
             .anyMatch(kafkaConnect -> kafkaConnect.getMetadata().getName().equals(connectCluster));
     }
@@ -373,7 +378,7 @@ public class ConnectClusterService {
      */
     public List<VaultResponse> vaultPassword(final Namespace namespace, final String connectCluster,
                                              final List<String> passwords) {
-        final Optional<ConnectCluster> kafkaConnect = findAllByNamespace(namespace,
+        final Optional<ConnectCluster> kafkaConnect = findAllByNamespaceAndPermissions(namespace,
             List.of(AccessControlEntry.Permission.OWNER, AccessControlEntry.Permission.WRITE))
             .stream()
             .filter(cc ->
