@@ -542,6 +542,47 @@ class ConnectClusterServiceTest {
     }
 
     @Test
+    void validateConnectClusterCreationWhenNoNs4ConnectConfig() {
+        ManagedClusterProperties kafka = new ManagedClusterProperties("local");
+        when(managedClusterPropertiesList.stream()).thenReturn(Stream.of(kafka));
+        when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
+            .thenReturn(Mono.just(ServerInfo.builder().build()));
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+            .metadata(Metadata.builder().name("test-connect")
+                .build())
+            .spec(ConnectCluster.ConnectClusterSpec.builder()
+                .url("https://after")
+                .build())
+            .build();
+
+        StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
+            .consumeNextWith(errors -> assertTrue(errors.isEmpty()))
+            .verifyComplete();
+    }
+
+    @Test
+    void validateConnectClusterCreationNotAlreadyDefined() {
+        ManagedClusterProperties kafka = new ManagedClusterProperties("local");
+        kafka.setConnects(Map.of("test-connect", new ManagedClusterProperties.ConnectProperties()));
+        when(managedClusterPropertiesList.stream()).thenReturn(Stream.of(kafka));
+        when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
+            .thenReturn(Mono.just(ServerInfo.builder().build()));
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+            .metadata(Metadata.builder().name("test-connect2")
+                .build())
+            .spec(ConnectCluster.ConnectClusterSpec.builder()
+                .url("https://after")
+                .build())
+            .build();
+
+        StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
+            .consumeNextWith(errors -> assertTrue(errors.isEmpty()))
+            .verifyComplete();
+    }
+
+    @Test
     void validateConnectClusterCreationAlreadyDefined() {
         ManagedClusterProperties kafka = new ManagedClusterProperties("local");
         kafka.setConnects(Map.of("test-connect", new ManagedClusterProperties.ConnectProperties()));

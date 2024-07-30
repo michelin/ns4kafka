@@ -264,9 +264,11 @@ public class ConnectClusterService {
     public Mono<List<String>> validateConnectClusterCreation(ConnectCluster connectCluster) {
         List<String> errors = new ArrayList<>();
 
-        if (managedClusterProperties.stream().anyMatch(cluster ->
-            cluster.getConnects().entrySet().stream()
-                .anyMatch(entry -> entry.getKey().equals(connectCluster.getMetadata().getName())))) {
+        if (managedClusterProperties.stream()
+                .filter(cluster -> cluster.getConnects() != null)
+                .anyMatch(cluster -> cluster.getConnects().entrySet()
+                    .stream()
+                    .anyMatch(entry -> entry.getKey().equals(connectCluster.getMetadata().getName())))) {
             errors.add(invalidConnectClusterNameAlreadyExistGlobally(connectCluster.getMetadata().getName()));
         }
 
