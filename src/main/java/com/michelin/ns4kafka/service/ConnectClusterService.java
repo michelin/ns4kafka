@@ -18,7 +18,6 @@ import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
 import com.michelin.ns4kafka.service.client.connect.entities.ServerInfo;
 import com.michelin.ns4kafka.util.EncryptionUtils;
 import com.michelin.ns4kafka.util.FormatErrorUtils;
-import io.micronaut.core.util.CollectionUtils;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.MutableHttpRequest;
