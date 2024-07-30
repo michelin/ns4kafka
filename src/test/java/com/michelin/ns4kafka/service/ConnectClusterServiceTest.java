@@ -409,6 +409,47 @@ class ConnectClusterServiceTest {
     }
 
     @Test
+    void validateConnectClusterCreationWhenNoNs4ConnectConfig() {
+        ManagedClusterProperties kafka = new ManagedClusterProperties("local");
+        when(managedClusterPropertiesList.stream()).thenReturn(Stream.of(kafka));
+        when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
+            .thenReturn(Mono.just(ServerInfo.builder().build()));
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+            .metadata(Metadata.builder().name("test-connect")
+                .build())
+            .spec(ConnectCluster.ConnectClusterSpec.builder()
+                .url("https://after")
+                .build())
+            .build();
+
+        StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
+            .consumeNextWith(errors -> assertTrue(errors.isEmpty()))
+            .verifyComplete();
+    }
+
+    @Test
+    void validateConnectClusterCreationNotAlreadyDefined() {
+        ManagedClusterProperties kafka = new ManagedClusterProperties("local");
+        kafka.setConnects(Map.of("test-connect", new ManagedClusterProperties.ConnectProperties()));
+        when(managedClusterPropertiesList.stream()).thenReturn(Stream.of(kafka));
+        when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
+            .thenReturn(Mono.just(ServerInfo.builder().build()));
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+            .metadata(Metadata.builder().name("test-connect2")
+                .build())
+            .spec(ConnectCluster.ConnectClusterSpec.builder()
+                .url("https://after")
+                .build())
+            .build();
+
+        StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
+            .consumeNextWith(errors -> assertTrue(errors.isEmpty()))
+            .verifyComplete();
+    }
+
+    @Test
     void validateConnectClusterCreationAlreadyDefined() {
         ManagedClusterProperties kafka = new ManagedClusterProperties("local");
         kafka.setConnects(Map.of("test-connect", new ManagedClusterProperties.ConnectProperties()));
@@ -430,7 +471,7 @@ class ConnectClusterServiceTest {
                 assertEquals(
                     "Invalid value \"test-connect\" for field \"name\": a Kafka Connect is already defined "
                         + "globally with this name. Please provide a different name.",
-                    errors.get(0));
+                    errors.getFirst());
             })
             .verifyComplete();
     }
@@ -454,7 +495,7 @@ class ConnectClusterServiceTest {
         StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
             .consumeNextWith(errors -> {
                 assertEquals(1L, errors.size());
-                assertEquals("Invalid \"test-connect\": the Kafka Connect is not healthy (error).", errors.get(0));
+                assertEquals("Invalid \"test-connect\": the Kafka Connect is not healthy (error).", errors.getFirst());
             })
             .verifyComplete();
     }
@@ -475,7 +516,7 @@ class ConnectClusterServiceTest {
             .consumeNextWith(errors -> {
                 assertEquals(1L, errors.size());
                 assertEquals("Invalid value \"malformed-url\" for field \"url\": malformed URL.",
-                    errors.get(0));
+                    errors.getFirst());
             })
             .verifyComplete();
     }
@@ -505,7 +546,7 @@ class ConnectClusterServiceTest {
                 assertEquals(1L, errors.size());
                 assertEquals("Invalid empty value for fields \"aes256Key, aes256Salt\": "
                         + "AES key and salt are required to activate encryption.",
-                    errors.get(0));
+                    errors.getFirst());
             })
             .verifyComplete();
     }
@@ -535,7 +576,7 @@ class ConnectClusterServiceTest {
                 assertEquals(1L, errors.size());
                 assertEquals("Invalid empty value for fields \"aes256Key, aes256Salt\": "
                         + "AES key and salt are required to activate encryption.",
-                    errors.get(0));
+                    errors.getFirst());
             })
             .verifyComplete();
     }
@@ -607,7 +648,7 @@ class ConnectClusterServiceTest {
 
         assertEquals(1L, errors.size());
         assertEquals("Invalid value \"prefix.fake-connect-cluster\" for field \"name\": resource not found.",
-            errors.get(0));
+            errors.getFirst());
     }
 
     @Test
@@ -681,7 +722,7 @@ class ConnectClusterServiceTest {
 
         assertEquals(1L, errors.size());
         assertEquals("Invalid empty value for fields \"aes256Key, aes256Salt\": "
-            + "AES key and salt are required to activate encryption.", errors.get(0));
+            + "AES key and salt are required to activate encryption.", errors.getFirst());
     }
 
     /**
@@ -761,7 +802,7 @@ class ConnectClusterServiceTest {
 
         assertEquals(1L, errors.size());
         assertEquals("Invalid value \"prefix1.fake-connect-cluster\" for field \"name\": "
-            + "value must be one of \"prefix2.connect-cluster, prefix3.connect-cluster\".", errors.get(0));
+            + "value must be one of \"prefix2.connect-cluster, prefix3.connect-cluster\".", errors.getFirst());
     }
 
     @Test
@@ -843,7 +884,7 @@ class ConnectClusterServiceTest {
         List<VaultResponse> actual =
             connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", List.of("secret"));
 
-        assertEquals("secret", actual.get(0).getSpec().getEncrypted());
+        assertEquals("secret", actual.getFirst().getSpec().getEncrypted());
     }
 
     /**
@@ -918,9 +959,9 @@ class ConnectClusterServiceTest {
 
         assertEquals(2, actual.size());
         // 1rts is for owner with decrypted values
-        assertEquals("password", actual.get(0).getSpec().getPassword());
-        assertEquals("aes256Key", actual.get(0).getSpec().getAes256Key());
-        assertEquals("aes256Salt", actual.get(0).getSpec().getAes256Salt());
+        assertEquals("password", actual.getFirst().getSpec().getPassword());
+        assertEquals("aes256Key", actual.getFirst().getSpec().getAes256Key());
+        assertEquals("aes256Salt", actual.getFirst().getSpec().getAes256Salt());
 
         // second is only for write with wildcards
         assertEquals("*****", actual.get(1).getSpec().getPassword());
@@ -1134,7 +1175,7 @@ class ConnectClusterServiceTest {
         List<VaultResponse> actual =
             connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", List.of("secret"));
 
-        assertTrue(actual.get(0).getSpec().getEncrypted().matches("^\\$\\{aes256\\:.*\\}"));
+        assertTrue(actual.getFirst().getSpec().getEncrypted().matches("^\\$\\{aes256\\:.*\\}"));
     }
 
     /**
@@ -1184,6 +1225,6 @@ class ConnectClusterServiceTest {
         List<VaultResponse> actual =
             connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", List.of("secret"));
 
-        Assertions.assertFalse(actual.get(0).getSpec().getEncrypted().matches("^\\$\\{aes256\\:.*\\}"));
+        Assertions.assertFalse(actual.getFirst().getSpec().getEncrypted().matches("^\\$\\{aes256\\:.*\\}"));
     }
 }

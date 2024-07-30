@@ -18,6 +18,7 @@ import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
 import com.michelin.ns4kafka.service.client.connect.entities.ServerInfo;
 import com.michelin.ns4kafka.util.EncryptionUtils;
 import com.michelin.ns4kafka.util.FormatErrorUtils;
+import io.micronaut.core.util.CollectionUtils;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.MutableHttpRequest;
@@ -254,9 +255,11 @@ public class ConnectClusterService {
     public Mono<List<String>> validateConnectClusterCreation(ConnectCluster connectCluster) {
         List<String> errors = new ArrayList<>();
 
-        if (managedClusterProperties.stream().anyMatch(cluster ->
-            cluster.getConnects().entrySet().stream()
-                .anyMatch(entry -> entry.getKey().equals(connectCluster.getMetadata().getName())))) {
+        if (managedClusterProperties.stream()
+                .filter(cluster -> cluster.getConnects() != null)
+                .anyMatch(cluster -> cluster.getConnects().entrySet()
+                    .stream()
+                    .anyMatch(entry -> entry.getKey().equals(connectCluster.getMetadata().getName())))) {
             errors.add(invalidConnectClusterNameAlreadyExistGlobally(connectCluster.getMetadata().getName()));
         }
 
