@@ -376,7 +376,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of());
-        when(connectClusterService.findAllByNamespaceOwner(ns))
+        when(connectClusterService.findAllByNamespaceWithOwnerPermission(ns))
             .thenReturn(List.of());
         when(resourceQuotaService.findByNamespace("namespace"))
             .thenReturn(Optional.empty());
@@ -413,7 +413,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of());
-        when(connectClusterService.findAllByNamespaceOwner(ns))
+        when(connectClusterService.findAllByNamespaceWithOwnerPermission(ns))
             .thenReturn(List.of());
         when(resourceQuotaService.findByNamespace("namespace"))
             .thenReturn(Optional.empty());
@@ -451,7 +451,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of());
-        when(connectClusterService.findAllByNamespaceOwner(ns))
+        when(connectClusterService.findAllByNamespaceWithOwnerPermission(ns))
             .thenReturn(List.of());
         when(resourceQuotaService.findByNamespace("namespace"))
             .thenReturn(Optional.empty());
@@ -489,7 +489,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of(rb));
         when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of());
-        when(connectClusterService.findAllByNamespaceOwner(ns))
+        when(connectClusterService.findAllByNamespaceWithOwnerPermission(ns))
             .thenReturn(List.of());
         when(resourceQuotaService.findByNamespace("namespace"))
             .thenReturn(Optional.empty());
@@ -527,7 +527,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of(ace));
-        when(connectClusterService.findAllByNamespaceOwner(ns))
+        when(connectClusterService.findAllByNamespaceWithOwnerPermission(ns))
             .thenReturn(List.of());
         when(resourceQuotaService.findByNamespace("namespace"))
             .thenReturn(Optional.empty());
@@ -565,7 +565,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of());
-        when(connectClusterService.findAllByNamespaceOwner(ns))
+        when(connectClusterService.findAllByNamespaceWithOwnerPermission(ns))
             .thenReturn(List.of(connectCluster));
         when(resourceQuotaService.findByNamespace("namespace"))
             .thenReturn(Optional.empty());
@@ -603,7 +603,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of());
-        when(connectClusterService.findAllByNamespaceOwner(ns))
+        when(connectClusterService.findAllByNamespaceWithOwnerPermission(ns))
             .thenReturn(List.of());
         when(resourceQuotaService.findByNamespace("namespace"))
             .thenReturn(Optional.of(resourceQuota));

@@ -355,7 +355,7 @@ class ConnectorServiceTest {
                 .build())
             .build();
 
-        when(connectClusterService.findAllByNamespaceWrite(ns)).thenReturn(List.of());
+        when(connectClusterService.findAllByNamespaceWithWritePermission(ns)).thenReturn(List.of());
         StepVerifier.create(connectorService.validateLocally(ns, connector))
             .consumeNextWith(response -> {
                 assertEquals(1, response.size());
@@ -628,11 +628,12 @@ class ConnectorServiceTest {
                 .build())
             .build();
 
-        when(connectClusterService.findAllByNamespaceWrite(ns)).thenReturn(List.of(ConnectCluster.builder()
-            .metadata(Metadata.builder()
-                .name("local-name")
-                .build())
-            .build()));
+        when(connectClusterService.findAllByNamespaceWithWritePermission(ns))
+            .thenReturn(List.of(ConnectCluster.builder()
+                .metadata(Metadata.builder()
+                    .name("local-name")
+                    .build())
+                .build()));
         when(kafkaConnectClient.connectPlugins("local", "local-name"))
             .thenReturn(Mono.just(List.of(
                 new ConnectorPluginInfo("org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK,
@@ -752,7 +753,7 @@ class ConnectorServiceTest {
             .metadata(Metadata.builder().name("ns1-connect2").build())
             .build();
 
-        when(connectClusterService.findAllByNamespaceWrite(ns))
+        when(connectClusterService.findAllByNamespaceWithWritePermission(ns))
             .thenReturn(List.of(connectCluster));
         when(connectorAsyncExecutor.collectBrokerConnectors("local-name"))
             .thenReturn(Flux.fromIterable(List.of(c1, c2, c3, c4)));
@@ -846,7 +847,7 @@ class ConnectorServiceTest {
             .metadata(Metadata.builder().name("ns1-connect2").build())
             .build();
 
-        when(connectClusterService.findAllByNamespaceWrite(ns))
+        when(connectClusterService.findAllByNamespaceWithWritePermission(ns))
             .thenReturn(List.of(connectCluster));
         when(connectorAsyncExecutor.collectBrokerConnectors("local-name"))
             .thenReturn(Flux.fromIterable(List.of(c1, c2, c3, c4)));

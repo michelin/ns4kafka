@@ -164,7 +164,7 @@ public class NamespaceService {
                     .map(topic -> TOPIC + "/" + topic.getMetadata().getName()),
                 connectorService.findAllForNamespace(namespace).stream()
                     .map(connector -> CONNECTOR + "/" + connector.getMetadata().getName()),
-                connectClusterService.findAllByNamespaceOwner(namespace).stream()
+                connectClusterService.findAllByNamespaceWithOwnerPermission(namespace).stream()
                     .map(connectCluster -> CONNECT_CLUSTER + "/" + connectCluster.getMetadata().getName()),
                 aclService.findAllForNamespace(namespace).stream()
                     .map(ace -> ACCESS_CONTROL_ENTRY + "/" + ace.getMetadata().getName()),

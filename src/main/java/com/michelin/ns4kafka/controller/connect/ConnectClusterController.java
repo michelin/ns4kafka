@@ -57,7 +57,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      */
     @Get
     public List<ConnectCluster> list(String namespace) {
-        return connectClusterService.findAllByNamespaceOwner(getNamespace(namespace));
+        return connectClusterService.findAllByNamespaceWithOwnerPermission(getNamespace(namespace));
     }
 
     /**
@@ -69,7 +69,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      */
     @Get("/{connectCluster}")
     public Optional<ConnectCluster> getConnectCluster(String namespace, String connectCluster) {
-        return connectClusterService.findByNamespaceAndNameOwner(getNamespace(namespace), connectCluster);
+        return connectClusterService.findByNamespaceWithOwnerPermissionAndName(getNamespace(namespace), connectCluster);
     }
 
     /**
@@ -101,8 +101,8 @@ public class ConnectClusterController extends NamespacedResourceController {
                 connectCluster.getMetadata().setCluster(ns.getMetadata().getCluster());
                 connectCluster.getMetadata().setNamespace(ns.getMetadata().getName());
 
-                Optional<ConnectCluster> existingConnectCluster =
-                    connectClusterService.findByNamespaceAndNameOwner(ns, connectCluster.getMetadata().getName());
+                Optional<ConnectCluster> existingConnectCluster = connectClusterService
+                    .findByNamespaceWithOwnerPermissionAndName(ns, connectCluster.getMetadata().getName());
                 if (existingConnectCluster.isPresent() && existingConnectCluster.get().equals(connectCluster)) {
                     return Mono.just(formatHttpResponse(existingConnectCluster.get(), ApplyStatus.unchanged));
                 }
@@ -148,7 +148,7 @@ public class ConnectClusterController extends NamespacedResourceController {
         }
 
         Optional<ConnectCluster> optionalConnectCluster =
-            connectClusterService.findByNamespaceAndNameOwner(ns, connectCluster);
+            connectClusterService.findByNamespaceWithOwnerPermissionAndName(ns, connectCluster);
         if (optionalConnectCluster.isEmpty()) {
             return HttpResponse.notFound();
         }
@@ -171,7 +171,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      */
     @Get("/_/vaults")
     public List<ConnectCluster> listVaults(final String namespace) {
-        return connectClusterService.findAllByNamespaceWrite(getNamespace(namespace))
+        return connectClusterService.findAllByNamespaceWithWritePermission(getNamespace(namespace))
             .stream()
             .filter(connectCluster -> StringUtils.hasText(connectCluster.getSpec().getAes256Key()))
             .toList();
