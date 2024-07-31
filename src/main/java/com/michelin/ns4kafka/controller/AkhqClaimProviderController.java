@@ -72,7 +72,7 @@ public class AkhqClaimProviderController {
             return AkhqClaimResponse.ofAdmin(config.getFormerAdminRoles());
         }
 
-        List<AccessControlEntry> relatedAcl = namespaceService.listAll()
+        List<AccessControlEntry> relatedAcl = namespaceService.findAll()
             .stream()
             .filter(namespace -> namespace.getMetadata().getLabels() != null
                 && groups.contains(namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_")))
@@ -290,7 +290,7 @@ public class AkhqClaimProviderController {
      * @return the user's ACL
      */
     private List<AccessControlEntry> getAclsByGroups(List<String> groups) {
-        return namespaceService.listAll()
+        return namespaceService.findAll()
             .stream()
             .filter(namespace -> namespace.getMetadata().getLabels() != null
                 // Split by comma the groupLabel to support multiple groups and compare with user groups

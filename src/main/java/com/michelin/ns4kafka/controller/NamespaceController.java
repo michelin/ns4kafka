@@ -38,13 +38,14 @@ public class NamespaceController extends NonNamespacedResourceController {
     NamespaceService namespaceService;
 
     /**
-     * List namespaces.
+     * List namespaces, filtered by name parameter.
      *
+     * @param name The name parameter
      * @return A list of namespaces
      */
-    @Get("/")
-    public List<Namespace> list() {
-        return namespaceService.listAll();
+    @Get
+    public List<Namespace> list(@QueryValue(defaultValue = "*") String name) {
+        return namespaceService.findByWildcardName(name);
     }
 
     /**
@@ -52,8 +53,10 @@ public class NamespaceController extends NonNamespacedResourceController {
      *
      * @param namespace The namespace
      * @return A namespace
+     * @deprecated use list(String name) instead.
      */
     @Get("/{namespace}")
+    @Deprecated(since = "1.12.0")
     public Optional<Namespace> get(String namespace) {
         return namespaceService.findByName(namespace);
     }
@@ -119,7 +122,7 @@ public class NamespaceController extends NonNamespacedResourceController {
             return HttpResponse.notFound();
         }
 
-        List<String> namespaceResources = namespaceService.listAllNamespaceResources(optionalNamespace.get());
+        List<String> namespaceResources = namespaceService.findAllResourcesByNamespace(optionalNamespace.get());
         if (!namespaceResources.isEmpty()) {
             List<String> validationErrors = namespaceResources
                 .stream()

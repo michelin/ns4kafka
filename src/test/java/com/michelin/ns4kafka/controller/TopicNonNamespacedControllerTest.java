@@ -23,11 +23,19 @@ class TopicNonNamespacedControllerTest {
     TopicNonNamespacedController topicController;
 
     @Test
-    void listAll() {
+    void shouldFindAll() {
         when(topicService.findAll())
             .thenReturn(List.of(
-                Topic.builder().metadata(Metadata.builder().name("topic1").build()).build(),
-                Topic.builder().metadata(Metadata.builder().name("topic2").build()).build()
+                Topic.builder()
+                    .metadata(Metadata.builder()
+                        .name("topic1")
+                        .build())
+                    .build(),
+                Topic.builder()
+                    .metadata(Metadata.builder()
+                        .name("topic2")
+                        .build())
+                    .build()
             ));
 
         List<Topic> actual = topicController.listAll();

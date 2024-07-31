@@ -28,35 +28,40 @@ import org.junit.jupiter.api.Test;
 class ApiResourcesIntegrationTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
-    HttpClient client;
+    HttpClient ns4KafkaClient;
 
     @Test
-    void asAdmin() {
+    void shouldListResourcesAsAdmin() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response = client.toBlocking()
-            .exchange(HttpRequest.POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
+        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
 
         String token = response.getBody().get().getAccessToken();
-        List<ApiResourcesController.ResourceDefinition> resources = client.toBlocking().retrieve(
-            HttpRequest.GET("/api-resources").bearerAuth(token),
-            Argument.listOf(ApiResourcesController.ResourceDefinition.class));
+        List<ApiResourcesController.ResourceDefinition> resources = ns4KafkaClient
+            .toBlocking()
+            .retrieve(HttpRequest
+                .GET("/api-resources")
+                .bearerAuth(token), Argument.listOf(ApiResourcesController.ResourceDefinition.class));
 
         assertEquals(9, resources.size());
     }
 
     @Test
-    void asAnonymous() {
+    void shouldListResourcesAsAnonymous() {
         // This feature is not about restricting access, but easing user experience within the CLI
         // If the user is not authenticated, show everything
-        List<ApiResourcesController.ResourceDefinition> resources = client.toBlocking().retrieve(
-            HttpRequest.GET("/api-resources"),
-            Argument.listOf(ApiResourcesController.ResourceDefinition.class));
+        List<ApiResourcesController.ResourceDefinition> resources = ns4KafkaClient
+            .toBlocking()
+            .retrieve(HttpRequest
+                .GET("/api-resources"), Argument.listOf(ApiResourcesController.ResourceDefinition.class));
 
         assertEquals(9, resources.size());
     }
 
     @Test
-    void asUser() {
+    void shouldListResourcesAsUser() {
         Namespace ns1 = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("ns1")
@@ -86,24 +91,39 @@ class ApiResourcesIntegrationTest extends AbstractIntegrationTest {
             .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response = client.toBlocking()
-            .exchange(HttpRequest.POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
+        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
 
         String token = response.getBody().get().getAccessToken();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1));
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token)
+                .body(ns1));
+
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings")
+                .bearerAuth(token)
+                .body(rb1));
 
         UsernamePasswordCredentials userCredentials = new UsernamePasswordCredentials("user", "admin");
-        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> userResponse = client.toBlocking()
+        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> userResponse = ns4KafkaClient
+            .toBlocking()
             .exchange(HttpRequest.POST("/login", userCredentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
+
         String userToken = userResponse.getBody().get().getAccessToken();
 
-        List<ApiResourcesController.ResourceDefinition> resources = client.toBlocking().retrieve(
-            HttpRequest.GET("/api-resources").bearerAuth(userToken),
-            Argument.listOf(ApiResourcesController.ResourceDefinition.class));
+        List<ApiResourcesController.ResourceDefinition> resources = ns4KafkaClient
+            .toBlocking()
+            .retrieve(HttpRequest
+                .GET("/api-resources")
+                .bearerAuth(userToken), Argument.listOf(ApiResourcesController.ResourceDefinition.class));
 
         assertEquals(2, resources.size());
     }

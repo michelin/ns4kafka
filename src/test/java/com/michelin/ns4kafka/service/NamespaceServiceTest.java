@@ -62,7 +62,7 @@ class NamespaceServiceTest {
     NamespaceService namespaceService;
 
     @Test
-    void validationCreationNoClusterFail() {
+    void shouldNotCreateNamespaceWhenClusterDoesNotExist() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -74,13 +74,13 @@ class NamespaceServiceTest {
             .build();
 
         List<String> result = namespaceService.validateCreation(ns);
-        assertEquals(1, result.size());
-        assertEquals("Invalid value \"local\" for field \"cluster\": cluster does not exist.", result.get(0));
 
+        assertEquals(1, result.size());
+        assertEquals("Invalid value \"local\" for field \"cluster\": cluster does not exist.", result.getFirst());
     }
 
     @Test
-    void validateCreationNoNamespaceSuccess() {
+    void shouldValidateNamespaceCreation() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -102,7 +102,7 @@ class NamespaceServiceTest {
     }
 
     @Test
-    void shouldValidationSucceed() {
+    void shouldValidationNamespace() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -126,7 +126,7 @@ class NamespaceServiceTest {
     }
 
     @Test
-    void shouldValidationSucceedWhenNoManagedCluster() {
+    void shouldValidateNamespaceWhenNoManagedCluster() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -147,7 +147,7 @@ class NamespaceServiceTest {
     }
 
     @Test
-    void shouldFailWhenConnectClusterDoesNotExist() {
+    void shouldNotValidateNamespaceWhenConnectClusterDoesNotExist() {
         ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local");
         managedClusterProperties1.setConnects(Map.of("other-connect-config", new ConnectProperties(),
             "other-connect-config2", new ConnectProperties()));
@@ -172,11 +172,11 @@ class NamespaceServiceTest {
 
         assertEquals(1, result.size());
         assertEquals("Invalid value \"local-name\" for field \"connectClusters\": connect cluster does not exist.",
-            result.get(0));
+            result.getFirst());
     }
 
     @Test
-    void shouldFailWhenNotEditableConfigOnConfluentCloud() {
+    void shouldNotValidateNamespaceWhenEditingNotEditableConfigOnConfluentCloud() {
         ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local", CONFLUENT_CLOUD);
         managedClusterProperties1.setConnects(Map.of("local-name", new ConnectProperties(),
             "local-name2", new ConnectProperties()));
@@ -206,11 +206,11 @@ class NamespaceServiceTest {
         assertEquals(1, result.size());
         assertEquals("Invalid value \"min.cleanable.dirty.ratio\" for field \"validationConstraints\": "
                 + "configuration not editable on a Confluent Cloud cluster.",
-            result.get(0));
+            result.getFirst());
     }
 
     @Test
-    void shouldNotFailWhenNotEditableConfigOnSelfManaged() {
+    void shouldValidateNamespaceWhenEditingNotEditableConfigOnPrem() {
         ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local", SELF_MANAGED);
         managedClusterProperties1.setConnects(Map.of("local-name", new ConnectProperties(),
             "local-name2", new ConnectProperties()));
@@ -241,7 +241,7 @@ class NamespaceServiceTest {
     }
 
     @Test
-    void shouldFailWhenUserAlreadyExist() {
+    void shouldNotValidateNamespaceWhenKafkaUserAlreadyExistsInAnotherNamespace() {
         Namespace ns2 = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace2")
@@ -261,7 +261,6 @@ class NamespaceServiceTest {
         when(namespaceRepository.findAllForCluster("local"))
             .thenReturn(List.of(ns2));
 
-
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -277,11 +276,11 @@ class NamespaceServiceTest {
 
         assertEquals(1, result.size());
         assertEquals("Invalid value \"user\" for field \"kafkaUser\": user already exists in another namespace.",
-            result.get(0));
+            result.getFirst());
     }
 
     @Test
-    void shouldNotFailWhenUserAlreadyExistOnSameCluster() {
+    void shouldNotFailWhenKafkaUserAlreadyExistsInSameNamespace() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -307,7 +306,7 @@ class NamespaceServiceTest {
     }
 
     @Test
-    void listAll() {
+    void shouldFindAll() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -349,14 +348,176 @@ class NamespaceServiceTest {
         when(namespaceRepository.findAllForCluster("other-cluster"))
             .thenReturn(List.of(ns3));
 
-        List<Namespace> result = namespaceService.listAll();
+        List<Namespace> result = namespaceService.findAll();
 
         assertEquals(3, result.size());
         assertTrue(result.containsAll(List.of(ns, ns3, ns2)));
     }
 
     @Test
-    void listAllNamespaceResourcesEmpty() {
+    void shouldListNamespacesWithNameParameter() {
+        Namespace ns1 = Namespace.builder().metadata(Metadata.builder()
+                .name("ns1")
+                .build())
+            .build();
+
+        Namespace ns2 = Namespace.builder().metadata(Metadata.builder()
+                .name("ns2")
+                .build())
+            .build();
+
+        when(managedClusterProperties.stream())
+            .thenReturn(Stream.of(new ManagedClusterProperties("local")));
+        when(namespaceRepository.findAllForCluster("local"))
+            .thenReturn(List.of(ns1, ns2));
+
+        assertEquals(List.of(ns1), namespaceService.findByWildcardName("ns1"));
+    }
+
+    @Test
+    void shouldListNoNamespaceWithNameParameter() {
+        Namespace ns1 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns1")
+                .build())
+            .build();
+
+        Namespace ns2 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns2")
+                .build())
+            .build();
+
+        when(managedClusterProperties.stream())
+            .thenReturn(Stream.of(new ManagedClusterProperties("local")));
+        when(namespaceRepository.findAllForCluster("local"))
+            .thenReturn(List.of(ns1, ns2));
+
+        assertTrue(namespaceService.findByWildcardName("ns4").isEmpty());
+    }
+
+    @Test
+    void shouldListAllNamespacesWithWildcardNameParameter() {
+        Namespace ns1 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns1")
+                .build())
+            .build();
+
+        Namespace ns2 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns2")
+                .build())
+            .build();
+
+        Namespace ns3 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace1")
+                .build())
+            .build();
+
+        Namespace ns4 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns3")
+                .build())
+            .build();
+
+        Namespace ns5 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace2")
+                .build())
+            .build();
+
+        when(managedClusterProperties.stream())
+            .thenReturn(Stream.of(new ManagedClusterProperties("local")));
+        when(namespaceRepository.findAllForCluster("local"))
+            .thenReturn(List.of(ns1, ns2, ns3, ns4, ns5));
+
+        assertEquals(List.of(ns1, ns2, ns3, ns4, ns5), namespaceService.findByWildcardName("*"));
+    }
+
+    @Test
+    void shouldListNamespacesWithPrefixWildcardNameParameter() {
+        Namespace ns1 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns1")
+                .build())
+            .build();
+
+        Namespace ns2 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns2")
+                .build())
+            .build();
+
+        Namespace ns3 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace1")
+                .build())
+            .build();
+
+        Namespace ns4 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns3")
+                .build())
+            .build();
+
+        Namespace ns5 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace2")
+                .build())
+            .build();
+
+        when(managedClusterProperties.stream())
+            .thenReturn(Stream.of(new ManagedClusterProperties("local")));
+        when(namespaceRepository.findAllForCluster("local"))
+            .thenReturn(List.of(ns1, ns2, ns3, ns4, ns5));
+
+        assertEquals(List.of(ns1, ns2, ns4), namespaceService.findByWildcardName("ns?"));
+    }
+
+    @Test
+    void shouldListNamespacesWithSuffixWildcardNameParameter() {
+        Namespace ns1 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns1")
+                .build())
+            .build();
+
+        Namespace ns2 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns2")
+                .build())
+            .build();
+
+        Namespace ns3 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace1")
+                .build())
+            .build();
+
+        Namespace ns4 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns3")
+                .build())
+            .build();
+
+        Namespace ns5 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace2")
+                .build())
+            .build();
+
+        when(managedClusterProperties.stream())
+            .thenReturn(Stream.of(new ManagedClusterProperties("local")));
+        when(namespaceRepository.findAllForCluster("local"))
+            .thenReturn(List.of(ns1, ns2, ns3, ns4, ns5));
+
+        assertEquals(List.of(ns2, ns5), namespaceService.findByWildcardName("*2"));
+    }
+
+    @Test
+    void shouldListAllNamespaceResourcesWhenEmpty() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -381,12 +542,12 @@ class NamespaceServiceTest {
         when(resourceQuotaService.findByNamespace("namespace"))
             .thenReturn(Optional.empty());
 
-        List<String> result = namespaceService.listAllNamespaceResources(ns);
+        List<String> result = namespaceService.findAllResourcesByNamespace(ns);
         assertTrue(result.isEmpty());
     }
 
     @Test
-    void listAllNamespaceResourcesTopic() {
+    void shouldListAllNamespaceResourcesOfTypeTopic() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -418,13 +579,13 @@ class NamespaceServiceTest {
         when(resourceQuotaService.findByNamespace("namespace"))
             .thenReturn(Optional.empty());
 
-        List<String> result = namespaceService.listAllNamespaceResources(ns);
+        List<String> result = namespaceService.findAllResourcesByNamespace(ns);
         assertEquals(1, result.size());
-        assertEquals("Topic/topic", result.get(0));
+        assertEquals("Topic/topic", result.getFirst());
     }
 
     @Test
-    void listAllNamespaceResourcesConnect() {
+    void shouldListAllNamespaceResourcesOfTypeConnect() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -456,13 +617,13 @@ class NamespaceServiceTest {
         when(resourceQuotaService.findByNamespace("namespace"))
             .thenReturn(Optional.empty());
 
-        List<String> result = namespaceService.listAllNamespaceResources(ns);
+        List<String> result = namespaceService.findAllResourcesByNamespace(ns);
         assertEquals(1, result.size());
-        assertEquals("Connector/connector", result.get(0));
+        assertEquals("Connector/connector", result.getFirst());
     }
 
     @Test
-    void listAllNamespaceResourcesRoleBinding() {
+    void shouldListAllNamespaceResourcesOfTypeRoleBinding() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -494,13 +655,13 @@ class NamespaceServiceTest {
         when(resourceQuotaService.findByNamespace("namespace"))
             .thenReturn(Optional.empty());
 
-        List<String> result = namespaceService.listAllNamespaceResources(ns);
+        List<String> result = namespaceService.findAllResourcesByNamespace(ns);
         assertEquals(1, result.size());
-        assertEquals("RoleBinding/rolebinding", result.get(0));
+        assertEquals("RoleBinding/rolebinding", result.getFirst());
     }
 
     @Test
-    void listAllNamespaceResourcesAccessControlEntry() {
+    void shouldListAllNamespaceResourcesOfTypeAccessControlEntry() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -532,13 +693,13 @@ class NamespaceServiceTest {
         when(resourceQuotaService.findByNamespace("namespace"))
             .thenReturn(Optional.empty());
 
-        List<String> result = namespaceService.listAllNamespaceResources(ns);
+        List<String> result = namespaceService.findAllResourcesByNamespace(ns);
         assertEquals(1, result.size());
-        assertEquals("AccessControlEntry/ace", result.get(0));
+        assertEquals("AccessControlEntry/ace", result.getFirst());
     }
 
     @Test
-    void listAllNamespaceResourcesConnectCluster() {
+    void shouldListAllNamespaceResourcesOfTypeConnectCluster() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -570,13 +731,13 @@ class NamespaceServiceTest {
         when(resourceQuotaService.findByNamespace("namespace"))
             .thenReturn(Optional.empty());
 
-        List<String> result = namespaceService.listAllNamespaceResources(ns);
+        List<String> result = namespaceService.findAllResourcesByNamespace(ns);
         assertEquals(1, result.size());
-        assertEquals("ConnectCluster/connect-cluster", result.get(0));
+        assertEquals("ConnectCluster/connect-cluster", result.getFirst());
     }
 
     @Test
-    void listAllNamespaceResourcesQuota() {
+    void shouldListAllNamespaceResourcesOfTypeQuota() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -608,13 +769,13 @@ class NamespaceServiceTest {
         when(resourceQuotaService.findByNamespace("namespace"))
             .thenReturn(Optional.of(resourceQuota));
 
-        List<String> result = namespaceService.listAllNamespaceResources(ns);
+        List<String> result = namespaceService.findAllResourcesByNamespace(ns);
         assertEquals(1, result.size());
-        assertEquals("ResourceQuota/resource-quota", result.get(0));
+        assertEquals("ResourceQuota/resource-quota", result.getFirst());
     }
 
     @Test
-    void shouldDelete() {
+    void shouldDeleteNamespace() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")

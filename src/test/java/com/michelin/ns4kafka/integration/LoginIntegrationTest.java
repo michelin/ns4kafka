@@ -18,20 +18,23 @@ import org.junit.jupiter.api.Test;
 class LoginIntegrationTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
-    HttpClient client;
+    HttpClient ns4KafkaClient;
 
     @Test
     void shouldLoginWithJwt() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<String> response = client.toBlocking()
+        HttpResponse<String> response = ns4KafkaClient
+            .toBlocking()
             .exchange(HttpRequest.POST("/login", credentials), String.class);
         assertEquals(HttpStatus.OK, response.status());
     }
 
     @Test
     void shouldLoginWithBasicAuth() {
-        HttpResponse<String> response = client.toBlocking()
-            .exchange(HttpRequest.GET("/api/namespaces")
+        HttpResponse<String> response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .GET("/api/namespaces")
                 .basicAuth("admin", "admin"), String.class);
         assertEquals(HttpStatus.OK, response.status());
     }

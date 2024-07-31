@@ -40,7 +40,7 @@ import org.junit.jupiter.api.Test;
 class StreamIntegrationTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
-    HttpClient client;
+    HttpClient ns4KafkaClient;
 
     @Inject
     List<AccessControlEntryAsyncExecutor> aceAsyncExecutorList;
@@ -75,15 +75,26 @@ class StreamIntegrationTest extends AbstractIntegrationTest {
             .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<BearerAccessRefreshToken> response =
-            client.toBlocking().exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
+        HttpResponse<BearerAccessRefreshToken> response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .POST("/login", credentials), BearerAccessRefreshToken.class);
 
         token = response.getBody().get().getAccessToken();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1));
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/nskafkastream/acls").bearerAuth(token).body(acl1));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token)
+                .body(ns1));
+
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/nskafkastream/acls")
+                .bearerAuth(token)
+                .body(acl1));
 
         AccessControlEntry acl2 = AccessControlEntry.builder()
             .metadata(Metadata.builder()
@@ -98,40 +109,53 @@ class StreamIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/nskafkastream/acls").bearerAuth(token).body(acl2));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/nskafkastream/acls")
+                .bearerAuth(token)
+                .body(acl2));
     }
 
     @Test
-    void verifyCreationOfAcl() throws InterruptedException, ExecutionException {
-
+    void shouldVerifyCreationOfAcls() throws InterruptedException, ExecutionException {
         KafkaStream stream = KafkaStream.builder()
             .metadata(Metadata.builder()
                 .name("kstream-test")
                 .build())
             .build();
 
-        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/nskafkastream/streams")
-            .bearerAuth(token)
-            .body(stream));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/nskafkastream/streams")
+                .bearerAuth(token)
+                .body(stream));
 
-        //force ACL Sync
+        // Force ACL Sync
         aceAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
         Admin kafkaClient = getAdminClient();
 
         var aclTopic = kafkaClient.describeAcls(new AclBindingFilter(
-            new ResourcePatternFilter(org.apache.kafka.common.resource.ResourceType.TOPIC,
-                stream.getMetadata().getName(),
-                PatternType.PREFIXED),
-            AccessControlEntryFilter.ANY)).values().get();
+                new ResourcePatternFilter(
+                    org.apache.kafka.common.resource.ResourceType.TOPIC,
+                    stream.getMetadata().getName(),
+                    PatternType.PREFIXED),
+                AccessControlEntryFilter.ANY))
+            .values()
+            .get();
+
         var aclTransactionalId = kafkaClient.describeAcls(new AclBindingFilter(
-            new ResourcePatternFilter(org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
-                stream.getMetadata().getName(),
-                PatternType.PREFIXED),
-            AccessControlEntryFilter.ANY)).values().get();
+                new ResourcePatternFilter(
+                    org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
+                    stream.getMetadata().getName(),
+                    PatternType.PREFIXED),
+                AccessControlEntryFilter.ANY))
+            .values()
+            .get();
 
         assertEquals(2, aclTopic.size());
-        assertTrue(aclTopic.stream()
+        assertTrue(aclTopic
+            .stream()
             .allMatch(aclBinding -> List.of(AclOperation.CREATE, AclOperation.DELETE)
                 .contains(aclBinding.entry().operation())));
 

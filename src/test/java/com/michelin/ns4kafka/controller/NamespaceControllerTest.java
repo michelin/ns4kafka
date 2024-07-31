@@ -1,6 +1,8 @@
 package com.michelin.ns4kafka.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
@@ -20,10 +22,8 @@ import io.micronaut.security.utils.SecurityService;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -43,42 +43,86 @@ class NamespaceControllerTest {
     NamespaceController namespaceController;
 
     @Test
-    void applyCreateInvalid() {
-        Namespace toCreate = Namespace.builder()
+    void shouldListNamespacesWithWildcardParameter() {
+        Namespace ns1 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns1")
+                .build())
+            .build();
+
+        Namespace ns2 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns2")
+                .build())
+            .build();
+
+        when(namespaceService.findByWildcardName("*"))
+            .thenReturn(List.of(ns1, ns2));
+
+        assertEquals(List.of(ns1, ns2), namespaceController.list("*"));
+    }
+
+    @Test
+    void shouldListNamespacesWithNameParameter() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns")
+                .build())
+            .build();
+
+        when(namespaceService.findByWildcardName("ns"))
+            .thenReturn(List.of(ns));
+
+        assertEquals(List.of(ns), namespaceController.list("ns"));
+    }
+
+    @Test
+    void shouldListNamespacesWhenEmpty() {
+        when(namespaceService.findByWildcardName("*")).thenReturn(List.of());
+        assertEquals(List.of(), namespaceController.list("*"));
+    }
+
+    @Test
+    void shouldNotCreateNamespaceWhenValidationErrors() {
+        Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("new-namespace")
                 .cluster("local")
                 .build())
             .build();
+
         when(namespaceService.findByName("new-namespace"))
             .thenReturn(Optional.empty());
-        when(namespaceService.validateCreation(toCreate))
+        when(namespaceService.validateCreation(namespace))
             .thenReturn(List.of("OneError"));
 
         ResourceValidationException actual =
-            assertThrows(ResourceValidationException.class, () -> namespaceController.apply(toCreate, false));
+            assertThrows(ResourceValidationException.class, () -> namespaceController.apply(namespace, false));
         assertEquals(1, actual.getValidationErrors().size());
     }
 
     @Test
-    void applyCreateSuccess() {
-        Namespace toCreate = Namespace.builder()
+    void shouldCreateNamespace() {
+        Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("new-namespace")
                 .cluster("local")
                 .build())
             .build();
+
         when(namespaceService.findByName("new-namespace"))
             .thenReturn(Optional.empty());
-        when(namespaceService.validateCreation(toCreate))
+        when(namespaceService.validateCreation(namespace))
             .thenReturn(List.of());
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        when(securityService.username())
+            .thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN))
+            .thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
-        when(namespaceService.createOrUpdate(toCreate))
-            .thenReturn(toCreate);
+        when(namespaceService.createOrUpdate(namespace))
+            .thenReturn(namespace);
 
-        var response = namespaceController.apply(toCreate, false);
+        var response = namespaceController.apply(namespace, false);
         Namespace actual = response.body();
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("new-namespace", actual.getMetadata().getName());
@@ -86,25 +130,26 @@ class NamespaceControllerTest {
     }
 
     @Test
-    void applyCreateDryRun() {
-        Namespace toCreate = Namespace.builder()
+    void shouldCreateNamespaceInDryRunMode() {
+        Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("new-namespace")
                 .cluster("local")
                 .build())
             .build();
+
         when(namespaceService.findByName("new-namespace"))
             .thenReturn(Optional.empty());
-        when(namespaceService.validateCreation(toCreate))
+        when(namespaceService.validateCreation(namespace))
             .thenReturn(List.of());
 
-        var response = namespaceController.apply(toCreate, true);
+        var response = namespaceController.apply(namespace, true);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
-        verify(namespaceService, never()).createOrUpdate(toCreate);
+        verify(namespaceService, never()).createOrUpdate(namespace);
     }
 
     @Test
-    void applyUpdateInvalid() {
+    void shouldNotUpdateNamespaceWhenValidationErrors() {
         Namespace existing = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -114,7 +159,8 @@ class NamespaceControllerTest {
                 .kafkaUser("user")
                 .build())
             .build();
-        Namespace toUpdate = Namespace.builder()
+
+        Namespace namespaceToUpdate = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local-change")
@@ -123,19 +169,21 @@ class NamespaceControllerTest {
                 .kafkaUser("user-change")
                 .build())
             .build();
+
         when(namespaceService.findByName("namespace"))
             .thenReturn(Optional.of(existing));
 
         ResourceValidationException actual = assertThrows(ResourceValidationException.class,
-            () -> namespaceController.apply(toUpdate, false));
+            () -> namespaceController.apply(namespaceToUpdate, false));
+
         assertEquals(1, actual.getValidationErrors().size());
-        Assertions.assertIterableEquals(
+        assertIterableEquals(
             List.of("Invalid value \"local\" for field \"cluster\": value is immutable."),
             actual.getValidationErrors());
     }
 
     @Test
-    void applyUpdateSuccess() {
+    void shouldUpdateNamespace() {
         Namespace existing = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -145,7 +193,8 @@ class NamespaceControllerTest {
                 .kafkaUser("user")
                 .build())
             .build();
-        Namespace toUpdate = Namespace.builder()
+
+        Namespace namespaceToUpdate = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
@@ -155,18 +204,21 @@ class NamespaceControllerTest {
                 .kafkaUser("user")
                 .build())
             .build();
+
         when(namespaceService.findByName("namespace"))
             .thenReturn(Optional.of(existing));
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        when(securityService.username())
+            .thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN))
+            .thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
-        when(namespaceService.createOrUpdate(toUpdate))
-            .thenReturn(toUpdate);
+        when(namespaceService.createOrUpdate(namespaceToUpdate))
+            .thenReturn(namespaceToUpdate);
 
-        var response = namespaceController.apply(toUpdate, false);
+        var response = namespaceController.apply(namespaceToUpdate, false);
         Namespace actual = response.body();
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
-        Assertions.assertNotNull(actual);
+        assertNotNull(actual);
         assertEquals("namespace", actual.getMetadata().getName());
         assertEquals("namespace", actual.getMetadata().getNamespace());
         assertEquals("namespace", actual.getMetadata().getName());
@@ -175,7 +227,7 @@ class NamespaceControllerTest {
     }
 
     @Test
-    void applyUpdateSuccess_AlreadyExists() {
+    void shouldNotUpdateNamespaceWhenAlreadyExists() {
         Namespace existing = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -186,7 +238,8 @@ class NamespaceControllerTest {
                 .kafkaUser("user")
                 .build())
             .build();
-        Namespace toUpdate = Namespace.builder()
+
+        Namespace namespaceToUpdate = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
@@ -195,18 +248,19 @@ class NamespaceControllerTest {
                 .kafkaUser("user")
                 .build())
             .build();
+
         when(namespaceService.findByName("namespace"))
             .thenReturn(Optional.of(existing));
 
-        var response = namespaceController.apply(toUpdate, false);
+        var response = namespaceController.apply(namespaceToUpdate, false);
         Namespace actual = response.body();
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         assertEquals(existing, actual);
-        verify(namespaceService, never()).createOrUpdate(ArgumentMatchers.any());
+        verify(namespaceService, never()).createOrUpdate(any());
     }
 
     @Test
-    void applyUpdateDryRun() {
+    void shouldUpdateNamespaceInDryRunMode() {
         Namespace existing = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -216,7 +270,8 @@ class NamespaceControllerTest {
                 .kafkaUser("user")
                 .build())
             .build();
-        Namespace toUpdate = Namespace.builder()
+
+        Namespace namespaceToUpdate = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
@@ -226,16 +281,17 @@ class NamespaceControllerTest {
                 .kafkaUser("user")
                 .build())
             .build();
+
         when(namespaceService.findByName("namespace"))
             .thenReturn(Optional.of(existing));
 
-        var response = namespaceController.apply(toUpdate, true);
+        var response = namespaceController.apply(namespaceToUpdate, true);
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
-        verify(namespaceService, never()).createOrUpdate(toUpdate);
+        verify(namespaceService, never()).createOrUpdate(namespaceToUpdate);
     }
 
     @Test
-    void deleteSuccess() {
+    void shouldDeleteNamespace() {
         Namespace existing = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -245,20 +301,23 @@ class NamespaceControllerTest {
                 .kafkaUser("user")
                 .build())
             .build();
+
         when(namespaceService.findByName("namespace"))
             .thenReturn(Optional.of(existing));
-        when(namespaceService.listAllNamespaceResources(existing))
+        when(namespaceService.findAllResourcesByNamespace(existing))
             .thenReturn(List.of());
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        when(securityService.username())
+            .thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN))
+            .thenReturn(false);
+
         doNothing().when(applicationEventPublisher).publishEvent(any());
         var result = namespaceController.delete("namespace", false);
         assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
-
     }
 
     @Test
-    void deleteSuccessDryRun() {
+    void shouldDeleteNamespaceInDryRunMode() {
         Namespace existing = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -271,28 +330,28 @@ class NamespaceControllerTest {
 
         when(namespaceService.findByName("namespace"))
             .thenReturn(Optional.of(existing));
-        when(namespaceService.listAllNamespaceResources(existing))
+        when(namespaceService.findAllResourcesByNamespace(existing))
             .thenReturn(List.of());
 
         var result = namespaceController.delete("namespace", true);
 
         verify(namespaceService, never()).delete(any());
         assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
-
     }
 
     @Test
-    void deleteFailNoNamespace() {
+    void shouldNotDeleteNamespaceWhenNotFound() {
         when(namespaceService.findByName("namespace"))
             .thenReturn(Optional.empty());
+
         var result = namespaceController.delete("namespace", false);
+
         verify(namespaceService, never()).delete(any());
         assertEquals(HttpResponse.notFound().getStatus(), result.getStatus());
-
     }
 
     @Test
-    void deleteFailNamespaceNotEmpty() {
+    void shouldNotDeleteNamespaceWhenResourcesAreStillLinkedWithIt() {
         Namespace existing = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -302,11 +361,14 @@ class NamespaceControllerTest {
                 .kafkaUser("user")
                 .build())
             .build();
+
         when(namespaceService.findByName("namespace"))
             .thenReturn(Optional.of(existing));
-        when(namespaceService.listAllNamespaceResources(existing))
+        when(namespaceService.findAllResourcesByNamespace(existing))
             .thenReturn(List.of("Topic/topic1"));
-        assertThrows(ResourceValidationException.class, () -> namespaceController.delete("namespace", false));
+
+        assertThrows(ResourceValidationException.class,
+            () -> namespaceController.delete("namespace", false));
         verify(namespaceService, never()).delete(any());
     }
 }

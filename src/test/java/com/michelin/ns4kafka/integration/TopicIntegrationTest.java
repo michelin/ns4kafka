@@ -60,7 +60,7 @@ import org.junit.jupiter.api.Test;
 class TopicIntegrationTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
-    HttpClient client;
+    HttpClient ns4KafkaClient;
 
     @Inject
     List<TopicAsyncExecutor> topicAsyncExecutorList;
@@ -100,15 +100,26 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
             .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<BearerAccessRefreshToken> response =
-            client.toBlocking().exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
+        HttpResponse<BearerAccessRefreshToken> response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .POST("/login", credentials), BearerAccessRefreshToken.class);
 
         token = response.getBody().get().getAccessToken();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1));
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token)
+                .body(ns1));
+
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings")
+                .bearerAuth(token)
+                .body(rb1));
 
         AccessControlEntry ns1acl = AccessControlEntry.builder()
             .metadata(Metadata.builder()
@@ -124,8 +135,12 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(ns1acl));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                .bearerAuth(token)
+                .body(ns1acl));
 
         Namespace ns2 = Namespace.builder()
             .metadata(Metadata.builder()
@@ -139,8 +154,12 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns2));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token)
+                .body(ns2));
 
         RoleBinding rb2 = RoleBinding.builder()
             .metadata(Metadata.builder()
@@ -159,8 +178,12 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns2/role-bindings").bearerAuth(token).body(rb2));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns2/role-bindings")
+                .bearerAuth(token)
+                .body(rb2));
 
         AccessControlEntry ns2acl = AccessControlEntry.builder()
             .metadata(Metadata.builder()
@@ -176,12 +199,16 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns2/acls").bearerAuth(token).body(ns2acl));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns2/acls")
+                .bearerAuth(token)
+                .body(ns2acl));
     }
 
     @Test
-    void akhqClaim() {
+    void shouldValidateAkhqClaims() {
         AkhqClaimProviderController.AkhqClaimRequest akhqClaimRequest =
             AkhqClaimProviderController.AkhqClaimRequest.builder()
                 .username("test")
@@ -189,9 +216,10 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
                 .providerName("LDAP")
                 .build();
 
-        AkhqClaimProviderController.AkhqClaimResponse response = client.toBlocking().retrieve(
-            HttpRequest.POST("/akhq-claim", akhqClaimRequest),
-            AkhqClaimProviderController.AkhqClaimResponse.class);
+        AkhqClaimProviderController.AkhqClaimResponse response = ns4KafkaClient
+            .toBlocking()
+            .retrieve(HttpRequest
+                .POST("/akhq-claim", akhqClaimRequest), AkhqClaimProviderController.AkhqClaimResponse.class);
 
         assertLinesMatch(
             List.of(
@@ -210,7 +238,7 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void createTopic() throws InterruptedException, ExecutionException {
+    void shouldCreateTopic() throws InterruptedException, ExecutionException {
         Topic topicFirstCreate = Topic.builder()
             .metadata(Metadata.builder()
                 .name("ns1-topicFirstCreate")
@@ -225,14 +253,19 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        var response = client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(topicFirstCreate));
+        var response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                .bearerAuth(token)
+                .body(topicFirstCreate));
+
         assertEquals("created", response.header("X-Ns4kafka-Result"));
 
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
 
         Admin kafkaClient = getAdminClient();
-        System.out.println(kafkaClient.describeTopics(List.of("ns1-topicFirstCreate")).allTopicNames().get());
+
         List<TopicPartitionInfo> topicPartitionInfos =
             kafkaClient.describeTopics(List.of("ns1-topicFirstCreate")).allTopicNames().get()
                 .get("ns1-topicFirstCreate").partitions();
@@ -252,7 +285,7 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void updateTopic() throws InterruptedException, ExecutionException {
+    void shouldUpdateTopic() throws InterruptedException, ExecutionException {
         Topic topic2Create = Topic.builder()
             .metadata(Metadata.builder()
                 .name("ns1-topic2Create")
@@ -267,14 +300,24 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        var response = client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(topic2Create));
+        var response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                .bearerAuth(token)
+                .body(topic2Create));
+
         assertEquals("created", response.header("X-Ns4kafka-Result"));
 
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
 
-        response = client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(topic2Create));
+        response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                .bearerAuth(token)
+                .body(topic2Create));
+
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
 
         Topic topic2Update = Topic.builder()
@@ -291,15 +334,19 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        response = client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(topic2Update));
+        response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                .bearerAuth(token)
+                .body(topic2Update));
+
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
 
         //force Topic Sync
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
 
         Admin kafkaClient = getAdminClient();
-        System.out.println(kafkaClient.describeTopics(List.of("ns1-topic2Create")).allTopicNames().get());
         List<TopicPartitionInfo> topicPartitionInfos =
             kafkaClient.describeTopics(List.of("ns1-topic2Create")).allTopicNames().get()
                 .get("ns1-topic2Create").partitions();
@@ -321,7 +368,7 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void invalidTopicName() {
+    void shouldInvalidateTopicName() {
         Topic topicFirstCreate = Topic.builder()
             .metadata(Metadata.builder()
                 .name("ns1-invalid-é")
@@ -337,19 +384,21 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
             .build();
 
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
-            () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
-                .bearerAuth(token)
-                .body(topicFirstCreate)));
+            () -> ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest
+                    .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                    .bearerAuth(token)
+                    .body(topicFirstCreate)));
 
         assertEquals("Constraint validation failed", exception.getMessage());
         assertTrue(exception.getResponse().getBody(Status.class).isPresent());
         assertEquals("topic.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"",
             exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
-
     }
 
     @Test
-    void updateTopicNoChange() {
+    void shouldUpdateTopicWithNoChange() {
         AccessControlEntry aclns1Tons2 = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("ns1-acltons2")
@@ -378,12 +427,21 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclns1Tons2));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                .bearerAuth(token)
+                .body(aclns1Tons2));
 
-        assertEquals(HttpStatus.OK, client.toBlocking().exchange(
-                HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(topicToModify))
+        assertEquals(HttpStatus.OK, ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                .bearerAuth(token)
+                .body(topicToModify))
             .getStatus());
+
         Topic topicToModifyBis = Topic.builder()
             .metadata(topicToModify.getMetadata())
             .spec(TopicSpec.builder()
@@ -396,19 +454,26 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
             .build();
 
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
-            () -> client.toBlocking().exchange(
-                HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns2/topics").bearerAuth(token)
+            () -> ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest
+                    .create(HttpMethod.POST, "/api/namespaces/ns2/topics")
+                    .bearerAuth(token)
                     .body(topicToModifyBis)));
+
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
 
         // Compare spec of the topics and assure there is no change
-        assertEquals(topicToModify.getSpec(), client.toBlocking().retrieve(
-            HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/topics/ns1-topicToModify").bearerAuth(token),
-            Topic.class).getSpec());
+        assertEquals(topicToModify.getSpec(), ns4KafkaClient
+            .toBlocking()
+            .retrieve(HttpRequest
+                .create(HttpMethod.GET, "/api/namespaces/ns1/topics/ns1-topicToModify")
+                .bearerAuth(token), Topic.class)
+            .getSpec());
     }
 
     @Test
-    void testDeleteRecords() {
+    void shouldDeleteRecords() {
         Topic topicToDelete = Topic.builder()
             .metadata(Metadata.builder()
                 .name("ns1-topicToDelete")
@@ -423,14 +488,21 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        var response = client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(topicToDelete));
+        var response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                .bearerAuth(token)
+                .body(topicToDelete));
+
         assertEquals("created", response.header("X-Ns4kafka-Result"));
 
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
 
-        List<DeleteRecordsResponse> deleteRecordsResponse = client.toBlocking().retrieve(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics/ns1-topicToDelete/delete-records")
+        List<DeleteRecordsResponse> deleteRecordsResponse = ns4KafkaClient
+            .toBlocking()
+            .retrieve(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/topics/ns1-topicToDelete/delete-records")
                 .bearerAuth(token), Argument.listOf(DeleteRecordsResponse.class));
 
         DeleteRecordsResponse resultPartition0 = deleteRecordsResponse
@@ -485,15 +557,22 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        var response = client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(topicToDelete));
+        var response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                .bearerAuth(token)
+                .body(topicToDelete));
+
         assertEquals("created", response.header("X-Ns4kafka-Result"));
 
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
 
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
-            () -> client.toBlocking().exchange(
-                HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics/compactTopicToDelete/delete-records")
+            () -> ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest
+                    .create(HttpMethod.POST, "/api/namespaces/ns1/topics/compactTopicToDelete/delete-records")
                     .bearerAuth(token)));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
