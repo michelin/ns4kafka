@@ -372,7 +372,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(connectorService.findAllForNamespace(ns))
             .thenReturn(List.of());
-        when(roleBindingService.list("namespace"))
+        when(roleBindingService.findAllForNamespace("namespace"))
             .thenReturn(List.of());
         when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of());
@@ -409,7 +409,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of(topic));
         when(connectorService.findAllForNamespace(ns))
             .thenReturn(List.of());
-        when(roleBindingService.list("namespace"))
+        when(roleBindingService.findAllForNamespace("namespace"))
             .thenReturn(List.of());
         when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of());
@@ -447,7 +447,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(connectorService.findAllForNamespace(ns))
             .thenReturn(List.of(connector));
-        when(roleBindingService.list("namespace"))
+        when(roleBindingService.findAllForNamespace("namespace"))
             .thenReturn(List.of());
         when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of());
@@ -485,7 +485,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(connectorService.findAllForNamespace(ns))
             .thenReturn(List.of());
-        when(roleBindingService.list("namespace"))
+        when(roleBindingService.findAllForNamespace("namespace"))
             .thenReturn(List.of(rb));
         when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of());
@@ -523,7 +523,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(connectorService.findAllForNamespace(ns))
             .thenReturn(List.of());
-        when(roleBindingService.list("namespace"))
+        when(roleBindingService.findAllForNamespace("namespace"))
             .thenReturn(List.of());
         when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of(ace));
@@ -561,7 +561,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(connectorService.findAllForNamespace(ns))
             .thenReturn(List.of());
-        when(roleBindingService.list("namespace"))
+        when(roleBindingService.findAllForNamespace("namespace"))
             .thenReturn(List.of());
         when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of());
@@ -599,7 +599,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(connectorService.findAllForNamespace(ns))
             .thenReturn(List.of());
-        when(roleBindingService.list("namespace"))
+        when(roleBindingService.findAllForNamespace("namespace"))
             .thenReturn(List.of());
         when(aclService.findAllForNamespace(ns))
             .thenReturn(List.of());

@@ -41,7 +41,7 @@ public class AuthenticationService {
      * @return An authentication response with the user details
      */
     public AuthenticationResponse buildAuthJwtGroups(String username, List<String> groups) {
-        List<RoleBinding> roleBindings = roleBindingService.listByGroups(groups);
+        List<RoleBinding> roleBindings = roleBindingService.findAllByGroups(groups);
         if (roleBindings.isEmpty() && !groups.contains(securityProperties.getAdminGroup())) {
             log.debug("Error during authentication: user groups not found in any namespace");
             throw new AuthenticationException(new AuthenticationFailed("No namespace matches your groups"));
