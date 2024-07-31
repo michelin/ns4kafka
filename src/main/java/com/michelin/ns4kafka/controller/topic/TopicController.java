@@ -69,8 +69,8 @@ public class TopicController extends NamespacedResourceController {
      * @deprecated use list(String, String name) instead.
      */
     @Get("/{topic}")
-    @Deprecated(since = "1.11.13")
-    public Optional<Topic> getTopic(String namespace, String topic) {
+    @Deprecated(since = "1.12.0")
+    public Optional<Topic> get(String namespace, String topic) {
         return topicService.findByName(getNamespace(namespace), topic);
     }
 
@@ -159,8 +159,8 @@ public class TopicController extends NamespacedResourceController {
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{topic}{?dryrun}")
-    public HttpResponse<Void> deleteTopic(String namespace, String topic,
-                                          @QueryValue(defaultValue = "false") boolean dryrun)
+    public HttpResponse<Void> delete(String namespace, String topic,
+                                     @QueryValue(defaultValue = "false") boolean dryrun)
         throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic)) {

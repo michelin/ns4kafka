@@ -367,9 +367,11 @@ public class AclService {
      * @return true if there is any OWNER ACL concerning the given resource, false otherwise
      */
     public boolean isAnyAclOfResource(List<AccessControlEntry> acls, String resourceName) {
-        return acls.stream().anyMatch(acl -> switch (acl.getSpec().getResourcePatternType()) {
-            case PREFIXED -> resourceName.startsWith(acl.getSpec().getResource());
-            case LITERAL -> resourceName.equals(acl.getSpec().getResource());
-        });
+        return acls
+            .stream()
+            .anyMatch(acl -> switch (acl.getSpec().getResourcePatternType()) {
+                case PREFIXED -> resourceName.startsWith(acl.getSpec().getResource());
+                case LITERAL -> resourceName.equals(acl.getSpec().getResource());
+            });
     }
 }

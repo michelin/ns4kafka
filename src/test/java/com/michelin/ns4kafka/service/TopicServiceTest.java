@@ -30,7 +30,6 @@ import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -58,11 +57,8 @@ class TopicServiceTest {
     @Mock
     List<ManagedClusterProperties> managedClusterProperties;
 
-    /**
-     * Validate find topic by name.
-     */
     @Test
-    void findByName() {
+    void shouldFindByName() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -73,9 +69,23 @@ class TopicServiceTest {
                 .build())
             .build();
 
-        Topic t1 = Topic.builder().metadata(Metadata.builder().name("ns-topic1").build()).build();
-        Topic t2 = Topic.builder().metadata(Metadata.builder().name("ns-topic2").build()).build();
-        Topic t3 = Topic.builder().metadata(Metadata.builder().name("ns1-topic1").build()).build();
+        Topic t1 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic1")
+                .build())
+            .build();
+
+        Topic t2 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic2")
+                .build())
+            .build();
+
+        Topic t3 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-topic1")
+                .build())
+            .build();
 
         when(topicRepository.findAllForCluster("local")).thenReturn(List.of(t1, t2, t3));
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
@@ -112,7 +122,7 @@ class TopicServiceTest {
     }
 
     @Test
-    void findAllForNamespaceNoTopics() {
+    void shouldFindAllForNamespaceWhenEmpty() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -134,7 +144,7 @@ class TopicServiceTest {
     }
 
     @Test
-    void findAllForNamespaceNoAcls() {
+    void shouldFindAllForNamespaceWhenNoAcl() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -145,12 +155,32 @@ class TopicServiceTest {
                 .build())
             .build();
 
-        Topic t1 = Topic.builder().metadata(Metadata.builder().name("ns-topic1").build()).build();
-        Topic t2 = Topic.builder().metadata(Metadata.builder().name("ns-topic2").build()).build();
-        Topic t3 = Topic.builder().metadata(Metadata.builder().name("ns1-topic1").build()).build();
-        Topic t4 = Topic.builder().metadata(Metadata.builder().name("ns2-topic1").build()).build();
+        Topic t1 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic1")
+                .build())
+            .build();
 
-        when(topicRepository.findAllForCluster("local")).thenReturn(List.of(t1, t2, t3, t4));
+        Topic t2 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic2")
+                .build())
+            .build();
+
+        Topic t3 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-topic1")
+                .build())
+            .build();
+
+        Topic t4 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns2-topic1")
+                .build())
+            .build();
+
+        when(topicRepository.findAllForCluster("local"))
+            .thenReturn(List.of(t1, t2, t3, t4));
 
         // no ns4kfk access control entries
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
@@ -162,7 +192,7 @@ class TopicServiceTest {
     }
 
     @Test
-    void findAllForNamespaceNoAclsOfTopic() {
+    void shouldFindAllForNamespaceWhenNoAclOnTopic() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -173,12 +203,32 @@ class TopicServiceTest {
                 .build())
             .build();
 
-        Topic t1 = Topic.builder().metadata(Metadata.builder().name("ns-topic1").build()).build();
-        Topic t2 = Topic.builder().metadata(Metadata.builder().name("ns-topic2").build()).build();
-        Topic t3 = Topic.builder().metadata(Metadata.builder().name("ns1-topic1").build()).build();
-        Topic t4 = Topic.builder().metadata(Metadata.builder().name("ns2-topic1").build()).build();
+        Topic t1 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic1")
+                .build())
+            .build();
 
-        when(topicRepository.findAllForCluster("local")).thenReturn(List.of(t1, t2, t3, t4));
+        Topic t2 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic2")
+                .build())
+            .build();
+
+        Topic t3 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-topic1")
+                .build())
+            .build();
+
+        Topic t4 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns2-topic1")
+                .build())
+            .build();
+
+        when(topicRepository.findAllForCluster("local"))
+            .thenReturn(List.of(t1, t2, t3, t4));
 
         // all ns4kafka access control entries are not for the topics
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
@@ -208,7 +258,7 @@ class TopicServiceTest {
     }
 
     @Test
-    void findAllForNamespace() {
+    void shouldFindAllForNamespace() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -219,11 +269,35 @@ class TopicServiceTest {
                 .build())
             .build();
 
-        Topic t0 = Topic.builder().metadata(Metadata.builder().name("ns0-topic1").build()).build();
-        Topic t1 = Topic.builder().metadata(Metadata.builder().name("ns-topic1").build()).build();
-        Topic t2 = Topic.builder().metadata(Metadata.builder().name("ns-topic2").build()).build();
-        Topic t3 = Topic.builder().metadata(Metadata.builder().name("ns1-topic1").build()).build();
-        Topic t4 = Topic.builder().metadata(Metadata.builder().name("ns2-topic1").build()).build();
+        Topic t0 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns0-topic1")
+                .build())
+            .build();
+
+        Topic t1 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic1")
+                .build())
+            .build();
+
+        Topic t2 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic2")
+                .build())
+            .build();
+
+        Topic t3 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-topic1")
+                .build())
+            .build();
+
+        Topic t4 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns2-topic1")
+                .build())
+            .build();
 
         List<AccessControlEntry> acls = List.of(
             AccessControlEntry.builder()
@@ -258,7 +332,7 @@ class TopicServiceTest {
     }
 
     @Test
-    void listUnsynchronizedNoExistingTopics() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldListUnsynchronizedTopics() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -275,8 +349,8 @@ class TopicServiceTest {
             Qualifiers.byName(ns.getMetadata().getCluster()))).thenReturn(topicAsyncExecutor);
 
         // list of existing broker topics
-        when(topicAsyncExecutor.listBrokerTopicNames()).thenReturn(List.of("ns-topic1", "ns-topic2",
-            "ns1-topic1", "ns2-topic1"));
+        when(topicAsyncExecutor.listBrokerTopicNames())
+            .thenReturn(List.of("ns-topic1", "ns-topic2", "ns1-topic1", "ns2-topic1"));
 
         // list of existing ns4kfk access control entries
         when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
@@ -314,21 +388,24 @@ class TopicServiceTest {
                     .build()));
 
         // no topic exists into ns4kfk
-        when(topicRepository.findAllForCluster("local")).thenReturn(List.of());
+        when(topicRepository.findAllForCluster("local"))
+            .thenReturn(List.of());
 
         List<String> actual = topicService.listUnsynchronizedTopicNames(ns);
 
         assertEquals(3, actual.size());
-        // contains
+
         assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns-topic1")));
         assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns-topic2")));
         assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns1-topic1")));
-        // doesn't contain
-        Assertions.assertFalse(actual.stream().anyMatch(topic -> topic.equals("ns2-topic1")));
+
+        assertFalse(actual.stream().anyMatch(topic -> topic.equals("ns2-topic1")));
     }
 
     @Test
-    void listUnsynchronizedAllExistingTopics() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldListUnsynchronizedWhenAllExistingTopics() throws InterruptedException,
+                                                                ExecutionException,
+                                                                TimeoutException {
         // init ns4kfk namespace
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -340,10 +417,29 @@ class TopicServiceTest {
                 .build())
             .build();
 
-        Topic t1 = Topic.builder().metadata(Metadata.builder().name("ns-topic1").build()).build();
-        Topic t2 = Topic.builder().metadata(Metadata.builder().name("ns-topic2").build()).build();
-        Topic t3 = Topic.builder().metadata(Metadata.builder().name("ns1-topic1").build()).build();
-        Topic t4 = Topic.builder().metadata(Metadata.builder().name("ns2-topic1").build()).build();
+        Topic t1 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic1")
+                .build())
+            .build();
+
+        Topic t2 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic2")
+                .build())
+            .build();
+
+        Topic t3 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-topic1")
+                .build())
+            .build();
+
+        Topic t4 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns2-topic1")
+                .build())
+            .build();
 
         List<AccessControlEntry> acls = List.of(
             AccessControlEntry.builder()
@@ -372,9 +468,13 @@ class TopicServiceTest {
             Qualifiers.byName(ns.getMetadata().getCluster()))).thenReturn(topicAsyncExecutor);
 
         // list of existing broker topics
-        when(topicAsyncExecutor.listBrokerTopicNames()).thenReturn(
-            List.of(t1.getMetadata().getName(), t2.getMetadata().getName(),
-                t3.getMetadata().getName(), t4.getMetadata().getName()));
+        when(topicAsyncExecutor.listBrokerTopicNames())
+            .thenReturn(List.of(
+                t1.getMetadata().getName(),
+                t2.getMetadata().getName(),
+                t3.getMetadata().getName(),
+                t4.getMetadata().getName())
+            );
 
         // list of existing ns4kfk access control entries
         when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC,
@@ -408,7 +508,9 @@ class TopicServiceTest {
     }
 
     @Test
-    void listUnsynchronizedPartialExistingTopics() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldListUnsynchronizedWhenNotAllTopicsAlreadyExist() throws InterruptedException,
+                                                                       ExecutionException,
+                                                                       TimeoutException {
         // init ns4kfk namespace
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -420,7 +522,11 @@ class TopicServiceTest {
                 .build())
             .build();
 
-        Topic t1 = Topic.builder().metadata(Metadata.builder().name("ns-topic1").build()).build();
+        Topic t1 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic1")
+                .build())
+            .build();
 
         List<AccessControlEntry> acls = List.of(
             AccessControlEntry.builder()
@@ -476,23 +582,28 @@ class TopicServiceTest {
         List<String> actual = topicService.listUnsynchronizedTopicNames(ns);
 
         assertEquals(2, actual.size());
-        // contains
+
         assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns-topic2")));
         assertTrue(actual.stream().anyMatch(topic -> topic.equals("ns1-topic1")));
-        // doesn't contain
-        Assertions.assertFalse(actual.stream().anyMatch(topic -> topic.equals("ns-topic1")));
-        Assertions.assertFalse(actual.stream().anyMatch(topic -> topic.equals("ns2-topic1")));
+
+        assertFalse(actual.stream().anyMatch(topic -> topic.equals("ns-topic1")));
+        assertFalse(actual.stream().anyMatch(topic -> topic.equals("ns2-topic1")));
     }
 
     @Test
-    void findCollidingTopicsNoCollision() throws ExecutionException, InterruptedException, TimeoutException {
+    void shouldNotFindAnyCollidingTopic() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
             .build();
-        Topic topic = Topic.builder().metadata(Metadata.builder().name("project1.topic").build()).build();
+
+        Topic topic = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("project1.topic")
+                .build())
+            .build();
 
         TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
         when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
@@ -504,15 +615,18 @@ class TopicServiceTest {
     }
 
     @Test
-    void findCollidingTopicsIdenticalName() throws ExecutionException, InterruptedException, TimeoutException {
+    void shouldFindCollidingTopicWhenIdenticalName() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
             .build();
+
         Topic topic = Topic.builder()
-            .metadata(Metadata.builder().name("project1.topic").build())
+            .metadata(Metadata.builder()
+                .name("project1.topic")
+                .build())
             .build();
 
         TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
@@ -527,15 +641,20 @@ class TopicServiceTest {
     }
 
     @Test
-    void findCollidingTopicsCollidingName() throws ExecutionException, InterruptedException, TimeoutException {
+    void shouldFindCollidingTopicsWhenCollidingName() throws ExecutionException,
+                                                             InterruptedException,
+                                                             TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
             .build();
+
         Topic topic = Topic.builder()
-            .metadata(Metadata.builder().name("project1.topic").build())
+            .metadata(Metadata.builder()
+                .name("project1.topic")
+                .build())
             .build();
 
         TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
@@ -551,15 +670,20 @@ class TopicServiceTest {
     }
 
     @Test
-    void findCollidingTopicsInterruptedException() throws ExecutionException, InterruptedException, TimeoutException {
+    void shouldHandleInterruptedExceptionWhenFindingCollidingTopics() throws ExecutionException,
+                                                                             InterruptedException,
+                                                                             TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
                 .build())
             .build();
+
         Topic topic = Topic.builder()
-            .metadata(Metadata.builder().name("project1.topic").build())
+            .metadata(Metadata.builder()
+                .name("project1.topic")
+                .build())
             .build();
 
         TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
@@ -575,7 +699,9 @@ class TopicServiceTest {
     }
 
     @Test
-    void findCollidingTopicsOtherException() throws ExecutionException, InterruptedException, TimeoutException {
+    void shouldHandleOtherExceptionWhenFindingCollidingTopics() throws ExecutionException,
+                                                                       InterruptedException,
+                                                                       TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -584,7 +710,9 @@ class TopicServiceTest {
             .build();
 
         Topic topic = Topic.builder()
-            .metadata(Metadata.builder().name("project1.topic").build())
+            .metadata(Metadata.builder()
+                .name("project1.topic")
+                .build())
             .build();
 
         TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
@@ -598,7 +726,7 @@ class TopicServiceTest {
     }
 
     @Test
-    void findTopicWithNameParameter() {
+    void shouldFindTopicsWithNameParameter() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -606,10 +734,29 @@ class TopicServiceTest {
                 .build())
             .build();
 
-        Topic topic1 = Topic.builder().metadata(Metadata.builder().name("prefix.topic1").build()).build();
-        Topic topic2 = Topic.builder().metadata(Metadata.builder().name("prefix.topic2").build()).build();
-        Topic topic3 = Topic.builder().metadata(Metadata.builder().name("prefix.topic3").build()).build();
-        Topic topic4 = Topic.builder().metadata(Metadata.builder().name("prefix2.topic").build()).build();
+        Topic topic1 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("prefix.topic1")
+                .build())
+            .build();
+
+        Topic topic2 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("prefix.topic2")
+                .build())
+            .build();
+
+        Topic topic3 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("prefix.topic3")
+                .build())
+            .build();
+
+        Topic topic4 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("prefix2.topic")
+                .build())
+            .build();
 
         List<AccessControlEntry> acls = List.of(
             AccessControlEntry.builder()
@@ -638,7 +785,7 @@ class TopicServiceTest {
     }
 
     @Test
-    void findTopicsWithWildcardNameParameter() {
+    void shouldFindTopicsWithWildcardNameParameter() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -646,12 +793,41 @@ class TopicServiceTest {
                 .build())
             .build();
 
-        Topic topic1 = Topic.builder().metadata(Metadata.builder().name("prefix1.topic1").build()).build();
-        Topic topic2 = Topic.builder().metadata(Metadata.builder().name("prefix1.topic2").build()).build();
-        Topic topic3 = Topic.builder().metadata(Metadata.builder().name("prefix1.topic3").build()).build();
-        Topic topic4 = Topic.builder().metadata(Metadata.builder().name("prefix2.topic1").build()).build();
-        Topic topic5 = Topic.builder().metadata(Metadata.builder().name("prefix2.topic2").build()).build();
-        Topic topic6 = Topic.builder().metadata(Metadata.builder().name("topic1").build()).build();
+        Topic topic1 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("prefix1.topic1")
+                .build())
+            .build();
+
+        Topic topic2 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("prefix1.topic2")
+                .build())
+            .build();
+
+        Topic topic3 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("prefix1.topic3")
+                .build())
+            .build();
+
+        Topic topic4 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("prefix2.topic1")
+                .build())
+            .build();
+
+        Topic topic5 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("prefix2.topic2")
+                .build())
+            .build();
+
+        Topic topic6 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("topic1")
+                .build())
+            .build();
 
         List<Topic> allTopics = List.of(topic1, topic2, topic3, topic4, topic5, topic6);
 
@@ -710,7 +886,7 @@ class TopicServiceTest {
     }
 
     @Test
-    void validateDeleteRecordsTopic() {
+    void shouldValidateDeleteRecords() {
         Topic topic = Topic.builder()
             .metadata(Metadata.builder()
                 .name("project1.topic")
@@ -729,7 +905,7 @@ class TopicServiceTest {
     }
 
     @Test
-    void validateTopicUpdatePartitions() {
+    void shouldNotValidateUpdateTopicPartitions() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -774,7 +950,7 @@ class TopicServiceTest {
     }
 
     @Test
-    void validateTopicUpdateReplicationFactor() {
+    void shouldNotValidateUpdateTopicReplicationFactor() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -818,7 +994,7 @@ class TopicServiceTest {
     }
 
     @Test
-    void validateTopicUpdateCleanupPolicyDeleteToCompactOnCloud() {
+    void shouldNotValidateUpdateTopicCleanupPolicyDeleteToCompactOnCloud() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -866,7 +1042,7 @@ class TopicServiceTest {
     }
 
     @Test
-    void validateTopicUpdateCleanupPolicyCompactToDeleteOnCloud() {
+    void shouldValidateUpdateTopicCleanupPolicyCompactToDeleteOnCloud() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -909,7 +1085,7 @@ class TopicServiceTest {
     }
 
     @Test
-    void validateTopicUpdateCleanupPolicyDeleteToCompactOnSelfManaged() {
+    void shouldValidateUpdateTopicCleanupPolicyDeleteToCompactOnSelfManaged() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -952,11 +1128,30 @@ class TopicServiceTest {
     }
 
     @Test
-    void findAll() {
-        Topic t1 = Topic.builder().metadata(Metadata.builder().name("ns-topic1").build()).build();
-        Topic t2 = Topic.builder().metadata(Metadata.builder().name("ns-topic2").build()).build();
-        Topic t3 = Topic.builder().metadata(Metadata.builder().name("ns1-topic1").build()).build();
-        Topic t4 = Topic.builder().metadata(Metadata.builder().name("ns2-topic1").build()).build();
+    void shouldFindAllTopics() {
+        Topic t1 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic1")
+                .build())
+            .build();
+
+        Topic t2 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic2")
+                .build())
+            .build();
+
+        Topic t3 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-topic1")
+                .build())
+            .build();
+
+        Topic t4 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns2-topic1")
+                .build())
+            .build();
 
         when(topicRepository.findAll()).thenReturn(List.of(t1, t2, t3, t4));
 
@@ -990,8 +1185,17 @@ class TopicServiceTest {
                 .build())
             .build();
 
-        Topic t1 = Topic.builder().metadata(Metadata.builder().name("ns-topic1").build()).build();
-        Topic t2 = Topic.builder().metadata(Metadata.builder().name("ns-topic2").build()).build();
+        Topic t1 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic1")
+                .build())
+            .build();
+
+        Topic t2 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic2")
+                .build())
+            .build();
 
         when(applicationContext.getBean(eq(TopicAsyncExecutor.class), any())).thenReturn(topicAsyncExecutor);
         when(topicAsyncExecutor.listBrokerTopicNames()).thenReturn(List.of("ns-topic1", "ns-topic2", "ns2-topic1"));
@@ -1020,11 +1224,21 @@ class TopicServiceTest {
         when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
 
         List<String> validationErrors = topicService.validateTags(
-            Namespace.builder().metadata(
-                Metadata.builder().name("namespace").cluster("local").build()).build(),
-            Topic.builder().metadata(
-                Metadata.builder().name("ns-topic1").build()).spec(Topic.TopicSpec.builder()
-                .tags(List.of("TAG_TEST")).build()).build());
+            Namespace.builder()
+                .metadata(Metadata.builder()
+                    .name("namespace")
+                    .cluster("local")
+                    .build())
+                .build(),
+            Topic.builder()
+                .metadata(Metadata.builder()
+                    .name("ns-topic1")
+                    .build())
+                .spec(Topic.TopicSpec.builder()
+                    .tags(List.of("TAG_TEST"))
+                    .build())
+                .build());
+
         assertEquals(0, validationErrors.size());
     }
 
@@ -1038,9 +1252,12 @@ class TopicServiceTest {
             .build();
 
         Topic topic = Topic.builder()
-            .metadata(Metadata.builder().name("ns-topic1").build())
+            .metadata(Metadata.builder()
+                .name("ns-topic1")
+                .build())
             .spec(Topic.TopicSpec.builder()
-                .tags(List.of("TAG_TEST")).build())
+                .tags(List.of("TAG_TEST"))
+                .build())
             .build();
 
         when(managedClusterProperties.stream()).thenReturn(Stream.of(
@@ -1055,41 +1272,56 @@ class TopicServiceTest {
     @Test
     void shouldReturnTrueWhenTagFormatIsValid() {
         Topic topicWithTag = Topic.builder()
-            .metadata(Metadata.builder().name("ns-topic1").build())
+            .metadata(Metadata.builder()
+                .name("ns-topic1")
+                .build())
             .spec(Topic.TopicSpec.builder()
-                .tags(List.of("test")).build())
+                .tags(List.of("test"))
+                .build())
             .build();
 
         assertTrue(topicService.isTagsFormatValid(topicWithTag));
 
-        Topic topicWithSimpliestTag = Topic.builder()
-            .metadata(Metadata.builder().name("ns-topic2").build())
+        Topic topicWithEasiestTag = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns-topic2")
+                .build())
             .spec(Topic.TopicSpec.builder()
-                .tags(List.of("A")).build())
+                .tags(List.of("A"))
+                .build())
             .build();
 
-        assertTrue(topicService.isTagsFormatValid(topicWithSimpliestTag));
+        assertTrue(topicService.isTagsFormatValid(topicWithEasiestTag));
 
         Topic topicWithUnderscoreAndNumberTag = Topic.builder()
-            .metadata(Metadata.builder().name("ns-topic3").build())
+            .metadata(Metadata.builder()
+                .name("ns-topic3")
+                .build())
             .spec(Topic.TopicSpec.builder()
-                .tags(List.of("TEST1_TAG")).build())
+                .tags(List.of("TEST1_TAG"))
+                .build())
             .build();
 
         assertTrue(topicService.isTagsFormatValid(topicWithUnderscoreAndNumberTag));
 
         Topic topicWithUnderscoreAndUpperLowerCase = Topic.builder()
-            .metadata(Metadata.builder().name("ns-topic4").build())
+            .metadata(Metadata.builder()
+                .name("ns-topic4")
+                .build())
             .spec(Topic.TopicSpec.builder()
-                .tags(List.of("t1_T_a_g2")).build())
+                .tags(List.of("t1_T_a_g2"))
+                .build())
             .build();
 
         assertTrue(topicService.isTagsFormatValid(topicWithUnderscoreAndUpperLowerCase));
 
         Topic topicWithMultipleCorrectTags = Topic.builder()
-            .metadata(Metadata.builder().name("ns-topic5").build())
+            .metadata(Metadata.builder()
+                .name("ns-topic5")
+                .build())
             .spec(Topic.TopicSpec.builder()
-                .tags(List.of("TEST1", "test2", "tEST_3", "T_a_g")).build())
+                .tags(List.of("TEST1", "test2", "tEST_3", "T_a_g"))
+                .build())
             .build();
 
         assertTrue(topicService.isTagsFormatValid(topicWithMultipleCorrectTags));
@@ -1098,49 +1330,66 @@ class TopicServiceTest {
     @Test
     void shouldReturnFalseWhenTagFormatIsInvalid() {
         Topic topicWithBeginningDigitTag = Topic.builder()
-            .metadata(Metadata.builder().name("ns-topic1").build())
+            .metadata(Metadata.builder()
+                .name("ns-topic1")
+                .build())
             .spec(Topic.TopicSpec.builder()
-                .tags(List.of("0test")).build())
+                .tags(List.of("0test"))
+                .build())
             .build();
 
         assertFalse(topicService.isTagsFormatValid(topicWithBeginningDigitTag));
 
         Topic topicWithBeginningUnderscoreTag = Topic.builder()
-            .metadata(Metadata.builder().name("ns-topic2").build())
+            .metadata(Metadata.builder()
+                .name("ns-topic2")
+                .build())
             .spec(Topic.TopicSpec.builder()
-                .tags(List.of("_TEST")).build())
+                .tags(List.of("_TEST"))
+                .build())
             .build();
 
         assertFalse(topicService.isTagsFormatValid(topicWithBeginningUnderscoreTag));
 
         Topic topicWithForbiddenCharacterTag = Topic.builder()
-            .metadata(Metadata.builder().name("ns-topic3").build())
+            .metadata(Metadata.builder()
+                .name("ns-topic3")
+                .build())
             .spec(Topic.TopicSpec.builder()
-                .tags(List.of("test-tag")).build())
+                .tags(List.of("test-tag"))
+                .build())
             .build();
 
         assertFalse(topicService.isTagsFormatValid(topicWithForbiddenCharacterTag));
 
         Topic topicWithManyForbiddenCharactersTag = Topic.builder()
-            .metadata(Metadata.builder().name("ns-topic4").build())
+            .metadata(Metadata.builder()
+                .name("ns-topic4")
+                .build())
             .spec(Topic.TopicSpec.builder()
-                .tags(List.of("&~#()[]{}-+=*%:.,;!?^°çé")).build())
+                .tags(List.of("&~#()[]{}-+=*%:.,;!?^°çé"))
+                .build())
             .build();
 
         assertFalse(topicService.isTagsFormatValid(topicWithManyForbiddenCharactersTag));
 
         Topic topicWithMultipleIncorrectTags = Topic.builder()
-            .metadata(Metadata.builder().name("ns-topic5").build())
+            .metadata(Metadata.builder().name("ns-topic5")
+                .build())
             .spec(Topic.TopicSpec.builder()
-                .tags(List.of("test-tag", "TEST.tag", "0TEST")).build())
+                .tags(List.of("test-tag", "TEST.tag", "0TEST"))
+                .build())
             .build();
 
         assertFalse(topicService.isTagsFormatValid(topicWithMultipleIncorrectTags));
 
         Topic topicWithOneIncorrectAndMultipleCorrectTags = Topic.builder()
-            .metadata(Metadata.builder().name("ns-topic5").build())
+            .metadata(Metadata.builder()
+                .name("ns-topic5")
+                .build())
             .spec(Topic.TopicSpec.builder()
-                .tags(List.of("testTag", "0TEST-tag", "TEST")).build())
+                .tags(List.of("testTag", "0TEST-tag", "TEST"))
+                .build())
             .build();
 
         assertFalse(topicService.isTagsFormatValid(topicWithOneIncorrectAndMultipleCorrectTags));
@@ -1156,9 +1405,12 @@ class TopicServiceTest {
             .build();
 
         Topic topic = Topic.builder()
-            .metadata(Metadata.builder().name("ns-topic1").build())
+            .metadata(Metadata.builder()
+                .name("ns-topic1")
+                .build())
             .spec(Topic.TopicSpec.builder()
-                .tags(List.of("0TAG-TEST")).build())
+                .tags(List.of("0TAG-TEST"))
+                .build())
             .build();
 
         when(managedClusterProperties.stream()).thenReturn(Stream.of(
