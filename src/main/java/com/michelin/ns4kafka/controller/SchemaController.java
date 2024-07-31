@@ -64,7 +64,7 @@ public class SchemaController extends NamespacedResourceController {
      * @deprecated use list(String, String name) instead.
      */
     @Get("/{subject}")
-    @Deprecated(since = "1.11.13")
+    @Deprecated(since = "1.12.0")
     public Mono<Schema> get(String namespace, String subject) {
         Namespace ns = getNamespace(namespace);
 
