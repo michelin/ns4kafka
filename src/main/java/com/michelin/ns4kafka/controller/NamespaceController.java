@@ -53,7 +53,7 @@ public class NamespaceController extends NonNamespacedResourceController {
      *
      * @param namespace The namespace
      * @return A namespace
-     * @deprecated use list(String, String name) instead.
+     * @deprecated use list(String name) instead.
      */
     @Get("/{namespace}")
     @Deprecated(since = "1.12.0")
