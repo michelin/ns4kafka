@@ -631,10 +631,10 @@ class TopicServiceTest {
         when(aclService.isAnyAclOfResource(acls, "prefix.topic3")).thenReturn(true);
         when(aclService.isAnyAclOfResource(acls, "prefix2.topic")).thenReturn(false);
 
-        assertEquals(List.of(topic1, topic2, topic3), topicService.findAllForNamespace(ns, ""));
-        assertEquals(List.of(topic2), topicService.findAllForNamespace(ns, "prefix.topic2"));
-        assertTrue(topicService.findAllForNamespace(ns, "topic2.suffix").isEmpty()); // doesn't exist
-        assertTrue(topicService.findAllForNamespace(ns, "prefix2.topic").isEmpty()); // no acl
+        assertEquals(List.of(topic1, topic2, topic3), topicService.findByWildcardName(ns, ""));
+        assertEquals(List.of(topic2), topicService.findByWildcardName(ns, "prefix.topic2"));
+        assertTrue(topicService.findByWildcardName(ns, "topic2.suffix").isEmpty()); // doesn't exist
+        assertTrue(topicService.findByWildcardName(ns, "prefix2.topic").isEmpty()); // no acl
     }
 
     @Test
@@ -689,24 +689,24 @@ class TopicServiceTest {
         when(aclService.isAnyAclOfResource(any(), any())).thenReturn(true);
 
         // find one or multiple topics with wildcard
-        assertEquals(List.of(topic1, topic2, topic3), topicService.findAllForNamespace(ns, "prefix1.*"));
-        assertEquals(List.of(topic1, topic2, topic3), topicService.findAllForNamespace(ns, "prefix1.topic?"));
-        assertEquals(List.of(topic1, topic4, topic6), topicService.findAllForNamespace(ns, "*topic1"));
-        assertEquals(List.of(topic1, topic4), topicService.findAllForNamespace(ns, "*.topic1"));
-        assertEquals(List.of(topic2, topic5), topicService.findAllForNamespace(ns, "prefix?.topic2"));
-        assertEquals(List.of(topic1, topic2, topic3, topic4, topic5), topicService.findAllForNamespace(ns, "*.topic?"));
-        assertEquals(List.of(topic1, topic4, topic6), topicService.findAllForNamespace(ns, "*topic1*"));
-        assertEquals(List.of(topic1, topic2, topic3, topic4, topic5), topicService.findAllForNamespace(ns, "*.*"));
-        assertEquals(allTopics, topicService.findAllForNamespace(ns, "*"));
-        assertEquals(allTopics, topicService.findAllForNamespace(ns, "********"));
-        assertEquals(List.of(topic6), topicService.findAllForNamespace(ns, "??????")); // 6-characters topic
+        assertEquals(List.of(topic1, topic2, topic3), topicService.findByWildcardName(ns, "prefix1.*"));
+        assertEquals(List.of(topic1, topic2, topic3), topicService.findByWildcardName(ns, "prefix1.topic?"));
+        assertEquals(List.of(topic1, topic4, topic6), topicService.findByWildcardName(ns, "*topic1"));
+        assertEquals(List.of(topic1, topic4), topicService.findByWildcardName(ns, "*.topic1"));
+        assertEquals(List.of(topic2, topic5), topicService.findByWildcardName(ns, "prefix?.topic2"));
+        assertEquals(List.of(topic1, topic2, topic3, topic4, topic5), topicService.findByWildcardName(ns, "*.topic?"));
+        assertEquals(List.of(topic1, topic4, topic6), topicService.findByWildcardName(ns, "*topic1*"));
+        assertEquals(List.of(topic1, topic2, topic3, topic4, topic5), topicService.findByWildcardName(ns, "*.*"));
+        assertEquals(allTopics, topicService.findByWildcardName(ns, "*"));
+        assertEquals(allTopics, topicService.findByWildcardName(ns, "********"));
+        assertEquals(List.of(topic6), topicService.findByWildcardName(ns, "??????")); // 6-characters topic
 
         // find no topics with wildcard
-        assertTrue(topicService.findAllForNamespace(ns, "prefix3.*").isEmpty()); // no ACL
-        assertTrue(topicService.findAllForNamespace(ns, "prefix4.*").isEmpty()); // doesn't exist
-        assertTrue(topicService.findAllForNamespace(ns, "*.???").isEmpty());
-        assertTrue(topicService.findAllForNamespace(ns, ".*").isEmpty()); // .* is regex
-        assertTrue(topicService.findAllForNamespace(ns, "......").isEmpty()); // . is regex
+        assertTrue(topicService.findByWildcardName(ns, "prefix3.*").isEmpty()); // no ACL
+        assertTrue(topicService.findByWildcardName(ns, "prefix4.*").isEmpty()); // doesn't exist
+        assertTrue(topicService.findByWildcardName(ns, "*.???").isEmpty());
+        assertTrue(topicService.findByWildcardName(ns, ".*").isEmpty()); // .* is regex
+        assertTrue(topicService.findByWildcardName(ns, "......").isEmpty()); // . is regex
     }
 
     @Test

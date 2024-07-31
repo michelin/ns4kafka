@@ -74,7 +74,7 @@ class TopicControllerTest {
             .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.findAllForNamespace(ns, "*")).thenReturn(List.of());
+        when(topicService.findByWildcardName(ns, "*")).thenReturn(List.of());
 
         assertEquals(List.of(), topicController.list("test", "*"));
     }
@@ -92,7 +92,7 @@ class TopicControllerTest {
         Topic topic2 = Topic.builder().metadata(Metadata.builder().name("topic2").build()).build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.findAllForNamespace(ns, "*")).thenReturn(List.of(topic1, topic2));
+        when(topicService.findByWildcardName(ns, "*")).thenReturn(List.of(topic1, topic2));
 
         assertEquals(List.of(topic1, topic2), topicController.list("test", "*"));
     }
@@ -109,12 +109,13 @@ class TopicControllerTest {
         Topic topic1 = Topic.builder().metadata(Metadata.builder().name("topic1").build()).build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.findAllForNamespace(ns, "topic1")).thenReturn(List.of(topic1));
+        when(topicService.findByWildcardName(ns, "topic1")).thenReturn(List.of(topic1));
 
         assertEquals(List.of(topic1), topicController.list("test", "topic1"));
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void getEmptyTopic() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -134,6 +135,7 @@ class TopicControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void getTopic() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()

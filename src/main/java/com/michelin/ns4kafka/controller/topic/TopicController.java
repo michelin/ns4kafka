@@ -57,7 +57,7 @@ public class TopicController extends NamespacedResourceController {
      */
     @Get
     public List<Topic> list(String namespace, @QueryValue(defaultValue = "*") String name) {
-        return topicService.findAllForNamespace(getNamespace(namespace), name);
+        return topicService.findByWildcardName(getNamespace(namespace), name);
     }
 
     /**
@@ -66,8 +66,10 @@ public class TopicController extends NamespacedResourceController {
      * @param namespace The name
      * @param topic     The topic name
      * @return The topic
+     * @deprecated use list(String, String name) instead.
      */
     @Get("/{topic}")
+    @Deprecated(since = "1.11.13")
     public Optional<Topic> getTopic(String namespace, String topic) {
         return topicService.findByName(getNamespace(namespace), topic);
     }

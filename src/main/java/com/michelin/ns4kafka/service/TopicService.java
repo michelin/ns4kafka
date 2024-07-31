@@ -79,17 +79,12 @@ public class TopicService {
      * @param name The name filter
      * @return A list of topics
      */
-    public List<Topic> findAllForNamespace(Namespace namespace, String name) {
-        // find owner ACL on topics for this namespace
-        List<AccessControlEntry> acls = aclService
-            .findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
+    public List<Topic> findByWildcardName(Namespace namespace, String name) {
         List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
-        return topicRepository.findAllForCluster(namespace.getMetadata().getCluster())
+        return findAllForNamespace(namespace)
             .stream()
-            // filter topics based on acl & name
-            .filter(topic -> aclService.isAnyAclOfResource(acls, topic.getMetadata().getName())
-                && RegexUtils.filterByPattern(topic.getMetadata().getName(), nameFilterPatterns))
-                .toList();
+            .filter(topic -> RegexUtils.filterByPattern(topic.getMetadata().getName(), nameFilterPatterns))
+            .toList();
     }
 
     /**
