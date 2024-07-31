@@ -265,7 +265,7 @@ public class AclService {
     /**
      * Find all owner-ACLs on a resource for a given namespace.
      *
-     * @param namespace The namespace
+     * @param namespace    The namespace
      * @param resourceType The resource
      * @return A list of ACLs
      */
@@ -362,7 +362,7 @@ public class AclService {
     /**
      * Check if there is any ACL concerning the given resource.
      *
-     * @param acls The OWNER ACL list on resource
+     * @param acls         The OWNER ACL list on resource
      * @param resourceName The resource name to check ACL against
      * @return true if there is any OWNER ACL concerning the given resource, false otherwise
      */

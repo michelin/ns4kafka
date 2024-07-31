@@ -44,14 +44,15 @@ public class SchemaController extends NamespacedResourceController {
     SchemaService schemaService;
 
     /**
-     * List schemas by namespace.
+     * List schemas by namespace, filtered by name parameter.
      *
      * @param namespace The namespace
+     * @param name      The name parameter
      * @return A list of schemas
      */
     @Get
-    public Flux<SchemaList> list(String namespace) {
-        return schemaService.findAllForNamespace(getNamespace(namespace));
+    public Flux<SchemaList> list(String namespace, @QueryValue(defaultValue = "*") String name) {
+        return schemaService.findByWildcardName(getNamespace(namespace), name);
     }
 
     /**
@@ -60,8 +61,10 @@ public class SchemaController extends NamespacedResourceController {
      * @param namespace The namespace
      * @param subject   The subject
      * @return A schema
+     * @deprecated use list(String, String name) instead.
      */
     @Get("/{subject}")
+    @Deprecated(since = "1.12.0")
     public Mono<Schema> get(String namespace, String subject) {
         Namespace ns = getNamespace(namespace);
 
@@ -148,8 +151,8 @@ public class SchemaController extends NamespacedResourceController {
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{subject}")
-    public Mono<HttpResponse<Void>> deleteSubject(String namespace, @PathVariable String subject,
-                                                  @QueryValue(defaultValue = "false") boolean dryrun) {
+    public Mono<HttpResponse<Void>> delete(String namespace, @PathVariable String subject,
+                                           @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         // Validate ownership
@@ -173,7 +176,7 @@ public class SchemaController extends NamespacedResourceController {
                 sendEventLog(schemaToDelete, ApplyStatus.deleted, schemaToDelete.getSpec(), null);
 
                 return schemaService
-                    .deleteSubject(ns, subject)
+                    .delete(ns, subject)
                     .map(deletedSchemaIds -> HttpResponse.noContent());
             });
     }

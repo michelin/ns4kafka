@@ -1017,24 +1017,24 @@ class AclServiceTest {
     @Test
     void isLiteralAclOfResource() {
         AccessControlEntry acl1 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("abc.topic1")
-                        .grantedTo("namespace")
-                        .build())
-                .build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("abc.topic1")
+                .grantedTo("namespace")
+                .build())
+            .build();
 
         AccessControlEntry acl2 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("abc-topic1")
-                        .grantedTo("namespace")
-                        .build())
-                .build();
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("abc-topic1")
+                .grantedTo("namespace")
+                .build())
+            .build();
         List<AccessControlEntry> acls = List.of(acl1, acl2);
 
         assertFalse(aclService.isAnyAclOfResource(acls, "xyz.topic1"));
