@@ -46,13 +46,14 @@ class StreamControllerTest {
     StreamController streamController;
 
     @Test
-    void listEmptyStreams() {
+    void shouldListStreamsWhenEmpty() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
                 .build())
             .build();
+
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
         when(streamService.findByWildcardName(ns, "*"))
@@ -63,7 +64,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void listStreamsWithoutParameter() {
+    void shouldListStreamsWithWildcardParameter() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -95,7 +96,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void listStreamsWithNameParameters() {
+    void shouldListStreamsWithNamedParameter() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -103,7 +104,11 @@ class StreamControllerTest {
                 .build())
             .build();
 
-        KafkaStream stream1 = KafkaStream.builder().metadata(Metadata.builder().name("prefix.s1").build()).build();
+        KafkaStream stream1 = KafkaStream.builder()
+            .metadata(Metadata.builder()
+                .name("prefix.s1")
+                .build())
+            .build();
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
@@ -117,7 +122,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void listStreamsWithEmptyNameParameter() {
+    void shouldListStreamsWithEmptyNameParameter() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -125,8 +130,17 @@ class StreamControllerTest {
                 .build())
             .build();
 
-        KafkaStream stream1 = KafkaStream.builder().metadata(Metadata.builder().name("prefix.s1").build()).build();
-        KafkaStream stream2 = KafkaStream.builder().metadata(Metadata.builder().name("prefix.s2").build()).build();
+        KafkaStream stream1 = KafkaStream.builder()
+            .metadata(Metadata.builder()
+                .name("prefix.s1")
+                .build())
+            .build();
+
+        KafkaStream stream2 = KafkaStream.builder()
+            .metadata(Metadata.builder()
+                .name("prefix.s2")
+                .build())
+            .build();
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
@@ -142,7 +156,7 @@ class StreamControllerTest {
 
     @Test
     @SuppressWarnings("deprecation")
-    void getEmpty() {
+    void shouldGetStreamsWhenEmpty() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -162,7 +176,7 @@ class StreamControllerTest {
 
     @Test
     @SuppressWarnings("deprecation")
-    void getStreamFound() {
+    void shouldGetStreams() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -188,7 +202,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void createStreamSuccess() {
+    void shouldCreateStreams() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -210,8 +224,10 @@ class StreamControllerTest {
 
         when(streamService.findByName(ns, "test_stream1"))
             .thenReturn(Optional.empty());
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        when(securityService.username())
+            .thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN))
+            .thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         when(streamService.create(stream1))
@@ -224,7 +240,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void createStreamSuccessDryRun() {
+    void shouldCreateStreamsInDryRunMode() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -255,7 +271,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void updateStreamUnchanged() {
+    void shouldUpdateStreamsUnchanged() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -286,7 +302,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void createStreamValidationError() {
+    void shouldNotCreateStreamsWhenValidationErrors() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -311,7 +327,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void deleteStreamSuccess() {
+    void shouldDeleteStreams() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -319,7 +335,7 @@ class StreamControllerTest {
                 .build())
             .build();
 
-        KafkaStream stream1 = KafkaStream.builder()
+        KafkaStream stream = KafkaStream.builder()
             .metadata(Metadata.builder()
                 .name("test_stream1")
                 .build())
@@ -332,18 +348,18 @@ class StreamControllerTest {
             .thenReturn(true);
 
         when(streamService.findByName(ns, "test_stream1"))
-            .thenReturn(Optional.of(stream1));
+            .thenReturn(Optional.of(stream));
 
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
-        doNothing().when(streamService).delete(ns, stream1);
+        doNothing().when(streamService).delete(ns, stream);
         var response = streamController.delete("test", "test_stream1", false);
         assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
     }
 
     @Test
-    void deleteStreamSuccessDryRun() {
+    void shouldDeleteStreamsInDryRunMode() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -372,7 +388,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void deleteStreamNotFound() {
+    void shouldNotDeleteStreamsWhenNotFound() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -395,7 +411,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void deleteStreamNotOwner() {
+    void shouldNotDeleteStreamsWhenNotOwner() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
