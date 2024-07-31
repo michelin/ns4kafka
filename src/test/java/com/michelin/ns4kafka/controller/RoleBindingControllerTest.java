@@ -144,19 +144,12 @@ class RoleBindingControllerTest {
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
 
         var response = roleBindingController.apply("test", rolebinding, true);
-        RoleBinding actual = response.body();
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(roleBindingService, never()).create(rolebinding);
     }
 
     @Test
-    void deleteSucess() {
-        Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+    void deleteSuccess() {
         RoleBinding rolebinding = RoleBinding.builder()
             .metadata(Metadata.builder()
                 .name("test.rolebinding")
