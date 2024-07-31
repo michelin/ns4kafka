@@ -191,7 +191,7 @@ class RoleBindingControllerTest {
     void listRoleBindingWithNameParameters() {
         RoleBinding rb1 = RoleBinding.builder().metadata(Metadata.builder().name("namespace-rb1").build()).build();
 
-        when(roleBindingService.list("test", "namespace-rb1")).thenReturn(List.of(rb1));
+        when(roleBindingService.findByWildcardName("test", "namespace-rb1")).thenReturn(List.of(rb1));
 
         assertEquals(List.of(rb1), roleBindingController.list("test", "namespace-rb1"));
     }
@@ -201,8 +201,8 @@ class RoleBindingControllerTest {
         RoleBinding rb1 = RoleBinding.builder().metadata(Metadata.builder().name("namespace-rb1").build()).build();
         RoleBinding rb2 = RoleBinding.builder().metadata(Metadata.builder().name("namespace-rb2").build()).build();
 
-        when(roleBindingService.list("test", "*")).thenReturn(List.of(rb1, rb2));
-        when(roleBindingService.list("test", "")).thenReturn(List.of(rb1, rb2));
+        when(roleBindingService.findByWildcardName("test", "*")).thenReturn(List.of(rb1, rb2));
+        when(roleBindingService.findByWildcardName("test", "")).thenReturn(List.of(rb1, rb2));
 
         assertEquals(List.of(rb1, rb2), roleBindingController.list("test", "*"));
         assertEquals(List.of(rb1, rb2), roleBindingController.list("test", ""));

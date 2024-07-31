@@ -52,9 +52,9 @@ public class RoleBindingService {
      * @param name The name filter
      * @return The list of associated role bindings
      */
-    public List<RoleBinding> list(String namespace, String name) {
+    public List<RoleBinding> findByWildcardName(String namespace, String name) {
         List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
-        return roleBindingRepository.findAllForNamespace(namespace)
+        return list(namespace)
             .stream()
             .filter(rb -> RegexUtils.filterByPattern(rb.getMetadata().getName(), nameFilterPatterns))
             .toList();

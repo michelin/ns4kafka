@@ -67,9 +67,9 @@ class RoleBindingServiceTest {
 
         when(roleBindingRepository.findAllForNamespace("namespace")).thenReturn(List.of(rb1, rb2, rb3));
 
-        assertEquals(List.of(rb1), roleBindingService.list("namespace", "namespace-rb1"));
-        assertEquals(List.of(rb1, rb2, rb3), roleBindingService.list("namespace", ""));
-        assertEquals(List.of(), roleBindingService.list("namespace", "namespace-rb5"));
+        assertEquals(List.of(rb1), roleBindingService.findByWildcardName("namespace", "namespace-rb1"));
+        assertEquals(List.of(rb1, rb2, rb3), roleBindingService.findByWildcardName("namespace", ""));
+        assertEquals(List.of(), roleBindingService.findByWildcardName("namespace", "namespace-rb5"));
     }
 
     @Test
@@ -81,9 +81,9 @@ class RoleBindingServiceTest {
 
         when(roleBindingRepository.findAllForNamespace("namespace")).thenReturn(List.of(rb1, rb2, rb3, rb4));
 
-        assertEquals(List.of(rb1, rb2, rb3), roleBindingService.list("namespace", "namespace-*"));
-        assertEquals(List.of(rb1, rb2, rb3, rb4), roleBindingService.list("namespace", "*rb?"));
-        assertEquals(List.of(rb4), roleBindingService.list("namespace", "rb?"));
-        assertEquals(List.of(), roleBindingService.list("namespace", "role_binding*"));
+        assertEquals(List.of(rb1, rb2, rb3), roleBindingService.findByWildcardName("namespace", "namespace-*"));
+        assertEquals(List.of(rb1, rb2, rb3, rb4), roleBindingService.findByWildcardName("namespace", "*rb?"));
+        assertEquals(List.of(rb4), roleBindingService.findByWildcardName("namespace", "rb?"));
+        assertEquals(List.of(), roleBindingService.findByWildcardName("namespace", "role_binding*"));
     }
 }

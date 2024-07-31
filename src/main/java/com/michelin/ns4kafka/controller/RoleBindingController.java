@@ -43,7 +43,7 @@ public class RoleBindingController extends NamespacedResourceController {
      */
     @Get
     public List<RoleBinding> list(String namespace, @QueryValue(defaultValue = "*") String name) {
-        return roleBindingService.list(namespace, name);
+        return roleBindingService.findByWildcardName(namespace, name);
     }
 
     /**
@@ -52,8 +52,10 @@ public class RoleBindingController extends NamespacedResourceController {
      * @param namespace The namespace
      * @param name      The role binding name
      * @return A role binding
+     * @deprecated use list(String, String name) instead.
      */
     @Get("/{name}")
+    @Deprecated(since = "1.11.13")
     public Optional<RoleBinding> get(String namespace, String name) {
         return roleBindingService.findByName(namespace, name);
     }
