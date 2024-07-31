@@ -62,7 +62,7 @@ class ConnectClusterControllerTest {
     ApplicationEventPublisher<AuditLog> applicationEventPublisher;
 
     @Test
-    void listEmptyConnectCluster() {
+    void shouldListConnectClustersWhenEmpty() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -70,14 +70,16 @@ class ConnectClusterControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.findAllByNamespaceOwner(ns, "*")).thenReturn(List.of());
+        when(namespaceService.findByName("test"))
+            .thenReturn(Optional.of(ns));
+        when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "*"))
+            .thenReturn(List.of());
 
         assertTrue(connectClusterController.list("test", "*").isEmpty());
     }
 
     @Test
-    void listConnectClusterWithoutNameParameter() {
+    void shouldListConnectClusters() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -91,13 +93,13 @@ class ConnectClusterControllerTest {
         );
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.findAllByNamespaceOwner(ns, "*")).thenReturn(ccs);
+        when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "*")).thenReturn(ccs);
 
         assertEquals(ccs, connectClusterController.list("test", "*"));
     }
 
     @Test
-    void listConnectClusterWithNameParameter() {
+    void shouldListConnectClusterWithNameParameter() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -110,13 +112,13 @@ class ConnectClusterControllerTest {
         );
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.findAllByNamespaceOwner(ns, "connect-cluster")).thenReturn(ccs);
+        when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "connect-cluster")).thenReturn(ccs);
 
         assertEquals(ccs, connectClusterController.list("test", "connect-cluster"));
     }
 
     @Test
-    void getConnectClusterEmpty() {
+    void shouldGetConnectClusterWhenEmpty() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -126,15 +128,15 @@ class ConnectClusterControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(connectClusterService.findByNamespaceAndNameOwner(ns, "missing"))
+        when(connectClusterService.findByNameWithOwnerPermission(ns, "missing"))
             .thenReturn(Optional.empty());
 
-        Optional<ConnectCluster> actual = connectClusterController.getConnectCluster("test", "missing");
+        Optional<ConnectCluster> actual = connectClusterController.get("test", "missing");
         assertTrue(actual.isEmpty());
     }
 
     @Test
-    void getConnectCluster() {
+    void shouldGetConnectCluster() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -144,20 +146,21 @@ class ConnectClusterControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster"))
+        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
             .thenReturn(Optional.of(
                 ConnectCluster.builder()
-                    .metadata(Metadata.builder().name("connect-cluster")
+                    .metadata(Metadata.builder()
+                        .name("connect-cluster")
                         .build())
                     .build()));
 
-        Optional<ConnectCluster> actual = connectClusterController.getConnectCluster("test", "connect-cluster");
+        Optional<ConnectCluster> actual = connectClusterController.get("test", "connect-cluster");
         assertTrue(actual.isPresent());
         assertEquals("connect-cluster", actual.get().getMetadata().getName());
     }
 
     @Test
-    void deleteConnectClusterNotOwned() {
+    void shouldNotDeleteConnectClusterWhenNotOwner() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -175,7 +178,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void deleteConnectClusterNotFound() {
+    void shouldNotDeleteConnectClusterWhenNotFound() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -187,7 +190,7 @@ class ConnectClusterControllerTest {
             .thenReturn(Optional.of(ns));
         when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
             .thenReturn(true);
-        when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster"))
+        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
             .thenReturn(Optional.empty());
 
         HttpResponse<Void> actual = connectClusterController.delete("test", "connect-cluster", false);
@@ -195,7 +198,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void deleteConnectClusterOwned() {
+    void shouldDeleteConnectCluster() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -204,7 +207,8 @@ class ConnectClusterControllerTest {
             .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-            .metadata(Metadata.builder().name("connect-cluster")
+            .metadata(Metadata.builder()
+                .name("connect-cluster")
                 .build())
             .build();
 
@@ -214,7 +218,7 @@ class ConnectClusterControllerTest {
             .thenReturn(true);
         when(connectorService.findAllByConnectCluster(ns, "connect-cluster"))
             .thenReturn(List.of());
-        when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster"))
+        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
             .thenReturn(Optional.of(connectCluster));
         doNothing().when(connectClusterService).delete(connectCluster);
         when(securityService.username()).thenReturn(Optional.of("test-user"));
@@ -226,7 +230,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void deleteConnectClusterOwnedDryRun() {
+    void shouldDeleteConnectClusterInDryRunMode() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -235,7 +239,8 @@ class ConnectClusterControllerTest {
             .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-            .metadata(Metadata.builder().name("connect-cluster")
+            .metadata(Metadata.builder()
+                .name("connect-cluster")
                 .build())
             .build();
 
@@ -245,7 +250,7 @@ class ConnectClusterControllerTest {
             .thenReturn(true);
         when(connectorService.findAllByConnectCluster(ns, "connect-cluster"))
             .thenReturn(List.of());
-        when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster"))
+        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
             .thenReturn(Optional.of(connectCluster));
 
         HttpResponse<Void> actual = connectClusterController.delete("test", "connect-cluster", true);
@@ -255,7 +260,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void deleteConnectClusterWithConnectors() {
+    void shouldNotDeleteConnectClusterWithConnectorsAssociated() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -263,7 +268,11 @@ class ConnectClusterControllerTest {
                 .build())
             .build();
 
-        Connector connector = Connector.builder().metadata(Metadata.builder().name("connect1").build()).build();
+        Connector connector = Connector.builder()
+            .metadata(Metadata.builder()
+                .name("connect1")
+                .build())
+            .build();
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
@@ -283,7 +292,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void createNewConnectCluster() {
+    void shouldCreateConnectCluster() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -295,14 +304,16 @@ class ConnectClusterControllerTest {
             .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-            .metadata(Metadata.builder().name("connect-cluster")
+            .metadata(Metadata.builder()
+                .name("connect-cluster")
                 .build())
             .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster")).thenReturn(true);
         when(connectClusterService.validateConnectClusterCreation(connectCluster)).thenReturn(Mono.just(List.of()));
-        when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster")).thenReturn(Optional.empty());
+        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
+            .thenReturn(Optional.empty());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -319,7 +330,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void createNewConnectClusterNotOwner() {
+    void shouldNotCreateConnectClusterWhenNotOwner() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -331,7 +342,8 @@ class ConnectClusterControllerTest {
             .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-            .metadata(Metadata.builder().name("connect-cluster")
+            .metadata(Metadata.builder()
+                .name("connect-cluster")
                 .build())
             .build();
 
@@ -351,7 +363,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void createNewConnectClusterValidationError() {
+    void shouldNotCreateConnectClusterWhenValidationReturnErrors() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -363,7 +375,8 @@ class ConnectClusterControllerTest {
             .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-            .metadata(Metadata.builder().name("connect-cluster")
+            .metadata(Metadata.builder()
+                .name("connect-cluster")
                 .build())
             .build();
 
@@ -382,7 +395,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void updateConnectClusterUnchanged() {
+    void shouldUpdateConnectClusterWhenUnchanged() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -394,14 +407,15 @@ class ConnectClusterControllerTest {
             .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-            .metadata(Metadata.builder().name("connect-cluster")
+            .metadata(Metadata.builder()
+                .name("connect-cluster")
                 .build())
             .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster")).thenReturn(true);
         when(connectClusterService.validateConnectClusterCreation(connectCluster)).thenReturn(Mono.just(List.of()));
-        when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster")).thenReturn(
+        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster")).thenReturn(
             Optional.of(connectCluster));
 
         StepVerifier.create(connectClusterController.apply("test", connectCluster, false))
@@ -415,7 +429,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void updateConnectClusterChanged() {
+    void shouldUpdateConnectClusterWhenChanged() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -427,7 +441,8 @@ class ConnectClusterControllerTest {
             .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-            .metadata(Metadata.builder().name("connect-cluster")
+            .metadata(Metadata.builder()
+                .name("connect-cluster")
                 .build())
             .spec(ConnectCluster.ConnectClusterSpec.builder()
                 .url("https://after")
@@ -435,7 +450,8 @@ class ConnectClusterControllerTest {
             .build();
 
         ConnectCluster connectClusterChanged = ConnectCluster.builder()
-            .metadata(Metadata.builder().name("connect-cluster")
+            .metadata(Metadata.builder()
+                .name("connect-cluster")
                 .build())
             .spec(ConnectCluster.ConnectClusterSpec.builder()
                 .url("https://before")
@@ -445,7 +461,7 @@ class ConnectClusterControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster")).thenReturn(true);
         when(connectClusterService.validateConnectClusterCreation(connectCluster)).thenReturn(Mono.just(List.of()));
-        when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster")).thenReturn(
+        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster")).thenReturn(
             Optional.of(connectClusterChanged));
         when(connectClusterService.create(connectCluster)).thenReturn(connectCluster);
 
@@ -459,7 +475,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void createConnectClusterDryRun() {
+    void shouldCreateConnectClusterInDryRunMode() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -471,14 +487,16 @@ class ConnectClusterControllerTest {
             .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-            .metadata(Metadata.builder().name("connect-cluster")
+            .metadata(Metadata.builder()
+                .name("connect-cluster")
                 .build())
             .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster")).thenReturn(true);
         when(connectClusterService.validateConnectClusterCreation(connectCluster)).thenReturn(Mono.just(List.of()));
-        when(connectClusterService.findByNamespaceAndNameOwner(ns, "connect-cluster")).thenReturn(Optional.empty());
+        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
+            .thenReturn(Optional.empty());
 
         StepVerifier.create(connectClusterController.apply("test", connectCluster, true))
             .consumeNextWith(response -> assertEquals("created", response.header("X-Ns4kafka-Result")))
@@ -488,7 +506,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void listVaultNoConnectClusterAllowedWithAes256Config() {
+    void shouldListVaultConnectClusterReturnEmptyWhenNoAes256Config() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -500,20 +518,22 @@ class ConnectClusterControllerTest {
             .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-            .metadata(Metadata.builder().name("connect-cluster")
+            .metadata(Metadata.builder()
+                .name("connect-cluster")
                 .build())
-            .spec(ConnectCluster.ConnectClusterSpec.builder().build())
+            .spec(ConnectCluster.ConnectClusterSpec.builder()
+                .build())
             .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.findAllByNamespaceWrite(ns)).thenReturn(List.of(connectCluster));
+        when(connectClusterService.findAllForNamespaceWithWritePermission(ns)).thenReturn(List.of(connectCluster));
 
         List<ConnectCluster> actual = connectClusterController.listVaults("test");
         assertTrue(actual.isEmpty());
     }
 
     @Test
-    void listVaultConnectClusterAllowedWithAes256Config() {
+    void shouldListVaultConnectClusterWhenAes256Config() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -525,12 +545,16 @@ class ConnectClusterControllerTest {
             .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-            .metadata(Metadata.builder().name("connect-cluster")
+            .metadata(Metadata.builder()
+                .name("connect-cluster")
                 .build())
-            .spec(ConnectCluster.ConnectClusterSpec.builder().build())
+            .spec(ConnectCluster.ConnectClusterSpec.builder()
+                .build())
             .build();
+
         ConnectCluster connectClusterAes256 = ConnectCluster.builder()
-            .metadata(Metadata.builder().name("connect-cluster-aes256")
+            .metadata(Metadata.builder()
+                .name("connect-cluster-aes256")
                 .build())
             .spec(ConnectCluster.ConnectClusterSpec.builder()
                 .aes256Key("myKeyEncryption")
@@ -539,7 +563,7 @@ class ConnectClusterControllerTest {
             .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.findAllByNamespaceWrite(ns)).thenReturn(
+        when(connectClusterService.findAllForNamespaceWithWritePermission(ns)).thenReturn(
             List.of(connectCluster, connectClusterAes256));
 
         List<ConnectCluster> actual = connectClusterController.listVaults("test");
@@ -547,7 +571,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void vaultOnNonAllowedConnectCluster() {
+    void shouldNotVaultOnNotAllowedConnectCluster() {
         String connectClusterName = "connect-cluster-na";
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -573,7 +597,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void vaultOnNotValidAes256ConnectCluster() {
+    void shouldNotVaultOnConnectClusterWithInvalidAes256Config() {
         String connectClusterName = "connect-cluster-aes256";
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -598,7 +622,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void vaultOnValidAes256ConnectCluster() {
+    void shouldVaultOnConnectClusterWithValidAes256Config() {
         String connectClusterName = "connect-cluster-aes256";
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()

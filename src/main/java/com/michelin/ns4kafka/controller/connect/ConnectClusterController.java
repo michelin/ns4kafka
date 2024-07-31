@@ -58,7 +58,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      */
     @Get
     public List<ConnectCluster> list(String namespace, @QueryValue(defaultValue = "*") String name) {
-        return connectClusterService.findAllByNamespaceOwner(getNamespace(namespace), name);
+        return connectClusterService.findByWildcardNameWithOwnerPermission(getNamespace(namespace), name);
     }
 
     /**
@@ -69,8 +69,8 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @return A Kafka Connect cluster
      */
     @Get("/{connectCluster}")
-    public Optional<ConnectCluster> getConnectCluster(String namespace, String connectCluster) {
-        return connectClusterService.findByNamespaceAndNameOwner(getNamespace(namespace), connectCluster);
+    public Optional<ConnectCluster> get(String namespace, String connectCluster) {
+        return connectClusterService.findByNameWithOwnerPermission(getNamespace(namespace), connectCluster);
     }
 
     /**
@@ -102,8 +102,8 @@ public class ConnectClusterController extends NamespacedResourceController {
                 connectCluster.getMetadata().setCluster(ns.getMetadata().getCluster());
                 connectCluster.getMetadata().setNamespace(ns.getMetadata().getName());
 
-                Optional<ConnectCluster> existingConnectCluster =
-                    connectClusterService.findByNamespaceAndNameOwner(ns, connectCluster.getMetadata().getName());
+                Optional<ConnectCluster> existingConnectCluster = connectClusterService
+                    .findByNameWithOwnerPermission(ns, connectCluster.getMetadata().getName());
                 if (existingConnectCluster.isPresent() && existingConnectCluster.get().equals(connectCluster)) {
                     return Mono.just(formatHttpResponse(existingConnectCluster.get(), ApplyStatus.unchanged));
                 }
@@ -149,7 +149,7 @@ public class ConnectClusterController extends NamespacedResourceController {
         }
 
         Optional<ConnectCluster> optionalConnectCluster =
-            connectClusterService.findByNamespaceAndNameOwner(ns, connectCluster);
+            connectClusterService.findByNameWithOwnerPermission(ns, connectCluster);
         if (optionalConnectCluster.isEmpty()) {
             return HttpResponse.notFound();
         }
@@ -172,7 +172,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      */
     @Get("/_/vaults")
     public List<ConnectCluster> listVaults(final String namespace) {
-        return connectClusterService.findAllByNamespaceWrite(getNamespace(namespace))
+        return connectClusterService.findAllForNamespaceWithWritePermission(getNamespace(namespace))
             .stream()
             .filter(connectCluster -> StringUtils.hasText(connectCluster.getSpec().getAes256Key()))
             .toList();

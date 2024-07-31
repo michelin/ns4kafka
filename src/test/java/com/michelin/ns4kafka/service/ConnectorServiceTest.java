@@ -355,13 +355,13 @@ class ConnectorServiceTest {
                 .build())
             .build();
 
-        when(connectClusterService.findAllByNamespaceWithWritePermission(ns)).thenReturn(List.of());
+        when(connectClusterService.findAllForNamespaceWithWritePermission(ns)).thenReturn(List.of());
         StepVerifier.create(connectorService.validateLocally(ns, connector))
             .consumeNextWith(response -> {
                 assertEquals(1, response.size());
                 assertEquals(
                     "Invalid value \"wrong\" for field \"connectCluster\": value must be one of \"local-name\".",
-                    response.get(0));
+                    response.getFirst());
             })
             .verifyComplete();
     }
@@ -390,7 +390,7 @@ class ConnectorServiceTest {
             .consumeNextWith(response -> {
                 assertEquals(1, response.size());
                 assertEquals("Invalid empty value for field \"connector.class\": value must not be null.",
-                    response.get(0));
+                    response.getFirst());
             })
             .verifyComplete();
     }
@@ -424,7 +424,7 @@ class ConnectorServiceTest {
                     "Invalid value \"org.apache.kafka.connect.file.FileStreamSinkConnector\" "
                         + "for field \"connector.class\": failed to find any class that implements connector and "
                         + "which name matches org.apache.kafka.connect.file.FileStreamSinkConnector.",
-                    response.get(0));
+                    response.getFirst());
             })
             .verifyComplete();
     }
@@ -463,7 +463,7 @@ class ConnectorServiceTest {
             .consumeNextWith(response -> {
                 assertEquals(1, response.size());
                 assertEquals("Invalid empty value for field \"missing.field\": value must not be null.",
-                    response.get(0));
+                    response.getFirst());
             })
             .verifyComplete();
     }
@@ -628,7 +628,7 @@ class ConnectorServiceTest {
                 .build())
             .build();
 
-        when(connectClusterService.findAllByNamespaceWithWritePermission(ns))
+        when(connectClusterService.findAllForNamespaceWithWritePermission(ns))
             .thenReturn(List.of(ConnectCluster.builder()
                 .metadata(Metadata.builder()
                     .name("local-name")
@@ -678,7 +678,7 @@ class ConnectorServiceTest {
         StepVerifier.create(connectorService.validateRemotely(ns, connector))
             .consumeNextWith(response -> {
                 assertEquals(1, response.size());
-                assertEquals("Invalid \"connect1\": error_message.", response.get(0));
+                assertEquals("Invalid \"connect1\": error_message.", response.getFirst());
             })
             .verifyComplete();
     }
@@ -753,7 +753,7 @@ class ConnectorServiceTest {
             .metadata(Metadata.builder().name("ns1-connect2").build())
             .build();
 
-        when(connectClusterService.findAllByNamespaceWithWritePermission(ns))
+        when(connectClusterService.findAllForNamespaceWithWritePermission(ns))
             .thenReturn(List.of(connectCluster));
         when(connectorAsyncExecutor.collectBrokerConnectors("local-name"))
             .thenReturn(Flux.fromIterable(List.of(c1, c2, c3, c4)));
@@ -847,7 +847,7 @@ class ConnectorServiceTest {
             .metadata(Metadata.builder().name("ns1-connect2").build())
             .build();
 
-        when(connectClusterService.findAllByNamespaceWithWritePermission(ns))
+        when(connectClusterService.findAllForNamespaceWithWritePermission(ns))
             .thenReturn(List.of(connectCluster));
         when(connectorAsyncExecutor.collectBrokerConnectors("local-name"))
             .thenReturn(Flux.fromIterable(List.of(c1, c2, c3, c4)));

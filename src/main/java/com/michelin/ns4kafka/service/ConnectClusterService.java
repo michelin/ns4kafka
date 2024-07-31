@@ -74,7 +74,7 @@ public class ConnectClusterService {
      * Find all self deployed Connect clusters.
      *
      * @param all Include hard-declared Connect clusters
- * @return A list of Connect clusters
+     * @return A list of Connect clusters
      */
     public Flux<ConnectCluster> findAll(boolean all) {
         List<ConnectCluster> results = connectClusterRepository.findAll();
@@ -117,77 +117,67 @@ public class ConnectClusterService {
     }
 
     /**
-     * Find all self deployed Connect clusters of a given namespace, with a given list of permissions,
-     * filtered by name parameter.
+     * Find all self deployed Connect clusters of a given namespace, with a given list of permissions.
      *
      * @param namespace   The namespace
-     * @param name The name filter
      * @param permissions The list of permission to filter on
      * @return A list of Connect clusters
      */
-    public List<ConnectCluster> findAllByNamespace(Namespace namespace, String name,
-                                                   List<AccessControlEntry.Permission> permissions) {
+    public List<ConnectCluster> findAllForNamespaceByPermissions(Namespace namespace,
+                                                                 List<AccessControlEntry.Permission> permissions) {
         List<AccessControlEntry> acls = aclService.findAllGrantedToNamespace(namespace)
             .stream()
             .filter(acl -> permissions.contains(acl.getSpec().getPermission())
                 && acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT_CLUSTER)
             .toList();
-        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
 
         return connectClusterRepository.findAllForCluster(namespace.getMetadata().getCluster())
             .stream()
-            .filter(cc -> aclService.isAnyAclOfResource(acls, cc.getMetadata().getName())
-                && RegexUtils.filterByPattern(cc.getMetadata().getName(), nameFilterPatterns))
+            .filter(cc -> aclService.isAnyAclOfResource(acls, cc.getMetadata().getName()))
             .toList();
     }
 
     /**
      * Find all self deployed Connect clusters whose namespace is owner.
      *
-     * @param namespace The namespace
-     * @return The list of owned Connect cluster
+     * @param namespace   The namespace
+     * @return A list of Connect clusters
      */
-    public List<ConnectCluster> findAllByNamespaceOwner(Namespace namespace) {
-        return findAllByNamespaceOwner(namespace, "*");
+    public List<ConnectCluster> findAllForNamespaceWithOwnerPermission(Namespace namespace) {
+        return findAllForNamespaceByPermissions(namespace, List.of(AccessControlEntry.Permission.OWNER))
+            .stream()
+            .toList();
     }
 
     /**
      * Find all self deployed Connect clusters whose namespace is owner, filtered by name parameter.
      *
      * @param namespace The namespace
-     * @param name The name filter
+     * @param name The name parameter
      * @return The list of owned Connect cluster
      */
-    public List<ConnectCluster> findAllByNamespaceOwner(Namespace namespace, String name) {
-        return findAllByNamespace(namespace, name, List.of(AccessControlEntry.Permission.OWNER))
+    public List<ConnectCluster> findByWildcardNameWithOwnerPermission(Namespace namespace, String name) {
+        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
+        return findAllForNamespaceWithOwnerPermission(namespace)
             .stream()
-            .map(connectCluster -> {
-                var builder = ConnectCluster.ConnectClusterSpec.builder()
-                    .url(connectCluster.getSpec().getUrl())
-                    .username(connectCluster.getSpec().getUsername())
-                    .password(EncryptionUtils.decryptAes256Gcm(connectCluster.getSpec().getPassword(),
-                        securityProperties.getAes256EncryptionKey()))
-                    .aes256Key(EncryptionUtils.decryptAes256Gcm(connectCluster.getSpec().getAes256Key(),
-                        securityProperties.getAes256EncryptionKey()))
-                    .aes256Salt(EncryptionUtils.decryptAes256Gcm(connectCluster.getSpec().getAes256Salt(),
-                        securityProperties.getAes256EncryptionKey()))
-                    .aes256Format(connectCluster.getSpec().getAes256Format());
-
-                try {
-                    kafkaConnectClient.version(connectCluster.getMetadata().getCluster(),
-                        connectCluster.getMetadata().getName()).block();
-                    builder.status(ConnectCluster.Status.HEALTHY);
-                } catch (HttpClientException e) {
-                    builder.status(ConnectCluster.Status.IDLE);
-                    builder.statusMessage(e.getMessage());
-                }
-
-                return ConnectCluster.builder()
-                    .metadata(connectCluster.getMetadata())
-                    .spec(builder.build())
-                    .build();
-            })
+            .filter(cc -> RegexUtils.filterByPattern(cc.getMetadata().getName(), nameFilterPatterns))
+            .map(this::buildConnectClusterWithDecryptedInformation)
             .toList();
+    }
+
+    /**
+     * Find a self deployed Connect cluster by namespace and name with owner rights.
+     *
+     * @param namespace          The namespace
+     * @param connectClusterName The connect worker name
+     * @return An optional connect worker
+     */
+    public Optional<ConnectCluster> findByNameWithOwnerPermission(Namespace namespace, String connectClusterName) {
+        return findAllForNamespaceWithOwnerPermission(namespace)
+            .stream()
+            .filter(cc -> cc.getMetadata().getName().equals(connectClusterName))
+            .map(this::buildConnectClusterWithDecryptedInformation)
+            .findFirst();
     }
 
     /**
@@ -196,10 +186,10 @@ public class ConnectClusterService {
      * @param namespace The namespace
      * @return The list of Connect cluster with write access
      */
-    public List<ConnectCluster> findAllByNamespaceWrite(Namespace namespace) {
+    public List<ConnectCluster> findAllForNamespaceWithWritePermission(Namespace namespace) {
         return Stream.concat(
-            this.findAllByNamespaceOwner(namespace, "*").stream(),
-            this.findAllByNamespace(namespace, "*", List.of(AccessControlEntry.Permission.WRITE)).stream()
+            findByWildcardNameWithOwnerPermission(namespace, "*").stream(),
+            findAllForNamespaceByPermissions(namespace, List.of(AccessControlEntry.Permission.WRITE)).stream()
                 .map(connectCluster -> ConnectCluster.builder()
                     .metadata(connectCluster.getMetadata())
                     .spec(ConnectCluster.ConnectClusterSpec.builder()
@@ -212,17 +202,6 @@ public class ConnectClusterService {
                         .build())
                     .build())
         ).toList();
-    }
-
-    /**
-     * Find a self deployed Connect cluster by namespace and name with owner rights.
-     *
-     * @param namespace          The namespace
-     * @param connectClusterName The connect worker name
-     * @return An optional connect worker
-     */
-    public Optional<ConnectCluster> findByNamespaceAndNameOwner(Namespace namespace, String connectClusterName) {
-        return findAllByNamespaceOwner(namespace, connectClusterName).stream().findFirst();
     }
 
     /**
@@ -264,7 +243,8 @@ public class ConnectClusterService {
     public Mono<List<String>> validateConnectClusterCreation(ConnectCluster connectCluster) {
         List<String> errors = new ArrayList<>();
 
-        if (managedClusterProperties.stream()
+        if (managedClusterProperties
+                .stream()
                 .filter(cluster -> cluster.getConnects() != null)
                 .anyMatch(cluster -> cluster.getConnects().entrySet()
                     .stream()
@@ -308,7 +288,7 @@ public class ConnectClusterService {
     public List<String> validateConnectClusterVault(final Namespace namespace, final String connectCluster) {
         final var errors = new ArrayList<String>();
 
-        final List<ConnectCluster> kafkaConnects = findAllByNamespace(namespace, "*",
+        final List<ConnectCluster> kafkaConnects = findAllForNamespaceByPermissions(namespace,
             List.of(AccessControlEntry.Permission.OWNER, AccessControlEntry.Permission.WRITE));
 
         if (kafkaConnects.isEmpty()) {
@@ -370,7 +350,7 @@ public class ConnectClusterService {
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceAllowedForConnectCluster(Namespace namespace, String connectCluster) {
-        return findAllByNamespaceWrite(namespace)
+        return findAllForNamespaceWithWritePermission(namespace)
             .stream()
             .anyMatch(kafkaConnect -> kafkaConnect.getMetadata().getName().equals(connectCluster));
     }
@@ -385,7 +365,7 @@ public class ConnectClusterService {
      */
     public List<VaultResponse> vaultPassword(final Namespace namespace, final String connectCluster,
                                              final List<String> passwords) {
-        final Optional<ConnectCluster> kafkaConnect = findAllByNamespace(namespace, "*",
+        final Optional<ConnectCluster> kafkaConnect = findAllForNamespaceByPermissions(namespace,
             List.of(AccessControlEntry.Permission.OWNER, AccessControlEntry.Permission.WRITE))
             .stream()
             .filter(cc ->
@@ -421,5 +401,39 @@ public class ConnectClusterService {
                     .build())
                 .build())
             .toList();
+    }
+
+
+    /**
+     * Build the same connect cluster object with decrypted information.
+     *
+     * @param connectCluster The kafka connect cluster for which to decrypt the information.
+     * @return The connect cluster with decrypted information.
+     */
+    public ConnectCluster buildConnectClusterWithDecryptedInformation(ConnectCluster connectCluster) {
+        var builder = ConnectCluster.ConnectClusterSpec.builder()
+            .url(connectCluster.getSpec().getUrl())
+            .username(connectCluster.getSpec().getUsername())
+            .password(EncryptionUtils.decryptAes256Gcm(connectCluster.getSpec().getPassword(),
+                securityProperties.getAes256EncryptionKey()))
+            .aes256Key(EncryptionUtils.decryptAes256Gcm(connectCluster.getSpec().getAes256Key(),
+                securityProperties.getAes256EncryptionKey()))
+            .aes256Salt(EncryptionUtils.decryptAes256Gcm(connectCluster.getSpec().getAes256Salt(),
+                securityProperties.getAes256EncryptionKey()))
+            .aes256Format(connectCluster.getSpec().getAes256Format());
+
+        try {
+            kafkaConnectClient.version(connectCluster.getMetadata().getCluster(),
+                connectCluster.getMetadata().getName()).block();
+            builder.status(ConnectCluster.Status.HEALTHY);
+        } catch (HttpClientException e) {
+            builder.status(ConnectCluster.Status.IDLE);
+            builder.statusMessage(e.getMessage());
+        }
+
+        return ConnectCluster.builder()
+            .metadata(connectCluster.getMetadata())
+            .spec(builder.build())
+            .build();
     }
 }
