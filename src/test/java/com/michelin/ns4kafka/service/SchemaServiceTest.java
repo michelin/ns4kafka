@@ -128,12 +128,12 @@ class SchemaServiceTest {
         when(aclService.isAnyAclOfResource(acls, "prefix2.schema-two")).thenReturn(true);
         when(aclService.isAnyAclOfResource(acls, "prefix2.schema-three")).thenReturn(false);
 
-        StepVerifier.create(schemaService.findAllForNamespace(namespace, "prefix.schema-one"))
+        StepVerifier.create(schemaService.findByWildcardName(namespace, "prefix.schema-one"))
             .consumeNextWith(schema -> assertEquals("prefix.schema-one", schema.getMetadata().getName()))
             .verifyComplete();
-        StepVerifier.create(schemaService.findAllForNamespace(namespace, "prefix2.schema-three")).verifyComplete();
-        StepVerifier.create(schemaService.findAllForNamespace(namespace, "prefix3.schema-four")).verifyComplete();
-        StepVerifier.create(schemaService.findAllForNamespace(namespace, ""))
+        StepVerifier.create(schemaService.findByWildcardName(namespace, "prefix2.schema-three")).verifyComplete();
+        StepVerifier.create(schemaService.findByWildcardName(namespace, "prefix3.schema-four")).verifyComplete();
+        StepVerifier.create(schemaService.findByWildcardName(namespace, ""))
             .consumeNextWith(schema -> assertEquals("prefix.schema-one", schema.getMetadata().getName()))
             .consumeNextWith(schema -> assertEquals("prefix2.schema-two", schema.getMetadata().getName()))
             .verifyComplete();
@@ -181,27 +181,27 @@ class SchemaServiceTest {
             Flux.fromIterable(subjectsResponse));
         when(aclService.isAnyAclOfResource(eq(acls), anyString())).thenReturn(true);
 
-        StepVerifier.create(schemaService.findAllForNamespace(namespace, "prefix1.*"))
+        StepVerifier.create(schemaService.findByWildcardName(namespace, "prefix1.*"))
             .consumeNextWith(schema -> assertEquals("prefix1.schema1-value", schema.getMetadata().getName()))
             .consumeNextWith(schema -> assertEquals("prefix1.schema1-key", schema.getMetadata().getName()))
             .consumeNextWith(schema -> assertEquals("prefix1.schema-one", schema.getMetadata().getName()))
             .verifyComplete();
 
-        StepVerifier.create(schemaService.findAllForNamespace(namespace, "*-value"))
+        StepVerifier.create(schemaService.findByWildcardName(namespace, "*-value"))
             .consumeNextWith(schema -> assertEquals("prefix1.schema1-value", schema.getMetadata().getName()))
             .consumeNextWith(schema -> assertEquals("prefix2.schema2-value", schema.getMetadata().getName()))
             .consumeNextWith(schema -> assertEquals("prefix4.schema1-value", schema.getMetadata().getName()))
             .verifyComplete();
 
-        StepVerifier.create(schemaService.findAllForNamespace(namespace, "prefix?.schema1-key"))
+        StepVerifier.create(schemaService.findByWildcardName(namespace, "prefix?.schema1-key"))
             .consumeNextWith(schema -> assertEquals("prefix1.schema1-key", schema.getMetadata().getName()))
             .verifyComplete();
 
-        StepVerifier.create(schemaService.findAllForNamespace(namespace, "prefix?.schema-*"))
+        StepVerifier.create(schemaService.findByWildcardName(namespace, "prefix?.schema-*"))
             .consumeNextWith(schema -> assertEquals("prefix1.schema-one", schema.getMetadata().getName()))
             .verifyComplete();
 
-        StepVerifier.create(schemaService.findAllForNamespace(namespace, "*"))
+        StepVerifier.create(schemaService.findByWildcardName(namespace, "*"))
             .consumeNextWith(schema -> assertEquals("prefix1.schema1-value", schema.getMetadata().getName()))
             .consumeNextWith(schema -> assertEquals("prefix1.schema1-key", schema.getMetadata().getName()))
             .consumeNextWith(schema -> assertEquals("prefix1.schema-one", schema.getMetadata().getName()))

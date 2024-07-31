@@ -52,7 +52,7 @@ public class SchemaController extends NamespacedResourceController {
      */
     @Get
     public Flux<SchemaList> list(String namespace, @QueryValue(defaultValue = "*") String name) {
-        return schemaService.findAllForNamespace(getNamespace(namespace), name);
+        return schemaService.findByWildcardName(getNamespace(namespace), name);
     }
 
     /**
@@ -61,8 +61,10 @@ public class SchemaController extends NamespacedResourceController {
      * @param namespace The namespace
      * @param subject   The subject
      * @return A schema
+     * @deprecated use list(String, String name) instead.
      */
     @Get("/{subject}")
+    @Deprecated(since = "1.11.13")
     public Mono<Schema> get(String namespace, String subject) {
         Namespace ns = getNamespace(namespace);
 

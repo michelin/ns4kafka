@@ -73,7 +73,7 @@ public class SchemaService {
      * @param name The name filter
      * @return A list of schemas
      */
-    public Flux<SchemaList> findAllForNamespace(Namespace namespace, String name) {
+    public Flux<SchemaList> findByWildcardName(Namespace namespace, String name) {
         List<AccessControlEntry> acls = aclService
             .findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
         List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));

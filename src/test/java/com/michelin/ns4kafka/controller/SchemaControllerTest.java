@@ -250,7 +250,7 @@ class SchemaControllerTest {
         SchemaList schema = buildSchemaList();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
-        when(schemaService.findAllForNamespace(namespace, "*")).thenReturn(Flux.fromIterable(List.of(schema)));
+        when(schemaService.findByWildcardName(namespace, "*")).thenReturn(Flux.fromIterable(List.of(schema)));
 
         StepVerifier.create(schemaController.list("myNamespace", "*"))
             .consumeNextWith(
@@ -264,7 +264,7 @@ class SchemaControllerTest {
         SchemaList schema = buildSchemaList();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
-        when(schemaService.findAllForNamespace(namespace, "prefix.subject-value"))
+        when(schemaService.findByWildcardName(namespace, "prefix.subject-value"))
             .thenReturn(Flux.fromIterable(List.of(schema)));
 
         StepVerifier.create(schemaController.list("myNamespace", "prefix.subject-value"))
@@ -274,6 +274,7 @@ class SchemaControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void get() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
@@ -288,6 +289,7 @@ class SchemaControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void getNamespaceNotOwnerOfSubject() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
