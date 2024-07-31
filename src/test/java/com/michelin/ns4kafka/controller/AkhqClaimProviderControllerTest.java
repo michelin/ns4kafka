@@ -274,7 +274,7 @@ class AkhqClaimProviderControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.listAll())
+        when(namespaceService.findAll())
             .thenReturn(List.of(ns1, ns2, ns3, ns4, ns5));
         when(aclService.findAllGrantedToNamespace(ns1))
             .thenReturn(List.of(ns1Ace1, ns1Ace2, pubAce1));
@@ -416,7 +416,7 @@ class AkhqClaimProviderControllerTest {
                 .resource("public_t.")
                 .build())
             .build();
-        when(namespaceService.listAll())
+        when(namespaceService.findAll())
             .thenReturn(List.of(ns1, ns2, ns3, ns4, ns5));
         when(aclService.findAllGrantedToNamespace(ns1))
             .thenReturn(List.of(ns1Ace1, ns1Ace2, pubAce1));

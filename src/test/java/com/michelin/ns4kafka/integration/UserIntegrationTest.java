@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -30,7 +31,6 @@ import org.apache.kafka.clients.admin.UserScramCredentialsDescription;
 import org.apache.kafka.common.quota.ClientQuotaEntity;
 import org.apache.kafka.common.quota.ClientQuotaFilter;
 import org.apache.kafka.common.quota.ClientQuotaFilterComponent;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -39,7 +39,7 @@ import org.junit.jupiter.api.Test;
 class UserIntegrationTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
-    HttpClient client;
+    HttpClient ns4KafkaClient;
 
     @Inject
     List<UserAsyncExecutor> userAsyncExecutors;
@@ -75,16 +75,23 @@ class UserIntegrationTest extends AbstractIntegrationTest {
             .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response = client.toBlocking()
+        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response = ns4KafkaClient.toBlocking()
             .exchange(HttpRequest.POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
 
         token = response.getBody().get().getAccessToken();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token)
+                .body(ns1));
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns2));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token)
+                .body(ns2));
 
         ResourceQuota rqNs2 = ResourceQuota.builder()
             .metadata(Metadata.builder()
@@ -96,8 +103,12 @@ class UserIntegrationTest extends AbstractIntegrationTest {
                 ResourceQuota.ResourceQuotaSpecKey.USER_CONSUMER_BYTE_RATE.getKey(), "409600.0"))
             .build();
 
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns2/resource-quotas").bearerAuth(token).body(rqNs2));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns2/resource-quotas")
+                .bearerAuth(token)
+                .body(rqNs2));
 
         Namespace ns3 = Namespace.builder()
             .metadata(Metadata.builder()
@@ -112,18 +123,23 @@ class UserIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns3));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token)
+                .body(ns3));
 
         userAsyncExecutors.forEach(UserAsyncExecutor::run);
     }
 
     @Test
-    void checkDefaultQuotas() throws ExecutionException, InterruptedException {
+    void shouldCheckDefaultQuotas() throws ExecutionException, InterruptedException {
         Map<ClientQuotaEntity, Map<String, Double>> mapQuota = getAdminClient()
             .describeClientQuotas(ClientQuotaFilter.containsOnly(
-                List.of(ClientQuotaFilterComponent.ofEntity("user", "user1")))
-            ).entities().get();
+                List.of(ClientQuotaFilterComponent.ofEntity("user", "user1"))))
+            .entities()
+            .get();
 
         assertEquals(1, mapQuota.entrySet().size());
         Map<String, Double> quotas = mapQuota.entrySet().stream().findFirst().get().getValue();
@@ -134,11 +150,12 @@ class UserIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void checkCustomQuotas() throws ExecutionException, InterruptedException {
+    void shouldCheckCustomQuotas() throws ExecutionException, InterruptedException {
         Map<ClientQuotaEntity, Map<String, Double>> mapQuota = getAdminClient()
             .describeClientQuotas(ClientQuotaFilter.containsOnly(
-                List.of(ClientQuotaFilterComponent.ofEntity("user", "user2")))
-            ).entities().get();
+                List.of(ClientQuotaFilterComponent.ofEntity("user", "user2"))))
+            .entities()
+            .get();
 
         assertEquals(1, mapQuota.entrySet().size());
         Map<String, Double> quotas = mapQuota.entrySet().stream().findFirst().get().getValue();
@@ -149,7 +166,7 @@ class UserIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void checkUpdateQuotas() throws ExecutionException, InterruptedException {
+    void shouldCheckUpdateQuotas() throws ExecutionException, InterruptedException {
         // Update the namespace user quotas
         ResourceQuota rq3 = ResourceQuota.builder()
             .metadata(Metadata.builder()
@@ -161,16 +178,21 @@ class UserIntegrationTest extends AbstractIntegrationTest {
                 ResourceQuota.ResourceQuotaSpecKey.USER_CONSUMER_BYTE_RATE.getKey(), "409600.0"))
             .build();
 
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns3/resource-quotas").bearerAuth(token).body(rq3));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns3/resource-quotas")
+                .bearerAuth(token)
+                .body(rq3));
 
         // Force user sync to force the quota update
         userAsyncExecutors.forEach(UserAsyncExecutor::run);
 
         Map<ClientQuotaEntity, Map<String, Double>> mapQuota = getAdminClient()
             .describeClientQuotas(ClientQuotaFilter.containsOnly(
-                List.of(ClientQuotaFilterComponent.ofEntity("user", "user3")))
-            ).entities().get();
+                List.of(ClientQuotaFilterComponent.ofEntity("user", "user3"))))
+            .entities()
+            .get();
 
         assertEquals(1, mapQuota.entrySet().size());
         Map<String, Double> quotas = mapQuota.entrySet().stream().findFirst().get().getValue();
@@ -181,26 +203,30 @@ class UserIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void createAndUpdateUserForceTest() throws ExecutionException, InterruptedException {
-        KafkaUserResetPassword response = client.toBlocking().retrieve(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/users/user1/reset-password").bearerAuth(token),
-            KafkaUserResetPassword.class);
+    void shouldCreateAndUpdateUser() throws ExecutionException, InterruptedException {
+        KafkaUserResetPassword response = ns4KafkaClient
+            .toBlocking()
+            .retrieve(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/users/user1/reset-password")
+                .bearerAuth(token), KafkaUserResetPassword.class);
 
         Map<String, UserScramCredentialsDescription> mapUser = getAdminClient()
             .describeUserScramCredentials(List.of("user1")).all().get();
 
-        Assertions.assertNotNull(response.getSpec().getNewPassword());
+        assertNotNull(response.getSpec().getNewPassword());
         assertTrue(mapUser.containsKey("user1"));
         assertEquals(ScramMechanism.SCRAM_SHA_512, mapUser.get("user1").credentialInfos().get(0).mechanism());
         assertEquals(4096, mapUser.get("user1").credentialInfos().get(0).iterations());
     }
 
     @Test
-    void shouldUpdateUserFailNotMatching() {
+    void shouldUpdateUserFailWhenItDoesNotBelongToNamespace() {
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
-            () -> client.toBlocking().retrieve(
-                HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/users/user2/reset-password").bearerAuth(token),
-                KafkaUserResetPassword.class));
+            () -> ns4KafkaClient
+                .toBlocking()
+                .retrieve(HttpRequest
+                    .create(HttpMethod.POST, "/api/namespaces/ns1/users/user2/reset-password")
+                    .bearerAuth(token), KafkaUserResetPassword.class));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
         assertEquals("Invalid value \"user2\" for field \"user\": user does not belong to namespace.",

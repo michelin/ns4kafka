@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -31,7 +32,6 @@ import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -83,15 +83,24 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
 
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<BearerAccessRefreshToken> response = ns4KafkaClient.toBlocking()
+        HttpResponse<BearerAccessRefreshToken> response = ns4KafkaClient
+            .toBlocking()
             .exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
 
         token = response.getBody().get().getAccessToken();
 
-        ns4KafkaClient.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(namespace));
-        ns4KafkaClient.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token)
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token)
+                .body(namespace));
+
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings")
+                .bearerAuth(token)
                 .body(roleBinding));
 
         AccessControlEntry aclSchema = AccessControlEntry.builder()
@@ -108,12 +117,16 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
                 .build())
             .build();
 
-        ns4KafkaClient.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclSchema));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                .bearerAuth(token)
+                .body(aclSchema));
     }
 
     @Test
-    void registerSchemaCompatibility() {
+    void shouldRegisterSchemaRespectingForwardCompatibility() {
         // Register schema, first name is optional
         Schema schema = Schema.builder()
             .metadata(Metadata.builder()
@@ -130,29 +143,35 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
                 .build())
             .build();
 
-        var createResponse =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+        var createResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token)
                 .body(schema), Schema.class);
 
         assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
 
-        SchemaResponse actual = schemaRegistryClient.toBlocking()
+        SchemaResponse actual = schemaRegistryClient
+            .toBlocking()
             .retrieve(HttpRequest.GET("/subjects/ns1-subject0-value/versions/latest"), SchemaResponse.class);
 
-        Assertions.assertNotNull(actual.id());
+        assertNotNull(actual.id());
         assertEquals(1, actual.version());
         assertEquals("ns1-subject0-value", actual.subject());
 
         // Set compat to forward
-        ns4KafkaClient.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas/ns1-subject0-value/config")
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas/ns1-subject0-value/config")
                 .bearerAuth(token)
                 .body(Map.of("compatibility", Schema.Compatibility.FORWARD)), SchemaCompatibilityState.class);
 
-        SchemaCompatibilityResponse updatedConfig = schemaRegistryClient.toBlocking()
-            .retrieve(HttpRequest.GET("/config/ns1-subject0-value"),
-                SchemaCompatibilityResponse.class);
+        SchemaCompatibilityResponse updatedConfig = schemaRegistryClient
+            .toBlocking()
+            .retrieve(HttpRequest
+                .GET("/config/ns1-subject0-value"), SchemaCompatibilityResponse.class);
 
         assertEquals(Schema.Compatibility.FORWARD, updatedConfig.compatibilityLevel());
 
@@ -170,24 +189,26 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
                 .build())
             .build();
 
-        var createV2Response =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+        var createV2Response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token)
                 .body(incompatibleSchema), Schema.class);
 
         assertEquals("changed", createV2Response.header("X-Ns4kafka-Result"));
 
-        SchemaResponse actualV2 = schemaRegistryClient.toBlocking()
-            .retrieve(HttpRequest.GET("/subjects/ns1-subject0-value/versions/latest"),
-                SchemaResponse.class);
+        SchemaResponse actualV2 = schemaRegistryClient
+            .toBlocking()
+            .retrieve(HttpRequest.GET("/subjects/ns1-subject0-value/versions/latest"), SchemaResponse.class);
 
-        Assertions.assertNotNull(actualV2.id());
+        assertNotNull(actualV2.id());
         assertEquals(2, actualV2.version());
         assertEquals("ns1-subject0-value", actualV2.subject());
     }
 
     @Test
-    void registerSchemaIncompatibility() {
+    void shouldRegisterSchemaBreakingForwardCompatibility() {
         // Register schema, first name is non-optional
         Schema schema = Schema.builder()
             .metadata(Metadata.builder()
@@ -205,30 +226,34 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
                 .build())
             .build();
 
-        var createResponse =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+        var createResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token)
                 .body(schema), Schema.class);
 
         assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
 
-        SchemaResponse actual = schemaRegistryClient.toBlocking()
-            .retrieve(HttpRequest.GET("/subjects/ns1-subject1-value/versions/latest"),
-                SchemaResponse.class);
+        SchemaResponse actual = schemaRegistryClient
+            .toBlocking()
+            .retrieve(HttpRequest.GET("/subjects/ns1-subject1-value/versions/latest"), SchemaResponse.class);
 
-        Assertions.assertNotNull(actual.id());
+        assertNotNull(actual.id());
         assertEquals(1, actual.version());
         assertEquals("ns1-subject1-value", actual.subject());
 
         // Set compat to forward
-        ns4KafkaClient.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas/ns1-subject1-value/config")
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas/ns1-subject1-value/config")
                 .bearerAuth(token)
                 .body(Map.of("compatibility", Schema.Compatibility.FORWARD)), SchemaCompatibilityState.class);
 
-        SchemaCompatibilityResponse updatedConfig = schemaRegistryClient.toBlocking()
-            .retrieve(HttpRequest.GET("/config/ns1-subject1-value"),
-                SchemaCompatibilityResponse.class);
+        SchemaCompatibilityResponse updatedConfig = schemaRegistryClient
+            .toBlocking()
+            .retrieve(HttpRequest.GET("/config/ns1-subject1-value"), SchemaCompatibilityResponse.class);
 
         assertEquals(Schema.Compatibility.FORWARD, updatedConfig.compatibilityLevel());
 
@@ -249,8 +274,10 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
             .build();
 
         HttpClientResponseException incompatibleActual = assertThrows(HttpClientResponseException.class,
-            () -> ns4KafkaClient.toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+            () -> ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest
+                    .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                     .bearerAuth(token)
                     .body(incompatibleSchema)));
 
@@ -272,18 +299,20 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
             .build();
 
         // Header created
-        var headerCreateResponse =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+        var headerCreateResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token)
                 .body(schemaHeader), Schema.class);
 
         assertEquals("created", headerCreateResponse.header("X-Ns4kafka-Result"));
 
-        SchemaResponse actualHeader = schemaRegistryClient.toBlocking()
-            .retrieve(HttpRequest.GET("/subjects/ns1-header-subject-value/versions/latest"),
-                SchemaResponse.class);
+        SchemaResponse actualHeader = schemaRegistryClient
+            .toBlocking()
+            .retrieve(HttpRequest.GET("/subjects/ns1-header-subject-value/versions/latest"), SchemaResponse.class);
 
-        Assertions.assertNotNull(actualHeader.id());
+        assertNotNull(actualHeader.id());
         assertEquals(1, actualHeader.version());
         assertEquals("ns1-header-subject-value", actualHeader.subject());
 
@@ -309,8 +338,10 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
             .build();
 
         HttpClientResponseException createException = assertThrows(HttpClientResponseException.class,
-            () -> ns4KafkaClient.toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+            () -> ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest
+                    .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                     .bearerAuth(token)
                     .body(schemaPersonWithoutRefs)));
 
@@ -340,18 +371,20 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
                 .build())
             .build();
 
-        var personCreateResponse =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+        var personCreateResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token)
                 .body(schemaPersonWithRefs), Schema.class);
 
         assertEquals("created", personCreateResponse.header("X-Ns4kafka-Result"));
 
-        SchemaResponse actualPerson = schemaRegistryClient.toBlocking()
-            .retrieve(HttpRequest.GET("/subjects/ns1-person-subject-value/versions/latest"),
-                SchemaResponse.class);
+        SchemaResponse actualPerson = schemaRegistryClient
+            .toBlocking()
+            .retrieve(HttpRequest.GET("/subjects/ns1-person-subject-value/versions/latest"), SchemaResponse.class);
 
-        Assertions.assertNotNull(actualPerson.id());
+        assertNotNull(actualPerson.id());
         assertEquals(1, actualPerson.version());
         assertEquals("ns1-person-subject-value", actualPerson.subject());
     }
@@ -370,9 +403,12 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
                 .build())
             .build();
 
-        ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
-            .bearerAuth(token)
-            .body(schemaHeader), Schema.class);
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                .bearerAuth(token)
+                .body(schemaHeader), Schema.class);
 
         // Create person
         Schema schemaPersonWithRefs = Schema.builder()
@@ -397,13 +433,18 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
                 .build())
             .build();
 
-        ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
-            .bearerAuth(token)
-            .body(schemaPersonWithRefs), Schema.class);
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                .bearerAuth(token)
+                .body(schemaPersonWithRefs), Schema.class);
 
         // Create person, result should be unchanged
-        var personUnchangedResponse =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+        var personUnchangedResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token)
                 .body(schemaPersonWithRefs), Schema.class);
 
@@ -433,24 +474,28 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
                 .build())
             .build();
 
-        var newPersonCreateResponse =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+        var newPersonCreateResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token)
                 .body(newSchemaVersionPersonWithRefs), Schema.class);
 
         assertEquals("changed", newPersonCreateResponse.header("X-Ns4kafka-Result"));
 
-        SchemaResponse newActualPerson = schemaRegistryClient.toBlocking()
-            .retrieve(HttpRequest.GET("/subjects/ns1-person-subject-value/versions/latest"),
-                SchemaResponse.class);
+        SchemaResponse newActualPerson = schemaRegistryClient
+            .toBlocking()
+            .retrieve(HttpRequest.GET("/subjects/ns1-person-subject-value/versions/latest"), SchemaResponse.class);
 
-        Assertions.assertNotNull(newActualPerson.id());
+        assertNotNull(newActualPerson.id());
         assertEquals(2, newActualPerson.version());
         assertEquals("ns1-person-subject-value", newActualPerson.subject());
 
         // Recreate person v1, result should be unchanged
-        var personCreateV1Response =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+        var personCreateV1Response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token)
                 .body(schemaPersonWithRefs), Schema.class);
 
@@ -469,26 +514,30 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
             .build();
 
         // Create header v2
-        var headerV2CreateResponse =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+        var headerV2CreateResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token)
                 .body(schemaHeaderV2), Schema.class);
 
         assertEquals("changed", headerV2CreateResponse.header("X-Ns4kafka-Result"));
 
-        SchemaResponse actualHeaderV2 = schemaRegistryClient.toBlocking()
-            .retrieve(HttpRequest.GET("/subjects/ns1-header-subject-value/versions/latest"),
-                SchemaResponse.class);
+        SchemaResponse actualHeaderV2 = schemaRegistryClient
+            .toBlocking()
+            .retrieve(HttpRequest.GET("/subjects/ns1-header-subject-value/versions/latest"), SchemaResponse.class);
 
-        Assertions.assertNotNull(actualHeaderV2.id());
+        assertNotNull(actualHeaderV2.id());
         assertEquals(2, actualHeaderV2.version());
         assertEquals("ns1-header-subject-value", actualHeaderV2.subject());
 
         // Create person referencing header v2, result should be changed
         newSchemaVersionPersonWithRefs.getSpec().getReferences().get(0).setVersion(2);
 
-        var newPersonCreateWithV2RefResponse =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+        var newPersonCreateWithV2RefResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token)
                 .body(newSchemaVersionPersonWithRefs), Schema.class);
 
@@ -496,7 +545,7 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
     }
 
     @Test
-    void registerSchemaWrongPrefix() {
+    void shouldRegisterSchemaWithWrongPrefix() {
         Schema wrongSchema = Schema.builder()
             .metadata(Metadata.builder()
                 .name("wrongprefix-subject")
@@ -514,8 +563,10 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
             .build();
 
         HttpClientResponseException createException = assertThrows(HttpClientResponseException.class,
-            () -> ns4KafkaClient.toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+            () -> ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest
+                    .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                     .bearerAuth(token)
                     .body(wrongSchema)));
 
@@ -523,8 +574,10 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
         assertEquals("Resource validation failed", createException.getMessage());
 
         // Get all schemas
-        var getResponse =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
+        var getResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token), Argument.listOf(SchemaList.class));
 
         assertTrue(getResponse.getBody().isPresent());
@@ -533,9 +586,9 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
             .noneMatch(schemaList -> schemaList.getMetadata().getName().equals("wrongprefix-subject")));
 
         HttpClientResponseException getException = assertThrows(HttpClientResponseException.class,
-            () -> schemaRegistryClient.toBlocking()
-                .retrieve(HttpRequest.GET("/subjects/wrongprefix-subject/versions/latest"),
-                    SchemaResponse.class));
+            () -> schemaRegistryClient
+                .toBlocking()
+                .retrieve(HttpRequest.GET("/subjects/wrongprefix-subject/versions/latest"), SchemaResponse.class));
 
         assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
     }
@@ -560,15 +613,19 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
 
         // Apply schema
         var createResponse = ns4KafkaClient
-            .toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token)
                 .body(schema), Schema.class);
 
         assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
 
         // Get all schemas
-        var getResponse =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
+        var getResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token), Argument.listOf(SchemaList.class));
 
         assertTrue(getResponse.getBody().isPresent());
@@ -577,15 +634,19 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
             .anyMatch(schemaList -> schemaList.getMetadata().getName().equals("ns1-subject2-value")));
 
         // Delete schema
-        var deleteResponse = ns4KafkaClient.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas/ns1-subject2-value")
+        var deleteResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas/ns1-subject2-value")
                 .bearerAuth(token), Schema.class);
 
         assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
 
         // Get all schemas
-        var getResponseEmpty =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
+        var getResponseEmpty = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token), Argument.listOf(SchemaList.class));
 
         assertTrue(getResponseEmpty.getBody().isPresent());
@@ -594,15 +655,15 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
             .noneMatch(schemaList -> schemaList.getMetadata().getName().equals("ns1-subject2-value")));
 
         HttpClientResponseException getException = assertThrows(HttpClientResponseException.class,
-            () -> schemaRegistryClient.toBlocking()
-                .retrieve(HttpRequest.GET("/subjects/ns1-subject2-value/versions/latest"),
-                    SchemaResponse.class));
+            () -> schemaRegistryClient
+                .toBlocking()
+                .retrieve(HttpRequest.GET("/subjects/ns1-subject2-value/versions/latest"), SchemaResponse.class));
 
         assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
     }
 
     @Test
-    void registerSameSchemaTwice() {
+    void shouldRegisterSameSchemaTwice() {
         Schema schema = Schema.builder()
             .metadata(Metadata.builder()
                 .name("ns1-subject3-value")
@@ -620,16 +681,20 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
             .build();
 
         // Apply schema
-        var createResponse =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+        var createResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token)
                 .body(schema), Schema.class);
 
         assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
 
         // Get all schemas
-        var getResponse =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
+        var getResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token), Argument.listOf(SchemaList.class));
 
         assertTrue(getResponse.getBody().isPresent());
@@ -654,8 +719,10 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
                 .build())
             .build();
 
-        var createSwappedFieldsResponse =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+        var createSwappedFieldsResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token)
                 .body(sameSchemaWithSwappedFields), Schema.class);
 
@@ -663,17 +730,20 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
         assertEquals("changed", createSwappedFieldsResponse.header("X-Ns4kafka-Result"));
 
         // Get the latest version to check if we are on v2
-        SchemaResponse schemaAfterApply = schemaRegistryClient.toBlocking()
-            .retrieve(HttpRequest.GET("/subjects/ns1-subject3-value/versions/latest"),
-                SchemaResponse.class);
+        SchemaResponse schemaAfterApply = schemaRegistryClient
+            .toBlocking()
+            .retrieve(HttpRequest
+                .GET("/subjects/ns1-subject3-value/versions/latest"), SchemaResponse.class);
 
-        Assertions.assertNotNull(schemaAfterApply.id());
+        assertNotNull(schemaAfterApply.id());
         assertEquals(2, schemaAfterApply.version());
         assertEquals("ns1-subject3-value", schemaAfterApply.subject());
 
         // Apply again the schema with swapped fields
-        var createAgainResponse =
-            ns4KafkaClient.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+        var createAgainResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                 .bearerAuth(token)
                 .body(sameSchemaWithSwappedFields), Schema.class);
 
@@ -684,15 +754,17 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
         RegisterSchemaRequest request = new RegisterSchemaRequest();
         request.setSchema(sameSchemaWithSwappedFields.getSpec().getSchema());
 
-        schemaRegistryClient.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/subjects/ns1-subject3-value/versions")
+        schemaRegistryClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/subjects/ns1-subject3-value/versions")
                 .body(request), RegisterSchemaResponse.class);
 
-        SchemaResponse schemaAfterPostOnRegistry = schemaRegistryClient.toBlocking()
-            .retrieve(HttpRequest.GET("/subjects/ns1-subject3-value/versions/latest"),
-                SchemaResponse.class);
+        SchemaResponse schemaAfterPostOnRegistry = schemaRegistryClient
+            .toBlocking()
+            .retrieve(HttpRequest.GET("/subjects/ns1-subject3-value/versions/latest"), SchemaResponse.class);
 
-        Assertions.assertNotNull(schemaAfterPostOnRegistry.id());
+        assertNotNull(schemaAfterPostOnRegistry.id());
         assertEquals(2, schemaAfterPostOnRegistry.version());
         assertEquals("ns1-subject3-value", schemaAfterPostOnRegistry.subject());
     }

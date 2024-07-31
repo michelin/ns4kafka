@@ -122,7 +122,7 @@ public class NamespaceController extends NonNamespacedResourceController {
             return HttpResponse.notFound();
         }
 
-        List<String> namespaceResources = namespaceService.listAllNamespaceResources(optionalNamespace.get());
+        List<String> namespaceResources = namespaceService.findAllResourcesByNamespace(optionalNamespace.get());
         if (!namespaceResources.isEmpty()) {
             List<String> validationErrors = namespaceResources
                 .stream()

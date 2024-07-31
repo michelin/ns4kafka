@@ -36,16 +36,17 @@ import org.junit.jupiter.api.Test;
 class NamespaceIntegrationTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
-    HttpClient client;
+    HttpClient ns4KafkaClient;
 
     private String token;
 
     @BeforeAll
     void init() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response =
-            client.toBlocking().exchange(HttpRequest.POST("/login", credentials),
-                TopicIntegrationTest.BearerAccessRefreshToken.class);
+        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
 
         token = response.getBody().get().getAccessToken();
     }
@@ -65,8 +66,10 @@ class NamespaceIntegrationTest extends AbstractIntegrationTest {
             .build();
 
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
-            () -> client.toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
+            () -> ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest
+                    .create(HttpMethod.POST, "/api/namespaces")
                     .bearerAuth(token)
                     .body(namespace)));
 
@@ -76,15 +79,19 @@ class NamespaceIntegrationTest extends AbstractIntegrationTest {
 
         namespace.getMetadata().setName("accepted.namespace");
 
-        var responseCreateNs = client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
+        var responseCreateNs = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces")
                 .bearerAuth(token)
                 .body(namespace));
 
         assertEquals("created", responseCreateNs.header("X-Ns4kafka-Result"));
 
-        var responseGetNs = client.toBlocking()
-            .retrieve(HttpRequest.create(HttpMethod.GET, "/api/namespaces/accepted.namespace")
+        var responseGetNs = ns4KafkaClient
+            .toBlocking()
+            .retrieve(HttpRequest
+                .create(HttpMethod.GET, "/api/namespaces/accepted.namespace")
                 .bearerAuth(token), Namespace.class);
 
         assertEquals(namespace.getSpec(), responseGetNs.getSpec());
@@ -106,10 +113,12 @@ class NamespaceIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,
-                "/api/namespaces/accepted.namespace/role-bindings")
-            .bearerAuth(token)
-            .body(roleBinding));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/accepted.namespace/role-bindings")
+                .bearerAuth(token)
+                .body(roleBinding));
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
@@ -125,8 +134,10 @@ class NamespaceIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/accepted.namespace/acls")
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/accepted.namespace/acls")
                 .bearerAuth(token)
                 .body(accessControlEntry));
 
@@ -144,12 +155,16 @@ class NamespaceIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST,
-                "/api/namespaces/accepted.namespace/topics")
-            .bearerAuth(token).body(topic));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/accepted.namespace/topics")
+                .bearerAuth(token)
+                .body(topic));
 
-        var responseGetTopic = client.toBlocking().retrieve(
-            HttpRequest.create(HttpMethod.GET, "/api/namespaces/accepted.namespace/topics/accepted.namespace.topic")
+        var responseGetTopic = ns4KafkaClient
+            .toBlocking()
+            .retrieve(HttpRequest
+                .create(HttpMethod.GET, "/api/namespaces/accepted.namespace/topics/accepted.namespace.topic")
                 .bearerAuth(token), Topic.class);
 
         assertEquals(topic.getSpec(), responseGetTopic.getSpec());
@@ -187,21 +202,29 @@ class NamespaceIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
-                .bearerAuth(token).body(namespace));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token)
+                .body(namespace));
 
-        var response = client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/namespace/role-bindings")
-                .bearerAuth(token).body(roleBinding));
+        var response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/namespace/role-bindings")
+                .bearerAuth(token)
+                .body(roleBinding));
 
         assertEquals(HttpStatus.OK, response.getStatus());
 
         // Accessing unknown namespace
-        HttpRequest<?> request = HttpRequest.create(HttpMethod.POST, "/api/namespaces/namespaceTypo/role-bindings")
-            .bearerAuth(token).body(roleBinding);
+        HttpRequest<?> request = HttpRequest
+            .create(HttpMethod.POST, "/api/namespaces/namespaceTypo/role-bindings")
+            .bearerAuth(token)
+            .body(roleBinding);
 
-        BlockingHttpClient blockingClient = client.toBlocking();
+        BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
 
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
             () -> blockingClient.exchange(request));
@@ -243,13 +266,19 @@ class NamespaceIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
-                .bearerAuth(token).body(namespace));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token)
+                .body(namespace));
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/namespace2/role-bindings")
-                .bearerAuth(token).body(roleBinding));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/namespace2/role-bindings")
+                .bearerAuth(token)
+                .body(roleBinding));
 
         Namespace otherNamespace = Namespace.builder()
             .metadata(Metadata.builder()
@@ -281,27 +310,36 @@ class NamespaceIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
-                .bearerAuth(token).body(otherNamespace));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token)
+                .body(otherNamespace));
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/namespace3/role-bindings")
-                .bearerAuth(token).body(otherRb));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/namespace3/role-bindings")
+                .bearerAuth(token)
+                .body(otherRb));
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("user", "admin");
 
-        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response =
-            client.toBlocking().exchange(HttpRequest.POST("/login", credentials),
-                TopicIntegrationTest.BearerAccessRefreshToken.class);
+        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
 
         String userToken = response.getBody().get().getAccessToken();
 
         // Accessing forbidden namespace when only having access to namespace3
-        HttpRequest<?> request = HttpRequest.create(HttpMethod.GET, "/api/namespaces/namespace2/topics")
-            .bearerAuth(userToken).body(roleBinding);
+        HttpRequest<?> request = HttpRequest
+            .create(HttpMethod.GET, "/api/namespaces/namespace2/topics")
+            .bearerAuth(userToken)
+            .body(roleBinding);
 
-        BlockingHttpClient blockingClient = client.toBlocking();
+        BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
 
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
             () -> blockingClient.exchange(request));

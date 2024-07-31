@@ -54,6 +54,43 @@ public class NamespaceService {
     ResourceQuotaService resourceQuotaService;
 
     /**
+     * List all namespaces.
+     *
+     * @return The list of namespaces
+     */
+    public List<Namespace> findAll() {
+        return managedClusterProperties
+            .stream()
+            .map(ManagedClusterProperties::getName)
+            .flatMap(s -> namespaceRepository.findAllForCluster(s).stream())
+            .toList();
+    }
+
+    /**
+     * List all namespaces, filtered by name parameter.
+     *
+     * @param name The name filter
+     * @return The list of namespaces
+     */
+    public List<Namespace> findByWildcardName(String name) {
+        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
+        return findAll()
+            .stream()
+            .filter(ns -> RegexUtils.filterByPattern(ns.getMetadata().getName(), nameFilterPatterns))
+            .toList();
+    }
+
+    /**
+     * Find a namespace by name.
+     *
+     * @param namespace The namespace
+     * @return An optional namespace
+     */
+    public Optional<Namespace> findByName(String namespace) {
+        return namespaceRepository.findByName(namespace);
+    }
+
+    /**
      * Validate new namespace creation.
      *
      * @param namespace The namespace to create
@@ -62,7 +99,8 @@ public class NamespaceService {
     public List<String> validateCreation(Namespace namespace) {
         List<String> validationErrors = new ArrayList<>();
 
-        if (managedClusterProperties.stream()
+        if (managedClusterProperties
+            .stream()
             .noneMatch(config -> config.getName().equals(namespace.getMetadata().getCluster()))) {
             validationErrors.add(invalidNamespaceNoCluster(namespace.getMetadata().getCluster()));
         }
@@ -113,16 +151,6 @@ public class NamespaceService {
     }
 
     /**
-     * Find a namespace by name.
-     *
-     * @param namespace The namespace
-     * @return An optional namespace
-     */
-    public Optional<Namespace> findByName(String namespace) {
-        return namespaceRepository.findByName(namespace);
-    }
-
-    /**
      * Create or update a namespace.
      *
      * @param namespace The namespace to create or update
@@ -142,39 +170,12 @@ public class NamespaceService {
     }
 
     /**
-     * List all namespaces.
-     *
-     * @return The list of namespaces
-     */
-    public List<Namespace> listAll() {
-        return managedClusterProperties.stream()
-            .map(ManagedClusterProperties::getName)
-            .flatMap(s -> namespaceRepository.findAllForCluster(s).stream())
-            .toList();
-    }
-
-    /**
-     * List all namespaces, filtered by name parameter.
-     *
-     * @param name The name filter
-     * @return The list of namespaces
-     */
-    public List<Namespace> findByWildcardName(String name) {
-        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
-        return managedClusterProperties.stream()
-            .map(ManagedClusterProperties::getName)
-            .flatMap(s -> namespaceRepository.findAllForCluster(s).stream())
-            .filter(ns -> RegexUtils.filterByPattern(ns.getMetadata().getName(), nameFilterPatterns))
-            .toList();
-    }
-
-    /**
      * List all resources of a namespace.
      *
      * @param namespace The namespace
      * @return The list of resources
      */
-    public List<String> listAllNamespaceResources(Namespace namespace) {
+    public List<String> findAllResourcesByNamespace(Namespace namespace) {
         return Stream.of(
                 topicService.findAllForNamespace(namespace).stream()
                     .map(topic -> TOPIC + "/" + topic.getMetadata().getName()),

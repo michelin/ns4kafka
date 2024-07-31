@@ -32,6 +32,6 @@ public class ResourceQuotaNonNamespacedController extends NonNamespacedResourceC
      */
     @Get
     public List<ResourceQuotaResponse> listAll() {
-        return resourceQuotaService.getUsedQuotaByNamespaces(namespaceService.listAll());
+        return resourceQuotaService.getUsedQuotaByNamespaces(namespaceService.findAll());
     }
 }

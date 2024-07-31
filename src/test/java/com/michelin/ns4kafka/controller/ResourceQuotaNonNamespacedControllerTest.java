@@ -48,7 +48,7 @@ class ResourceQuotaNonNamespacedControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.listAll()).thenReturn(List.of(namespace));
+        when(namespaceService.findAll()).thenReturn(List.of(namespace));
         when(resourceQuotaService.getUsedQuotaByNamespaces(any())).thenReturn(List.of(response));
 
         List<ResourceQuotaResponse> actual = resourceQuotaController.listAll();

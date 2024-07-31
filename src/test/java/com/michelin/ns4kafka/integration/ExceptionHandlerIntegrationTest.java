@@ -48,7 +48,7 @@ import org.junit.jupiter.api.Test;
 class ExceptionHandlerIntegrationTest extends AbstractIntegrationTest {
     @Inject
     @Client("/")
-    HttpClient client;
+    HttpClient ns4KafkaClient;
 
     private String token;
 
@@ -84,16 +84,26 @@ class ExceptionHandlerIntegrationTest extends AbstractIntegrationTest {
             .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<BearerAccessRefreshToken> response =
-            client.toBlocking().exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
+        HttpResponse<BearerAccessRefreshToken> response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .POST("/login", credentials), BearerAccessRefreshToken.class);
 
         token = response.getBody().get().getAccessToken();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token)
+                .body(ns1));
 
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings")
+                .bearerAuth(token)
+                .body(rb1));
 
         AccessControlEntry ns1acl = AccessControlEntry.builder()
             .metadata(Metadata.builder()
@@ -109,12 +119,16 @@ class ExceptionHandlerIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(ns1acl));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                .bearerAuth(token)
+                .body(ns1acl));
     }
 
     @Test
-    void invalidTopicName() {
+    void shouldInvalidateTopicName() {
         Topic topicFirstCreate = Topic.builder()
             .metadata(Metadata.builder()
                 .name("ns1-invalid-é")
@@ -130,9 +144,12 @@ class ExceptionHandlerIntegrationTest extends AbstractIntegrationTest {
             .build();
 
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
-            () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
-                .bearerAuth(token)
-                .body(topicFirstCreate)));
+            () -> ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest
+                    .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                    .bearerAuth(token)
+                    .body(topicFirstCreate)));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
         assertEquals("Constraint validation failed", exception.getMessage());
@@ -144,8 +161,11 @@ class ExceptionHandlerIntegrationTest extends AbstractIntegrationTest {
     @Test
     void shouldThrowUnknownNamespaceForTopic() {
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
-            () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns2/topics")
-                .bearerAuth(token)));
+            () -> ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest
+                    .create(HttpMethod.GET, "/api/namespaces/ns2/topics")
+                    .bearerAuth(token)));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
         assertEquals("Accessing unknown namespace \"ns2\"", exception.getMessage());
@@ -154,7 +174,10 @@ class ExceptionHandlerIntegrationTest extends AbstractIntegrationTest {
     @Test
     void shouldThrowUnauthorizedWhenNotAuthenticatedForTopic() {
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
-            () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/topics")));
+            () -> ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest
+                    .create(HttpMethod.GET, "/api/namespaces/ns1/topics")));
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
         assertEquals("Client '/': Unauthorized", exception.getMessage());
@@ -191,23 +214,34 @@ class ExceptionHandlerIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token)
+                .body(ns));
 
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/userNs/role-bindings").bearerAuth(token).body(rb));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/userNs/role-bindings")
+                .bearerAuth(token)
+                .body(rb));
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("user", "admin");
-        HttpResponse<BearerAccessRefreshToken> response =
-            client.toBlocking().exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
+        HttpResponse<BearerAccessRefreshToken> response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .POST("/login", credentials), BearerAccessRefreshToken.class);
 
         String userToken = response.getBody().get().getAccessToken();
 
         // Trying to access ns1 when having no role binding for it
-        HttpRequest<?> request = HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/acls/ns2-acl")
+        HttpRequest<?> request = HttpRequest
+            .create(HttpMethod.GET, "/api/namespaces/ns1/acls/ns2-acl")
             .bearerAuth(userToken);
 
-        BlockingHttpClient blockingClient = client.toBlocking();
+        BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
 
         HttpClientResponseException exception =
             assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
@@ -235,20 +269,26 @@ class ExceptionHandlerIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        client.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb2));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings")
+                .bearerAuth(token)
+                .body(rb2));
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("user", "admin");
-        HttpResponse<BearerAccessRefreshToken> response =
-            client.toBlocking().exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
+        HttpResponse<BearerAccessRefreshToken> response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
 
         String userToken = response.getBody().get().getAccessToken();
 
         // Trying to access ns1 topics when the only role binding is for acls
-        HttpRequest<?> request = HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/topics")
+        HttpRequest<?> request = HttpRequest
+            .create(HttpMethod.GET, "/api/namespaces/ns1/topics")
             .bearerAuth(userToken);
 
-        BlockingHttpClient blockingClient = client.toBlocking();
+        BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
 
         HttpClientResponseException exception =
             assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
@@ -258,10 +298,12 @@ class ExceptionHandlerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void notFoundTopic() {
+    void shouldNotFoundTopic() {
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
-            () -> client.toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/topics/not-found-topic")
+            () -> ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest
+                    .create(HttpMethod.GET, "/api/namespaces/ns1/topics/not-found-topic")
                     .bearerAuth(token)));
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
@@ -269,10 +311,13 @@ class ExceptionHandlerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void notValidMethodTopic() {
+    void shouldNotValidateUnknownHttpVerbForTopic() {
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
-            () -> client.toBlocking().exchange(HttpRequest.create(HttpMethod.PUT, "/api/namespaces/ns1/topics/")
-                .bearerAuth(token)));
+            () -> ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest
+                    .create(HttpMethod.PUT, "/api/namespaces/ns1/topics/")
+                    .bearerAuth(token)));
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
         assertEquals("Resource forbidden", exception.getMessage());
