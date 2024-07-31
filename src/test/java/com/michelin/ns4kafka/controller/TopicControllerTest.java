@@ -29,6 +29,7 @@ import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -485,7 +486,7 @@ class TopicControllerTest {
                 .name("test.topic")
                 .build())
             .spec(Topic.TopicSpec.builder()
-                .tags(List.of("TAG1"))
+                .tags(new ArrayList<>(List.of("TAG1")))
                 .replicationFactor(3)
                 .partitions(3)
                 .configs(Map.of("cleanup.policy", "delete",
