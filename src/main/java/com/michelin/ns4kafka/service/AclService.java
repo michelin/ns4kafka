@@ -263,6 +263,24 @@ public class AclService {
     }
 
     /**
+     * Find all owner-ACLs on a resource for a given namespace.
+     *
+     * @param namespace The namespace
+     * @param resourceType The resource
+     * @return A list of ACLs
+     */
+    public List<AccessControlEntry> findResourceOwnerGrantedToNamespace(Namespace namespace,
+                                                                        AccessControlEntry.ResourceType resourceType) {
+        return accessControlEntryRepository.findAll()
+            .stream()
+            .filter(accessControlEntry ->
+                accessControlEntry.getSpec().getGrantedTo().equals(namespace.getMetadata().getName())
+                    && accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER
+                    && accessControlEntry.getSpec().getResourceType() == resourceType)
+            .toList();
+    }
+
+    /**
      * Find all public granted ACLs.
      *
      * @return A list of ACLs
@@ -339,5 +357,21 @@ public class AclService {
      */
     public Optional<AccessControlEntry> findByName(String namespace, String name) {
         return accessControlEntryRepository.findByName(namespace, name);
+    }
+
+    /**
+     * Check if there is any ACL concerning the given resource.
+     *
+     * @param acls The OWNER ACL list on resource
+     * @param resourceName The resource name to check ACL against
+     * @return true if there is any OWNER ACL concerning the given resource, false otherwise
+     */
+    public boolean isAnyAclOfResource(List<AccessControlEntry> acls, String resourceName) {
+        return acls
+            .stream()
+            .anyMatch(acl -> switch (acl.getSpec().getResourcePatternType()) {
+                case PREFIXED -> resourceName.startsWith(acl.getSpec().getResource());
+                case LITERAL -> resourceName.equals(acl.getSpec().getResource());
+            });
     }
 }

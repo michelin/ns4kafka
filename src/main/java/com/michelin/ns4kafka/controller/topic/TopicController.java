@@ -49,14 +49,15 @@ public class TopicController extends NamespacedResourceController {
     ResourceQuotaService resourceQuotaService;
 
     /**
-     * List topics by namespace.
+     * List topics by namespace, filtered by name parameter.
      *
      * @param namespace The namespace
+     * @param name The name parameter
      * @return A list of topics
      */
     @Get
-    public List<Topic> list(String namespace) {
-        return topicService.findAllForNamespace(getNamespace(namespace));
+    public List<Topic> list(String namespace, @QueryValue(defaultValue = "*") String name) {
+        return topicService.findByWildcardName(getNamespace(namespace), name);
     }
 
     /**
@@ -65,9 +66,11 @@ public class TopicController extends NamespacedResourceController {
      * @param namespace The name
      * @param topic     The topic name
      * @return The topic
+     * @deprecated use list(String, String name) instead.
      */
     @Get("/{topic}")
-    public Optional<Topic> getTopic(String namespace, String topic) {
+    @Deprecated(since = "1.12.0")
+    public Optional<Topic> get(String namespace, String topic) {
         return topicService.findByName(getNamespace(namespace), topic);
     }
 
@@ -156,8 +159,8 @@ public class TopicController extends NamespacedResourceController {
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{topic}{?dryrun}")
-    public HttpResponse<Void> deleteTopic(String namespace, String topic,
-                                          @QueryValue(defaultValue = "false") boolean dryrun)
+    public HttpResponse<Void> delete(String namespace, String topic,
+                                     @QueryValue(defaultValue = "false") boolean dryrun)
         throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic)) {

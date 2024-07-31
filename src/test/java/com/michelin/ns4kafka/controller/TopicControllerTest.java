@@ -29,6 +29,7 @@ import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -65,7 +66,7 @@ class TopicControllerTest {
     TopicController topicController;
 
     @Test
-    void listEmptyTopics() {
+    void shouldListTopicsWhenEmpty() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -75,15 +76,14 @@ class TopicControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(topicService.findAllForNamespace(ns))
+        when(topicService.findByWildcardName(ns, "*"))
             .thenReturn(List.of());
 
-        List<Topic> actual = topicController.list("test");
-        assertEquals(0, actual.size());
+        assertEquals(List.of(), topicController.list("test", "*"));
     }
 
     @Test
-    void listMultipleTopics() {
+    void shouldListTopicsWithWildcardParameter() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -91,23 +91,52 @@ class TopicControllerTest {
                 .build())
             .build();
 
+        Topic topic1 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("topic1")
+                .build())
+            .build();
+
+        Topic topic2 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("topic2")
+                .build())
+            .build();
+
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(topicService.findAllForNamespace(ns))
-            .thenReturn(List.of(
-                Topic.builder().metadata(Metadata.builder().name("topic1").build()).build(),
-                Topic.builder().metadata(Metadata.builder().name("topic2").build()).build()
-            ));
+        when(topicService.findByWildcardName(ns, "*"))
+            .thenReturn(List.of(topic1, topic2));
 
-        List<Topic> actual = topicController.list("test");
-
-        assertEquals(2, actual.size());
-        assertEquals("topic1", actual.get(0).getMetadata().getName());
-        assertEquals("topic2", actual.get(1).getMetadata().getName());
+        assertEquals(List.of(topic1, topic2), topicController.list("test", "*"));
     }
 
     @Test
-    void getEmptyTopic() {
+    void shouldListTopicWithNoWildcardParameter() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
+
+        Topic topic1 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("topic1")
+                .build())
+            .build();
+
+        when(namespaceService.findByName("test"))
+            .thenReturn(Optional.of(ns));
+        when(topicService.findByWildcardName(ns, "topic1"))
+            .thenReturn(List.of(topic1));
+
+        assertEquals(List.of(topic1), topicController.list("test", "topic1"));
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void shouldGetTopicWhenEmpty() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -120,13 +149,14 @@ class TopicControllerTest {
         when(topicService.findByName(ns, "topic.notfound"))
             .thenReturn(Optional.empty());
 
-        Optional<Topic> actual = topicController.getTopic("test", "topic.notfound");
+        Optional<Topic> actual = topicController.get("test", "topic.notfound");
 
         assertTrue(actual.isEmpty());
     }
 
     @Test
-    void getTopic() {
+    @SuppressWarnings("deprecation")
+    void shouldGetTopic() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -141,14 +171,14 @@ class TopicControllerTest {
                 Topic.builder().metadata(Metadata.builder().name("topic.found").build()).build()
             ));
 
-        Optional<Topic> actual = topicController.getTopic("test", "topic.found");
+        Optional<Topic> actual = topicController.get("test", "topic.found");
 
         assertTrue(actual.isPresent());
         assertEquals("topic.found", actual.get().getMetadata().getName());
     }
 
     @Test
-    void deleteTopic() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldDeleteTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -169,13 +199,13 @@ class TopicControllerTest {
         doNothing().when(topicService).delete(toDelete.get());
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        HttpResponse<Void> actual = topicController.deleteTopic("test", "topic.delete", false);
+        HttpResponse<Void> actual = topicController.delete("test", "topic.delete", false);
 
         assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
     }
 
     @Test
-    void deleteTopicDryRun() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldDeleteTopicInDryRunMode() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -185,20 +215,26 @@ class TopicControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
+
         Optional<Topic> toDelete = Optional.of(
-            Topic.builder().metadata(Metadata.builder().name("topic.delete").build()).build());
+            Topic.builder()
+                .metadata(Metadata.builder()
+                    .name("topic.delete")
+                    .build())
+                .build());
+
         when(topicService.findByName(ns, "topic.delete"))
             .thenReturn(toDelete);
         when(topicService.isNamespaceOwnerOfTopic("test", "topic.delete"))
             .thenReturn(true);
 
-        topicController.deleteTopic("test", "topic.delete", true);
+        topicController.delete("test", "topic.delete", true);
 
         verify(topicService, never()).delete(any());
     }
 
     @Test
-    void deleteTopicUnauthorized() {
+    void shouldNotDeleteTopicWhenUnauthorized() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -212,11 +248,11 @@ class TopicControllerTest {
             .thenReturn(false);
 
         assertThrows(ResourceValidationException.class,
-            () -> topicController.deleteTopic("test", "topic.delete", false));
+            () -> topicController.delete("test", "topic.delete", false));
     }
 
     @Test
-    void createNewTopic() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldCreateTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -242,11 +278,16 @@ class TopicControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
-        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
-        when(resourceQuotaService.validateTopicQuota(ns, Optional.empty(), topic)).thenReturn(List.of());
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        when(topicService.isNamespaceOwnerOfTopic(any(), any()))
+            .thenReturn(true);
+        when(topicService.findByName(ns, "test.topic"))
+            .thenReturn(Optional.empty());
+        when(resourceQuotaService.validateTopicQuota(ns, Optional.empty(), topic))
+            .thenReturn(List.of());
+        when(securityService.username())
+            .thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN))
+            .thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         when(topicService.create(topic)).thenReturn(topic);
@@ -258,7 +299,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void shouldCreateNewTopicWithNoConstraint() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldCreateTopicWithNoConstraint() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -285,11 +326,16 @@ class TopicControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
-        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
-        when(resourceQuotaService.validateTopicQuota(ns, Optional.empty(), topic)).thenReturn(List.of());
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        when(topicService.isNamespaceOwnerOfTopic(any(), any()))
+            .thenReturn(true);
+        when(topicService.findByName(ns, "test.topic"))
+            .thenReturn(Optional.empty());
+        when(resourceQuotaService.validateTopicQuota(ns, Optional.empty(), topic))
+            .thenReturn(List.of());
+        when(securityService.username())
+            .thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN))
+            .thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         when(topicService.create(topic)).thenReturn(topic);
@@ -301,7 +347,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void updateTopic() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldUpdateTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -340,10 +386,14 @@ class TopicControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
-        when(topicService.create(topic)).thenReturn(topic);
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        when(topicService.findByName(ns, "test.topic"))
+            .thenReturn(Optional.of(existing));
+        when(topicService.create(topic))
+            .thenReturn(topic);
+        when(securityService.username())
+            .thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN))
+            .thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         var response = topicController.apply("test", topic, false);
@@ -394,8 +444,10 @@ class TopicControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
-        when(topicService.validateTags(ns, topic)).thenReturn(List.of("Error on tags"));
+        when(topicService.findByName(ns, "test.topic"))
+            .thenReturn(Optional.of(existing));
+        when(topicService.validateTags(ns, topic))
+            .thenReturn(List.of("Error on tags"));
 
         ResourceValidationException actual =
             assertThrows(ResourceValidationException.class, () -> topicController.apply("test", topic, false));
@@ -434,7 +486,7 @@ class TopicControllerTest {
                 .name("test.topic")
                 .build())
             .spec(Topic.TopicSpec.builder()
-                .tags(Arrays.asList("TAG1"))
+                .tags(new ArrayList<>(List.of("TAG1")))
                 .replicationFactor(3)
                 .partitions(3)
                 .configs(Map.of("cleanup.policy", "delete",
@@ -445,10 +497,14 @@ class TopicControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
-        when(topicService.create(topic)).thenReturn(topic);
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        when(topicService.findByName(ns, "test.topic"))
+            .thenReturn(Optional.of(existing));
+        when(topicService.create(topic))
+            .thenReturn(topic);
+        when(securityService.username())
+            .thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN))
+            .thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         var response = topicController.apply("test", topic, false);
@@ -456,14 +512,11 @@ class TopicControllerTest {
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertEquals("test.topic", actual.getMetadata().getName());
         assertEquals(1, actual.getSpec().getTags().size());
-        assertEquals("TAG1", actual.getSpec().getTags().get(0));
+        assertEquals("TAG1", actual.getSpec().getTags().getFirst());
     }
 
-    /**
-     * Validate topic update when there are validations errors.
-     */
     @Test
-    void updateTopicValidationErrors() {
+    void shouldNotUpdateTopicWhenValidationErrors() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -514,7 +567,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void updateTopicAlreadyExistsUnchanged() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldNotUpdateTopicWhenUnchanged() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -555,7 +608,8 @@ class TopicControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
+        when(topicService.findByName(ns, "test.topic"))
+            .thenReturn(Optional.of(existing));
 
         var response = topicController.apply("test", topic, false);
         Topic actual = response.body();
@@ -565,7 +619,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void createNewTopicDryRun() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldCreateTopicInDryRunMode() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -591,9 +645,12 @@ class TopicControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
-        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
-        when(resourceQuotaService.validateTopicQuota(ns, Optional.empty(), topic)).thenReturn(List.of());
+        when(topicService.isNamespaceOwnerOfTopic(any(), any()))
+            .thenReturn(true);
+        when(topicService.findByName(ns, "test.topic"))
+            .thenReturn(Optional.empty());
+        when(resourceQuotaService.validateTopicQuota(ns, Optional.empty(), topic))
+            .thenReturn(List.of());
 
         var response = topicController.apply("test", topic, true);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
@@ -601,7 +658,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void createNewTopicFailValidation() {
+    void shouldNotCreateTopicWhenValidationErrors() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -625,8 +682,10 @@ class TopicControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
-        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
+        when(topicService.isNamespaceOwnerOfTopic(any(), any()))
+            .thenReturn(true);
+        when(topicService.findByName(ns, "test.topic"))
+            .thenReturn(Optional.empty());
 
         ResourceValidationException actual = assertThrows(ResourceValidationException.class,
             () -> topicController.apply("test", topic, false));
@@ -635,7 +694,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void shouldNotFailWhenCreatingNewTopicWithNoValidator()
+    void shouldNotFailWhenCreatingTopicWithNoValidator()
         throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -648,7 +707,9 @@ class TopicControllerTest {
             .build();
 
         Topic topic = Topic.builder()
-            .metadata(Metadata.builder().name("test.topic").build())
+            .metadata(Metadata.builder()
+                .name("test.topic")
+                .build())
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(1)
                 .partitions(3)
@@ -660,8 +721,10 @@ class TopicControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
-        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
+        when(topicService.isNamespaceOwnerOfTopic(any(), any()))
+            .thenReturn(true);
+        when(topicService.findByName(ns, "test.topic"))
+            .thenReturn(Optional.empty());
 
         var response = topicController.apply("test", topic, true);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
@@ -669,7 +732,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void shouldNotFailWhenCreatingNewTopicWithNoValidationConstraint()
+    void shouldNotFailWhenCreatingTopicWithNoValidationConstraint()
         throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -683,7 +746,9 @@ class TopicControllerTest {
             .build();
 
         Topic topic = Topic.builder()
-            .metadata(Metadata.builder().name("test.topic").build())
+            .metadata(Metadata.builder()
+                .name("test.topic")
+                .build())
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(1)
                 .partitions(3)
@@ -695,8 +760,10 @@ class TopicControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
-        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
+        when(topicService.isNamespaceOwnerOfTopic(any(), any()))
+            .thenReturn(true);
+        when(topicService.findByName(ns, "test.topic"))
+            .thenReturn(Optional.empty());
 
         var response = topicController.apply("test", topic, true);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
@@ -704,7 +771,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void createNewTopicFailQuotaValidation() {
+    void shouldNotCreateTopicWhenQuotaValidationErrors() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -714,6 +781,7 @@ class TopicControllerTest {
                 .topicValidator(TopicValidator.makeDefault())
                 .build())
             .build();
+
         Topic topic = Topic.builder()
             .metadata(Metadata.builder()
                 .name("test.topic")
@@ -729,9 +797,12 @@ class TopicControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
-        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
-        when(resourceQuotaService.validateTopicQuota(ns, Optional.empty(), topic)).thenReturn(List.of("Quota error"));
+        when(topicService.isNamespaceOwnerOfTopic(any(), any()))
+            .thenReturn(true);
+        when(topicService.findByName(ns, "test.topic"))
+            .thenReturn(Optional.empty());
+        when(resourceQuotaService.validateTopicQuota(ns, Optional.empty(), topic))
+            .thenReturn(List.of("Quota error"));
 
         ResourceValidationException actual = assertThrows(ResourceValidationException.class,
             () -> topicController.apply("test", topic, false));
@@ -740,7 +811,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void importTopic() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldImportTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -808,7 +879,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void importTopicDryRun() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldImportTopicInDryRunMode() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -873,7 +944,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void deleteRecordsSuccess() throws ExecutionException, InterruptedException {
+    void shouldDeleteRecords() throws ExecutionException, InterruptedException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -881,7 +952,11 @@ class TopicControllerTest {
                 .build())
             .build();
 
-        Topic toEmpty = Topic.builder().metadata(Metadata.builder().name("topic.empty").build()).build();
+        Topic toEmpty = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("topic.empty")
+                .build())
+            .build();
 
         Map<TopicPartition, Long> partitionsToDelete = Map.of(
             new TopicPartition("topic.empty", 0), 100L,
@@ -928,7 +1003,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void deleteRecordsCompactedTopic() {
+    void shouldDeleteRecordsInCompactedTopic() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -956,7 +1031,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void deleteRecordsDryRun() throws InterruptedException, ExecutionException {
+    void shouldDeleteRecordsInDryRunMode() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -1011,7 +1086,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void deleteRecordsNotOwner() {
+    void shouldNotDeleteRecordsWhenNotOwner() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -1034,7 +1109,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void deleteRecordsNotExistingTopic() {
+    void shouldNotDeleteRecordsWhenTopicNotExist() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -1058,7 +1133,9 @@ class TopicControllerTest {
     }
 
     @Test
-    void createCollidingTopic() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldNotCreateTopicWhenNameCollidesOnSpecialChar() throws InterruptedException,
+                                                                    ExecutionException,
+                                                                    TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -1068,6 +1145,7 @@ class TopicControllerTest {
                 .topicValidator(TopicValidator.makeDefault())
                 .build())
             .build();
+
         Topic topic = Topic.builder()
             .metadata(Metadata.builder()
                 .name("test.topic")
@@ -1083,9 +1161,12 @@ class TopicControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
-        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
-        when(topicService.findCollidingTopics(ns, topic)).thenReturn(List.of("test_topic"));
+        when(topicService.isNamespaceOwnerOfTopic(any(), any()))
+            .thenReturn(true);
+        when(topicService.findByName(ns, "test.topic"))
+            .thenReturn(Optional.empty());
+        when(topicService.findCollidingTopics(ns, topic))
+            .thenReturn(List.of("test_topic"));
 
         ResourceValidationException actual =
             assertThrows(ResourceValidationException.class, () -> topicController.apply("test", topic, false));
