@@ -159,7 +159,7 @@ public class NamespaceService {
      * @param name The name filter
      * @return The list of namespaces
      */
-    public List<Namespace> listAll(String name) {
+    public List<Namespace> findByWildcardName(String name) {
         List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
         return managedClusterProperties.stream()
             .map(ManagedClusterProperties::getName)

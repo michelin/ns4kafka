@@ -45,7 +45,7 @@ public class NamespaceController extends NonNamespacedResourceController {
      */
     @Get
     public List<Namespace> list(@QueryValue(defaultValue = "*") String name) {
-        return namespaceService.listAll(name);
+        return namespaceService.findByWildcardName(name);
     }
 
     /**
@@ -53,8 +53,10 @@ public class NamespaceController extends NonNamespacedResourceController {
      *
      * @param namespace The namespace
      * @return A namespace
+     * @deprecated use list(String, String name) instead.
      */
     @Get("/{namespace}")
+    @Deprecated(since = "1.12.0")
     public Optional<Namespace> get(String namespace) {
         return namespaceService.findByName(namespace);
     }

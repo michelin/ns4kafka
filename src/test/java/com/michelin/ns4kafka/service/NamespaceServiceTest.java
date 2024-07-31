@@ -363,7 +363,7 @@ class NamespaceServiceTest {
         when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local")));
         when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of(ns1, ns2));
 
-        assertEquals(List.of(ns1), namespaceService.listAll("ns1"));
+        assertEquals(List.of(ns1), namespaceService.findByWildcardName("ns1"));
     }
 
     @Test
@@ -374,7 +374,7 @@ class NamespaceServiceTest {
         when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local")));
         when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of(ns1, ns2));
 
-        assertTrue(namespaceService.listAll("ns4").isEmpty());
+        assertTrue(namespaceService.findByWildcardName("ns4").isEmpty());
     }
 
     @Test
@@ -388,7 +388,7 @@ class NamespaceServiceTest {
         when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local")));
         when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of(ns1, ns2, ns3, ns4, ns5));
 
-        assertEquals(List.of(ns1, ns2, ns3, ns4, ns5), namespaceService.listAll("*"));
+        assertEquals(List.of(ns1, ns2, ns3, ns4, ns5), namespaceService.findByWildcardName("*"));
     }
 
     @Test
@@ -402,7 +402,7 @@ class NamespaceServiceTest {
         when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local")));
         when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of(ns1, ns2, ns3, ns4, ns5));
 
-        assertEquals(List.of(ns1, ns2, ns4), namespaceService.listAll("ns?"));
+        assertEquals(List.of(ns1, ns2, ns4), namespaceService.findByWildcardName("ns?"));
     }
 
     @Test
@@ -416,7 +416,7 @@ class NamespaceServiceTest {
         when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local")));
         when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of(ns1, ns2, ns3, ns4, ns5));
 
-        assertEquals(List.of(ns2, ns5), namespaceService.listAll("*2"));
+        assertEquals(List.of(ns2, ns5), namespaceService.findByWildcardName("*2"));
     }
 
     @Test

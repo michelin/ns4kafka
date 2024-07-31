@@ -46,20 +46,20 @@ class NamespaceControllerTest {
     void listNamespaceWithoutParameter() {
         Namespace ns1 = Namespace.builder().metadata(Metadata.builder().name("ns1").build()).build();
         Namespace ns2 = Namespace.builder().metadata(Metadata.builder().name("ns2").build()).build();
-        when(namespaceService.listAll("*")).thenReturn(List.of(ns1, ns2));
+        when(namespaceService.findByWildcardName("*")).thenReturn(List.of(ns1, ns2));
         assertEquals(List.of(ns1, ns2), namespaceController.list("*"));
     }
 
     @Test
     void listNamespaceWithNameParameter() {
         Namespace ns = Namespace.builder().metadata(Metadata.builder().name("ns").build()).build();
-        when(namespaceService.listAll("ns")).thenReturn(List.of(ns));
+        when(namespaceService.findByWildcardName("ns")).thenReturn(List.of(ns));
         assertEquals(List.of(ns), namespaceController.list("ns"));
     }
 
     @Test
     void listNoNamespace() {
-        when(namespaceService.listAll("*")).thenReturn(List.of());
+        when(namespaceService.findByWildcardName("*")).thenReturn(List.of());
         assertEquals(List.of(), namespaceController.list("*"));
     }
 
