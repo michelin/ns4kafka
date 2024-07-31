@@ -55,7 +55,7 @@ public class RoleBindingController extends NamespacedResourceController {
      * @deprecated use list(String, String name) instead.
      */
     @Get("/{name}")
-    @Deprecated(since = "1.11.13")
+    @Deprecated(since = "1.12.0")
     public Optional<RoleBinding> get(String namespace, String name) {
         return roleBindingService.findByName(namespace, name);
     }
