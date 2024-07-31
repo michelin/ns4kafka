@@ -41,7 +41,7 @@ class AuthenticationServiceTest {
 
     @Test
     void shouldThrowErrorWhenNoRoleBindingAndNotAdmin() {
-        when(roleBindingService.listByGroups(any()))
+        when(roleBindingService.findAllByGroups(any()))
             .thenReturn(Collections.emptyList());
 
         when(securityProperties.getAdminGroup())
@@ -57,7 +57,7 @@ class AuthenticationServiceTest {
 
     @Test
     void shouldReturnAuthenticationSuccessWhenAdminNoGroup() {
-        when(roleBindingService.listByGroups(any()))
+        when(roleBindingService.findAllByGroups(any()))
             .thenReturn(Collections.emptyList());
 
         when(securityProperties.getAdminGroup())
@@ -96,7 +96,7 @@ class AuthenticationServiceTest {
                 .build())
             .build();
 
-        when(roleBindingService.listByGroups(any()))
+        when(roleBindingService.findAllByGroups(any()))
             .thenReturn(List.of(roleBinding));
 
         when(resourceBasedSecurityRule.computeRolesFromGroups(any()))
@@ -144,7 +144,7 @@ class AuthenticationServiceTest {
                 .build())
             .build();
 
-        when(roleBindingService.listByGroups(any()))
+        when(roleBindingService.findAllByGroups(any()))
             .thenReturn(List.of(roleBinding));
 
         when(resourceBasedSecurityRule.computeRolesFromGroups(any()))

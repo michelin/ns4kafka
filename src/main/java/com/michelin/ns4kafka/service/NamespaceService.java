@@ -170,7 +170,7 @@ public class NamespaceService {
                     .map(ace -> ACCESS_CONTROL_ENTRY + "/" + ace.getMetadata().getName()),
                 resourceQuotaService.findByNamespace(namespace.getMetadata().getName()).stream()
                     .map(resourceQuota -> RESOURCE_QUOTA + "/" + resourceQuota.getMetadata().getName()),
-                roleBindingService.list(namespace.getMetadata().getName()).stream()
+                roleBindingService.findAllForNamespace(namespace.getMetadata().getName()).stream()
                     .map(roleBinding -> ROLE_BINDING + "/" + roleBinding.getMetadata().getName())
             )
             .reduce(Stream::concat)
