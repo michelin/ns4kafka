@@ -115,13 +115,13 @@ class StreamServiceTest {
 
         when(streamRepository.findAllForCluster("local")).thenReturn(List.of(stream1, stream2, stream3));
 
-        List<KafkaStream> list1 = streamService.findAllForNamespace(ns, "test_stream3");
+        List<KafkaStream> list1 = streamService.findByWildcardName(ns, "test_stream3");
         assertEquals(List.of(stream3), list1);
 
-        List<KafkaStream> list2 = streamService.findAllForNamespace(ns, "test_stream5");
+        List<KafkaStream> list2 = streamService.findByWildcardName(ns, "test_stream5");
         assertTrue(list2.isEmpty());
 
-        List<KafkaStream> list3 = streamService.findAllForNamespace(ns, "");
+        List<KafkaStream> list3 = streamService.findByWildcardName(ns, "");
         assertEquals(List.of(stream1, stream2, stream3), list3);
     }
 
@@ -179,15 +179,15 @@ class StreamServiceTest {
         when(streamRepository.findAllForCluster("local"))
             .thenReturn(List.of(stream1, stream2, stream3, stream4, stream5, stream6));
 
-        assertEquals(List.of(stream1, stream2, stream3), streamService.findAllForNamespace(ns, "test_*"));
-        assertEquals(List.of(stream1, stream2, stream3), streamService.findAllForNamespace(ns, "test_stream?"));
-        assertEquals(List.of(stream1, stream2, stream3, stream5), streamService.findAllForNamespace(ns, "*_*"));
-        assertEquals(List.of(stream1, stream4), streamService.findAllForNamespace(ns, "test?stream1"));
-        assertEquals(List.of(stream2, stream5), streamService.findAllForNamespace(ns, "*stream2*"));
-        assertTrue(streamService.findAllForNamespace(ns, "*stream5").isEmpty());
-        assertTrue(streamService.findAllForNamespace(ns, "test??stream1").isEmpty());
-        assertTrue(streamService.findAllForNamespace(ns, ".*").isEmpty());
-        assertEquals(List.of(stream1, stream2, stream3, stream4, stream5), streamService.findAllForNamespace(ns, "*"));
+        assertEquals(List.of(stream1, stream2, stream3), streamService.findByWildcardName(ns, "test_*"));
+        assertEquals(List.of(stream1, stream2, stream3), streamService.findByWildcardName(ns, "test_stream?"));
+        assertEquals(List.of(stream1, stream2, stream3, stream5), streamService.findByWildcardName(ns, "*_*"));
+        assertEquals(List.of(stream1, stream4), streamService.findByWildcardName(ns, "test?stream1"));
+        assertEquals(List.of(stream2, stream5), streamService.findByWildcardName(ns, "*stream2*"));
+        assertTrue(streamService.findByWildcardName(ns, "*stream5").isEmpty());
+        assertTrue(streamService.findByWildcardName(ns, "test??stream1").isEmpty());
+        assertTrue(streamService.findByWildcardName(ns, ".*").isEmpty());
+        assertEquals(List.of(stream1, stream2, stream3, stream4, stream5), streamService.findByWildcardName(ns, "*"));
     }
 
     @Test

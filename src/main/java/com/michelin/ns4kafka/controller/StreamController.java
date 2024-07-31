@@ -44,7 +44,7 @@ public class StreamController extends NamespacedResourceController {
      */
     @Get
     List<KafkaStream> list(String namespace, @QueryValue(defaultValue = "*") String name) {
-        return streamService.findAllForNamespace(getNamespace(namespace), name);
+        return streamService.findByWildcardName(getNamespace(namespace), name);
     }
 
     /**
@@ -53,8 +53,10 @@ public class StreamController extends NamespacedResourceController {
      * @param namespace The name
      * @param stream    The Kafka Streams name
      * @return The Kafka Streams
+     * @deprecated use list(String, String name) instead.
      */
     @Get("/{stream}")
+    @Deprecated(since = "1.11.13")
     Optional<KafkaStream> get(String namespace, String stream) {
         return streamService.findByName(getNamespace(namespace), stream);
     }

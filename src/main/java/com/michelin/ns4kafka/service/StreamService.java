@@ -47,11 +47,11 @@ public class StreamService {
      * @param name The name filter
      * @return A list of Kafka Streams
      */
-    public List<KafkaStream> findAllForNamespace(Namespace namespace, String name) {
+    public List<KafkaStream> findByWildcardName(Namespace namespace, String name) {
         List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
-        return streamRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
-            .filter(stream -> stream.getMetadata().getNamespace().equals(namespace.getMetadata().getName())
-                && RegexUtils.filterByPattern(stream.getMetadata().getName(), nameFilterPatterns))
+        return findAllForNamespace(namespace)
+            .stream()
+            .filter(stream -> RegexUtils.filterByPattern(stream.getMetadata().getName(), nameFilterPatterns))
             .toList();
     }
 

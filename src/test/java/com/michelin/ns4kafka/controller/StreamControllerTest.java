@@ -55,7 +55,7 @@ class StreamControllerTest {
             .build();
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(streamService.findAllForNamespace(ns, "*"))
+        when(streamService.findByWildcardName(ns, "*"))
             .thenReturn(List.of());
 
         List<KafkaStream> actual = streamController.list("test", "*");
@@ -85,7 +85,7 @@ class StreamControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(streamService.findAllForNamespace(ns, "*"))
+        when(streamService.findByWildcardName(ns, "*"))
             .thenReturn(List.of(stream1, stream2));
 
         List<KafkaStream> actual = streamController.list("test", "*");
@@ -107,7 +107,7 @@ class StreamControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(streamService.findAllForNamespace(ns, "prefix.s1"))
+        when(streamService.findByWildcardName(ns, "prefix.s1"))
             .thenReturn(List.of(stream1));
 
         List<KafkaStream> actual = streamController.list("test", "prefix.s1");
@@ -130,7 +130,7 @@ class StreamControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(streamService.findAllForNamespace(ns, ""))
+        when(streamService.findByWildcardName(ns, ""))
             .thenReturn(List.of(stream1, stream2));
 
         List<KafkaStream> actual = streamController.list("test", "");
@@ -141,6 +141,7 @@ class StreamControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void getEmpty() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -160,6 +161,7 @@ class StreamControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void getStreamFound() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
