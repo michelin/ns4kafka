@@ -5,6 +5,7 @@ import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.repository.StreamRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
+import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import jakarta.inject.Inject;
@@ -28,7 +29,7 @@ public class StreamService {
     ApplicationContext applicationContext;
 
     /**
-     * Find all Kafka Streams by given namespace.
+     * Find all Kafka Streams of a given namespace.
      *
      * @param namespace The namespace
      * @return A list of Kafka Streams
@@ -36,6 +37,21 @@ public class StreamService {
     public List<KafkaStream> findAllForNamespace(Namespace namespace) {
         return streamRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
             .filter(stream -> stream.getMetadata().getNamespace().equals(namespace.getMetadata().getName()))
+            .toList();
+    }
+
+    /**
+     * Find all Kafka Streams of a given namespace, filtered by name parameter.
+     *
+     * @param namespace The namespace
+     * @param name The name filter
+     * @return A list of Kafka Streams
+     */
+    public List<KafkaStream> findByWildcardName(Namespace namespace, String name) {
+        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
+        return findAllForNamespace(namespace)
+            .stream()
+            .filter(stream -> RegexUtils.filterByPattern(stream.getMetadata().getName(), nameFilterPatterns))
             .toList();
     }
 
