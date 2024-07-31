@@ -70,27 +70,13 @@ public class SchemaService {
      * Get all the schemas of a given namespace, filtered by name parameter.
      *
      * @param namespace The namespace
-     * @param name The name filter
+     * @param name      The name filter
      * @return A list of schemas
      */
     public Flux<SchemaList> findByWildcardName(Namespace namespace, String name) {
-        List<AccessControlEntry> acls = aclService
-            .findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
         List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
-        return schemaRegistryClient
-            .getSubjects(namespace.getMetadata().getCluster())
-            .filter(subject -> {
-                String underlyingTopicName = subject.replaceAll("-(key|value)$", "");
-                return aclService.isAnyAclOfResource(acls, underlyingTopicName)
-                    && RegexUtils.filterByPattern(subject, nameFilterPatterns);
-            })
-            .map(subject -> SchemaList.builder()
-                .metadata(Metadata.builder()
-                    .cluster(namespace.getMetadata().getCluster())
-                    .namespace(namespace.getMetadata().getName())
-                    .name(subject)
-                    .build())
-                .build());
+        return findAllForNamespace(namespace)
+            .filter(schemaList -> RegexUtils.filterByPattern(schemaList.getMetadata().getName(), nameFilterPatterns));
     }
 
     /**
@@ -244,7 +230,7 @@ public class SchemaService {
      * @param subject   The current subject to delete
      * @return The list of deleted versions
      */
-    public Mono<Integer[]> deleteSubject(Namespace namespace, String subject) {
+    public Mono<Integer[]> delete(Namespace namespace, String subject) {
         return schemaRegistryClient
             .deleteSubject(namespace.getMetadata().getCluster(), subject, false)
             .flatMap(ids -> schemaRegistryClient

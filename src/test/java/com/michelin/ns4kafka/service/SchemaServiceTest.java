@@ -42,7 +42,7 @@ class SchemaServiceTest {
     SchemaRegistryClient schemaRegistryClient;
 
     @Test
-    void listSchemaWithoutParameter() {
+    void shouldListSchemasWithoutParameter() {
         Namespace namespace = buildNamespace();
         List<String> subjectsResponse =
             Arrays.asList("prefix.schema-one", "prefix2.schema-two", "prefix2.schema-three");
@@ -83,9 +83,8 @@ class SchemaServiceTest {
             .verifyComplete();
     }
 
-
     @Test
-    void listSchemaEmptyResponse() {
+    void shouldListSchemasWhenEmpty() {
         Namespace namespace = buildNamespace();
 
         when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster())).thenReturn(Flux.empty());
@@ -95,7 +94,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void listSchemaWithNameParameter() {
+    void shouldListSchemaWithNameParameter() {
         Namespace namespace = buildNamespace();
         List<String> subjectsResponse = List.of("prefix.schema-one", "prefix2.schema-two", "prefix2.schema-three");
 
@@ -140,7 +139,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void listSchemaWithWildcardNameParameter() {
+    void shouldListSchemaWithWildcardNameParameter() {
         Namespace namespace = buildNamespace();
         List<String> subjectsResponse = List.of("prefix1.schema1-value", "prefix1.schema1-key", "prefix1.schema-one",
             "prefix2.schema2-value", "prefix4.schema1-value", "prefix4.schema2-key");
@@ -212,7 +211,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void getBySubjectAndVersion() {
+    void shouldGetBySubjectAndVersion() {
         Namespace namespace = buildNamespace();
         SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
 
@@ -231,7 +230,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void getAllSubjectVersions() {
+    void shouldGetAllSubjectVersions() {
         Namespace namespace = buildNamespace();
         SchemaResponse schemaResponse = buildSchemaResponse("prefix.schema-one");
 
@@ -249,7 +248,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void getBySubjectAndVersionEmptyResponse() {
+    void shouldGetBySubjectAndVersionWhenEmpty() {
         Namespace namespace = buildNamespace();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "prefix.schema-one", "latest"))
@@ -260,7 +259,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void register() {
+    void shouldRegisterSchema() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
 
@@ -273,7 +272,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void deleteSubject() {
+    void shouldDeleteSchema() {
         Namespace namespace = buildNamespace();
 
         when(schemaRegistryClient.deleteSubject(namespace.getMetadata().getCluster(),
@@ -282,7 +281,7 @@ class SchemaServiceTest {
         when(schemaRegistryClient.deleteSubject(namespace.getMetadata().getCluster(),
             "prefix.schema-one", true)).thenReturn(Mono.just(new Integer[] {1}));
 
-        StepVerifier.create(schemaService.deleteSubject(namespace, "prefix.schema-one"))
+        StepVerifier.create(schemaService.delete(namespace, "prefix.schema-one"))
             .consumeNextWith(ids -> {
                 assertEquals(1, ids.length);
                 assertEquals(1, ids[0]);
@@ -297,7 +296,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void validateSchemaCompatibility() {
+    void shouldValidateSchemaCompatibility() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
         SchemaCompatibilityCheckResponse schemaCompatibilityCheckResponse = SchemaCompatibilityCheckResponse.builder()
@@ -313,7 +312,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void invalidateSchemaCompatibility() {
+    void shouldNotValidateSchemaCompatibility() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
         SchemaCompatibilityCheckResponse schemaCompatibilityCheckResponse = SchemaCompatibilityCheckResponse.builder()
@@ -333,7 +332,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void validateSchemaCompatibility404NotFound() {
+    void shouldValidateSchemaCompatibilityWhen404NotFound() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
 
@@ -346,7 +345,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void updateSubjectCompatibilityResetToDefault() {
+    void shouldUpdateSchemaCompatibilityWhenResettingToDefault() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
 
@@ -364,7 +363,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void updateSubjectCompatibility() {
+    void shouldUpdateSubjectCompatibility() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
 
@@ -382,7 +381,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void isNamespaceOwnerOfSubjectTest() {
+    void shouldNamespaceBeOwnerOfSchema() {
         Namespace ns = buildNamespace();
         when(aclService.isNamespaceOwnerOfResource("myNamespace", AccessControlEntry.ResourceType.TOPIC,
             "prefix.schema-one"))

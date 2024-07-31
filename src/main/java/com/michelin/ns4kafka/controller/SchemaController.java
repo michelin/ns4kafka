@@ -47,7 +47,7 @@ public class SchemaController extends NamespacedResourceController {
      * List schemas by namespace, filtered by name parameter.
      *
      * @param namespace The namespace
-     * @param name The name parameter
+     * @param name      The name parameter
      * @return A list of schemas
      */
     @Get
@@ -151,8 +151,8 @@ public class SchemaController extends NamespacedResourceController {
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{subject}")
-    public Mono<HttpResponse<Void>> deleteSubject(String namespace, @PathVariable String subject,
-                                                  @QueryValue(defaultValue = "false") boolean dryrun) {
+    public Mono<HttpResponse<Void>> delete(String namespace, @PathVariable String subject,
+                                           @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         // Validate ownership
@@ -176,7 +176,7 @@ public class SchemaController extends NamespacedResourceController {
                 sendEventLog(schemaToDelete, ApplyStatus.deleted, schemaToDelete.getSpec(), null);
 
                 return schemaService
-                    .deleteSubject(ns, subject)
+                    .delete(ns, subject)
                     .map(deletedSchemaIds -> HttpResponse.noContent());
             });
     }
