@@ -168,7 +168,7 @@ class ConnectorControllerTest {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
                 assertEquals("Invalid value \"connect1\" for field \"name\": namespace is not owner of the resource.",
-                    ((ResourceValidationException) error).getValidationErrors().get(0));
+                    ((ResourceValidationException) error).getValidationErrors().getFirst());
             })
             .verify();
     }
@@ -267,7 +267,7 @@ class ConnectorControllerTest {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
                 assertEquals("Invalid value \"connect1\" for field \"name\": namespace is not owner of the resource.",
-                    ((ResourceValidationException) error).getValidationErrors().get(0));
+                    ((ResourceValidationException) error).getValidationErrors().getFirst());
             })
             .verify();
     }
@@ -297,7 +297,7 @@ class ConnectorControllerTest {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
                 assertEquals("Local Validation Error 1",
-                    ((ResourceValidationException) error).getValidationErrors().get(0));
+                    ((ResourceValidationException) error).getValidationErrors().getFirst());
             })
             .verify();
     }
@@ -330,7 +330,7 @@ class ConnectorControllerTest {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
                 assertEquals("Remote Validation Error 1",
-                    ((ResourceValidationException) error).getValidationErrors().get(0));
+                    ((ResourceValidationException) error).getValidationErrors().getFirst());
             })
             .verify();
     }
@@ -400,7 +400,7 @@ class ConnectorControllerTest {
             .consumeErrorWith(error -> {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
-                assertEquals("Quota error", ((ResourceValidationException) error).getValidationErrors().get(0));
+                assertEquals("Quota error", ((ResourceValidationException) error).getValidationErrors().getFirst());
             })
             .verify();
     }
@@ -600,7 +600,7 @@ class ConnectorControllerTest {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
                 assertEquals("Invalid value \"connect1\" for field \"name\": namespace is not owner of the resource.",
-                    ((ResourceValidationException) error).getValidationErrors().get(0));
+                    ((ResourceValidationException) error).getValidationErrors().getFirst());
             })
             .verify();
     }
