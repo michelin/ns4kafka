@@ -64,6 +64,7 @@ public class ConnectorController extends NamespacedResourceController {
      * @param namespace The namespace
      * @param connector The name
      * @return A connector
+     * @deprecated use list(String, String name) instead.
      */
     @Get("/{connector}")
     @Deprecated(since = "1.12.0")
