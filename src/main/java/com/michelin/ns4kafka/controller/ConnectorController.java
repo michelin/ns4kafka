@@ -55,7 +55,7 @@ public class ConnectorController extends NamespacedResourceController {
      */
     @Get
     public List<Connector> list(String namespace, @QueryValue(defaultValue = "*") String name) {
-        return connectorService.findAllForNamespace(getNamespace(namespace), name);
+        return connectorService.findByWildcardName(getNamespace(namespace), name);
     }
 
     /**
@@ -66,7 +66,8 @@ public class ConnectorController extends NamespacedResourceController {
      * @return A connector
      */
     @Get("/{connector}")
-    public Optional<Connector> getConnector(String namespace, String connector) {
+    @Deprecated(since = "1.12.0")
+    public Optional<Connector> get(String namespace, String connector) {
         return connectorService.findByName(getNamespace(namespace), connector);
     }
 

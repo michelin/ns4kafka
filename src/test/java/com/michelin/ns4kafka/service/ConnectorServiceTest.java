@@ -171,7 +171,7 @@ class ConnectorServiceTest {
         when(aclService.isAnyAclOfResource(acls, "other-connect2")).thenReturn(false);
         when(aclService.isAnyAclOfResource(acls, "ns2-connect1")).thenReturn(false);
 
-        assertEquals(List.of(c1, c2), connectorService.findAllForNamespace(ns, "*"));
+        assertEquals(List.of(c1, c2), connectorService.findByWildcardName(ns, "*"));
     }
 
     @Test
@@ -218,10 +218,10 @@ class ConnectorServiceTest {
         when(aclService.isAnyAclOfResource(acls, "other-connect2")).thenReturn(false);
         when(aclService.isAnyAclOfResource(acls, "ns2-connect1")).thenReturn(false);
 
-        assertEquals(List.of(c1), connectorService.findAllForNamespace(ns, "ns-connect1"));
-        assertEquals(List.of(c2), connectorService.findAllForNamespace(ns, "other-connect1"));
-        assertTrue(connectorService.findAllForNamespace(ns, "ns2-connect1").isEmpty());
-        assertTrue(connectorService.findAllForNamespace(ns, "ns4-connect1").isEmpty());
+        assertEquals(List.of(c1), connectorService.findByWildcardName(ns, "ns-connect1"));
+        assertEquals(List.of(c2), connectorService.findByWildcardName(ns, "other-connect1"));
+        assertTrue(connectorService.findByWildcardName(ns, "ns2-connect1").isEmpty());
+        assertTrue(connectorService.findByWildcardName(ns, "ns4-connect1").isEmpty());
     }
 
     @Test
@@ -270,11 +270,11 @@ class ConnectorServiceTest {
         when(aclService.isAnyAclOfResource(acls, "other-connect2")).thenReturn(true);
         when(aclService.isAnyAclOfResource(acls, "ns2-connect1")).thenReturn(false);
 
-        assertEquals(List.of(c1, c2), connectorService.findAllForNamespace(ns, "ns-connect?"));
-        assertEquals(List.of(c1, c3), connectorService.findAllForNamespace(ns, "*-connect1"));
-        assertEquals(List.of(c1, c2, c3, c4), connectorService.findAllForNamespace(ns, "*-connect?"));
-        assertTrue(connectorService.findAllForNamespace(ns, "ns2-*").isEmpty());
-        assertTrue(connectorService.findAllForNamespace(ns, "ns*4-connect?").isEmpty());
+        assertEquals(List.of(c1, c2), connectorService.findByWildcardName(ns, "ns-connect?"));
+        assertEquals(List.of(c1, c3), connectorService.findByWildcardName(ns, "*-connect1"));
+        assertEquals(List.of(c1, c2, c3, c4), connectorService.findByWildcardName(ns, "*-connect?"));
+        assertTrue(connectorService.findByWildcardName(ns, "ns2-*").isEmpty());
+        assertTrue(connectorService.findByWildcardName(ns, "ns*4-connect?").isEmpty());
     }
 
     @Test

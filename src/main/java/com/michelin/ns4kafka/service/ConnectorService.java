@@ -70,17 +70,14 @@ public class ConnectorService {
      * Find all connectors by given namespace, filtered by name parameter.
      *
      * @param namespace The namespace
-     * @param name The name filter
+     * @param name      The name parameter
      * @return A list of connectors
      */
-    public List<Connector> findAllForNamespace(Namespace namespace, String name) {
-        List<AccessControlEntry> acls = aclService
-            .findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.CONNECT);
+    public List<Connector> findByWildcardName(Namespace namespace, String name) {
         List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
-        return connectorRepository.findAllForCluster(namespace.getMetadata().getCluster())
+        return findAllForNamespace(namespace)
             .stream()
-            .filter(connector -> aclService.isAnyAclOfResource(acls, connector.getMetadata().getName())
-                && RegexUtils.filterByPattern(connector.getMetadata().getName(), nameFilterPatterns))
+            .filter(connector -> RegexUtils.filterByPattern(connector.getMetadata().getName(), nameFilterPatterns))
             .toList();
     }
 

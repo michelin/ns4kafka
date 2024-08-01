@@ -69,7 +69,7 @@ class ConnectorControllerTest {
             .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectorService.findAllForNamespace(ns, "*")).thenReturn(List.of());
+        when(connectorService.findByWildcardName(ns, "*")).thenReturn(List.of());
 
         assertTrue(connectorController.list("test", "*").isEmpty());
     }
@@ -87,7 +87,7 @@ class ConnectorControllerTest {
         Connector connector2 = Connector.builder().metadata(Metadata.builder().name("connect2").build()).build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectorService.findAllForNamespace(ns, "*")).thenReturn(List.of(connector1, connector2));
+        when(connectorService.findByWildcardName(ns, "*")).thenReturn(List.of(connector1, connector2));
 
         assertEquals(List.of(connector1, connector2), connectorController.list("test", "*"));
     }
@@ -104,12 +104,13 @@ class ConnectorControllerTest {
         Connector connector = Connector.builder().metadata(Metadata.builder().name("connect1").build()).build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectorService.findAllForNamespace(ns, "connect1")).thenReturn(List.of(connector));
+        when(connectorService.findByWildcardName(ns, "connect1")).thenReturn(List.of(connector));
 
         assertEquals(List.of(connector), connectorController.list("test", "connect1"));
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void getConnectorEmpty() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -123,11 +124,12 @@ class ConnectorControllerTest {
         when(connectorService.findByName(ns, "missing"))
             .thenReturn(Optional.empty());
 
-        Optional<Connector> actual = connectorController.getConnector("test", "missing");
+        Optional<Connector> actual = connectorController.get("test", "missing");
         assertTrue(actual.isEmpty());
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void getConnector() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -142,7 +144,7 @@ class ConnectorControllerTest {
             .thenReturn(Optional.of(
                 Connector.builder().metadata(Metadata.builder().name("connect1").build()).build()));
 
-        Optional<Connector> actual = connectorController.getConnector("test", "connect1");
+        Optional<Connector> actual = connectorController.get("test", "connect1");
         assertTrue(actual.isPresent());
         assertEquals("connect1", actual.get().getMetadata().getName());
     }
