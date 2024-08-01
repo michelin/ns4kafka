@@ -118,6 +118,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldGetConnectClusterWhenEmpty() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -136,6 +137,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldGetConnectCluster() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()

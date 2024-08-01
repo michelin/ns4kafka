@@ -67,8 +67,10 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @param namespace      The namespace
      * @param connectCluster The name
      * @return A Kafka Connect cluster
+     * @deprecated use list(String, String name) instead.
      */
     @Get("/{connectCluster}")
+    @Deprecated(since = "1.12.0")
     public Optional<ConnectCluster> get(String namespace, String connectCluster) {
         return connectClusterService.findByNameWithOwnerPermission(getNamespace(namespace), connectCluster);
     }
