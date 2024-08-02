@@ -311,16 +311,23 @@ class ConnectClusterControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster")).thenReturn(true);
-        when(connectClusterService.validateConnectClusterCreation(connectCluster)).thenReturn(Mono.just(List.of()));
+        when(namespaceService.findByName("test"))
+            .thenReturn(Optional.of(ns));
+        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
+            .thenReturn(true);
+        when(connectClusterService.validateConnectClusterCreation(connectCluster))
+            .thenReturn(Mono.just(List.of()));
         when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
             .thenReturn(Optional.empty());
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
+        when(securityService.username())
+            .thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN))
+            .thenReturn(false);
+        doNothing().when(applicationEventPublisher)
+            .publishEvent(any());
 
-        when(connectClusterService.create(connectCluster)).thenReturn(connectCluster);
+        when(connectClusterService.create(connectCluster))
+            .thenReturn(connectCluster);
 
         StepVerifier.create(connectClusterController.apply("test", connectCluster, false))
             .consumeNextWith(response -> {
@@ -349,9 +356,12 @@ class ConnectClusterControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster")).thenReturn(false);
-        when(connectClusterService.validateConnectClusterCreation(connectCluster)).thenReturn(Mono.just(List.of()));
+        when(namespaceService.findByName("test"))
+            .thenReturn(Optional.of(ns));
+        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
+            .thenReturn(false);
+        when(connectClusterService.validateConnectClusterCreation(connectCluster))
+            .thenReturn(Mono.just(List.of()));
 
         StepVerifier.create(connectClusterController.apply("test", connectCluster, false))
             .consumeErrorWith(error -> {
@@ -382,10 +392,12 @@ class ConnectClusterControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster")).thenReturn(true);
-        when(connectClusterService.validateConnectClusterCreation(connectCluster)).thenReturn(
-            Mono.just(List.of("Error occurred")));
+        when(namespaceService.findByName("test"))
+            .thenReturn(Optional.of(ns));
+        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
+            .thenReturn(true);
+        when(connectClusterService.validateConnectClusterCreation(connectCluster))
+            .thenReturn(Mono.just(List.of("Error occurred")));
 
         StepVerifier.create(connectClusterController.apply("test", connectCluster, false))
             .consumeErrorWith(error -> {
@@ -414,11 +426,14 @@ class ConnectClusterControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster")).thenReturn(true);
-        when(connectClusterService.validateConnectClusterCreation(connectCluster)).thenReturn(Mono.just(List.of()));
-        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster")).thenReturn(
-            Optional.of(connectCluster));
+        when(namespaceService.findByName("test"))
+            .thenReturn(Optional.of(ns));
+        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
+            .thenReturn(true);
+        when(connectClusterService.validateConnectClusterCreation(connectCluster))
+            .thenReturn(Mono.just(List.of()));
+        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
+            .thenReturn(Optional.of(connectCluster));
 
         StepVerifier.create(connectClusterController.apply("test", connectCluster, false))
             .consumeNextWith(response -> {
@@ -460,12 +475,16 @@ class ConnectClusterControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster")).thenReturn(true);
-        when(connectClusterService.validateConnectClusterCreation(connectCluster)).thenReturn(Mono.just(List.of()));
-        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster")).thenReturn(
-            Optional.of(connectClusterChanged));
-        when(connectClusterService.create(connectCluster)).thenReturn(connectCluster);
+        when(namespaceService.findByName("test"))
+            .thenReturn(Optional.of(ns));
+        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
+            .thenReturn(true);
+        when(connectClusterService.validateConnectClusterCreation(connectCluster))
+            .thenReturn(Mono.just(List.of()));
+        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
+            .thenReturn(Optional.of(connectClusterChanged));
+        when(connectClusterService.create(connectCluster))
+            .thenReturn(connectCluster);
 
         StepVerifier.create(connectClusterController.apply("test", connectCluster, false))
             .consumeNextWith(response -> {
@@ -494,9 +513,12 @@ class ConnectClusterControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster")).thenReturn(true);
-        when(connectClusterService.validateConnectClusterCreation(connectCluster)).thenReturn(Mono.just(List.of()));
+        when(namespaceService.findByName("test"))
+            .thenReturn(Optional.of(ns));
+        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
+            .thenReturn(true);
+        when(connectClusterService.validateConnectClusterCreation(connectCluster))
+            .thenReturn(Mono.just(List.of()));
         when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
             .thenReturn(Optional.empty());
 
@@ -527,8 +549,10 @@ class ConnectClusterControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.findAllForNamespaceWithWritePermission(ns)).thenReturn(List.of(connectCluster));
+        when(namespaceService.findByName("test"))
+            .thenReturn(Optional.of(ns));
+        when(connectClusterService.findAllForNamespaceWithWritePermission(ns))
+            .thenReturn(List.of(connectCluster));
 
         List<ConnectCluster> actual = connectClusterController.listVaults("test");
         assertTrue(actual.isEmpty());
@@ -585,9 +609,12 @@ class ConnectClusterControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectClusterName)).thenReturn(false);
-        when(connectClusterService.validateConnectClusterVault(ns, connectClusterName)).thenReturn(List.of());
+        when(namespaceService.findByName("test"))
+            .thenReturn(Optional.of(ns));
+        when(connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectClusterName))
+            .thenReturn(false);
+        when(connectClusterService.validateConnectClusterVault(ns, connectClusterName))
+            .thenReturn(List.of());
 
         var secrets = List.of("secret");
         ResourceValidationException result = assertThrows(ResourceValidationException.class,
@@ -611,10 +638,12 @@ class ConnectClusterControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectClusterName)).thenReturn(true);
-        when(connectClusterService.validateConnectClusterVault(ns, connectClusterName)).thenReturn(
-            List.of("Error config."));
+        when(namespaceService.findByName("test"))
+            .thenReturn(Optional.of(ns));
+        when(connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectClusterName))
+            .thenReturn(true);
+        when(connectClusterService.validateConnectClusterVault(ns, connectClusterName))
+            .thenReturn(List.of("Error config."));
 
         var secrets = List.of("secret");
         ResourceValidationException result = assertThrows(ResourceValidationException.class,
@@ -636,9 +665,12 @@ class ConnectClusterControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectClusterName)).thenReturn(true);
-        when(connectClusterService.validateConnectClusterVault(ns, connectClusterName)).thenReturn(List.of());
+        when(namespaceService.findByName("test"))
+            .thenReturn(Optional.of(ns));
+        when(connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectClusterName))
+            .thenReturn(true);
+        when(connectClusterService.validateConnectClusterVault(ns, connectClusterName))
+            .thenReturn(List.of());
         when(connectClusterService.vaultPassword(ns, connectClusterName, List.of("secret")))
             .thenReturn(List.of(VaultResponse.builder()
                 .spec(VaultResponse.VaultResponseSpec.builder()
@@ -648,8 +680,9 @@ class ConnectClusterControllerTest {
                 .build()
             ));
 
-        final List<VaultResponse> actual =
-            connectClusterController.vaultPassword("test", connectClusterName, List.of("secret"));
+        final List<VaultResponse> actual = connectClusterController
+            .vaultPassword("test", connectClusterName, List.of("secret"));
+
         assertEquals("secret", actual.getFirst().getSpec().getClearText());
         assertEquals("encryptedSecret", actual.getFirst().getSpec().getEncrypted());
     }

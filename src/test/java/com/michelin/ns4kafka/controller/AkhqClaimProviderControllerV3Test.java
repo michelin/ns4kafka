@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.controller;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
@@ -11,7 +13,6 @@ import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -78,14 +79,14 @@ class AkhqClaimProviderControllerV3Test {
 
         AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
 
-        Assertions.assertEquals(1, actual.getGroups().size());
+        assertEquals(1, actual.getGroups().size());
 
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups = actual.getGroups().get("group");
-        Assertions.assertEquals(2, groups.size());
-        Assertions.assertEquals("topic-read", groups.get(0).getRole());
-        Assertions.assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
-        Assertions.assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
-        Assertions.assertEquals("registry-read", groups.get(1).getRole());
+        assertEquals(2, groups.size());
+        assertEquals("topic-read", groups.get(0).getRole());
+        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
+        assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
+        assertEquals("registry-read", groups.get(1).getRole());
     }
 
     @Test
@@ -127,15 +128,15 @@ class AkhqClaimProviderControllerV3Test {
 
         AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
 
-        Assertions.assertEquals(1, actual.getGroups().size());
+        assertEquals(1, actual.getGroups().size());
 
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups = actual.getGroups().get("group");
-        Assertions.assertEquals(3, groups.size());
-        Assertions.assertEquals("topic-read", groups.get(0).getRole());
-        Assertions.assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
-        Assertions.assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
-        Assertions.assertEquals("group-read", groups.get(1).getRole());
-        Assertions.assertEquals("registry-read", groups.get(2).getRole());
+        assertEquals(3, groups.size());
+        assertEquals("topic-read", groups.get(0).getRole());
+        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
+        assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
+        assertEquals("group-read", groups.get(1).getRole());
+        assertEquals("registry-read", groups.get(2).getRole());
     }
 
     @Test
@@ -168,14 +169,14 @@ class AkhqClaimProviderControllerV3Test {
 
         AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
 
-        Assertions.assertEquals(1, actual.getGroups().size());
+        assertEquals(1, actual.getGroups().size());
 
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups = actual.getGroups().get("group");
-        Assertions.assertEquals(2, groups.size());
-        Assertions.assertEquals("topic-read", groups.get(0).getRole());
-        Assertions.assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
-        Assertions.assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
-        Assertions.assertEquals("registry-read", groups.get(1).getRole());
+        assertEquals(2, groups.size());
+        assertEquals("topic-read", groups.get(0).getRole());
+        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
+        assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
+        assertEquals("registry-read", groups.get(1).getRole());
     }
 
     @Test
@@ -195,7 +196,7 @@ class AkhqClaimProviderControllerV3Test {
             .build();
 
         AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
-        Assertions.assertNull(actual.getGroups());
+        assertNull(actual.getGroups());
     }
 
     @Test
@@ -244,14 +245,14 @@ class AkhqClaimProviderControllerV3Test {
 
         AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
 
-        Assertions.assertEquals(1, actual.getGroups().size());
+        assertEquals(1, actual.getGroups().size());
 
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups = actual.getGroups().get("group");
-        Assertions.assertEquals(2, groups.size());
-        Assertions.assertEquals("topic-read", groups.get(0).getRole());
-        Assertions.assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
-        Assertions.assertEquals(List.of("^.*$"), groups.get(0).getClusters());
-        Assertions.assertEquals("registry-read", groups.get(1).getRole());
+        assertEquals(2, groups.size());
+        assertEquals("topic-read", groups.get(0).getRole());
+        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
+        assertEquals(List.of("^.*$"), groups.get(0).getClusters());
+        assertEquals("registry-read", groups.get(1).getRole());
     }
 
     @Test
@@ -300,14 +301,14 @@ class AkhqClaimProviderControllerV3Test {
 
         AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
 
-        Assertions.assertEquals(1, actual.getGroups().size());
+        assertEquals(1, actual.getGroups().size());
 
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups = actual.getGroups().get("group");
-        Assertions.assertEquals(2, groups.size());
-        Assertions.assertEquals("topic-read", groups.get(0).getRole());
-        Assertions.assertEquals(List.of("^\\Qproject1_t.\\E.*$", "^\\Qproject2_t.\\E.*$"), groups.get(0).getPatterns());
-        Assertions.assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
-        Assertions.assertEquals("registry-read", groups.get(1).getRole());
+        assertEquals(2, groups.size());
+        assertEquals("topic-read", groups.get(0).getRole());
+        assertEquals(List.of("^\\Qproject1_t.\\E.*$", "^\\Qproject2_t.\\E.*$"), groups.get(0).getPatterns());
+        assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
+        assertEquals("registry-read", groups.get(1).getRole());
     }
 
     @Test
@@ -356,14 +357,14 @@ class AkhqClaimProviderControllerV3Test {
 
         AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
 
-        Assertions.assertEquals(1, actual.getGroups().size());
+        assertEquals(1, actual.getGroups().size());
 
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups = actual.getGroups().get("group");
-        Assertions.assertEquals(2, groups.size());
-        Assertions.assertEquals("topic-read", groups.get(0).getRole());
-        Assertions.assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
-        Assertions.assertEquals(List.of("^.*$"), groups.get(0).getClusters());
-        Assertions.assertEquals("registry-read", groups.get(1).getRole());
+        assertEquals(2, groups.size());
+        assertEquals("topic-read", groups.get(0).getRole());
+        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
+        assertEquals(List.of("^.*$"), groups.get(0).getClusters());
+        assertEquals("registry-read", groups.get(1).getRole());
     }
 
     @Test
@@ -412,22 +413,22 @@ class AkhqClaimProviderControllerV3Test {
 
         AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
 
-        Assertions.assertEquals(1, actual.getGroups().size());
+        assertEquals(1, actual.getGroups().size());
 
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups = actual.getGroups().get("group");
-        Assertions.assertEquals(4, groups.size());
-        Assertions.assertEquals("topic-read", groups.get(0).getRole());
-        Assertions.assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
-        Assertions.assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
-        Assertions.assertEquals("topic-read", groups.get(1).getRole());
-        Assertions.assertEquals(List.of("^\\Qproject2_t.\\E.*$"), groups.get(1).getPatterns());
-        Assertions.assertEquals(List.of("^cluster2$"), groups.get(1).getClusters());
-        Assertions.assertEquals("registry-read", groups.get(2).getRole());
-        Assertions.assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(2).getPatterns());
-        Assertions.assertEquals(List.of("^cluster1$"), groups.get(2).getClusters());
-        Assertions.assertEquals("registry-read", groups.get(3).getRole());
-        Assertions.assertEquals(List.of("^\\Qproject2_t.\\E.*$"), groups.get(3).getPatterns());
-        Assertions.assertEquals(List.of("^cluster2$"), groups.get(3).getClusters());
+        assertEquals(4, groups.size());
+        assertEquals("topic-read", groups.get(0).getRole());
+        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
+        assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
+        assertEquals("topic-read", groups.get(1).getRole());
+        assertEquals(List.of("^\\Qproject2_t.\\E.*$"), groups.get(1).getPatterns());
+        assertEquals(List.of("^cluster2$"), groups.get(1).getClusters());
+        assertEquals("registry-read", groups.get(2).getRole());
+        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(2).getPatterns());
+        assertEquals(List.of("^cluster1$"), groups.get(2).getClusters());
+        assertEquals("registry-read", groups.get(3).getRole());
+        assertEquals(List.of("^\\Qproject2_t.\\E.*$"), groups.get(3).getPatterns());
+        assertEquals(List.of("^cluster2$"), groups.get(3).getClusters());
     }
 
     @Test
@@ -531,20 +532,20 @@ class AkhqClaimProviderControllerV3Test {
         AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
 
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups = actual.getGroups().get("group");
-        Assertions.assertEquals(3, groups.size());
-        Assertions.assertEquals("topic-read", groups.get(0).getRole());
-        Assertions.assertEquals(
+        assertEquals(3, groups.size());
+        assertEquals("topic-read", groups.get(0).getRole());
+        assertEquals(
             List.of("^\\Qproject1.\\E.*$", "^\\Qproject2.topic2\\E$", "^\\Qproject2.topic2a\\E$",
                 "^\\Qproject2.topic3\\E$", "^\\Qproject3.\\E.*$"),
             groups.get(0).getPatterns()
         );
-        Assertions.assertEquals("connect-rw", groups.get(1).getRole());
-        Assertions.assertEquals(
+        assertEquals("connect-rw", groups.get(1).getRole());
+        assertEquals(
             List.of("^\\Qproject1.topic1\\E$", "^\\Qproject2.\\E.*$"),
             groups.get(1).getPatterns()
         );
-        Assertions.assertEquals("registry-read", groups.get(2).getRole());
-        Assertions.assertEquals(
+        assertEquals("registry-read", groups.get(2).getRole());
+        assertEquals(
             List.of("^\\Qproject1.\\E.*$", "^\\Qproject3.\\E.*$", "^\\Qproject2.topic2-\\E(key|value)$",
                 "^\\Qproject2.topic2a-\\E(key|value)$", "^\\Qproject2.topic3-\\E(key|value)$"),
             groups.get(2).getPatterns()
@@ -621,15 +622,15 @@ class AkhqClaimProviderControllerV3Test {
         AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
 
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups = actual.getGroups().get("group");
-        Assertions.assertEquals(6, groups.size());
-        Assertions.assertEquals("topic-read", groups.get(0).getRole());
-        Assertions.assertEquals(List.of("^\\Qproject1.\\E.*$"), groups.get(0).getPatterns());
-        Assertions.assertEquals(List.of("^cluster1$", "^cluster2$"), groups.get(0).getClusters());
-        Assertions.assertEquals("topic-read", groups.get(1).getRole());
-        Assertions.assertEquals(List.of("^\\Qproject2.\\E.*$"), groups.get(1).getPatterns());
-        Assertions.assertEquals(List.of("^cluster1$"), groups.get(1).getClusters());
-        Assertions.assertEquals("topic-read", groups.get(2).getRole());
-        Assertions.assertEquals(List.of("^\\Qproject3.\\E.*$"), groups.get(2).getPatterns());
-        Assertions.assertEquals(List.of("^cluster1$", "^cluster2$", "^cluster3$"), groups.get(2).getClusters());
+        assertEquals(6, groups.size());
+        assertEquals("topic-read", groups.get(0).getRole());
+        assertEquals(List.of("^\\Qproject1.\\E.*$"), groups.get(0).getPatterns());
+        assertEquals(List.of("^cluster1$", "^cluster2$"), groups.get(0).getClusters());
+        assertEquals("topic-read", groups.get(1).getRole());
+        assertEquals(List.of("^\\Qproject2.\\E.*$"), groups.get(1).getPatterns());
+        assertEquals(List.of("^cluster1$"), groups.get(1).getClusters());
+        assertEquals("topic-read", groups.get(2).getRole());
+        assertEquals(List.of("^\\Qproject3.\\E.*$"), groups.get(2).getPatterns());
+        assertEquals(List.of("^cluster1$", "^cluster2$", "^cluster3$"), groups.get(2).getClusters());
     }
 }

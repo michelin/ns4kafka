@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
@@ -34,7 +35,6 @@ import io.micronaut.inject.qualifiers.Qualifiers;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
@@ -173,11 +173,11 @@ class ConnectorServiceTest {
         assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect2")));
         assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("other-connect1")));
         // doesn't contain
-        Assertions.assertFalse(
+        assertFalse(
             actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("other-connect2")));
-        Assertions.assertFalse(
+        assertFalse(
             actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns2-connect1")));
-        Assertions.assertFalse(
+        assertFalse(
             actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns3-connect1")));
     }
 

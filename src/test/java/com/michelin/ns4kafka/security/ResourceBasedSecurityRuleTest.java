@@ -5,6 +5,7 @@ import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLES;
 import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLE_BINDINGS;
 import static com.nimbusds.jwt.JWTClaimNames.SUBJECT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
@@ -20,7 +21,6 @@ import io.micronaut.security.rules.SecurityRuleResult;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -287,7 +287,7 @@ class ResourceBasedSecurityRuleTest {
             .thenReturn("admin-group");
         List<String> actual = resourceBasedSecurityRule.computeRolesFromGroups(List.of("not-admin"));
 
-        Assertions.assertIterableEquals(List.of(), actual);
+        assertIterableEquals(List.of(), actual);
     }
 
     @Test
@@ -296,6 +296,6 @@ class ResourceBasedSecurityRuleTest {
             .thenReturn("admin-group");
         List<String> actual = resourceBasedSecurityRule.computeRolesFromGroups(List.of("admin-group"));
 
-        Assertions.assertIterableEquals(List.of(ResourceBasedSecurityRule.IS_ADMIN), actual);
+        assertIterableEquals(List.of(ResourceBasedSecurityRule.IS_ADMIN), actual);
     }
 }

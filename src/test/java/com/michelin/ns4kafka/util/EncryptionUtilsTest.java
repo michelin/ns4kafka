@@ -2,8 +2,8 @@ package com.michelin.ns4kafka.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -15,7 +15,7 @@ class EncryptionUtilsTest {
         String keyEncryptionKey = "myKeyEncryptionKeyWrongSize";
 
         String stillNullText = EncryptionUtils.encryptAes256Gcm(null, keyEncryptionKey);
-        Assertions.assertNull(stillNullText);
+        assertNull(stillNullText);
     }
 
     @Test
@@ -60,7 +60,7 @@ class EncryptionUtilsTest {
         final String encryptionSalt = "p8t42EhY9z2eSUdpGeq7HX7RboMrsJAhUnu3EEJJVS";
 
         final String stillBlankText = EncryptionUtils.encryptAesWithPrefix(null, encryptionKey, encryptionSalt);
-        Assertions.assertNull(stillBlankText);
+        assertNull(stillBlankText);
     }
 
     @Test

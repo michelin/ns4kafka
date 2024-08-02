@@ -133,14 +133,14 @@ public class ConnectClusterService {
 
         return connectClusterRepository.findAllForCluster(namespace.getMetadata().getCluster())
             .stream()
-            .filter(cc -> aclService.isAnyAclOfResource(acls, cc.getMetadata().getName()))
+            .filter(connectCluster -> aclService.isAnyAclOfResource(acls, connectCluster.getMetadata().getName()))
             .toList();
     }
 
     /**
      * Find all self deployed Connect clusters whose namespace is owner.
      *
-     * @param namespace   The namespace
+     * @param namespace The namespace
      * @return A list of Connect clusters
      */
     public List<ConnectCluster> findAllForNamespaceWithOwnerPermission(Namespace namespace) {
@@ -153,7 +153,7 @@ public class ConnectClusterService {
      * Find all self deployed Connect clusters whose namespace is owner, filtered by name parameter.
      *
      * @param namespace The namespace
-     * @param name The name parameter
+     * @param name      The name parameter
      * @return The list of owned Connect cluster
      */
     public List<ConnectCluster> findByWildcardNameWithOwnerPermission(Namespace namespace, String name) {
@@ -244,11 +244,11 @@ public class ConnectClusterService {
         List<String> errors = new ArrayList<>();
 
         if (managedClusterProperties
+            .stream()
+            .filter(cluster -> cluster.getConnects() != null)
+            .anyMatch(cluster -> cluster.getConnects().entrySet()
                 .stream()
-                .filter(cluster -> cluster.getConnects() != null)
-                .anyMatch(cluster -> cluster.getConnects().entrySet()
-                    .stream()
-                    .anyMatch(entry -> entry.getKey().equals(connectCluster.getMetadata().getName())))) {
+                .anyMatch(entry -> entry.getKey().equals(connectCluster.getMetadata().getName())))) {
             errors.add(invalidConnectClusterNameAlreadyExistGlobally(connectCluster.getMetadata().getName()));
         }
 
@@ -368,14 +368,14 @@ public class ConnectClusterService {
         final Optional<ConnectCluster> kafkaConnect = findAllForNamespaceByPermissions(namespace,
             List.of(AccessControlEntry.Permission.OWNER, AccessControlEntry.Permission.WRITE))
             .stream()
-            .filter(cc ->
-                cc.getMetadata().getName().equals(connectCluster)
-                    && StringUtils.hasText(cc.getSpec().getAes256Key())
-                    && StringUtils.hasText(cc.getSpec().getAes256Salt())
-            )
+            .filter(cc -> cc.getMetadata().getName().equals(connectCluster)
+                && StringUtils.hasText(cc.getSpec().getAes256Key())
+                && StringUtils.hasText(cc.getSpec().getAes256Salt()))
             .findFirst();
+
         if (kafkaConnect.isEmpty()) {
-            return passwords.stream()
+            return passwords
+                .stream()
                 .map(password -> VaultResponse.builder()
                     .spec(VaultResponse.VaultResponseSpec.builder()
                         .clearText(password)
@@ -392,7 +392,8 @@ public class ConnectClusterService {
         final String aes256Format = StringUtils.hasText(kafkaConnect.get().getSpec().getAes256Format())
             ? kafkaConnect.get().getSpec().getAes256Format() : DEFAULT_FORMAT;
 
-        return passwords.stream()
+        return passwords
+            .stream()
             .map(password -> VaultResponse.builder()
                 .spec(VaultResponse.VaultResponseSpec.builder()
                     .clearText(password)
@@ -402,7 +403,6 @@ public class ConnectClusterService {
                 .build())
             .toList();
     }
-
 
     /**
      * Build the same connect cluster object with decrypted information.

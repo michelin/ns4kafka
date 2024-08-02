@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -14,7 +15,6 @@ import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -128,7 +128,7 @@ class AkhqClaimProviderControllerTest {
             ),
             actual
         );
-        Assertions.assertFalse(actual.contains("^\\Qproject1.connects\\E.*$"));
+        assertFalse(actual.contains("^\\Qproject1.connects\\E.*$"));
     }
 
     @Test
