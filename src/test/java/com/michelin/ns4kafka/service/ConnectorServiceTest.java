@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
@@ -34,7 +35,6 @@ import io.micronaut.inject.qualifiers.Qualifiers;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
@@ -173,11 +173,11 @@ class ConnectorServiceTest {
         assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns-connect2")));
         assertTrue(actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("other-connect1")));
         // doesn't contain
-        Assertions.assertFalse(
+        assertFalse(
             actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("other-connect2")));
-        Assertions.assertFalse(
+        assertFalse(
             actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns2-connect1")));
-        Assertions.assertFalse(
+        assertFalse(
             actual.stream().anyMatch(connector -> connector.getMetadata().getName().equals("ns3-connect1")));
     }
 
@@ -355,13 +355,13 @@ class ConnectorServiceTest {
                 .build())
             .build();
 
-        when(connectClusterService.findAllByNamespaceWithWritePermission(ns)).thenReturn(List.of());
+        when(connectClusterService.findAllForNamespaceWithWritePermission(ns)).thenReturn(List.of());
         StepVerifier.create(connectorService.validateLocally(ns, connector))
             .consumeNextWith(response -> {
                 assertEquals(1, response.size());
                 assertEquals(
                     "Invalid value \"wrong\" for field \"connectCluster\": value must be one of \"local-name\".",
-                    response.get(0));
+                    response.getFirst());
             })
             .verifyComplete();
     }
@@ -390,7 +390,7 @@ class ConnectorServiceTest {
             .consumeNextWith(response -> {
                 assertEquals(1, response.size());
                 assertEquals("Invalid empty value for field \"connector.class\": value must not be null.",
-                    response.get(0));
+                    response.getFirst());
             })
             .verifyComplete();
     }
@@ -424,7 +424,7 @@ class ConnectorServiceTest {
                     "Invalid value \"org.apache.kafka.connect.file.FileStreamSinkConnector\" "
                         + "for field \"connector.class\": failed to find any class that implements connector and "
                         + "which name matches org.apache.kafka.connect.file.FileStreamSinkConnector.",
-                    response.get(0));
+                    response.getFirst());
             })
             .verifyComplete();
     }
@@ -463,7 +463,7 @@ class ConnectorServiceTest {
             .consumeNextWith(response -> {
                 assertEquals(1, response.size());
                 assertEquals("Invalid empty value for field \"missing.field\": value must not be null.",
-                    response.get(0));
+                    response.getFirst());
             })
             .verifyComplete();
     }
@@ -628,7 +628,7 @@ class ConnectorServiceTest {
                 .build())
             .build();
 
-        when(connectClusterService.findAllByNamespaceWithWritePermission(ns))
+        when(connectClusterService.findAllForNamespaceWithWritePermission(ns))
             .thenReturn(List.of(ConnectCluster.builder()
                 .metadata(Metadata.builder()
                     .name("local-name")
@@ -678,7 +678,7 @@ class ConnectorServiceTest {
         StepVerifier.create(connectorService.validateRemotely(ns, connector))
             .consumeNextWith(response -> {
                 assertEquals(1, response.size());
-                assertEquals("Invalid \"connect1\": error_message.", response.get(0));
+                assertEquals("Invalid \"connect1\": error_message.", response.getFirst());
             })
             .verifyComplete();
     }
@@ -753,7 +753,7 @@ class ConnectorServiceTest {
             .metadata(Metadata.builder().name("ns1-connect2").build())
             .build();
 
-        when(connectClusterService.findAllByNamespaceWithWritePermission(ns))
+        when(connectClusterService.findAllForNamespaceWithWritePermission(ns))
             .thenReturn(List.of(connectCluster));
         when(connectorAsyncExecutor.collectBrokerConnectors("local-name"))
             .thenReturn(Flux.fromIterable(List.of(c1, c2, c3, c4)));
@@ -847,7 +847,7 @@ class ConnectorServiceTest {
             .metadata(Metadata.builder().name("ns1-connect2").build())
             .build();
 
-        when(connectClusterService.findAllByNamespaceWithWritePermission(ns))
+        when(connectClusterService.findAllForNamespaceWithWritePermission(ns))
             .thenReturn(List.of(connectCluster));
         when(connectorAsyncExecutor.collectBrokerConnectors("local-name"))
             .thenReturn(Flux.fromIterable(List.of(c1, c2, c3, c4)));
