@@ -10,7 +10,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -58,7 +57,7 @@ class ConsumerGroupControllerTest {
     ConsumerGroupController consumerGroupController;
 
     @Test
-    void resetSuccess() throws InterruptedException, ExecutionException {
+    void shouldResetConsumerGroup() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -95,37 +94,39 @@ class ConsumerGroupControllerTest {
         when(consumerGroupService.prepareOffsetsToReset(ns, "groupID", null, topicPartitions,
             ResetOffsetsMethod.TO_EARLIEST))
             .thenReturn(Map.of(topicPartition1, 5L, topicPartition2, 10L));
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        when(securityService.username())
+            .thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN))
+            .thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        List<ConsumerGroupResetOffsetsResponse> result =
-            consumerGroupController.resetOffsets("test", "groupID", resetOffset, false);
+        List<ConsumerGroupResetOffsetsResponse> result = consumerGroupController
+            .resetOffsets("test", "groupID", resetOffset, false);
 
-        ConsumerGroupResetOffsetsResponse resultTopicPartition1 = result
+        ConsumerGroupResetOffsetsResponse response = result
             .stream()
             .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 0)
             .findFirst()
             .orElse(null);
 
-        assertNotNull(resultTopicPartition1);
-        assertEquals(5L, resultTopicPartition1.getSpec().getOffset());
+        assertNotNull(response);
+        assertEquals(5L, response.getSpec().getOffset());
 
-        ConsumerGroupResetOffsetsResponse resultTopicPartition2 = result
+        ConsumerGroupResetOffsetsResponse response2 = result
             .stream()
             .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 1)
             .findFirst()
             .orElse(null);
 
-        assertNotNull(resultTopicPartition2);
-        assertEquals(10L, resultTopicPartition2.getSpec().getOffset());
+        assertNotNull(response2);
+        assertEquals(10L, response2.getSpec().getOffset());
 
-        verify(consumerGroupService, times(1)).alterConsumerGroupOffsets(ArgumentMatchers.eq(ns),
+        verify(consumerGroupService).alterConsumerGroupOffsets(ArgumentMatchers.eq(ns),
             ArgumentMatchers.eq("groupID"), anyMap());
     }
 
     @Test
-    void resetDryRunSuccess() throws InterruptedException, ExecutionException {
+    void shouldResetConsumerGroupInDryRunMode() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -187,7 +188,7 @@ class ConsumerGroupControllerTest {
     }
 
     @Test
-    void resetExecutionError() throws InterruptedException, ExecutionException {
+    void shouldHandleExceptionDuringReset() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -224,7 +225,7 @@ class ConsumerGroupControllerTest {
     }
 
     @Test
-    void resetValidationErrorNotOwnerOfConsumerGroup() {
+    void shouldNotResetConsumerGroupWhenNotOwner() {
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
             .metadata(Metadata.builder()
                 .name("groupID")
@@ -250,7 +251,7 @@ class ConsumerGroupControllerTest {
     }
 
     @Test
-    void resetValidationErrorInvalidResource() {
+    void shouldNotResetConsumerGroupWhenValidationErrors() {
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
             .metadata(Metadata.builder()
                 .name("groupID")
@@ -274,7 +275,7 @@ class ConsumerGroupControllerTest {
     }
 
     @Test
-    void resetValidationErrorConsumerGroupActive() throws ExecutionException, InterruptedException {
+    void shouldNotResetConsumerGroupWhenItIsActive() throws ExecutionException, InterruptedException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")

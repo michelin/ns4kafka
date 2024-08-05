@@ -13,6 +13,7 @@ import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.service.executor.ConnectorAsyncExecutor;
 import com.michelin.ns4kafka.util.FormatErrorUtils;
+import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
@@ -57,23 +58,26 @@ public class ConnectorService {
      * @return A list of connectors
      */
     public List<Connector> findAllForNamespace(Namespace namespace) {
-        List<AccessControlEntry> acls = aclService.findAllGrantedToNamespace(namespace);
+        List<AccessControlEntry> acls = aclService
+            .findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.CONNECT);
         return connectorRepository.findAllForCluster(namespace.getMetadata().getCluster())
             .stream()
-            .filter(connector -> acls.stream().anyMatch(accessControlEntry -> {
-                if (accessControlEntry.getSpec().getPermission() != AccessControlEntry.Permission.OWNER) {
-                    return false;
-                }
-                if (accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT) {
-                    return switch (accessControlEntry.getSpec().getResourcePatternType()) {
-                        case PREFIXED -> connector.getMetadata().getName()
-                            .startsWith(accessControlEntry.getSpec().getResource());
-                        case LITERAL ->
-                            connector.getMetadata().getName().equals(accessControlEntry.getSpec().getResource());
-                    };
-                }
-                return false;
-            }))
+            .filter(connector -> aclService.isAnyAclOfResource(acls, connector.getMetadata().getName()))
+            .toList();
+    }
+
+    /**
+     * Find all connectors by given namespace, filtered by name parameter.
+     *
+     * @param namespace The namespace
+     * @param name      The name parameter
+     * @return A list of connectors
+     */
+    public List<Connector> findByWildcardName(Namespace namespace, String name) {
+        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
+        return findAllForNamespace(namespace)
+            .stream()
+            .filter(connector -> RegexUtils.filterByPattern(connector.getMetadata().getName(), nameFilterPatterns))
             .toList();
     }
 

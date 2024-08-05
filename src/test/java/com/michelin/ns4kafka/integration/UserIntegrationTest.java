@@ -75,8 +75,10 @@ class UserIntegrationTest extends AbstractIntegrationTest {
             .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response = ns4KafkaClient.toBlocking()
-            .exchange(HttpRequest.POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
+        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
 
         token = response.getBody().get().getAccessToken();
 

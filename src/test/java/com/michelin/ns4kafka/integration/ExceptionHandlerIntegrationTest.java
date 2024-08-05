@@ -54,7 +54,7 @@ class ExceptionHandlerIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeAll
     void init() {
-        Namespace ns1 = Namespace.builder()
+        Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("ns1")
                 .cluster("test-cluster")
@@ -66,7 +66,7 @@ class ExceptionHandlerIntegrationTest extends AbstractIntegrationTest {
                 .build())
             .build();
 
-        RoleBinding rb1 = RoleBinding.builder()
+        RoleBinding roleBinding = RoleBinding.builder()
             .metadata(Metadata.builder()
                 .name("ns1-rb")
                 .namespace("ns1")
@@ -96,14 +96,14 @@ class ExceptionHandlerIntegrationTest extends AbstractIntegrationTest {
             .exchange(HttpRequest
                 .create(HttpMethod.POST, "/api/namespaces")
                 .bearerAuth(token)
-                .body(ns1));
+                .body(namespace));
 
         ns4KafkaClient
             .toBlocking()
             .exchange(HttpRequest
                 .create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings")
                 .bearerAuth(token)
-                .body(rb1));
+                .body(roleBinding));
 
         AccessControlEntry ns1acl = AccessControlEntry.builder()
             .metadata(Metadata.builder()

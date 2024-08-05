@@ -286,7 +286,7 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void shouldUpdateTopic() throws InterruptedException, ExecutionException {
-        Topic topic2Create = Topic.builder()
+        Topic topic = Topic.builder()
             .metadata(Metadata.builder()
                 .name("ns1-topic2Create")
                 .namespace("ns1")
@@ -305,7 +305,7 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
             .exchange(HttpRequest
                 .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
                 .bearerAuth(token)
-                .body(topic2Create));
+                .body(topic));
 
         assertEquals("created", response.header("X-Ns4kafka-Result"));
 
@@ -316,11 +316,11 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
             .exchange(HttpRequest
                 .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
                 .bearerAuth(token)
-                .body(topic2Create));
+                .body(topic));
 
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
 
-        Topic topic2Update = Topic.builder()
+        Topic topicToUpdate = Topic.builder()
             .metadata(Metadata.builder()
                 .name("ns1-topic2Create")
                 .namespace("ns1")
@@ -328,9 +328,10 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
             .spec(TopicSpec.builder()
                 .partitions(3)
                 .replicationFactor(1)
-                .configs(Map.of("cleanup.policy", "delete",
+                .configs(Map.of(
+                    "cleanup.policy", "delete",
                     "min.insync.replicas", "1",
-                    "retention.ms", "70000"))//This line was changed
+                    "retention.ms", "70000")) //This line was changed
                 .build())
             .build();
 
@@ -339,29 +340,38 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
             .exchange(HttpRequest
                 .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
                 .bearerAuth(token)
-                .body(topic2Update));
+                .body(topicToUpdate));
 
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
 
-        //force Topic Sync
+        // Force Topic Sync
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
 
         Admin kafkaClient = getAdminClient();
-        List<TopicPartitionInfo> topicPartitionInfos =
-            kafkaClient.describeTopics(List.of("ns1-topic2Create")).allTopicNames().get()
-                .get("ns1-topic2Create").partitions();
+
+        List<TopicPartitionInfo> topicPartitionInfos = kafkaClient
+            .describeTopics(List.of("ns1-topic2Create"))
+            .allTopicNames()
+            .get()
+            .get("ns1-topic2Create").partitions();
+
         // verify partition of the updated topic
-        assertEquals(topic2Update.getSpec().getPartitions(), topicPartitionInfos.size());
+        assertEquals(topicToUpdate.getSpec().getPartitions(), topicPartitionInfos.size());
 
         // verify config of the updated topic
-        Map<String, String> config = topic2Update.getSpec().getConfigs();
+        Map<String, String> config = topicToUpdate.getSpec().getConfigs();
         Set<String> configKey = config.keySet();
 
         ConfigResource configResource = new ConfigResource(ConfigResource.Type.TOPIC, "ns1-topic2Create");
-        List<ConfigEntry> valueToVerify =
-            kafkaClient.describeConfigs(List.of(configResource)).all().get().get(configResource).entries().stream()
-                .filter(e -> configKey.contains(e.name()))
-                .toList();
+        List<ConfigEntry> valueToVerify = kafkaClient
+            .describeConfigs(List.of(configResource))
+            .all()
+            .get()
+            .get(configResource)
+            .entries()
+            .stream()
+            .filter(e -> configKey.contains(e.name()))
+            .toList();
 
         assertEquals(config.size(), valueToVerify.size());
         valueToVerify.forEach(entry -> assertEquals(config.get(entry.name()), entry.value()));
@@ -421,7 +431,8 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
             .spec(TopicSpec.builder()
                 .partitions(3)
                 .replicationFactor(1)
-                .configs(Map.of("cleanup.policy", "delete",
+                .configs(Map.of(
+                    "cleanup.policy", "delete",
                     "min.insync.replicas", "1",
                     "retention.ms", "60000"))
                 .build())
@@ -447,7 +458,8 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
             .spec(TopicSpec.builder()
                 .partitions(3)
                 .replicationFactor(1)
-                .configs(Map.of("cleanup.policy", "delete",
+                .configs(Map.of(
+                    "cleanup.policy", "delete",
                     "min.insync.replicas", "1",
                     "retention.ms", "90000"))
                 .build())
@@ -551,7 +563,8 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
             .spec(TopicSpec.builder()
                 .partitions(3)
                 .replicationFactor(1)
-                .configs(Map.of("cleanup.policy", "compact",
+                .configs(Map.of(
+                    "cleanup.policy", "compact",
                     "min.insync.replicas", "1",
                     "retention.ms", "60000"))
                 .build())

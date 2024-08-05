@@ -36,29 +36,6 @@ class AkhqClaimProviderControllerTest {
     @Spy
     AkhqProperties akhqProperties = getAkhqClaimProviderControllerConfig();
 
-    private AkhqProperties getAkhqClaimProviderControllerConfig() {
-        AkhqProperties config = new AkhqProperties();
-        config.setGroupLabel("support-group");
-        config.setFormerRoles(List.of(
-            "topic/read",
-            "topic/data/read",
-            "group/read",
-            "registry/read",
-            "connect/read",
-            "connect/state/update"
-        ));
-        config.setAdminGroup("GP-ADMIN");
-        config.setFormerAdminRoles(List.of(
-            "topic/read",
-            "topic/data/read",
-            "group/read",
-            "registry/read",
-            "connect/read",
-            "connect/state/update"
-        ));
-        return config;
-    }
-
     @Test
     void computeAllowedRegexListTestEmpty() {
         List<AccessControlEntry> inputAcls = List.of(
@@ -583,5 +560,28 @@ class AkhqClaimProviderControllerTest {
             ),
             actual
         );
+    }
+
+    private AkhqProperties getAkhqClaimProviderControllerConfig() {
+        AkhqProperties config = new AkhqProperties();
+        config.setGroupLabel("support-group");
+        config.setFormerRoles(List.of(
+            "topic/read",
+            "topic/data/read",
+            "group/read",
+            "registry/read",
+            "connect/read",
+            "connect/state/update"
+        ));
+        config.setAdminGroup("GP-ADMIN");
+        config.setFormerAdminRoles(List.of(
+            "topic/read",
+            "topic/data/read",
+            "group/read",
+            "registry/read",
+            "connect/read",
+            "connect/state/update"
+        ));
+        return config;
     }
 }

@@ -934,39 +934,48 @@ class AclServiceTest {
     }
 
     @Test
-    void findResourceOwnerAclGrantedToNamespace() {
+    void shouldFindResourceWhereGivenNamespaceIsOwnerOf() {
         Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder().name("namespace1").build()).build();
+            .metadata(Metadata.builder()
+                .name("namespace1")
+                .build())
+            .build();
+
         AccessControlEntry acl1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .grantedTo("namespace1").build())
             .build();
+
         AccessControlEntry acl2 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                 .permission(AccessControlEntry.Permission.READ)
                 .grantedTo("namespace1").build())
             .build();
+
         AccessControlEntry acl3 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.CONNECT)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .grantedTo("namespace1").build())
             .build();
+
         AccessControlEntry acl4 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                 .permission(AccessControlEntry.Permission.OWNER)
                 .grantedTo("namespace2").build())
             .build();
+
         AccessControlEntry acl5 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                 .permission(AccessControlEntry.Permission.READ)
                 .grantedTo("*").build())
             .build();
+
         AccessControlEntry acl6 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.GROUP)
@@ -974,7 +983,8 @@ class AclServiceTest {
                 .grantedTo("namespace1").build())
             .build();
 
-        when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, acl3, acl4, acl5, acl6));
+        when(accessControlEntryRepository.findAll())
+            .thenReturn(List.of(acl1, acl2, acl3, acl4, acl5, acl6));
 
         assertEquals(List.of(acl1),
             aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC));
@@ -985,7 +995,7 @@ class AclServiceTest {
     }
 
     @Test
-    void isPrefixedAclOfResource() {
+    void shouldPrefixedAclsMatchResource() {
         AccessControlEntry acl1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -1015,7 +1025,7 @@ class AclServiceTest {
     }
 
     @Test
-    void isLiteralAclOfResource() {
+    void shouldLiteralAclsMatchResource() {
         AccessControlEntry acl1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)

@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.integration.TopicIntegrationTest.BearerAccessRefreshToken;
@@ -38,18 +39,19 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
-import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.Assertions;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 
+@Slf4j
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
@@ -58,23 +60,24 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
 
     @Inject
     @Client("/")
-    HttpClient ns4KafkaClient;
+    private HttpClient ns4KafkaClient;
 
     private HttpClient connectClient;
 
     @Inject
-    List<TopicAsyncExecutor> topicAsyncExecutorList;
+    private List<TopicAsyncExecutor> topicAsyncExecutorList;
 
     @Inject
-    List<ConnectorAsyncExecutor> connectorAsyncExecutorList;
+    private List<ConnectorAsyncExecutor> connectorAsyncExecutorList;
 
     private String token;
 
     @BeforeAll
     void init() {
+        // Create HTTP client as bean to load client configuration from application.yml
         connectClient = applicationContext.createBean(HttpClient.class, connectContainer.getUrl());
 
-        Namespace ns1 = Namespace.builder()
+        Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("ns1")
                 .cluster("test-cluster")
@@ -91,7 +94,7 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .build())
             .build();
 
-        RoleBinding rb1 = RoleBinding.builder()
+        RoleBinding roleBinding = RoleBinding.builder()
             .metadata(Metadata.builder()
                 .name("ns1-rb")
                 .namespace("ns1")
@@ -109,16 +112,25 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
             .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<BearerAccessRefreshToken> response =
-            ns4KafkaClient.toBlocking()
-                .exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
+        HttpResponse<BearerAccessRefreshToken> response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
 
         token = response.getBody().get().getAccessToken();
 
-        ns4KafkaClient.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns1));
-        ns4KafkaClient.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings").bearerAuth(token).body(rb1));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token)
+                .body(namespace));
+
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings")
+                .bearerAuth(token)
+                .body(roleBinding));
 
         AccessControlEntry aclConnect = AccessControlEntry.builder()
             .metadata(Metadata.builder()
@@ -134,8 +146,12 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .build())
             .build();
 
-        ns4KafkaClient.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclConnect));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                .bearerAuth(token)
+                .body(aclConnect));
 
         AccessControlEntry aclTopic = AccessControlEntry.builder()
             .metadata(Metadata.builder()
@@ -151,19 +167,26 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .build())
             .build();
 
-        ns4KafkaClient.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls").bearerAuth(token).body(aclTopic));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                .bearerAuth(token)
+                .body(aclTopic));
     }
 
     @Test
-    void createConnect() {
-        ServerInfo actual = connectClient.toBlocking().retrieve(HttpRequest.GET("/"), ServerInfo.class);
+    void shouldGetConnectClusterVersion() {
+        ServerInfo actual = connectClient
+            .toBlocking()
+            .retrieve(HttpRequest.GET("/"), ServerInfo.class);
+
         assertEquals("7.4.1-ccs", actual.version());
     }
 
     @Test
-    void createNamespaceWithoutConnect() {
-        Namespace ns = Namespace.builder()
+    void shouldCreateNamespaceWithoutConnect() {
+        Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("ns-without-connect")
                 .cluster("test-cluster")
@@ -174,20 +197,16 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .build())
             .build();
 
-        assertDoesNotThrow(() -> ns4KafkaClient.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces").bearerAuth(token).body(ns)));
+        assertDoesNotThrow(() -> ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token)
+                .body(namespace)));
     }
 
-    /**
-     * Validate connector deployment
-     * Deploy a topic and connectors and assert the deployments worked.
-     * The test asserts null/empty connector properties are deployed.
-     *
-     * @throws InterruptedException  Any interrupted exception
-     * @throws MalformedURLException Any malformed URL exception
-     */
     @Test
-    void deployConnectors() throws InterruptedException, MalformedURLException {
+    void shouldDeployConnectors() throws InterruptedException {
         Map<String, String> connectorSpecs = new HashMap<>();
         connectorSpecs.put("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector");
         connectorSpecs.put("tasks.max", "1");
@@ -219,11 +238,20 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .build())
             .build();
 
-        ns4KafkaClient.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(topic));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                .bearerAuth(token)
+                .body(topic));
+
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
-        ns4KafkaClient.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token)
+
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
+                .bearerAuth(token)
                 .body(connectorWithNullParameter));
 
         Connector connectorWithEmptyParameter = Connector.builder()
@@ -242,8 +270,11 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .build())
             .build();
 
-        ns4KafkaClient.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token)
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
+                .bearerAuth(token)
                 .body(connectorWithEmptyParameter));
 
         Connector connectorWithFillParameter = Connector.builder()
@@ -257,36 +288,38 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                     "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
                     "tasks.max", "1",
                     "topics", "ns1-to1",
-                    "file", "test"
-                ))
+                    "file", "test"))
                 .build())
             .build();
 
-        ns4KafkaClient.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token)
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
+                .bearerAuth(token)
                 .body(connectorWithFillParameter));
 
-        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::runHealthCheck).subscribe();
-        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::run).subscribe();
-
-        Thread.sleep(2000);
+        forceConnectorSynchronization();
 
         // "File" property is present, but null
-        ConnectorInfo actualConnectorWithNullParameter = connectClient.toBlocking()
+        ConnectorInfo actualConnectorWithNullParameter = connectClient
+            .toBlocking()
             .retrieve(HttpRequest.GET("/connectors/ns1-connectorWithNullParameter"), ConnectorInfo.class);
 
         assertTrue(actualConnectorWithNullParameter.config().containsKey("file"));
-        Assertions.assertNull(actualConnectorWithNullParameter.config().get("file"));
+        assertNull(actualConnectorWithNullParameter.config().get("file"));
 
         // "File" property is present, but empty
-        ConnectorInfo actualConnectorWithEmptyParameter = connectClient.toBlocking()
+        ConnectorInfo actualConnectorWithEmptyParameter = connectClient
+            .toBlocking()
             .retrieve(HttpRequest.GET("/connectors/ns1-connectorWithEmptyParameter"), ConnectorInfo.class);
 
         assertTrue(actualConnectorWithEmptyParameter.config().containsKey("file"));
         assertTrue(actualConnectorWithEmptyParameter.config().get("file").isEmpty());
 
         // "File" property is present
-        ConnectorInfo actualConnectorWithFillParameter = connectClient.toBlocking()
+        ConnectorInfo actualConnectorWithFillParameter = connectClient
+            .toBlocking()
             .retrieve(HttpRequest.GET("/connectors/ns1-connectorWithFillParameter"), ConnectorInfo.class);
 
         assertTrue(actualConnectorWithFillParameter.config().containsKey("file"));
@@ -294,13 +327,12 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
     }
 
     @Test
-    void updateConnectorsWithNullProperty() throws InterruptedException, MalformedURLException {
+    void shouldUpdateConnectorsWithNullProperty() throws InterruptedException {
         ConnectorSpecs connectorSpecs = ConnectorSpecs.builder()
             .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
                 "tasks.max", "1",
                 "topics", "ns1-to1",
-                "file", "test"
-            ))
+                "file", "test"))
             .build();
 
         Map<String, String> updatedConnectorSpecs = new HashMap<>();
@@ -309,7 +341,8 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
         updatedConnectorSpecs.put("topics", "ns1-to1");
         updatedConnectorSpecs.put("file", null);
 
-        HttpResponse<ConnectorInfo> connectorInfo = connectClient.toBlocking()
+        HttpResponse<ConnectorInfo> connectorInfo = connectClient
+            .toBlocking()
             .exchange(HttpRequest.PUT("/connectors/ns1-connector/config", connectorSpecs), ConnectorInfo.class);
 
         // "File" property is present and fill
@@ -331,8 +364,12 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .build())
             .build();
 
-        ns4KafkaClient.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(topic));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                .bearerAuth(token)
+                .body(topic));
 
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
 
@@ -347,26 +384,27 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .build())
             .build();
 
-        ns4KafkaClient.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token)
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
+                .bearerAuth(token)
                 .body(updateConnector));
 
-        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::runHealthCheck).subscribe();
-        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::run).subscribe();
+        forceConnectorSynchronization();
 
-        Thread.sleep(2000);
-
-        ConnectorInfo actualConnector = connectClient.toBlocking()
+        ConnectorInfo actualConnector = connectClient
+            .toBlocking()
             .retrieve(HttpRequest.GET("/connectors/ns1-connector"), ConnectorInfo.class);
 
         // "File" property is present, but null
         assertTrue(actualConnector.config().containsKey("file"));
-        Assertions.assertNull(actualConnector.config().get("file"));
+        assertNull(actualConnector.config().get("file"));
     }
 
     @Test
-    void restartConnector() throws InterruptedException {
-        Topic to = Topic.builder()
+    void shouldRestartConnector() throws InterruptedException {
+        Topic topic = Topic.builder()
             .metadata(Metadata.builder()
                 .name("ns1-to1")
                 .namespace("ns1")
@@ -380,7 +418,7 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .build())
             .build();
 
-        Connector co = Connector.builder()
+        Connector connector = Connector.builder()
             .metadata(Metadata.builder()
                 .name("ns1-co1")
                 .namespace("ns1")
@@ -395,32 +433,53 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .build())
             .build();
 
-        ns4KafkaClient.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                .bearerAuth(token)
+                .body(topic));
+
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
-        ns4KafkaClient.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(co));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
+                .bearerAuth(token)
+                .body(connector));
 
-        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::runHealthCheck).subscribe();
-        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::run).subscribe();
-
-        Thread.sleep(2000);
+        forceConnectorSynchronization();
+        waitForConnectorAndTasksToBeInState("ns1-co1", Connector.TaskState.RUNNING);
 
         ChangeConnectorState restartState = ChangeConnectorState.builder()
-            .metadata(Metadata.builder().name("ns1-co1").build())
+            .metadata(Metadata.builder()
+                .name("ns1-co1")
+                .build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
-                .action(ChangeConnectorState.ConnectorAction.restart).build())
+                .action(ChangeConnectorState.ConnectorAction.restart)
+                .build())
             .build();
 
-        HttpResponse<ChangeConnectorState> actual = ns4KafkaClient.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co1/change-state").bearerAuth(token)
+        HttpResponse<ChangeConnectorState> restartResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co1/change-state")
+                .bearerAuth(token)
                 .body(restartState), ChangeConnectorState.class);
-        assertEquals(HttpStatus.OK, actual.status());
+
+        assertEquals(HttpStatus.OK, restartResponse.status());
+
+        ConnectorStateInfo actual = connectClient
+            .toBlocking()
+            .retrieve(HttpRequest.GET("/connectors/ns1-co1/status"), ConnectorStateInfo.class);
+
+        assertEquals("RUNNING", actual.connector().getState());
+        assertEquals("RUNNING", actual.tasks().get(0).getState());
     }
 
     @Test
-    void pauseAndResumeConnector() throws MalformedURLException, InterruptedException {
-        Topic to = Topic.builder()
+    void shouldPauseAndResumeConnector() throws InterruptedException {
+        Topic topic = Topic.builder()
             .metadata(Metadata.builder()
                 .name("ns1-to1")
                 .namespace("ns1")
@@ -434,7 +493,7 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .build())
             .build();
 
-        Connector co = Connector.builder()
+        Connector connector = Connector.builder()
             .metadata(Metadata.builder()
                 .name("ns1-co2")
                 .namespace("ns1")
@@ -444,59 +503,134 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .config(Map.of(
                     "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
                     "tasks.max", "3",
-                    "topics", "ns1-to1"
-                ))
+                    "topics", "ns1-to1"))
                 .build())
             .build();
 
-        ns4KafkaClient.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics").bearerAuth(token).body(to));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                .bearerAuth(token)
+                .body(topic));
+
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
-        ns4KafkaClient.toBlocking()
-            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors").bearerAuth(token).body(co));
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
+                .bearerAuth(token)
+                .body(connector));
 
-        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::runHealthCheck).subscribe();
-        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::run).subscribe();
+        forceConnectorSynchronization();
+        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.RUNNING);
 
-        Thread.sleep(2000);
+        ConnectorStateInfo actual = connectClient
+            .toBlocking()
+            .retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
 
-        // pause the connector
+        assertEquals("RUNNING", actual.connector().getState());
+        assertEquals("RUNNING", actual.tasks().get(0).getState());
+        assertEquals("RUNNING", actual.tasks().get(1).getState());
+        assertEquals("RUNNING", actual.tasks().get(2).getState());
+
+        // Pause the connector
         ChangeConnectorState pauseState = ChangeConnectorState.builder()
-            .metadata(Metadata.builder().name("ns1-co2").build())
+            .metadata(Metadata.builder()
+                .name("ns1-co2")
+                .build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
-                .action(ChangeConnectorState.ConnectorAction.pause).build())
+                .action(ChangeConnectorState.ConnectorAction.pause)
+                .build())
             .build();
-        ns4KafkaClient.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co2/change-state").bearerAuth(token)
+
+        HttpResponse<ChangeConnectorState> pauseResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co2/change-state")
+                .bearerAuth(token)
                 .body(pauseState));
 
-        Thread.sleep(2000);
+        assertEquals(HttpStatus.OK, pauseResponse.status());
 
-        ConnectorStateInfo actual = connectClient.toBlocking()
+        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.PAUSED);
+
+        actual = connectClient
+            .toBlocking()
             .retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
+
         assertEquals("PAUSED", actual.connector().getState());
         assertEquals("PAUSED", actual.tasks().get(0).getState());
         assertEquals("PAUSED", actual.tasks().get(1).getState());
         assertEquals("PAUSED", actual.tasks().get(2).getState());
 
-        // resume the connector
+        // Resume the connector
         ChangeConnectorState resumeState = ChangeConnectorState.builder()
-            .metadata(Metadata.builder().name("ns1-co2").build())
+            .metadata(Metadata.builder()
+                .name("ns1-co2")
+                .build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
-                .action(ChangeConnectorState.ConnectorAction.resume).build())
+                .action(ChangeConnectorState.ConnectorAction.resume)
+                .build())
             .build();
-        ns4KafkaClient.toBlocking().exchange(
-            HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co2/change-state").bearerAuth(token)
+
+        HttpResponse<ChangeConnectorState> resumeResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co2/change-state")
+                .bearerAuth(token)
                 .body(resumeState));
 
-        Thread.sleep(2000);
+        assertEquals(HttpStatus.OK, resumeResponse.status());
 
-        // verify resumed directly on connect cluster
-        actual = connectClient.toBlocking()
+        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.RUNNING);
+
+        // Verify resumed directly on connect cluster
+        actual = connectClient
+            .toBlocking()
             .retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
+
         assertEquals("RUNNING", actual.connector().getState());
         assertEquals("RUNNING", actual.tasks().get(0).getState());
         assertEquals("RUNNING", actual.tasks().get(1).getState());
         assertEquals("RUNNING", actual.tasks().get(2).getState());
+    }
+
+    /**
+     * Force synchronization of all connectors synchronously.
+     */
+    private void forceConnectorSynchronization() throws InterruptedException {
+        Flux.fromIterable(connectorAsyncExecutorList)
+            .flatMap(ConnectorAsyncExecutor::runHealthCheck)
+            .blockLast();
+
+        Flux.fromIterable(connectorAsyncExecutorList)
+            .flatMap(ConnectorAsyncExecutor::run)
+            .blockLast();
+
+        // Wait for Kafka Connect to deploy and update connectors
+        Thread.sleep(3000);
+    }
+
+    private void waitForConnectorAndTasksToBeInState(String connector, Connector.TaskState state)
+        throws InterruptedException {
+        boolean tasksInState = false;
+
+        while (!tasksInState) {
+            log.info("Waiting for connector and tasks to be in state {}...", state);
+            Thread.sleep(2000);
+            try {
+                HttpResponse<ConnectorStateInfo> response = connectClient
+                    .toBlocking()
+                    .exchange(HttpRequest
+                        .GET(String.format("/connectors/%s/status", connector)), ConnectorStateInfo.class);
+
+                tasksInState = response.body().tasks()
+                    .stream()
+                    .allMatch(task -> task.getState().equals(state.toString()));
+            } catch (HttpClientResponseException ignored) {
+                // Connector not found, retry
+            }
+        }
     }
 }

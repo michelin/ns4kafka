@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -487,7 +486,7 @@ class SchemaControllerTest {
             .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
             .verifyComplete();
 
-        verify(schemaService, times(1)).delete(namespace, "prefix.subject-value");
+        verify(schemaService).delete(namespace, "prefix.subject-value");
     }
 
     @Test
