@@ -412,7 +412,8 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
             .spec(Topic.TopicSpec.builder()
                 .partitions(3)
                 .replicationFactor(1)
-                .configs(Map.of("cleanup.policy", "delete",
+                .configs(Map.of(
+                    "cleanup.policy", "delete",
                     "min.insync.replicas", "1",
                     "retention.ms", "60000"))
                 .build())
@@ -449,7 +450,6 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .body(connector));
 
         forceConnectorSynchronization();
-        waitForConnectorAndTasksToBeInState("ns1-co1", Connector.TaskState.RUNNING);
 
         ChangeConnectorState restartState = ChangeConnectorState.builder()
             .metadata(Metadata.builder()
@@ -469,6 +469,8 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
 
         assertEquals(HttpStatus.OK, restartResponse.status());
 
+        waitForConnectorAndTasksToBeInState("ns1-co1", Connector.TaskState.RUNNING);
+        
         ConnectorStateInfo actual = connectClient
             .toBlocking()
             .retrieve(HttpRequest.GET("/connectors/ns1-co1/status"), ConnectorStateInfo.class);
