@@ -1158,7 +1158,7 @@ class AclServiceTest {
 
         Namespace ns2 = Namespace.builder()
             .metadata(Metadata.builder()
-                .name("namespace1")
+                .name("namespace2")
                 .build())
             .build();
 
@@ -1167,7 +1167,7 @@ class AclServiceTest {
 
         Namespace ns3 = Namespace.builder()
             .metadata(Metadata.builder()
-                .name("namespace1")
+                .name("namespace3")
                 .build())
             .build();
 
