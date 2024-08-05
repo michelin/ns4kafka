@@ -76,14 +76,17 @@ public class AclController extends NamespacedResourceController {
      * Get an ACL by namespace and name.
      *
      * @param namespace The name
-     * @param acl       The ACL name
+     * @param acl   The ACL name
      * @return The ACL
-     * @deprecated use list(String, Optional, String name) instead.
+     * @deprecated use list(String, Optional ALL, String name) instead.
      */
     @Get("/{acl}")
     @Deprecated(since = "1.12.0")
     public Optional<AccessControlEntry> get(String namespace, String acl) {
-        return list(namespace, Optional.of(AclLimit.ALL), acl).stream().findFirst();
+        return aclService.findAllRelatedToNamespace(getNamespace(namespace))
+            .stream()
+            .filter(accessControlEntry -> accessControlEntry.getMetadata().getName().equals(acl))
+            .findFirst();
     }
 
     /**

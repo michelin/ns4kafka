@@ -287,22 +287,14 @@ class AclControllerTest {
             .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
-        when(aclService.findByWildcardNameRelatedToNamespace(namespace, "ace6"))
-                .thenReturn(List.of());
-        when(aclService.findByWildcardNameRelatedToNamespace(namespace, "ace4"))
-                .thenReturn(List.of());
-        when(aclService.findByWildcardNameRelatedToNamespace(namespace, "ace3"))
-                .thenReturn(List.of(aceTopicPrefixedReadTestToNamespaceOther));
-        when(aclService.findByWildcardNameRelatedToNamespace(namespace, "ace5"))
-            .thenReturn(List.of(aceTopicPrefixedReadNamespaceOtherToTest));
+        when(aclService.findAllRelatedToNamespace(namespace)).thenReturn(
+            List.of(aceTopicPrefixedReadTestToNamespaceOther, aceTopicPrefixedReadNamespaceOtherToTest));
 
         // Name not in list
-        Optional<AccessControlEntry> result1 = accessControlListController.get("test", "ace6");
-        assertTrue(result1.isEmpty());
+        assertTrue(accessControlListController.get("test", "ace6").isEmpty());
 
         // Not granted to or assigned by me
-        Optional<AccessControlEntry> result2 = accessControlListController.get("test", "ace4");
-        assertTrue(result2.isEmpty());
+        assertTrue(accessControlListController.get("test", "ace4").isEmpty());
 
         // Assigned by me
         Optional<AccessControlEntry> result3 = accessControlListController.get("test", "ace3");

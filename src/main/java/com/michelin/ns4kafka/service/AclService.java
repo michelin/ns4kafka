@@ -277,6 +277,21 @@ public class AclService {
     }
 
     /**
+     * Find all ACLs that a given namespace granted to other namespaces.
+     *
+     * @param namespace The namespace
+     * @return A list of ACLs
+     */
+    public List<AccessControlEntry> findAllRelatedToNamespace(Namespace namespace) {
+        return accessControlEntryRepository.findAll()
+            .stream()
+            .filter(acl -> acl.getMetadata().getNamespace().equals(namespace.getMetadata().getName())
+                || acl.getSpec().getGrantedTo().equals(namespace.getMetadata().getName())
+                || acl.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO))
+            .toList();
+    }
+
+    /**
      * Find all ACLs granted to given namespace, filtered by name parameter.
      * Will also return public granted ACLs.
      *
@@ -316,11 +331,8 @@ public class AclService {
      */
     public List<AccessControlEntry> findByWildcardNameRelatedToNamespace(Namespace namespace, String name) {
         List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
-        return accessControlEntryRepository.findAll()
+        return findAllRelatedToNamespace(namespace)
             .stream()
-            .filter(acl -> acl.getMetadata().getNamespace().equals(namespace.getMetadata().getName())
-                || acl.getSpec().getGrantedTo().equals(namespace.getMetadata().getName())
-                || acl.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO))
             .filter(acl -> RegexUtils.filterByPattern(acl.getMetadata().getName(), nameFilterPatterns))
             .toList();
     }
