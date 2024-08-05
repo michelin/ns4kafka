@@ -1178,11 +1178,7 @@ class AclServiceTest {
     @Test
     void shouldFindResourceWhereGivenNamespaceIsOwnerOf() {
         Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("namespace1")
-                .build())
-            .build();
-
+            .metadata(Metadata.builder().name("namespace1").build()).build();
         AccessControlEntry acl1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
