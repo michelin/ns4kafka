@@ -103,20 +103,6 @@ class AclControllerTest {
                 .build())
             .build();
 
-        AccessControlEntry aceTopicPrefixedOwnerAdminToNamespaceOther = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .namespace("admin")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource("other-prefix")
-                .grantedTo("namespace-other")
-                .build())
-            .build();
-
         AccessControlEntry aceTopicPrefixedReadNamespaceOtherToTest = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .namespace("namespace-other")

@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.controller.acl;
 
-import static com.michelin.ns4kafka.service.AclService.PUBLIC_GRANTED_TO;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidAclDeleteOnlyAdmin;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidImmutableField;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNotFound;
