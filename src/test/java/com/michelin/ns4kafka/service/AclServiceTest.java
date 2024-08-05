@@ -935,6 +935,12 @@ class AclServiceTest {
 
     @Test
     void shouldFindAclGrantedToNamespaceByWildcardName() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace2")
+                .build())
+            .build();
+
         AccessControlEntry acl1 = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("ns1-acl-topic")
@@ -992,7 +998,6 @@ class AclServiceTest {
 
         when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, acl3, acl4, acl5));
 
-        Namespace ns = Namespace.builder().metadata(Metadata.builder().name("namespace2").build()).build();
         assertEquals(List.of(acl2, acl3, acl4, acl5), aclService.findByWildcardNameGrantedToNamespace(ns, "*"));
         assertEquals(List.of(acl2), aclService.findByWildcardNameGrantedToNamespace(ns, "acl-ns1-read-to-ns2"));
         assertEquals(List.of(acl2, acl5), aclService.findByWildcardNameGrantedToNamespace(ns, "*read*"));
@@ -1001,6 +1006,12 @@ class AclServiceTest {
 
     @Test
     void shouldFindAclGrantedByNamespaceByWildcardName() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace1")
+                .build())
+            .build();
+
         AccessControlEntry acl1 = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("ns1-acl-topic")
@@ -1058,7 +1069,6 @@ class AclServiceTest {
 
         when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, acl3, acl4, acl5));
 
-        Namespace ns = Namespace.builder().metadata(Metadata.builder().name("namespace1").build()).build();
         assertEquals(List.of(acl2, acl3), aclService.findByWildcardNameGrantedByNamespace(ns, "*"));
         assertEquals(List.of(acl2), aclService.findByWildcardNameGrantedByNamespace(ns, "acl-ns1-read-to-ns2"));
         assertEquals(List.of(acl2, acl3), aclService.findByWildcardNameGrantedByNamespace(ns, "*-to-ns2"));
@@ -1135,17 +1145,32 @@ class AclServiceTest {
 
         when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, acl3, acl4, acl5, acl6));
 
-        Namespace ns1 = Namespace.builder().metadata(Metadata.builder().name("namespace1").build()).build();
+        Namespace ns1 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace1")
+                .build())
+            .build();
+
         assertEquals(List.of(acl1, acl2, acl3, acl5, acl6), aclService.findByWildcardNameRelatedToNamespace(ns1, "*"));
         assertEquals(List.of(acl1, acl5), aclService.findByWildcardNameRelatedToNamespace(ns1, "*topic*"));
         assertEquals(List.of(acl1, acl3), aclService.findByWildcardNameRelatedToNamespace(ns1, "ns1-acl*"));
         assertTrue(aclService.findByWildcardNameRelatedToNamespace(ns1, "not-found").isEmpty());
 
-        Namespace ns2 = Namespace.builder().metadata(Metadata.builder().name("namespace2").build()).build();
+        Namespace ns2 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace1")
+                .build())
+            .build();
+
         assertEquals(List.of(acl2, acl4, acl5), aclService.findByWildcardNameRelatedToNamespace(ns2, "*"));
         assertEquals(List.of(acl2, acl4), aclService.findByWildcardNameRelatedToNamespace(ns2, "*ns2*"));
 
-        Namespace ns3 = Namespace.builder().metadata(Metadata.builder().name("namespace3").build()).build();
+        Namespace ns3 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace1")
+                .build())
+            .build();
+
         assertEquals(List.of(acl5, acl6), aclService.findByWildcardNameRelatedToNamespace(ns3, "*"));
         assertEquals(List.of(acl6), aclService.findByWildcardNameRelatedToNamespace(ns3, "ns3-write-acl-ns1"));
     }
