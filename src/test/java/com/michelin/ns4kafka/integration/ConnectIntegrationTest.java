@@ -60,15 +60,15 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
 
     @Inject
     @Client("/")
-    HttpClient ns4KafkaClient;
+    private HttpClient ns4KafkaClient;
 
     private HttpClient connectClient;
 
     @Inject
-    List<TopicAsyncExecutor> topicAsyncExecutorList;
+    private List<TopicAsyncExecutor> topicAsyncExecutorList;
 
     @Inject
-    List<ConnectorAsyncExecutor> connectorAsyncExecutorList;
+    private List<ConnectorAsyncExecutor> connectorAsyncExecutorList;
 
     private String token;
 
@@ -206,7 +206,7 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
     }
 
     @Test
-    void shouldDeployConnectors() {
+    void shouldDeployConnectors() throws InterruptedException {
         Map<String, String> connectorSpecs = new HashMap<>();
         connectorSpecs.put("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector");
         connectorSpecs.put("tasks.max", "1");
@@ -327,7 +327,7 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
     }
 
     @Test
-    void shouldUpdateConnectorsWithNullProperty() {
+    void shouldUpdateConnectorsWithNullProperty() throws InterruptedException {
         ConnectorSpecs connectorSpecs = ConnectorSpecs.builder()
             .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
                 "tasks.max", "1",
@@ -449,7 +449,7 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .body(connector));
 
         forceConnectorSynchronization();
-        waitForConnectorAndTasksToStart("ns1-co1");
+        waitForConnectorAndTasksToBeInState("ns1-co1", Connector.TaskState.RUNNING);
 
         ChangeConnectorState restartState = ChangeConnectorState.builder()
             .metadata(Metadata.builder()
@@ -523,7 +523,7 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .body(connector));
 
         forceConnectorSynchronization();
-        waitForConnectorAndTasksToStart("ns1-co2");
+        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.RUNNING);
 
         ConnectorStateInfo actual = connectClient
             .toBlocking()
@@ -553,6 +553,8 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
 
         assertEquals(HttpStatus.OK, pauseResponse.status());
 
+        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.PAUSED);
+
         actual = connectClient
             .toBlocking()
             .retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
@@ -572,15 +574,16 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .build())
             .build();
 
-        ns4KafkaClient
+        HttpResponse<ChangeConnectorState> resumeResponse = ns4KafkaClient
             .toBlocking()
             .exchange(HttpRequest
                 .create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co2/change-state")
                 .bearerAuth(token)
                 .body(resumeState));
 
-        // Wait for tasks to resume
-        Thread.sleep(2000);
+        assertEquals(HttpStatus.OK, resumeResponse.status());
+
+        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.RUNNING);
 
         // Verify resumed directly on connect cluster
         actual = connectClient
@@ -596,7 +599,7 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
     /**
      * Force synchronization of all connectors synchronously.
      */
-    private void forceConnectorSynchronization() {
+    private void forceConnectorSynchronization() throws InterruptedException {
         Flux.fromIterable(connectorAsyncExecutorList)
             .flatMap(ConnectorAsyncExecutor::runHealthCheck)
             .blockLast();
@@ -604,20 +607,29 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
         Flux.fromIterable(connectorAsyncExecutorList)
             .flatMap(ConnectorAsyncExecutor::run)
             .blockLast();
+
+        // Wait for Kafka Connect to deploy and update connectors
+        Thread.sleep(3000);
     }
 
-    private void waitForConnectorAndTasksToStart(String connector) throws InterruptedException {
-        HttpResponse<?> actual = HttpResponse.notFound();
+    private void waitForConnectorAndTasksToBeInState(String connector, Connector.TaskState state)
+        throws InterruptedException {
+        boolean tasksInState = false;
 
-        while (actual.getStatus().equals(HttpStatus.NOT_FOUND)) {
-            log.info("Waiting for connector and tasks to start...");
+        while (!tasksInState) {
+            log.info("Waiting for connector and tasks to be in state {}...", state);
             Thread.sleep(2000);
             try {
-                actual = connectClient
+                HttpResponse<ConnectorStateInfo> response = connectClient
                     .toBlocking()
-                    .exchange(HttpRequest.GET(String.format("/connectors/%s/status", connector)));
-            } catch (HttpClientResponseException e) {
-                actual = e.getResponse();
+                    .exchange(HttpRequest
+                        .GET(String.format("/connectors/%s/status", connector)), ConnectorStateInfo.class);
+
+                tasksInState = response.body().tasks()
+                    .stream()
+                    .allMatch(task -> task.getState().equals(state.toString()));
+            } catch (HttpClientResponseException ignored) {
+                // Connector not found, retry
             }
         }
     }
