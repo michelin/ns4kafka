@@ -39,16 +39,19 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 
+@Slf4j
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
@@ -203,7 +206,7 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
     }
 
     @Test
-    void shouldDeployConnectors() throws InterruptedException {
+    void shouldDeployConnectors() {
         Map<String, String> connectorSpecs = new HashMap<>();
         connectorSpecs.put("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector");
         connectorSpecs.put("tasks.max", "1");
@@ -296,10 +299,7 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .bearerAuth(token)
                 .body(connectorWithFillParameter));
 
-        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::runHealthCheck).subscribe();
-        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::run).subscribe();
-
-        Thread.sleep(2000);
+        forceConnectorSynchronization();
 
         // "File" property is present, but null
         ConnectorInfo actualConnectorWithNullParameter = connectClient
@@ -327,7 +327,7 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
     }
 
     @Test
-    void shouldUpdateConnectorsWithNullProperty() throws InterruptedException {
+    void shouldUpdateConnectorsWithNullProperty() {
         ConnectorSpecs connectorSpecs = ConnectorSpecs.builder()
             .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
                 "tasks.max", "1",
@@ -391,10 +391,7 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .bearerAuth(token)
                 .body(updateConnector));
 
-        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::runHealthCheck).subscribe();
-        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::run).subscribe();
-
-        Thread.sleep(2000);
+        forceConnectorSynchronization();
 
         ConnectorInfo actualConnector = connectClient
             .toBlocking()
@@ -451,10 +448,8 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .bearerAuth(token)
                 .body(connector));
 
-        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::runHealthCheck).subscribe();
-        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::run).subscribe();
-
-        Thread.sleep(2000);
+        forceConnectorSynchronization();
+        waitForConnectorAndTasksToStart("ns1-co1");
 
         ChangeConnectorState restartState = ChangeConnectorState.builder()
             .metadata(Metadata.builder()
@@ -465,14 +460,21 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .build())
             .build();
 
-        HttpResponse<ChangeConnectorState> actual = ns4KafkaClient
+        HttpResponse<ChangeConnectorState> restartResponse = ns4KafkaClient
             .toBlocking()
             .exchange(HttpRequest
                 .create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co1/change-state")
                 .bearerAuth(token)
                 .body(restartState), ChangeConnectorState.class);
 
-        assertEquals(HttpStatus.OK, actual.status());
+        assertEquals(HttpStatus.OK, restartResponse.status());
+
+        ConnectorStateInfo actual = connectClient
+            .toBlocking()
+            .retrieve(HttpRequest.GET("/connectors/ns1-co1/status"), ConnectorStateInfo.class);
+
+        assertEquals("RUNNING", actual.connector().getState());
+        assertEquals("RUNNING", actual.tasks().get(0).getState());
     }
 
     @Test
@@ -520,10 +522,17 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .bearerAuth(token)
                 .body(connector));
 
-        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::runHealthCheck).subscribe();
-        Flux.fromIterable(connectorAsyncExecutorList).flatMap(ConnectorAsyncExecutor::run).subscribe();
+        forceConnectorSynchronization();
+        waitForConnectorAndTasksToStart("ns1-co2");
 
-        Thread.sleep(2000);
+        ConnectorStateInfo actual = connectClient
+            .toBlocking()
+            .retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
+
+        assertEquals("RUNNING", actual.connector().getState());
+        assertEquals("RUNNING", actual.tasks().get(0).getState());
+        assertEquals("RUNNING", actual.tasks().get(1).getState());
+        assertEquals("RUNNING", actual.tasks().get(2).getState());
 
         // Pause the connector
         ChangeConnectorState pauseState = ChangeConnectorState.builder()
@@ -535,16 +544,16 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .build())
             .build();
 
-        ns4KafkaClient
+        HttpResponse<ChangeConnectorState> pauseResponse = ns4KafkaClient
             .toBlocking()
             .exchange(HttpRequest
                 .create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co2/change-state")
                 .bearerAuth(token)
                 .body(pauseState));
 
-        Thread.sleep(2000);
+        assertEquals(HttpStatus.OK, pauseResponse.status());
 
-        ConnectorStateInfo actual = connectClient
+        actual = connectClient
             .toBlocking()
             .retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
 
@@ -570,6 +579,7 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
                 .bearerAuth(token)
                 .body(resumeState));
 
+        // Wait for tasks to resume
         Thread.sleep(2000);
 
         // Verify resumed directly on connect cluster
@@ -581,5 +591,34 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
         assertEquals("RUNNING", actual.tasks().get(0).getState());
         assertEquals("RUNNING", actual.tasks().get(1).getState());
         assertEquals("RUNNING", actual.tasks().get(2).getState());
+    }
+
+    /**
+     * Force synchronization of all connectors synchronously.
+     */
+    private void forceConnectorSynchronization() {
+        Flux.fromIterable(connectorAsyncExecutorList)
+            .flatMap(ConnectorAsyncExecutor::runHealthCheck)
+            .blockLast();
+
+        Flux.fromIterable(connectorAsyncExecutorList)
+            .flatMap(ConnectorAsyncExecutor::run)
+            .blockLast();
+    }
+
+    private void waitForConnectorAndTasksToStart(String connector) throws InterruptedException {
+        HttpResponse<?> actual = HttpResponse.notFound();
+
+        while (actual.getStatus().equals(HttpStatus.NOT_FOUND)) {
+            log.info("Waiting for connector and tasks to start...");
+            Thread.sleep(2000);
+            try {
+                actual = connectClient
+                    .toBlocking()
+                    .exchange(HttpRequest.GET(String.format("/connectors/%s/status", connector)));
+            } catch (HttpClientResponseException e) {
+                actual = e.getResponse();
+            }
+        }
     }
 }
