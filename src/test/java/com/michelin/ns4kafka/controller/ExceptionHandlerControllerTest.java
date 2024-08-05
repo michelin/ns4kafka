@@ -20,7 +20,7 @@ class ExceptionHandlerControllerTest {
     ExceptionHandlerController exceptionHandlerController = new ExceptionHandlerController();
 
     @Test
-    void resourceValidationError() {
+    void shouldHandleResourceValidationException() {
         var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
             new ResourceValidationException(TOPIC, "Name", List.of("Error1", "Error2")));
         var status = response.body();
@@ -35,7 +35,7 @@ class ExceptionHandlerControllerTest {
     }
 
     @Test
-    void constraintViolationError() {
+    void shouldHandleConstraintViolationException() {
         var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
             new ConstraintViolationException(Set.of()));
         var status = response.body();
@@ -45,7 +45,7 @@ class ExceptionHandlerControllerTest {
     }
 
     @Test
-    void authorizationUnauthorizedError() {
+    void shouldHandleAuthorizationExceptionAndConvertToUnauthorized() {
         var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
             new AuthorizationException(null));
         var status = response.body();
@@ -55,7 +55,7 @@ class ExceptionHandlerControllerTest {
     }
 
     @Test
-    void authorizationForbiddenError() {
+    void shouldHandleAuthorizationExceptionAndConvertToForbidden() {
         var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
             new AuthorizationException(Authentication.build("user", Map.of())));
         var status = response.body();
@@ -65,7 +65,7 @@ class ExceptionHandlerControllerTest {
     }
 
     @Test
-    void authenticationError() {
+    void shouldHandleAuthenticationException() {
         var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
             new AuthenticationException());
         var status = response.body();
@@ -75,7 +75,7 @@ class ExceptionHandlerControllerTest {
     }
 
     @Test
-    void anyError() {
+    void shouldHandleAnyException() {
         var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
             new Exception());
         var status = response.body();

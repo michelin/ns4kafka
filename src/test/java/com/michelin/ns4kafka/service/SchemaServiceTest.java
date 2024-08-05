@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -288,10 +287,10 @@ class SchemaServiceTest {
             })
             .verifyComplete();
 
-        verify(schemaRegistryClient, times(1)).deleteSubject(namespace.getMetadata().getCluster(),
+        verify(schemaRegistryClient).deleteSubject(namespace.getMetadata().getCluster(),
             "prefix.schema-one", false);
 
-        verify(schemaRegistryClient, times(1)).deleteSubject(namespace.getMetadata().getCluster(),
+        verify(schemaRegistryClient).deleteSubject(namespace.getMetadata().getCluster(),
             "prefix.schema-one", true);
     }
 
@@ -359,7 +358,7 @@ class SchemaServiceTest {
                 schemaCompatibilityResponse.compatibilityLevel()))
             .verifyComplete();
 
-        verify(schemaRegistryClient, times(1)).deleteCurrentCompatibilityBySubject(any(), any());
+        verify(schemaRegistryClient).deleteCurrentCompatibilityBySubject(any(), any());
     }
 
     @Test
@@ -377,7 +376,7 @@ class SchemaServiceTest {
                 schemaCompatibilityResponse.compatibilityLevel()))
             .verifyComplete();
 
-        verify(schemaRegistryClient, times(1)).updateSubjectCompatibility(any(), any(), any());
+        verify(schemaRegistryClient).updateSubjectCompatibility(any(), any(), any());
     }
 
     @Test

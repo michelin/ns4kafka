@@ -26,6 +26,7 @@ class LoginIntegrationTest extends AbstractIntegrationTest {
         HttpResponse<String> response = ns4KafkaClient
             .toBlocking()
             .exchange(HttpRequest.POST("/login", credentials), String.class);
+
         assertEquals(HttpStatus.OK, response.status());
     }
 
@@ -36,6 +37,7 @@ class LoginIntegrationTest extends AbstractIntegrationTest {
             .exchange(HttpRequest
                 .GET("/api/namespaces")
                 .basicAuth("admin", "admin"), String.class);
+
         assertEquals(HttpStatus.OK, response.status());
     }
 }

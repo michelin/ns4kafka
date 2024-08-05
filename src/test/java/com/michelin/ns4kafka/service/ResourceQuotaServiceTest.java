@@ -11,7 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -186,7 +185,7 @@ class ResourceQuotaServiceTest {
 
         ResourceQuota createdResourceQuota = resourceQuotaService.create(resourceQuota);
         assertEquals(resourceQuota, createdResourceQuota);
-        verify(resourceQuotaRepository, times(1)).create(resourceQuota);
+        verify(resourceQuotaRepository).create(resourceQuota);
     }
 
     @Test
@@ -202,7 +201,7 @@ class ResourceQuotaServiceTest {
         doNothing().when(resourceQuotaRepository).delete(resourceQuota);
 
         resourceQuotaService.delete(resourceQuota);
-        verify(resourceQuotaRepository, times(1)).delete(resourceQuota);
+        verify(resourceQuotaRepository).delete(resourceQuota);
     }
 
     @Test

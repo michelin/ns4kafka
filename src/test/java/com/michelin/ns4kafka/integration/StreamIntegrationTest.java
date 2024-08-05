@@ -49,7 +49,7 @@ class StreamIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeAll
     void init() {
-        Namespace ns1 = Namespace.builder()
+        Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("nskafkastream")
                 .cluster("test-cluster")
@@ -77,8 +77,7 @@ class StreamIntegrationTest extends AbstractIntegrationTest {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
         HttpResponse<BearerAccessRefreshToken> response = ns4KafkaClient
             .toBlocking()
-            .exchange(HttpRequest
-                .POST("/login", credentials), BearerAccessRefreshToken.class);
+            .exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
 
         token = response.getBody().get().getAccessToken();
 
@@ -87,7 +86,7 @@ class StreamIntegrationTest extends AbstractIntegrationTest {
             .exchange(HttpRequest
                 .create(HttpMethod.POST, "/api/namespaces")
                 .bearerAuth(token)
-                .body(ns1));
+                .body(namespace));
 
         ns4KafkaClient
             .toBlocking()

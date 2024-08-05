@@ -37,7 +37,7 @@ class ConsumerGroupServiceTest {
 
     @ParameterizedTest
     @CsvSource({"*", "namespace_testTopic01", "namespace_testTopic01:2"})
-    void doValidationAllTopics(String topic) {
+    void shouldValidateResetOnGivenTopics(String topic) {
         ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
             .spec(ConsumerGroupResetOffsetsSpec.builder()
                 .topic(topic)
@@ -50,7 +50,7 @@ class ConsumerGroupServiceTest {
     }
 
     @Test
-    void doValidationMissingTopic() {
+    void shouldValidateResetWhenMissingTopic() {
         ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
             .spec(ConsumerGroupResetOffsetsSpec.builder()
                 .topic(":2")
@@ -63,7 +63,7 @@ class ConsumerGroupServiceTest {
     }
 
     @Test
-    void doValidationEarliestOption() {
+    void shouldValidateResetToEarliest() {
         ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
             .spec(ConsumerGroupResetOffsetsSpec.builder()
                 .topic("namespace_testTopic01:2")
@@ -77,7 +77,7 @@ class ConsumerGroupServiceTest {
     }
 
     @Test
-    void doValidationLatestOption() {
+    void shouldValidateResetToLatest() {
         ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
             .spec(ConsumerGroupResetOffsetsSpec.builder()
                 .topic("namespace_testTopic01:2")
@@ -91,7 +91,7 @@ class ConsumerGroupServiceTest {
     }
 
     @Test
-    void doValidationValidDateTimeOption() {
+    void shouldValidateResetToDateTime() {
         ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
             .spec(ConsumerGroupResetOffsetsSpec.builder()
                 .topic("namespace_testTopic01:2")
@@ -105,7 +105,7 @@ class ConsumerGroupServiceTest {
     }
 
     @Test
-    void doValidationValidDateTimeOptionDateWithoutMs() {
+    void shouldValidateResetToDateTimeWithoutMs() {
         ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
             .spec(ConsumerGroupResetOffsetsSpec.builder()
                 .topic("namespace_testTopic01:2")
@@ -120,7 +120,7 @@ class ConsumerGroupServiceTest {
 
     @ParameterizedTest
     @CsvSource({"NOT A DATE", "2021-06-02T11:22:33.249", "2021-06-02T11:22:33+99:99"})
-    void doValidationInvalidDateTimeOption(String option) {
+    void shouldNotValidateResetWhenDateTimeOptionIsInvalid(String option) {
         ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
             .spec(ConsumerGroupResetOffsetsSpec.builder()
                 .topic("namespace_testTopic01:2")
@@ -133,13 +133,14 @@ class ConsumerGroupServiceTest {
         assertEquals(1, result.size());
     }
 
-    @Test
-    void doValidationValidMinusShiftByOption() {
+    @ParameterizedTest
+    @CsvSource({"-5", "+5"})
+    void shouldValidateResetToShiftBy(String option) {
         ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
             .spec(ConsumerGroupResetOffsetsSpec.builder()
                 .topic("namespace_testTopic01:2")
                 .method(ResetOffsetsMethod.SHIFT_BY)
-                .options("-5")
+                .options(option)
                 .build())
             .build();
 
@@ -148,21 +149,7 @@ class ConsumerGroupServiceTest {
     }
 
     @Test
-    void doValidationValidPositiveShiftByOption() {
-        ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
-            .spec(ConsumerGroupResetOffsetsSpec.builder()
-                .topic("namespace_testTopic01:2")
-                .method(ResetOffsetsMethod.SHIFT_BY)
-                .options("+5")
-                .build())
-            .build();
-
-        List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
-        assertTrue(result.isEmpty());
-    }
-
-    @Test
-    void doValidation_InvalidShiftByOption() {
+    void shouldNotValidateResetToShiftByWhenOptionIsInvalid() {
         ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
             .spec(ConsumerGroupResetOffsetsSpec.builder()
                 .topic("namespace_testTopic01:2")
@@ -175,13 +162,14 @@ class ConsumerGroupServiceTest {
         assertEquals(1, result.size());
     }
 
-    @Test
-    void doValidationValidPositiveDurationOption() {
+    @ParameterizedTest
+    @CsvSource({"P4DT11H9M8S", "-P4DT11H9M8S"})
+    void shouldValidateResetToDuration(String option) {
         ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
             .spec(ConsumerGroupResetOffsetsSpec.builder()
                 .topic("namespace_testTopic01:2")
                 .method(ResetOffsetsMethod.BY_DURATION)
-                .options("P4DT11H9M8S")
+                .options(option)
                 .build())
             .build();
 
@@ -190,21 +178,7 @@ class ConsumerGroupServiceTest {
     }
 
     @Test
-    void doValidationValidMinusDurationOption() {
-        ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
-            .spec(ConsumerGroupResetOffsetsSpec.builder()
-                .topic("namespace_testTopic01:2")
-                .method(ResetOffsetsMethod.BY_DURATION)
-                .options("-P4DT11H9M8S")
-                .build())
-            .build();
-
-        List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
-        assertTrue(result.isEmpty());
-    }
-
-    @Test
-    void doValidation_InvalidDurationOption() {
+    void shouldNotValidateResetToDurationWhenOptionIsInvalid() {
         ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
             .spec(ConsumerGroupResetOffsetsSpec.builder()
                 .topic("namespace_testTopic01:2")
@@ -218,7 +192,7 @@ class ConsumerGroupServiceTest {
     }
 
     @Test
-    void shouldValidateOffsetFormatInt() {
+    void shouldNotValidateResetToOffsetWhenOptionHasWrongFormat() {
         ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
             .spec(ConsumerGroupResetOffsetsSpec.builder()
                 .topic("namespace_testTopic01:2")
@@ -232,7 +206,7 @@ class ConsumerGroupServiceTest {
     }
 
     @Test
-    void shouldValidateOffsetFormatPositive() {
+    void shouldValidateResetToOffset() {
         ConsumerGroupResetOffsets consumerGroupResetOffsets = ConsumerGroupResetOffsets.builder()
             .spec(ConsumerGroupResetOffsetsSpec.builder()
                 .topic("namespace_testTopic01:2")
@@ -246,7 +220,7 @@ class ConsumerGroupServiceTest {
     }
 
     @Test
-    void doGetPartitionsToResetAllTopic() throws InterruptedException, ExecutionException {
+    void shouldGetPartitionsToResetFromAllTopics() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .cluster("test")
@@ -261,11 +235,14 @@ class ConsumerGroupServiceTest {
 
         ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
         when(applicationContext.getBean(ConsumerGroupAsyncExecutor.class,
-            Qualifiers.byName(namespace.getMetadata().getCluster()))).thenReturn(consumerGroupAsyncExecutor);
-        when(consumerGroupAsyncExecutor.getCommittedOffsets(groupId)).thenReturn(
-            Map.of(topicPartition1, 5L,
+            Qualifiers.byName(namespace.getMetadata().getCluster())))
+            .thenReturn(consumerGroupAsyncExecutor);
+        when(consumerGroupAsyncExecutor.getCommittedOffsets(groupId))
+            .thenReturn(Map.of(
+                topicPartition1, 5L,
                 topicPartition2, 10L,
-                topicPartition3, 5L));
+                topicPartition3, 5L
+            ));
         List<TopicPartition> result = consumerGroupService.getPartitionsToReset(namespace, groupId, topic);
 
         assertEquals(3, result.size());
@@ -275,7 +252,7 @@ class ConsumerGroupServiceTest {
     }
 
     @Test
-    void doGetPartitionsToResetOneTopic() throws InterruptedException, ExecutionException {
+    void shouldGetPartitionsToResetFromOneTopic() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .cluster("test")
@@ -299,7 +276,7 @@ class ConsumerGroupServiceTest {
     }
 
     @Test
-    void doGetPartitionsToResetOneTopicPartition() throws InterruptedException, ExecutionException {
+    void shouldGetPartitionsToResetFromOneTopicPartition() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .cluster("test")
@@ -323,28 +300,40 @@ class ConsumerGroupServiceTest {
                 .cluster("test")
                 .build())
             .build();
+
         String groupId = "testGroup";
         String options = "-5";
         TopicPartition topicPartition1 = new TopicPartition("topic1", 0);
         TopicPartition topicPartition2 = new TopicPartition("topic1", 1);
         List<TopicPartition> partitionsToReset = List.of(topicPartition1, topicPartition2);
 
-        ResetOffsetsMethod method = ResetOffsetsMethod.SHIFT_BY;
         ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
         when(applicationContext.getBean(ConsumerGroupAsyncExecutor.class,
-            Qualifiers.byName(namespace.getMetadata().getCluster()))).thenReturn(consumerGroupAsyncExecutor);
-        when(consumerGroupAsyncExecutor.getCommittedOffsets(anyString())).thenReturn(
-            Map.of(new TopicPartition("topic1", 0), 10L,
-                new TopicPartition("topic1", 1), 15L,
-                new TopicPartition("topic2", 0), 10L));
-        when(consumerGroupAsyncExecutor.checkOffsetsRange(
-            Map.of(new TopicPartition("topic1", 0), 5L,
-                new TopicPartition("topic1", 1), 10L))).thenReturn(
-            Map.of(new TopicPartition("topic1", 0), 5L,
-                new TopicPartition("topic1", 1), 10L));
+            Qualifiers.byName(namespace.getMetadata().getCluster())))
+            .thenReturn(consumerGroupAsyncExecutor);
+        when(consumerGroupAsyncExecutor.getCommittedOffsets(anyString()))
+            .thenReturn(Map.of(
+                    new TopicPartition("topic1", 0), 10L,
+                    new TopicPartition("topic1", 1), 15L,
+                    new TopicPartition("topic2", 0), 10L
+                )
+            );
+        when(consumerGroupAsyncExecutor.checkOffsetsRange(Map.of(
+            new TopicPartition("topic1", 0), 5L,
+            new TopicPartition("topic1", 1), 10L)))
+            .thenReturn(Map.of(
+                    new TopicPartition("topic1", 0), 5L,
+                    new TopicPartition("topic1", 1), 10L
+                )
+            );
 
-        Map<TopicPartition, Long> result =
-            consumerGroupService.prepareOffsetsToReset(namespace, groupId, options, partitionsToReset, method);
+        Map<TopicPartition, Long> result = consumerGroupService.prepareOffsetsToReset(
+            namespace,
+            groupId,
+            options,
+            partitionsToReset,
+            ResetOffsetsMethod.SHIFT_BY
+        );
 
         assertEquals(2, result.size());
         assertTrue(result.containsKey(topicPartition1));

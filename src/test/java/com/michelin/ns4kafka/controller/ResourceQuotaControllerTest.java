@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -323,6 +322,6 @@ class ResourceQuotaControllerTest {
 
         HttpResponse<Void> actual = resourceQuotaController.delete("test", "quota", false);
         assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
-        verify(resourceQuotaService, times(1)).delete(resourceQuota);
+        verify(resourceQuotaService).delete(resourceQuota);
     }
 }

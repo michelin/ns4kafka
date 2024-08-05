@@ -81,7 +81,6 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
                 .build())
             .build();
 
-
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
         HttpResponse<BearerAccessRefreshToken> response = ns4KafkaClient
             .toBlocking()
