@@ -50,12 +50,8 @@ public class AclController extends NamespacedResourceController {
     @Get("{?limit}")
     public List<AccessControlEntry> list(String namespace, Optional<AclLimit> limit,
                                          @QueryValue(defaultValue = "*") String name) {
-        if (limit.isEmpty()) {
-            limit = Optional.of(AclLimit.ALL);
-        }
-
         Namespace ns = getNamespace(namespace);
-        return switch (limit.get()) {
+        return switch (limit.orElse(AclLimit.ALL)) {
             case GRANTEE -> aclService.findByWildcardNameGrantedToNamespace(ns, name)
                 .stream()
                 .sorted(Comparator.comparing((AccessControlEntry acl) -> acl.getMetadata().getNamespace()))
