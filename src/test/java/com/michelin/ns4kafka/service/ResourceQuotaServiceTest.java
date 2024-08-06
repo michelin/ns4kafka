@@ -46,17 +46,7 @@ class ResourceQuotaServiceTest {
     ConnectorService connectorService;
 
     @Test
-    void findByNamespace() {
-        Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("namespace")
-                .cluster("local")
-                .build())
-            .spec(Namespace.NamespaceSpec.builder()
-                .connectClusters(List.of("local-name"))
-                .build())
-            .build();
-
+    void shouldFindQuota() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
             .metadata(Metadata.builder()
                 .cluster("local")
@@ -68,14 +58,11 @@ class ResourceQuotaServiceTest {
         when(resourceQuotaRepository.findForNamespace("namespace"))
             .thenReturn(Optional.of(resourceQuota));
 
-        Optional<ResourceQuota> resourceQuotaOptional =
-            resourceQuotaService.findByNamespace(ns.getMetadata().getName());
-        assertTrue(resourceQuotaOptional.isPresent());
-        assertEquals("test", resourceQuotaOptional.get().getMetadata().getName());
+        assertEquals(Optional.of(resourceQuota), resourceQuotaService.findForNamespace("namespace"));
     }
 
     @Test
-    void findByNamespaceEmpty() {
+    void shouldGetQuotasWhenEmpty() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -89,13 +76,92 @@ class ResourceQuotaServiceTest {
         when(resourceQuotaRepository.findForNamespace("namespace"))
             .thenReturn(Optional.empty());
 
-        Optional<ResourceQuota> resourceQuotaOptional =
-            resourceQuotaService.findByNamespace(ns.getMetadata().getName());
-        assertTrue(resourceQuotaOptional.isEmpty());
+        assertTrue(resourceQuotaService.findForNamespace(ns.getMetadata().getName()).isEmpty());
     }
 
     @Test
-    void findByName() {
+    void shouldListQuotasWithoutParameter() {
+        ResourceQuota resourceQuota1 = ResourceQuota.builder()
+            .metadata(Metadata.builder()
+                .cluster("local")
+                .name("quotaName")
+                .build())
+            .spec(Map.of(COUNT_TOPICS.toString(), "1"))
+            .build();
+
+        ResourceQuota resourceQuota2 = ResourceQuota.builder()
+            .metadata(Metadata.builder()
+                .cluster("local")
+                .name("quotaName2")
+                .build())
+            .spec(Map.of(COUNT_TOPICS.toString(), "1"))
+            .build();
+
+        when(resourceQuotaRepository.findAllForNamespace("namespace"))
+            .thenReturn(List.of(resourceQuota1, resourceQuota2));
+
+        assertEquals(List.of(resourceQuota1, resourceQuota2),
+            resourceQuotaService.findByWildcardName("namespace", "*"));
+    }
+
+    @Test
+    void shouldListQuotasWithNameParameter() {
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+            .metadata(Metadata.builder()
+                .cluster("local")
+                .name("quotaName")
+                .build())
+            .spec(Map.of(COUNT_TOPICS.toString(), "1"))
+            .build();
+
+        when(resourceQuotaRepository.findAllForNamespace("namespace"))
+            .thenReturn(List.of(resourceQuota));
+
+        assertEquals(List.of(resourceQuota),
+            resourceQuotaService.findByWildcardName("namespace", "quotaName"));
+        assertTrue(resourceQuotaService.findByWildcardName("namespace", "not-found").isEmpty());
+    }
+
+    @Test
+    void shouldListQuotasWithWildcardNameParameter() {
+        ResourceQuota resourceQuota1 = ResourceQuota.builder()
+            .metadata(Metadata.builder()
+                .cluster("local")
+                .name("quotaName1")
+                .build())
+            .spec(Map.of(COUNT_TOPICS.toString(), "1"))
+            .build();
+
+        ResourceQuota resourceQuota2 = ResourceQuota.builder()
+            .metadata(Metadata.builder()
+                .cluster("local")
+                .name("quotaName2")
+                .build())
+            .spec(Map.of(COUNT_TOPICS.toString(), "1"))
+            .build();
+
+        ResourceQuota resourceQuota3 = ResourceQuota.builder()
+            .metadata(Metadata.builder()
+                .cluster("local")
+                .name("topicQuota2")
+                .build())
+            .spec(Map.of(COUNT_TOPICS.toString(), "1"))
+            .build();
+
+        when(resourceQuotaRepository.findAllForNamespace("namespace"))
+            .thenReturn(List.of(resourceQuota1, resourceQuota2, resourceQuota3));
+
+        assertEquals(List.of(resourceQuota1, resourceQuota2, resourceQuota3),
+            resourceQuotaService.findByWildcardName("namespace", "*"));
+        assertEquals(List.of(resourceQuota1, resourceQuota2),
+            resourceQuotaService.findByWildcardName("namespace", "quotaName?"));
+        assertEquals(List.of(resourceQuota2, resourceQuota3),
+            resourceQuotaService.findByWildcardName("namespace", "*2"));
+        assertTrue(resourceQuotaService.findByWildcardName("namespace", "not-quotaName?").isEmpty());
+    }
+
+    @Test
+    void shouldFindByName() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -124,7 +190,7 @@ class ResourceQuotaServiceTest {
     }
 
     @Test
-    void findByNameWrongName() {
+    void shouldFindByNameWrongName() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -152,7 +218,7 @@ class ResourceQuotaServiceTest {
     }
 
     @Test
-    void findByNameEmpty() {
+    void shouldFindByNameWhenEmpty() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -172,7 +238,7 @@ class ResourceQuotaServiceTest {
     }
 
     @Test
-    void create() {
+    void shouldCreateQuota() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
             .metadata(Metadata.builder()
                 .cluster("local")
@@ -190,7 +256,7 @@ class ResourceQuotaServiceTest {
     }
 
     @Test
-    void delete() {
+    void shouldDeleteQuota() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
             .metadata(Metadata.builder()
                 .cluster("local")
@@ -206,7 +272,7 @@ class ResourceQuotaServiceTest {
     }
 
     @Test
-    void validateNewQuotaAgainstCurrentResourceSuccess() {
+    void shouldValidateNewQuotaAgainstCurrentResourceSuccess() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -254,7 +320,7 @@ class ResourceQuotaServiceTest {
     }
 
     @Test
-    void validateNewQuotaAgainstCurrentResourceForCountTopics() {
+    void shouldValidateNewQuotaAgainstCurrentResourceForCountTopics() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -300,11 +366,11 @@ class ResourceQuotaServiceTest {
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
         assertEquals(1, validationErrors.size());
         assertEquals("Invalid value \"2\" for field \"count/topics\": quota already exceeded (3/2).",
-            validationErrors.get(0));
+            validationErrors.getFirst());
     }
 
     @Test
-    void validateNewQuotaAgainstCurrentResourceForCountPartitions() {
+    void shouldValidateNewQuotaAgainstCurrentResourceForCountPartitions() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -359,11 +425,11 @@ class ResourceQuotaServiceTest {
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
         assertEquals(1, validationErrors.size());
         assertEquals("Invalid value \"10\" for field \"count/partitions\": quota already exceeded (19/10).",
-            validationErrors.get(0));
+            validationErrors.getFirst());
     }
 
     @Test
-    void validateNewQuotaDiskTopicsFormat() {
+    void shouldValidateNewQuotaDiskTopicsFormat() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -385,11 +451,11 @@ class ResourceQuotaServiceTest {
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
         assertEquals(1, validationErrors.size());
         assertEquals("Invalid value \"10\" for field \"disk/topics\": value must end with either B, KiB, MiB or GiB.",
-            validationErrors.get(0));
+            validationErrors.getFirst());
     }
 
     @Test
-    void validateNewQuotaAgainstCurrentResourceForDiskTopics() {
+    void shouldValidateNewQuotaAgainstCurrentResourceForDiskTopics() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -436,11 +502,11 @@ class ResourceQuotaServiceTest {
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
         assertEquals(1, validationErrors.size());
         assertEquals("Invalid value \"5000B\" for field \"disk/topics\": quota already exceeded (8.79KiB/5000B).",
-            validationErrors.get(0));
+            validationErrors.getFirst());
     }
 
     @Test
-    void validateNewQuotaAgainstCurrentResourceForCountConnectors() {
+    void shouldValidateNewQuotaAgainstCurrentResourceForCountConnectors() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -467,11 +533,11 @@ class ResourceQuotaServiceTest {
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
         assertEquals(1, validationErrors.size());
         assertEquals("Invalid value \"1\" for field \"count/connectors\": quota already exceeded (2/1).",
-            validationErrors.get(0));
+            validationErrors.getFirst());
     }
 
     @Test
-    void validateUserQuotaFormatError() {
+    void shouldValidateUserQuotaFormatError() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -492,13 +558,13 @@ class ResourceQuotaServiceTest {
 
         assertEquals(2, validationErrors.size());
         assertEquals("Invalid value \"producer\" for field \"user/producer_byte_rate\": value must be a number.",
-            validationErrors.get(0));
+            validationErrors.getFirst());
         assertEquals("Invalid value \"consumer\" for field \"user/consumer_byte_rate\": value must be a number.",
             validationErrors.get(1));
     }
 
     @Test
-    void validateUserQuotaFormatSuccess() {
+    void shouldValidateUserQuotaFormatSuccess() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -520,7 +586,7 @@ class ResourceQuotaServiceTest {
     }
 
     @Test
-    void getCurrentUsedResourceForCountTopicsByNamespace() {
+    void shouldGetCurrentUsedResourceForCountTopicsByNamespace() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -560,7 +626,7 @@ class ResourceQuotaServiceTest {
     }
 
     @Test
-    void getCurrentUsedResourceForCountPartitionsByNamespace() {
+    void shouldGetCurrentUsedResourceForCountPartitionsByNamespace() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -609,7 +675,7 @@ class ResourceQuotaServiceTest {
     }
 
     @Test
-    void getCurrentUsedResourceForCountConnectorsByNamespace() {
+    void shouldGetCurrentUsedResourceForCountConnectorsByNamespace() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -630,7 +696,7 @@ class ResourceQuotaServiceTest {
     }
 
     @Test
-    void getCurrentUsedResourceForDiskTopicsByNamespace() {
+    void shouldGetCurrentUsedResourceForDiskTopicsByNamespace() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -681,7 +747,7 @@ class ResourceQuotaServiceTest {
     }
 
     @Test
-    void validateTopicQuota() {
+    void shouldValidateTopicQuota() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -757,7 +823,7 @@ class ResourceQuotaServiceTest {
     }
 
     @Test
-    void validateTopicQuotaNoQuota() {
+    void shouldValidateTopicQuotaNoQuota() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -786,7 +852,7 @@ class ResourceQuotaServiceTest {
     }
 
     @Test
-    void validateTopicQuotaExceed() {
+    void shouldValidateTopicQuotaExceed() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -859,7 +925,7 @@ class ResourceQuotaServiceTest {
         List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, Optional.empty(), newTopic);
         assertEquals(3, validationErrors.size());
         assertEquals("Invalid \"apply\" operation: exceeding quota for count/topics: 3/3 (used/limit).",
-            validationErrors.get(0));
+            validationErrors.getFirst());
         assertEquals("Invalid \"apply\" operation: exceeding quota for count/partitions: 19/20 (used/limit). "
             + "Cannot add 6.", validationErrors.get(1));
         assertEquals("Invalid \"apply\" operation: exceeding quota for disk/topics: 18.555KiB/20.0KiB (used/limit). "
@@ -868,7 +934,7 @@ class ResourceQuotaServiceTest {
     }
 
     @Test
-    void validateUpdateTopicQuotaExceed() {
+    void shouldValidateUpdateTopicQuotaExceed() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -941,11 +1007,11 @@ class ResourceQuotaServiceTest {
         assertEquals(1, validationErrors.size());
         assertEquals("Invalid \"apply\" operation: exceeding quota for disk/topics: 18.555KiB/20.0KiB (used/limit). "
                 + "Cannot add 2.93KiB.",
-            validationErrors.get(0));
+            validationErrors.getFirst());
     }
 
     @Test
-    void validateConnectorQuota() {
+    void shouldValidateConnectorQuota() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -976,7 +1042,7 @@ class ResourceQuotaServiceTest {
     }
 
     @Test
-    void validateConnectorQuotaNoQuota() {
+    void shouldValidateConnectorQuotaNoQuota() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -995,7 +1061,7 @@ class ResourceQuotaServiceTest {
     }
 
     @Test
-    void validateConnectorQuotaExceed() {
+    void shouldValidateConnectorQuotaExceed() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -1024,11 +1090,11 @@ class ResourceQuotaServiceTest {
         List<String> validationErrors = resourceQuotaService.validateConnectorQuota(ns);
         assertEquals(1, validationErrors.size());
         assertEquals("Invalid \"apply\" operation: exceeding quota for count/connectors: 2/2 (used/limit).",
-            validationErrors.get(0));
+            validationErrors.getFirst());
     }
 
     @Test
-    void getUsedResourcesByQuotaByNamespace() {
+    void shouldGetUsedResourcesByQuotaByNamespace() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -1100,7 +1166,7 @@ class ResourceQuotaServiceTest {
     }
 
     @Test
-    void getCurrentResourcesQuotasByNamespaceNoQuota() {
+    void shouldGetCurrentResourcesQuotasByNamespaceNoQuota() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -1161,7 +1227,7 @@ class ResourceQuotaServiceTest {
     }
 
     @Test
-    void getUsedQuotaByNamespaces() {
+    void shouldGetUsedQuotaByNamespaces() {
         Namespace ns1 = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")

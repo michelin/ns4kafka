@@ -539,7 +539,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(connectClusterService.findAllByNamespaceWithOwnerPermission(ns))
             .thenReturn(List.of());
-        when(resourceQuotaService.findByNamespace("namespace"))
+        when(resourceQuotaService.findForNamespace("namespace"))
             .thenReturn(Optional.empty());
 
         List<String> result = namespaceService.findAllResourcesByNamespace(ns);
@@ -576,7 +576,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(connectClusterService.findAllByNamespaceWithOwnerPermission(ns))
             .thenReturn(List.of());
-        when(resourceQuotaService.findByNamespace("namespace"))
+        when(resourceQuotaService.findForNamespace("namespace"))
             .thenReturn(Optional.empty());
 
         List<String> result = namespaceService.findAllResourcesByNamespace(ns);
@@ -614,7 +614,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(connectClusterService.findAllByNamespaceWithOwnerPermission(ns))
             .thenReturn(List.of());
-        when(resourceQuotaService.findByNamespace("namespace"))
+        when(resourceQuotaService.findForNamespace("namespace"))
             .thenReturn(Optional.empty());
 
         List<String> result = namespaceService.findAllResourcesByNamespace(ns);
@@ -652,7 +652,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(connectClusterService.findAllByNamespaceWithOwnerPermission(ns))
             .thenReturn(List.of());
-        when(resourceQuotaService.findByNamespace("namespace"))
+        when(resourceQuotaService.findForNamespace("namespace"))
             .thenReturn(Optional.empty());
 
         List<String> result = namespaceService.findAllResourcesByNamespace(ns);
@@ -690,7 +690,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of(ace));
         when(connectClusterService.findAllByNamespaceWithOwnerPermission(ns))
             .thenReturn(List.of());
-        when(resourceQuotaService.findByNamespace("namespace"))
+        when(resourceQuotaService.findForNamespace("namespace"))
             .thenReturn(Optional.empty());
 
         List<String> result = namespaceService.findAllResourcesByNamespace(ns);
@@ -728,7 +728,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(connectClusterService.findAllByNamespaceWithOwnerPermission(ns))
             .thenReturn(List.of(connectCluster));
-        when(resourceQuotaService.findByNamespace("namespace"))
+        when(resourceQuotaService.findForNamespace("namespace"))
             .thenReturn(Optional.empty());
 
         List<String> result = namespaceService.findAllResourcesByNamespace(ns);
@@ -766,7 +766,7 @@ class NamespaceServiceTest {
             .thenReturn(List.of());
         when(connectClusterService.findAllByNamespaceWithOwnerPermission(ns))
             .thenReturn(List.of());
-        when(resourceQuotaService.findByNamespace("namespace"))
+        when(resourceQuotaService.findForNamespace("namespace"))
             .thenReturn(Optional.of(resourceQuota));
 
         List<String> result = namespaceService.findAllResourcesByNamespace(ns);

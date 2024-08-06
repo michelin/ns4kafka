@@ -53,11 +53,18 @@ class ResourceQuotaControllerTest {
     ApplicationEventPublisher<AuditLog> applicationEventPublisher;
 
     @Test
-    void list() {
+    void shouldListQuotaWithoutNameParameter() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
+                .build())
+            .build();
+
+        ResourceQuota quota = ResourceQuota.builder()
+            .metadata(Metadata.builder()
+                .cluster("local")
+                .name("test")
                 .build())
             .build();
 
@@ -70,16 +77,48 @@ class ResourceQuotaControllerTest {
             .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.empty());
-        when(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.empty())).thenReturn(response);
+        when(resourceQuotaService.findByWildcardName("test", "*")).thenReturn(List.of(quota));
+        when(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.of(quota))).thenReturn(response);
 
-        List<ResourceQuotaResponse> actual = resourceQuotaController.list("test");
-        assertEquals(1, actual.size());
-        assertEquals(response, actual.get(0));
+        assertEquals(List.of(response), resourceQuotaController.list("test", "*"));
     }
 
     @Test
-    void getEmpty() {
+    void shouldListQuotaWithNameParameter() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
+
+        ResourceQuota quota = ResourceQuota.builder()
+            .metadata(Metadata.builder()
+                .cluster("local")
+                .name("quotaName")
+                .build())
+            .build();
+
+        ResourceQuotaResponse response = ResourceQuotaResponse.builder()
+            .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
+                .countTopic("0/INF")
+                .countPartition("0/INF")
+                .countConnector("0/INF")
+                .build())
+            .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(resourceQuotaService.findByWildcardName("test", "quotaName")).thenReturn(List.of(quota));
+        when(resourceQuotaService.findByWildcardName("test", "not-found")).thenReturn(List.of());
+        when(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.of(quota))).thenReturn(response);
+
+        assertEquals(List.of(response), resourceQuotaController.list("test", "quotaName"));
+        assertTrue(resourceQuotaController.list("test", "not-found").isEmpty());
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void shouldGetQuotaWhenEmpty() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -94,7 +133,8 @@ class ResourceQuotaControllerTest {
     }
 
     @Test
-    void getPresent() {
+    @SuppressWarnings("deprecation")
+    void shouldGetQuotaWhenPresent() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -128,7 +168,7 @@ class ResourceQuotaControllerTest {
     }
 
     @Test
-    void applyValidationErrors() {
+    void shouldApplyValidationErrors() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -157,7 +197,7 @@ class ResourceQuotaControllerTest {
     }
 
     @Test
-    void applyUnchanged() {
+    void shouldApplyUnchanged() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -175,7 +215,7 @@ class ResourceQuotaControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
-        when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.of(resourceQuota));
+        when(resourceQuotaService.findForNamespace(ns.getMetadata().getName())).thenReturn(Optional.of(resourceQuota));
 
         var response = resourceQuotaController.apply("test", resourceQuota, false);
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
@@ -184,7 +224,7 @@ class ResourceQuotaControllerTest {
     }
 
     @Test
-    void applyDryRun() {
+    void shouldApplyDryRun() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -202,7 +242,7 @@ class ResourceQuotaControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
-        when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.empty());
+        when(resourceQuotaService.findForNamespace(ns.getMetadata().getName())).thenReturn(Optional.empty());
 
         var response = resourceQuotaController.apply("test", resourceQuota, true);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
@@ -210,7 +250,7 @@ class ResourceQuotaControllerTest {
     }
 
     @Test
-    void applyCreated() {
+    void shouldApplyCreated() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -228,7 +268,7 @@ class ResourceQuotaControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
-        when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.empty());
+        when(resourceQuotaService.findForNamespace(ns.getMetadata().getName())).thenReturn(Optional.empty());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -241,7 +281,7 @@ class ResourceQuotaControllerTest {
     }
 
     @Test
-    void applyUpdated() {
+    void shouldApplyUpdated() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -267,7 +307,7 @@ class ResourceQuotaControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
-        when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(
+        when(resourceQuotaService.findForNamespace(ns.getMetadata().getName())).thenReturn(
             Optional.of(resourceQuotaExisting));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
@@ -282,7 +322,7 @@ class ResourceQuotaControllerTest {
     }
 
     @Test
-    void deleteNotFound() {
+    void shouldDeleteWhenNotFound() {
         when(resourceQuotaService.findByName("test", "quota")).thenReturn(Optional.empty());
         HttpResponse<Void> actual = resourceQuotaController.delete("test", "quota", false);
         assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
@@ -290,7 +330,7 @@ class ResourceQuotaControllerTest {
     }
 
     @Test
-    void deleteDryRun() {
+    void shouldDeleteWhenDryRun() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
             .metadata(Metadata.builder()
                 .cluster("local")
@@ -306,7 +346,7 @@ class ResourceQuotaControllerTest {
     }
 
     @Test
-    void delete() {
+    void shouldDelete() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
             .metadata(Metadata.builder()
                 .cluster("local")
