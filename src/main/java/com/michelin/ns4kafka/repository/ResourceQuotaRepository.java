@@ -21,15 +21,6 @@ public interface ResourceQuotaRepository {
      * @param namespace The namespace used to research
      * @return The resource quotas associated to the namespace
      */
-    List<ResourceQuota> findAllForNamespace(String namespace);
-
-
-    /**
-     * Get resource quota by namespace.
-     *
-     * @param namespace The namespace used to research
-     * @return The resource quotas associated to the namespace
-     */
     Optional<ResourceQuota> findForNamespace(String namespace);
 
     /**

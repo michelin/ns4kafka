@@ -53,21 +53,7 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
     }
 
     /**
-     * Get resource quota by namespace.
-     *
-     * @param namespace The namespace used to research
-     * @return A resource quota
-     */
-    @Override
-    public List<ResourceQuota> findAllForNamespace(String namespace) {
-        return getKafkaStore().values()
-            .stream()
-            .filter(resourceQuota -> resourceQuota.getMetadata().getNamespace().equals(namespace))
-            .toList();
-    }
-
-    /**
-     * Get resource quota by namespace.
+     * Get resource quota of a given namespace.
      *
      * @param namespace The namespace used to research
      * @return A resource quota

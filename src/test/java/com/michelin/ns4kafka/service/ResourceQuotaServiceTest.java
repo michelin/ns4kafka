@@ -84,6 +84,7 @@ class ResourceQuotaServiceTest {
         ResourceQuota resourceQuota1 = ResourceQuota.builder()
             .metadata(Metadata.builder()
                 .cluster("local")
+                .namespace("namespace")
                 .name("quotaName")
                 .build())
             .spec(Map.of(COUNT_TOPICS.toString(), "1"))
@@ -92,12 +93,13 @@ class ResourceQuotaServiceTest {
         ResourceQuota resourceQuota2 = ResourceQuota.builder()
             .metadata(Metadata.builder()
                 .cluster("local")
+                .namespace("namespace")
                 .name("quotaName2")
                 .build())
             .spec(Map.of(COUNT_TOPICS.toString(), "1"))
             .build();
 
-        when(resourceQuotaRepository.findAllForNamespace("namespace"))
+        when(resourceQuotaRepository.findAll())
             .thenReturn(List.of(resourceQuota1, resourceQuota2));
 
         assertEquals(List.of(resourceQuota1, resourceQuota2),
@@ -109,12 +111,13 @@ class ResourceQuotaServiceTest {
         ResourceQuota resourceQuota = ResourceQuota.builder()
             .metadata(Metadata.builder()
                 .cluster("local")
+                .namespace("namespace")
                 .name("quotaName")
                 .build())
             .spec(Map.of(COUNT_TOPICS.toString(), "1"))
             .build();
 
-        when(resourceQuotaRepository.findAllForNamespace("namespace"))
+        when(resourceQuotaRepository.findAll())
             .thenReturn(List.of(resourceQuota));
 
         assertEquals(List.of(resourceQuota),
@@ -128,6 +131,7 @@ class ResourceQuotaServiceTest {
             .metadata(Metadata.builder()
                 .cluster("local")
                 .name("quotaName1")
+                .namespace("namespace")
                 .build())
             .spec(Map.of(COUNT_TOPICS.toString(), "1"))
             .build();
@@ -136,6 +140,7 @@ class ResourceQuotaServiceTest {
             .metadata(Metadata.builder()
                 .cluster("local")
                 .name("quotaName2")
+                .namespace("namespace")
                 .build())
             .spec(Map.of(COUNT_TOPICS.toString(), "1"))
             .build();
@@ -144,11 +149,12 @@ class ResourceQuotaServiceTest {
             .metadata(Metadata.builder()
                 .cluster("local")
                 .name("topicQuota2")
+                .namespace("namespace")
                 .build())
             .spec(Map.of(COUNT_TOPICS.toString(), "1"))
             .build();
 
-        when(resourceQuotaRepository.findAllForNamespace("namespace"))
+        when(resourceQuotaRepository.findAll())
             .thenReturn(List.of(resourceQuota1, resourceQuota2, resourceQuota3));
 
         assertEquals(List.of(resourceQuota1, resourceQuota2, resourceQuota3),

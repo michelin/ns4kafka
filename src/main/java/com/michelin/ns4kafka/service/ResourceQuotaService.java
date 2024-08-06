@@ -71,7 +71,10 @@ public class ResourceQuotaService {
      * @return The researched resource quota
      */
     public List<ResourceQuota> findAllForNamespace(String namespace) {
-        return resourceQuotaRepository.findAllForNamespace(namespace);
+        return resourceQuotaRepository.findAll()
+            .stream()
+            .filter(resourceQuota -> resourceQuota.getMetadata().getNamespace().equals(namespace))
+            .toList();
     }
 
     /**
