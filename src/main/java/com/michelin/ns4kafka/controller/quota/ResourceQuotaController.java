@@ -46,7 +46,8 @@ public class ResourceQuotaController extends NamespacedResourceController {
     public List<ResourceQuotaResponse> list(String namespace, @QueryValue(defaultValue = "*") String name) {
         return resourceQuotaService.findByWildcardName(namespace, name)
             .stream()
-            .map(o -> resourceQuotaService.getUsedResourcesByQuotaByNamespace(getNamespace(namespace), Optional.of(o)))
+            .map(resourceQuota -> resourceQuotaService.getUsedResourcesByQuotaByNamespace(getNamespace(namespace),
+                Optional.of(resourceQuota)))
             .toList();
     }
 

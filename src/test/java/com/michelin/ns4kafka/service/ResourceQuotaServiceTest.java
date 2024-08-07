@@ -81,7 +81,7 @@ class ResourceQuotaServiceTest {
 
     @Test
     void shouldListQuotasWithoutParameter() {
-        ResourceQuota resourceQuota1 = ResourceQuota.builder()
+        ResourceQuota resourceQuota = ResourceQuota.builder()
             .metadata(Metadata.builder()
                 .cluster("local")
                 .namespace("namespace")
@@ -90,19 +90,10 @@ class ResourceQuotaServiceTest {
             .spec(Map.of(COUNT_TOPICS.toString(), "1"))
             .build();
 
-        ResourceQuota resourceQuota2 = ResourceQuota.builder()
-            .metadata(Metadata.builder()
-                .cluster("local")
-                .namespace("namespace")
-                .name("quotaName2")
-                .build())
-            .spec(Map.of(COUNT_TOPICS.toString(), "1"))
-            .build();
+        when(resourceQuotaRepository.findForNamespace("namespace"))
+            .thenReturn(Optional.of(resourceQuota));
 
-        when(resourceQuotaRepository.findAll())
-            .thenReturn(List.of(resourceQuota1, resourceQuota2));
-
-        assertEquals(List.of(resourceQuota1, resourceQuota2),
+        assertEquals(List.of(resourceQuota),
             resourceQuotaService.findByWildcardName("namespace", "*"));
     }
 
@@ -117,8 +108,8 @@ class ResourceQuotaServiceTest {
             .spec(Map.of(COUNT_TOPICS.toString(), "1"))
             .build();
 
-        when(resourceQuotaRepository.findAll())
-            .thenReturn(List.of(resourceQuota));
+        when(resourceQuotaRepository.findForNamespace("namespace"))
+            .thenReturn(Optional.of(resourceQuota));
 
         assertEquals(List.of(resourceQuota),
             resourceQuotaService.findByWildcardName("namespace", "quotaName"));
@@ -127,42 +118,24 @@ class ResourceQuotaServiceTest {
 
     @Test
     void shouldListQuotasWithWildcardNameParameter() {
-        ResourceQuota resourceQuota1 = ResourceQuota.builder()
+        ResourceQuota resourceQuota = ResourceQuota.builder()
             .metadata(Metadata.builder()
                 .cluster("local")
-                .name("quotaName1")
+                .name("quotaName")
                 .namespace("namespace")
                 .build())
             .spec(Map.of(COUNT_TOPICS.toString(), "1"))
             .build();
 
-        ResourceQuota resourceQuota2 = ResourceQuota.builder()
-            .metadata(Metadata.builder()
-                .cluster("local")
-                .name("quotaName2")
-                .namespace("namespace")
-                .build())
-            .spec(Map.of(COUNT_TOPICS.toString(), "1"))
-            .build();
+        when(resourceQuotaRepository.findForNamespace("namespace"))
+            .thenReturn(Optional.of(resourceQuota));
 
-        ResourceQuota resourceQuota3 = ResourceQuota.builder()
-            .metadata(Metadata.builder()
-                .cluster("local")
-                .name("topicQuota2")
-                .namespace("namespace")
-                .build())
-            .spec(Map.of(COUNT_TOPICS.toString(), "1"))
-            .build();
-
-        when(resourceQuotaRepository.findAll())
-            .thenReturn(List.of(resourceQuota1, resourceQuota2, resourceQuota3));
-
-        assertEquals(List.of(resourceQuota1, resourceQuota2, resourceQuota3),
+        assertEquals(List.of(resourceQuota),
             resourceQuotaService.findByWildcardName("namespace", "*"));
-        assertEquals(List.of(resourceQuota1, resourceQuota2),
-            resourceQuotaService.findByWildcardName("namespace", "quotaName?"));
-        assertEquals(List.of(resourceQuota2, resourceQuota3),
-            resourceQuotaService.findByWildcardName("namespace", "*2"));
+        assertEquals(List.of(resourceQuota),
+            resourceQuotaService.findByWildcardName("namespace", "quota????"));
+        assertEquals(List.of(resourceQuota),
+            resourceQuotaService.findByWildcardName("namespace", "*Name"));
         assertTrue(resourceQuotaService.findByWildcardName("namespace", "not-quotaName?").isEmpty());
     }
 

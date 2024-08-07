@@ -65,19 +65,6 @@ public class ResourceQuotaService {
     }
 
     /**
-     * Find all the resource quota of a given namespace.
-     *
-     * @param namespace The namespace used to research
-     * @return The researched resource quota
-     */
-    public List<ResourceQuota> findAllForNamespace(String namespace) {
-        return resourceQuotaRepository.findAll()
-            .stream()
-            .filter(resourceQuota -> resourceQuota.getMetadata().getNamespace().equals(namespace))
-            .toList();
-    }
-
-    /**
      * Find a resource quota of a given namespace, filtered by name.
      *
      * @param namespace The namespace
@@ -86,7 +73,7 @@ public class ResourceQuotaService {
      */
     public List<ResourceQuota> findByWildcardName(String namespace, String name) {
         List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
-        return findAllForNamespace(namespace)
+        return findForNamespace(namespace)
             .stream()
             .filter(quota -> RegexUtils.filterByPattern(quota.getMetadata().getName(), nameFilterPatterns))
             .toList();
