@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 
 class NamespaceTest {
     @Test
-    void testEquals() {
+    void shouldBeEqual() {
         Namespace original = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace1")

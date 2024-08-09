@@ -7,17 +7,23 @@ import org.junit.jupiter.api.Test;
 
 class StreamTest {
     @Test
-    void testEquals() {
+    void shouldBeEqual() {
         KafkaStream original = KafkaStream.builder()
-            .metadata(Metadata.builder().name("stream1").build())
+            .metadata(Metadata.builder()
+                .name("stream1")
+                .build())
             .build();
 
         KafkaStream same = KafkaStream.builder()
-            .metadata(Metadata.builder().name("stream1").build())
+            .metadata(Metadata.builder()
+                .name("stream1")
+                .build())
             .build();
 
         KafkaStream different = KafkaStream.builder()
-            .metadata(Metadata.builder().name("stream2").build())
+            .metadata(Metadata.builder()
+                .name("stream2")
+                .build())
             .build();
 
         assertEquals(original, same);

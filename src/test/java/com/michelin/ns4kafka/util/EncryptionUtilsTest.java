@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
  */
 class EncryptionUtilsTest {
     @Test
-    void validateEncryptAndDecryptAes256GcmNullText() {
+    void shouldValidateEncryptAndDecryptAes256GcmNullText() {
         String keyEncryptionKey = "myKeyEncryptionKeyWrongSize";
 
         String stillNullText = EncryptionUtils.encryptAes256Gcm(null, keyEncryptionKey);
@@ -19,7 +19,7 @@ class EncryptionUtilsTest {
     }
 
     @Test
-    void validateEncryptAndDecryptAes256GcmBlankText() {
+    void shouldValidateEncryptAndDecryptAes256GcmBlankText() {
         String keyEncryptionKey = "myKeyEncryptionKeyWrongSize";
 
         String stillBlankText = EncryptionUtils.encryptAes256Gcm("", keyEncryptionKey);
@@ -27,7 +27,7 @@ class EncryptionUtilsTest {
     }
 
     @Test
-    void validateEncryptAndDecryptAes256GcmWrongKeySize() {
+    void shouldValidateEncryptAndDecryptAes256GcmWrongKeySize() {
         String clearText = "myClearText";
         String keyEncryptionKey = "myKeyEncryptionKeyWrongSize";
         String myClearText = EncryptionUtils.encryptAes256Gcm(clearText, keyEncryptionKey);
@@ -36,7 +36,7 @@ class EncryptionUtilsTest {
     }
 
     @Test
-    void validateEncryptAndDecryptAes256Gcm() {
+    void shouldValidateEncryptAndDecryptAes256Gcm() {
         String clearText = "myClearText";
         String keyEncryptionKey = "olDeandATEDiCenSiTurThrepASTrole";
         String encryptedText = EncryptionUtils.encryptAes256Gcm(clearText, keyEncryptionKey);
@@ -46,7 +46,7 @@ class EncryptionUtilsTest {
     }
 
     @Test
-    void validateEncryptAndDecryptAes256BlankText() {
+    void shouldValidateEncryptAndDecryptAes256BlankText() {
         final String encryptionKey = "myKeyEncryption";
         final String encryptionSalt = "mySaltEncryption";
 
@@ -55,7 +55,7 @@ class EncryptionUtilsTest {
     }
 
     @Test
-    void validateEncryptAndDecryptAes256NullText() {
+    void shouldValidateEncryptAndDecryptAes256NullText() {
         final String encryptionKey = "myKeyEncryption";
         final String encryptionSalt = "p8t42EhY9z2eSUdpGeq7HX7RboMrsJAhUnu3EEJJVS";
 
@@ -64,7 +64,7 @@ class EncryptionUtilsTest {
     }
 
     @Test
-    void validateEncryptAndDecryptAes256() {
+    void shouldValidateEncryptAndDecryptAes256() {
         String clearText = "myClearText";
         String encryptionKey = "myKeyEncryption";
         String encryptionSalt = "p8t42EhY9z2eSUdpGeq7HX7RboMrsJAhUnu3EEJJVS";
@@ -75,7 +75,7 @@ class EncryptionUtilsTest {
     }
 
     @Test
-    void validateEncryptNeverSameValue() {
+    void shouldValidateEncryptNeverSameValue() {
         String clearText = "myClearText";
         String encryptionKey = "myKey";
         String encryptionSalt = "toto";

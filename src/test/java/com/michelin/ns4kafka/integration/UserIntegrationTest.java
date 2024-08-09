@@ -154,8 +154,8 @@ class UserIntegrationTest extends AbstractIntegrationTest {
     @Test
     void shouldCheckCustomQuotas() throws ExecutionException, InterruptedException {
         Map<ClientQuotaEntity, Map<String, Double>> mapQuota = getAdminClient()
-            .describeClientQuotas(ClientQuotaFilter.containsOnly(
-                List.of(ClientQuotaFilterComponent.ofEntity("user", "user2"))))
+            .describeClientQuotas(ClientQuotaFilter
+                .containsOnly(List.of(ClientQuotaFilterComponent.ofEntity("user", "user2"))))
             .entities()
             .get();
 
@@ -217,8 +217,8 @@ class UserIntegrationTest extends AbstractIntegrationTest {
 
         assertNotNull(response.getSpec().getNewPassword());
         assertTrue(mapUser.containsKey("user1"));
-        assertEquals(ScramMechanism.SCRAM_SHA_512, mapUser.get("user1").credentialInfos().get(0).mechanism());
-        assertEquals(4096, mapUser.get("user1").credentialInfos().get(0).iterations());
+        assertEquals(ScramMechanism.SCRAM_SHA_512, mapUser.get("user1").credentialInfos().getFirst().mechanism());
+        assertEquals(4096, mapUser.get("user1").credentialInfos().getFirst().iterations());
     }
 
     @Test
@@ -232,6 +232,6 @@ class UserIntegrationTest extends AbstractIntegrationTest {
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
         assertEquals("Invalid value \"user2\" for field \"user\": user does not belong to namespace.",
-            exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
+            exception.getResponse().getBody(Status.class).get().getDetails().getCauses().getFirst());
     }
 }

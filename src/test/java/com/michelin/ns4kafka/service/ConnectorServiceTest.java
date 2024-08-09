@@ -143,15 +143,15 @@ class ConnectorServiceTest {
 
         when(connectorRepository.findAllForCluster("local"))
             .thenReturn(List.of(c1, c2, c3, c4, c5));
-        when(aclService.isAnyAclOfResource(acls, "ns-connect1"))
+        when(aclService.isResourceCoveredByAcls(acls, "ns-connect1"))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "ns-connect2"))
+        when(aclService.isResourceCoveredByAcls(acls, "ns-connect2"))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "other-connect1"))
+        when(aclService.isResourceCoveredByAcls(acls, "other-connect1"))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "other-connect2"))
+        when(aclService.isResourceCoveredByAcls(acls, "other-connect2"))
             .thenReturn(false);
-        when(aclService.isAnyAclOfResource(acls, "ns2-connect1"))
+        when(aclService.isResourceCoveredByAcls(acls, "ns2-connect1"))
             .thenReturn(false);
 
         assertEquals(List.of(c1, c2, c3), connectorService.findAllForNamespace(ns));
@@ -216,13 +216,13 @@ class ConnectorServiceTest {
 
         when(connectorRepository.findAllForCluster("local"))
             .thenReturn(List.of(c1, c2, c3, c4));
-        when(aclService.isAnyAclOfResource(acls, "ns-connect1"))
+        when(aclService.isResourceCoveredByAcls(acls, "ns-connect1"))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "other-connect1"))
+        when(aclService.isResourceCoveredByAcls(acls, "other-connect1"))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "other-connect2"))
+        when(aclService.isResourceCoveredByAcls(acls, "other-connect2"))
             .thenReturn(false);
-        when(aclService.isAnyAclOfResource(acls, "ns2-connect1"))
+        when(aclService.isResourceCoveredByAcls(acls, "ns2-connect1"))
             .thenReturn(false);
 
         assertEquals(List.of(c1, c2), connectorService.findByWildcardName(ns, "*"));
@@ -287,13 +287,13 @@ class ConnectorServiceTest {
 
         when(connectorRepository.findAllForCluster("local"))
             .thenReturn(List.of(c1, c2, c3, c4));
-        when(aclService.isAnyAclOfResource(acls, "ns-connect1"))
+        when(aclService.isResourceCoveredByAcls(acls, "ns-connect1"))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "other-connect1"))
+        when(aclService.isResourceCoveredByAcls(acls, "other-connect1"))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "other-connect2"))
+        when(aclService.isResourceCoveredByAcls(acls, "other-connect2"))
             .thenReturn(false);
-        when(aclService.isAnyAclOfResource(acls, "ns2-connect1"))
+        when(aclService.isResourceCoveredByAcls(acls, "ns2-connect1"))
             .thenReturn(false);
 
         assertEquals(List.of(c1), connectorService.findByWildcardName(ns, "ns-connect1"));
@@ -342,11 +342,11 @@ class ConnectorServiceTest {
             .thenReturn(acls);
 
         when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1, c2, c3, c4, c5));
-        when(aclService.isAnyAclOfResource(acls, "ns-connect1")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "ns-connect2")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "other-connect1")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "other-connect2")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "ns2-connect1")).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(acls, "ns-connect1")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns-connect2")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "other-connect1")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "other-connect2")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns2-connect1")).thenReturn(false);
 
         assertEquals(List.of(c1, c2), connectorService.findByWildcardName(ns, "ns-connect?"));
         assertEquals(List.of(c1, c3), connectorService.findByWildcardName(ns, "*-connect1"));
@@ -425,11 +425,11 @@ class ConnectorServiceTest {
             .thenReturn(acls);
         when(connectorRepository.findAllForCluster("local"))
             .thenReturn(List.of(c1, c2, c3));
-        when(aclService.isAnyAclOfResource(acls, "ns-connect1"))
+        when(aclService.isResourceCoveredByAcls(acls, "ns-connect1"))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "ns-connect2"))
+        when(aclService.isResourceCoveredByAcls(acls, "ns-connect2"))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "other-connect1"))
+        when(aclService.isResourceCoveredByAcls(acls, "other-connect1"))
             .thenReturn(true);
 
         Optional<Connector> actual = connectorService.findByName(ns, "ns-connect1");
@@ -1137,11 +1137,11 @@ class ConnectorServiceTest {
 
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
             .thenReturn(acls);
-        when(aclService.isAnyAclOfResource(acls, "ns-connect1")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "ns-connect2")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "ns1-connect1")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "ns1-connect2")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "ns2-connect1")).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(acls, "ns-connect1")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns-connect2")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns1-connect1")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns1-connect2")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns2-connect1")).thenReturn(false);
 
         StepVerifier.create(connectorService.listUnsynchronizedConnectors(ns))
             .verifyComplete();
@@ -1233,7 +1233,7 @@ class ConnectorServiceTest {
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
             .thenReturn(acls);
         when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1));
-        when(aclService.isAnyAclOfResource(acls, "ns-connect1")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns-connect1")).thenReturn(true);
 
         StepVerifier.create(connectorService.listUnsynchronizedConnectors(ns))
             .consumeNextWith(connector -> assertEquals("ns-connect2", connector.getMetadata().getName()))

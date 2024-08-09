@@ -21,9 +21,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-/**
- * Access control entry service test.
- */
 @ExtendWith(MockitoExtension.class)
 class AclServiceTest {
     @Mock
@@ -998,10 +995,10 @@ class AclServiceTest {
 
         when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, acl3, acl4, acl5));
 
-        assertEquals(List.of(acl2, acl3, acl4, acl5), aclService.findByWildcardNameGrantedToNamespace(ns, "*"));
-        assertEquals(List.of(acl2), aclService.findByWildcardNameGrantedToNamespace(ns, "acl-ns1-read-to-ns2"));
-        assertEquals(List.of(acl2, acl5), aclService.findByWildcardNameGrantedToNamespace(ns, "*read*"));
-        assertTrue(aclService.findByWildcardNameGrantedToNamespace(ns, "not-found").isEmpty());
+        assertEquals(List.of(acl2, acl3, acl4, acl5), aclService.findAllGrantedToNamespaceByWildcardName(ns, "*"));
+        assertEquals(List.of(acl2), aclService.findAllGrantedToNamespaceByWildcardName(ns, "acl-ns1-read-to-ns2"));
+        assertEquals(List.of(acl2, acl5), aclService.findAllGrantedToNamespaceByWildcardName(ns, "*read*"));
+        assertTrue(aclService.findAllGrantedToNamespaceByWildcardName(ns, "not-found").isEmpty());
     }
 
     @Test
@@ -1069,10 +1066,10 @@ class AclServiceTest {
 
         when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, acl3, acl4, acl5));
 
-        assertEquals(List.of(acl2, acl3), aclService.findByWildcardNameGrantedByNamespace(ns, "*"));
-        assertEquals(List.of(acl2), aclService.findByWildcardNameGrantedByNamespace(ns, "acl-ns1-read-to-ns2"));
-        assertEquals(List.of(acl2, acl3), aclService.findByWildcardNameGrantedByNamespace(ns, "*-to-ns2"));
-        assertTrue(aclService.findByWildcardNameGrantedByNamespace(ns, "not-found").isEmpty());
+        assertEquals(List.of(acl2, acl3), aclService.findAllGrantedByNamespaceByWildcardName(ns, "*"));
+        assertEquals(List.of(acl2), aclService.findAllGrantedByNamespaceByWildcardName(ns, "acl-ns1-read-to-ns2"));
+        assertEquals(List.of(acl2, acl3), aclService.findAllGrantedByNamespaceByWildcardName(ns, "*-to-ns2"));
+        assertTrue(aclService.findAllGrantedByNamespaceByWildcardName(ns, "not-found").isEmpty());
     }
 
     @Test
@@ -1151,10 +1148,11 @@ class AclServiceTest {
                 .build())
             .build();
 
-        assertEquals(List.of(acl1, acl2, acl3, acl5, acl6), aclService.findByWildcardNameRelatedToNamespace(ns1, "*"));
-        assertEquals(List.of(acl1, acl5), aclService.findByWildcardNameRelatedToNamespace(ns1, "*topic*"));
-        assertEquals(List.of(acl1, acl3), aclService.findByWildcardNameRelatedToNamespace(ns1, "ns1-acl*"));
-        assertTrue(aclService.findByWildcardNameRelatedToNamespace(ns1, "not-found").isEmpty());
+        assertEquals(List.of(acl1, acl2, acl3, acl5, acl6),
+            aclService.findAllRelatedToNamespaceByWildcardName(ns1, "*"));
+        assertEquals(List.of(acl1, acl5), aclService.findAllRelatedToNamespaceByWildcardName(ns1, "*topic*"));
+        assertEquals(List.of(acl1, acl3), aclService.findAllRelatedToNamespaceByWildcardName(ns1, "ns1-acl*"));
+        assertTrue(aclService.findAllRelatedToNamespaceByWildcardName(ns1, "not-found").isEmpty());
 
         Namespace ns2 = Namespace.builder()
             .metadata(Metadata.builder()
@@ -1162,8 +1160,8 @@ class AclServiceTest {
                 .build())
             .build();
 
-        assertEquals(List.of(acl2, acl4, acl5), aclService.findByWildcardNameRelatedToNamespace(ns2, "*"));
-        assertEquals(List.of(acl2, acl4), aclService.findByWildcardNameRelatedToNamespace(ns2, "*ns2*"));
+        assertEquals(List.of(acl2, acl4, acl5), aclService.findAllRelatedToNamespaceByWildcardName(ns2, "*"));
+        assertEquals(List.of(acl2, acl4), aclService.findAllRelatedToNamespaceByWildcardName(ns2, "*ns2*"));
 
         Namespace ns3 = Namespace.builder()
             .metadata(Metadata.builder()
@@ -1171,8 +1169,8 @@ class AclServiceTest {
                 .build())
             .build();
 
-        assertEquals(List.of(acl5, acl6), aclService.findByWildcardNameRelatedToNamespace(ns3, "*"));
-        assertEquals(List.of(acl6), aclService.findByWildcardNameRelatedToNamespace(ns3, "ns3-write-acl-ns1"));
+        assertEquals(List.of(acl5, acl6), aclService.findAllRelatedToNamespaceByWildcardName(ns3, "*"));
+        assertEquals(List.of(acl6), aclService.findAllRelatedToNamespaceByWildcardName(ns3, "ns3-write-acl-ns1"));
     }
 
     @Test
@@ -1255,11 +1253,11 @@ class AclServiceTest {
             .build();
         List<AccessControlEntry> acls = List.of(acl1, acl2);
 
-        assertFalse(aclService.isAnyAclOfResource(acls, "xyz.topic1"));
-        assertFalse(aclService.isAnyAclOfResource(acls, "topic1-abc"));
-        assertFalse(aclService.isAnyAclOfResource(acls, "abc-topic1"));
-        assertTrue(aclService.isAnyAclOfResource(acls, "abc.topic1"));
-        assertTrue(aclService.isAnyAclOfResource(acls, "abc_topic1"));
+        assertFalse(aclService.isResourceCoveredByAcls(acls, "xyz.topic1"));
+        assertFalse(aclService.isResourceCoveredByAcls(acls, "topic1-abc"));
+        assertFalse(aclService.isResourceCoveredByAcls(acls, "abc-topic1"));
+        assertTrue(aclService.isResourceCoveredByAcls(acls, "abc.topic1"));
+        assertTrue(aclService.isResourceCoveredByAcls(acls, "abc_topic1"));
     }
 
     @Test
@@ -1285,10 +1283,10 @@ class AclServiceTest {
             .build();
         List<AccessControlEntry> acls = List.of(acl1, acl2);
 
-        assertFalse(aclService.isAnyAclOfResource(acls, "xyz.topic1"));
-        assertFalse(aclService.isAnyAclOfResource(acls, "abc.topic12"));
-        assertFalse(aclService.isAnyAclOfResource(acls, "abc_topic1"));
-        assertTrue(aclService.isAnyAclOfResource(acls, "abc.topic1"));
-        assertTrue(aclService.isAnyAclOfResource(acls, "abc-topic1"));
+        assertFalse(aclService.isResourceCoveredByAcls(acls, "xyz.topic1"));
+        assertFalse(aclService.isResourceCoveredByAcls(acls, "abc.topic12"));
+        assertFalse(aclService.isResourceCoveredByAcls(acls, "abc_topic1"));
+        assertTrue(aclService.isResourceCoveredByAcls(acls, "abc.topic1"));
+        assertTrue(aclService.isResourceCoveredByAcls(acls, "abc-topic1"));
     }
 }

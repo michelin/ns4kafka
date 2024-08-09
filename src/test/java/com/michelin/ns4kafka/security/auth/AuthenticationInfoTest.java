@@ -13,11 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-/**
- * Authentication info test.
- */
 @ExtendWith(MockitoExtension.class)
-public class AuthenticationInfoTest {
+class AuthenticationInfoTest {
 
     @Test
     void shouldConvertFromMapRoleBindingsType() {

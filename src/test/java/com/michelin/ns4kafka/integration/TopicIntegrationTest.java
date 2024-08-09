@@ -266,19 +266,28 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
 
         Admin kafkaClient = getAdminClient();
 
-        List<TopicPartitionInfo> topicPartitionInfos =
-            kafkaClient.describeTopics(List.of("ns1-topicFirstCreate")).allTopicNames().get()
-                .get("ns1-topicFirstCreate").partitions();
+        List<TopicPartitionInfo> topicPartitionInfos = kafkaClient
+            .describeTopics(List.of("ns1-topicFirstCreate"))
+            .allTopicNames()
+            .get()
+            .get("ns1-topicFirstCreate")
+            .partitions();
+
         assertEquals(topicFirstCreate.getSpec().getPartitions(), topicPartitionInfos.size());
 
         Map<String, String> config = topicFirstCreate.getSpec().getConfigs();
         Set<String> configKey = config.keySet();
 
         ConfigResource configResource = new ConfigResource(ConfigResource.Type.TOPIC, "ns1-topicFirstCreate");
-        List<ConfigEntry> valueToVerify =
-            kafkaClient.describeConfigs(List.of(configResource)).all().get().get(configResource).entries().stream()
-                .filter(e -> configKey.contains(e.name()))
-                .toList();
+        List<ConfigEntry> valueToVerify = kafkaClient
+            .describeConfigs(List.of(configResource))
+            .all()
+            .get()
+            .get(configResource)
+            .entries()
+            .stream()
+            .filter(e -> configKey.contains(e.name()))
+            .toList();
 
         assertEquals(config.size(), valueToVerify.size());
         valueToVerify.forEach(entry -> assertEquals(config.get(entry.name()), entry.value()));
@@ -353,7 +362,8 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
             .describeTopics(List.of("ns1-topic2Create"))
             .allTopicNames()
             .get()
-            .get("ns1-topic2Create").partitions();
+            .get("ns1-topic2Create")
+            .partitions();
 
         // verify partition of the updated topic
         assertEquals(topicToUpdate.getSpec().getPartitions(), topicPartitionInfos.size());
@@ -404,7 +414,7 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
         assertEquals("Constraint validation failed", exception.getMessage());
         assertTrue(exception.getResponse().getBody(Status.class).isPresent());
         assertEquals("topic.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"",
-            exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
+            exception.getResponse().getBody(Status.class).get().getDetails().getCauses().getFirst());
     }
 
     @Test
@@ -554,7 +564,7 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void testDeleteRecordsCompactTopic() {
+    void shouldDeleteRecordsOnCompactTopic() {
         Topic topicToDelete = Topic.builder()
             .metadata(Metadata.builder()
                 .name("ns1-compactTopicToDelete")

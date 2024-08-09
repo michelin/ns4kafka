@@ -38,9 +38,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-/**
- * Connect cluster service test.
- */
 @ExtendWith(MockitoExtension.class)
 class ConnectClusterServiceTest {
     @Mock
@@ -221,13 +218,13 @@ class ConnectClusterServiceTest {
                     .build()
             ));
 
-        when(aclService.isAnyAclOfResource(any(), eq("prefix.connect-cluster")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster")))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(any(), eq("prefix2.connect-two")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix2.connect-two")))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(any(), eq("prefix3.connect-cluster")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix3.connect-cluster")))
             .thenReturn(false);
-        when(aclService.isAnyAclOfResource(any(), eq("not-owner")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("not-owner")))
             .thenReturn(false);
 
         assertEquals(List.of(connectCluster, connectClusterTwo), connectClusterService
@@ -279,9 +276,9 @@ class ConnectClusterServiceTest {
             .thenReturn(List.of(cc1, cc2));
         when(aclService.findAllGrantedToNamespace(namespace))
             .thenReturn(acls);
-        when(aclService.isAnyAclOfResource(acls, "abc.cc"))
+        when(aclService.isResourceCoveredByAcls(acls, "abc.cc"))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "xyz.connect-two"))
+        when(aclService.isResourceCoveredByAcls(acls, "xyz.connect-two"))
             .thenReturn(true);
         when(kafkaConnectClient.version(any(), any()))
             .thenReturn(Mono.just(HttpResponse.ok()));
@@ -359,15 +356,15 @@ class ConnectClusterServiceTest {
             .thenReturn(List.of(cc1, cc2, cc3, cc4, cc5));
         when(aclService.findAllGrantedToNamespace(namespace))
             .thenReturn(acls);
-        when(aclService.isAnyAclOfResource(any(), eq("prefix.cc1")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix.cc1")))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(any(), eq("prefix.cc2")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix.cc2")))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(any(), eq("prefix2.connect-two")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix2.connect-two")))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(any(), eq("prefix3.connect1")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix3.connect1")))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(any(), eq("prefix3.connect2")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix3.connect2")))
             .thenReturn(true);
         when(kafkaConnectClient.version(any(), any()))
             .thenReturn(Mono.just(HttpResponse.ok()));
@@ -453,10 +450,10 @@ class ConnectClusterServiceTest {
             .thenReturn(List.of(acl1, acl2));
 
         when(securityProperties.getAes256EncryptionKey()).thenReturn(encryptKey);
-        when(aclService.isAnyAclOfResource(List.of(acl1), "prefix.connect-cluster")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(List.of(acl2), "prefix.connect-cluster")).thenReturn(false);
-        when(aclService.isAnyAclOfResource(List.of(acl2), "owner.connect-cluster")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(List.of(acl1), "owner.connect-cluster")).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(List.of(acl1), "prefix.connect-cluster")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(List.of(acl2), "prefix.connect-cluster")).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(List.of(acl2), "owner.connect-cluster")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(List.of(acl1), "owner.connect-cluster")).thenReturn(false);
 
         List<ConnectCluster> actual = connectClusterService.findAllForNamespaceWithWritePermission(namespace);
 
@@ -511,7 +508,7 @@ class ConnectClusterServiceTest {
                     .build()
             ));
 
-        when(aclService.isAnyAclOfResource(any(), eq("prefix.connect-cluster")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster")))
             .thenReturn(true);
 
         Optional<ConnectCluster> actual =
@@ -562,7 +559,7 @@ class ConnectClusterServiceTest {
                     .build()
             ));
 
-        when(aclService.isAnyAclOfResource(any(), eq("prefix.connect-cluster"))).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster"))).thenReturn(true);
 
         Optional<ConnectCluster> actual =
             connectClusterService.findByNameWithOwnerPermission(namespace, "prefix.connect-cluster");
@@ -610,7 +607,7 @@ class ConnectClusterServiceTest {
                     .build()
             ));
 
-        when(aclService.isAnyAclOfResource(any(), eq("prefix.connect-cluster")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster")))
             .thenReturn(true);
 
         assertTrue(connectClusterService.findByNameWithOwnerPermission(namespace, "does-not-exist").isEmpty());
@@ -996,11 +993,11 @@ class ConnectClusterServiceTest {
                     .build()
             ));
 
-        when(aclService.isAnyAclOfResource(any(), eq("prefix1.connect-cluster")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix1.connect-cluster")))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(any(), eq("prefix2.connect-cluster")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix2.connect-cluster")))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(any(), eq("prefix3.connect-cluster")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix3.connect-cluster")))
             .thenReturn(true);
 
         List<String> errors =
@@ -1084,11 +1081,11 @@ class ConnectClusterServiceTest {
                     .build()
             ));
 
-        when(aclService.isAnyAclOfResource(any(), eq("prefix1.connect-cluster")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix1.connect-cluster")))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(any(), eq("prefix2.connect-cluster")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix2.connect-cluster")))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(any(), eq("prefix3.connect-cluster")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix3.connect-cluster")))
             .thenReturn(true);
 
         List<String> errors =
@@ -1136,7 +1133,7 @@ class ConnectClusterServiceTest {
                     .build()
             ));
 
-        when(aclService.isAnyAclOfResource(any(), eq("prefix.connect-cluster"))).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster"))).thenReturn(true);
 
         List<String> errors = connectClusterService.validateConnectClusterVault(namespace, "prefix.connect-cluster");
 
@@ -1245,17 +1242,17 @@ class ConnectClusterServiceTest {
             .thenReturn(List.of(acl1, acl2));
         when(connectClusterRepository.findAllForCluster("local"))
             .thenReturn(List.of(connectCluster, connectClusterOwner));
-        when(aclService.isAnyAclOfResource(List.of(acl2), "owner.connect-cluster"))
+        when(aclService.isResourceCoveredByAcls(List.of(acl2), "owner.connect-cluster"))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(List.of(acl2), "prefix.connect-cluster"))
+        when(aclService.isResourceCoveredByAcls(List.of(acl2), "prefix.connect-cluster"))
             .thenReturn(false);
         when(securityProperties.getAes256EncryptionKey())
             .thenReturn(encryptKey);
         when(kafkaConnectClient.version(any(), any()))
             .thenReturn(Mono.just(HttpResponse.ok()));
-        when(aclService.isAnyAclOfResource(List.of(acl1), "prefix.connect-cluster"))
+        when(aclService.isResourceCoveredByAcls(List.of(acl1), "prefix.connect-cluster"))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(List.of(acl1), "owner.connect-cluster"))
+        when(aclService.isResourceCoveredByAcls(List.of(acl1), "owner.connect-cluster"))
             .thenReturn(false);
 
         List<ConnectCluster> actual = connectClusterService.findAllForNamespaceWithWritePermission(namespace);
@@ -1364,7 +1361,7 @@ class ConnectClusterServiceTest {
                     .build()
             ));
 
-        when(aclService.isAnyAclOfResource(any(), eq("prefix.connect-cluster")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster")))
             .thenReturn(true);
 
         assertTrue(connectClusterService.isNamespaceAllowedForConnectCluster(namespace, "prefix.connect-cluster"));
@@ -1427,9 +1424,9 @@ class ConnectClusterServiceTest {
                     .build()
             ));
 
-        when(aclService.isAnyAclOfResource(any(), eq("prefix.connect-cluster")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster")))
             .thenReturn(true);
-        when(aclService.isAnyAclOfResource(any(), eq("owner.connect-cluster")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("owner.connect-cluster")))
             .thenReturn(true);
 
         assertFalse(connectClusterService.isNamespaceAllowedForConnectCluster(namespace, "not-allowed-prefix.cc"));
@@ -1476,7 +1473,7 @@ class ConnectClusterServiceTest {
 
         when(securityProperties.getAes256EncryptionKey())
             .thenReturn("changeitchangeitchangeitchangeit");
-        when(aclService.isAnyAclOfResource(any(), eq("prefix.connect-cluster")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster")))
             .thenReturn(true);
 
         List<VaultResponse> actual =
@@ -1527,7 +1524,7 @@ class ConnectClusterServiceTest {
 
         when(securityProperties.getAes256EncryptionKey())
             .thenReturn("changeitchangeitchangeitchangeit");
-        when(aclService.isAnyAclOfResource(any(), eq("prefix.connect-cluster")))
+        when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster")))
             .thenReturn(true);
 
         List<VaultResponse> actual =

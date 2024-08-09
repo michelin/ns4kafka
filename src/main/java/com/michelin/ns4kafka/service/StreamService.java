@@ -48,10 +48,10 @@ public class StreamService {
      * @return A list of Kafka Streams
      */
     public List<KafkaStream> findByWildcardName(Namespace namespace, String name) {
-        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
+        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
         return findAllForNamespace(namespace)
             .stream()
-            .filter(stream -> RegexUtils.filterByPattern(stream.getMetadata().getName(), nameFilterPatterns))
+            .filter(stream -> RegexUtils.isResourceCoveredByRegex(stream.getMetadata().getName(), nameFilterPatterns))
             .toList();
     }
 

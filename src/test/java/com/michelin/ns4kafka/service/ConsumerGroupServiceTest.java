@@ -202,7 +202,8 @@ class ConsumerGroupServiceTest {
             .build();
 
         List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
-        assertEquals("Invalid value \"not-integer\" for field \"to-offset\": value must be an integer.", result.get(0));
+        assertEquals("Invalid value \"not-integer\" for field \"to-offset\": value must be an integer.",
+            result.getFirst());
     }
 
     @Test
@@ -216,7 +217,7 @@ class ConsumerGroupServiceTest {
             .build();
 
         List<String> result = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
-        assertEquals("Invalid value \"-1\" for field \"to-offset\": value must be >= 0.", result.get(0));
+        assertEquals("Invalid value \"-1\" for field \"to-offset\": value must be >= 0.", result.getFirst());
     }
 
     @Test

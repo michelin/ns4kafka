@@ -4,12 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-/**
- * Bytes utils test.
- */
 class BytesUtilsTest {
     @Test
-    void validateBytesToHumanReadable() {
+    void shouldValidateBytesToHumanReadable() {
         assertEquals("0B", BytesUtils.bytesToHumanReadable(0L));
         assertEquals("27B", BytesUtils.bytesToHumanReadable(27L));
         assertEquals("999B", BytesUtils.bytesToHumanReadable(999L));
@@ -26,7 +23,7 @@ class BytesUtilsTest {
     }
 
     @Test
-    void validateHumanReadableToBytes() {
+    void shouldValidateHumanReadableToBytes() {
         assertEquals(0L, BytesUtils.humanReadableToBytes("0B"));
         assertEquals(27L, BytesUtils.humanReadableToBytes("27B"));
         assertEquals(999L, BytesUtils.humanReadableToBytes("999B"));

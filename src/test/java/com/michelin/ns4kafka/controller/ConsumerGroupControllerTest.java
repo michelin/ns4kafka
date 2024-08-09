@@ -309,6 +309,6 @@ class ConsumerGroupControllerTest {
         assertEquals(
             "Invalid \"reset offset\" operation: assignments can only be reset if the consumer group "
                 + "\"groupID\" is inactive but the current state is active.",
-            result.getValidationErrors().get(0));
+            result.getValidationErrors().getFirst());
     }
 }

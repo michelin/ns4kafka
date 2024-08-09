@@ -35,10 +35,10 @@ public class RoleBindingService {
      * @return The list of associated role bindings
      */
     public List<RoleBinding> findByWildcardName(String namespace, String name) {
-        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
+        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
         return findAllForNamespace(namespace)
             .stream()
-            .filter(rb -> RegexUtils.filterByPattern(rb.getMetadata().getName(), nameFilterPatterns))
+            .filter(rb -> RegexUtils.isResourceCoveredByRegex(rb.getMetadata().getName(), nameFilterPatterns))
             .toList();
     }
 

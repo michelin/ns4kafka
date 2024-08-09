@@ -38,9 +38,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-/**
- * Connect cluster controller test.
- */
 @ExtendWith(MockitoExtension.class)
 class ConnectClusterControllerTest {
     @Mock

@@ -72,10 +72,10 @@ public class ResourceQuotaService {
      * @return The researched resource quota
      */
     public List<ResourceQuota> findByWildcardName(String namespace, String name) {
-        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
+        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
         return findForNamespace(namespace)
             .stream()
-            .filter(quota -> RegexUtils.filterByPattern(quota.getMetadata().getName(), nameFilterPatterns))
+            .filter(quota -> RegexUtils.isResourceCoveredByRegex(quota.getMetadata().getName(), nameFilterPatterns))
             .toList();
     }
 

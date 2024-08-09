@@ -68,7 +68,7 @@ public class TopicService {
             .findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
         return topicRepository.findAllForCluster(namespace.getMetadata().getCluster())
             .stream()
-            .filter(topic -> aclService.isAnyAclOfResource(acls, topic.getMetadata().getName()))
+            .filter(topic -> aclService.isResourceCoveredByAcls(acls, topic.getMetadata().getName()))
             .toList();
     }
 
@@ -80,10 +80,10 @@ public class TopicService {
      * @return A list of topics
      */
     public List<Topic> findByWildcardName(Namespace namespace, String name) {
-        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
+        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
         return findAllForNamespace(namespace)
             .stream()
-            .filter(topic -> RegexUtils.filterByPattern(topic.getMetadata().getName(), nameFilterPatterns))
+            .filter(topic -> RegexUtils.isResourceCoveredByRegex(topic.getMetadata().getName(), nameFilterPatterns))
             .toList();
     }
 

@@ -12,148 +12,148 @@ import org.junit.jupiter.api.Test;
  */
 class RegexUtilsTest {
     @Test
-    void defaultStringToRegexPattern() {
-        assertEquals(List.of("^.*$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("")));
-        assertEquals(List.of("^.*$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("*")));
+    void shouldConvertDefaultStringToRegexPattern() {
+        assertEquals(List.of("^.*$"), RegexUtils.convertWildcardStringsToRegex(List.of("")));
+        assertEquals(List.of("^.*$"), RegexUtils.convertWildcardStringsToRegex(List.of("*")));
     }
 
     @Test
-    void simpleWildcardToRegexPattern() {
-        assertEquals(List.of("^prefix.*$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("prefix*")));
-        assertEquals(List.of("^.*suffix$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("*suffix")));
-        assertEquals(List.of("^abc\\..*$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("abc.*")));
-        assertEquals(List.of("^item.$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("item?")));
+    void shouldConvertSimpleWildcardToRegexPattern() {
+        assertEquals(List.of("^prefix.*$"), RegexUtils.convertWildcardStringsToRegex(List.of("prefix*")));
+        assertEquals(List.of("^.*suffix$"), RegexUtils.convertWildcardStringsToRegex(List.of("*suffix")));
+        assertEquals(List.of("^abc\\..*$"), RegexUtils.convertWildcardStringsToRegex(List.of("abc.*")));
+        assertEquals(List.of("^item.$"), RegexUtils.convertWildcardStringsToRegex(List.of("item?")));
     }
 
     @Test
-    void complexWildcardToRegexPattern() {
-        assertEquals(List.of("^prefix.*suffix$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("prefix*suffix")));
-        assertEquals(List.of("^...xyz$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("???xyz")));
-        assertEquals(List.of("^.*\\.topic.$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("*.topic?")));
-        assertEquals(List.of("^.*\\.topic.$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("*.topic?")));
-        assertEquals(List.of("^abc.\\..*-test.$"), RegexUtils.wildcardStringsToRegexPatterns(List.of("abc?.*-test?")));
+    void shouldConvertComplexWildcardToRegexPattern() {
+        assertEquals(List.of("^prefix.*suffix$"), RegexUtils.convertWildcardStringsToRegex(List.of("prefix*suffix")));
+        assertEquals(List.of("^...xyz$"), RegexUtils.convertWildcardStringsToRegex(List.of("???xyz")));
+        assertEquals(List.of("^.*\\.topic.$"), RegexUtils.convertWildcardStringsToRegex(List.of("*.topic?")));
+        assertEquals(List.of("^.*\\.topic.$"), RegexUtils.convertWildcardStringsToRegex(List.of("*.topic?")));
+        assertEquals(List.of("^abc.\\..*-test.$"), RegexUtils.convertWildcardStringsToRegex(List.of("abc?.*-test?")));
     }
 
     @Test
-    void multipleWildcardsToRegexPatterns() {
+    void shouldConvertMultipleWildcardsToRegexPatterns() {
         assertEquals(List.of("^prefix.*$", "^.*suffix$"),
-            RegexUtils.wildcardStringsToRegexPatterns(List.of("prefix*", "*suffix")));
+            RegexUtils.convertWildcardStringsToRegex(List.of("prefix*", "*suffix")));
     }
 
     @Test
-    void noFilterRegexPattern() {
-        assertTrue(RegexUtils.filterByPattern("topic1", List.of("^.*$")));
+    void shouldResourceBeCoveredByWildcardRegexPattern() {
+        assertTrue(RegexUtils.isResourceCoveredByRegex("topic1", List.of("^.*$")));
     }
 
     @Test
-    void prefixFilterWithRegexPattern() {
+    void shouldResourceBeCoveredByPrefixRegexPattern() {
         List<String> pattern = List.of("^prefix.*$");
-        assertTrue(RegexUtils.filterByPattern("prefix.topic", pattern));
-        assertTrue(RegexUtils.filterByPattern("prefix1.topic", pattern));
-        assertFalse(RegexUtils.filterByPattern("abc.topic", pattern));
-        assertFalse(RegexUtils.filterByPattern("topic", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("prefix.topic", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("prefix1.topic", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("abc.topic", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("topic", pattern));
     }
 
     @Test
-    void suffixFilterWithRegexPattern() {
+    void shouldResourceBeCoveredBySuffixRegexPattern() {
         List<String> pattern = List.of("^.*-dev$");
-        assertTrue(RegexUtils.filterByPattern("abc.topic-dev", pattern));
-        assertTrue(RegexUtils.filterByPattern("xyz.stream-dev", pattern));
-        assertFalse(RegexUtils.filterByPattern("abc.topic-dev2", pattern));
-        assertFalse(RegexUtils.filterByPattern("abc.topic-test", pattern));
-        assertFalse(RegexUtils.filterByPattern("abc.topic.dev", pattern));
-        assertFalse(RegexUtils.filterByPattern("topic", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("abc.topic-dev", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("xyz.stream-dev", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("abc.topic-dev2", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("abc.topic-test", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("abc.topic.dev", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("topic", pattern));
     }
 
     @Test
-    void complexFilterWithRegexPattern() {
+    void shouldResourceBeCoveredByComplexFilterRegexPattern() {
         List<String> pattern = List.of("^abc.\\..*-test.$");
-        assertTrue(RegexUtils.filterByPattern("abc1.topic-test2", pattern));
-        assertTrue(RegexUtils.filterByPattern("abc1.stream-test2", pattern));
-        assertFalse(RegexUtils.filterByPattern("abc1.topic-test20", pattern));
-        assertFalse(RegexUtils.filterByPattern("abc.topic-test2", pattern));
-        assertFalse(RegexUtils.filterByPattern("abc1.topic-test", pattern));
-        assertFalse(RegexUtils.filterByPattern("abc1.topic-prod2", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("abc1.topic-test2", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("abc1.stream-test2", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("abc1.topic-test20", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("abc.topic-test2", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("abc1.topic-test", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("abc1.topic-prod2", pattern));
     }
 
     @Test
-    void filterWithMultipleRegexPattern() {
+    void shouldResourceBeCoveredByAnyRegexPattern() {
         List<String> pattern = List.of("^prefix1.*$", "^prefix2.*$");
-        assertTrue(RegexUtils.filterByPattern("prefix1.topic", pattern));
-        assertTrue(RegexUtils.filterByPattern("prefix2.topic", pattern));
-        assertFalse(RegexUtils.filterByPattern("prefix3.topic", pattern));
-        assertFalse(RegexUtils.filterByPattern("topic", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("prefix1.topic", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("prefix2.topic", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("prefix3.topic", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("topic", pattern));
     }
 
     /**
      * Functional tests for wildcard filter.
      */
     @Test
-    void noFilterWildcard() {
-        List<String> pattern1 = RegexUtils.wildcardStringsToRegexPatterns(List.of("*"));
-        assertTrue(RegexUtils.filterByPattern("prefix.myTopic", pattern1));
-        assertTrue(RegexUtils.filterByPattern("prefix10.yourSchema", pattern1));
-        assertTrue(RegexUtils.filterByPattern("whatever.whatsoever", pattern1));
-        assertTrue(RegexUtils.filterByPattern("whatever", pattern1));
+    void shouldResourceBeCoveredByWildcardOnly() {
+        List<String> pattern1 = RegexUtils.convertWildcardStringsToRegex(List.of("*"));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("prefix.myTopic", pattern1));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("prefix10.yourSchema", pattern1));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("whatever.whatsoever", pattern1));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("whatever", pattern1));
 
-        List<String> patterns2 = RegexUtils.wildcardStringsToRegexPatterns(List.of(""));
-        assertTrue(RegexUtils.filterByPattern("prefix.myTopic", patterns2));
-        assertTrue(RegexUtils.filterByPattern("prefix10.yourSchema", patterns2));
-        assertTrue(RegexUtils.filterByPattern("whatever.whatsoever", patterns2));
-        assertTrue(RegexUtils.filterByPattern("whatever", patterns2));
+        List<String> patterns2 = RegexUtils.convertWildcardStringsToRegex(List.of(""));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("prefix.myTopic", patterns2));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("prefix10.yourSchema", patterns2));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("whatever.whatsoever", patterns2));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("whatever", patterns2));
     }
 
     @Test
-    void prefixFilterWithWildcard() {
-        List<String> pattern = RegexUtils.wildcardStringsToRegexPatterns(List.of("abc.my*"));
-        assertTrue(RegexUtils.filterByPattern("abc.myTopic", pattern));
-        assertTrue(RegexUtils.filterByPattern("abc.myStream", pattern));
-        assertTrue(RegexUtils.filterByPattern("abc.myConnect.xyz", pattern));
-        assertTrue(RegexUtils.filterByPattern("abc.my", pattern));
-        assertFalse(RegexUtils.filterByPattern("abc.topic", pattern));
-        assertFalse(RegexUtils.filterByPattern("myTopic", pattern));
+    void shouldResourceBeCoveredByStringPrefixedWithWildcard() {
+        List<String> pattern = RegexUtils.convertWildcardStringsToRegex(List.of("abc.my*"));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("abc.myTopic", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("abc.myStream", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("abc.myConnect.xyz", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("abc.my", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("abc.topic", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("myTopic", pattern));
     }
 
     @Test
-    void suffixFilterWithWildcard() {
-        List<String> pattern = RegexUtils.wildcardStringsToRegexPatterns(List.of("*-test"));
-        assertTrue(RegexUtils.filterByPattern("abc.myTopic-test", pattern));
-        assertTrue(RegexUtils.filterByPattern("xyz.myStream-test", pattern));
-        assertTrue(RegexUtils.filterByPattern("-test", pattern));
-        assertTrue(RegexUtils.filterByPattern("myTopic-test", pattern));
-        assertFalse(RegexUtils.filterByPattern("abc.topic", pattern));
-        assertFalse(RegexUtils.filterByPattern("myTopic-dev", pattern));
-        assertFalse(RegexUtils.filterByPattern("myTopic-test1", pattern));
-        assertFalse(RegexUtils.filterByPattern("myTopic-test-dev", pattern));
+    void shouldResourceBeCoveredByStringSuffixedWithWildcard() {
+        List<String> pattern = RegexUtils.convertWildcardStringsToRegex(List.of("*-test"));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("abc.myTopic-test", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("xyz.myStream-test", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("-test", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("myTopic-test", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("abc.topic", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("myTopic-dev", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("myTopic-test1", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("myTopic-test-dev", pattern));
     }
 
     @Test
-    void filterWithMultipleWildcard() {
-        List<String> pattern = RegexUtils.wildcardStringsToRegexPatterns(List.of("abc.myT*op?c"));
-        assertTrue(RegexUtils.filterByPattern("abc.myTopic", pattern));
-        assertTrue(RegexUtils.filterByPattern("abc.myTopicTopic", pattern));
-        assertTrue(RegexUtils.filterByPattern("abc.myTaaaaaopac", pattern));
-        assertFalse(RegexUtils.filterByPattern("abc.myTopiiic", pattern));
-        assertFalse(RegexUtils.filterByPattern("abc.yourTopic", pattern));
-        assertFalse(RegexUtils.filterByPattern("abc.myTopic.suffix", pattern));
+    void shouldResourceBeCoveredByStringWithMultipleWildcards() {
+        List<String> pattern = RegexUtils.convertWildcardStringsToRegex(List.of("abc.myT*op?c"));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("abc.myTopic", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("abc.myTopicTopic", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("abc.myTaaaaaopac", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("abc.myTopiiic", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("abc.yourTopic", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("abc.myTopic.suffix", pattern));
     }
 
     @Test
-    void prefixAndSuffixFilterWithWildcard() {
-        List<String> pattern = RegexUtils.wildcardStringsToRegexPatterns(List.of("*.myTopic?"));
-        assertTrue(RegexUtils.filterByPattern("abc.myTopic1", pattern));
-        assertTrue(RegexUtils.filterByPattern("prefix.myTopic2", pattern));
-        assertFalse(RegexUtils.filterByPattern("abc.myTopic", pattern));
-        assertFalse(RegexUtils.filterByPattern("abc.myTopic.suffix", pattern));
-        assertFalse(RegexUtils.filterByPattern("abc.myTopic13", pattern));
+    void shouldResourceBeCoveredByStringWithPrefixAndSuffixWildcards() {
+        List<String> pattern = RegexUtils.convertWildcardStringsToRegex(List.of("*.myTopic?"));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("abc.myTopic1", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("prefix.myTopic2", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("abc.myTopic", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("abc.myTopic.suffix", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("abc.myTopic13", pattern));
     }
 
     @Test
-    void filterWithMultipleSameWildcard() {
-        List<String> pattern = RegexUtils.wildcardStringsToRegexPatterns(List.of("***.myTopic"));
-        assertTrue(RegexUtils.filterByPattern("abc.myTopic", pattern));
-        assertTrue(RegexUtils.filterByPattern("prefix.myTopic", pattern));
-        assertTrue(RegexUtils.filterByPattern(".myTopic", pattern));
-        assertFalse(RegexUtils.filterByPattern("prefix.myStream", pattern));
+    void shouldResourceBeCoveredByStringWithMultipleSameWildcards() {
+        List<String> pattern = RegexUtils.convertWildcardStringsToRegex(List.of("***.myTopic"));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("abc.myTopic", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex("prefix.myTopic", pattern));
+        assertTrue(RegexUtils.isResourceCoveredByRegex(".myTopic", pattern));
+        assertFalse(RegexUtils.isResourceCoveredByRegex("prefix.myStream", pattern));
     }
 }

@@ -141,7 +141,7 @@ public abstract class KafkaStore<T> {
                 "The topic " + kafkaTopic + " should have only 1 partition but has " + numPartitions + ".");
         }
 
-        if (description.partitions().get(0).replicas().size() < kafkaStoreProperties.getReplicationFactor()
+        if (description.partitions().getFirst().replicas().size() < kafkaStoreProperties.getReplicationFactor()
             && log.isWarnEnabled()) {
             log.warn("The replication factor of the topic " + kafkaTopic + " is less than the desired one of "
                 + kafkaStoreProperties.getReplicationFactor()

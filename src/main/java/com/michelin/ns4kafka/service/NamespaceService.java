@@ -73,10 +73,10 @@ public class NamespaceService {
      * @return The list of namespaces
      */
     public List<Namespace> findByWildcardName(String name) {
-        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
+        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
         return findAll()
             .stream()
-            .filter(ns -> RegexUtils.filterByPattern(ns.getMetadata().getName(), nameFilterPatterns))
+            .filter(ns -> RegexUtils.isResourceCoveredByRegex(ns.getMetadata().getName(), nameFilterPatterns))
             .toList();
     }
 

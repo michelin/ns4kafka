@@ -39,6 +39,7 @@ class GitlabAuthenticationProviderTest {
     GitlabAuthenticationProvider gitlabAuthenticationProvider;
 
     @Test
+    @SuppressWarnings("unchecked")
     void authenticationSuccess() {
         AuthenticationRequest<String, String> authenticationRequest =
             new UsernamePasswordCredentials("username", "53cu23d_70k3n");
@@ -80,6 +81,7 @@ class GitlabAuthenticationProviderTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void authenticationSuccessAdmin() {
         AuthenticationRequest<String, String> authenticationRequest =
             new UsernamePasswordCredentials("usernameAdmin", "53cu23d_70k3n");

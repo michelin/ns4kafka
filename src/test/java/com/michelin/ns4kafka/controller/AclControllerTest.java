@@ -132,12 +132,12 @@ class AclControllerTest {
             .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
-        when(aclService.findByWildcardNameGrantedToNamespace(namespace, "*")).thenReturn(
+        when(aclService.findAllGrantedToNamespaceByWildcardName(namespace, "*")).thenReturn(
             List.of(aceTopicPrefixedOwnerAdminToTest, aceConnectPrefixedOwnerAdminToTest,
                 aceTopicPrefixedReadNamespaceOtherToTest, aceTopicPrefixedReadAdminToAll));
-        when(aclService.findByWildcardNameGrantedByNamespace(namespace, "*"))
+        when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "*"))
             .thenReturn(List.of(aceTopicPrefixedReadTestToNamespaceOther));
-        when(aclService.findByWildcardNameRelatedToNamespace(namespace, "*")).thenReturn(
+        when(aclService.findAllRelatedToNamespaceByWildcardName(namespace, "*")).thenReturn(
             List.of(aceTopicPrefixedReadTestToNamespaceOther, aceTopicPrefixedOwnerAdminToTest,
                 aceConnectPrefixedOwnerAdminToTest, aceTopicPrefixedReadNamespaceOtherToTest,
                 aceTopicPrefixedReadAdminToAll));
@@ -219,15 +219,15 @@ class AclControllerTest {
             .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
-        when(aclService.findByWildcardNameGrantedToNamespace(namespace, "aclGrantedToNamespace"))
+        when(aclService.findAllGrantedToNamespaceByWildcardName(namespace, "aclGrantedToNamespace"))
             .thenReturn(List.of(aclGrantedToNamespace));
-        when(aclService.findByWildcardNameGrantedToNamespace(namespace, "ownerAcl"))
+        when(aclService.findAllGrantedToNamespaceByWildcardName(namespace, "ownerAcl"))
             .thenReturn(List.of());
-        when(aclService.findByWildcardNameGrantedByNamespace(namespace, "aclGrantedByNamespace"))
+        when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "aclGrantedByNamespace"))
             .thenReturn(List.of(aclGrantedByNamespace));
-        when(aclService.findByWildcardNameGrantedToNamespace(namespace, "ownerAcl"))
+        when(aclService.findAllGrantedToNamespaceByWildcardName(namespace, "ownerAcl"))
             .thenReturn(List.of());
-        when(aclService.findByWildcardNameRelatedToNamespace(namespace, "ownerAcl"))
+        when(aclService.findAllRelatedToNamespaceByWildcardName(namespace, "ownerAcl"))
             .thenReturn(List.of(ownerAcl));
 
         assertEquals(List.of(aclGrantedToNamespace), accessControlListController.list("test",

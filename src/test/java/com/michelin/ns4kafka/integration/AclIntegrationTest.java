@@ -90,9 +90,10 @@ class AclIntegrationTest extends AbstractIntegrationTest {
             .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<BearerAccessRefreshToken> response =
-            ns4KafkaClient.toBlocking()
-                .exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
+        HttpResponse<BearerAccessRefreshToken> response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .POST("/login", credentials), BearerAccessRefreshToken.class);
 
         token = response.getBody().get().getAccessToken();
 
@@ -165,6 +166,7 @@ class AclIntegrationTest extends AbstractIntegrationTest {
         );
 
         assertEquals(1, results.size());
+        assertTrue(results.stream().findFirst().isPresent());
         assertEquals(expected, results.stream().findFirst().get());
 
         // DELETE the ACL and verify
@@ -260,6 +262,7 @@ class AclIntegrationTest extends AbstractIntegrationTest {
         );
 
         assertEquals(1, results.size());
+        assertTrue(results.stream().findFirst().isPresent());
         assertEquals(expected, results.stream().findFirst().get());
 
         // DELETE the ACLs and verify
@@ -338,6 +341,7 @@ class AclIntegrationTest extends AbstractIntegrationTest {
         Collection<AclBinding> results = kafkaClient.describeAcls(aclBindingFilter).values().get();
 
         assertEquals(1, results.size());
+        assertTrue(results.stream().findFirst().isPresent());
         assertEquals(aclBinding, results.stream().findFirst().get());
 
         // Remove ACL
@@ -406,6 +410,7 @@ class AclIntegrationTest extends AbstractIntegrationTest {
         );
 
         assertEquals(1, results.size());
+        assertTrue(results.stream().findFirst().isPresent());
         assertEquals(expected, results.stream().findFirst().get());
 
         // DELETE the ACL and verify

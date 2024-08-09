@@ -62,7 +62,7 @@ public class ConnectorService {
             .findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.CONNECT);
         return connectorRepository.findAllForCluster(namespace.getMetadata().getCluster())
             .stream()
-            .filter(connector -> aclService.isAnyAclOfResource(acls, connector.getMetadata().getName()))
+            .filter(connector -> aclService.isResourceCoveredByAcls(acls, connector.getMetadata().getName()))
             .toList();
     }
 
@@ -74,10 +74,11 @@ public class ConnectorService {
      * @return A list of connectors
      */
     public List<Connector> findByWildcardName(Namespace namespace, String name) {
-        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
+        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
         return findAllForNamespace(namespace)
             .stream()
-            .filter(connector -> RegexUtils.filterByPattern(connector.getMetadata().getName(), nameFilterPatterns))
+            .filter(connector -> RegexUtils
+                .isResourceCoveredByRegex(connector.getMetadata().getName(), nameFilterPatterns))
             .toList();
     }
 

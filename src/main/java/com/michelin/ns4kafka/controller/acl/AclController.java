@@ -48,21 +48,23 @@ public class AclController extends NamespacedResourceController {
      * @return A list of ACLs
      */
     @Get("{?limit}")
-    public List<AccessControlEntry> list(String namespace, Optional<AclLimit> limit,
+    public List<AccessControlEntry> list(String namespace,
+                                         Optional<AclLimit> limit,
                                          @QueryValue(defaultValue = "*") String name) {
         Namespace ns = getNamespace(namespace);
         return switch (limit.orElse(AclLimit.ALL)) {
-            case GRANTEE -> aclService.findByWildcardNameGrantedToNamespace(ns, name)
+            case GRANTEE -> aclService.findAllGrantedToNamespaceByWildcardName(ns, name)
                 .stream()
                 .sorted(Comparator.comparing((AccessControlEntry acl) -> acl.getMetadata().getNamespace()))
                 .toList();
-            case GRANTOR -> aclService.findByWildcardNameGrantedByNamespace(ns, name)
+            case GRANTOR -> aclService.findAllGrantedByNamespaceByWildcardName(ns, name)
                 .stream()
                 .sorted(Comparator.comparing(acl -> acl.getSpec().getGrantedTo()))
                 .toList();
-            default -> aclService.findByWildcardNameRelatedToNamespace(ns, name)
+            default -> aclService.findAllRelatedToNamespaceByWildcardName(ns, name)
                 .stream()
-                .sorted(Comparator.comparing((AccessControlEntry acl) -> acl.getMetadata().getNamespace())
+                .sorted(Comparator
+                    .comparing((AccessControlEntry acl) -> acl.getMetadata().getNamespace())
                     .thenComparing(acl -> acl.getSpec().getGrantedTo()))
                 .toList();
         };

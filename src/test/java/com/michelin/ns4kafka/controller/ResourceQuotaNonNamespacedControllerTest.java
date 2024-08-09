@@ -29,7 +29,7 @@ class ResourceQuotaNonNamespacedControllerTest {
     NamespaceService namespaceService;
 
     @Test
-    void listAll() {
+    void shouldFindAll() {
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -48,11 +48,13 @@ class ResourceQuotaNonNamespacedControllerTest {
                 .build())
             .build();
 
-        when(namespaceService.findAll()).thenReturn(List.of(namespace));
-        when(resourceQuotaService.getUsedQuotaByNamespaces(any())).thenReturn(List.of(response));
+        when(namespaceService.findAll())
+            .thenReturn(List.of(namespace));
+        when(resourceQuotaService.getUsedQuotaByNamespaces(any()))
+            .thenReturn(List.of(response));
 
         List<ResourceQuotaResponse> actual = resourceQuotaController.listAll();
         assertEquals(1, actual.size());
-        assertEquals(response, actual.get(0));
+        assertEquals(response, actual.getFirst());
     }
 }

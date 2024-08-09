@@ -22,9 +22,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-/**
- * Authentication service test.
- */
 @ExtendWith(MockitoExtension.class)
 class AuthenticationServiceTest {
     @Mock
@@ -78,6 +75,7 @@ class AuthenticationServiceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void shouldReturnAuthenticationSuccessWhenAdminWithGroups() {
         RoleBinding roleBinding = RoleBinding.builder()
             .metadata(Metadata.builder()
@@ -111,21 +109,22 @@ class AuthenticationServiceTest {
             .containsKey("roleBindings"));
         assertEquals("ns1",
             ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
-                .get("roleBindings")).get(0)
+                .get("roleBindings")).getFirst()
                 .getNamespace());
         assertTrue(
             ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
-                .get("roleBindings")).get(0)
+                .get("roleBindings")).getFirst()
                 .getVerbs()
                 .containsAll(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET)));
         assertTrue(
             ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
-                .get("roleBindings")).get(0)
+                .get("roleBindings")).getFirst()
                 .getResourceTypes()
                 .containsAll(List.of("topics", "acls")));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void shouldReturnAuthenticationSuccessWhenUserWithGroups() {
         RoleBinding roleBinding = RoleBinding.builder()
             .metadata(Metadata.builder()
@@ -159,16 +158,16 @@ class AuthenticationServiceTest {
             .containsKey("roleBindings"));
         assertEquals("ns1",
             ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
-                .get("roleBindings")).get(0)
+                .get("roleBindings")).getFirst()
                 .getNamespace());
         assertTrue(
             ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
-                .get("roleBindings")).get(0)
+                .get("roleBindings")).getFirst()
                 .getVerbs()
                 .containsAll(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET)));
         assertTrue(
             ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
-                .get("roleBindings")).get(0)
+                .get("roleBindings")).getFirst()
                 .getResourceTypes()
                 .containsAll(List.of("topics", "acls")));
     }

@@ -133,7 +133,7 @@ public class ConnectClusterService {
 
         return connectClusterRepository.findAllForCluster(namespace.getMetadata().getCluster())
             .stream()
-            .filter(connectCluster -> aclService.isAnyAclOfResource(acls, connectCluster.getMetadata().getName()))
+            .filter(connectCluster -> aclService.isResourceCoveredByAcls(acls, connectCluster.getMetadata().getName()))
             .toList();
     }
 
@@ -157,10 +157,10 @@ public class ConnectClusterService {
      * @return The list of owned Connect cluster
      */
     public List<ConnectCluster> findByWildcardNameWithOwnerPermission(Namespace namespace, String name) {
-        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
+        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
         return findAllForNamespaceWithOwnerPermission(namespace)
             .stream()
-            .filter(cc -> RegexUtils.filterByPattern(cc.getMetadata().getName(), nameFilterPatterns))
+            .filter(cc -> RegexUtils.isResourceCoveredByRegex(cc.getMetadata().getName(), nameFilterPatterns))
             .map(this::buildConnectClusterWithDecryptedInformation)
             .toList();
     }

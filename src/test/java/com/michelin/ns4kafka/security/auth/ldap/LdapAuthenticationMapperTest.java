@@ -18,9 +18,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-/**
- * Ldap authentication mapper test.
- */
 @ExtendWith(MockitoExtension.class)
 class LdapAuthenticationMapperTest {
     @Mock
@@ -30,6 +27,7 @@ class LdapAuthenticationMapperTest {
     LdapAuthenticationMapper ldapAuthenticationMapper;
 
     @Test
+    @SuppressWarnings("unchecked")
     void shouldMapAttributesToAuthenticationResponse() {
         AuthenticationRoleBinding authenticationRoleBinding = AuthenticationRoleBinding.builder()
             .namespace("namespace")

@@ -28,9 +28,6 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-/**
- * Integration test for namespaces.
- */
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 class NamespaceIntegrationTest extends AbstractIntegrationTest {
@@ -75,7 +72,7 @@ class NamespaceIntegrationTest extends AbstractIntegrationTest {
 
         assertEquals("Constraint validation failed", exception.getMessage());
         assertEquals("namespace.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"",
-            exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
+            exception.getResponse().getBody(Status.class).get().getDetails().getCauses().getFirst());
 
         namespace.getMetadata().setName("accepted.namespace");
 
