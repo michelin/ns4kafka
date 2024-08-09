@@ -185,7 +185,7 @@ public class NamespaceService {
                     .map(connectCluster -> CONNECT_CLUSTER + "/" + connectCluster.getMetadata().getName()),
                 aclService.findAllForNamespace(namespace).stream()
                     .map(ace -> ACCESS_CONTROL_ENTRY + "/" + ace.getMetadata().getName()),
-                resourceQuotaService.findByNamespace(namespace.getMetadata().getName()).stream()
+                resourceQuotaService.findForNamespace(namespace.getMetadata().getName()).stream()
                     .map(resourceQuota -> RESOURCE_QUOTA + "/" + resourceQuota.getMetadata().getName()),
                 roleBindingService.findAllForNamespace(namespace.getMetadata().getName()).stream()
                     .map(roleBinding -> ROLE_BINDING + "/" + roleBinding.getMetadata().getName())

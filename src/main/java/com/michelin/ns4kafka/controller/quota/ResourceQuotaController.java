@@ -43,9 +43,12 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * @return A list of quotas
      */
     @Get
-    public List<ResourceQuotaResponse> list(String namespace) {
-        return List.of(resourceQuotaService.getUsedResourcesByQuotaByNamespace(getNamespace(namespace),
-            resourceQuotaService.findByNamespace(namespace)));
+    public List<ResourceQuotaResponse> list(String namespace, @QueryValue(defaultValue = "*") String name) {
+        return resourceQuotaService.findByWildcardName(namespace, name)
+            .stream()
+            .map(resourceQuota -> resourceQuotaService.getUsedResourcesByQuotaByNamespace(getNamespace(namespace),
+                Optional.of(resourceQuota)))
+            .toList();
     }
 
     /**
@@ -54,8 +57,10 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * @param namespace The name
      * @param quota     The quota name
      * @return A quota
+     * @deprecated use list(String, String name) instead.
      */
     @Get("/{quota}")
+    @Deprecated(since = "1.12.0")
     public Optional<ResourceQuotaResponse> get(String namespace, String quota) {
         Optional<ResourceQuota> resourceQuota = resourceQuotaService.findByName(namespace, quota);
         if (resourceQuota.isEmpty()) {
@@ -87,7 +92,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
             throw new ResourceValidationException(quota, validationErrors);
         }
 
-        Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByNamespace(namespace);
+        Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findForNamespace(namespace);
         if (resourceQuotaOptional.isPresent() && resourceQuotaOptional.get().equals(quota)) {
             return formatHttpResponse(quota, ApplyStatus.unchanged);
         }

@@ -53,7 +53,7 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
     }
 
     /**
-     * Get resource quota by namespace.
+     * Get resource quota of a given namespace.
      *
      * @param namespace The namespace used to research
      * @return A resource quota

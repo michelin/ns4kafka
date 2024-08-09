@@ -25,6 +25,7 @@ import com.michelin.ns4kafka.model.quota.ResourceQuotaResponse;
 import com.michelin.ns4kafka.repository.ResourceQuotaRepository;
 import com.michelin.ns4kafka.service.executor.UserAsyncExecutor;
 import com.michelin.ns4kafka.util.BytesUtils;
+import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.core.util.StringUtils;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -54,13 +55,28 @@ public class ResourceQuotaService {
     ConnectorService connectorService;
 
     /**
-     * Find a resource quota by namespace.
+     * Find a resource quota of a given namespace.
      *
      * @param namespace The namespace used to research
      * @return The researched resource quota
      */
-    public Optional<ResourceQuota> findByNamespace(String namespace) {
+    public Optional<ResourceQuota> findForNamespace(String namespace) {
         return resourceQuotaRepository.findForNamespace(namespace);
+    }
+
+    /**
+     * Find a resource quota of a given namespace, filtered by name.
+     *
+     * @param namespace The namespace
+     * @param name      The name parameter
+     * @return The researched resource quota
+     */
+    public List<ResourceQuota> findByWildcardName(String namespace, String name) {
+        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
+        return findForNamespace(namespace)
+            .stream()
+            .filter(quota -> RegexUtils.filterByPattern(quota.getMetadata().getName(), nameFilterPatterns))
+            .toList();
     }
 
     /**
@@ -71,7 +87,7 @@ public class ResourceQuotaService {
      * @return The researched resource quota
      */
     public Optional<ResourceQuota> findByName(String namespace, String quota) {
-        return findByNamespace(namespace)
+        return findForNamespace(namespace)
             .stream()
             .filter(resourceQuota -> resourceQuota.getMetadata().getName().equals(quota))
             .findFirst();
@@ -227,7 +243,7 @@ public class ResourceQuotaService {
      * @return A list of errors
      */
     public List<String> validateTopicQuota(Namespace namespace, Optional<Topic> existingTopic, Topic newTopic) {
-        Optional<ResourceQuota> resourceQuotaOptional = findByNamespace(namespace.getMetadata().getName());
+        Optional<ResourceQuota> resourceQuotaOptional = findForNamespace(namespace.getMetadata().getName());
         if (resourceQuotaOptional.isEmpty()) {
             return List.of();
         }
@@ -284,7 +300,7 @@ public class ResourceQuotaService {
      * @return A list of errors
      */
     public List<String> validateConnectorQuota(Namespace namespace) {
-        Optional<ResourceQuota> resourceQuotaOptional = findByNamespace(namespace.getMetadata().getName());
+        Optional<ResourceQuota> resourceQuotaOptional = findForNamespace(namespace.getMetadata().getName());
         if (resourceQuotaOptional.isEmpty()) {
             return List.of();
         }
@@ -312,7 +328,7 @@ public class ResourceQuotaService {
         return namespaces
             .stream()
             .map(namespace -> getUsedResourcesByQuotaByNamespace(namespace,
-                findByNamespace(namespace.getMetadata().getName())))
+                findForNamespace(namespace.getMetadata().getName())))
             .toList();
     }
 
