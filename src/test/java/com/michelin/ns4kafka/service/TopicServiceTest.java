@@ -108,7 +108,7 @@ class TopicServiceTest {
                         .resource("ns1-topic1")
                         .build())
                     .build()));
-        when(aclService.isAnyAclOfResource(any(), anyString())).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(any(), anyString())).thenReturn(true);
 
         // search topic by name
         Optional<Topic> actualTopicPrefixed = topicService.findByName(ns, "ns-topic1");
@@ -186,7 +186,7 @@ class TopicServiceTest {
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
             .thenReturn(List.of());
 
-        when(aclService.isAnyAclOfResource(any(), anyString())).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(any(), anyString())).thenReturn(false);
 
         assertTrue(topicService.findAllForNamespace(ns).isEmpty());
     }
@@ -252,7 +252,7 @@ class TopicServiceTest {
                         .build())
                     .build()));
 
-        when(aclService.isAnyAclOfResource(any(), anyString())).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(any(), anyString())).thenReturn(false);
 
         assertTrue(topicService.findAllForNamespace(ns).isEmpty());
     }
@@ -322,11 +322,11 @@ class TopicServiceTest {
         when(topicRepository.findAllForCluster("local")).thenReturn(List.of(t0, t1, t2, t3, t4));
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
             .thenReturn(acls);
-        when(aclService.isAnyAclOfResource(acls, "ns1-topic1")).thenReturn(false);
-        when(aclService.isAnyAclOfResource(acls, "ns2-topic1")).thenReturn(false);
-        when(aclService.isAnyAclOfResource(acls, "ns0-topic1")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "ns-topic1")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "ns-topic2")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns1-topic1")).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(acls, "ns2-topic1")).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(acls, "ns0-topic1")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns-topic1")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns-topic2")).thenReturn(true);
 
         assertEquals(List.of(t0, t1, t2), topicService.findAllForNamespace(ns));
     }
@@ -497,10 +497,10 @@ class TopicServiceTest {
         when(topicRepository.findAllForCluster("local"))
             .thenReturn(List.of(t1, t2, t3, t4));
 
-        when(aclService.isAnyAclOfResource(acls, "ns-topic1")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "ns-topic2")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "ns1-topic1")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "ns2-topic1")).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(acls, "ns-topic1")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns-topic2")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns1-topic1")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns2-topic1")).thenReturn(false);
 
         List<String> actual = topicService.listUnsynchronizedTopicNames(ns);
 
@@ -577,7 +577,7 @@ class TopicServiceTest {
 
         // partial number of topics exists into ns4kfk
         when(topicRepository.findAllForCluster("local")).thenReturn(List.of(t1));
-        when(aclService.isAnyAclOfResource(acls, "ns-topic1")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns-topic1")).thenReturn(true);
 
         List<String> actual = topicService.listUnsynchronizedTopicNames(ns);
 
@@ -773,10 +773,10 @@ class TopicServiceTest {
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
             .thenReturn(acls);
         when(topicRepository.findAllForCluster("local")).thenReturn(List.of(topic1, topic2, topic3, topic4));
-        when(aclService.isAnyAclOfResource(acls, "prefix.topic1")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "prefix.topic2")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "prefix.topic3")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "prefix2.topic")).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(acls, "prefix.topic1")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "prefix.topic2")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "prefix.topic3")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "prefix2.topic")).thenReturn(false);
 
         assertEquals(List.of(topic1, topic2, topic3), topicService.findByWildcardName(ns, ""));
         assertEquals(List.of(topic2), topicService.findByWildcardName(ns, "prefix.topic2"));
@@ -862,7 +862,7 @@ class TopicServiceTest {
                     .build()
             ));
         when(topicRepository.findAllForCluster("local")).thenReturn(allTopics);
-        when(aclService.isAnyAclOfResource(any(), any())).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(any(), any())).thenReturn(true);
 
         // find one or multiple topics with wildcard
         assertEquals(List.of(topic1, topic2, topic3), topicService.findByWildcardName(ns, "prefix1.*"));

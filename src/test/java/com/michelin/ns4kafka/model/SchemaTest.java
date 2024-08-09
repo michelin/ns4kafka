@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 
 class SchemaTest {
     @Test
-    void testEquals() {
+    void shouldBeEqual() {
         Schema original = Schema.builder()
             .metadata(Metadata.builder()
                 .name("prefix.schema-one")
@@ -104,7 +104,7 @@ class SchemaTest {
     }
 
     @Test
-    void testSchemaListEquals() {
+    void shouldSchemaListBeEqual() {
         SchemaList original = SchemaList.builder()
             .metadata(Metadata.builder()
                 .name("prefix.schema-one")

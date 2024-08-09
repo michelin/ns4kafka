@@ -55,7 +55,7 @@ public class SchemaService {
             .getSubjects(namespace.getMetadata().getCluster())
             .filter(subject -> {
                 String underlyingTopicName = subject.replaceAll("-(key|value)$", "");
-                return aclService.isAnyAclOfResource(acls, underlyingTopicName);
+                return aclService.isResourceCoveredByAcls(acls, underlyingTopicName);
             })
             .map(subject -> SchemaList.builder()
                 .metadata(Metadata.builder()
@@ -74,9 +74,10 @@ public class SchemaService {
      * @return A list of schemas
      */
     public Flux<SchemaList> findByWildcardName(Namespace namespace, String name) {
-        List<String> nameFilterPatterns = RegexUtils.wildcardStringsToRegexPatterns(List.of(name));
+        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
         return findAllForNamespace(namespace)
-            .filter(schemaList -> RegexUtils.filterByPattern(schemaList.getMetadata().getName(), nameFilterPatterns));
+            .filter(schemaList -> RegexUtils
+                .isResourceCoveredByRegex(schemaList.getMetadata().getName(), nameFilterPatterns));
     }
 
     /**

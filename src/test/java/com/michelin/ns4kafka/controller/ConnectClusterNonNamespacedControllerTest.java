@@ -17,9 +17,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-/**
- * Connect cluster non namespaced controller test.
- */
 @ExtendWith(MockitoExtension.class)
 class ConnectClusterNonNamespacedControllerTest {
     @Mock

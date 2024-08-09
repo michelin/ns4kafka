@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 
 class ConnectValidatorTest {
     @Test
-    void testEquals() {
+    void shouldBeEqual() {
         ConnectValidator original = ConnectValidator.builder()
             .validationConstraints(Map.of(
                 "key.converter", new ResourceValidator.NonEmptyString(),
@@ -145,7 +145,7 @@ class ConnectValidatorTest {
 
         List<String> actual = validator.validate(connector, "sink");
         assertEquals(1, actual.size());
-        assertEquals("Invalid empty value for field \"name\": value must not be empty.", actual.get(0));
+        assertEquals("Invalid empty value for field \"name\": value must not be empty.", actual.getFirst());
     }
 
     @Test
@@ -358,7 +358,7 @@ class ConnectValidatorTest {
         List<String> actual = validator.validate(connector, "source");
         assertEquals(1, actual.size());
         assertEquals("Invalid empty value for field \"producer.override.sasl.jaas.config\": value must not be null.",
-            actual.get(0));
+            actual.getFirst());
     }
 
     @Test

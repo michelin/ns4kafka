@@ -37,7 +37,7 @@ class AkhqClaimProviderControllerTest {
     AkhqProperties akhqProperties = getAkhqClaimProviderControllerConfig();
 
     @Test
-    void computeAllowedRegexListTestEmpty() {
+    void shouldComputeAllowedRegexEmpty() {
         List<AccessControlEntry> inputAcls = List.of(
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -59,11 +59,11 @@ class AkhqClaimProviderControllerTest {
             AccessControlEntry.ResourceType.CONNECT);
 
         assertEquals(1, actual.size());
-        assertEquals("^none$", actual.get(0));
+        assertEquals("^none$", actual.getFirst());
     }
 
     @Test
-    void computeAllowedRegexListTestSuccess() {
+    void shouldComputeAllowedRegexList() {
         List<AccessControlEntry> inputAcls = List.of(
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -94,6 +94,7 @@ class AkhqClaimProviderControllerTest {
                     .build())
                 .build()
         );
+
         List<String> actual = akhqClaimProviderController.computeAllowedRegexListForResourceType(inputAcls,
             AccessControlEntry.ResourceType.TOPIC);
 
@@ -105,11 +106,12 @@ class AkhqClaimProviderControllerTest {
             ),
             actual
         );
+
         assertFalse(actual.contains("^\\Qproject1.connects\\E.*$"));
     }
 
     @Test
-    void computeAllowedRegexListTestSuccessDistinct() {
+    void shouldComputeAllowedRegexListWithDistinct() {
         List<AccessControlEntry> inputAcls = List.of(
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -139,24 +141,24 @@ class AkhqClaimProviderControllerTest {
     }
 
     @Test
-    void generateClaimTestNullOrEmptyRequest() {
+    void shouldGenerateClaimTestWhenNullOrEmptyRequest() {
         AkhqClaimProviderController.AkhqClaimResponse actual = akhqClaimProviderController.generateClaim(null);
 
         assertEquals(1, actual.getAttributes().get("topicsFilterRegexp").size());
-        assertEquals("^none$", actual.getAttributes().get("topicsFilterRegexp").get(0));
+        assertEquals("^none$", actual.getAttributes().get("topicsFilterRegexp").getFirst());
 
         AkhqClaimProviderController.AkhqClaimRequest request =
             AkhqClaimProviderController.AkhqClaimRequest.builder().build();
         actual = akhqClaimProviderController.generateClaim(request);
 
         assertEquals(1, actual.getAttributes().get("topicsFilterRegexp").size());
-        assertEquals("^none$", actual.getAttributes().get("topicsFilterRegexp").get(0));
+        assertEquals("^none$", actual.getAttributes().get("topicsFilterRegexp").getFirst());
 
         request = AkhqClaimProviderController.AkhqClaimRequest.builder().groups(List.of()).build();
         actual = akhqClaimProviderController.generateClaim(request);
 
         assertEquals(1, actual.getAttributes().get("topicsFilterRegexp").size());
-        assertEquals("^none$", actual.getAttributes().get("topicsFilterRegexp").get(0));
+        assertEquals("^none$", actual.getAttributes().get("topicsFilterRegexp").getFirst());
 
         assertLinesMatch(
             List.of(
@@ -172,7 +174,7 @@ class AkhqClaimProviderControllerTest {
     }
 
     @Test
-    void generateClaimTestSuccess() {
+    void shouldGenerateClaim() {
         Namespace ns1 = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("ns1")
@@ -296,7 +298,7 @@ class AkhqClaimProviderControllerTest {
     }
 
     @Test
-    void generateClaimTestSuccessAdmin() {
+    void shouldGenerateClaimForAdmin() {
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
             .groups(List.of("GP-ADMIN"))
             .build();
@@ -313,6 +315,7 @@ class AkhqClaimProviderControllerTest {
             ),
             actual.getRoles()
         );
+
         // Admin Regexp
         assertLinesMatch(List.of(".*$"), actual.getAttributes().get("topicsFilterRegexp"));
         assertLinesMatch(List.of(".*$"), actual.getAttributes().get("connectsFilterRegexp"));
@@ -320,7 +323,7 @@ class AkhqClaimProviderControllerTest {
     }
 
     @Test
-    void generateClaimV2TestSuccess() {
+    void shouldGenerateClaimV2() {
         Namespace ns1 = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("ns1")
@@ -437,24 +440,24 @@ class AkhqClaimProviderControllerTest {
     }
 
     @Test
-    void generateClaimV2TestNullOrEmptyRequest() {
+    void shouldGenerateClaimV2WhenNullOrEmptyRequest() {
         AkhqClaimProviderController.AkhqClaimResponseV2 actual = akhqClaimProviderController.generateClaimV2(null);
 
         assertEquals(1, actual.getTopicsFilterRegexp().size());
-        assertEquals("^none$", actual.getTopicsFilterRegexp().get(0));
+        assertEquals("^none$", actual.getTopicsFilterRegexp().getFirst());
 
         AkhqClaimProviderController.AkhqClaimRequest request =
             AkhqClaimProviderController.AkhqClaimRequest.builder().build();
         actual = akhqClaimProviderController.generateClaimV2(request);
 
         assertEquals(1, actual.getTopicsFilterRegexp().size());
-        assertEquals("^none$", actual.getTopicsFilterRegexp().get(0));
+        assertEquals("^none$", actual.getTopicsFilterRegexp().getFirst());
 
         request = AkhqClaimProviderController.AkhqClaimRequest.builder().groups(List.of()).build();
         actual = akhqClaimProviderController.generateClaimV2(request);
 
         assertEquals(1, actual.getTopicsFilterRegexp().size());
-        assertEquals("^none$", actual.getTopicsFilterRegexp().get(0));
+        assertEquals("^none$", actual.getTopicsFilterRegexp().getFirst());
 
         assertLinesMatch(
             List.of(
@@ -470,7 +473,7 @@ class AkhqClaimProviderControllerTest {
     }
 
     @Test
-    void generateClaimV2TestSuccessAdmin() {
+    void shouldGenerateClaimV2ForAdmin() {
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
             .groups(List.of("GP-ADMIN"))
             .build();
@@ -495,7 +498,7 @@ class AkhqClaimProviderControllerTest {
     }
 
     @Test
-    void computeAllowedRegexListTestSuccessFilterStartWith() {
+    void shouldComputeAllowedRegexListFilterStartWith() {
         List<AccessControlEntry> inputAcls = List.of(
             AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()

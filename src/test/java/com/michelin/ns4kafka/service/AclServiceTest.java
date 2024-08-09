@@ -21,9 +21,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-/**
- * Access control entry service test.
- */
 @ExtendWith(MockitoExtension.class)
 class AclServiceTest {
     @Mock
@@ -934,13 +931,252 @@ class AclServiceTest {
     }
 
     @Test
-    void shouldFindResourceWhereGivenNamespaceIsOwnerOf() {
+    void shouldFindAclGrantedToNamespaceByWildcardName() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace2")
+                .build())
+            .build();
+
+        AccessControlEntry acl1 = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-acl-topic")
+                .namespace("namespace1")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .grantedTo("namespace1").build())
+            .build();
+
+        AccessControlEntry acl2 = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("acl-ns1-read-to-ns2")
+                .namespace("namespace1")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .permission(AccessControlEntry.Permission.READ)
+                .grantedTo("namespace2").build())
+            .build();
+
+        AccessControlEntry acl3 = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-connect-write-to-ns2")
+                .namespace("namespace1")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .permission(AccessControlEntry.Permission.WRITE)
+                .grantedTo("namespace2").build())
+            .build();
+
+        AccessControlEntry acl4 = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("ns2-acl-topic")
+                .namespace("namespace2")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .grantedTo("namespace2").build())
+            .build();
+
+        AccessControlEntry acl5 = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("ns3-read-topic-all")
+                .namespace("namespace3")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .permission(AccessControlEntry.Permission.READ)
+                .grantedTo("*").build())
+            .build();
+
+        when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, acl3, acl4, acl5));
+
+        assertEquals(List.of(acl2, acl3, acl4, acl5), aclService.findAllGrantedToNamespaceByWildcardName(ns, "*"));
+        assertEquals(List.of(acl2), aclService.findAllGrantedToNamespaceByWildcardName(ns, "acl-ns1-read-to-ns2"));
+        assertEquals(List.of(acl2, acl5), aclService.findAllGrantedToNamespaceByWildcardName(ns, "*read*"));
+        assertTrue(aclService.findAllGrantedToNamespaceByWildcardName(ns, "not-found").isEmpty());
+    }
+
+    @Test
+    void shouldFindAclGrantedByNamespaceByWildcardName() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace1")
                 .build())
             .build();
 
+        AccessControlEntry acl1 = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-acl-topic")
+                .namespace("namespace1")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .grantedTo("namespace1").build())
+            .build();
+
+        AccessControlEntry acl2 = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("acl-ns1-read-to-ns2")
+                .namespace("namespace1")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .permission(AccessControlEntry.Permission.READ)
+                .grantedTo("namespace2").build())
+            .build();
+
+        AccessControlEntry acl3 = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-connect-write-to-ns2")
+                .namespace("namespace1")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .permission(AccessControlEntry.Permission.WRITE)
+                .grantedTo("namespace2").build())
+            .build();
+
+        AccessControlEntry acl4 = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("ns2-acl-topic")
+                .namespace("namespace2")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .grantedTo("namespace2").build())
+            .build();
+
+        AccessControlEntry acl5 = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("ns3-read-topic-all")
+                .namespace("namespace3")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .permission(AccessControlEntry.Permission.READ)
+                .grantedTo("*").build())
+            .build();
+
+        when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, acl3, acl4, acl5));
+
+        assertEquals(List.of(acl2, acl3), aclService.findAllGrantedByNamespaceByWildcardName(ns, "*"));
+        assertEquals(List.of(acl2), aclService.findAllGrantedByNamespaceByWildcardName(ns, "acl-ns1-read-to-ns2"));
+        assertEquals(List.of(acl2, acl3), aclService.findAllGrantedByNamespaceByWildcardName(ns, "*-to-ns2"));
+        assertTrue(aclService.findAllGrantedByNamespaceByWildcardName(ns, "not-found").isEmpty());
+    }
+
+    @Test
+    void shouldFindAclRelatedToNamespaceByWildcardName() {
+        AccessControlEntry acl1 = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-acl-topic")
+                .namespace("namespace1")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .grantedTo("namespace1").build())
+            .build();
+
+        AccessControlEntry acl2 = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("acl-ns2-read-to-ns1")
+                .namespace("namespace2")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .permission(AccessControlEntry.Permission.READ)
+                .grantedTo("namespace1").build())
+            .build();
+
+        AccessControlEntry acl3 = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-acl-connect")
+                .namespace("namespace1")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .grantedTo("namespace1").build())
+            .build();
+
+        AccessControlEntry acl4 = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("ns2-acl-topic")
+                .namespace("namespace2")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .grantedTo("namespace2").build())
+            .build();
+
+        AccessControlEntry acl5 = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("ns3-read-topic-all")
+                .namespace("namespace3")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .permission(AccessControlEntry.Permission.READ)
+                .grantedTo("*").build())
+            .build();
+
+        AccessControlEntry acl6 = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("ns3-write-acl-ns1")
+                .namespace("namespace3")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.GROUP)
+                .permission(AccessControlEntry.Permission.WRITE)
+                .grantedTo("namespace1").build())
+            .build();
+
+        when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, acl3, acl4, acl5, acl6));
+
+        Namespace ns1 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace1")
+                .build())
+            .build();
+
+        assertEquals(List.of(acl1, acl2, acl3, acl5, acl6),
+            aclService.findAllRelatedToNamespaceByWildcardName(ns1, "*"));
+        assertEquals(List.of(acl1, acl5), aclService.findAllRelatedToNamespaceByWildcardName(ns1, "*topic*"));
+        assertEquals(List.of(acl1, acl3), aclService.findAllRelatedToNamespaceByWildcardName(ns1, "ns1-acl*"));
+        assertTrue(aclService.findAllRelatedToNamespaceByWildcardName(ns1, "not-found").isEmpty());
+
+        Namespace ns2 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace2")
+                .build())
+            .build();
+
+        assertEquals(List.of(acl2, acl4, acl5), aclService.findAllRelatedToNamespaceByWildcardName(ns2, "*"));
+        assertEquals(List.of(acl2, acl4), aclService.findAllRelatedToNamespaceByWildcardName(ns2, "*ns2*"));
+
+        Namespace ns3 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace3")
+                .build())
+            .build();
+
+        assertEquals(List.of(acl5, acl6), aclService.findAllRelatedToNamespaceByWildcardName(ns3, "*"));
+        assertEquals(List.of(acl6), aclService.findAllRelatedToNamespaceByWildcardName(ns3, "ns3-write-acl-ns1"));
+    }
+
+    @Test
+    void shouldFindResourceWhereGivenNamespaceIsOwnerOf() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder().name("namespace1").build()).build();
         AccessControlEntry acl1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -1017,11 +1253,11 @@ class AclServiceTest {
             .build();
         List<AccessControlEntry> acls = List.of(acl1, acl2);
 
-        assertFalse(aclService.isAnyAclOfResource(acls, "xyz.topic1"));
-        assertFalse(aclService.isAnyAclOfResource(acls, "topic1-abc"));
-        assertFalse(aclService.isAnyAclOfResource(acls, "abc-topic1"));
-        assertTrue(aclService.isAnyAclOfResource(acls, "abc.topic1"));
-        assertTrue(aclService.isAnyAclOfResource(acls, "abc_topic1"));
+        assertFalse(aclService.isResourceCoveredByAcls(acls, "xyz.topic1"));
+        assertFalse(aclService.isResourceCoveredByAcls(acls, "topic1-abc"));
+        assertFalse(aclService.isResourceCoveredByAcls(acls, "abc-topic1"));
+        assertTrue(aclService.isResourceCoveredByAcls(acls, "abc.topic1"));
+        assertTrue(aclService.isResourceCoveredByAcls(acls, "abc_topic1"));
     }
 
     @Test
@@ -1047,10 +1283,10 @@ class AclServiceTest {
             .build();
         List<AccessControlEntry> acls = List.of(acl1, acl2);
 
-        assertFalse(aclService.isAnyAclOfResource(acls, "xyz.topic1"));
-        assertFalse(aclService.isAnyAclOfResource(acls, "abc.topic12"));
-        assertFalse(aclService.isAnyAclOfResource(acls, "abc_topic1"));
-        assertTrue(aclService.isAnyAclOfResource(acls, "abc.topic1"));
-        assertTrue(aclService.isAnyAclOfResource(acls, "abc-topic1"));
+        assertFalse(aclService.isResourceCoveredByAcls(acls, "xyz.topic1"));
+        assertFalse(aclService.isResourceCoveredByAcls(acls, "abc.topic12"));
+        assertFalse(aclService.isResourceCoveredByAcls(acls, "abc_topic1"));
+        assertTrue(aclService.isResourceCoveredByAcls(acls, "abc.topic1"));
+        assertTrue(aclService.isResourceCoveredByAcls(acls, "abc-topic1"));
     }
 }

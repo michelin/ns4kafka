@@ -68,6 +68,7 @@ class LocalUserAuthenticationProviderTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void authenticateMatchUserMatchPassword() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
 

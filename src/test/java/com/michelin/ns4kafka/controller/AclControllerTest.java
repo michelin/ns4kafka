@@ -53,7 +53,7 @@ class AclControllerTest {
     AclController accessControlListController;
 
     @Test
-    void shouldListAcls() {
+    void shouldListAclsWithoutNameParameter() {
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -103,20 +103,6 @@ class AclControllerTest {
                 .build())
             .build();
 
-        AccessControlEntry aceTopicPrefixedOwnerAdminToNamespaceOther = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .namespace("admin")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource("other-prefix")
-                .grantedTo("namespace-other")
-                .build())
-            .build();
-
         AccessControlEntry aceTopicPrefixedReadNamespaceOtherToTest = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .namespace("namespace-other")
@@ -146,16 +132,18 @@ class AclControllerTest {
             .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
-        when(aclService.findAllGrantedToNamespace(namespace)).thenReturn(
+        when(aclService.findAllGrantedToNamespaceByWildcardName(namespace, "*")).thenReturn(
             List.of(aceTopicPrefixedOwnerAdminToTest, aceConnectPrefixedOwnerAdminToTest,
                 aceTopicPrefixedReadNamespaceOtherToTest, aceTopicPrefixedReadAdminToAll));
-        when(aclService.findAllForCluster("local")).thenReturn(
-            List.of(aceTopicPrefixedOwnerAdminToTest, aceConnectPrefixedOwnerAdminToTest,
-                aceTopicPrefixedReadTestToNamespaceOther, aceTopicPrefixedOwnerAdminToNamespaceOther,
-                aceTopicPrefixedReadNamespaceOtherToTest, aceTopicPrefixedReadAdminToAll));
+        when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "*"))
+            .thenReturn(List.of(aceTopicPrefixedReadTestToNamespaceOther));
+        when(aclService.findAllRelatedToNamespaceByWildcardName(namespace, "*")).thenReturn(
+            List.of(aceTopicPrefixedReadTestToNamespaceOther, aceTopicPrefixedOwnerAdminToTest,
+                aceConnectPrefixedOwnerAdminToTest, aceTopicPrefixedReadNamespaceOtherToTest,
+                aceTopicPrefixedReadAdminToAll));
 
         List<AccessControlEntry> actual = accessControlListController
-            .list("test", Optional.of(AclController.AclLimit.GRANTEE));
+            .list("test", Optional.of(AclController.AclLimit.GRANTEE), "*");
 
         assertEquals(4, actual.size());
         assertTrue(actual.contains(aceTopicPrefixedOwnerAdminToTest));
@@ -163,11 +151,11 @@ class AclControllerTest {
         assertTrue(actual.contains(aceTopicPrefixedReadNamespaceOtherToTest));
         assertTrue(actual.contains(aceTopicPrefixedReadAdminToAll));
 
-        actual = accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTOR));
+        actual = accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTOR), "*");
         assertEquals(1, actual.size());
         assertTrue(actual.contains(aceTopicPrefixedReadTestToNamespaceOther));
 
-        actual = accessControlListController.list("test", Optional.of(AclController.AclLimit.ALL));
+        actual = accessControlListController.list("test", Optional.of(AclController.AclLimit.ALL), "*");
         assertEquals(5, actual.size());
         assertTrue(actual.contains(aceTopicPrefixedOwnerAdminToTest));
         assertTrue(actual.contains(aceConnectPrefixedOwnerAdminToTest));
@@ -177,7 +165,7 @@ class AclControllerTest {
     }
 
     @Test
-    void shouldGetAcl() {
+    void shouldListAclsWithNameParameter() {
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -185,9 +173,9 @@ class AclControllerTest {
                 .build())
             .build();
 
-        AccessControlEntry aceTopicPrefixedOwnerTestToTest = AccessControlEntry.builder()
+        AccessControlEntry ownerAcl = AccessControlEntry.builder()
             .metadata(Metadata.builder()
-                .name("ace1")
+                .name("ownerAcl")
                 .namespace("test")
                 .cluster("local")
                 .build())
@@ -200,18 +188,71 @@ class AclControllerTest {
                 .build())
             .build();
 
-        AccessControlEntry aceConnectPrefixedOwnerTestToTest = AccessControlEntry.builder()
+        AccessControlEntry aclGrantedByNamespace = AccessControlEntry.builder()
             .metadata(Metadata.builder()
-                .name("ace2")
+                .name("aclGrantedByNamespace")
+                .namespace("admin")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.WRITE)
+                .resource("prefix")
+                .grantedTo("test")
+                .build())
+            .build();
+
+        AccessControlEntry aclGrantedToNamespace = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("aclGrantedToNamespace")
                 .namespace("test")
                 .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
+                .permission(AccessControlEntry.Permission.READ)
                 .resource("prefix")
-                .grantedTo("test")
+                .grantedTo("admin")
+                .build())
+            .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
+        when(aclService.findAllGrantedToNamespaceByWildcardName(namespace, "aclGrantedToNamespace"))
+            .thenReturn(List.of(aclGrantedToNamespace));
+        when(aclService.findAllGrantedToNamespaceByWildcardName(namespace, "ownerAcl"))
+            .thenReturn(List.of());
+        when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "aclGrantedByNamespace"))
+            .thenReturn(List.of(aclGrantedByNamespace));
+        when(aclService.findAllGrantedToNamespaceByWildcardName(namespace, "ownerAcl"))
+            .thenReturn(List.of());
+        when(aclService.findAllRelatedToNamespaceByWildcardName(namespace, "ownerAcl"))
+            .thenReturn(List.of(ownerAcl));
+
+        assertEquals(List.of(aclGrantedToNamespace), accessControlListController.list("test",
+            Optional.of(AclController.AclLimit.GRANTEE), "aclGrantedToNamespace"));
+
+        assertEquals(List.of(), accessControlListController.list("test",
+            Optional.of(AclController.AclLimit.GRANTEE), "ownerAcl"));
+
+        assertEquals(List.of(aclGrantedByNamespace), accessControlListController.list("test",
+            Optional.of(AclController.AclLimit.GRANTOR), "aclGrantedByNamespace"));
+
+        assertEquals(List.of(), accessControlListController.list("test",
+            Optional.of(AclController.AclLimit.GRANTOR), "ownerAcl"));
+
+        assertEquals(List.of(ownerAcl), accessControlListController.list("test",
+            Optional.of(AclController.AclLimit.ALL), "ownerAcl"));
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void shouldGetAcl() {
+        Namespace namespace = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
                 .build())
             .build();
 
@@ -226,21 +267,6 @@ class AclControllerTest {
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                 .permission(AccessControlEntry.Permission.READ)
                 .resource("prefix")
-                .grantedTo("namespace-other")
-                .build())
-            .build();
-
-        AccessControlEntry aceTopicPrefixedOwnerAdminToNamespaceOther = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ace4")
-                .namespace("admin")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource("other-prefix")
                 .grantedTo("namespace-other")
                 .build())
             .build();
@@ -261,19 +287,14 @@ class AclControllerTest {
             .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
-        when(aclService.findAllForCluster("local")).thenReturn(
-            List.of(aceTopicPrefixedOwnerTestToTest, aceConnectPrefixedOwnerTestToTest,
-                aceTopicPrefixedReadTestToNamespaceOther, aceTopicPrefixedOwnerAdminToNamespaceOther,
-                aceTopicPrefixedReadNamespaceOtherToTest));
+        when(aclService.findAllRelatedToNamespace(namespace)).thenReturn(
+            List.of(aceTopicPrefixedReadTestToNamespaceOther, aceTopicPrefixedReadNamespaceOtherToTest));
 
         // Name not in list
-        Optional<AccessControlEntry> result1 = accessControlListController.get("test", "ace6");
-        assertTrue(result1.isEmpty());
+        assertTrue(accessControlListController.get("test", "ace6").isEmpty());
 
         // Not granted to or assigned by me
-        Optional<AccessControlEntry> result2 = accessControlListController.get("test", "ace4");
-
-        assertTrue(result2.isEmpty());
+        assertTrue(accessControlListController.get("test", "ace4").isEmpty());
 
         // Assigned by me
         Optional<AccessControlEntry> result3 = accessControlListController.get("test", "ace3");
@@ -510,7 +531,7 @@ class AclControllerTest {
             () -> accessControlListController.apply(authentication, "test", accessControlEntry, false));
         assertEquals(1, actual.getValidationErrors().size());
         assertEquals("Invalid \"apply\" operation: field \"spec\" is immutable.",
-            actual.getValidationErrors().get(0));
+            actual.getValidationErrors().getFirst());
     }
 
     @Test
@@ -694,7 +715,7 @@ class AclControllerTest {
             () -> accessControlListController.delete(authentication, "test", "ace1", false));
 
         assertEquals("Invalid value \"ace1\" for field \"name\": resource not found.",
-            actual.getValidationErrors().get(0));
+            actual.getValidationErrors().getFirst());
     }
 
     @Test
@@ -721,7 +742,7 @@ class AclControllerTest {
             () -> accessControlListController.delete(authentication, "test", "ace1", false));
 
         assertEquals("Invalid value \"ace1\" for field \"name\": only administrators can delete this ACL.",
-            actual.getValidationErrors().get(0));
+            actual.getValidationErrors().getFirst());
     }
 
     @Test

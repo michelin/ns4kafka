@@ -143,12 +143,15 @@ class StreamIntegrationTest extends AbstractIntegrationTest {
             .values()
             .get();
 
-        var aclTransactionalId = kafkaClient.describeAcls(new AclBindingFilter(
+        var aclTransactionalId = kafkaClient.describeAcls(
+            new AclBindingFilter(
                 new ResourcePatternFilter(
                     org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
                     stream.getMetadata().getName(),
-                    PatternType.PREFIXED),
-                AccessControlEntryFilter.ANY))
+                    PatternType.PREFIXED
+                ),
+                AccessControlEntryFilter.ANY
+            ))
             .values()
             .get();
 
@@ -159,6 +162,7 @@ class StreamIntegrationTest extends AbstractIntegrationTest {
                 .contains(aclBinding.entry().operation())));
 
         assertEquals(1, aclTransactionalId.size());
+        assertTrue(aclTransactionalId.stream().findFirst().isPresent());
         assertEquals(AclOperation.WRITE, aclTransactionalId.stream().findFirst().get().entry().operation());
     }
 }

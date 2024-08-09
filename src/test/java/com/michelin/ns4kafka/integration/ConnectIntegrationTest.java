@@ -476,7 +476,7 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
             .retrieve(HttpRequest.GET("/connectors/ns1-co1/status"), ConnectorStateInfo.class);
 
         assertEquals("RUNNING", actual.connector().getState());
-        assertEquals("RUNNING", actual.tasks().get(0).getState());
+        assertEquals("RUNNING", actual.tasks().getFirst().getState());
     }
 
     @Test

@@ -34,31 +34,20 @@ class AkhqClaimProviderControllerV3Test {
     @Spy
     AkhqProperties akhqProperties = getAkhqClaimProviderControllerConfig();
 
-    private AkhqProperties getAkhqClaimProviderControllerConfig() {
-        AkhqProperties config = new AkhqProperties();
-        config.setGroupLabel("support-group");
-        config.setAdminGroup("GP-ADMIN");
-        config.setRoles(Map.of(AccessControlEntry.ResourceType.TOPIC, "topic-read",
-            AccessControlEntry.ResourceType.CONNECT, "connect-rw",
-            AccessControlEntry.ResourceType.SCHEMA, "registry-read",
-            AccessControlEntry.ResourceType.GROUP, "group-read"));
-        config.setAdminRoles(Map.of(AccessControlEntry.ResourceType.TOPIC, "topic-admin",
-            AccessControlEntry.ResourceType.CONNECT, "connect-admin",
-            AccessControlEntry.ResourceType.SCHEMA, "registry-admin",
-            AccessControlEntry.ResourceType.GROUP, "group-read"));
-        return config;
-    }
-
     @Test
-    void generateClaimHappyPath() {
+    void shouldGenerateClaimHappyPath() {
         Namespace ns1Cluster1 = Namespace.builder()
-            .metadata(Metadata.builder().name("ns1").cluster("cluster1")
+            .metadata(Metadata.builder()
+                .name("ns1")
+                .cluster("cluster1")
                 .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
                 .build())
             .build();
 
         AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
-            .metadata(Metadata.builder().cluster("cluster1").build())
+            .metadata(Metadata.builder()
+                .cluster("cluster1")
+                .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -66,8 +55,11 @@ class AkhqClaimProviderControllerV3Test {
                 .build())
             .build();
 
-        akhqClaimProviderController.managedClusters =
-            List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
+        akhqClaimProviderController.managedClusters = List.of(
+            new ManagedClusterProperties("cluster1"),
+            new ManagedClusterProperties("cluster2")
+        );
+
         when(namespaceService.findAll())
             .thenReturn(List.of(ns1Cluster1));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1))
@@ -92,7 +84,9 @@ class AkhqClaimProviderControllerV3Test {
     @Test
     void shouldGrantAllAccessToGroup() {
         Namespace ns1Cluster1 = Namespace.builder()
-            .metadata(Metadata.builder().name("ns1").cluster("cluster1")
+            .metadata(Metadata.builder()
+                .name("ns1")
+                .cluster("cluster1")
                 .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
                 .build())
             .build();
@@ -115,8 +109,11 @@ class AkhqClaimProviderControllerV3Test {
                 .build())
             .build();
 
-        akhqClaimProviderController.managedClusters =
-            List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
+        akhqClaimProviderController.managedClusters = List.of(
+            new ManagedClusterProperties("cluster1"),
+            new ManagedClusterProperties("cluster2")
+        );
+
         when(namespaceService.findAll())
             .thenReturn(List.of(ns1Cluster1));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1))
@@ -140,9 +137,11 @@ class AkhqClaimProviderControllerV3Test {
     }
 
     @Test
-    void generateClaimMultipleSupportGroups() {
+    void shouldGenerateClaimWithMultipleSupportGroups() {
         Namespace ns1Cluster1 = Namespace.builder()
-            .metadata(Metadata.builder().name("ns1").cluster("cluster1")
+            .metadata(Metadata.builder()
+                .name("ns1")
+                .cluster("cluster1")
                 .labels(Map.of("support-group", "GP-PROJECT1-DEV,GP-PROJECT1-SUPPORT,GP-PROJECT1-OPS"))
                 .build())
             .build();
@@ -156,8 +155,11 @@ class AkhqClaimProviderControllerV3Test {
                 .build())
             .build();
 
-        akhqClaimProviderController.managedClusters =
-            List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
+        akhqClaimProviderController.managedClusters = List.of(
+            new ManagedClusterProperties("cluster1"),
+            new ManagedClusterProperties("cluster2")
+        );
+
         when(namespaceService.findAll())
             .thenReturn(List.of(ns1Cluster1));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1))
@@ -180,16 +182,22 @@ class AkhqClaimProviderControllerV3Test {
     }
 
     @Test
-    void generateClaimNoPermissions() {
+    void shouldGenerateClaimNoPermissions() {
         Namespace ns1Cluster1 = Namespace.builder()
-            .metadata(Metadata.builder().name("ns1").cluster("cluster1")
+            .metadata(Metadata.builder()
+                .name("ns1")
+                .cluster("cluster1")
                 .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
                 .build())
             .build();
 
-        akhqClaimProviderController.managedClusters =
-            List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
-        when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
+        akhqClaimProviderController.managedClusters = List.of(
+            new ManagedClusterProperties("cluster1"),
+            new ManagedClusterProperties("cluster2")
+        );
+
+        when(namespaceService.findAll())
+            .thenReturn(List.of(ns1Cluster1));
 
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
             .groups(List.of("GP-PROJECT2-SUPPORT"))
@@ -200,15 +208,20 @@ class AkhqClaimProviderControllerV3Test {
     }
 
     @Test
-    void generateClaimWithOptimizedClusters() {
+    void shouldGenerateClaimWithOptimizedClusters() {
         Namespace ns1Cluster1 = Namespace.builder()
             .metadata(Metadata.builder()
-                .name("ns1").cluster("cluster1").labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
+                .name("ns1")
+                .cluster("cluster1")
+                .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
                 .build())
             .build();
+
         Namespace ns1Cluster2 = Namespace.builder()
             .metadata(Metadata.builder()
-                .name("ns1").cluster("cluster2").labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
+                .name("ns1")
+                .cluster("cluster2")
+                .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
                 .build())
             .build();
 
@@ -221,14 +234,20 @@ class AkhqClaimProviderControllerV3Test {
                 .build())
             .build();
 
-        akhqClaimProviderController.managedClusters =
-            List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
-        when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1, ns1Cluster2));
+        akhqClaimProviderController.managedClusters = List.of(
+            new ManagedClusterProperties("cluster1"),
+            new ManagedClusterProperties("cluster2")
+        );
+
+        when(namespaceService.findAll())
+            .thenReturn(List.of(ns1Cluster1, ns1Cluster2));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1))
             .thenReturn(List.of(ace1Ns1Cluster1));
 
         AccessControlEntry ace1Ns1Cluster2 = AccessControlEntry.builder()
-            .metadata(Metadata.builder().cluster("cluster2").build())
+            .metadata(Metadata.builder()
+                .cluster("cluster2")
+                .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -256,20 +275,27 @@ class AkhqClaimProviderControllerV3Test {
     }
 
     @Test
-    void generateClaimWithMultiplePatternsOnSameCluster() {
+    void shouldGenerateClaimWithMultiplePatternsOnSameCluster() {
         Namespace ns1Cluster1 = Namespace.builder()
             .metadata(Metadata.builder()
-                .name("ns1").cluster("cluster1").labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
+                .name("ns1")
+                .cluster("cluster1")
+                .labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
                 .build())
             .build();
+
         Namespace ns2Cluster1 = Namespace.builder()
             .metadata(Metadata.builder()
-                .name("ns2").cluster("cluster1").labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
+                .name("ns2")
+                .cluster("cluster1")
+                .labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
                 .build())
             .build();
 
         AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
-            .metadata(Metadata.builder().cluster("cluster1").build())
+            .metadata(Metadata.builder()
+                .cluster("cluster1")
+                .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -277,14 +303,20 @@ class AkhqClaimProviderControllerV3Test {
                 .build())
             .build();
 
-        akhqClaimProviderController.managedClusters =
-            List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
-        when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1, ns2Cluster1));
+        akhqClaimProviderController.managedClusters = List.of(
+            new ManagedClusterProperties("cluster1"),
+            new ManagedClusterProperties("cluster2")
+        );
+
+        when(namespaceService.findAll())
+            .thenReturn(List.of(ns1Cluster1, ns2Cluster1));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1))
             .thenReturn(List.of(ace1Ns1Cluster1));
 
         AccessControlEntry ace2Ns2Cluster1 = AccessControlEntry.builder()
-            .metadata(Metadata.builder().cluster("cluster1").build())
+            .metadata(Metadata.builder()
+                .cluster("cluster1")
+                .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -312,20 +344,27 @@ class AkhqClaimProviderControllerV3Test {
     }
 
     @Test
-    void generateClaimWithMultipleGroups() {
+    void shouldGenerateClaimWithMultipleGroups() {
         Namespace ns1Cluster1 = Namespace.builder()
             .metadata(Metadata.builder()
-                .name("ns1").cluster("cluster1").labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
+                .name("ns1")
+                .cluster("cluster1")
+                .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
                 .build())
             .build();
+
         Namespace ns1Cluster2 = Namespace.builder()
             .metadata(Metadata.builder()
-                .name("ns1").cluster("cluster2").labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
+                .name("ns1")
+                .cluster("cluster2")
+                .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
                 .build())
             .build();
 
         AccessControlEntry ace1Cluster1 = AccessControlEntry.builder()
-            .metadata(Metadata.builder().cluster("cluster1").build())
+            .metadata(Metadata.builder()
+                .cluster("cluster1")
+                .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -333,14 +372,20 @@ class AkhqClaimProviderControllerV3Test {
                 .build())
             .build();
 
-        akhqClaimProviderController.managedClusters =
-            List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
-        when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1, ns1Cluster2));
+        akhqClaimProviderController.managedClusters = List.of(
+            new ManagedClusterProperties("cluster1"),
+            new ManagedClusterProperties("cluster2")
+        );
+
+        when(namespaceService.findAll())
+            .thenReturn(List.of(ns1Cluster1, ns1Cluster2));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1))
             .thenReturn(List.of(ace1Cluster1));
 
         AccessControlEntry ace1Cluster2 = AccessControlEntry.builder()
-            .metadata(Metadata.builder().cluster("cluster2").build())
+            .metadata(Metadata.builder()
+                .cluster("cluster2")
+                .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -368,15 +413,20 @@ class AkhqClaimProviderControllerV3Test {
     }
 
     @Test
-    void generateClaimWithPatternOnMultipleClusters() {
+    void shouldGenerateClaimWithPatternOnMultipleClusters() {
         Namespace ns1Cluster1 = Namespace.builder()
             .metadata(Metadata.builder()
-                .name("ns1").cluster("cluster1").labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
+                .name("ns1")
+                .cluster("cluster1")
+                .labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
                 .build())
             .build();
+
         Namespace ns2Cluster2 = Namespace.builder()
             .metadata(Metadata.builder()
-                .name("ns2").cluster("cluster2").labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
+                .name("ns2")
+                .cluster("cluster2")
+                .labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
                 .build())
             .build();
 
@@ -389,14 +439,20 @@ class AkhqClaimProviderControllerV3Test {
                 .build())
             .build();
 
-        akhqClaimProviderController.managedClusters =
-            List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
-        when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1, ns2Cluster2));
+        akhqClaimProviderController.managedClusters = List.of(
+            new ManagedClusterProperties("cluster1"),
+            new ManagedClusterProperties("cluster2")
+        );
+
+        when(namespaceService.findAll())
+            .thenReturn(List.of(ns1Cluster1, ns2Cluster2));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1))
             .thenReturn(List.of(ace1Ns1Cluster1));
 
         AccessControlEntry ace1Ns2Cluster2 = AccessControlEntry.builder()
-            .metadata(Metadata.builder().cluster("cluster2").build())
+            .metadata(Metadata.builder()
+                .cluster("cluster2")
+                .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -432,16 +488,20 @@ class AkhqClaimProviderControllerV3Test {
     }
 
     @Test
-    void generateClaimAndOptimizePatterns() {
+    void shouldGenerateClaimAndOptimizePatterns() {
         Namespace ns1Cluster1 = Namespace.builder()
             .metadata(Metadata.builder()
-                .name("ns1").cluster("cluster1").labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
+                .name("ns1")
+                .cluster("cluster1")
+                .labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
                 .build())
             .build();
 
         List<AccessControlEntry> inputAcls = List.of(
             AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder()
+                    .cluster("cluster1")
+                    .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .resourceType(AccessControlEntry.ResourceType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -449,7 +509,9 @@ class AkhqClaimProviderControllerV3Test {
                     .build())
                 .build(),
             AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder()
+                    .cluster("cluster1")
+                    .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .resourceType(AccessControlEntry.ResourceType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
@@ -457,7 +519,9 @@ class AkhqClaimProviderControllerV3Test {
                     .build())
                 .build(),
             AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder()
+                    .cluster("cluster1")
+                    .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .resourceType(AccessControlEntry.ResourceType.CONNECT)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
@@ -465,7 +529,9 @@ class AkhqClaimProviderControllerV3Test {
                     .build())
                 .build(),
             AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder()
+                    .cluster("cluster1")
+                    .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .resourceType(AccessControlEntry.ResourceType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
@@ -473,7 +539,9 @@ class AkhqClaimProviderControllerV3Test {
                     .build())
                 .build(),
             AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder()
+                    .cluster("cluster1")
+                    .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .resourceType(AccessControlEntry.ResourceType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
@@ -481,7 +549,9 @@ class AkhqClaimProviderControllerV3Test {
                     .build())
                 .build(),
             AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder()
+                    .cluster("cluster1")
+                    .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .resourceType(AccessControlEntry.ResourceType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
@@ -489,7 +559,9 @@ class AkhqClaimProviderControllerV3Test {
                     .build())
                 .build(),
             AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder()
+                    .cluster("cluster1")
+                    .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .resourceType(AccessControlEntry.ResourceType.CONNECT)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -497,7 +569,9 @@ class AkhqClaimProviderControllerV3Test {
                     .build())
                 .build(),
             AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder()
+                    .cluster("cluster1")
+                    .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .resourceType(AccessControlEntry.ResourceType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
@@ -505,7 +579,9 @@ class AkhqClaimProviderControllerV3Test {
                     .build())
                 .build(),
             AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder()
+                    .cluster("cluster1")
+                    .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .resourceType(AccessControlEntry.ResourceType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
@@ -513,7 +589,9 @@ class AkhqClaimProviderControllerV3Test {
                     .build())
                 .build(),
             AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder()
+                    .cluster("cluster1")
+                    .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .resourceType(AccessControlEntry.ResourceType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -521,10 +599,16 @@ class AkhqClaimProviderControllerV3Test {
                     .build())
                 .build()
         );
-        akhqClaimProviderController.managedClusters =
-            List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
-        when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
-        when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(inputAcls);
+
+        akhqClaimProviderController.managedClusters = List.of(
+            new ManagedClusterProperties("cluster1"),
+            new ManagedClusterProperties("cluster2")
+        );
+
+        when(namespaceService.findAll())
+            .thenReturn(List.of(ns1Cluster1));
+        when(aclService.findAllGrantedToNamespace(ns1Cluster1))
+            .thenReturn(inputAcls);
 
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
             .groups(List.of("GP-PROJECT1&2-SUPPORT"))
@@ -533,11 +617,11 @@ class AkhqClaimProviderControllerV3Test {
 
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups = actual.getGroups().get("group");
         assertEquals(3, groups.size());
-        assertEquals("topic-read", groups.get(0).getRole());
+        assertEquals("topic-read", groups.getFirst().getRole());
         assertEquals(
             List.of("^\\Qproject1.\\E.*$", "^\\Qproject2.topic2\\E$", "^\\Qproject2.topic2a\\E$",
                 "^\\Qproject2.topic3\\E$", "^\\Qproject3.\\E.*$"),
-            groups.get(0).getPatterns()
+            groups.getFirst().getPatterns()
         );
         assertEquals("connect-rw", groups.get(1).getRole());
         assertEquals(
@@ -553,16 +637,20 @@ class AkhqClaimProviderControllerV3Test {
     }
 
     @Test
-    void generateClaimAndOptimizePatternsForDifferentClusters() {
+    void shouldGenerateClaimAndOptimizePatternsForDifferentClusters() {
         Namespace ns1Cluster1 = Namespace.builder()
             .metadata(Metadata.builder()
-                .name("ns1").cluster("cluster1").labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
+                .name("ns1")
+                .cluster("cluster1")
+                .labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
                 .build())
             .build();
 
         List<AccessControlEntry> inputAcls = List.of(
             AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder()
+                    .cluster("cluster1")
+                    .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .resourceType(AccessControlEntry.ResourceType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -570,7 +658,9 @@ class AkhqClaimProviderControllerV3Test {
                     .build())
                 .build(),
             AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster2").build())
+                .metadata(Metadata.builder()
+                    .cluster("cluster2")
+                    .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .resourceType(AccessControlEntry.ResourceType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -578,7 +668,9 @@ class AkhqClaimProviderControllerV3Test {
                     .build())
                 .build(),
             AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder()
+                    .cluster("cluster1")
+                    .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .resourceType(AccessControlEntry.ResourceType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -586,7 +678,9 @@ class AkhqClaimProviderControllerV3Test {
                     .build())
                 .build(),
             AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder()
+                    .cluster("cluster1")
+                    .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .resourceType(AccessControlEntry.ResourceType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -594,7 +688,9 @@ class AkhqClaimProviderControllerV3Test {
                     .build())
                 .build(),
             AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster2").build())
+                .metadata(Metadata.builder()
+                    .cluster("cluster2")
+                    .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .resourceType(AccessControlEntry.ResourceType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -602,7 +698,9 @@ class AkhqClaimProviderControllerV3Test {
                     .build())
                 .build(),
             AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster3").build())
+                .metadata(Metadata.builder()
+                    .cluster("cluster3")
+                    .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .resourceType(AccessControlEntry.ResourceType.TOPIC)
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -610,11 +708,17 @@ class AkhqClaimProviderControllerV3Test {
                     .build())
                 .build()
         );
-        akhqClaimProviderController.managedClusters = List.of(new ManagedClusterProperties("cluster1"),
-            new ManagedClusterProperties("cluster2"), new ManagedClusterProperties("cluster3"),
-            new ManagedClusterProperties("cluster4"));
-        when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
-        when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(inputAcls);
+        akhqClaimProviderController.managedClusters = List.of(
+            new ManagedClusterProperties("cluster1"),
+            new ManagedClusterProperties("cluster2"),
+            new ManagedClusterProperties("cluster3"),
+            new ManagedClusterProperties("cluster4")
+        );
+
+        when(namespaceService.findAll())
+            .thenReturn(List.of(ns1Cluster1));
+        when(aclService.findAllGrantedToNamespace(ns1Cluster1))
+            .thenReturn(inputAcls);
 
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
             .groups(List.of("GP-PROJECT1&2-SUPPORT"))
@@ -632,5 +736,20 @@ class AkhqClaimProviderControllerV3Test {
         assertEquals("topic-read", groups.get(2).getRole());
         assertEquals(List.of("^\\Qproject3.\\E.*$"), groups.get(2).getPatterns());
         assertEquals(List.of("^cluster1$", "^cluster2$", "^cluster3$"), groups.get(2).getClusters());
+    }
+
+    private AkhqProperties getAkhqClaimProviderControllerConfig() {
+        AkhqProperties config = new AkhqProperties();
+        config.setGroupLabel("support-group");
+        config.setAdminGroup("GP-ADMIN");
+        config.setRoles(Map.of(AccessControlEntry.ResourceType.TOPIC, "topic-read",
+            AccessControlEntry.ResourceType.CONNECT, "connect-rw",
+            AccessControlEntry.ResourceType.SCHEMA, "registry-read",
+            AccessControlEntry.ResourceType.GROUP, "group-read"));
+        config.setAdminRoles(Map.of(AccessControlEntry.ResourceType.TOPIC, "topic-admin",
+            AccessControlEntry.ResourceType.CONNECT, "connect-admin",
+            AccessControlEntry.ResourceType.SCHEMA, "registry-admin",
+            AccessControlEntry.ResourceType.GROUP, "group-read"));
+        return config;
     }
 }

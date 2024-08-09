@@ -9,14 +9,15 @@ import org.junit.jupiter.api.Test;
 
 class ConnectorTest {
     @Test
-    void testEquals() {
+    void shouldBeEqual() {
         Connector original = Connector.builder()
             .metadata(Metadata.builder()
                 .name("connect1")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
                 .connectCluster("cluster1")
-                .config(Map.of("k1", "v1",
+                .config(Map.of(
+                    "k1", "v1",
                     "k2", "v2"))
                 .build())
             .status(Connector.ConnectorStatus.builder()
@@ -31,7 +32,8 @@ class ConnectorTest {
             .spec(Connector.ConnectorSpec.builder()
                 .connectCluster("cluster1")
                 // inverted map
-                .config(Map.of("k2", "v2",
+                .config(Map.of(
+                    "k2", "v2",
                     "k1", "v1"))
                 .build())
             // different status
@@ -43,7 +45,8 @@ class ConnectorTest {
         Connector differentByConnectCluster = Connector.builder()
             .spec(Connector.ConnectorSpec.builder()
                 .connectCluster("cluster2")
-                .config(Map.of("k1", "v1",
+                .config(Map.of(
+                    "k1", "v1",
                     "k2", "v2"))
                 .build())
             .build();
@@ -51,7 +54,8 @@ class ConnectorTest {
         Connector differentByConfig = Connector.builder()
             .spec(Connector.ConnectorSpec.builder()
                 .connectCluster("cluster2")
-                .config(Map.of("k1", "v1",
+                .config(Map.of(
+                    "k1", "v1",
                     "k2", "v2",
                     "k3", "v3"))
                 .build())

@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.controller.acl;
 
-import static com.michelin.ns4kafka.service.AclService.PUBLIC_GRANTED_TO;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidAclDeleteOnlyAdmin;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidImmutableField;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNotFound;
@@ -49,32 +48,24 @@ public class AclController extends NamespacedResourceController {
      * @return A list of ACLs
      */
     @Get("{?limit}")
-    public List<AccessControlEntry> list(String namespace, Optional<AclLimit> limit) {
-        if (limit.isEmpty()) {
-            limit = Optional.of(AclLimit.ALL);
-        }
-
+    public List<AccessControlEntry> list(String namespace,
+                                         Optional<AclLimit> limit,
+                                         @QueryValue(defaultValue = "*") String name) {
         Namespace ns = getNamespace(namespace);
-        return switch (limit.get()) {
-            case GRANTEE -> aclService.findAllGrantedToNamespace(ns)
+        return switch (limit.orElse(AclLimit.ALL)) {
+            case GRANTEE -> aclService.findAllGrantedToNamespaceByWildcardName(ns, name)
                 .stream()
-                .sorted(Comparator.comparing(o -> o.getMetadata().getNamespace()))
+                .sorted(Comparator.comparing((AccessControlEntry acl) -> acl.getMetadata().getNamespace()))
                 .toList();
-            case GRANTOR -> aclService.findAllForCluster(ns.getMetadata().getCluster())
+            case GRANTOR -> aclService.findAllGrantedByNamespaceByWildcardName(ns, name)
                 .stream()
-                // granted by me
-                .filter(accessControlEntry -> accessControlEntry.getMetadata().getNamespace().equals(namespace))
-                // without the granted to me
-                .filter(accessControlEntry -> !accessControlEntry.getSpec().getGrantedTo().equals(namespace))
-                .sorted(Comparator.comparing(o -> o.getSpec().getGrantedTo()))
+                .sorted(Comparator.comparing(acl -> acl.getSpec().getGrantedTo()))
                 .toList();
-            default -> aclService.findAllForCluster(ns.getMetadata().getCluster())
+            default -> aclService.findAllRelatedToNamespaceByWildcardName(ns, name)
                 .stream()
-                .filter(accessControlEntry ->
-                    accessControlEntry.getMetadata().getNamespace().equals(namespace)
-                        || accessControlEntry.getSpec().getGrantedTo().equals(namespace)
-                        || accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO))
-                .sorted(Comparator.comparing(o -> o.getMetadata().getNamespace()))
+                .sorted(Comparator
+                    .comparing((AccessControlEntry acl) -> acl.getMetadata().getNamespace())
+                    .thenComparing(acl -> acl.getSpec().getGrantedTo()))
                 .toList();
         };
     }
@@ -83,12 +74,14 @@ public class AclController extends NamespacedResourceController {
      * Get an ACL by namespace and name.
      *
      * @param namespace The name
-     * @param acl       The ACL name
+     * @param acl   The ACL name
      * @return The ACL
+     * @deprecated use list(String, Optional ALL, String name) instead.
      */
     @Get("/{acl}")
+    @Deprecated(since = "1.12.0")
     public Optional<AccessControlEntry> get(String namespace, String acl) {
-        return list(namespace, Optional.of(AclLimit.ALL))
+        return aclService.findAllRelatedToNamespace(getNamespace(namespace))
             .stream()
             .filter(accessControlEntry -> accessControlEntry.getMetadata().getName().equals(acl))
             .findFirst();

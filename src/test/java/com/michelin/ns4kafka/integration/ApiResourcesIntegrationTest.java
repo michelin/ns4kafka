@@ -20,9 +20,6 @@ import jakarta.inject.Inject;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/**
- * Api resources test.
- */
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 class ApiResourcesIntegrationTest extends AbstractIntegrationTest {

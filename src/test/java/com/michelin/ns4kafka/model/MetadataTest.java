@@ -10,12 +10,13 @@ import org.junit.jupiter.api.Test;
 
 class MetadataTest {
     @Test
-    void testEquals() {
+    void shouldBeEqual() {
         Metadata original = Metadata.builder()
             .name("name1")
             .namespace("namespace1")
             .cluster("local")
-            .labels(Map.of("key1", "val1",
+            .labels(Map.of(
+                "key1", "val1",
                 "key2", "val2"))
             .creationTimestamp(Date.from(Instant.now()))
             .generation(0)
@@ -25,7 +26,8 @@ class MetadataTest {
             .namespace("namespace1")
             .cluster("local")
             // inverted map order
-            .labels(Map.of("key2", "val2",
+            .labels(Map.of(
+                "key2", "val2",
                 "key1", "val1"))
             // different date
             .creationTimestamp(Date.from(Instant.now().plusMillis(1000)))

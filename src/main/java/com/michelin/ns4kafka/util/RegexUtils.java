@@ -16,8 +16,9 @@ public class RegexUtils {
      * @param wildcardStrings The list of wildcard strings
      * @return A list of regex patterns
      */
-    public static List<String> wildcardStringsToRegexPatterns(List<String> wildcardStrings) {
-        return wildcardStrings.stream()
+    public static List<String> convertWildcardStringsToRegex(List<String> wildcardStrings) {
+        return wildcardStrings
+            .stream()
             .map(wildcardString -> "^" + wildcardString
                 .replace(".", "\\.")
                 .replace("*", ".*")
@@ -33,8 +34,9 @@ public class RegexUtils {
      * @param regexPatterns The regex patterns
      * @return true if any regex pattern matches the resourceName, false otherwise
      */
-    public static boolean filterByPattern(String resourceName, List<String> regexPatterns) {
-        return regexPatterns.stream()
+    public static boolean isResourceCoveredByRegex(String resourceName, List<String> regexPatterns) {
+        return regexPatterns
+            .stream()
             .anyMatch(pattern -> Pattern.compile(pattern).matcher(resourceName).matches());
     }
 }

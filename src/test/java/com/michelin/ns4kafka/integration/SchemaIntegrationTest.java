@@ -531,7 +531,7 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
         assertEquals("ns1-header-subject-value", actualHeaderV2.subject());
 
         // Create person referencing header v2, result should be changed
-        newSchemaVersionPersonWithRefs.getSpec().getReferences().get(0).setVersion(2);
+        newSchemaVersionPersonWithRefs.getSpec().getReferences().getFirst().setVersion(2);
 
         var newPersonCreateWithV2RefResponse = ns4KafkaClient
             .toBlocking()

@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 
 class TopicValidatorTest {
     @Test
-    void testEquals() {
+    void shouldBeEqual() {
         TopicValidator original = TopicValidator.builder()
             .validationConstraints(
                 Map.of("replication.factor", ResourceValidator.Range.between(3, 3),
@@ -79,7 +79,7 @@ class TopicValidatorTest {
     }
 
     @Test
-    void testEnsureValidGlobal() {
+    void shouldValidateGlobally() {
         TopicValidator topicValidator = TopicValidator.builder()
             .validationConstraints(
                 Map.of("replication.factor", ResourceValidator.Range.between(3, 3),
@@ -105,7 +105,7 @@ class TopicValidatorTest {
     }
 
     @Test
-    void testEnsureValidName() {
+    void shouldValidateName() {
         TopicValidator nameValidator = TopicValidator.builder()
             .validationConstraints(Map.of())
             .build();
@@ -114,8 +114,11 @@ class TopicValidatorTest {
         List<String> validationErrors;
 
         invalidTopic = Topic.builder()
-            .metadata(Metadata.builder().name("").build())
-            .spec(Topic.TopicSpec.builder().build())
+            .metadata(Metadata.builder()
+                .name("")
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .build())
             .build();
 
         validationErrors = nameValidator.validate(invalidTopic);
@@ -126,32 +129,56 @@ class TopicValidatorTest {
             validationErrors);
 
         invalidTopic = Topic.builder()
-            .metadata(Metadata.builder().name(".").build())
-            .spec(Topic.TopicSpec.builder().build()).build();
+            .metadata(Metadata.builder()
+                .name(".")
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .build())
+            .build();
+
         validationErrors = nameValidator.validate(invalidTopic);
         assertEquals(1, validationErrors.size());
 
         invalidTopic = Topic.builder()
-            .metadata(Metadata.builder().name("..").build())
-            .spec(Topic.TopicSpec.builder().build()).build();
+            .metadata(Metadata.builder()
+                .name("..")
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .build())
+            .build();
+
         validationErrors = nameValidator.validate(invalidTopic);
         assertEquals(1, validationErrors.size());
 
         invalidTopic = Topic.builder()
-            .metadata(Metadata.builder().name("A".repeat(260)).build())
-            .spec(Topic.TopicSpec.builder().build()).build();
+            .metadata(Metadata.builder()
+                .name("A".repeat(260))
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .build())
+            .build();
+
         validationErrors = nameValidator.validate(invalidTopic);
         assertEquals(1, validationErrors.size());
 
         invalidTopic = Topic.builder()
-            .metadata(Metadata.builder().name("A B").build())
-            .spec(Topic.TopicSpec.builder().build()).build();
+            .metadata(Metadata.builder()
+                .name("A B")
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .build())
+            .build();
+
         validationErrors = nameValidator.validate(invalidTopic);
         assertEquals(1, validationErrors.size());
 
         invalidTopic = Topic.builder()
-            .metadata(Metadata.builder().name("topicname<invalid").build())
-            .spec(Topic.TopicSpec.builder().build()).build();
+            .metadata(Metadata.builder()
+                .name("topicname<invalid")
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .build())
+            .build();
 
         validationErrors = nameValidator.validate(invalidTopic);
         assertEquals(1, validationErrors.size());
@@ -163,7 +190,9 @@ class TopicValidatorTest {
             .build();
 
         Topic topic = Topic.builder()
-            .metadata(Metadata.builder().name("validName").build())
+            .metadata(Metadata.builder()
+                .name("validName")
+                .build())
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
@@ -183,7 +212,9 @@ class TopicValidatorTest {
             .build();
 
         Topic topic = Topic.builder()
-            .metadata(Metadata.builder().name("validName").build())
+            .metadata(Metadata.builder()
+                .name("validName")
+                .build())
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
@@ -206,7 +237,9 @@ class TopicValidatorTest {
             .build();
 
         Topic topic = Topic.builder()
-            .metadata(Metadata.builder().name("validName").build())
+            .metadata(Metadata.builder()
+                .name("validName")
+                .build())
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
@@ -232,7 +265,9 @@ class TopicValidatorTest {
             .build();
 
         Topic topic = Topic.builder()
-            .metadata(Metadata.builder().name("validName").build())
+            .metadata(Metadata.builder()
+                .name("validName")
+                .build())
             .spec(Topic.TopicSpec.builder()
                 .replicationFactor(3)
                 .partitions(3)
@@ -247,6 +282,6 @@ class TopicValidatorTest {
         assertEquals(1, actual.size());
         assertEquals(
             "Invalid value \"50\" for field \"retention.bytes\": configuration is not allowed on your namespace.",
-            actual.get(0));
+            actual.getFirst());
     }
 }

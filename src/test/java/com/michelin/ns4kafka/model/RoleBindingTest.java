@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 class RoleBindingTest {
     @Test
-    void testEqualsRole() {
+    void shouldRoleBeEqual() {
         RoleBinding.Role original = RoleBinding.Role.builder()
             .resourceTypes(List.of("res1", "res2"))
             .verbs(List.of(RoleBinding.Verb.GET, RoleBinding.Verb.POST))
@@ -33,7 +33,7 @@ class RoleBindingTest {
     }
 
     @Test
-    void testEqualsSubject() {
+    void shouldSubjectBeEqual() {
         RoleBinding.Subject original = RoleBinding.Subject.builder()
             .subjectName("subject1")
             .subjectType(RoleBinding.SubjectType.GROUP)
@@ -58,9 +58,11 @@ class RoleBindingTest {
     }
 
     @Test
-    void testEqualsRoleBinding() {
+    void shouldRoleBindingBeEqual() {
         RoleBinding original = RoleBinding.builder()
-            .metadata(Metadata.builder().name("rb1").build())
+            .metadata(Metadata.builder()
+                .name("rb1")
+                .build())
             .spec(RoleBinding.RoleBindingSpec.builder()
                 .role(RoleBinding.Role.builder()
                     .resourceTypes(List.of("res1", "res2"))
@@ -74,7 +76,9 @@ class RoleBindingTest {
             .build();
 
         RoleBinding same = RoleBinding.builder()
-            .metadata(Metadata.builder().name("rb1").build())
+            .metadata(Metadata.builder()
+                .name("rb1")
+                .build())
             .spec(RoleBinding.RoleBindingSpec.builder()
                 .role(RoleBinding.Role.builder()
                     .resourceTypes(List.of("res1", "res2"))
@@ -90,7 +94,10 @@ class RoleBindingTest {
         assertEquals(original, same);
 
         RoleBinding differentByMetadata = RoleBinding.builder()
-            .metadata(Metadata.builder().name("rb1").cluster("cluster").build())
+            .metadata(Metadata.builder()
+                .name("rb1")
+                .cluster("cluster")
+                .build())
             .spec(RoleBinding.RoleBindingSpec.builder()
                 .role(RoleBinding.Role.builder()
                     .resourceTypes(List.of("res1", "res2"))
@@ -106,9 +113,12 @@ class RoleBindingTest {
         assertNotEquals(original, differentByMetadata);
 
         RoleBinding differentByRole = RoleBinding.builder()
-            .metadata(Metadata.builder().name("rb1").build())
+            .metadata(Metadata.builder()
+                .name("rb1")
+                .build())
             .spec(RoleBinding.RoleBindingSpec.builder()
-                .role(RoleBinding.Role.builder().build())
+                .role(RoleBinding.Role.builder()
+                    .build())
                 .subject(RoleBinding.Subject.builder()
                     .subjectName("subject1")
                     .subjectType(RoleBinding.SubjectType.GROUP)
@@ -119,13 +129,16 @@ class RoleBindingTest {
         assertNotEquals(original, differentByRole);
 
         RoleBinding differentBySubject = RoleBinding.builder()
-            .metadata(Metadata.builder().name("rb1").build())
+            .metadata(Metadata.builder()
+                .name("rb1")
+                .build())
             .spec(RoleBinding.RoleBindingSpec.builder()
                 .role(RoleBinding.Role.builder()
                     .resourceTypes(List.of("res1", "res2"))
                     .verbs(List.of(RoleBinding.Verb.GET, RoleBinding.Verb.POST))
                     .build())
-                .subject(RoleBinding.Subject.builder().build())
+                .subject(RoleBinding.Subject.builder()
+                    .build())
                 .build())
             .build();
 

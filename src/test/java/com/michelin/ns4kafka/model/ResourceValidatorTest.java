@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 
 class ResourceValidatorTest {
     @Test
-    void testNonEmptyString() {
+    void shouldValidateNonEmptyString() {
         ResourceValidator.Validator original = new ResourceValidator.NonEmptyString();
         ResourceValidator.Validator same = new ResourceValidator.NonEmptyString();
         // Test Equals
@@ -25,7 +25,7 @@ class ResourceValidatorTest {
     }
 
     @Test
-    void testRangeBetween() {
+    void shouldValidateRangeBetween() {
         // BETWEEN
         ResourceValidator.Validator original = ResourceValidator.Range.between(0, 10);
         ResourceValidator.Validator same = ResourceValidator.Range.between(0, 10);
@@ -45,7 +45,7 @@ class ResourceValidatorTest {
     }
 
     @Test
-    void testOptionalRange() {
+    void shouldValidateOptionalRange() {
         // BETWEEN
         ResourceValidator.Validator original = new ResourceValidator.Range(0, 10, true);
         // test ensureValid
@@ -58,11 +58,10 @@ class ResourceValidatorTest {
         assertDoesNotThrow(() -> original.ensureValid("k", "0"));
         assertDoesNotThrow(() -> original.ensureValid("k", "10"));
         assertDoesNotThrow(() -> original.ensureValid("k", "5"));
-
     }
 
     @Test
-    void testRangeAtLeast() {
+    void shouldValidateRangeAtLeast() {
         ResourceValidator.Validator original = ResourceValidator.Range.atLeast(10);
         ResourceValidator.Validator same = ResourceValidator.Range.atLeast(10);
         ResourceValidator.Validator different = ResourceValidator.Range.atLeast(99);
@@ -81,7 +80,7 @@ class ResourceValidatorTest {
     }
 
     @Test
-    void testValidString() {
+    void shouldValidateValidString() {
         ResourceValidator.Validator original = ResourceValidator.ValidString.in("a", "b", "c");
         ResourceValidator.Validator same = ResourceValidator.ValidString.in("a", "b", "c");
         ResourceValidator.Validator different = ResourceValidator.ValidString.in("b", "c", "d");
@@ -102,7 +101,7 @@ class ResourceValidatorTest {
     }
 
     @Test
-    void testOptionalValidString() {
+    void shouldValidateOptionalValidString() {
         ResourceValidator.Validator original = ResourceValidator.ValidString.optionalIn("a", "b", "c");
 
         assertThrows(FieldValidationException.class, () -> original.ensureValid("k", ""));
@@ -116,7 +115,7 @@ class ResourceValidatorTest {
     }
 
     @Test
-    void testValidList() {
+    void shouldValidateValidList() {
         ResourceValidator.Validator original = ResourceValidator.ValidList.in("a", "b", "c");
         ResourceValidator.Validator same = ResourceValidator.ValidList.in("a", "b", "c");
         ResourceValidator.Validator different = ResourceValidator.ValidList.in("b", "c", "d");
@@ -142,9 +141,8 @@ class ResourceValidatorTest {
     }
 
     @Test
-    void testOptionalValidList() {
+    void shouldValidateOptionalValidList() {
         ResourceValidator.Validator original = ResourceValidator.ValidList.optionalIn("a", "b", "c");
-        // test ensureValid
 
         assertThrows(FieldValidationException.class, () -> original.ensureValid("k", ""));
         assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "A"));

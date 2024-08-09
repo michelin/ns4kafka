@@ -5,12 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import org.junit.jupiter.api.Test;
 
-/**
- * Access control entry test.
- */
 class AccessControlEntryTest {
     @Test
-    void testEquals() {
+    void shouldBeEqual() {
         AccessControlEntry original = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resource("resource1")

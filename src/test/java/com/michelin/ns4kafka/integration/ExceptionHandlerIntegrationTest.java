@@ -40,9 +40,6 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-/**
- * Integration tests for ExceptionHandler.
- */
 @MicronautTest
 @Property(name = "micronaut.security.gitlab.enabled", value = "false")
 class ExceptionHandlerIntegrationTest extends AbstractIntegrationTest {
@@ -155,7 +152,7 @@ class ExceptionHandlerIntegrationTest extends AbstractIntegrationTest {
         assertEquals("Constraint validation failed", exception.getMessage());
         assertTrue(exception.getResponse().getBody(Status.class).isPresent());
         assertEquals("topic.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"",
-            exception.getResponse().getBody(Status.class).get().getDetails().getCauses().get(0));
+            exception.getResponse().getBody(Status.class).get().getDetails().getCauses().getFirst());
     }
 
     @Test

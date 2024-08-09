@@ -72,9 +72,9 @@ class SchemaServiceTest {
 
         when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster())).thenReturn(
             Flux.fromIterable(subjectsResponse));
-        when(aclService.isAnyAclOfResource(acls, "prefix.schema-one")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "prefix2.schema-two")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "prefix2.schema-three")).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(acls, "prefix.schema-one")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "prefix2.schema-two")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "prefix2.schema-three")).thenReturn(false);
 
         StepVerifier.create(schemaService.findAllForNamespace(namespace))
             .consumeNextWith(schema -> assertEquals("prefix.schema-one", schema.getMetadata().getName()))
@@ -122,9 +122,9 @@ class SchemaServiceTest {
             AccessControlEntry.ResourceType.TOPIC)).thenReturn(acls);
         when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster())).thenReturn(
             Flux.fromIterable(subjectsResponse));
-        when(aclService.isAnyAclOfResource(acls, "prefix.schema-one")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "prefix2.schema-two")).thenReturn(true);
-        when(aclService.isAnyAclOfResource(acls, "prefix2.schema-three")).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(acls, "prefix.schema-one")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "prefix2.schema-two")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "prefix2.schema-three")).thenReturn(false);
 
         StepVerifier.create(schemaService.findByWildcardName(namespace, "prefix.schema-one"))
             .consumeNextWith(schema -> assertEquals("prefix.schema-one", schema.getMetadata().getName()))
@@ -177,7 +177,7 @@ class SchemaServiceTest {
             AccessControlEntry.ResourceType.TOPIC)).thenReturn(acls);
         when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster())).thenReturn(
             Flux.fromIterable(subjectsResponse));
-        when(aclService.isAnyAclOfResource(eq(acls), anyString())).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(eq(acls), anyString())).thenReturn(true);
 
         StepVerifier.create(schemaService.findByWildcardName(namespace, "prefix1.*"))
             .consumeNextWith(schema -> assertEquals("prefix1.schema1-value", schema.getMetadata().getName()))
