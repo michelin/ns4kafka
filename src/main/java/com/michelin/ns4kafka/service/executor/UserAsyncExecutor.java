@@ -25,10 +25,15 @@ import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ScramCredentialInfo;
 import org.apache.kafka.clients.admin.ScramMechanism;
 import org.apache.kafka.clients.admin.UserScramCredentialUpsertion;
+import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.quota.ClientQuotaAlteration;
 import org.apache.kafka.common.quota.ClientQuotaEntity;
 import org.apache.kafka.common.quota.ClientQuotaFilter;
 import org.apache.kafka.common.quota.ClientQuotaFilterComponent;
+import java.util.Properties;
 
 /**
  * User executor.
@@ -141,6 +146,17 @@ public class UserAsyncExecutor {
         }
     }
 
+    /**
+     * Check if the password matches for given user.
+     *
+     * @param user The user
+     * @param password The password to test
+     * @return true if given password matches current one
+     */
+    public boolean checkPassword(String user, String password) {
+        return userExecutor.checkPassword(user, password, managedClusterProperties.getConfig());
+    }
+
     private Map<String, Map<String, Double>> collectNs4kafkaQuotas() {
         return namespaceRepository.findAllForCluster(managedClusterProperties.getName())
             .stream()
@@ -171,6 +187,7 @@ public class UserAsyncExecutor {
 
         String resetPassword(String user);
         void setPassword(String user, String password);
+        boolean checkPassword(String user, String password, Properties config);
 
         void applyQuotas(String user, Map<String, Double> quotas);
 
@@ -227,6 +244,52 @@ public class UserAsyncExecutor {
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public boolean checkPassword(String user, String password, Properties config) {
+            Properties props = new Properties();
+            props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.get("bootstrap.servers"));
+            props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
+            props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
+
+            // Configure SCRAM-SHA256 authentication
+            props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, config.get("security.protocol"));
+            // TODO : what if it's not SCRAM ??
+            props.put(SaslConfigs.SASL_MECHANISM, config.get("sasl.mechanism"));
+            props.put(SaslConfigs.SASL_JAAS_CONFIG,
+                "org.apache.kafka.common.security.scram.ScramLoginModule required username=\""
+                + user + "\" password=\"" + password + "\";");
+            // props.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 3000); // Reduce the delivery timeout to avoid blocking caller too long
+
+            log.debug("Configuring connection to " + config.get("bootstrap.servers"));
+            KafkaProducer<String, String> producer = new KafkaProducer<>(props);
+
+            try {
+                // Create a Kafka producer with the configured properties
+                // List<PartitionInfo> partitionInfoList =
+                log.debug("Connecting ...");
+                Object dummy = producer.partitionsFor("__consumer_offsets"); // this topic should always exist
+
+                // If the authentication is successful, the password is correct
+                log.debug("Access to topic -> Password is correct");
+                return true;
+
+            } catch (org.apache.kafka.common.errors.TopicAuthorizationException e) {
+                // not allowed to access to topic, but if broker says this, it means authent itself was successful
+                log.debug("Topic forbidden, but password is correct");
+                return true;
+            } catch (org.apache.kafka.common.errors.SaslAuthenticationException e) {
+                log.debug("Authent failed -> Password is incorrect");
+                return false;
+            } catch (Exception e) {
+                // consider any other exception as a failed authent.
+                log.debug("other exception {} -> Password is incorrect", e);
+                return false;
+            } finally {
+                // Close the producer
+                producer.close();
             }
         }
 
@@ -294,6 +357,10 @@ public class UserAsyncExecutor {
         }
         @Override
         public void setPassword(String user, String password) {
+            throw exception;
+        }
+        @Override
+        public boolean checkPassword(String user, String password, Properties config) {
             throw exception;
         }
 

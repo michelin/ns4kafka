@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidKafkaUser;
 import static com.michelin.ns4kafka.util.enumation.Kind.KAFKA_USER_RESET_PASSWORD;
+import static com.michelin.ns4kafka.util.enumation.Kind.KAFKA_USER_CHECK_PASSWORD;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.KafkaUserResetPassword;
@@ -108,8 +109,17 @@ public class UserController extends NamespacedResourceController {
      */
     @Post("/{user}/check-password")
     public HttpResponse<Void> checkPassword(String namespace, String user, @Body String password) {
-        log.debug("asked to checkPassword [{}] for user [{}]", password, user);
-        if (user.equals(password)) {
+        log.debug("asked to checkPassword '{}' for user '{}'", password, user);
+        Namespace ns = getNamespace(namespace);
+
+        if (!ns.getSpec().getKafkaUser().equals(user)) {
+            throw new ResourceValidationException(KAFKA_USER_CHECK_PASSWORD, user, invalidKafkaUser(user));
+        }
+
+        UserAsyncExecutor userAsyncExecutor =
+            applicationContext.getBean(UserAsyncExecutor.class, Qualifiers.byName(ns.getMetadata().getCluster()));
+
+        if (userAsyncExecutor.checkPassword(ns.getSpec().getKafkaUser(), password)) {
             return HttpResponse.ok();
         }
         return HttpResponse.unauthorized();
