@@ -126,6 +126,21 @@ public class UserAsyncExecutor {
         }
     }
 
+    /**
+     * Set the password of a given user.
+     *
+     * @param user The user
+     * @param password The new password
+     */
+    public void setPassword(String user, String password) {
+        if (userExecutor.canResetPassword()) {
+            userExecutor.setPassword(user, password);
+        } else {
+            throw new ResourceValidationException(KAFKA_USER_RESET_PASSWORD, user,
+                invalidResetPasswordProvider(managedClusterProperties.getProvider()));
+        }
+    }
+
     private Map<String, Map<String, Double>> collectNs4kafkaQuotas() {
         return namespaceRepository.findAllForCluster(managedClusterProperties.getName())
             .stream()
@@ -155,6 +170,7 @@ public class UserAsyncExecutor {
         boolean canResetPassword();
 
         String resetPassword(String user);
+        void setPassword(String user, String password);
 
         void applyQuotas(String user, Map<String, Double> quotas);
 
@@ -198,6 +214,20 @@ public class UserAsyncExecutor {
                 throw new RuntimeException(e);
             }
             return password;
+        }
+
+        @Override
+        public void setPassword(String user, String password) {
+            UserScramCredentialUpsertion update = new UserScramCredentialUpsertion(user, info, password);
+            try {
+                admin.alterUserScramCredentials(List.of(update)).all().get(10, TimeUnit.SECONDS);
+                log.info("Success setting password for user {}", user);
+            } catch (InterruptedException e) {
+                log.error("Error", e);
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
 
         @Override
@@ -260,6 +290,10 @@ public class UserAsyncExecutor {
 
         @Override
         public String resetPassword(String user) {
+            throw exception;
+        }
+        @Override
+        public void setPassword(String user, String password) {
             throw exception;
         }
 

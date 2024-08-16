@@ -12,10 +12,13 @@ import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
+import io.micronaut.http.annotation.Patch;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import jakarta.inject.Inject;
 import java.time.Instant;
 import java.util.Date;
@@ -23,6 +26,7 @@ import java.util.Date;
 /**
  * Controller to manage users.
  */
+@Slf4j
 @Tag(name = "Users", description = "Manage the users.")
 @Controller(value = "/api/namespaces/{namespace}/users")
 public class UserController extends NamespacedResourceController {
@@ -34,7 +38,7 @@ public class UserController extends NamespacedResourceController {
      *
      * @param namespace The namespace
      * @param user      The user
-     * @return The new password
+     * @return The new randomly generated password
      */
     @Post("/{user}/reset-password")
     public HttpResponse<KafkaUserResetPassword> resetPassword(String namespace, String user) {
@@ -49,10 +53,39 @@ public class UserController extends NamespacedResourceController {
 
         String password = userAsyncExecutor.resetPassword(ns.getSpec().getKafkaUser());
 
+        return setPasswordResponse(ns, password);
+    }
+
+    /**
+     * Set a password.
+     *
+     * @param namespace The namespace
+     * @param user      The user
+     * @param password  The new password
+     * @return void
+     */
+    @Patch("/{user}/set-password")
+    public HttpResponse<KafkaUserResetPassword> setPassword(String namespace, String user, @Body String password) {
+        log.debug("asked to setPassword [{}] for user [{}]", password, user);
+        Namespace ns = getNamespace(namespace);
+
+        if (!ns.getSpec().getKafkaUser().equals(user)) {
+            throw new ResourceValidationException(KAFKA_USER_RESET_PASSWORD, user, invalidKafkaUser(user));
+        }
+
+        UserAsyncExecutor userAsyncExecutor =
+            applicationContext.getBean(UserAsyncExecutor.class, Qualifiers.byName(ns.getMetadata().getCluster()));
+
+        userAsyncExecutor.setPassword(ns.getSpec().getKafkaUser(), password);
+
+        return setPasswordResponse(ns, password);
+    }
+
+    protected HttpResponse<KafkaUserResetPassword> setPasswordResponse(Namespace ns, String password) {
         KafkaUserResetPassword response = KafkaUserResetPassword.builder()
             .metadata(Metadata.builder()
                 .name(ns.getSpec().getKafkaUser())
-                .namespace(namespace)
+                .namespace(ns.getMetadata().getName())
                 .cluster(ns.getMetadata().getCluster())
                 .creationTimestamp(Date.from(Instant.now()))
                 .build())
