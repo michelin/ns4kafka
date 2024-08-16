@@ -97,4 +97,21 @@ public class UserController extends NamespacedResourceController {
         sendEventLog(response, ApplyStatus.changed, null, response.getSpec());
         return HttpResponse.ok(response);
     }
+
+    /**
+     * Check against broker if given password matches actual one
+     *
+     * @param namespace The namespace
+     * @param user      The user
+     * @param password  The current password
+     * @return http status 200 (correct) or 401 (wrong password, thus unauthorized)
+     */
+    @Post("/{user}/check-password")
+    public HttpResponse<Void> checkPassword(String namespace, String user, @Body String password) {
+        log.debug("asked to checkPassword [{}] for user [{}]", password, user);
+        if (user.equals(password)) {
+            return HttpResponse.ok();
+        }
+        return HttpResponse.unauthorized();
+    }
 }
