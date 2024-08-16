@@ -234,4 +234,42 @@ class UserIntegrationTest extends AbstractIntegrationTest {
         assertEquals("Invalid value \"user2\" for field \"user\": user does not belong to namespace.",
             exception.getResponse().getBody(Status.class).get().getDetails().getCauses().getFirst());
     }
+
+    @Test
+    void shouldSetPassword() throws ExecutionException, InterruptedException {
+        KafkaUserResetPassword response = ns4KafkaClient
+            .toBlocking()
+            .retrieve(HttpRequest
+                .PATCH("/api/namespaces/ns1/users/user1/set-password", "password1")
+                .bearerAuth(token), KafkaUserResetPassword.class);
+
+        Map<String, UserScramCredentialsDescription> mapUser = getAdminClient()
+            .describeUserScramCredentials(List.of("user1")).all().get();
+
+        String newPassword = response.getSpec().getNewPassword();
+        assertNotNull(newPassword);
+        assertEquals(newPassword, "password1");
+    }
+
+    @Test
+    void shouldCheckRightPassword() throws ExecutionException, InterruptedException {
+        HttpResponse<Void> response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .POST("/api/namespaces/ns1/users/user1/check-password", "password1")
+                .bearerAuth(token), Void.class);
+
+        assertEquals(response.code(), 200);
+    }
+
+    @Test
+    void shouldCheckWrongPassword() throws ExecutionException, InterruptedException {
+        HttpResponse<Void> response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .POST("/api/namespaces/ns1/users/user1/check-password", "wrong_password")
+                .bearerAuth(token), Void.class);
+
+        assertEquals(response.code(), 401);
+    }
 }
