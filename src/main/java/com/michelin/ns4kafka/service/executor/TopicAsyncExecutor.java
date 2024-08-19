@@ -98,14 +98,19 @@ public class TopicAsyncExecutor {
 
             Map<ConfigResource, Collection<AlterConfigOp>> updateTopics = checkTopics.stream()
                 .map(topic -> {
-                    Map<String, String> actualConf =
-                        brokerTopics.get(topic.getMetadata().getName()).getSpec().getConfigs();
-                    Map<String, String> expectedConf =
-                        topic.getSpec().getConfigs() == null ? Map.of() : topic.getSpec().getConfigs();
+                    Map<String, String> actualConf = brokerTopics.get(topic.getMetadata().getName())
+                        .getSpec()
+                        .getConfigs();
+
+                    Map<String, String> expectedConf = topic.getSpec().getConfigs() == null
+                        ? Map.of() : topic.getSpec().getConfigs();
+
                     Collection<AlterConfigOp> topicConfigChanges = computeConfigChanges(expectedConf, actualConf);
                     if (!topicConfigChanges.isEmpty()) {
-                        ConfigResource cr =
-                            new ConfigResource(ConfigResource.Type.TOPIC, topic.getMetadata().getName());
+                        ConfigResource cr = new ConfigResource(
+                            ConfigResource.Type.TOPIC,
+                            topic.getMetadata().getName()
+                        );
                         return Map.entry(cr, topicConfigChanges);
                     }
                     return null;

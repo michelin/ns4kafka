@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.michelin.ns4kafka.integration.container.KafkaIntegrationTest;
 import com.michelin.ns4kafka.model.KafkaUserResetPassword;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
@@ -12,7 +13,6 @@ import com.michelin.ns4kafka.model.Status;
 import com.michelin.ns4kafka.model.quota.ResourceQuota;
 import com.michelin.ns4kafka.service.executor.UserAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
-import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
@@ -35,8 +35,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 @MicronautTest
-@Property(name = "micronaut.security.gitlab.enabled", value = "false")
-class UserIntegrationTest extends AbstractIntegrationTest {
+class UserIntegrationTest extends KafkaIntegrationTest {
     @Inject
     @Client("/")
     HttpClient ns4KafkaClient;

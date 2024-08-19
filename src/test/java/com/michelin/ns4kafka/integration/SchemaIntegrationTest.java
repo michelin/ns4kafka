@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.integration.TopicIntegrationTest.BearerAccessRefreshToken;
+import com.michelin.ns4kafka.integration.container.SchemaRegistryIntegrationTest;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
@@ -18,7 +19,6 @@ import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaRequest;
 import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaResponse;
 import io.micronaut.context.ApplicationContext;
-import io.micronaut.context.annotation.Property;
 import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
@@ -36,8 +36,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 @MicronautTest
-@Property(name = "micronaut.security.gitlab.enabled", value = "false")
-class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
+class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
     @Inject
     private ApplicationContext applicationContext;
 
@@ -52,7 +51,7 @@ class SchemaIntegrationTest extends AbstractIntegrationSchemaRegistryTest {
     @BeforeAll
     void init() {
         // Create HTTP client as bean to load client configuration from application.yml
-        schemaRegistryClient = applicationContext.createBean(HttpClient.class, schemaRegistryContainer.getUrl());
+        schemaRegistryClient = applicationContext.createBean(HttpClient.class, getSchemaRegistryUrl());
 
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
