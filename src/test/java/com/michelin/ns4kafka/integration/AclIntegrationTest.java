@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.integration.TopicIntegrationTest.BearerAccessRefreshToken;
+import com.michelin.ns4kafka.integration.container.KafkaIntegrationTest;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.model.AccessControlEntry.Permission;
@@ -21,7 +22,6 @@ import com.michelin.ns4kafka.model.RoleBinding.SubjectType;
 import com.michelin.ns4kafka.model.RoleBinding.Verb;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
-import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
@@ -47,8 +47,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 @MicronautTest
-@Property(name = "micronaut.security.gitlab.enabled", value = "false")
-class AclIntegrationTest extends AbstractIntegrationTest {
+class AclIntegrationTest extends KafkaIntegrationTest {
     @Inject
     @Client("/")
     HttpClient ns4KafkaClient;

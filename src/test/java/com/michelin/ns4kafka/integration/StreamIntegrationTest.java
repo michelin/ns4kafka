@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.integration.TopicIntegrationTest.BearerAccessRefreshToken;
+import com.michelin.ns4kafka.integration.container.KafkaIntegrationTest;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.model.AccessControlEntry.Permission;
@@ -15,7 +16,6 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
-import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
@@ -36,8 +36,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 @MicronautTest
-@Property(name = "micronaut.security.gitlab.enabled", value = "false")
-class StreamIntegrationTest extends AbstractIntegrationTest {
+class StreamIntegrationTest extends KafkaIntegrationTest {
     @Inject
     @Client("/")
     HttpClient ns4KafkaClient;
@@ -144,14 +143,14 @@ class StreamIntegrationTest extends AbstractIntegrationTest {
             .get();
 
         var aclTransactionalId = kafkaClient.describeAcls(
-            new AclBindingFilter(
-                new ResourcePatternFilter(
-                    org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
-                    stream.getMetadata().getName(),
-                    PatternType.PREFIXED
-                ),
-                AccessControlEntryFilter.ANY
-            ))
+                new AclBindingFilter(
+                    new ResourcePatternFilter(
+                        org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
+                        stream.getMetadata().getName(),
+                        PatternType.PREFIXED
+                    ),
+                    AccessControlEntryFilter.ANY
+                ))
             .values()
             .get();
 

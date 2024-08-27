@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.michelin.ns4kafka.controller.AkhqClaimProviderController;
+import com.michelin.ns4kafka.integration.container.KafkaIntegrationTest;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.model.AccessControlEntry.Permission;
@@ -28,7 +29,6 @@ import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.model.Topic.TopicSpec;
 import com.michelin.ns4kafka.service.executor.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
-import io.micronaut.context.annotation.Property;
 import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
@@ -56,8 +56,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 @MicronautTest
-@Property(name = "micronaut.security.gitlab.enabled", value = "false")
-class TopicIntegrationTest extends AbstractIntegrationTest {
+class TopicIntegrationTest extends KafkaIntegrationTest {
     @Inject
     @Client("/")
     HttpClient ns4KafkaClient;
@@ -262,7 +261,7 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
 
         assertEquals("created", response.header("X-Ns4kafka-Result"));
 
-        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+        forceTopicSynchronization();
 
         Admin kafkaClient = getAdminClient();
 
@@ -318,7 +317,7 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
 
         assertEquals("created", response.header("X-Ns4kafka-Result"));
 
-        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+        forceTopicSynchronization();
 
         response = ns4KafkaClient
             .toBlocking()
@@ -353,8 +352,7 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
 
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
 
-        // Force Topic Sync
-        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+        forceTopicSynchronization();
 
         Admin kafkaClient = getAdminClient();
 
@@ -495,7 +493,7 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void shouldDeleteRecords() {
+    void shouldDeleteRecords() throws InterruptedException {
         Topic topicToDelete = Topic.builder()
             .metadata(Metadata.builder()
                 .name("ns1-topicToDelete")
@@ -519,7 +517,7 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
 
         assertEquals("created", response.header("X-Ns4kafka-Result"));
 
-        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+        forceTopicSynchronization();
 
         List<DeleteRecordsResponse> deleteRecordsResponse = ns4KafkaClient
             .toBlocking()
@@ -564,7 +562,7 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void shouldDeleteRecordsOnCompactTopic() {
+    void shouldDeleteRecordsOnCompactTopic() throws InterruptedException {
         Topic topicToDelete = Topic.builder()
             .metadata(Metadata.builder()
                 .name("ns1-compactTopicToDelete")
@@ -589,7 +587,7 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
 
         assertEquals("created", response.header("X-Ns4kafka-Result"));
 
-        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+        forceTopicSynchronization();
 
         HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
             () -> ns4KafkaClient
@@ -599,6 +597,13 @@ class TopicIntegrationTest extends AbstractIntegrationTest {
                     .bearerAuth(token)));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
+    }
+
+    private void forceTopicSynchronization() throws InterruptedException {
+        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+
+        // Wait for topics to be updated in Kafka broker
+        Thread.sleep(2000);
     }
 
     @Data

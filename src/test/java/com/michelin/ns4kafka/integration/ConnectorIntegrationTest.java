@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.integration.TopicIntegrationTest.BearerAccessRefreshToken;
+import com.michelin.ns4kafka.integration.container.KafkaConnectIntegrationTest;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.model.AccessControlEntry.Permission;
@@ -32,7 +33,6 @@ import com.michelin.ns4kafka.service.executor.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.ApplicationContext;
-import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
@@ -53,8 +53,7 @@ import reactor.core.publisher.Flux;
 
 @Slf4j
 @MicronautTest
-@Property(name = "micronaut.security.gitlab.enabled", value = "false")
-class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
+class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
     @Inject
     private ApplicationContext applicationContext;
 
@@ -75,7 +74,7 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
     @BeforeAll
     void init() {
         // Create HTTP client as bean to load client configuration from application.yml
-        connectClient = applicationContext.createBean(HttpClient.class, connectContainer.getUrl());
+        connectClient = applicationContext.createBean(HttpClient.class, getConnectUrl());
 
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
@@ -181,7 +180,7 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
             .toBlocking()
             .retrieve(HttpRequest.GET("/"), ServerInfo.class);
 
-        assertEquals("7.4.1-ccs", actual.version());
+        assertEquals("7.7.0-ccs", actual.version());
     }
 
     @Test
@@ -470,7 +469,7 @@ class ConnectIntegrationTest extends AbstractIntegrationConnectTest {
         assertEquals(HttpStatus.OK, restartResponse.status());
 
         waitForConnectorAndTasksToBeInState("ns1-co1", Connector.TaskState.RUNNING);
-        
+
         ConnectorStateInfo actual = connectClient
             .toBlocking()
             .retrieve(HttpRequest.GET("/connectors/ns1-co1/status"), ConnectorStateInfo.class);

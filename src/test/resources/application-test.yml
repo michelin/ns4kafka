@@ -1,7 +1,13 @@
+micronaut:
+  security:
+    gitlab:
+      enabled: false
+
 kafka:
-  embedded:
-    enabled: false
-  bootstrap.servers: "localhost:9092"
+  bootstrap.servers: "localhost:9092" # Replaced by Testcontainers
+  sasl.mechanism: "PLAIN"
+  security.protocol: "SASL_PLAINTEXT"
+  sasl.jaas.config: "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin\";"
 
 ns4kafka:
   security:
@@ -22,10 +28,11 @@ ns4kafka:
       manage-acls: true
       manage-topics: true
       manage-connectors: true
-      connectsS:
-        test-connect: "toto"
+      config:
+        bootstrap.servers: "localhost:9092" # Replaced by Testcontainers
+        sasl.mechanism: "PLAIN"
+        security.protocol: "SASL_PLAINTEXT"
+        sasl.jaas.config: "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin\";"
       connects:
         test-connect:
-          url: "localhost:8083"
-      config:
-        bootstrap.servers: "localhost:9092"
+          url: "localhost:8083" # Replaced by Testcontainers

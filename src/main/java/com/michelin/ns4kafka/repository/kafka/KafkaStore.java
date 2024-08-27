@@ -41,25 +41,30 @@ import org.apache.kafka.common.errors.TopicExistsException;
  */
 @Slf4j
 public abstract class KafkaStore<T> {
+    @Inject
+    ApplicationContext applicationContext;
+
+    @Inject
+    AdminClient adminClient;
+
+    @Inject
+    KafkaStoreProperties kafkaStoreProperties;
+
+    @Inject
+    @Named(TaskExecutors.SCHEDULED)
+    TaskScheduler taskScheduler;
+
+    @Property(name = "ns4kafka.store.kafka.init-timeout")
+    int initTimeout;
+
     private final Map<String, T> store;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final ReentrantLock offsetUpdateLock;
     private final Condition offsetReachedThreshold;
-    @Inject
-    ApplicationContext applicationContext;
-    @Inject
-    AdminClient adminClient;
-    @Inject
-    KafkaStoreProperties kafkaStoreProperties;
-    @Inject
-    @Named(TaskExecutors.SCHEDULED)
-    TaskScheduler taskScheduler;
     String kafkaTopic;
     Producer<String, T> kafkaProducer;
     long offsetInSchemasTopic = -1;
     long lastWrittenOffset = -1;
-    @Property(name = "ns4kafka.store.kafka.init-timeout")
-    int initTimeout;
 
     KafkaStore(String kafkaTopic, Producer<String, T> kafkaProducer) {
         this.kafkaTopic = kafkaTopic;

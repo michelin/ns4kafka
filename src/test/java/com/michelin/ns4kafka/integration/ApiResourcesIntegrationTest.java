@@ -3,11 +3,11 @@ package com.michelin.ns4kafka.integration;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.michelin.ns4kafka.controller.ApiResourcesController;
+import com.michelin.ns4kafka.integration.container.KafkaIntegrationTest;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.validation.TopicValidator;
-import io.micronaut.context.annotation.Property;
 import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
@@ -21,8 +21,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 @MicronautTest
-@Property(name = "micronaut.security.gitlab.enabled", value = "false")
-class ApiResourcesIntegrationTest extends AbstractIntegrationTest {
+class ApiResourcesIntegrationTest extends KafkaIntegrationTest {
     @Inject
     @Client("/")
     HttpClient ns4KafkaClient;
