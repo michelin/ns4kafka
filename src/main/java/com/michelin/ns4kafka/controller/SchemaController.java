@@ -182,7 +182,7 @@ public class SchemaController extends NamespacedResourceController {
                             .map(deletedVersionIds -> {
                                 Schema deletedSchema = subjectOptional.get();
                                 sendEventLog(deletedSchema, ApplyStatus.deleted, deletedSchema.getSpec(), null,
-                                    version.map(v -> "").orElseGet(() -> String.valueOf(deletedVersionIds)));
+                                    version.map(v -> String.valueOf(deletedVersionIds)).orElseGet(() -> ""));
                                 return HttpResponse.noContent();
                             });
                 });
