@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.controller;
 
+import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
+
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.RoleBinding;
@@ -88,8 +90,14 @@ public class RoleBindingController extends NamespacedResourceController {
             return formatHttpResponse(roleBinding, status);
         }
 
-        sendEventLog(roleBinding, status, existingRoleBinding.<Object>map(RoleBinding::getSpec).orElse(null),
-            roleBinding.getSpec(), "");
+        sendEventLog(
+            roleBinding,
+            status,
+            existingRoleBinding.<Object>map(RoleBinding::getSpec).orElse(null),
+            roleBinding.getSpec(),
+            EMPTY_STRING
+        );
+
         roleBindingService.create(roleBinding);
         return formatHttpResponse(roleBinding, status);
     }
@@ -116,7 +124,15 @@ public class RoleBindingController extends NamespacedResourceController {
         }
 
         var roleBindingToDelete = roleBinding.get();
-        sendEventLog(roleBindingToDelete, ApplyStatus.deleted, roleBindingToDelete.getSpec(), null, "");
+
+        sendEventLog(
+            roleBindingToDelete,
+            ApplyStatus.deleted,
+            roleBindingToDelete.getSpec(),
+            null,
+            EMPTY_STRING
+        );
+
         roleBindingService.delete(roleBindingToDelete);
         return HttpResponse.noContent();
     }

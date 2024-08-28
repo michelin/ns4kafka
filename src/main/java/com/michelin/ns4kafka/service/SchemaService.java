@@ -115,7 +115,7 @@ public class SchemaService {
      * @param version   The version
      * @return A Subject
      */
-    public Mono<Schema> getSubject(Namespace namespace, String subject, String version) {
+    public Mono<Schema> getSubjectByVersion(Namespace namespace, String subject, String version) {
         return schemaRegistryClient
             .getSubject(namespace.getMetadata().getCluster(), subject, version)
             .flatMap(latestSubjectOptional -> schemaRegistryClient
@@ -151,8 +151,8 @@ public class SchemaService {
      * @param subject   The subject
      * @return A schema
      */
-    public Mono<Schema> getLatestSubject(Namespace namespace, String subject) {
-        return getSubject(namespace, subject, "latest");
+    public Mono<Schema> getSubjectLatestVersion(Namespace namespace, String subject) {
+        return getSubjectByVersion(namespace, subject, "latest");
     }
 
     /**
@@ -194,7 +194,8 @@ public class SchemaService {
      */
     private Mono<List<String>> validateReferences(Namespace ns, Schema schema) {
         return Flux.fromIterable(schema.getSpec().getReferences())
-            .flatMap(reference -> getSubject(ns, reference.getSubject(), String.valueOf(reference.getVersion()))
+            .flatMap(reference -> getSubjectByVersion(ns, reference.getSubject(),
+                    String.valueOf(reference.getVersion()))
                 .map(Optional::of)
                 .defaultIfEmpty(Optional.empty())
                 .mapNotNull(schemaOptional -> {
@@ -334,7 +335,8 @@ public class SchemaService {
         }
 
         return Flux.fromIterable(schema.getSpec().getReferences())
-            .flatMap(reference -> getSubject(namespace, reference.getSubject(), String.valueOf(reference.getVersion())))
+            .flatMap(reference -> getSubjectByVersion(namespace, reference.getSubject(),
+                String.valueOf(reference.getVersion())))
             .collectMap(s -> s.getMetadata().getName(), s -> s.getSpec().getSchema());
     }
 

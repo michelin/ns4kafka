@@ -4,6 +4,7 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNotFound;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidOwner;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicCollide;
 import static com.michelin.ns4kafka.util.enumation.Kind.TOPIC;
+import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.DeleteRecordsResponse;
@@ -144,7 +145,13 @@ public class TopicController extends NamespacedResourceController {
             return formatHttpResponse(topic, status);
         }
 
-        sendEventLog(topic, status, existingTopic.<Object>map(Topic::getSpec).orElse(null), topic.getSpec(), "");
+        sendEventLog(
+            topic,
+            status,
+            existingTopic.<Object>map(Topic::getSpec).orElse(null),
+            topic.getSpec(),
+            EMPTY_STRING
+        );
 
         return formatHttpResponse(topicService.create(topic), status);
     }
@@ -178,7 +185,15 @@ public class TopicController extends NamespacedResourceController {
         }
 
         Topic topicToDelete = optionalTopic.get();
-        sendEventLog(topicToDelete, ApplyStatus.deleted, topicToDelete.getSpec(), null, "");
+
+        sendEventLog(
+            topicToDelete,
+            ApplyStatus.deleted,
+            topicToDelete.getSpec(),
+            null,
+            EMPTY_STRING
+        );
+
         topicService.delete(optionalTopic.get());
 
         return HttpResponse.noContent();
@@ -214,7 +229,14 @@ public class TopicController extends NamespacedResourceController {
         return unsynchronizedTopics
             .stream()
             .map(topic -> {
-                sendEventLog(topic, ApplyStatus.created, null, topic.getSpec(), "");
+                sendEventLog(
+                    topic,
+                    ApplyStatus.created,
+                    null,
+                    topic.getSpec(),
+                    EMPTY_STRING
+                );
+
                 return topicService.create(topic);
             })
             .toList();
@@ -256,7 +278,14 @@ public class TopicController extends NamespacedResourceController {
         if (dryrun) {
             deletedRecords = recordsToDelete;
         } else {
-            sendEventLog(optionalTopic.get(), ApplyStatus.deleted, null, null, "");
+            sendEventLog(
+                optionalTopic.get(),
+                ApplyStatus.deleted,
+                null,
+                null,
+                EMPTY_STRING
+            );
+
             deletedRecords = topicService.deleteRecords(optionalTopic.get(), recordsToDelete);
         }
 

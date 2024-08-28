@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidKafkaUser;
 import static com.michelin.ns4kafka.util.enumation.Kind.KAFKA_USER_RESET_PASSWORD;
+import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.KafkaUserResetPassword;
@@ -61,7 +62,14 @@ public class UserController extends NamespacedResourceController {
                 .build())
             .build();
 
-        sendEventLog(response, ApplyStatus.changed, null, response.getSpec(), "");
+        sendEventLog(
+            response,
+            ApplyStatus.changed,
+            null,
+            response.getSpec(),
+            EMPTY_STRING
+        );
+
         return HttpResponse.ok(response);
     }
 }

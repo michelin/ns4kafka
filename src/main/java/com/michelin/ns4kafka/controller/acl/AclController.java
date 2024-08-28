@@ -4,6 +4,7 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidAclDeleteOnlyAd
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidImmutableField;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNotFound;
 import static com.michelin.ns4kafka.util.enumation.Kind.ACCESS_CONTROL_ENTRY;
+import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AccessControlEntry;
@@ -140,8 +141,13 @@ public class AclController extends NamespacedResourceController {
             return formatHttpResponse(accessControlEntry, status);
         }
 
-        sendEventLog(accessControlEntry, status, existingAcl.<Object>map(AccessControlEntry::getSpec).orElse(null),
-            accessControlEntry.getSpec(), "");
+        sendEventLog(
+            accessControlEntry,
+            status,
+            existingAcl.<Object>map(AccessControlEntry::getSpec).orElse(null),
+            accessControlEntry.getSpec(),
+            EMPTY_STRING
+        );
 
         return formatHttpResponse(aclService.create(accessControlEntry), status);
     }
@@ -174,7 +180,13 @@ public class AclController extends NamespacedResourceController {
             return HttpResponse.noContent();
         }
 
-        sendEventLog(accessControlEntry, ApplyStatus.deleted, accessControlEntry.getSpec(), null, "");
+        sendEventLog(
+            accessControlEntry,
+            ApplyStatus.deleted,
+            accessControlEntry.getSpec(),
+            null,
+            EMPTY_STRING
+        );
 
         aclService.delete(accessControlEntry);
         return HttpResponse.noContent();

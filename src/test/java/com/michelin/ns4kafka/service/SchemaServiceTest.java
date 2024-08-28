@@ -219,7 +219,7 @@ class SchemaServiceTest {
         when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any())).thenReturn(
             Mono.just(compatibilityResponse));
 
-        StepVerifier.create(schemaService.getLatestSubject(namespace, "prefix.schema-one"))
+        StepVerifier.create(schemaService.getSubjectLatestVersion(namespace, "prefix.schema-one"))
             .consumeNextWith(latestSubject -> {
                 assertEquals("prefix.schema-one", latestSubject.getMetadata().getName());
                 assertEquals("local", latestSubject.getMetadata().getCluster());
@@ -253,7 +253,7 @@ class SchemaServiceTest {
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "prefix.schema-one", "latest"))
             .thenReturn(Mono.empty());
 
-        StepVerifier.create(schemaService.getLatestSubject(namespace, "prefix.schema-one"))
+        StepVerifier.create(schemaService.getSubjectLatestVersion(namespace, "prefix.schema-one"))
             .verifyComplete();
     }
 

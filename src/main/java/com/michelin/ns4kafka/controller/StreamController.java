@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidOwner;
 import static com.michelin.ns4kafka.util.enumation.Kind.KAFKA_STREAM;
+import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.KafkaStream;
@@ -93,8 +94,13 @@ public class StreamController extends NamespacedResourceController {
             return formatHttpResponse(stream, status);
         }
 
-        sendEventLog(stream, status, existingStream.<Object>map(KafkaStream::getMetadata).orElse(null),
-            stream.getMetadata(), "");
+        sendEventLog(
+            stream,
+            status,
+            existingStream.<Object>map(KafkaStream::getMetadata).orElse(null),
+            stream.getMetadata(),
+            EMPTY_STRING
+        );
 
         return formatHttpResponse(streamService.create(stream), status);
     }
@@ -126,7 +132,15 @@ public class StreamController extends NamespacedResourceController {
         }
 
         var streamToDelete = optionalStream.get();
-        sendEventLog(streamToDelete, ApplyStatus.deleted, streamToDelete.getMetadata(), null, "");
+
+        sendEventLog(
+            streamToDelete,
+            ApplyStatus.deleted,
+            streamToDelete.getMetadata(),
+            null,
+            EMPTY_STRING
+        );
+
         streamService.delete(ns, optionalStream.get());
         return HttpResponse.noContent();
     }

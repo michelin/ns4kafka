@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.log;
 
+import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
+
 import com.michelin.ns4kafka.model.AuditLog;
 import io.micronaut.context.annotation.Requires;
 import io.micronaut.context.event.ApplicationEventListener;
@@ -23,7 +25,7 @@ public class ConsoleLogListener implements ApplicationEventListener<AuditLog> {
             event.getOperation(),
             event.getKind(),
             event.getMetadata().getName(),
-            event.getVersion().isEmpty() ? "" : " version " + event.getVersion(),
+            StringUtils.isEmpty(event.getVersion()) ? EMPTY_STRING : " version " + event.getVersion(),
             event.getMetadata().getNamespace(),
             event.getMetadata().getCluster()
         );

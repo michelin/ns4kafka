@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.controller.quota;
 
+import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
+
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.quota.ResourceQuota;
@@ -102,8 +104,13 @@ public class ResourceQuotaController extends NamespacedResourceController {
             return formatHttpResponse(quota, status);
         }
 
-        sendEventLog(quota, status, resourceQuotaOptional.<Object>map(ResourceQuota::getSpec).orElse(null),
-            quota.getSpec(), "");
+        sendEventLog(
+            quota,
+            status,
+            resourceQuotaOptional.<Object>map(ResourceQuota::getSpec).orElse(null),
+            quota.getSpec(),
+            EMPTY_STRING
+        );
 
         return formatHttpResponse(resourceQuotaService.create(quota), status);
     }
@@ -130,7 +137,15 @@ public class ResourceQuotaController extends NamespacedResourceController {
         }
 
         ResourceQuota resourceQuotaToDelete = resourceQuota.get();
-        sendEventLog(resourceQuotaToDelete, ApplyStatus.deleted, resourceQuotaToDelete.getSpec(), null, "");
+
+        sendEventLog(
+            resourceQuotaToDelete,
+            ApplyStatus.deleted,
+            resourceQuotaToDelete.getSpec(),
+            null,
+            EMPTY_STRING
+        );
+
         resourceQuotaService.delete(resourceQuotaToDelete);
         return HttpResponse.noContent();
     }

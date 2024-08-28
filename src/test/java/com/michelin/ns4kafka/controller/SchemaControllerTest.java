@@ -319,7 +319,7 @@ class SchemaControllerTest {
             .thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName()))
             .thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName()))
+        when(schemaService.getSubjectLatestVersion(namespace, schema.getMetadata().getName()))
             .thenReturn(Mono.just(schema));
 
         StepVerifier.create(schemaController.get("myNamespace", "prefix.subject-value"))
@@ -341,7 +341,7 @@ class SchemaControllerTest {
         StepVerifier.create(schemaController.get("myNamespace", "prefix.subject-value"))
             .verifyComplete();
 
-        verify(schemaService, never()).getLatestSubject(namespace, schema.getMetadata().getName());
+        verify(schemaService, never()).getSubjectLatestVersion(namespace, schema.getMetadata().getName());
     }
 
     @Test
@@ -353,7 +353,7 @@ class SchemaControllerTest {
             .thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName()))
             .thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, "prefix.subject-value"))
+        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
             .thenReturn(Mono.empty());
 
         StepVerifier.create(
@@ -373,7 +373,7 @@ class SchemaControllerTest {
             .thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName()))
             .thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, "prefix.subject-value"))
+        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
             .thenReturn(Mono.just(schema));
         when(schemaService.updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD))
             .thenReturn(Mono.just(SchemaCompatibilityResponse.builder()
@@ -401,7 +401,7 @@ class SchemaControllerTest {
             .thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName()))
             .thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, "prefix.subject-value"))
+        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
             .thenReturn(Mono.just(schema));
 
         StepVerifier.create(
@@ -460,7 +460,7 @@ class SchemaControllerTest {
             })
             .verify();
 
-        verify(schemaService, never()).getLatestSubject(any(), any());
+        verify(schemaService, never()).getSubjectLatestVersion(any(), any());
         verify(schemaService, never()).deleteAllVersions(any(), any());
     }
 
@@ -483,7 +483,7 @@ class SchemaControllerTest {
             })
             .verify();
 
-        verify(schemaService, never()).getSubject(any(), any(), any());
+        verify(schemaService, never()).getSubjectByVersion(any(), any(), any());
         verify(schemaService, never()).deleteVersion(any(), any(), any());
     }
 
@@ -496,7 +496,7 @@ class SchemaControllerTest {
             .thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value"))
             .thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, "prefix.subject-value"))
+        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
             .thenReturn(Mono.just(schema));
         when(schemaService.deleteAllVersions(namespace, "prefix.subject-value"))
             .thenReturn(Mono.just(new Integer[1]));
@@ -522,7 +522,7 @@ class SchemaControllerTest {
             .thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value"))
             .thenReturn(true);
-        when(schemaService.getSubject(namespace, "prefix.subject-value", "1"))
+        when(schemaService.getSubjectByVersion(namespace, "prefix.subject-value", "1"))
             .thenReturn(Mono.just(schema1));
         when(schemaService.deleteVersion(namespace, "prefix.subject-value", "1"))
             .thenReturn(Mono.just(1));
@@ -542,7 +542,7 @@ class SchemaControllerTest {
             .thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value"))
             .thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, "prefix.subject-value"))
+        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
             .thenReturn(Mono.empty());
 
         StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.empty(), false))
@@ -560,7 +560,7 @@ class SchemaControllerTest {
             .thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value"))
             .thenReturn(true);
-        when(schemaService.getSubject(namespace, "prefix.subject-value", "1"))
+        when(schemaService.getSubjectByVersion(namespace, "prefix.subject-value", "1"))
             .thenReturn(Mono.empty());
 
         StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.of("1"), false))
@@ -579,7 +579,7 @@ class SchemaControllerTest {
             .thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value"))
             .thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, "prefix.subject-value"))
+        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
             .thenReturn(Mono.just(schema));
 
         StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.empty(), true))
@@ -598,7 +598,7 @@ class SchemaControllerTest {
             .thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value"))
             .thenReturn(true);
-        when(schemaService.getSubject(namespace, "prefix.subject-value", "1"))
+        when(schemaService.getSubjectByVersion(namespace, "prefix.subject-value", "1"))
             .thenReturn(Mono.just(schema));
 
         StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.of("1"), true))

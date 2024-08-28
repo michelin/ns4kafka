@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidOwner;
 import static com.michelin.ns4kafka.util.enumation.Kind.SCHEMA;
+import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.Namespace;
@@ -72,7 +73,7 @@ public class SchemaController extends NamespacedResourceController {
             return Mono.empty();
         }
 
-        return schemaService.getLatestSubject(ns, subject);
+        return schemaService.getSubjectLatestVersion(ns, subject);
     }
 
     /**
@@ -128,11 +129,14 @@ public class SchemaController extends NamespacedResourceController {
                                     return schemaService
                                         .register(ns, schema)
                                         .map(id -> {
-                                            sendEventLog(schema, status,
+                                            sendEventLog(
+                                                schema,
+                                                status,
                                                 oldSchemas.isEmpty() ? null : oldSchemas.stream()
-                                                    .max(Comparator.comparingInt(
-                                                        (Schema s) -> s.getSpec().getId())),
-                                                schema.getSpec(), "");
+                                                    .max(Comparator.comparingInt((Schema s) -> s.getSpec().getId())),
+                                                schema.getSpec(),
+                                                EMPTY_STRING
+                                            );
 
                                             return formatHttpResponse(schema, status);
                                         });
@@ -144,17 +148,17 @@ public class SchemaController extends NamespacedResourceController {
     /**
      * Delete all schema versions under the given subject, or a specific version of the schema if specified.
      *
-     * @param namespace The namespace
-     * @param subject   The subject
-     * @param version   The version of the schema to delete
-     * @param dryrun    Run in dry mode or not
+     * @param namespace         The namespace
+     * @param subject           The subject
+     * @param versionOptional   The version of the schema to delete
+     * @param dryrun            Run in dry mode or not
      * @return A HTTP response
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{subject}")
     public Mono<HttpResponse<Void>> delete(String namespace,
                                            @PathVariable String subject,
-                                           @QueryValue Optional<String> version,
+                                           @QueryValue("version") Optional<String> versionOptional,
                                            @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -163,29 +167,39 @@ public class SchemaController extends NamespacedResourceController {
             return Mono.error(new ResourceValidationException(SCHEMA, subject, invalidOwner(subject)));
         }
 
-        return version
-            .map(v -> schemaService.getSubject(ns, subject, v))
-            .orElseGet(() -> schemaService.getLatestSubject(ns, subject))
-                .map(Optional::of)
-                .defaultIfEmpty(Optional.empty())
-                .flatMap(subjectOptional -> {
-                    if (subjectOptional.isEmpty()) {
-                        return Mono.just(HttpResponse.notFound());
-                    }
+        return versionOptional
+            // If version is specified, get the schema with the version
+            .map(version -> schemaService.getSubjectByVersion(ns, subject, version))
+            // If version is not specified, get the latest schema
+            .orElseGet(() -> schemaService.getSubjectLatestVersion(ns, subject))
+            .map(Optional::of)
+            .defaultIfEmpty(Optional.empty())
+            .flatMap(subjectOptional -> {
+                if (subjectOptional.isEmpty()) {
+                    return Mono.just(HttpResponse.notFound());
+                }
 
-                    if (dryrun) {
-                        return Mono.just(HttpResponse.noContent());
-                    }
+                if (dryrun) {
+                    return Mono.just(HttpResponse.noContent());
+                }
 
-                    return (version.isEmpty() ? schemaService.deleteAllVersions(ns, subject) :
-                        schemaService.deleteVersion(ns, subject, version.get()))
-                            .map(deletedVersionIds -> {
-                                Schema deletedSchema = subjectOptional.get();
-                                sendEventLog(deletedSchema, ApplyStatus.deleted, deletedSchema.getSpec(), null,
-                                    version.map(v -> String.valueOf(deletedVersionIds)).orElseGet(() -> ""));
-                                return HttpResponse.noContent();
-                            });
-                });
+                return (versionOptional.isEmpty()
+                    ? schemaService.deleteAllVersions(ns, subject) :
+                    schemaService.deleteVersion(ns, subject, versionOptional.get()))
+                    .map(deletedVersionIds -> {
+                        Schema deletedSchema = subjectOptional.get();
+
+                        sendEventLog(
+                            deletedSchema,
+                            ApplyStatus.deleted,
+                            deletedSchema.getSpec(),
+                            null,
+                            versionOptional.map(v -> String.valueOf(deletedVersionIds)).orElse(EMPTY_STRING)
+                        );
+
+                        return HttpResponse.noContent();
+                    });
+            });
     }
 
     /**
@@ -205,7 +219,7 @@ public class SchemaController extends NamespacedResourceController {
             return Mono.error(new ResourceValidationException(SCHEMA, subject, invalidOwner(subject)));
         }
 
-        return schemaService.getLatestSubject(ns, subject)
+        return schemaService.getSubjectLatestVersion(ns, subject)
             .map(Optional::of)
             .defaultIfEmpty(Optional.empty())
             .flatMap(latestSubjectOptional -> {
@@ -227,8 +241,13 @@ public class SchemaController extends NamespacedResourceController {
                 return schemaService
                     .updateSubjectCompatibility(ns, latestSubjectOptional.get(), compatibility)
                     .map(schemaCompatibility -> {
-                        sendEventLog(latestSubjectOptional.get(), ApplyStatus.changed,
-                            latestSubjectOptional.get().getSpec().getCompatibility(), compatibility, "");
+                        sendEventLog(
+                            latestSubjectOptional.get(),
+                            ApplyStatus.changed,
+                            latestSubjectOptional.get().getSpec().getCompatibility(),
+                            compatibility,
+                            EMPTY_STRING
+                        );
 
                         return HttpResponse.ok(state);
                     });
