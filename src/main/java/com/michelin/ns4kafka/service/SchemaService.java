@@ -115,7 +115,7 @@ public class SchemaService {
      * @param version   The version
      * @return A Subject
      */
-    public Mono<Schema> getSubject(Namespace namespace, String subject, String version) {
+    public Mono<Schema> getSubjectByVersion(Namespace namespace, String subject, String version) {
         return schemaRegistryClient
             .getSubject(namespace.getMetadata().getCluster(), subject, version)
             .flatMap(latestSubjectOptional -> schemaRegistryClient
@@ -151,8 +151,8 @@ public class SchemaService {
      * @param subject   The subject
      * @return A schema
      */
-    public Mono<Schema> getLatestSubject(Namespace namespace, String subject) {
-        return getSubject(namespace, subject, "latest");
+    public Mono<Schema> getSubjectLatestVersion(Namespace namespace, String subject) {
+        return getSubjectByVersion(namespace, subject, "latest");
     }
 
     /**
@@ -194,7 +194,8 @@ public class SchemaService {
      */
     private Mono<List<String>> validateReferences(Namespace ns, Schema schema) {
         return Flux.fromIterable(schema.getSpec().getReferences())
-            .flatMap(reference -> getSubject(ns, reference.getSubject(), String.valueOf(reference.getVersion()))
+            .flatMap(reference -> getSubjectByVersion(ns, reference.getSubject(),
+                    String.valueOf(reference.getVersion()))
                 .map(Optional::of)
                 .defaultIfEmpty(Optional.empty())
                 .mapNotNull(schemaOptional -> {
@@ -225,18 +226,35 @@ public class SchemaService {
     }
 
     /**
-     * Delete all schemas under the given subject.
+     * Delete all the schema versions under the given subject.
      *
-     * @param namespace The current namespace
-     * @param subject   The current subject to delete
+     * @param namespace The namespace
+     * @param subject   The subject to delete
      * @return The list of deleted versions
      */
-    public Mono<Integer[]> delete(Namespace namespace, String subject) {
+    public Mono<Integer[]> deleteAllVersions(Namespace namespace, String subject) {
         return schemaRegistryClient
             .deleteSubject(namespace.getMetadata().getCluster(), subject, false)
-            .flatMap(ids -> schemaRegistryClient
+            .flatMap(softDeletedVersionIds -> schemaRegistryClient
                 .deleteSubject(namespace.getMetadata().getCluster(),
                     subject, true));
+    }
+
+    /**
+     * Delete the schema version under the given subject.
+     *
+     * @param namespace The namespace
+     * @param subject   The subject
+     * @param version   The version of the schema to delete
+     * @return The latest subject after deletion
+     */
+    public Mono<Integer> deleteVersion(Namespace namespace, String subject, String version) {
+        return schemaRegistryClient
+            .deleteSubjectVersion(namespace.getMetadata().getCluster(), subject, version, false)
+            .flatMap(softDeletedVersionIds -> schemaRegistryClient
+                .deleteSubjectVersion(namespace.getMetadata().getCluster(),
+                    subject, Integer.toString(softDeletedVersionIds), true)
+                );
     }
 
     /**
@@ -317,7 +335,8 @@ public class SchemaService {
         }
 
         return Flux.fromIterable(schema.getSpec().getReferences())
-            .flatMap(reference -> getSubject(namespace, reference.getSubject(), String.valueOf(reference.getVersion())))
+            .flatMap(reference -> getSubjectByVersion(namespace, reference.getSubject(),
+                String.valueOf(reference.getVersion())))
             .collectMap(s -> s.getMetadata().getName(), s -> s.getSpec().getSchema());
     }
 

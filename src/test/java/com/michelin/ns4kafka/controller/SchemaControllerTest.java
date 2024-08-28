@@ -319,7 +319,7 @@ class SchemaControllerTest {
             .thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName()))
             .thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, schema.getMetadata().getName()))
+        when(schemaService.getSubjectLatestVersion(namespace, schema.getMetadata().getName()))
             .thenReturn(Mono.just(schema));
 
         StepVerifier.create(schemaController.get("myNamespace", "prefix.subject-value"))
@@ -341,7 +341,7 @@ class SchemaControllerTest {
         StepVerifier.create(schemaController.get("myNamespace", "prefix.subject-value"))
             .verifyComplete();
 
-        verify(schemaService, never()).getLatestSubject(namespace, schema.getMetadata().getName());
+        verify(schemaService, never()).getSubjectLatestVersion(namespace, schema.getMetadata().getName());
     }
 
     @Test
@@ -353,7 +353,7 @@ class SchemaControllerTest {
             .thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName()))
             .thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, "prefix.subject-value"))
+        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
             .thenReturn(Mono.empty());
 
         StepVerifier.create(
@@ -373,7 +373,7 @@ class SchemaControllerTest {
             .thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName()))
             .thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, "prefix.subject-value"))
+        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
             .thenReturn(Mono.just(schema));
         when(schemaService.updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD))
             .thenReturn(Mono.just(SchemaCompatibilityResponse.builder()
@@ -401,7 +401,7 @@ class SchemaControllerTest {
             .thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, schema.getMetadata().getName()))
             .thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, "prefix.subject-value"))
+        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
             .thenReturn(Mono.just(schema));
 
         StepVerifier.create(
@@ -442,7 +442,7 @@ class SchemaControllerTest {
     }
 
     @Test
-    void shouldNotDeleteSchemaWhenNotOwner() {
+    void shouldNotDeleteAllSchemaVersionsWhenNotOwner() {
         Namespace namespace = buildNamespace();
 
         when(namespaceService.findByName("myNamespace"))
@@ -450,7 +450,30 @@ class SchemaControllerTest {
         when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value"))
             .thenReturn(false);
 
-        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", false))
+        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.empty(), false))
+            .consumeErrorWith(error -> {
+                assertEquals(ResourceValidationException.class, error.getClass());
+                assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
+                assertEquals("Invalid value \"prefix.subject-value\" for field \"name\": "
+                            + "namespace is not owner of the resource.",
+                    ((ResourceValidationException) error).getValidationErrors().getFirst());
+            })
+            .verify();
+
+        verify(schemaService, never()).getSubjectLatestVersion(any(), any());
+        verify(schemaService, never()).deleteAllVersions(any(), any());
+    }
+
+    @Test
+    void shouldNotDeleteOneSchemaVersionWhenNotOwner() {
+        Namespace namespace = buildNamespace();
+
+        when(namespaceService.findByName("myNamespace"))
+            .thenReturn(Optional.of(namespace));
+        when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value"))
+            .thenReturn(false);
+
+        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.of("1"), false))
             .consumeErrorWith(error -> {
                 assertEquals(ResourceValidationException.class, error.getClass());
                 assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
@@ -460,11 +483,12 @@ class SchemaControllerTest {
             })
             .verify();
 
-        verify(schemaService, never()).updateSubjectCompatibility(any(), any(), any());
+        verify(schemaService, never()).getSubjectByVersion(any(), any(), any());
+        verify(schemaService, never()).deleteVersion(any(), any(), any());
     }
 
     @Test
-    void shouldDeleteSchema() {
+    void shouldDeleteAllSchemaVersions() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
 
@@ -472,9 +496,9 @@ class SchemaControllerTest {
             .thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value"))
             .thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, "prefix.subject-value"))
+        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
             .thenReturn(Mono.just(schema));
-        when(schemaService.delete(namespace, "prefix.subject-value"))
+        when(schemaService.deleteAllVersions(namespace, "prefix.subject-value"))
             .thenReturn(Mono.just(new Integer[1]));
         when(securityService.username())
             .thenReturn(Optional.of("test-user"));
@@ -482,31 +506,72 @@ class SchemaControllerTest {
             .thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", false))
+        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.empty(), false))
             .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
             .verifyComplete();
 
-        verify(schemaService).delete(namespace, "prefix.subject-value");
+        verify(schemaService).deleteAllVersions(namespace, "prefix.subject-value");
     }
 
     @Test
-    void shouldNotDeleteSchemaWhenEmpty() {
+    void shouldDeleteSchemaVersion() {
+        Namespace namespace = buildNamespace();
+        Schema schema1 = buildSchema();
+
+        when(namespaceService.findByName("myNamespace"))
+            .thenReturn(Optional.of(namespace));
+        when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value"))
+            .thenReturn(true);
+        when(schemaService.getSubjectByVersion(namespace, "prefix.subject-value", "1"))
+            .thenReturn(Mono.just(schema1));
+        when(schemaService.deleteVersion(namespace, "prefix.subject-value", "1"))
+            .thenReturn(Mono.just(1));
+
+        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.of("1"), false))
+            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .verifyComplete();
+
+        verify(applicationEventPublisher).publishEvent(any());
+    }
+
+    @Test
+    void shouldNotDeleteAllSchemaVersionsWhenEmpty() {
         Namespace namespace = buildNamespace();
 
         when(namespaceService.findByName("myNamespace"))
             .thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value"))
             .thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, "prefix.subject-value"))
+        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
             .thenReturn(Mono.empty());
 
-        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", false))
+        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.empty(), false))
             .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
             .verifyComplete();
+
+        verify(schemaService, never()).deleteAllVersions(namespace, "prefix.subject-value");
     }
 
     @Test
-    void shouldDeleteSchemaInDryRunMode() {
+    void shouldNotDeleteSchemaVersionWhenEmpty() {
+        Namespace namespace = buildNamespace();
+
+        when(namespaceService.findByName("myNamespace"))
+            .thenReturn(Optional.of(namespace));
+        when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value"))
+            .thenReturn(true);
+        when(schemaService.getSubjectByVersion(namespace, "prefix.subject-value", "1"))
+            .thenReturn(Mono.empty());
+
+        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.of("1"), false))
+            .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
+            .verifyComplete();
+
+        verify(schemaService, never()).deleteVersion(namespace, "prefix.subject-value", "1");
+    }
+
+    @Test
+    void shouldNotDeleteAllSchemaVersionsInDryRunMode() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
 
@@ -514,14 +579,33 @@ class SchemaControllerTest {
             .thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value"))
             .thenReturn(true);
-        when(schemaService.getLatestSubject(namespace, "prefix.subject-value"))
+        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
             .thenReturn(Mono.just(schema));
 
-        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", true))
+        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.empty(), true))
             .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
             .verifyComplete();
 
-        verify(schemaService, never()).delete(namespace, "prefix.subject-value");
+        verify(schemaService, never()).deleteAllVersions(namespace, "prefix.subject-value");
+    }
+
+    @Test
+    void shouldNotDeleteSchemaVersionInDryRunMode() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+
+        when(namespaceService.findByName("myNamespace"))
+            .thenReturn(Optional.of(namespace));
+        when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value"))
+            .thenReturn(true);
+        when(schemaService.getSubjectByVersion(namespace, "prefix.subject-value", "1"))
+            .thenReturn(Mono.just(schema));
+
+        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.of("1"), true))
+            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .verifyComplete();
+
+        verify(schemaService, never()).deleteVersion(namespace, "prefix.subject-value", "1");
     }
 
     private Namespace buildNamespace() {

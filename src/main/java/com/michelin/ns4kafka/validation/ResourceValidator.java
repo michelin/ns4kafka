@@ -6,6 +6,7 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidation
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationNull;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationNumber;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationOneOf;
+import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -328,7 +329,7 @@ public abstract class ResourceValidator {
         @Override
         public String toString() {
             if (validators == null) {
-                return "";
+                return EMPTY_STRING;
             }
             StringBuilder desc = new StringBuilder();
             for (ResourceValidator.Validator v : validators) {

@@ -23,4 +23,5 @@ public class AuditLog {
     private ApplyStatus operation;
     private Object before;
     private Object after;
+    private String version;
 }

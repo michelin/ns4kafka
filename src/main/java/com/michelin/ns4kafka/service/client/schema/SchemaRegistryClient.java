@@ -39,6 +39,7 @@ import reactor.core.publisher.Mono;
 public class SchemaRegistryClient {
     private static final String SUBJECTS = "/subjects/";
     private static final String CONFIG = "/config/";
+    private static final String VERSIONS = "/versions/";
 
     @Inject
     @Client(id = "schema-registry")
@@ -71,7 +72,7 @@ public class SchemaRegistryClient {
     public Mono<SchemaResponse> getSubject(String kafkaCluster, String subject, String version) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(
-                URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + "/versions/" + version)))
+                URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + VERSIONS + version)))
             .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, SchemaResponse.class))
             .onErrorResume(HttpClientResponseException.class,
@@ -95,7 +96,7 @@ public class SchemaRegistryClient {
             .flatMap(ids -> Flux.fromIterable(Arrays.asList(ids))
                 .flatMap(id -> {
                     HttpRequest<?> requestVersion = HttpRequest.GET(
-                            URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + "/versions/" + id)))
+                            URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + VERSIONS + id)))
                         .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
 
                     return httpClient.retrieve(requestVersion, SchemaResponse.class);
@@ -135,6 +136,25 @@ public class SchemaRegistryClient {
                 URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + "?permanent=" + hardDelete)))
             .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         return Mono.from(httpClient.retrieve(request, Integer[].class));
+    }
+
+    /**
+     * Delete a subject.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @param subject      The subject
+     * @param version      The version
+     * @param hardDelete   Should the subject be hard deleted or not
+     * @return The version of the deleted subject
+     */
+    public Mono<Integer> deleteSubjectVersion(String kafkaCluster, String subject, String version,
+                                                boolean hardDelete) {
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
+        MutableHttpRequest<?> request = HttpRequest.DELETE(
+                URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + VERSIONS + version
+                + "?permanent=" + hardDelete)))
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+        return Mono.from(httpClient.retrieve(request, Integer.class));
     }
 
     /**

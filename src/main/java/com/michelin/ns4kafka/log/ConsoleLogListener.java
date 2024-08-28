@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.log;
 
+import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
+
 import com.michelin.ns4kafka.model.AuditLog;
 import io.micronaut.context.annotation.Requires;
 import io.micronaut.context.event.ApplicationEventListener;
@@ -17,12 +19,13 @@ public class ConsoleLogListener implements ApplicationEventListener<AuditLog> {
 
     @Override
     public void onApplicationEvent(AuditLog event) {
-        log.info("{} {} {} {} {} in namespace {} on cluster {}.",
+        log.info("{} {} {} {}{} {} in namespace {} on cluster {}.",
             event.isAdmin() ? "Admin" : "User",
             event.getUser(),
             event.getOperation(),
             event.getKind(),
             event.getMetadata().getName(),
+            StringUtils.isEmpty(event.getVersion()) ? EMPTY_STRING : " version " + event.getVersion(),
             event.getMetadata().getNamespace(),
             event.getMetadata().getCluster()
         );

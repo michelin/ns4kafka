@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidImmutableValue;
 import static com.michelin.ns4kafka.util.enumation.Kind.NAMESPACE;
+import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NonNamespacedResourceController;
 import com.michelin.ns4kafka.model.Namespace;
@@ -102,8 +103,13 @@ public class NamespaceController extends NonNamespacedResourceController {
             return formatHttpResponse(namespace, status);
         }
 
-        sendEventLog(namespace, status, existingNamespace.<Object>map(Namespace::getSpec).orElse(null),
-            namespace.getSpec());
+        sendEventLog(
+            namespace,
+            status,
+            existingNamespace.<Object>map(Namespace::getSpec).orElse(null),
+            namespace.getSpec(),
+            EMPTY_STRING
+        );
 
         return formatHttpResponse(namespaceService.createOrUpdate(namespace), status);
     }
@@ -136,7 +142,15 @@ public class NamespaceController extends NonNamespacedResourceController {
         }
 
         var namespaceToDelete = optionalNamespace.get();
-        sendEventLog(namespaceToDelete, ApplyStatus.deleted, namespaceToDelete.getSpec(), null);
+
+        sendEventLog(
+            namespaceToDelete,
+            ApplyStatus.deleted,
+            namespaceToDelete.getSpec(),
+            null,
+            EMPTY_STRING
+        );
+
         namespaceService.delete(optionalNamespace.get());
         return HttpResponse.noContent();
     }

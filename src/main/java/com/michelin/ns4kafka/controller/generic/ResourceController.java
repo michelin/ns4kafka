@@ -1,10 +1,13 @@
 package com.michelin.ns4kafka.controller.generic;
 
+import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
+
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.MetadataResource;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import io.micronaut.context.event.ApplicationEventPublisher;
+import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.security.utils.SecurityService;
 import jakarta.inject.Inject;
@@ -35,11 +38,23 @@ public abstract class ResourceController {
      * @param before    the resource before the operation
      * @param after     the resource after the operation
      */
-    public void sendEventLog(MetadataResource resource, ApplyStatus operation, Object before,
-                             Object after) {
-        AuditLog auditLog = new AuditLog(securityService.username().orElse(""),
-            securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN), Date.from(Instant.now()),
-            resource.getKind(), resource.getMetadata(), operation, before, after);
+    public void sendEventLog(MetadataResource resource,
+                             ApplyStatus operation,
+                             Object before,
+                             Object after,
+                             String version) {
+        AuditLog auditLog = new AuditLog(
+            securityService.username().orElse(EMPTY_STRING),
+            securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN),
+            Date.from(Instant.now()),
+            resource.getKind(),
+            resource.getMetadata(),
+            operation,
+            before,
+            after,
+            version
+        );
+
         applicationEventPublisher.publishEvent(auditLog);
     }
 }

@@ -4,6 +4,7 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConnectClusterD
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConnectClusterNotAllowed;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidOwner;
 import static com.michelin.ns4kafka.util.enumation.Kind.CONNECT_CLUSTER;
+import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.Namespace;
@@ -115,8 +116,13 @@ public class ConnectClusterController extends NamespacedResourceController {
                     return Mono.just(formatHttpResponse(connectCluster, status));
                 }
 
-                sendEventLog(connectCluster, status,
-                    existingConnectCluster.<Object>map(ConnectCluster::getSpec).orElse(null), connectCluster.getSpec());
+                sendEventLog(
+                    connectCluster,
+                    status,
+                    existingConnectCluster.<Object>map(ConnectCluster::getSpec).orElse(null),
+                    connectCluster.getSpec(),
+                    EMPTY_STRING
+                );
 
                 return Mono.just(formatHttpResponse(connectClusterService.create(connectCluster), status));
             });
@@ -161,7 +167,14 @@ public class ConnectClusterController extends NamespacedResourceController {
         }
 
         ConnectCluster connectClusterToDelete = optionalConnectCluster.get();
-        sendEventLog(connectClusterToDelete, ApplyStatus.deleted, connectClusterToDelete.getSpec(), null);
+
+        sendEventLog(
+            connectClusterToDelete,
+            ApplyStatus.deleted,
+            connectClusterToDelete.getSpec(),
+            null,
+            EMPTY_STRING
+        );
 
         connectClusterService.delete(connectClusterToDelete);
         return HttpResponse.noContent();

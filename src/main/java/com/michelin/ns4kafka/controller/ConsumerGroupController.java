@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.controller;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConsumerGroupOperation;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidOwner;
 import static com.michelin.ns4kafka.util.enumation.Kind.CONSUMER_GROUP_RESET_OFFSET;
+import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.Namespace;
@@ -86,7 +87,14 @@ public class ConsumerGroupController extends NamespacedResourceController {
                 consumerGroupResetOffsets.getSpec().getMethod());
 
             if (!dryrun) {
-                sendEventLog(consumerGroupResetOffsets, ApplyStatus.changed, null, consumerGroupResetOffsets.getSpec());
+                sendEventLog(
+                    consumerGroupResetOffsets,
+                    ApplyStatus.changed,
+                    null,
+                    consumerGroupResetOffsets.getSpec(),
+                    EMPTY_STRING
+                );
+
                 consumerGroupService.alterConsumerGroupOffsets(ns, consumerGroup, preparedOffsets);
             }
 

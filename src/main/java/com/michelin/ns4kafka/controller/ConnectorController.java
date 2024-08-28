@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidOwner;
 import static com.michelin.ns4kafka.util.enumation.Kind.CONNECTOR;
+import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.Namespace;
@@ -11,6 +12,7 @@ import com.michelin.ns4kafka.service.ConnectorService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
+import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MutableHttpResponse;
@@ -143,8 +145,13 @@ public class ConnectorController extends NamespacedResourceController {
                             return Mono.just(formatHttpResponse(connector, status));
                         }
 
-                        sendEventLog(connector, status, existingConnector.<Object>map(Connector::getSpec).orElse(null),
-                            connector.getSpec());
+                        sendEventLog(
+                            connector,
+                            status,
+                            existingConnector.<Object>map(Connector::getSpec).orElse(null),
+                            connector.getSpec(),
+                            EMPTY_STRING
+                        );
 
                         return Mono.just(formatHttpResponse(connectorService.createOrUpdate(connector), status));
                     });
@@ -180,7 +187,14 @@ public class ConnectorController extends NamespacedResourceController {
         }
 
         Connector connectorToDelete = optionalConnector.get();
-        sendEventLog(connectorToDelete, ApplyStatus.deleted, connectorToDelete.getSpec(), null);
+
+        sendEventLog(
+            connectorToDelete,
+            ApplyStatus.deleted,
+            connectorToDelete.getSpec(),
+            null,
+            EMPTY_STRING
+        );
 
         return connectorService
             .delete(ns, optionalConnector.get())
@@ -264,7 +278,13 @@ public class ConnectorController extends NamespacedResourceController {
                     return unsynchronizedConnector;
                 }
 
-                sendEventLog(unsynchronizedConnector, ApplyStatus.created, null, unsynchronizedConnector.getSpec());
+                sendEventLog(
+                    unsynchronizedConnector,
+                    ApplyStatus.created,
+                    null,
+                    unsynchronizedConnector.getSpec(),
+                    EMPTY_STRING
+                );
 
                 return connectorService.createOrUpdate(unsynchronizedConnector);
             });
