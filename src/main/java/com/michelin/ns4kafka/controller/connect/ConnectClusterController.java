@@ -116,7 +116,8 @@ public class ConnectClusterController extends NamespacedResourceController {
                 }
 
                 sendEventLog(connectCluster, status,
-                    existingConnectCluster.<Object>map(ConnectCluster::getSpec).orElse(null), connectCluster.getSpec());
+                    existingConnectCluster.<Object>map(ConnectCluster::getSpec).orElse(null),
+                    connectCluster.getSpec(), "");
 
                 return Mono.just(formatHttpResponse(connectClusterService.create(connectCluster), status));
             });
@@ -161,7 +162,7 @@ public class ConnectClusterController extends NamespacedResourceController {
         }
 
         ConnectCluster connectClusterToDelete = optionalConnectCluster.get();
-        sendEventLog(connectClusterToDelete, ApplyStatus.deleted, connectClusterToDelete.getSpec(), null);
+        sendEventLog(connectClusterToDelete, ApplyStatus.deleted, connectClusterToDelete.getSpec(), null, "");
 
         connectClusterService.delete(connectClusterToDelete);
         return HttpResponse.noContent();

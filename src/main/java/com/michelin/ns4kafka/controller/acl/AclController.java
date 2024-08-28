@@ -141,7 +141,7 @@ public class AclController extends NamespacedResourceController {
         }
 
         sendEventLog(accessControlEntry, status, existingAcl.<Object>map(AccessControlEntry::getSpec).orElse(null),
-            accessControlEntry.getSpec());
+            accessControlEntry.getSpec(), "");
 
         return formatHttpResponse(aclService.create(accessControlEntry), status);
     }
@@ -174,7 +174,7 @@ public class AclController extends NamespacedResourceController {
             return HttpResponse.noContent();
         }
 
-        sendEventLog(accessControlEntry, ApplyStatus.deleted, accessControlEntry.getSpec(), null);
+        sendEventLog(accessControlEntry, ApplyStatus.deleted, accessControlEntry.getSpec(), null, "");
 
         aclService.delete(accessControlEntry);
         return HttpResponse.noContent();

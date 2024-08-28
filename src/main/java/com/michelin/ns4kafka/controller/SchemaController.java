@@ -132,7 +132,7 @@ public class SchemaController extends NamespacedResourceController {
                                                 oldSchemas.isEmpty() ? null : oldSchemas.stream()
                                                     .max(Comparator.comparingInt(
                                                         (Schema s) -> s.getSpec().getId())),
-                                                schema.getSpec());
+                                                schema.getSpec(), "");
 
                                             return formatHttpResponse(schema, status);
                                         });
@@ -142,16 +142,19 @@ public class SchemaController extends NamespacedResourceController {
     }
 
     /**
-     * Delete all schemas under the given subject.
+     * Delete all schema versions under the given subject, or a specific version of the schema if specified.
      *
-     * @param namespace The current namespace
-     * @param subject   The current subject to delete
+     * @param namespace The namespace
+     * @param subject   The subject
+     * @param version   The version of the schema to delete
      * @param dryrun    Run in dry mode or not
      * @return A HTTP response
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{subject}")
-    public Mono<HttpResponse<Void>> delete(String namespace, @PathVariable String subject,
+    public Mono<HttpResponse<Void>> delete(String namespace,
+                                           @PathVariable String subject,
+                                           @QueryValue Optional<String> version,
                                            @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -160,25 +163,29 @@ public class SchemaController extends NamespacedResourceController {
             return Mono.error(new ResourceValidationException(SCHEMA, subject, invalidOwner(subject)));
         }
 
-        return schemaService.getLatestSubject(ns, subject)
-            .map(Optional::of)
-            .defaultIfEmpty(Optional.empty())
-            .flatMap(latestSubjectOptional -> {
-                if (latestSubjectOptional.isEmpty()) {
-                    return Mono.just(HttpResponse.notFound());
-                }
+        return version
+            .map(v -> schemaService.getSubject(ns, subject, v))
+            .orElseGet(() -> schemaService.getLatestSubject(ns, subject))
+                .map(Optional::of)
+                .defaultIfEmpty(Optional.empty())
+                .flatMap(subjectOptional -> {
+                    if (subjectOptional.isEmpty()) {
+                        return Mono.just(HttpResponse.notFound());
+                    }
 
-                if (dryrun) {
-                    return Mono.just(HttpResponse.noContent());
-                }
+                    if (dryrun) {
+                        return Mono.just(HttpResponse.noContent());
+                    }
 
-                Schema schemaToDelete = latestSubjectOptional.get();
-                sendEventLog(schemaToDelete, ApplyStatus.deleted, schemaToDelete.getSpec(), null);
-
-                return schemaService
-                    .delete(ns, subject)
-                    .map(deletedSchemaIds -> HttpResponse.noContent());
-            });
+                    return (version.isEmpty() ? schemaService.deleteAllVersions(ns, subject) :
+                        schemaService.deleteVersion(ns, subject, version.get()))
+                            .map(deletedVersionIds -> {
+                                Schema deletedSchema = subjectOptional.get();
+                                sendEventLog(deletedSchema, ApplyStatus.deleted, deletedSchema.getSpec(), null,
+                                    version.map(v -> "").orElseGet(() -> String.valueOf(deletedVersionIds)));
+                                return HttpResponse.noContent();
+                            });
+                });
     }
 
     /**
@@ -221,7 +228,7 @@ public class SchemaController extends NamespacedResourceController {
                     .updateSubjectCompatibility(ns, latestSubjectOptional.get(), compatibility)
                     .map(schemaCompatibility -> {
                         sendEventLog(latestSubjectOptional.get(), ApplyStatus.changed,
-                            latestSubjectOptional.get().getSpec().getCompatibility(), compatibility);
+                            latestSubjectOptional.get().getSpec().getCompatibility(), compatibility, "");
 
                         return HttpResponse.ok(state);
                     });

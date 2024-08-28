@@ -271,7 +271,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void shouldDeleteSchema() {
+    void shouldDeleteSchemaAllVersions() {
         Namespace namespace = buildNamespace();
 
         when(schemaRegistryClient.deleteSubject(namespace.getMetadata().getCluster(),
@@ -280,7 +280,7 @@ class SchemaServiceTest {
         when(schemaRegistryClient.deleteSubject(namespace.getMetadata().getCluster(),
             "prefix.schema-one", true)).thenReturn(Mono.just(new Integer[] {1}));
 
-        StepVerifier.create(schemaService.delete(namespace, "prefix.schema-one"))
+        StepVerifier.create(schemaService.deleteAllVersions(namespace, "prefix.schema-one"))
             .consumeNextWith(ids -> {
                 assertEquals(1, ids.length);
                 assertEquals(1, ids[0]);
@@ -292,6 +292,20 @@ class SchemaServiceTest {
 
         verify(schemaRegistryClient).deleteSubject(namespace.getMetadata().getCluster(),
             "prefix.schema-one", true);
+    }
+
+    @Test
+    void shouldDeleteSchemaSpecificVersion() {
+        Namespace namespace = buildNamespace();
+        when(schemaRegistryClient.deleteSubjectVersion(namespace.getMetadata().getCluster(),
+            "prefix.schema-one-value", "2", false)).thenReturn(Mono.just(2));
+
+        when(schemaRegistryClient.deleteSubjectVersion(namespace.getMetadata().getCluster(),
+            "prefix.schema-one-value", "2", true)).thenReturn(Mono.just(2));
+
+        StepVerifier.create(schemaService.deleteVersion(namespace, "prefix.schema-one-value", "2"))
+            .consumeNextWith(version -> assertEquals(2, version))
+            .verifyComplete();
     }
 
     @Test

@@ -36,10 +36,10 @@ public abstract class ResourceController {
      * @param after     the resource after the operation
      */
     public void sendEventLog(MetadataResource resource, ApplyStatus operation, Object before,
-                             Object after) {
+                             Object after, String version) {
         AuditLog auditLog = new AuditLog(securityService.username().orElse(""),
             securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN), Date.from(Instant.now()),
-            resource.getKind(), resource.getMetadata(), operation, before, after);
+            resource.getKind(), resource.getMetadata(), operation, before, after, version);
         applicationEventPublisher.publishEvent(auditLog);
     }
 }

@@ -61,7 +61,7 @@ public class UserController extends NamespacedResourceController {
                 .build())
             .build();
 
-        sendEventLog(response, ApplyStatus.changed, null, response.getSpec());
+        sendEventLog(response, ApplyStatus.changed, null, response.getSpec(), "");
         return HttpResponse.ok(response);
     }
 }

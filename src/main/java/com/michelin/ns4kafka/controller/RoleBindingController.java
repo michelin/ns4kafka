@@ -89,7 +89,7 @@ public class RoleBindingController extends NamespacedResourceController {
         }
 
         sendEventLog(roleBinding, status, existingRoleBinding.<Object>map(RoleBinding::getSpec).orElse(null),
-            roleBinding.getSpec());
+            roleBinding.getSpec(), "");
         roleBindingService.create(roleBinding);
         return formatHttpResponse(roleBinding, status);
     }
@@ -116,7 +116,7 @@ public class RoleBindingController extends NamespacedResourceController {
         }
 
         var roleBindingToDelete = roleBinding.get();
-        sendEventLog(roleBindingToDelete, ApplyStatus.deleted, roleBindingToDelete.getSpec(), null);
+        sendEventLog(roleBindingToDelete, ApplyStatus.deleted, roleBindingToDelete.getSpec(), null, "");
         roleBindingService.delete(roleBindingToDelete);
         return HttpResponse.noContent();
     }

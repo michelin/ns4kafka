@@ -766,4 +766,156 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         assertEquals(2, schemaAfterPostOnRegistry.version());
         assertEquals("ns1-subject3-value", schemaAfterPostOnRegistry.subject());
     }
+
+    @Test
+    void shouldDeleteSchema() {
+        Schema schemaV1 = Schema.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-subject4-value")
+                .build())
+            .spec(Schema.SchemaSpec.builder()
+                .schema(
+                    "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                        + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
+                        + "\"default\":null,\"doc\":\"First name of the person\"},"
+                        + "{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,"
+                        + "\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\","
+                        + "{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
+                        + "\"doc\":\"Date of birth of the person\"}]}")
+                .build())
+            .build();
+
+        // Register V1 schema
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                .bearerAuth(token)
+                .body(schemaV1), Schema.class);
+
+        Schema schemaV2 = Schema.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-subject4-value")
+                .build())
+            .spec(Schema.SchemaSpec.builder()
+                .schema(
+                    "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                        + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
+                        + "\"default\":null,\"doc\":\"First name of the person\"},"
+                        + "{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,"
+                        + "\"doc\":\"Last name of the person\"}]}")
+                .build())
+            .build();
+
+        // Register V2 schema
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                .bearerAuth(token)
+                .body(schemaV2), Schema.class);
+
+        Schema schemaV3 = Schema.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-subject4-value")
+                .build())
+            .spec(Schema.SchemaSpec.builder()
+                .schema(
+                    "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                        + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
+                        + "\"default\":null,\"doc\":\"First name of the person\"}]}")
+                .build())
+            .build();
+
+        // Register V3 schema
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                .bearerAuth(token)
+                .body(schemaV3), Schema.class);
+
+        Schema schemaV4 = Schema.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-subject4-value")
+                .build())
+            .spec(Schema.SchemaSpec.builder()
+                .schema(
+                    "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                        + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
+                        + "\"default\":null,\"doc\":\"First name of the person\"},"
+                        + "{\"name\":\"age\",\"type\":[\"null\",\"string\"],\"default\":null,"
+                        + "\"doc\":\"Age of the person\"}]}")
+                .build())
+            .build();
+
+        // Register V4 schema
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                .bearerAuth(token)
+                .body(schemaV4), Schema.class);
+
+        // Delete latest schema version
+        var deleteLatestVersionResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas/ns1-subject4-value?version=latest")
+                .bearerAuth(token), Schema.class);
+
+        assertEquals(HttpStatus.NO_CONTENT, deleteLatestVersionResponse.getStatus());
+
+        // Get all schemas
+        var getSchemaAfterLatestVersionDeletionResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.GET, "/api/namespaces/ns1/schemas/ns1-subject4-value")
+                .bearerAuth(token), Schema.class);
+
+        // Expects v3 is returned by ns4kafka
+        assertTrue(getSchemaAfterLatestVersionDeletionResponse.getBody().isPresent());
+        assertEquals(3, getSchemaAfterLatestVersionDeletionResponse.getBody().get().getSpec().getVersion());
+
+        // Delete old schema version
+        var deleteOldVersionResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas/ns1-subject4-value?version=1")
+                .bearerAuth(token), Schema.class);
+
+        assertEquals(HttpStatus.NO_CONTENT, deleteOldVersionResponse.getStatus());
+
+        // Get all schemas
+        var getSchemaAfterOldVersionDeletionResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.GET, "/api/namespaces/ns1/schemas/ns1-subject4-value")
+                .bearerAuth(token), Schema.class);
+
+        // Expects v3 as returned schema
+        assertTrue(getSchemaAfterOldVersionDeletionResponse.getBody().isPresent());
+        assertEquals(3, getSchemaAfterOldVersionDeletionResponse.getBody().get().getSpec().getVersion());
+
+        // Delete all remaining schema versions
+        var deleteAllVersionsResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas/ns1-subject4-value")
+                .bearerAuth(token), Schema.class);
+
+        assertEquals(HttpStatus.NO_CONTENT, deleteAllVersionsResponse.getStatus());
+
+        // Get all schemas
+        var getSchemaAfterAllVersionsDeletionResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
+                .bearerAuth(token), Argument.listOf(SchemaList.class));
+
+        assertTrue(getSchemaAfterAllVersionsDeletionResponse.getBody().isPresent());
+        assertTrue(getSchemaAfterAllVersionsDeletionResponse.getBody().get()
+            .stream()
+            .noneMatch(schemaList -> schemaList.getMetadata().getName().equals("ns1-subject4-value")));
+    }
 }

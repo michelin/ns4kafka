@@ -103,7 +103,7 @@ public class NamespaceController extends NonNamespacedResourceController {
         }
 
         sendEventLog(namespace, status, existingNamespace.<Object>map(Namespace::getSpec).orElse(null),
-            namespace.getSpec());
+            namespace.getSpec(), "");
 
         return formatHttpResponse(namespaceService.createOrUpdate(namespace), status);
     }
@@ -136,7 +136,7 @@ public class NamespaceController extends NonNamespacedResourceController {
         }
 
         var namespaceToDelete = optionalNamespace.get();
-        sendEventLog(namespaceToDelete, ApplyStatus.deleted, namespaceToDelete.getSpec(), null);
+        sendEventLog(namespaceToDelete, ApplyStatus.deleted, namespaceToDelete.getSpec(), null, "");
         namespaceService.delete(optionalNamespace.get());
         return HttpResponse.noContent();
     }

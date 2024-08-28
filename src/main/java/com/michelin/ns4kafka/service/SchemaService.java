@@ -225,18 +225,35 @@ public class SchemaService {
     }
 
     /**
-     * Delete all schemas under the given subject.
+     * Delete all the schema versions under the given subject.
      *
-     * @param namespace The current namespace
-     * @param subject   The current subject to delete
+     * @param namespace The namespace
+     * @param subject   The subject to delete
      * @return The list of deleted versions
      */
-    public Mono<Integer[]> delete(Namespace namespace, String subject) {
+    public Mono<Integer[]> deleteAllVersions(Namespace namespace, String subject) {
         return schemaRegistryClient
             .deleteSubject(namespace.getMetadata().getCluster(), subject, false)
-            .flatMap(ids -> schemaRegistryClient
+            .flatMap(softDeletedVersionIds -> schemaRegistryClient
                 .deleteSubject(namespace.getMetadata().getCluster(),
                     subject, true));
+    }
+
+    /**
+     * Delete the schema version under the given subject.
+     *
+     * @param namespace The namespace
+     * @param subject   The subject
+     * @param version   The version of the schema to delete
+     * @return The latest subject after deletion
+     */
+    public Mono<Integer> deleteVersion(Namespace namespace, String subject, String version) {
+        return schemaRegistryClient
+            .deleteSubjectVersion(namespace.getMetadata().getCluster(), subject, version, false)
+            .flatMap(softDeletedVersionIds -> schemaRegistryClient
+                .deleteSubjectVersion(namespace.getMetadata().getCluster(),
+                    subject, Integer.toString(softDeletedVersionIds), true)
+                );
     }
 
     /**

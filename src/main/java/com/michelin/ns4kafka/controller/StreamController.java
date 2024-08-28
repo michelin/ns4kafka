@@ -94,7 +94,7 @@ public class StreamController extends NamespacedResourceController {
         }
 
         sendEventLog(stream, status, existingStream.<Object>map(KafkaStream::getMetadata).orElse(null),
-            stream.getMetadata());
+            stream.getMetadata(), "");
 
         return formatHttpResponse(streamService.create(stream), status);
     }
@@ -126,7 +126,7 @@ public class StreamController extends NamespacedResourceController {
         }
 
         var streamToDelete = optionalStream.get();
-        sendEventLog(streamToDelete, ApplyStatus.deleted, streamToDelete.getMetadata(), null);
+        sendEventLog(streamToDelete, ApplyStatus.deleted, streamToDelete.getMetadata(), null, "");
         streamService.delete(ns, optionalStream.get());
         return HttpResponse.noContent();
     }

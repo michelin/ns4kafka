@@ -144,7 +144,7 @@ public class TopicController extends NamespacedResourceController {
             return formatHttpResponse(topic, status);
         }
 
-        sendEventLog(topic, status, existingTopic.<Object>map(Topic::getSpec).orElse(null), topic.getSpec());
+        sendEventLog(topic, status, existingTopic.<Object>map(Topic::getSpec).orElse(null), topic.getSpec(), "");
 
         return formatHttpResponse(topicService.create(topic), status);
     }
@@ -178,7 +178,7 @@ public class TopicController extends NamespacedResourceController {
         }
 
         Topic topicToDelete = optionalTopic.get();
-        sendEventLog(topicToDelete, ApplyStatus.deleted, topicToDelete.getSpec(), null);
+        sendEventLog(topicToDelete, ApplyStatus.deleted, topicToDelete.getSpec(), null, "");
         topicService.delete(optionalTopic.get());
 
         return HttpResponse.noContent();
@@ -214,7 +214,7 @@ public class TopicController extends NamespacedResourceController {
         return unsynchronizedTopics
             .stream()
             .map(topic -> {
-                sendEventLog(topic, ApplyStatus.created, null, topic.getSpec());
+                sendEventLog(topic, ApplyStatus.created, null, topic.getSpec(), "");
                 return topicService.create(topic);
             })
             .toList();
@@ -256,7 +256,7 @@ public class TopicController extends NamespacedResourceController {
         if (dryrun) {
             deletedRecords = recordsToDelete;
         } else {
-            sendEventLog(optionalTopic.get(), ApplyStatus.deleted, null, null);
+            sendEventLog(optionalTopic.get(), ApplyStatus.deleted, null, null, "");
             deletedRecords = topicService.deleteRecords(optionalTopic.get(), recordsToDelete);
         }
 

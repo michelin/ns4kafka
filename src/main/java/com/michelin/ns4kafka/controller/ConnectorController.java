@@ -144,7 +144,7 @@ public class ConnectorController extends NamespacedResourceController {
                         }
 
                         sendEventLog(connector, status, existingConnector.<Object>map(Connector::getSpec).orElse(null),
-                            connector.getSpec());
+                            connector.getSpec(), "");
 
                         return Mono.just(formatHttpResponse(connectorService.createOrUpdate(connector), status));
                     });
@@ -180,7 +180,7 @@ public class ConnectorController extends NamespacedResourceController {
         }
 
         Connector connectorToDelete = optionalConnector.get();
-        sendEventLog(connectorToDelete, ApplyStatus.deleted, connectorToDelete.getSpec(), null);
+        sendEventLog(connectorToDelete, ApplyStatus.deleted, connectorToDelete.getSpec(), null, "");
 
         return connectorService
             .delete(ns, optionalConnector.get())
@@ -264,7 +264,7 @@ public class ConnectorController extends NamespacedResourceController {
                     return unsynchronizedConnector;
                 }
 
-                sendEventLog(unsynchronizedConnector, ApplyStatus.created, null, unsynchronizedConnector.getSpec());
+                sendEventLog(unsynchronizedConnector, ApplyStatus.created, null, unsynchronizedConnector.getSpec(), "");
 
                 return connectorService.createOrUpdate(unsynchronizedConnector);
             });
