@@ -46,7 +46,7 @@ dependencies {
     runtimeOnly("ch.qos.logback:logback-classic")
 
     testImplementation("org.mockito:mockito-core")
-    testImplementation("org.testcontainers:junit-jupiter:1.20.0")
+    testImplementation("org.testcontainers:junit-jupiter:1.20.1")
     testImplementation("org.testcontainers:testcontainers:1.20.0")
     testImplementation("org.testcontainers:kafka:1.20.0")
     testImplementation("org.mockito:mockito-junit-jupiter:5.13.0")
