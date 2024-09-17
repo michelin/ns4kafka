@@ -184,7 +184,7 @@ public class NamespaceController extends NonNamespacedResourceController {
                             .collect(Collectors.joining("/")),
                     validationErrors.values().stream()
                             .flatMap(Collection::stream)
-                            .collect(Collectors.toList()));
+                            .toList());
         }
 
         if (dryrun) {
