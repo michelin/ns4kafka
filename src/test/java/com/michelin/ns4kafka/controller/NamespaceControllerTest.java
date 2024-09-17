@@ -371,4 +371,74 @@ class NamespaceControllerTest {
             () -> namespaceController.delete("namespace", false));
         verify(namespaceService, never()).delete(any());
     }
+
+    @Test
+    void shouldDeleteNamespaces() {
+        Namespace existing1 = Namespace.builder()
+                .metadata(Metadata.builder()
+                        .name("namespace1")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user")
+                        .build())
+                .build();
+        Namespace existing2 = Namespace.builder()
+                .metadata(Metadata.builder()
+                        .name("namespace2")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user")
+                        .build())
+                .build();
+
+        when(namespaceService.findByWildcardName("namespace*"))
+                .thenReturn(List.of(existing1, existing2));
+        when(namespaceService.findAllResourcesByNamespace(existing1))
+                .thenReturn(List.of());
+        when(namespaceService.findAllResourcesByNamespace(existing2))
+                .thenReturn(List.of());
+        when(securityService.username())
+                .thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN))
+                .thenReturn(false);
+
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+        var result = namespaceController.bulkDelete("namespace*", false);
+        assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
+    }
+
+    @Test
+    void shouldNotDeleteNamespacesWhenResourcesAreStillLinkedWithIt() {
+        Namespace existing1 = Namespace.builder()
+                .metadata(Metadata.builder()
+                        .name("namespace1")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user")
+                        .build())
+                .build();
+        Namespace existing2 = Namespace.builder()
+                .metadata(Metadata.builder()
+                        .name("namespace2")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user")
+                        .build())
+                .build();
+
+        when(namespaceService.findByWildcardName("namespace*"))
+                .thenReturn(List.of(existing1, existing2));
+        when(namespaceService.findAllResourcesByNamespace(existing1))
+                .thenReturn(List.of("Topic/topic1"));
+        when(namespaceService.findAllResourcesByNamespace(existing2))
+                .thenReturn(List.of());
+
+        assertThrows(ResourceValidationException.class,
+                () -> namespaceController.bulkDelete("namespace*", false));
+        verify(namespaceService, never()).delete(any());
+    }
 }
