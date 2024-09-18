@@ -310,6 +310,7 @@ class TopicControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteTopicWhenUnauthorized() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
