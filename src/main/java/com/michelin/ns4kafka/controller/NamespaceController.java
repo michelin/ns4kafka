@@ -124,6 +124,7 @@ public class NamespaceController extends NonNamespacedResourceController {
      * @param namespace The namespace
      * @param dryrun    Is dry run mode or not ?
      * @return An HTTP response
+     * @deprecated use bulkDelete instead.
      */
     @Delete("/{namespace}{?dryrun}")
     @Deprecated(since = "1.13.0")
