@@ -157,15 +157,54 @@ public class TopicController extends NamespacedResourceController {
     }
 
     /**
+     * Delete topics.
+     *
+     * @param namespace The namespace
+     * @param name The name parameter
+     * @param dryrun    Is dry run mode or not?
+     * @return An HTTP response
+     */
+    @Status(HttpStatus.NO_CONTENT)
+    @Delete
+    public HttpResponse<Void> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
+                                     @QueryValue(defaultValue = "false") boolean dryrun)
+        throws InterruptedException, ExecutionException, TimeoutException {
+        Namespace ns = getNamespace(namespace);
+        List<Topic> topicsToDelete = topicService.findByWildcardName(ns, name);
+
+        if (topicsToDelete.isEmpty()) {
+            return HttpResponse.notFound();
+        }
+
+        if (dryrun) {
+            return HttpResponse.noContent();
+        }
+
+        topicsToDelete.forEach(topicToDelete ->
+            sendEventLog(
+                topicToDelete,
+                ApplyStatus.deleted,
+                topicToDelete.getSpec(),
+                null,
+                EMPTY_STRING));
+
+        topicService.deleteTopics(topicsToDelete);
+
+        return HttpResponse.noContent();
+    }
+
+    /**
      * Delete a topic.
      *
      * @param namespace The namespace
      * @param topic     The topic
-     * @param dryrun    Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
+     * @deprecated use bulkDelete(String, String name, boolean) instead.
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{topic}{?dryrun}")
+    @Deprecated(since = "1.13.0")
     public HttpResponse<Void> delete(String namespace, String topic,
                                      @QueryValue(defaultValue = "false") boolean dryrun)
         throws InterruptedException, ExecutionException, TimeoutException {
@@ -194,7 +233,7 @@ public class TopicController extends NamespacedResourceController {
             EMPTY_STRING
         );
 
-        topicService.delete(optionalTopic.get());
+        topicService.delete(topicToDelete);
 
         return HttpResponse.noContent();
     }

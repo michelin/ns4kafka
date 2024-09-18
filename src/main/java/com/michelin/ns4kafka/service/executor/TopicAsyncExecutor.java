@@ -204,6 +204,25 @@ public class TopicAsyncExecutor {
     }
 
     /**
+     * Delete a list of topics.
+     *
+     * @param topics The topics to delete
+     */
+    public void deleteTopics(List<Topic> topics) throws InterruptedException, ExecutionException, TimeoutException {
+        List<String> topicsNames = topics
+            .stream()
+            .map(topic -> topic.getMetadata().getName())
+            .toList();
+
+        getAdminClient().deleteTopics(topicsNames)
+            .all()
+            .get(30, TimeUnit.SECONDS);
+
+        log.info("Success deleting topics {} on {}", String.join(", ", topicsNames),
+            managedClusterProperties.getName());
+    }
+
+    /**
      * Collect all topics on broker.
      *
      * @return All topics by name

@@ -137,6 +137,19 @@ public class TopicService {
     }
 
     /**
+     * Delete multiple topics.
+     *
+     * @param topics The topics list
+     */
+    public void deleteTopics(List<Topic> topics) throws InterruptedException, ExecutionException, TimeoutException {
+        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
+            Qualifiers.byName(topics.getFirst().getMetadata().getCluster()));
+        topicAsyncExecutor.deleteTopics(topics);
+
+        topics.forEach(topic -> topicRepository.delete(topic));
+    }
+
+    /**
      * List all topics colliding with existing topics on broker but not in Ns4Kafka.
      *
      * @param namespace The namespace
