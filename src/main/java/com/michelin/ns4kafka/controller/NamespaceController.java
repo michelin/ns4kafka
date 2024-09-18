@@ -126,6 +126,7 @@ public class NamespaceController extends NonNamespacedResourceController {
      * @return An HTTP response
      */
     @Delete("/{namespace}{?dryrun}")
+    @Deprecated(since = "1.13.0")
     public HttpResponse<Void> delete(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
         Optional<Namespace> optionalNamespace = namespaceService.findByName(namespace);
         if (optionalNamespace.isEmpty()) {
@@ -170,7 +171,7 @@ public class NamespaceController extends NonNamespacedResourceController {
             validationErrors.put(
                     namespace.getMetadata().getName(),
                     namespaceService.findAllResourcesByNamespace(namespace)
-                            .stream().filter(r -> !r.isEmpty())
+                            .stream()
                             .map(FormatErrorUtils::invalidNamespaceDeleteOperation)
                             .toList())
         );

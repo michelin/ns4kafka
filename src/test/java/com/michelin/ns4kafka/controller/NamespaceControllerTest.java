@@ -291,6 +291,7 @@ class NamespaceControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldDeleteNamespace() {
         Namespace existing = Namespace.builder()
             .metadata(Metadata.builder()
@@ -317,6 +318,7 @@ class NamespaceControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldDeleteNamespaceInDryRunMode() {
         Namespace existing = Namespace.builder()
             .metadata(Metadata.builder()
@@ -340,6 +342,7 @@ class NamespaceControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteNamespaceWhenNotFound() {
         when(namespaceService.findByName("namespace"))
             .thenReturn(Optional.empty());
@@ -351,6 +354,7 @@ class NamespaceControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteNamespaceWhenResourcesAreStillLinkedWithIt() {
         Namespace existing = Namespace.builder()
             .metadata(Metadata.builder()
@@ -410,6 +414,39 @@ class NamespaceControllerTest {
     }
 
     @Test
+    void shouldDeleteNamespacesInDryRunMode() {
+        Namespace existing1 = Namespace.builder()
+                .metadata(Metadata.builder()
+                        .name("namespace1")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user")
+                        .build())
+                .build();
+        Namespace existing2 = Namespace.builder()
+                .metadata(Metadata.builder()
+                        .name("namespace2")
+                        .cluster("local")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user")
+                        .build())
+                .build();
+
+        when(namespaceService.findByWildcardName("namespace*"))
+                .thenReturn(List.of(existing1, existing2));
+        when(namespaceService.findAllResourcesByNamespace(existing1))
+                .thenReturn(List.of());
+        when(namespaceService.findAllResourcesByNamespace(existing2))
+                .thenReturn(List.of());
+
+        var result = namespaceController.bulkDelete("namespace*", true);
+        verify(namespaceService, never()).delete(any());
+        assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
+    }
+
+    @Test
     void shouldNotDeleteNamespacesWhenResourcesAreStillLinkedWithIt() {
         Namespace existing1 = Namespace.builder()
                 .metadata(Metadata.builder()
@@ -440,5 +477,11 @@ class NamespaceControllerTest {
         assertThrows(ResourceValidationException.class,
                 () -> namespaceController.bulkDelete("namespace*", false));
         verify(namespaceService, never()).delete(any());
+    }
+
+    @Test
+    void shouldNotDeleteNamespacesWhenPatternMatchesNothing() {
+        var result = namespaceController.bulkDelete("namespace*", false);
+        assertEquals(HttpResponse.notFound().getStatus(), result.getStatus());
     }
 }
