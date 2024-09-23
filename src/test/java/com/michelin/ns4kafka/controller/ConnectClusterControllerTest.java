@@ -159,6 +159,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteConnectClusterWhenNotOwner() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -177,6 +178,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteConnectClusterWhenNotFound() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -197,6 +199,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldDeleteConnectCluster() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -229,6 +232,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldDeleteConnectClusterInDryRunMode() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -259,6 +263,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteConnectClusterWithConnectorsAssociated() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
