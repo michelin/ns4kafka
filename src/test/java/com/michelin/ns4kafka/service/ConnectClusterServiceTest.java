@@ -129,6 +129,38 @@ class ConnectClusterServiceTest {
     }
 
     @Test
+    void shouldFindAllConnectClustersIncludingThoseDeclaredInNs4KafkaConfigEvenIfNull() {
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(Metadata.builder()
+                        .name("connect-cluster")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .url("https://after")
+                        .build())
+                .build();
+
+        when(connectClusterRepository.findAll())
+                .thenReturn(new ArrayList<>(List.of(connectCluster)));
+
+        ManagedClusterProperties kafka = new ManagedClusterProperties("local");
+        kafka.setConnects(null);
+
+        when(managedClusterPropertiesList.stream())
+                .thenReturn(Stream.of(kafka));
+        when(kafkaConnectClient.version(any(), any()))
+                .thenReturn(Mono.just(HttpResponse.ok()))
+                .thenReturn(Mono.error(new Exception("error")));
+
+        StepVerifier.create(connectClusterService.findAll(true))
+                .consumeNextWith(result -> {
+                    assertEquals("connect-cluster", result.getMetadata().getName());
+                    assertEquals(ConnectCluster.Status.HEALTHY, result.getSpec().getStatus());
+                    assertNull(result.getSpec().getStatusMessage());
+                })
+                .verifyComplete();
+    }
+
+    @Test
     void shouldFindAllConnectClustersForNamespaceWithOwnership() {
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
