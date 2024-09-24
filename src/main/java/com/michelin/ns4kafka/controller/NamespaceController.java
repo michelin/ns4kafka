@@ -24,13 +24,9 @@ import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Controller to manage the namespaces.
@@ -167,21 +163,21 @@ public class NamespaceController extends NonNamespacedResourceController {
         }
 
         List<String> namespaceResources = namespaces
-                .stream()
-                .flatMap(namespace -> namespaceService.findAllResourcesByNamespace(namespace)
-                        .stream())
-                .toList();
+            .stream()
+            .flatMap(namespace -> namespaceService.findAllResourcesByNamespace(namespace)
+                .stream())
+            .toList();
 
         if (!namespaceResources.isEmpty()) {
             List<String> validationErrors = namespaceResources
-                    .stream()
-                    .map(FormatErrorUtils::invalidNamespaceDeleteOperation)
-                    .toList();
+                .stream()
+                .map(FormatErrorUtils::invalidNamespaceDeleteOperation)
+                .toList();
 
             throw new ResourceValidationException(
-                    NAMESPACE,
-                    String.join(",", namespaces.stream().map(namespace -> namespace.getMetadata().getName()).toList()),
-                    validationErrors
+                NAMESPACE,
+                String.join(",", namespaces.stream().map(namespace -> namespace.getMetadata().getName()).toList()),
+                validationErrors
             );
         }
 
@@ -200,11 +196,11 @@ public class NamespaceController extends NonNamespacedResourceController {
      */
     private void performDeletion(Namespace namespace) {
         sendEventLog(
-                namespace,
-                ApplyStatus.deleted,
-                namespace.getSpec(),
-                null,
-                EMPTY_STRING
+            namespace,
+            ApplyStatus.deleted,
+            namespace.getSpec(),
+            null,
+            EMPTY_STRING
         );
         namespaceService.delete(namespace);
     }
