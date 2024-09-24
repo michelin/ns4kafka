@@ -120,8 +120,10 @@ public class NamespaceController extends NonNamespacedResourceController {
      * @param namespace The namespace
      * @param dryrun    Is dry run mode or not ?
      * @return An HTTP response
+     * @deprecated use bulkDelete instead.
      */
     @Delete("/{namespace}{?dryrun}")
+    @Deprecated(since = "1.13.0")
     public HttpResponse<Void> delete(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
         Optional<Namespace> optionalNamespace = namespaceService.findByName(namespace);
         if (optionalNamespace.isEmpty()) {
@@ -141,17 +143,65 @@ public class NamespaceController extends NonNamespacedResourceController {
             return HttpResponse.noContent();
         }
 
-        var namespaceToDelete = optionalNamespace.get();
+        performDeletion(optionalNamespace.get());
+        return HttpResponse.noContent();
+    }
 
+    /**
+     * Delete namespaces.
+     *
+     * @param dryrun Is dry run mode or not ?
+     * @param name The name parameter
+     * @return An HTTP response
+     */
+    @Delete
+    public HttpResponse<Void> bulkDelete(@QueryValue(defaultValue = "*") String name,
+                                         @QueryValue(defaultValue = "false") boolean dryrun) {
+        List<Namespace> namespaces = namespaceService.findByWildcardName(name);
+        if (namespaces.isEmpty()) {
+            return HttpResponse.notFound();
+        }
+
+        List<String> namespaceResources = namespaces
+            .stream()
+            .flatMap(namespace -> namespaceService.findAllResourcesByNamespace(namespace)
+                .stream())
+            .toList();
+
+        if (!namespaceResources.isEmpty()) {
+            List<String> validationErrors = namespaceResources
+                .stream()
+                .map(FormatErrorUtils::invalidNamespaceDeleteOperation)
+                .toList();
+
+            throw new ResourceValidationException(
+                NAMESPACE,
+                String.join(",", namespaces.stream().map(namespace -> namespace.getMetadata().getName()).toList()),
+                validationErrors
+            );
+        }
+
+        if (dryrun) {
+            return HttpResponse.noContent();
+        }
+
+        namespaces.forEach(this::performDeletion);
+        return HttpResponse.noContent();
+    }
+
+    /**
+     * Perform the deletion of the namespace and send an event log.
+     *
+     * @param namespace The namespace to delete
+     */
+    private void performDeletion(Namespace namespace) {
         sendEventLog(
-            namespaceToDelete,
+            namespace,
             ApplyStatus.deleted,
-            namespaceToDelete.getSpec(),
+            namespace.getSpec(),
             null,
             EMPTY_STRING
         );
-
-        namespaceService.delete(optionalNamespace.get());
-        return HttpResponse.noContent();
+        namespaceService.delete(namespace);
     }
 }
