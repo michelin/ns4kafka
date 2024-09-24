@@ -481,6 +481,7 @@ class NamespaceControllerTest {
 
     @Test
     void shouldNotDeleteNamespacesWhenPatternMatchesNothing() {
+        when(namespaceService.findByWildcardName("namespace*")).thenReturn(List.of());
         var result = namespaceController.bulkDelete("namespace*", false);
         assertEquals(HttpResponse.notFound().getStatus(), result.getStatus());
     }

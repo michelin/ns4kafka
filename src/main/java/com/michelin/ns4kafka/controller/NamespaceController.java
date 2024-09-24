@@ -166,27 +166,23 @@ public class NamespaceController extends NonNamespacedResourceController {
             return HttpResponse.notFound();
         }
 
-        Map<String, List<String>> validationErrors = new HashMap<>();
+        List<String> namespaceResources = namespaces
+                .stream()
+                .flatMap(namespace -> namespaceService.findAllResourcesByNamespace(namespace)
+                        .stream())
+                .toList();
 
-        namespaces.forEach(namespace ->
-            validationErrors.put(
-                    namespace.getMetadata().getName(),
-                    namespaceService.findAllResourcesByNamespace(namespace)
-                            .stream()
-                            .map(FormatErrorUtils::invalidNamespaceDeleteOperation)
-                            .toList())
-        );
+        if (!namespaceResources.isEmpty()) {
+            List<String> validationErrors = namespaceResources
+                    .stream()
+                    .map(FormatErrorUtils::invalidNamespaceDeleteOperation)
+                    .toList();
 
-        if (validationErrors.values().stream()
-                .anyMatch(list -> !list.isEmpty())) {
             throw new ResourceValidationException(
                     NAMESPACE,
-                    validationErrors.keySet().stream()
-                            .map(Object::toString)
-                            .collect(Collectors.joining("/")),
-                    validationErrors.values().stream()
-                            .flatMap(Collection::stream)
-                            .toList());
+                    String.join(",", namespaces.stream().map(namespace -> namespace.getMetadata().getName()).toList()),
+                    validationErrors
+            );
         }
 
         if (dryrun) {
