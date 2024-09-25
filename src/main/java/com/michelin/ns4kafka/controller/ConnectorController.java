@@ -12,7 +12,6 @@ import com.michelin.ns4kafka.service.ConnectorService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
-import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MutableHttpResponse;
@@ -168,6 +167,7 @@ public class ConnectorController extends NamespacedResourceController {
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{connector}{?dryrun}")
+    @Deprecated(since = "1.13.0")
     public Mono<HttpResponse<Void>> delete(String namespace, String connector,
                                            @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
@@ -199,6 +199,48 @@ public class ConnectorController extends NamespacedResourceController {
         return connectorService
             .delete(ns, optionalConnector.get())
             .map(httpResponse -> HttpResponse.noContent());
+    }
+
+    /**
+     * Delete connectors.
+     *
+     * @param namespace The current namespace
+     * @param name The name parameter
+     * @param dryrun    Run in dry mode or not
+     * @return A HTTP response
+     */
+    @Status(HttpStatus.NO_CONTENT)
+    @Delete
+    public Mono<HttpResponse<Void>> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
+                                           @QueryValue(defaultValue = "false") boolean dryrun) {
+        Namespace ns = getNamespace(namespace);
+
+        List<Connector> connectors = connectorService.findByWildcardName(ns, name);
+
+        // Validate ownership
+        List<String> validationErrors = connectors.stream()
+                .filter(connector -> !connectorService.isNamespaceOwnerOfConnect(ns, connector.getMetadata().getName()))
+                .map(connector -> invalidOwner(connector.getMetadata().getName()))
+                .toList();
+
+        if (!validationErrors.isEmpty()) {
+            return Mono.error(new ResourceValidationException(CONNECTOR, name, validationErrors));
+        }
+
+        if (connectors.isEmpty()) {
+            return Mono.just(HttpResponse.notFound());
+        }
+
+        if (dryrun) {
+            return Mono.just(HttpResponse.noContent());
+        }
+
+        return Flux.fromIterable(connectors)
+                .flatMap(connector -> {
+                    sendEventLog(connector, ApplyStatus.deleted, connector.getSpec(), null, EMPTY_STRING);
+                    return connectorService.delete(ns, connector);
+                })
+                .then(Mono.just(HttpResponse.noContent()));
     }
 
     /**

@@ -156,6 +156,7 @@ class ConnectorControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteConnectorWhenNotOwned() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -180,6 +181,7 @@ class ConnectorControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldDeleteConnector() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -207,6 +209,7 @@ class ConnectorControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldDeleteConnectorInDryRunMode() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -236,6 +239,7 @@ class ConnectorControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteConnectorWhenNotFound() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
