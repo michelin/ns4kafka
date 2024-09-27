@@ -1,7 +1,11 @@
 package com.michelin.ns4kafka.service;
 
+import static com.michelin.ns4kafka.service.client.connect.entities.ConnectorType.SOURCE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -21,6 +25,7 @@ import com.michelin.ns4kafka.service.client.connect.entities.ConfigInfos;
 import com.michelin.ns4kafka.service.client.connect.entities.ConfigKeyInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConfigValueInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorPluginInfo;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStateInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorType;
 import com.michelin.ns4kafka.service.executor.ConnectorAsyncExecutor;
 import com.michelin.ns4kafka.validation.ConnectValidator;
@@ -35,7 +40,6 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -868,11 +872,7 @@ class ConnectorServiceTest {
             List.of(new ConfigInfo(new ConfigKeyInfo(null, null, false, null, null, null, null, 0, null, null, null),
                 new ConfigValueInfo(null, null, null, List.of("error_message"), true))));
 
-        when(kafkaConnectClient.validate(
-            ArgumentMatchers.eq("local"),
-            ArgumentMatchers.eq("local-name"),
-            ArgumentMatchers.any(),
-            ArgumentMatchers.any()))
+        when(kafkaConnectClient.validate(eq("local"), eq("local-name"), any(), any()))
             .thenReturn(Mono.just(configInfos));
 
         StepVerifier.create(connectorService.validateRemotely(ns, connector))
@@ -908,10 +908,10 @@ class ConnectorServiceTest {
         ConfigInfos configInfos = new ConfigInfos("name", 1, List.of(), List.of());
 
         when(kafkaConnectClient.validate(
-            ArgumentMatchers.eq("local"),
-            ArgumentMatchers.eq("local-name"),
-            ArgumentMatchers.any(),
-            ArgumentMatchers.any()))
+            eq("local"),
+            eq("local-name"),
+            any(),
+            any()))
             .thenReturn(Mono.just(configInfos));
 
         StepVerifier.create(connectorService.validateRemotely(ns, connector))
@@ -1304,5 +1304,50 @@ class ConnectorServiceTest {
             .verify();
 
         verify(connectorRepository, never()).delete(connector);
+    }
+
+    @Test
+    void shouldRestartAllTasksOfConnector() {
+        Namespace namespace = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .build();
+
+        Connector connector = Connector.builder()
+            .metadata(Metadata.builder()
+                .name("ns-connect1")
+                .build())
+            .spec(Connector.ConnectorSpec.builder()
+                .connectCluster("local-name")
+                .build())
+            .build();
+
+        when(kafkaConnectClient.status(namespace.getMetadata().getCluster(), connector.getSpec().getConnectCluster(),
+            connector.getMetadata().getName()))
+            .thenReturn(Mono.just(new ConnectorStateInfo(
+                "connector",
+                new ConnectorStateInfo.ConnectorState("RUNNING", "worker", "message"),
+                List.of(
+                    new ConnectorStateInfo.TaskState(0, "RUNNING", "worker", "message"),
+                    new ConnectorStateInfo.TaskState(1, "RUNNING", "worker", "message"),
+                    new ConnectorStateInfo.TaskState(2, "RUNNING", "worker", "message")
+                ),
+                SOURCE)));
+
+        when(kafkaConnectClient.restart(any(), any(), any(), anyInt()))
+            .thenReturn(Mono.just(HttpResponse.ok()));
+
+        StepVerifier.create(connectorService.restart(namespace, connector))
+            .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
+            .verifyComplete();
+
+        verify(kafkaConnectClient).restart(namespace.getMetadata().getCluster(),
+            connector.getSpec().getConnectCluster(), connector.getMetadata().getName(), 0);
+        verify(kafkaConnectClient).restart(namespace.getMetadata().getCluster(),
+            connector.getSpec().getConnectCluster(), connector.getMetadata().getName(), 1);
+        verify(kafkaConnectClient).restart(namespace.getMetadata().getCluster(),
+            connector.getSpec().getConnectCluster(), connector.getMetadata().getName(), 2);
     }
 }
