@@ -202,6 +202,46 @@ public class SchemaController extends NamespacedResourceController {
             });
     }
 
+    @Status(HttpStatus.NO_CONTENT)
+    @Delete
+    public Mono<HttpResponse<Void>> bulkDelete(String namespace,
+                                               @QueryValue String subject,
+                                               @QueryValue("version") Optional<String> versionOptional,
+                                               @QueryValue(defaultValue = "false") boolean dryrun) {
+        Namespace ns = getNamespace(namespace);
+
+        // Validate ownership
+        if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
+            return Mono.error(new ResourceValidationException(SCHEMA, subject, invalidOwner(subject)));
+        }
+
+        return schemaService.findByWildcardName(ns, subject)
+            .flatMap(schema -> versionOptional
+                .map(version -> schemaService.getSubjectByVersion(ns, schema.getMetadata().getName(), version))
+                .orElseGet(() -> schemaService.getSubjectLatestVersion(ns, schema.getMetadata().getName()))
+                .map(Optional::of)
+                .defaultIfEmpty(Optional.empty()))
+            .collectList()
+            .flatMap(schemas -> {
+                if (schemas.isEmpty() || schemas.stream().allMatch(Optional::isEmpty)) {
+                    return Mono.just(HttpResponse.notFound());
+                }
+
+                if (dryrun) {
+                    return Mono.just(HttpResponse.noContent());
+                }
+
+                return Flux.fromIterable(schemas)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .flatMap(schema -> (versionOptional.isEmpty()
+                        ? schemaService.deleteAllVersions(ns, schema.getMetadata().getName()) :
+                        schemaService.deleteVersion(ns, schema.getMetadata().getName(), versionOptional.get())))
+                    .log()
+                    .then(Mono.just(HttpResponse.noContent()));
+            });
+    }
+
     /**
      * Update the compatibility of a subject.
      *
