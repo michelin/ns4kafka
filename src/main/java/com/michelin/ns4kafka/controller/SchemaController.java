@@ -157,7 +157,7 @@ public class SchemaController extends NamespacedResourceController {
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete
-    public Mono<MutableHttpResponse<Object>> bulkDelete(String namespace,
+    public Mono<HttpResponse<Void>> bulkDelete(String namespace,
                                            @QueryValue(defaultValue = "*") String name,
                                            @QueryValue("version") Optional<String> versionOptional,
                                            @QueryValue(defaultValue = "false") boolean dryrun) {
@@ -170,27 +170,33 @@ public class SchemaController extends NamespacedResourceController {
                 .map(Optional::of)
                 .defaultIfEmpty(Optional.empty()))
             .collectList()
-            .flatMap(schemasList -> schemasList.isEmpty() || schemasList.stream().anyMatch(Optional::isEmpty)
-                ? Mono.just(HttpResponse.notFound()) :
-                    (dryrun ? Mono.just(HttpResponse.noContent()) :
-                        Flux.fromIterable(schemasList)
-                            .filter(Optional::isPresent)
-                            .map(Optional::get)
-                            .flatMap(schema -> (versionOptional.isEmpty()
-                                ? schemaService.deleteAllVersions(ns, schema.getMetadata().getName()) :
-                                schemaService.deleteVersion(ns, schema.getMetadata().getName(), versionOptional.get()))
-                                    .flatMap(deletedVersionIds -> {
-                                        sendEventLog(
-                                            schema,
-                                            ApplyStatus.deleted,
-                                            schema.getSpec(),
-                                            null,
-                                            versionOptional.map(v -> String.valueOf(deletedVersionIds))
-                                                .orElse(EMPTY_STRING)
-                                        );
-                                        return Mono.just(HttpResponse.noContent());
-                                    }))
-                        .then(Mono.just(HttpResponse.noContent()))));
+            .flatMap(schemas -> {
+                if (schemas.isEmpty() || schemas.stream().anyMatch(Optional::isEmpty)) {
+                    return Mono.just(HttpResponse.notFound());
+                }
+
+                if (dryrun) {
+                    return Mono.just(HttpResponse.noContent());
+                }
+
+                return Flux.fromIterable(schemas)
+                    .map(Optional::get)
+                    .flatMap(schema -> (versionOptional.isEmpty()
+                        ? schemaService.deleteAllVersions(ns, schema.getMetadata().getName()) :
+                        schemaService.deleteVersion(ns, schema.getMetadata().getName(), versionOptional.get()))
+                            .flatMap(deletedVersionIds -> {
+                                sendEventLog(
+                                    schema,
+                                    ApplyStatus.deleted,
+                                    schema.getSpec(),
+                                    null,
+                                    versionOptional.map(v -> String.valueOf(deletedVersionIds))
+                                            .orElse(EMPTY_STRING)
+                                );
+                                return Mono.just(HttpResponse.noContent());
+                            }))
+                    .then(Mono.just(HttpResponse.noContent()));
+            });
     }
 
     /**
