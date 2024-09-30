@@ -14,7 +14,6 @@ import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Delete;
