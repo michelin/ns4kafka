@@ -53,7 +53,7 @@ public class TopicController extends NamespacedResourceController {
      * List topics by namespace, filtered by name parameter.
      *
      * @param namespace The namespace
-     * @param name The name parameter
+     * @param name      The name parameter
      * @return A list of topics
      */
     @Get
@@ -80,7 +80,7 @@ public class TopicController extends NamespacedResourceController {
      *
      * @param namespace The namespace
      * @param topic     The topic
-     * @param dryrun    Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not?
      * @return The created topic
      */
     @Post
@@ -160,7 +160,7 @@ public class TopicController extends NamespacedResourceController {
      * Delete topics.
      *
      * @param namespace The namespace
-     * @param name The name parameter
+     * @param name      The name parameter
      * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
      */
