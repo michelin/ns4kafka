@@ -387,7 +387,8 @@ class ConnectorControllerTest {
                 .consumeErrorWith(error -> {
                     assertEquals(ResourceValidationException.class, error.getClass());
                     assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
-                    assertEquals("Invalid value \"connect1\" for field \"name\": namespace is not owner of the resource.",
+                    assertEquals(
+                            "Invalid value \"connect1\" for field \"name\": namespace is not owner of the resource.",
                             ((ResourceValidationException) error).getValidationErrors().getFirst());
                 })
                 .verify();
