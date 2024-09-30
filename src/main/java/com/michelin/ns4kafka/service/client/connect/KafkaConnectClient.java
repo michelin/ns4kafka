@@ -37,13 +37,17 @@ import reactor.core.publisher.Mono;
 @Singleton
 public class KafkaConnectClient {
     private static final String CONNECTORS = "/connectors/";
+
     @Inject
     ConnectClusterRepository connectClusterRepository;
+
     @Inject
     @Client(id = "kafka-connect")
     private HttpClient httpClient;
+
     @Inject
     private List<ManagedClusterProperties> managedClusterProperties;
+
     @Inject
     private SecurityProperties securityProperties;
 
@@ -222,7 +226,8 @@ public class KafkaConnectClient {
      * @return The Kafka Connect configuration
      */
     public KafkaConnectClient.KafkaConnectHttpConfig getKafkaConnectConfig(String kafkaCluster, String connectCluster) {
-        Optional<ManagedClusterProperties> config = managedClusterProperties.stream()
+        Optional<ManagedClusterProperties> config = managedClusterProperties
+            .stream()
             .filter(kafkaAsyncExecutorConfig -> kafkaAsyncExecutorConfig.getName().equals(kafkaCluster))
             .findFirst();
 

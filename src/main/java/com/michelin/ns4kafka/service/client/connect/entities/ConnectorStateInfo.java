@@ -67,7 +67,8 @@ public record ConnectorStateInfo(String name, ConnectorState connector, List<Tas
     public static class TaskState extends AbstractState implements Comparable<TaskState> {
         private final int id;
 
-        public TaskState(@JsonProperty("id") int id, @JsonProperty("state") String state,
+        public TaskState(@JsonProperty("id") int id,
+                         @JsonProperty("state") String state,
                          @JsonProperty("worker_id") String worker,
                          @JsonProperty("msg") String msg) {
             super(state, worker, msg);

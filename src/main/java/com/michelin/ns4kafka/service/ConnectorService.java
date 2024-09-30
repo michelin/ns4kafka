@@ -256,20 +256,14 @@ public class ConnectorService {
     public Mono<HttpResponse<Void>> restart(Namespace namespace, Connector connector) {
         return kafkaConnectClient.status(namespace.getMetadata().getCluster(), connector.getSpec().getConnectCluster(),
                 connector.getMetadata().getName())
-            .flatMap(status -> {
-                Flux<HttpResponse<Void>> responses = Flux.fromIterable(status.tasks())
-                    .flatMap(task -> kafkaConnectClient.restart(namespace.getMetadata().getCluster(),
-                        connector.getSpec().getConnectCluster(), connector.getMetadata().getName(), task.getId()))
-                    .map(response -> {
-                        log.info("Success restarting connector [{}] on namespace [{}] connect [{}]",
-                            connector.getMetadata().getName(),
-                            namespace.getMetadata().getName(),
-                            connector.getSpec().getConnectCluster());
-                        return HttpResponse.ok();
-                    });
-
-                return Mono.from(responses);
-            });
+            .flatMap(status -> Flux.fromIterable(status.tasks())
+                .flatMap(task -> kafkaConnectClient.restart(namespace.getMetadata().getCluster(),
+                    connector.getSpec().getConnectCluster(), connector.getMetadata().getName(), task.getId()))
+                .doOnNext(restart -> log.info("Success restarting connector [{}] on namespace [{}] connect [{}]",
+                    connector.getMetadata().getName(),
+                    namespace.getMetadata().getName(),
+                    connector.getSpec().getConnectCluster()))
+                .then(Mono.just(HttpResponse.ok())));
     }
 
     /**
