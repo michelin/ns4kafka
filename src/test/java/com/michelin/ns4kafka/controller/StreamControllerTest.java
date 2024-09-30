@@ -327,6 +327,7 @@ class StreamControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldDeleteStreams() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -359,6 +360,7 @@ class StreamControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldDeleteStreamsInDryRunMode() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -388,6 +390,7 @@ class StreamControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteStreamsWhenNotFound() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -411,6 +414,7 @@ class StreamControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteStreamsWhenNotOwner() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
@@ -426,6 +430,145 @@ class StreamControllerTest {
             .thenReturn(false);
 
         assertThrows(ResourceValidationException.class, () -> streamController.delete("test", "test_stream1", false));
+        verify(streamService, never()).delete(any(), any());
+    }
+
+    @Test
+    void shouldDeleteMultipleStreams() {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        KafkaStream stream1 = KafkaStream.builder()
+                .metadata(Metadata.builder()
+                        .name("test_stream1")
+                        .build())
+                .build();
+
+        KafkaStream stream2 = KafkaStream.builder()
+                .metadata(Metadata.builder()
+                        .name("test_stream2")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+
+        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
+                .thenReturn(true);
+
+        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream2"))
+                .thenReturn(true);
+
+        when(streamService.findByWildcardName(ns, "test_stream*"))
+                .thenReturn(List.of(stream1, stream2));
+
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+        doNothing().when(streamService).delete(ns, stream1);
+        doNothing().when(streamService).delete(ns, stream2);
+        var response = streamController.bulkDelete("test", "test_stream*", false);
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
+    }
+
+    @Test
+    void shouldDeleteMultipleStreamsInDryRunMode() {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        KafkaStream stream1 = KafkaStream.builder()
+                .metadata(Metadata.builder()
+                        .name("test_stream1")
+                        .build())
+                .build();
+
+        KafkaStream stream2 = KafkaStream.builder()
+                .metadata(Metadata.builder()
+                        .name("test_stream2")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+
+        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
+                .thenReturn(true);
+
+        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream2"))
+                .thenReturn(true);
+
+        when(streamService.findByWildcardName(ns, "test_stream*"))
+                .thenReturn(List.of(stream1, stream2));
+
+        var response = streamController.bulkDelete("test", "test_stream*", true);
+        verify(streamService, never()).delete(any(), any());
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
+    }
+
+    @Test
+    void shouldNotDeleteMultipleStreamsWhenNotFound() {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+
+        when(streamService.findByWildcardName(ns, "test_stream*"))
+                .thenReturn(List.of());
+
+        var response = streamController.bulkDelete("test", "test_stream*", false);
+        verify(streamService, never()).delete(any(), any());
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatus());
+    }
+
+    @Test
+    void shouldNotDeleteMultipleStreamsWhenNotOwner() {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        KafkaStream stream1 = KafkaStream.builder()
+                .metadata(Metadata.builder()
+                        .name("test_stream1")
+                        .build())
+                .build();
+
+        KafkaStream stream2 = KafkaStream.builder()
+                .metadata(Metadata.builder()
+                        .name("test_stream2")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test"))
+                .thenReturn(Optional.of(ns));
+
+        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1"))
+                .thenReturn(true);
+
+        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream2"))
+                .thenReturn(false);
+
+        when(streamService.findByWildcardName(ns, "test_stream*"))
+                .thenReturn(List.of(stream1, stream2));
+
+        assertThrows(ResourceValidationException.class, () ->
+                streamController.bulkDelete("test", "test_stream*", false));
         verify(streamService, never()).delete(any(), any());
     }
 }
