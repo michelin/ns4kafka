@@ -216,9 +216,11 @@ public class AclController extends NamespacedResourceController {
      * @param name           The ACL name
      * @param dryrun         Is dry run mode or not ?
      * @return An HTTP response
+     * @deprecated use bulkDelete instead.
      */
     @Delete("/{name}{?dryrun}")
     @Status(HttpStatus.NO_CONTENT)
+    @Deprecated(since = "1.13.0")
     public HttpResponse<Void> delete(Authentication authentication, String namespace, String name,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         AccessControlEntry accessControlEntry = aclService

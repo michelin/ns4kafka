@@ -706,6 +706,7 @@ class AclControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteAclWhenNotFound() {
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
 
@@ -719,6 +720,7 @@ class AclControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteSelfAssignedAclWhenNotAdmin() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
@@ -746,6 +748,7 @@ class AclControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldDeleteSelfAssignedAclAsAdmin() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
@@ -772,6 +775,7 @@ class AclControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldDeleteAcl() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
@@ -801,6 +805,7 @@ class AclControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteInDryRunMode() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
