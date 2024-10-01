@@ -1022,7 +1022,7 @@ class AclServiceTest {
 
         AccessControlEntry acl2 = AccessControlEntry.builder()
             .metadata(Metadata.builder()
-                .name("acl-ns1-read-to-ns2")
+                .name("ns1-read-ns2")
                 .namespace("namespace1")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -1066,10 +1066,10 @@ class AclServiceTest {
 
         when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, acl3, acl4, acl5));
 
-        assertEquals(List.of(acl2, acl3), aclService.findAllGrantedByNamespaceByWildcardName(ns, "*"));
-        assertEquals(List.of(acl2), aclService.findAllGrantedByNamespaceByWildcardName(ns, "acl-ns1-read-to-ns2"));
-        assertEquals(List.of(acl2, acl3), aclService.findAllGrantedByNamespaceByWildcardName(ns, "*-to-ns2"));
-        assertTrue(aclService.findAllGrantedByNamespaceByWildcardName(ns, "not-found").isEmpty());
+        assertEquals(List.of(acl2, acl3), aclService.findAllGrantedByNamespaceToOthersByWildcardName(ns, "*"));
+        assertEquals(List.of(acl2), aclService.findAllGrantedByNamespaceToOthersByWildcardName(ns, "ns1-read-ns2"));
+        assertEquals(List.of(acl3), aclService.findAllGrantedByNamespaceToOthersByWildcardName(ns, "*-to-ns2"));
+        assertTrue(aclService.findAllGrantedByNamespaceToOthersByWildcardName(ns, "not-found").isEmpty());
     }
 
     @Test
