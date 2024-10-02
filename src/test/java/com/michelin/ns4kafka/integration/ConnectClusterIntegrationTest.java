@@ -1,5 +1,7 @@
 package com.michelin.ns4kafka.integration;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.michelin.ns4kafka.integration.TopicIntegrationTest.BearerAccessRefreshToken;
 import com.michelin.ns4kafka.integration.container.KafkaConnectIntegrationTest;
 import com.michelin.ns4kafka.model.AccessControlEntry;
@@ -37,8 +39,6 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Slf4j
 @MicronautTest
