@@ -33,6 +33,7 @@ import com.michelin.ns4kafka.service.executor.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.ApplicationContext;
+import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
@@ -323,6 +324,20 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         assertTrue(actualConnectorWithFillParameter.config().containsKey("file"));
         assertEquals("test", actualConnectorWithFillParameter.config().get("file"));
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest
+                        .create(HttpMethod.DELETE, "/api/namespaces/ns1/connectors?name=ns1*")
+                        .bearerAuth(token));
+
+        HttpResponse<List<Connector>> connectors = ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest
+                        .create(HttpMethod.GET, "/api/namespaces/ns1/connectors")
+                        .bearerAuth(token), Argument.listOf(Connector.class));
+
+        assertEquals(0, connectors.getBody().get().size());
     }
 
     @Test
