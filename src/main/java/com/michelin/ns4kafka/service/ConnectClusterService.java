@@ -82,6 +82,7 @@ public class ConnectClusterService {
         if (all) {
             results.addAll(managedClusterProperties
                 .stream()
+                .filter(cluster -> cluster.getConnects() != null)
                 .map(config -> config.getConnects().entrySet()
                     .stream()
                     .map(entry ->

@@ -135,9 +135,11 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @param connectCluster The current connect cluster name to delete
      * @param dryrun         Run in dry mode or not
      * @return A HTTP response
+     * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{connectCluster}{?dryrun}")
+    @Deprecated(since = "1.13.0")
     public HttpResponse<Void> delete(String namespace, String connectCluster,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
@@ -166,18 +168,64 @@ public class ConnectClusterController extends NamespacedResourceController {
             return HttpResponse.noContent();
         }
 
-        ConnectCluster connectClusterToDelete = optionalConnectCluster.get();
-
-        sendEventLog(
-            connectClusterToDelete,
-            ApplyStatus.deleted,
-            connectClusterToDelete.getSpec(),
-            null,
-            EMPTY_STRING
-        );
-
-        connectClusterService.delete(connectClusterToDelete);
+        performDeletion(optionalConnectCluster.get());
         return HttpResponse.noContent();
+    }
+
+    /**
+     * Delete Kafka Connect clusters.
+     *
+     * @param namespace      The current namespace
+     * @param name           The name parameter
+     * @param dryrun         Run in dry mode or not
+     * @return A HTTP response
+     */
+    @Status(HttpStatus.NO_CONTENT)
+    @Delete
+    public HttpResponse<Void> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
+                                     @QueryValue(defaultValue = "false") boolean dryrun) {
+        Namespace ns = getNamespace(namespace);
+
+        List<ConnectCluster> connectClusters = connectClusterService.findByWildcardNameWithOwnerPermission(ns, name);
+
+        List<String> validationErrors = new ArrayList<>();
+        connectClusters.forEach(cc -> {
+            List<Connector> connectors = connectorService.findAllByConnectCluster(ns, cc.getMetadata().getName());
+            if (!connectors.isEmpty()) {
+                validationErrors.add(invalidConnectClusterDeleteOperation(cc.getMetadata().getName(), connectors));
+            }
+        });
+
+        if (!validationErrors.isEmpty()) {
+            throw new ResourceValidationException(CONNECT_CLUSTER, name, validationErrors);
+        }
+
+        if (connectClusters.isEmpty()) {
+            return HttpResponse.notFound();
+        }
+
+        if (dryrun) {
+            return HttpResponse.noContent();
+        }
+
+        connectClusters.forEach(this::performDeletion);
+        return HttpResponse.noContent();
+    }
+
+    /**
+     * Perform the deletion of the connectCluster and send an event log.
+     *
+     * @param connectCluster The connectCluster to delete
+     */
+    private void performDeletion(ConnectCluster connectCluster) {
+        sendEventLog(
+                connectCluster,
+                ApplyStatus.deleted,
+                connectCluster.getSpec(),
+                null,
+                EMPTY_STRING
+        );
+        connectClusterService.delete(connectCluster);
     }
 
     /**
