@@ -50,8 +50,6 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
     @Client("/")
     private HttpClient ns4KafkaClient;
 
-    private HttpClient connectClient;
-
     @Inject
     private List<TopicAsyncExecutor> topicAsyncExecutorList;
 
@@ -62,9 +60,6 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
 
     @BeforeAll
     void init() {
-        // Create HTTP client as bean to load client configuration from application.yml
-        connectClient = applicationContext.createBean(HttpClient.class, getConnectUrl());
-
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("ns1")
@@ -190,7 +185,7 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
     }
 
     @Test
-    void shouldCreateConnectCluster() throws InterruptedException {
+    void shouldCreateConnectCluster() {
         ConnectCluster connectCluster = ConnectCluster.builder()
             .metadata(Metadata.builder()
                 .name("ns1-connectCluster")
