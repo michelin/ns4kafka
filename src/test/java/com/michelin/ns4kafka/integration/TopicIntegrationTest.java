@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -50,6 +51,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ConfigEntry;
+import org.apache.kafka.clients.admin.TopicListing;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.config.ConfigResource;
 import org.junit.jupiter.api.BeforeAll;
@@ -597,6 +599,98 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                     .bearerAuth(token)));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
+    }
+
+    @Test
+    void shouldDeleteTopics() throws InterruptedException, ExecutionException {
+        Topic deleteTopic = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-deleteTopic")
+                .namespace("ns1")
+                .build())
+            .spec(TopicSpec.builder()
+                .partitions(3)
+                .replicationFactor(1)
+                .configs(Map.of("cleanup.policy", "delete",
+                    "min.insync.replicas", "1",
+                    "retention.ms", "60000"))
+                .build())
+            .build();
+
+        Topic compactTopic = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-compactTopic")
+                .namespace("ns1")
+                .build())
+            .spec(TopicSpec.builder()
+                .partitions(3)
+                .replicationFactor(1)
+                .configs(Map.of("cleanup.policy", "compact",
+                    "min.insync.replicas", "1",
+                    "retention.ms", "60000"))
+                .build())
+            .build();
+
+        Topic topicNotToDelete = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-test")
+                .namespace("ns1")
+                .build())
+            .spec(TopicSpec.builder()
+                .partitions(3)
+                .replicationFactor(1)
+                .configs(Map.of("cleanup.policy", "compact",
+                    "min.insync.replicas", "1",
+                    "retention.ms", "60000"))
+                .build())
+            .build();
+
+        var createResponse1 = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                .bearerAuth(token)
+                .body(deleteTopic));
+
+        assertEquals("created", createResponse1.header("X-Ns4kafka-Result"));
+
+        var createResponse2 = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                .bearerAuth(token)
+                .body(compactTopic));
+
+        assertEquals("created", createResponse2.header("X-Ns4kafka-Result"));
+
+        var createResponse3 = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                .bearerAuth(token)
+                .body(topicNotToDelete));
+
+        assertEquals("created", createResponse3.header("X-Ns4kafka-Result"));
+
+        forceTopicSynchronization();
+
+        var deleteResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/topics?name=ns1-*Topic")
+                .bearerAuth(token));
+
+        assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
+
+        forceTopicSynchronization();
+
+        Admin kafkaClient = getAdminClient();
+
+        Map<String, TopicListing> topics = kafkaClient.listTopics().namesToListings().get();
+
+        assertFalse(topics.containsKey("ns1-deleteTopic"));
+        assertFalse(topics.containsKey("ns1-compactTopic"));
+        assertTrue(topics.containsKey("ns1-test"));
     }
 
     private void forceTopicSynchronization() throws InterruptedException {
