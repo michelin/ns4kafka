@@ -135,7 +135,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @param connectCluster The current connect cluster name to delete
      * @param dryrun         Run in dry mode or not
      * @return A HTTP response
-     * @deprecated use bulkDelete instead.
+     * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{connectCluster}{?dryrun}")
