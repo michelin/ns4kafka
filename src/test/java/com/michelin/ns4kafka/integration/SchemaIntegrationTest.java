@@ -768,7 +768,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
     }
 
     @Test
-    void shouldDeleteSchema() {
+    void shouldDeleteSchemaVersion() {
         Schema schemaV1 = Schema.builder()
             .metadata(Metadata.builder()
                 .name("ns1-subject4-value")
@@ -861,61 +861,152 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         var deleteLatestVersionResponse = ns4KafkaClient
             .toBlocking()
             .exchange(HttpRequest
-                .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas/ns1-subject4-value?version=latest")
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas?name=ns1-subject4-value&version=latest")
                 .bearerAuth(token), Schema.class);
 
         assertEquals(HttpStatus.NO_CONTENT, deleteLatestVersionResponse.getStatus());
 
-        // Get all schemas
-        var getSchemaAfterLatestVersionDeletionResponse = ns4KafkaClient
+        // Get schemas versions
+        var getSchemaAfterLatestVersionDeletionResponse = schemaRegistryClient
             .toBlocking()
             .exchange(HttpRequest
-                .create(HttpMethod.GET, "/api/namespaces/ns1/schemas/ns1-subject4-value")
-                .bearerAuth(token), Schema.class);
+                .create(HttpMethod.GET, "/subjects/ns1-subject4-value/versions"), Argument.listOf(String.class));
 
-        // Expects v3 is returned by ns4kafka
         assertTrue(getSchemaAfterLatestVersionDeletionResponse.getBody().isPresent());
-        assertEquals(3, getSchemaAfterLatestVersionDeletionResponse.getBody().get().getSpec().getVersion());
+        assertTrue(getSchemaAfterLatestVersionDeletionResponse.getBody().get().containsAll(List.of("1", "2", "3")));
 
         // Delete old schema version
         var deleteOldVersionResponse = ns4KafkaClient
             .toBlocking()
             .exchange(HttpRequest
-                .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas/ns1-subject4-value?version=1")
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas?name=ns1-subject4-value&version=1")
                 .bearerAuth(token), Schema.class);
 
         assertEquals(HttpStatus.NO_CONTENT, deleteOldVersionResponse.getStatus());
 
-        // Get all schemas
-        var getSchemaAfterOldVersionDeletionResponse = ns4KafkaClient
+        // Get schemas versions
+        var getSchemaAfterOldVersionDeletionResponse = schemaRegistryClient
             .toBlocking()
             .exchange(HttpRequest
-                .create(HttpMethod.GET, "/api/namespaces/ns1/schemas/ns1-subject4-value")
-                .bearerAuth(token), Schema.class);
+                .create(HttpMethod.GET, "/subjects/ns1-subject4-value/versions"), Argument.listOf(String.class));
 
-        // Expects v3 as returned schema
         assertTrue(getSchemaAfterOldVersionDeletionResponse.getBody().isPresent());
-        assertEquals(3, getSchemaAfterOldVersionDeletionResponse.getBody().get().getSpec().getVersion());
+        assertTrue(getSchemaAfterOldVersionDeletionResponse.getBody().get().containsAll(List.of("2", "3")));
 
         // Delete all remaining schema versions
         var deleteAllVersionsResponse = ns4KafkaClient
             .toBlocking()
             .exchange(HttpRequest
-                .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas/ns1-subject4-value")
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas?name=ns1-subject4-value")
                 .bearerAuth(token), Schema.class);
 
         assertEquals(HttpStatus.NO_CONTENT, deleteAllVersionsResponse.getStatus());
 
         // Get all schemas
-        var getSchemaAfterAllVersionsDeletionResponse = ns4KafkaClient
+        var getSchemaAfterAllVersionsDeletionResponse = schemaRegistryClient
             .toBlocking()
             .exchange(HttpRequest
-                .create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
-                .bearerAuth(token), Argument.listOf(SchemaList.class));
+                .create(HttpMethod.GET, "/subjects"), Argument.listOf(String.class));
 
         assertTrue(getSchemaAfterAllVersionsDeletionResponse.getBody().isPresent());
-        assertTrue(getSchemaAfterAllVersionsDeletionResponse.getBody().get()
+        assertTrue(getSchemaAfterAllVersionsDeletionResponse.getBody().get().isEmpty());
+    }
+
+    @Test
+    void shouldBulkDeleteSchemas() {
+        Schema schema1 = Schema.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-subject5-value")
+                .build())
+            .spec(Schema.SchemaSpec.builder()
+                .schema(
+                    "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                        + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
+                        + "\"default\":null,\"doc\":\"First name of the person\"},"
+                        + "{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,"
+                        + "\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\","
+                        + "{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
+                        + "\"doc\":\"Date of birth of the person\"}]}")
+                .build())
+            .build();
+
+        Schema schema2 = Schema.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-subject5-key")
+                .build())
+            .spec(Schema.SchemaSpec.builder()
+                .schema(
+                    "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                        + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
+                        + "\"default\":null,\"doc\":\"First name of the person\"},"
+                        + "{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,"
+                        + "\"doc\":\"Last name of the person\"}]}")
+                .build())
+            .build();
+
+        Schema schema3 = Schema.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-subject6-value")
+                .build())
+            .spec(Schema.SchemaSpec.builder()
+                .schema(
+                    "{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                        + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
+                        + "\"default\":null,\"doc\":\"First name of the person\"},"
+                        + "{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,"
+                        + "\"doc\":\"Last name of the person\"}]}")
+                .build())
+            .build();
+
+        // Register all schemas
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                .bearerAuth(token)
+                .body(schema1), Schema.class);
+
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                .bearerAuth(token)
+                .body(schema2), Schema.class);
+
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                .bearerAuth(token)
+                .body(schema3), Schema.class);
+
+        var getSchemasBeforeDeletionResponse = schemaRegistryClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.GET, "/subjects"), Argument.listOf(String.class));
+
+        assertTrue(getSchemasBeforeDeletionResponse.getBody().isPresent());
+        assertTrue(getSchemasBeforeDeletionResponse.getBody().get()
+            .containsAll(List.of("ns1-subject5-value", "ns1-subject5-key", "ns1-subject6-value")));
+
+        // Delete schema with wildcard
+        var deleteResponse = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas?name=ns1-subject5-*")
+                .bearerAuth(token), Schema.class);
+
+        assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
+
+        var getSchemasAfterDeletionResponse = schemaRegistryClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.GET, "/subjects"), Argument.listOf(String.class));
+
+        assertTrue(getSchemasAfterDeletionResponse.getBody().isPresent());
+        assertTrue(getSchemasAfterDeletionResponse.getBody().get()
             .stream()
-            .noneMatch(schemaList -> schemaList.getMetadata().getName().equals("ns1-subject4-value")));
+            .noneMatch(subject -> List.of("ns1-subject5-key", "ns1-subject5-value").contains(subject)));
+        assertTrue(getSchemasAfterDeletionResponse.getBody().get().contains("ns1-subject6-value"));
     }
 }
