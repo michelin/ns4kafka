@@ -1173,7 +1173,7 @@ class TopicServiceTest {
         topicService.delete(topic);
 
         verify(topicRepository).delete(topic);
-        verify(topicAsyncExecutor).deleteTopic(topic);
+        verify(topicAsyncExecutor).deleteTopics(List.of(topic));
     }
 
     @Test

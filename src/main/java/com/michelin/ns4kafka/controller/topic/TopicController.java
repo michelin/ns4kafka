@@ -200,7 +200,7 @@ public class TopicController extends NamespacedResourceController {
      * @param topic     The topic
      * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
-     * @deprecated use bulkDelete(String, String name, boolean) instead.
+     * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{topic}{?dryrun}")

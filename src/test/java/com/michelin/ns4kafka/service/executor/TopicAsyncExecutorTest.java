@@ -298,7 +298,7 @@ class TopicAsyncExecutorTest {
                 .build())
             .build();
 
-        topicAsyncExecutor.deleteTopic(topic);
+        topicAsyncExecutor.deleteTopics(List.of(topic));
 
         verify(adminClient).deleteTopics(anyList());
     }
@@ -348,7 +348,7 @@ class TopicAsyncExecutorTest {
                 .build())
             .build();
 
-        topicAsyncExecutor.deleteTopic(topic);
+        topicAsyncExecutor.deleteTopics(List.of(topic));
 
         verify(adminClient).deleteTopics(anyList());
     }
