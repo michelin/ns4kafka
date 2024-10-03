@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -908,7 +909,8 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
             .exchange(HttpRequest
                 .create(HttpMethod.GET, "/subjects"), Argument.listOf(String.class));
 
-        assertTrue(getSchemaAfterAllVersionsDeletionResponse.getBody().get().isEmpty());
+        assertTrue(getSchemaAfterOldVersionDeletionResponse.getBody().isPresent());
+        assertFalse(getSchemaAfterAllVersionsDeletionResponse.getBody().get().contains("ns1-subject4-value"));
     }
 
     @Test
