@@ -67,7 +67,7 @@ public class TopicController extends NamespacedResourceController {
      * @param namespace The name
      * @param topic     The topic name
      * @return The topic
-     * @deprecated use list(String, String name) instead.
+     * @deprecated use {@link #list(String, String)} instead.
      */
     @Get("/{topic}")
     @Deprecated(since = "1.12.0")
