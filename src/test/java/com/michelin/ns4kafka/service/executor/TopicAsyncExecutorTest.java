@@ -298,7 +298,36 @@ class TopicAsyncExecutorTest {
                 .build())
             .build();
 
-        topicAsyncExecutor.deleteTopic(topic);
+        topicAsyncExecutor.deleteTopics(List.of(topic));
+
+        verify(adminClient).deleteTopics(anyList());
+    }
+
+    @Test
+    void shouldDeleteMultipleTopics() throws ExecutionException, InterruptedException, TimeoutException {
+        when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
+        when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+
+        Topic topic1 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("topic1")
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .build())
+            .build();
+
+        Topic topic2 = Topic.builder()
+            .metadata(Metadata.builder()
+                .name("topic2")
+                .build())
+            .spec(Topic.TopicSpec.builder()
+                .build())
+            .build();
+
+        List<Topic> topics = List.of(topic1, topic2);
+
+        topicAsyncExecutor.deleteTopics(topics);
 
         verify(adminClient).deleteTopics(anyList());
     }
@@ -319,7 +348,7 @@ class TopicAsyncExecutorTest {
                 .build())
             .build();
 
-        topicAsyncExecutor.deleteTopic(topic);
+        topicAsyncExecutor.deleteTopics(List.of(topic));
 
         verify(adminClient).deleteTopics(anyList());
     }

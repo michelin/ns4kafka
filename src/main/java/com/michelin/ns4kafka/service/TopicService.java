@@ -131,9 +131,22 @@ public class TopicService {
     public void delete(Topic topic) throws InterruptedException, ExecutionException, TimeoutException {
         TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
             Qualifiers.byName(topic.getMetadata().getCluster()));
-        topicAsyncExecutor.deleteTopic(topic);
+        topicAsyncExecutor.deleteTopics(List.of(topic));
 
         topicRepository.delete(topic);
+    }
+
+    /**
+     * Delete multiple topics.
+     *
+     * @param topics The topics list
+     */
+    public void deleteTopics(List<Topic> topics) throws InterruptedException, ExecutionException, TimeoutException {
+        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(TopicAsyncExecutor.class,
+            Qualifiers.byName(topics.getFirst().getMetadata().getCluster()));
+        topicAsyncExecutor.deleteTopics(topics);
+
+        topics.forEach(topic -> topicRepository.delete(topic));
     }
 
     /**

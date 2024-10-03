@@ -53,7 +53,7 @@ public class TopicController extends NamespacedResourceController {
      * List topics by namespace, filtered by name parameter.
      *
      * @param namespace The namespace
-     * @param name The name parameter
+     * @param name      The name parameter
      * @return A list of topics
      */
     @Get
@@ -67,7 +67,7 @@ public class TopicController extends NamespacedResourceController {
      * @param namespace The name
      * @param topic     The topic name
      * @return The topic
-     * @deprecated use list(String, String name) instead.
+     * @deprecated use {@link #list(String, String)} instead.
      */
     @Get("/{topic}")
     @Deprecated(since = "1.12.0")
@@ -80,7 +80,7 @@ public class TopicController extends NamespacedResourceController {
      *
      * @param namespace The namespace
      * @param topic     The topic
-     * @param dryrun    Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not?
      * @return The created topic
      */
     @Post
@@ -157,15 +157,54 @@ public class TopicController extends NamespacedResourceController {
     }
 
     /**
+     * Delete topics.
+     *
+     * @param namespace The namespace
+     * @param name      The name parameter
+     * @param dryrun    Is dry run mode or not?
+     * @return An HTTP response
+     */
+    @Status(HttpStatus.NO_CONTENT)
+    @Delete
+    public HttpResponse<Void> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
+                                     @QueryValue(defaultValue = "false") boolean dryrun)
+        throws InterruptedException, ExecutionException, TimeoutException {
+        Namespace ns = getNamespace(namespace);
+        List<Topic> topicsToDelete = topicService.findByWildcardName(ns, name);
+
+        if (topicsToDelete.isEmpty()) {
+            return HttpResponse.notFound();
+        }
+
+        if (dryrun) {
+            return HttpResponse.noContent();
+        }
+
+        topicsToDelete.forEach(topicToDelete ->
+            sendEventLog(
+                topicToDelete,
+                ApplyStatus.deleted,
+                topicToDelete.getSpec(),
+                null,
+                EMPTY_STRING));
+
+        topicService.deleteTopics(topicsToDelete);
+
+        return HttpResponse.noContent();
+    }
+
+    /**
      * Delete a topic.
      *
      * @param namespace The namespace
      * @param topic     The topic
-     * @param dryrun    Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
+     * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{topic}{?dryrun}")
+    @Deprecated(since = "1.13.0")
     public HttpResponse<Void> delete(String namespace, String topic,
                                      @QueryValue(defaultValue = "false") boolean dryrun)
         throws InterruptedException, ExecutionException, TimeoutException {
@@ -194,7 +233,7 @@ public class TopicController extends NamespacedResourceController {
             EMPTY_STRING
         );
 
-        topicService.delete(optionalTopic.get());
+        topicService.delete(topicToDelete);
 
         return HttpResponse.noContent();
     }
