@@ -908,7 +908,6 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
             .exchange(HttpRequest
                 .create(HttpMethod.GET, "/subjects"), Argument.listOf(String.class));
 
-        assertTrue(getSchemaAfterAllVersionsDeletionResponse.getBody().isPresent());
         assertTrue(getSchemaAfterAllVersionsDeletionResponse.getBody().get().isEmpty());
     }
 

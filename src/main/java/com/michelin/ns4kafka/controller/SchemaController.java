@@ -62,7 +62,7 @@ public class SchemaController extends NamespacedResourceController {
      * @param namespace The namespace
      * @param subject   The subject
      * @return A schema
-     * @deprecated use list(String, String name) instead.
+     * @deprecated use {@link #list(String, String)} instead.
      */
     @Get("/{subject}")
     @Deprecated(since = "1.12.0")
