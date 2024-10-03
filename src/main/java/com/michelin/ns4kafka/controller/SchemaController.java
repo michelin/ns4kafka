@@ -206,7 +206,7 @@ public class SchemaController extends NamespacedResourceController {
      * @param versionOptional   The version of the schema to delete
      * @param dryrun            Run in dry mode or not?
      * @return A HTTP response
-     * @deprecated use bulkDelete(String, String name, Optional version) instead.
+     * @deprecated use {@link #bulkDelete(String, String, Optional, boolean)} instead.
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{subject}")
