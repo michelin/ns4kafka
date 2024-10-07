@@ -40,7 +40,7 @@ public class StreamController extends NamespacedResourceController {
      * List Kafka Streams by namespace, filtered by name parameter.
      *
      * @param namespace The namespace
-     * @param name The name parameter
+     * @param name      The name parameter
      * @return A list of Kafka Streams
      */
     @Get
@@ -67,7 +67,7 @@ public class StreamController extends NamespacedResourceController {
      *
      * @param namespace The namespace
      * @param stream    The Kafka Stream
-     * @param dryrun    Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
      */
     @Post("/{?dryrun}")
@@ -110,9 +110,9 @@ public class StreamController extends NamespacedResourceController {
      *
      * @param namespace The namespace
      * @param stream    The Kafka Streams
-     * @param dryrun    Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
-     * @deprecated use bulkDelete instead.
+     * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{stream}{?dryrun}")
@@ -152,7 +152,7 @@ public class StreamController extends NamespacedResourceController {
      *
      * @param namespace The namespace
      * @param name      The name parameter
-     * @param dryrun    Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
      */
     @Status(HttpStatus.NO_CONTENT)
