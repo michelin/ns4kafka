@@ -78,7 +78,7 @@ public class AclController extends NamespacedResourceController {
      * @param namespace The name
      * @param acl   The ACL name
      * @return The ACL
-     * @deprecated use list(String, Optional ALL, String name) instead.
+     * @deprecated use {@link #list(String, Optional, String)} instead.
      */
     @Get("/{acl}")
     @Deprecated(since = "1.12.0")
@@ -214,9 +214,9 @@ public class AclController extends NamespacedResourceController {
      * @param authentication The authentication entity
      * @param namespace      The namespace
      * @param name           The ACL name
-     * @param dryrun         Is dry run mode or not ?
+     * @param dryrun         Is dry run mode or not?
      * @return An HTTP response
-     * @deprecated use bulkDelete instead.
+     * @deprecated use {@link #bulkDelete(Authentication, String, String, boolean)} instead.
      */
     @Delete("/{name}{?dryrun}")
     @Status(HttpStatus.NO_CONTENT)
