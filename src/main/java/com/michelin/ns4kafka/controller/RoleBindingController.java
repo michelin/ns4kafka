@@ -54,7 +54,7 @@ public class RoleBindingController extends NamespacedResourceController {
      * @param namespace The namespace
      * @param name      The role binding name
      * @return A role binding
-     * @deprecated use list(String, String name) instead.
+     * @deprecated use {@link #list(String, String)} instead.
      */
     @Get("/{name}")
     @Deprecated(since = "1.12.0")
@@ -107,9 +107,9 @@ public class RoleBindingController extends NamespacedResourceController {
      *
      * @param namespace The namespace
      * @param name      The role binding
-     * @param dryrun    Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
-     * @deprecated use bulkDelete instead.
+     * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
     @Delete("/{name}{?dryrun}")
     @Status(HttpStatus.NO_CONTENT)
@@ -144,7 +144,7 @@ public class RoleBindingController extends NamespacedResourceController {
      *
      * @param namespace The namespace
      * @param name      The name parameter
-     * @param dryrun    Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
      */
     @Status(HttpStatus.NO_CONTENT)
