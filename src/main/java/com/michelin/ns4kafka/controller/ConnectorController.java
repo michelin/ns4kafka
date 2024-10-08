@@ -65,7 +65,7 @@ public class ConnectorController extends NamespacedResourceController {
      * @param namespace The namespace
      * @param connector The name
      * @return A connector
-     * @deprecated use list(String, String name) instead.
+     * @deprecated use {@link #list(String, String)} instead.
      */
     @Get("/{connector}")
     @Deprecated(since = "1.12.0")
@@ -164,7 +164,7 @@ public class ConnectorController extends NamespacedResourceController {
      * @param connector The current connector name to delete
      * @param dryrun    Run in dry mode or not
      * @return A HTTP response
-     * @deprecated use bulkDelete instead.
+     * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{connector}{?dryrun}")

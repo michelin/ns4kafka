@@ -265,52 +265,52 @@ class ConnectorControllerTest {
     @Test
     void shouldDeleteConnectors() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
 
         Connector connector1 = Connector.builder().metadata(Metadata.builder().name("connect1").build()).build();
         Connector connector2 = Connector.builder().metadata(Metadata.builder().name("connect2").build()).build();
         when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
+            .thenReturn(Optional.of(ns));
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
-                .thenReturn(true);
+            .thenReturn(true);
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect2"))
-                .thenReturn(true);
+            .thenReturn(true);
         when(connectorService.findByWildcardName(ns, "connect*"))
-                .thenReturn(List.of(connector1, connector2));
+            .thenReturn(List.of(connector1, connector2));
         when(connectorService.delete(ns, connector1))
-                .thenReturn(Mono.just(HttpResponse.noContent()));
+            .thenReturn(Mono.just(HttpResponse.noContent()));
         when(connectorService.delete(ns, connector2))
-                .thenReturn(Mono.just(HttpResponse.noContent()));
+            .thenReturn(Mono.just(HttpResponse.noContent()));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         StepVerifier.create(connectorController.bulkDelete("test", "connect*", false))
-                .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
-                .verifyComplete();
+            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .verifyComplete();
     }
 
     @Test
     void shouldNotDeleteConnectorsWhenNotFound() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
 
         when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
+            .thenReturn(Optional.of(ns));
         when(connectorService.findByWildcardName(ns, "connect*"))
-                .thenReturn(List.of());
+            .thenReturn(List.of());
 
         StepVerifier.create(connectorController.bulkDelete("test", "connect*", true))
-                .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
-                .verifyComplete();
+            .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
+            .verifyComplete();
 
         verify(connectorService, never()).delete(any(), any());
     }
@@ -318,36 +318,36 @@ class ConnectorControllerTest {
     @Test
     void shouldDeleteConnectorsInDryRunMode() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
 
         Connector connector1 = Connector.builder()
-                .metadata(Metadata.builder()
-                        .name("connect1")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("connect1")
+                .build())
+            .build();
 
         Connector connector2 = Connector.builder()
-                .metadata(Metadata.builder()
-                        .name("connect2")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("connect2")
+                .build())
+            .build();
 
         when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
+            .thenReturn(Optional.of(ns));
         when(connectorService.findByWildcardName(ns, "connect*"))
-                .thenReturn(List.of(connector1, connector2));
+            .thenReturn(List.of(connector1, connector2));
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
-                .thenReturn(true);
+            .thenReturn(true);
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect2"))
-                .thenReturn(true);
+            .thenReturn(true);
 
         StepVerifier.create(connectorController.bulkDelete("test", "connect*", true))
-                .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
-                .verifyComplete();
+            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .verifyComplete();
 
         verify(connectorService, never()).delete(any(), any());
     }
@@ -355,43 +355,43 @@ class ConnectorControllerTest {
     @Test
     void shouldNotDeleteConnectorsWhenNotOwned() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
 
         Connector connector1 = Connector.builder()
-                .metadata(Metadata.builder()
-                        .name("connect1")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("connect1")
+                .build())
+            .build();
 
         Connector connector2 = Connector.builder()
-                .metadata(Metadata.builder()
-                        .name("connect2")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("connect2")
+                .build())
+            .build();
 
         when(connectorService.findByWildcardName(ns, "connect*"))
-                .thenReturn(List.of(connector1, connector2));
+            .thenReturn(List.of(connector1, connector2));
 
         when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
+            .thenReturn(Optional.of(ns));
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1"))
-                .thenReturn(false);
+            .thenReturn(false);
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect2"))
-                .thenReturn(true);
+            .thenReturn(true);
 
         StepVerifier.create(connectorController.bulkDelete("test", "connect*", false))
-                .consumeErrorWith(error -> {
-                    assertEquals(ResourceValidationException.class, error.getClass());
-                    assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
-                    assertEquals(
-                            "Invalid value \"connect1\" for field \"name\": namespace is not owner of the resource.",
-                            ((ResourceValidationException) error).getValidationErrors().getFirst());
-                })
-                .verify();
+            .consumeErrorWith(error -> {
+                assertEquals(ResourceValidationException.class, error.getClass());
+                assertEquals(1, ((ResourceValidationException) error).getValidationErrors().size());
+                assertEquals(
+                    "Invalid value \"connect1\" for field \"name\": namespace is not owner of the resource.",
+                    ((ResourceValidationException) error).getValidationErrors().getFirst());
+            })
+            .verify();
     }
 
     @Test
