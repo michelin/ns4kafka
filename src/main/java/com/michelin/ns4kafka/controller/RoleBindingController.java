@@ -54,7 +54,7 @@ public class RoleBindingController extends NamespacedResourceController {
      * @param namespace The namespace
      * @param name      The role binding name
      * @return A role binding
-     * @deprecated use {@link #list(String, String)} instead.
+     * @deprecated use list(String, String name) instead.
      */
     @Get("/{name}")
     @Deprecated(since = "1.12.0")
@@ -107,13 +107,11 @@ public class RoleBindingController extends NamespacedResourceController {
      *
      * @param namespace The namespace
      * @param name      The role binding
-     * @param dryrun    Is dry run mode or not?
+     * @param dryrun    Is dry run mode or not ?
      * @return An HTTP response
-     * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
     @Delete("/{name}{?dryrun}")
     @Status(HttpStatus.NO_CONTENT)
-    @Deprecated(since = "1.13.0")
     public HttpResponse<Void> delete(String namespace, String name,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         Optional<RoleBinding> roleBinding = roleBindingService.findByName(namespace, name);
@@ -136,41 +134,6 @@ public class RoleBindingController extends NamespacedResourceController {
         );
 
         roleBindingService.delete(roleBindingToDelete);
-        return HttpResponse.noContent();
-    }
-
-    /**
-     * Delete role bindings.
-     *
-     * @param namespace The namespace
-     * @param name      The name parameter
-     * @param dryrun    Is dry run mode or not?
-     * @return An HTTP response
-     */
-    @Status(HttpStatus.NO_CONTENT)
-    @Delete
-    public HttpResponse<Void> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
-                                     @QueryValue(defaultValue = "false") boolean dryrun) {
-        List<RoleBinding> roleBindings = roleBindingService.findByWildcardName(namespace, name);
-        if (roleBindings.isEmpty()) {
-            return HttpResponse.notFound();
-        }
-
-        if (dryrun) {
-            return HttpResponse.noContent();
-        }
-
-        roleBindings.forEach(roleBinding -> {
-            sendEventLog(
-                    roleBinding,
-                    ApplyStatus.deleted,
-                    roleBinding.getSpec(),
-                    null,
-                    EMPTY_STRING
-            );
-            roleBindingService.delete(roleBinding);
-        });
-
         return HttpResponse.noContent();
     }
 }
