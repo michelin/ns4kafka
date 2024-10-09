@@ -160,9 +160,11 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * @param name      The resource quota
      * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
+     * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
     @Delete("/{name}{?dryrun}")
     @Status(HttpStatus.NO_CONTENT)
+    @Deprecated(since = "1.13.0")
     public HttpResponse<Void> delete(String namespace, String name,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         Optional<ResourceQuota> resourceQuota = resourceQuotaService.findByName(namespace, name);

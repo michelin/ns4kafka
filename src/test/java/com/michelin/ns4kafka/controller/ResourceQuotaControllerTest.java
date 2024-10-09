@@ -321,6 +321,7 @@ class ResourceQuotaControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteQuotaWhenNotFound() {
         when(resourceQuotaService.findByName("test", "quota")).thenReturn(Optional.empty());
         HttpResponse<Void> actual = resourceQuotaController.delete("test", "quota", false);
@@ -329,6 +330,7 @@ class ResourceQuotaControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteQuotaWhenDryRun() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
             .metadata(Metadata.builder()
@@ -345,6 +347,7 @@ class ResourceQuotaControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldDeleteQuota() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
             .metadata(Metadata.builder()
