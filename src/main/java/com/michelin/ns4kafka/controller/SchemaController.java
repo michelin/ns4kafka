@@ -62,7 +62,7 @@ public class SchemaController extends NamespacedResourceController {
      * @param namespace The namespace
      * @param subject   The subject
      * @return A schema
-     * @deprecated use list(String, String name) instead.
+     * @deprecated use {@link #list(String, String)} instead.
      */
     @Get("/{subject}")
     @Deprecated(since = "1.12.0")
@@ -146,16 +146,71 @@ public class SchemaController extends NamespacedResourceController {
     }
 
     /**
-     * Delete all schema versions under the given subject, or a specific version of the schema if specified.
+     * Delete all schema versions or a specific schema version if specified, under all given subjects.
+     *
+     * @param namespace         The namespace
+     * @param name              The subject name parameter
+     * @param versionOptional   The version of the schemas to delete
+     * @param dryrun            Run in dry mode or not?
+     * @return A HTTP response
+     */
+    @Status(HttpStatus.NO_CONTENT)
+    @Delete
+    public Mono<HttpResponse<Void>> bulkDelete(String namespace,
+                                           @QueryValue(defaultValue = "*") String name,
+                                           @QueryValue("version") Optional<String> versionOptional,
+                                           @QueryValue(defaultValue = "false") boolean dryrun) {
+        Namespace ns = getNamespace(namespace);
+
+        return schemaService.findByWildcardName(ns, name)
+            .flatMap(schema -> versionOptional
+                .map(version -> schemaService.getSubjectByVersion(ns, schema.getMetadata().getName(), version))
+                .orElseGet(() -> schemaService.getSubjectLatestVersion(ns, schema.getMetadata().getName()))
+                .map(Optional::of)
+                .defaultIfEmpty(Optional.empty()))
+            .collectList()
+            .flatMap(schemas -> {
+                if (schemas.isEmpty() || schemas.stream().anyMatch(Optional::isEmpty)) {
+                    return Mono.just(HttpResponse.notFound());
+                }
+
+                if (dryrun) {
+                    return Mono.just(HttpResponse.noContent());
+                }
+
+                return Flux.fromIterable(schemas)
+                    .map(Optional::get)
+                    .flatMap(schema -> (versionOptional.isEmpty()
+                        ? schemaService.deleteAllVersions(ns, schema.getMetadata().getName()) :
+                        schemaService.deleteVersion(ns, schema.getMetadata().getName(), versionOptional.get()))
+                            .flatMap(deletedVersionIds -> {
+                                sendEventLog(
+                                    schema,
+                                    ApplyStatus.deleted,
+                                    schema.getSpec(),
+                                    null,
+                                    versionOptional.map(v -> String.valueOf(deletedVersionIds))
+                                            .orElse(EMPTY_STRING)
+                                );
+                                return Mono.just(HttpResponse.noContent());
+                            }))
+                    .then(Mono.just(HttpResponse.noContent()));
+            });
+    }
+
+    /**
+     * Delete all schema versions or a specific schema version if specified, under the given subject.
      *
      * @param namespace         The namespace
      * @param subject           The subject
      * @param versionOptional   The version of the schema to delete
-     * @param dryrun            Run in dry mode or not
+     * @param dryrun            Run in dry mode or not?
      * @return A HTTP response
+     * @deprecated use {@link #bulkDelete(String, String, Optional, boolean)} instead.
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{subject}")
+    @Deprecated(since = "1.13.0")
     public Mono<HttpResponse<Void>> delete(String namespace,
                                            @PathVariable String subject,
                                            @QueryValue("version") Optional<String> versionOptional,

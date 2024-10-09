@@ -230,7 +230,7 @@ public class SchemaService {
      *
      * @param namespace The namespace
      * @param subject   The subject to delete
-     * @return The list of deleted versions
+     * @return The list of deleted schema versions
      */
     public Mono<Integer[]> deleteAllVersions(Namespace namespace, String subject) {
         return schemaRegistryClient
@@ -246,7 +246,7 @@ public class SchemaService {
      * @param namespace The namespace
      * @param subject   The subject
      * @param version   The version of the schema to delete
-     * @return The latest subject after deletion
+     * @return The deleted schema version
      */
     public Mono<Integer> deleteVersion(Namespace namespace, String subject, String version) {
         return schemaRegistryClient
