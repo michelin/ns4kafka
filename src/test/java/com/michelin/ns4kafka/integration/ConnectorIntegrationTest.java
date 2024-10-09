@@ -326,16 +326,16 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         assertEquals("test", actualConnectorWithFillParameter.config().get("file"));
 
         ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest
-                        .create(HttpMethod.DELETE, "/api/namespaces/ns1/connectors?name=ns1*")
-                        .bearerAuth(token));
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/connectors?name=ns1*")
+                .bearerAuth(token));
 
         HttpResponse<List<Connector>> connectors = ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest
-                        .create(HttpMethod.GET, "/api/namespaces/ns1/connectors")
-                        .bearerAuth(token), Argument.listOf(Connector.class));
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.GET, "/api/namespaces/ns1/connectors")
+                .bearerAuth(token), Argument.listOf(Connector.class));
 
         assertEquals(0, connectors.getBody().get().size());
     }
@@ -625,7 +625,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
             .blockLast();
 
         // Wait for Kafka Connect to deploy and update connectors
-        Thread.sleep(3000);
+        Thread.sleep(4000);
     }
 
     private void waitForConnectorAndTasksToBeInState(String connector, Connector.TaskState state)
