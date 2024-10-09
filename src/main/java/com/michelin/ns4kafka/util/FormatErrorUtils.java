@@ -51,6 +51,17 @@ public class FormatErrorUtils {
     }
 
     /**
+     * Invalid self-assigned ACL delete, authorized only by admin.
+     *
+     * @param invalidAclName the invalid ACL name
+     * @return the error message
+     */
+    public static String invalidSelfAssignedAclDelete(String invalidAclName, String acls) {
+        return String.format(INVALID_FIELD, invalidAclName, FIELD_NAME,
+            "only administrators can delete the following self-assigned ACLs: " + acls);
+    }
+
+    /**
      * Invalid ACL field.
      *
      * @param invalidFieldName  the invalid field name
