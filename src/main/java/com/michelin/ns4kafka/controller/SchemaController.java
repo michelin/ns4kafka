@@ -53,7 +53,15 @@ public class SchemaController extends NamespacedResourceController {
      */
     @Get
     public Flux<SchemaList> list(String namespace, @QueryValue(defaultValue = "*") String name) {
-        return schemaService.findByWildcardName(getNamespace(namespace), name);
+        Namespace ns = getNamespace(namespace);
+        return schemaService.findByWildcardName(ns, name)
+            .collectList()
+            .flatMapMany(schemas -> schemas.size() == 1
+                ? Flux.fromIterable(schemas
+                    .stream()
+                    .map(schema -> schemaService.getSubjectListLatestVersion(ns, schema.getMetadata().getName()))
+                    .toList()).flatMap(schema -> schema)
+                : Flux.fromIterable(schemas));
     }
 
     /**

@@ -108,40 +108,99 @@ public class SchemaService {
     }
 
     /**
+     * Build the schema spec from the SchemaResponse.
+     *
+     * @param namespace         The namespace
+     * @param subjectOptional   The subject object from Http response
+     * @return A Subject
+     */
+    public Mono<Schema> buildSchemaSpec(Namespace namespace, SchemaResponse subjectOptional) {
+        return schemaRegistryClient
+            .getCurrentCompatibilityBySubject(namespace.getMetadata().getCluster(), subjectOptional.subject())
+            .map(Optional::of)
+            .defaultIfEmpty(Optional.empty())
+            .map(currentCompatibilityOptional -> {
+                Schema.Compatibility compatibility = currentCompatibilityOptional.isPresent()
+                    ? currentCompatibilityOptional.get().compatibilityLevel() : Schema.Compatibility.GLOBAL;
+
+                return Schema.builder()
+                    .metadata(Metadata.builder()
+                        .cluster(namespace.getMetadata().getCluster())
+                        .namespace(namespace.getMetadata().getName())
+                        .name(subjectOptional.subject())
+                        .build())
+                    .spec(Schema.SchemaSpec.builder()
+                        .id(subjectOptional.id())
+                        .version(subjectOptional.version())
+                        .compatibility(compatibility)
+                        .schema(subjectOptional.schema())
+                        .schemaType(subjectOptional.schemaType() == null ? Schema.SchemaType.AVRO :
+                            Schema.SchemaType.valueOf(subjectOptional.schemaType()))
+                        .build())
+                    .build();
+            });
+    }
+
+    /**
+     * Build the SchemaList spec from the SchemaResponse.
+     *
+     * @param namespace         The namespace
+     * @param subjectOptional   The subject object from Http response
+     * @return A Subject
+     */
+    public Mono<SchemaList> buildSchemaListSpec(Namespace namespace, SchemaResponse subjectOptional) {
+        return schemaRegistryClient
+            .getCurrentCompatibilityBySubject(namespace.getMetadata().getCluster(), subjectOptional.subject())
+            .map(Optional::of)
+            .defaultIfEmpty(Optional.empty())
+            .map(currentCompatibilityOptional -> {
+                Schema.Compatibility compatibility = currentCompatibilityOptional.isPresent()
+                    ? currentCompatibilityOptional.get().compatibilityLevel() : Schema.Compatibility.GLOBAL;
+
+                return SchemaList.builder()
+                    .metadata(Metadata.builder()
+                        .cluster(namespace.getMetadata().getCluster())
+                        .namespace(namespace.getMetadata().getName())
+                        .name(subjectOptional.subject())
+                        .build())
+                    .spec(Schema.SchemaSpec.builder()
+                        .id(subjectOptional.id())
+                        .version(subjectOptional.version())
+                        .compatibility(compatibility)
+                        .schema(subjectOptional.schema())
+                        .schemaType(subjectOptional.schemaType() == null ? Schema.SchemaType.AVRO :
+                            Schema.SchemaType.valueOf(subjectOptional.schemaType()))
+                        .build())
+                    .build();
+            });
+    }
+
+    /**
      * Get a subject by its name and version.
      *
      * @param namespace The namespace
      * @param subject   The subject
      * @param version   The version
-     * @return A Subject
+     * @return A subject
      */
     public Mono<Schema> getSubjectByVersion(Namespace namespace, String subject, String version) {
         return schemaRegistryClient
             .getSubject(namespace.getMetadata().getCluster(), subject, version)
-            .flatMap(latestSubjectOptional -> schemaRegistryClient
-                .getCurrentCompatibilityBySubject(namespace.getMetadata().getCluster(), subject)
-                .map(Optional::of)
-                .defaultIfEmpty(Optional.empty())
-                .map(currentCompatibilityOptional -> {
-                    Schema.Compatibility compatibility = currentCompatibilityOptional.isPresent()
-                        ? currentCompatibilityOptional.get().compatibilityLevel() : Schema.Compatibility.GLOBAL;
+            .flatMap(subjectOptional -> buildSchemaSpec(namespace, subjectOptional));
+    }
 
-                    return Schema.builder()
-                        .metadata(Metadata.builder()
-                            .cluster(namespace.getMetadata().getCluster())
-                            .namespace(namespace.getMetadata().getName())
-                            .name(latestSubjectOptional.subject())
-                            .build())
-                        .spec(Schema.SchemaSpec.builder()
-                            .id(latestSubjectOptional.id())
-                            .version(latestSubjectOptional.version())
-                            .compatibility(compatibility)
-                            .schema(latestSubjectOptional.schema())
-                            .schemaType(latestSubjectOptional.schemaType() == null ? Schema.SchemaType.AVRO :
-                                Schema.SchemaType.valueOf(latestSubjectOptional.schemaType()))
-                            .build())
-                        .build();
-                }));
+    /**
+     * Get a subject by its name and version.
+     *
+     * @param namespace The namespace
+     * @param subject   The subject
+     * @param version   The version
+     * @return A subject
+     */
+    public Mono<SchemaList> getSubjectListByVersion(Namespace namespace, String subject, String version) {
+        return schemaRegistryClient
+            .getSubject(namespace.getMetadata().getCluster(), subject, version)
+            .flatMap(subjectOptional -> buildSchemaListSpec(namespace, subjectOptional));
     }
 
     /**
@@ -153,6 +212,17 @@ public class SchemaService {
      */
     public Mono<Schema> getSubjectLatestVersion(Namespace namespace, String subject) {
         return getSubjectByVersion(namespace, subject, "latest");
+    }
+
+    /**
+     * Get the last version of a schema by namespace and subject.
+     *
+     * @param namespace The namespace
+     * @param subject   The subject
+     * @return A schema
+     */
+    public Mono<SchemaList> getSubjectListLatestVersion(Namespace namespace, String subject) {
+        return getSubjectListByVersion(namespace, subject, "latest");
     }
 
     /**
