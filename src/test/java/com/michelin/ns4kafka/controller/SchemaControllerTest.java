@@ -188,7 +188,7 @@ class SchemaControllerTest {
     }
 
     @Test
-    void shouldCreateSchemaInDryRunMode() {
+    void shouldNotCreateSchemaInDryRunMode() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
 
