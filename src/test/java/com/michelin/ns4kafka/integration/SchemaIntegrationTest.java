@@ -13,7 +13,6 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.model.schema.SchemaCompatibilityState;
-import com.michelin.ns4kafka.model.schema.SchemaList;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaRequest;
@@ -576,12 +575,12 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
             .toBlocking()
             .exchange(HttpRequest
                 .create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
-                .bearerAuth(token), Argument.listOf(SchemaList.class));
+                .bearerAuth(token), Argument.listOf(Schema.class));
 
         assertTrue(getResponse.getBody().isPresent());
         assertTrue(getResponse.getBody().get()
             .stream()
-            .noneMatch(schemaList -> schemaList.getMetadata().getName().equals("wrongprefix-subject")));
+            .noneMatch(responseSchema -> responseSchema.getMetadata().getName().equals("wrongprefix-subject")));
 
         HttpClientResponseException getException = assertThrows(HttpClientResponseException.class,
             () -> schemaRegistryClient
@@ -624,12 +623,12 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
             .toBlocking()
             .exchange(HttpRequest
                 .create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
-                .bearerAuth(token), Argument.listOf(SchemaList.class));
+                .bearerAuth(token), Argument.listOf(Schema.class));
 
         assertTrue(getResponse.getBody().isPresent());
         assertTrue(getResponse.getBody().get()
             .stream()
-            .anyMatch(schemaList -> schemaList.getMetadata().getName().equals("ns1-subject2-value")));
+            .anyMatch(responseSchema -> responseSchema.getMetadata().getName().equals("ns1-subject2-value")));
 
         // Delete schema
         var deleteResponse = ns4KafkaClient
@@ -645,12 +644,12 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
             .toBlocking()
             .exchange(HttpRequest
                 .create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
-                .bearerAuth(token), Argument.listOf(SchemaList.class));
+                .bearerAuth(token), Argument.listOf(Schema.class));
 
         assertTrue(getResponseEmpty.getBody().isPresent());
         assertTrue(getResponseEmpty.getBody().get()
             .stream()
-            .noneMatch(schemaList -> schemaList.getMetadata().getName().equals("ns1-subject2-value")));
+            .noneMatch(responseSchema -> responseSchema.getMetadata().getName().equals("ns1-subject2-value")));
 
         HttpClientResponseException getException = assertThrows(HttpClientResponseException.class,
             () -> schemaRegistryClient
@@ -693,12 +692,12 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
             .toBlocking()
             .exchange(HttpRequest
                 .create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
-                .bearerAuth(token), Argument.listOf(SchemaList.class));
+                .bearerAuth(token), Argument.listOf(Schema.class));
 
         assertTrue(getResponse.getBody().isPresent());
         assertTrue(getResponse.getBody().get()
             .stream()
-            .anyMatch(schemaList -> schemaList.getMetadata().getName().equals("ns1-subject3-value")));
+            .anyMatch(responseSchema -> responseSchema.getMetadata().getName().equals("ns1-subject3-value")));
 
         // Apply the same schema with swapped fields
         Schema sameSchemaWithSwappedFields = Schema.builder()
@@ -911,11 +910,11 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
             .toBlocking()
             .exchange(HttpRequest
                 .create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
-                .bearerAuth(token), Argument.listOf(SchemaList.class));
+                .bearerAuth(token), Argument.listOf(Schema.class));
 
         assertTrue(getSchemaAfterAllVersionsDeletionResponse.getBody().isPresent());
         assertTrue(getSchemaAfterAllVersionsDeletionResponse.getBody().get()
             .stream()
-            .noneMatch(schemaList -> schemaList.getMetadata().getName().equals("ns1-subject4-value")));
+            .noneMatch(schema -> schema.getMetadata().getName().equals("ns1-subject4-value")));
     }
 }

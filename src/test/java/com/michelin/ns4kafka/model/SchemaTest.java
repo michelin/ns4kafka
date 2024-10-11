@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import com.michelin.ns4kafka.model.schema.Schema;
-import com.michelin.ns4kafka.model.schema.SchemaList;
 import org.junit.jupiter.api.Test;
 
 class SchemaTest {
@@ -104,20 +103,20 @@ class SchemaTest {
     }
 
     @Test
-    void shouldSchemaListBeEqual() {
-        SchemaList original = SchemaList.builder()
+    void shouldSchemaBeEqual() {
+        Schema original = Schema.builder()
             .metadata(Metadata.builder()
                 .name("prefix.schema-one")
                 .build())
             .build();
 
-        SchemaList same = SchemaList.builder()
+        Schema same = Schema.builder()
             .metadata(Metadata.builder()
                 .name("prefix.schema-one")
                 .build())
             .build();
 
-        SchemaList different = SchemaList.builder()
+        Schema different = Schema.builder()
             .metadata(Metadata.builder()
                 .name("prefix.schema-two")
                 .build())

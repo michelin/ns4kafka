@@ -229,25 +229,6 @@ class SchemaServiceTest {
     }
 
     @Test
-    void shouldGetSubjectListLatestVersion() {
-        Namespace namespace = buildNamespace();
-        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
-
-        when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(),
-            "prefix.schema-one", "latest")).thenReturn(Mono.just(buildSchemaResponse("prefix.schema-one")));
-        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any())).thenReturn(
-            Mono.just(compatibilityResponse));
-
-        StepVerifier.create(schemaService.getSubjectListLatestVersion(namespace, "prefix.schema-one"))
-            .consumeNextWith(latestSubject -> {
-                assertEquals("prefix.schema-one", latestSubject.getMetadata().getName());
-                assertEquals("local", latestSubject.getMetadata().getCluster());
-                assertEquals("myNamespace", latestSubject.getMetadata().getNamespace());
-            })
-            .verifyComplete();
-    }
-
-    @Test
     void shouldGetAllSubjectVersions() {
         Namespace namespace = buildNamespace();
         SchemaResponse schemaResponse = buildSchemaResponse("prefix.schema-one");

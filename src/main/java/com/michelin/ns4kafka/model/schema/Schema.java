@@ -24,7 +24,6 @@ import lombok.Setter;
 @EqualsAndHashCode(callSuper = true)
 public class Schema extends MetadataResource {
     @Valid
-    @NotNull
     private SchemaSpec spec;
 
     /**

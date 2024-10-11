@@ -12,7 +12,6 @@ import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
-import com.michelin.ns4kafka.model.schema.SchemaList;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.SchemaService;
@@ -280,8 +279,8 @@ class SchemaControllerTest {
     @Test
     void shouldListMultipleSchemas() {
         Namespace namespace = buildNamespace();
-        SchemaList schema = buildSchemaList();
-        SchemaList schema2 = buildSchemaList2();
+        Schema schema = buildSchemaNameOnly();
+        Schema schema2 = buildSchemaNameOnly2();
 
         when(namespaceService.findByName("myNamespace"))
             .thenReturn(Optional.of(namespace));
@@ -294,19 +293,19 @@ class SchemaControllerTest {
             .consumeNextWith(
                 schemaResponse -> assertEquals("prefix.subject2-value", schemaResponse.getMetadata().getName()))
             .verifyComplete();
-        verify(schemaService, never()).getSubjectListLatestVersion(any(), any());
+        verify(schemaService, never()).getSubjectLatestVersion(any(), any());
     }
 
     @Test
     void shouldListOneSchemaWithNameParameter() {
         Namespace namespace = buildNamespace();
-        SchemaList schema = buildSchemaList();
+        Schema schema = buildSchemaNameOnly();
 
         when(namespaceService.findByName("myNamespace"))
             .thenReturn(Optional.of(namespace));
         when(schemaService.findByWildcardName(namespace, "prefix.subject-value"))
             .thenReturn(Flux.fromIterable(List.of(schema)));
-        when(schemaService.getSubjectListLatestVersion(namespace, "prefix.subject-value"))
+        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
             .thenReturn(Mono.just(schema));
 
         StepVerifier.create(schemaController.list("myNamespace", "prefix.subject-value"))
@@ -326,7 +325,7 @@ class SchemaControllerTest {
 
         StepVerifier.create(schemaController.list("myNamespace", "prefix.subject-value"))
             .verifyComplete();
-        verify(schemaService, never()).getSubjectListLatestVersion(any(), any());
+        verify(schemaService, never()).getSubjectLatestVersion(any(), any());
     }
 
     @Test
@@ -682,16 +681,16 @@ class SchemaControllerTest {
             .build();
     }
 
-    private SchemaList buildSchemaList() {
-        return SchemaList.builder()
+    private Schema buildSchemaNameOnly() {
+        return Schema.builder()
             .metadata(Metadata.builder()
                 .name("prefix.subject-value")
                 .build())
             .build();
     }
 
-    private SchemaList buildSchemaList2() {
-        return SchemaList.builder()
+    private Schema buildSchemaNameOnly2() {
+        return Schema.builder()
             .metadata(Metadata.builder()
                 .name("prefix.subject2-value")
                 .build())
