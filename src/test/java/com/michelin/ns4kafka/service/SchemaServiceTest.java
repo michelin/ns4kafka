@@ -210,7 +210,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void shouldGetBySubjectAndVersion() {
+    void shouldGetSubjectLatestVersion() {
         Namespace namespace = buildNamespace();
         SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
 
@@ -220,6 +220,25 @@ class SchemaServiceTest {
             Mono.just(compatibilityResponse));
 
         StepVerifier.create(schemaService.getSubjectLatestVersion(namespace, "prefix.schema-one"))
+            .consumeNextWith(latestSubject -> {
+                assertEquals("prefix.schema-one", latestSubject.getMetadata().getName());
+                assertEquals("local", latestSubject.getMetadata().getCluster());
+                assertEquals("myNamespace", latestSubject.getMetadata().getNamespace());
+            })
+            .verifyComplete();
+    }
+
+    @Test
+    void shouldGetSubjectListLatestVersion() {
+        Namespace namespace = buildNamespace();
+        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+
+        when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(),
+            "prefix.schema-one", "latest")).thenReturn(Mono.just(buildSchemaResponse("prefix.schema-one")));
+        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any())).thenReturn(
+            Mono.just(compatibilityResponse));
+
+        StepVerifier.create(schemaService.getSubjectListLatestVersion(namespace, "prefix.schema-one"))
             .consumeNextWith(latestSubject -> {
                 assertEquals("prefix.schema-one", latestSubject.getMetadata().getName());
                 assertEquals("local", latestSubject.getMetadata().getCluster());
@@ -247,7 +266,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void shouldGetBySubjectAndVersionWhenEmpty() {
+    void shouldNotGetSubjectLatestVersionWhenEmpty() {
         Namespace namespace = buildNamespace();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "prefix.schema-one", "latest"))

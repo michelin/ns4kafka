@@ -278,23 +278,27 @@ class SchemaControllerTest {
     }
 
     @Test
-    void shouldListSchemasWithoutParameter() {
+    void shouldListMultipleSchemas() {
         Namespace namespace = buildNamespace();
         SchemaList schema = buildSchemaList();
+        SchemaList schema2 = buildSchemaList2();
 
         when(namespaceService.findByName("myNamespace"))
             .thenReturn(Optional.of(namespace));
         when(schemaService.findByWildcardName(namespace, "*"))
-            .thenReturn(Flux.fromIterable(List.of(schema)));
+            .thenReturn(Flux.fromIterable(List.of(schema, schema2)));
 
         StepVerifier.create(schemaController.list("myNamespace", "*"))
             .consumeNextWith(
                 schemaResponse -> assertEquals("prefix.subject-value", schemaResponse.getMetadata().getName()))
+            .consumeNextWith(
+                schemaResponse -> assertEquals("prefix.subject2-value", schemaResponse.getMetadata().getName()))
             .verifyComplete();
+        verify(schemaService, never()).getSubjectListLatestVersion(any(), any());
     }
 
     @Test
-    void shouldListSchemaWithNameParameter() {
+    void shouldListOneSchemaWithNameParameter() {
         Namespace namespace = buildNamespace();
         SchemaList schema = buildSchemaList();
 
@@ -302,11 +306,27 @@ class SchemaControllerTest {
             .thenReturn(Optional.of(namespace));
         when(schemaService.findByWildcardName(namespace, "prefix.subject-value"))
             .thenReturn(Flux.fromIterable(List.of(schema)));
+        when(schemaService.getSubjectListLatestVersion(namespace, "prefix.subject-value"))
+            .thenReturn(Mono.just(schema));
 
         StepVerifier.create(schemaController.list("myNamespace", "prefix.subject-value"))
             .consumeNextWith(
                 schemaResponse -> assertEquals("prefix.subject-value", schemaResponse.getMetadata().getName()))
             .verifyComplete();
+    }
+
+    @Test
+    void shouldListSchemaWhenNoSchema() {
+        Namespace namespace = buildNamespace();
+
+        when(namespaceService.findByName("myNamespace"))
+            .thenReturn(Optional.of(namespace));
+        when(schemaService.findByWildcardName(namespace, "prefix.subject-value"))
+            .thenReturn(Flux.fromIterable(List.of()));
+
+        StepVerifier.create(schemaController.list("myNamespace", "prefix.subject-value"))
+            .verifyComplete();
+        verify(schemaService, never()).getSubjectListLatestVersion(any(), any());
     }
 
     @Test
@@ -666,6 +686,14 @@ class SchemaControllerTest {
         return SchemaList.builder()
             .metadata(Metadata.builder()
                 .name("prefix.subject-value")
+                .build())
+            .build();
+    }
+
+    private SchemaList buildSchemaList2() {
+        return SchemaList.builder()
+            .metadata(Metadata.builder()
+                .name("prefix.subject2-value")
                 .build())
             .build();
     }
