@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.controller.acl;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidAclDeleteOnlyAdmin;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidImmutableField;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNotFound;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSelfAssignedAclDelete;
 import static com.michelin.ns4kafka.util.enumation.Kind.ACCESS_CONTROL_ENTRY;
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
@@ -58,7 +59,7 @@ public class AclController extends NamespacedResourceController {
                 .stream()
                 .sorted(Comparator.comparing((AccessControlEntry acl) -> acl.getMetadata().getNamespace()))
                 .toList();
-            case GRANTOR -> aclService.findAllGrantedByNamespaceByWildcardName(ns, name)
+            case GRANTOR -> aclService.findAllGrantedByNamespaceToOthersByWildcardName(ns, name)
                 .stream()
                 .sorted(Comparator.comparing(acl -> acl.getSpec().getGrantedTo()))
                 .toList();
@@ -77,7 +78,7 @@ public class AclController extends NamespacedResourceController {
      * @param namespace The name
      * @param acl   The ACL name
      * @return The ACL
-     * @deprecated use list(String, Optional ALL, String name) instead.
+     * @deprecated use {@link #list(String, Optional, String)} instead.
      */
     @Get("/{acl}")
     @Deprecated(since = "1.12.0")
@@ -94,7 +95,7 @@ public class AclController extends NamespacedResourceController {
      * @param authentication     The authentication entity
      * @param namespace          The namespace
      * @param accessControlEntry The ACL
-     * @param dryrun             Is dry run mode or not ?
+     * @param dryrun             Is dry run mode or not?
      * @return An HTTP response
      */
     @Post("{?dryrun}")
@@ -157,12 +158,69 @@ public class AclController extends NamespacedResourceController {
      *
      * @param authentication The authentication entity
      * @param namespace      The namespace
-     * @param name           The ACL name
-     * @param dryrun         Is dry run mode or not ?
+     * @param name           The ACL name parameter
+     * @param dryrun         Is dry run mode or not?
      * @return An HTTP response
+     */
+    @Delete
+    @Status(HttpStatus.NO_CONTENT)
+    public HttpResponse<Void> bulkDelete(Authentication authentication, String namespace,
+                                         @QueryValue(defaultValue = "*") String name,
+                                         @QueryValue(defaultValue = "false") boolean dryrun) {
+
+        Namespace ns = getNamespace(namespace);
+        List<AccessControlEntry> acls = aclService.findAllGrantedByNamespaceByWildcardName(ns, name);
+        List<AccessControlEntry> selfAssignedAcls = acls
+            .stream()
+            .filter(acl -> namespace.equals(acl.getSpec().getGrantedTo()))
+            .toList();
+        boolean isAdmin = authentication.getRoles().contains(ResourceBasedSecurityRule.IS_ADMIN);
+
+        if (acls.isEmpty()) {
+            return HttpResponse.notFound();
+        }
+
+        // If non-admin tries to delete at least one self-assigned ACL, throw validation error
+        if (!isAdmin && !selfAssignedAcls.isEmpty()) {
+            List<String> selfAssignedAclsNames = selfAssignedAcls
+                .stream()
+                .map(acl -> acl.getMetadata().getName())
+                .toList();
+            throw new ResourceValidationException(ACCESS_CONTROL_ENTRY, name,
+                invalidSelfAssignedAclDelete(name, String.join(", ", selfAssignedAclsNames))
+            );
+        }
+
+        if (dryrun) {
+            return HttpResponse.noContent();
+        }
+
+        acls.forEach(acl -> {
+            sendEventLog(
+                acl,
+                ApplyStatus.deleted,
+                acl.getSpec(),
+                null,
+                EMPTY_STRING);
+            aclService.delete(acl);
+        });
+
+        return HttpResponse.noContent();
+    }
+
+    /**
+     * Delete an ACL.
+     *
+     * @param authentication The authentication entity
+     * @param namespace      The namespace
+     * @param name           The ACL name
+     * @param dryrun         Is dry run mode or not?
+     * @return An HTTP response
+     * @deprecated use {@link #bulkDelete(Authentication, String, String, boolean)} instead.
      */
     @Delete("/{name}{?dryrun}")
     @Status(HttpStatus.NO_CONTENT)
+    @Deprecated(since = "1.13.0")
     public HttpResponse<Void> delete(Authentication authentication, String namespace, String name,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         AccessControlEntry accessControlEntry = aclService

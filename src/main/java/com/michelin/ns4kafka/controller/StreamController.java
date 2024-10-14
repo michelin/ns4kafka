@@ -40,7 +40,7 @@ public class StreamController extends NamespacedResourceController {
      * List Kafka Streams by namespace, filtered by name parameter.
      *
      * @param namespace The namespace
-     * @param name The name parameter
+     * @param name      The name parameter
      * @return A list of Kafka Streams
      */
     @Get
@@ -67,7 +67,7 @@ public class StreamController extends NamespacedResourceController {
      *
      * @param namespace The namespace
      * @param stream    The Kafka Stream
-     * @param dryrun    Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
      */
     @Post("/{?dryrun}")
@@ -110,11 +110,13 @@ public class StreamController extends NamespacedResourceController {
      *
      * @param namespace The namespace
      * @param stream    The Kafka Streams
-     * @param dryrun    Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
+     * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{stream}{?dryrun}")
+    @Deprecated(since = "1.13.0")
     HttpResponse<Void> delete(String namespace, String stream, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
         if (!streamService.isNamespaceOwnerOfKafkaStream(ns, stream)) {
@@ -142,6 +144,53 @@ public class StreamController extends NamespacedResourceController {
         );
 
         streamService.delete(ns, optionalStream.get());
+        return HttpResponse.noContent();
+    }
+
+    /**
+     * Delete a Kafka Streams.
+     *
+     * @param namespace The namespace
+     * @param name      The name parameter
+     * @param dryrun    Is dry run mode or not?
+     * @return An HTTP response
+     */
+    @Status(HttpStatus.NO_CONTENT)
+    @Delete
+    HttpResponse<Void> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
+                                  @QueryValue(defaultValue = "false") boolean dryrun) {
+        Namespace ns = getNamespace(namespace);
+
+        List<KafkaStream> kafkaStreams = streamService.findByWildcardName(ns, name);
+
+        List<String> validationErrors = kafkaStreams.stream()
+                .filter(kafkaStream ->
+                        !streamService.isNamespaceOwnerOfKafkaStream(ns, kafkaStream.getMetadata().getName()))
+                .map(kafkaStream -> invalidOwner(kafkaStream.getMetadata().getName()))
+                .toList();
+
+        if (!validationErrors.isEmpty()) {
+            throw new ResourceValidationException(KAFKA_STREAM, name, validationErrors);
+        }
+
+        if (kafkaStreams.isEmpty()) {
+            return HttpResponse.notFound();
+        }
+
+        if (dryrun) {
+            return HttpResponse.noContent();
+        }
+        kafkaStreams.forEach(kafkaStream -> {
+            sendEventLog(
+                    kafkaStream,
+                    ApplyStatus.deleted,
+                    kafkaStream.getMetadata(),
+                    null,
+                    EMPTY_STRING
+            );
+            streamService.delete(ns, kafkaStream);
+        });
+
         return HttpResponse.noContent();
     }
 }

@@ -139,7 +139,7 @@ public class SchemaRegistryClient {
     }
 
     /**
-     * Delete a subject.
+     * Delete schema version under a subject.
      *
      * @param kafkaCluster The Kafka cluster
      * @param subject      The subject

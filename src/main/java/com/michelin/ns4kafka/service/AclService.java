@@ -263,12 +263,25 @@ public class AclService {
     }
 
     /**
-     * Find all ACLs that a given namespace granted to other namespaces.
+     * Find all ACLs granted by a given namespace.
      *
      * @param namespace The namespace
      * @return A list of ACLs
      */
     public List<AccessControlEntry> findAllGrantedByNamespace(Namespace namespace) {
+        return accessControlEntryRepository.findAll()
+            .stream()
+            .filter(acl -> acl.getMetadata().getNamespace().equals(namespace.getMetadata().getName()))
+            .toList();
+    }
+
+    /**
+     * Find all ACLs that a given namespace granted to other namespaces.
+     *
+     * @param namespace The namespace
+     * @return A list of ACLs
+     */
+    public List<AccessControlEntry> findAllGrantedByNamespaceToOthers(Namespace namespace) {
         return accessControlEntryRepository.findAll()
             .stream()
             .filter(acl -> acl.getMetadata().getNamespace().equals(namespace.getMetadata().getName()))
@@ -308,7 +321,7 @@ public class AclService {
     }
 
     /**
-     * Find all ACLs that a given namespace granted to other namespaces, filtered by name parameter.
+     * Find all ACLs granted by a given namespace, filtered by name parameter.
      *
      * @param namespace The namespace
      * @param name      The name parameter
@@ -317,6 +330,21 @@ public class AclService {
     public List<AccessControlEntry> findAllGrantedByNamespaceByWildcardName(Namespace namespace, String name) {
         List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
         return findAllGrantedByNamespace(namespace)
+            .stream()
+            .filter(acl -> RegexUtils.isResourceCoveredByRegex(acl.getMetadata().getName(), nameFilterPatterns))
+            .toList();
+    }
+
+    /**
+     * Find all ACLs that a given namespace granted to other namespaces, filtered by name parameter.
+     *
+     * @param namespace The namespace
+     * @param name      The name parameter
+     * @return A list of ACLs
+     */
+    public List<AccessControlEntry> findAllGrantedByNamespaceToOthersByWildcardName(Namespace namespace, String name) {
+        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
+        return findAllGrantedByNamespaceToOthers(namespace)
             .stream()
             .filter(acl -> RegexUtils.isResourceCoveredByRegex(acl.getMetadata().getName(), nameFilterPatterns))
             .toList();

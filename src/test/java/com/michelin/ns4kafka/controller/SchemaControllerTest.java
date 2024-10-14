@@ -461,6 +461,7 @@ class SchemaControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteAllSchemaVersionsWhenNotOwner() {
         Namespace namespace = buildNamespace();
 
@@ -484,6 +485,7 @@ class SchemaControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteOneSchemaVersionWhenNotOwner() {
         Namespace namespace = buildNamespace();
 
@@ -507,6 +509,7 @@ class SchemaControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldDeleteAllSchemaVersions() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
@@ -533,6 +536,7 @@ class SchemaControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldDeleteSchemaVersion() {
         Namespace namespace = buildNamespace();
         Schema schema1 = buildSchema();
@@ -554,6 +558,7 @@ class SchemaControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteAllSchemaVersionsWhenEmpty() {
         Namespace namespace = buildNamespace();
 
@@ -572,6 +577,7 @@ class SchemaControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteSchemaVersionWhenEmpty() {
         Namespace namespace = buildNamespace();
 
@@ -590,6 +596,7 @@ class SchemaControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteAllSchemaVersionsInDryRunMode() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
@@ -609,6 +616,7 @@ class SchemaControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotDeleteSchemaVersionInDryRunMode() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
@@ -621,6 +629,171 @@ class SchemaControllerTest {
             .thenReturn(Mono.just(schema));
 
         StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.of("1"), true))
+            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .verifyComplete();
+
+        verify(schemaService, never()).deleteVersion(namespace, "prefix.subject-value", "1");
+    }
+
+    @Test
+    void shouldBulkDeleteAllSchemaVersions() {
+        Namespace namespace = buildNamespace();
+        Schema schema1 = buildSchema();
+        SchemaList schemaList = buildSchemaList();
+
+        when(namespaceService.findByName("myNamespace"))
+            .thenReturn(Optional.of(namespace));
+        when(schemaService.findByWildcardName(namespace, "prefix.subject-value"))
+            .thenReturn(Flux.fromIterable(List.of(schemaList)));
+        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
+            .thenReturn(Mono.just(schema1));
+        when(schemaService.deleteAllVersions(namespace, "prefix.subject-value"))
+            .thenReturn(Mono.just(new Integer[1]));
+
+        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.empty(), false))
+            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .verifyComplete();
+
+        verify(applicationEventPublisher).publishEvent(any());
+    }
+
+    @Test
+    void shouldBulkDeleteSchemaVersion() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+        SchemaList schemaList = buildSchemaList();
+
+        when(namespaceService.findByName("myNamespace"))
+            .thenReturn(Optional.of(namespace));
+        when(schemaService.findByWildcardName(namespace, "prefix.subject-value"))
+            .thenReturn(Flux.fromIterable(List.of(schemaList)));
+        when(schemaService.getSubjectByVersion(namespace, "prefix.subject-value", "1"))
+            .thenReturn(Mono.just(schema));
+        when(schemaService.deleteVersion(namespace, "prefix.subject-value", "1"))
+            .thenReturn(Mono.just(1));
+
+        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.of("1"), false))
+            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .verifyComplete();
+
+        verify(applicationEventPublisher).publishEvent(any());
+    }
+
+
+    @Test
+    void shouldNotBulkDeleteAllSchemaVersionsWhenEmpty() {
+        Namespace namespace = buildNamespace();
+
+        when(namespaceService.findByName("myNamespace"))
+            .thenReturn(Optional.of(namespace));
+        when(schemaService.findByWildcardName(namespace, "prefix.subject-value"))
+            .thenReturn(Flux.fromIterable(List.of()));
+
+        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.empty(), false))
+            .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
+            .verifyComplete();
+
+        verify(schemaService, never()).deleteAllVersions(namespace, "prefix.subject-value");
+    }
+
+    @Test
+    void shouldNotBulkDeleteSchemaVersionWhenEmpty() {
+        Namespace namespace = buildNamespace();
+
+        when(namespaceService.findByName("myNamespace"))
+            .thenReturn(Optional.of(namespace));
+        when(schemaService.findByWildcardName(namespace, "prefix.subject-value"))
+            .thenReturn(Flux.fromIterable(List.of()));
+
+        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.of("1"), false))
+            .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
+            .verifyComplete();
+
+        verify(schemaService, never()).deleteVersion(namespace, "prefix.subject-value", "1");
+    }
+
+    @Test
+    void shouldNotBulkDeleteAllSchemaVersionsWhenVersionNotFound() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+        SchemaList schemaList = buildSchemaList();
+        SchemaList schemaList2 = buildSchemaList2();
+
+        when(namespaceService.findByName("myNamespace"))
+            .thenReturn(Optional.of(namespace));
+        when(schemaService.findByWildcardName(namespace, "prefix.subject*"))
+            .thenReturn(Flux.fromIterable(List.of(schemaList, schemaList2)));
+        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
+            .thenReturn(Mono.just(schema));
+        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject2-value"))
+            .thenReturn(Mono.empty());
+
+        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject*", Optional.empty(), false))
+            .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
+            .verifyComplete();
+
+        verify(schemaService, never()).deleteAllVersions(namespace, "prefix.subject-value");
+        verify(schemaService, never()).deleteAllVersions(namespace, "prefix.subject2-value");
+    }
+
+    @Test
+    void shouldNotBulkDeleteSchemaVersionWhenVersionNotFound() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+        SchemaList schemaList = buildSchemaList();
+        SchemaList schemaList2 = buildSchemaList2();
+
+        when(namespaceService.findByName("myNamespace"))
+            .thenReturn(Optional.of(namespace));
+        when(schemaService.findByWildcardName(namespace, "prefix.subject*"))
+            .thenReturn(Flux.fromIterable(List.of(schemaList, schemaList2)));
+        when(schemaService.getSubjectByVersion(namespace, "prefix.subject-value", "1"))
+            .thenReturn(Mono.just(schema));
+        when(schemaService.getSubjectByVersion(namespace, "prefix.subject2-value", "1"))
+            .thenReturn(Mono.empty());
+
+        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject*", Optional.of("1"), false))
+            .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
+            .verifyComplete();
+
+        verify(schemaService, never()).deleteVersion(namespace, "prefix.subject-value", "1");
+        verify(schemaService, never()).deleteVersion(namespace, "prefix.subject2-value", "1");
+    }
+
+    @Test
+    void shouldNotBulkDeleteAllSchemaVersionsInDryRunMode() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+        SchemaList schemaList = buildSchemaList();
+
+        when(namespaceService.findByName("myNamespace"))
+            .thenReturn(Optional.of(namespace));
+        when(schemaService.findByWildcardName(namespace, "prefix.subject-value"))
+            .thenReturn(Flux.fromIterable(List.of(schemaList)));
+        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
+            .thenReturn(Mono.just(schema));
+
+        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.empty(), true))
+            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .verifyComplete();
+
+        verify(schemaService, never()).deleteAllVersions(namespace, "prefix.subject-value");
+    }
+
+    @Test
+    void shouldNotBulkDeleteSchemaVersionInDryRunMode() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema();
+        SchemaList schemaList = buildSchemaList();
+
+        when(namespaceService.findByName("myNamespace"))
+            .thenReturn(Optional.of(namespace));
+        when(schemaService.findByWildcardName(namespace, "prefix.subject-value"))
+            .thenReturn(Flux.fromIterable(List.of(schemaList)));
+        when(schemaService.getSubjectByVersion(namespace, "prefix.subject-value", "1"))
+            .thenReturn(Mono.just(schema));
+
+        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.of("1"), true))
             .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
             .verifyComplete();
 

@@ -42,6 +42,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * List quotas by namespace.
      *
      * @param namespace The namespace
+     * @param name      The name parameter
      * @return A list of quotas
      */
     @Get
@@ -59,7 +60,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * @param namespace The name
      * @param quota     The quota name
      * @return A quota
-     * @deprecated use list(String, String name) instead.
+     * @deprecated use {@link #list(String, String)} instead.
      */
     @Get("/{quota}")
     @Deprecated(since = "1.12.0")
@@ -116,15 +117,54 @@ public class ResourceQuotaController extends NamespacedResourceController {
     }
 
     /**
+     * Delete quotas.
+     *
+     * @param namespace The namespace
+     * @param name      The name parameter
+     * @param dryrun    Is dry run mode or not?
+     * @return An HTTP response
+     */
+    @Delete
+    @Status(HttpStatus.NO_CONTENT)
+    public HttpResponse<Void> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
+                                     @QueryValue(defaultValue = "false") boolean dryrun) {
+
+        List<ResourceQuota> resourceQuotas = resourceQuotaService.findByWildcardName(namespace, name);
+
+        if (resourceQuotas.isEmpty()) {
+            return HttpResponse.notFound();
+        }
+
+        if (dryrun) {
+            return HttpResponse.noContent();
+        }
+
+        resourceQuotas.forEach(resourceQuota -> {
+            sendEventLog(
+                resourceQuota,
+                ApplyStatus.deleted,
+                resourceQuota.getSpec(),
+                null,
+                EMPTY_STRING
+            );
+            resourceQuotaService.delete(resourceQuota);
+        });
+
+        return HttpResponse.noContent();
+    }
+
+    /**
      * Delete a quota.
      *
      * @param namespace The namespace
      * @param name      The resource quota
-     * @param dryrun    Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
+     * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
     @Delete("/{name}{?dryrun}")
     @Status(HttpStatus.NO_CONTENT)
+    @Deprecated(since = "1.13.0")
     public HttpResponse<Void> delete(String namespace, String name,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         Optional<ResourceQuota> resourceQuota = resourceQuotaService.findByName(namespace, name);

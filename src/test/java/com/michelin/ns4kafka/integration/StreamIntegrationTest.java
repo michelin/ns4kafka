@@ -16,6 +16,7 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
+import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
@@ -163,5 +164,19 @@ class StreamIntegrationTest extends KafkaIntegrationTest {
         assertEquals(1, aclTransactionalId.size());
         assertTrue(aclTransactionalId.stream().findFirst().isPresent());
         assertEquals(AclOperation.WRITE, aclTransactionalId.stream().findFirst().get().entry().operation());
+
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.DELETE, "/api/namespaces/nskafkastream/streams?name=kstream*")
+                .bearerAuth(token));
+
+        HttpResponse<List<KafkaStream>> streams = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.GET, "/api/namespaces/nskafkastream/streams")
+                .bearerAuth(token), Argument.listOf(KafkaStream.class));
+
+        assertEquals(0, streams.getBody().get().size());
     }
 }
