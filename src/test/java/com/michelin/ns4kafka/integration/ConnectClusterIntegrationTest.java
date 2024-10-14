@@ -20,11 +20,8 @@ import com.michelin.ns4kafka.model.RoleBinding.SubjectType;
 import com.michelin.ns4kafka.model.RoleBinding.Verb;
 import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
 import com.michelin.ns4kafka.model.connect.cluster.VaultResponse;
-import com.michelin.ns4kafka.service.executor.ConnectorAsyncExecutor;
-import com.michelin.ns4kafka.service.executor.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
-import io.micronaut.context.ApplicationContext;
 import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
@@ -44,17 +41,8 @@ import org.junit.jupiter.api.Test;
 @MicronautTest
 class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
     @Inject
-    private ApplicationContext applicationContext;
-
-    @Inject
     @Client("/")
     private HttpClient ns4KafkaClient;
-
-    @Inject
-    private List<TopicAsyncExecutor> topicAsyncExecutorList;
-
-    @Inject
-    private List<ConnectorAsyncExecutor> connectorAsyncExecutorList;
 
     private String token;
 
