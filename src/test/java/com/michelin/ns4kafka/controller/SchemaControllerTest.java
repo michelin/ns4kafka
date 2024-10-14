@@ -638,15 +638,14 @@ class SchemaControllerTest {
     @Test
     void shouldBulkDeleteAllSchemaVersions() {
         Namespace namespace = buildNamespace();
-        Schema schema1 = buildSchema();
-        SchemaList schemaList = buildSchemaList();
+        Schema schema = buildSchemaNameOnly();
 
         when(namespaceService.findByName("myNamespace"))
             .thenReturn(Optional.of(namespace));
         when(schemaService.findByWildcardName(namespace, "prefix.subject-value"))
-            .thenReturn(Flux.fromIterable(List.of(schemaList)));
+            .thenReturn(Flux.fromIterable(List.of(schema)));
         when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
-            .thenReturn(Mono.just(schema1));
+            .thenReturn(Mono.just(schema));
         when(schemaService.deleteAllVersions(namespace, "prefix.subject-value"))
             .thenReturn(Mono.just(new Integer[1]));
 
@@ -660,13 +659,12 @@ class SchemaControllerTest {
     @Test
     void shouldBulkDeleteSchemaVersion() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
-        SchemaList schemaList = buildSchemaList();
+        Schema schema = buildSchemaNameOnly();
 
         when(namespaceService.findByName("myNamespace"))
             .thenReturn(Optional.of(namespace));
         when(schemaService.findByWildcardName(namespace, "prefix.subject-value"))
-            .thenReturn(Flux.fromIterable(List.of(schemaList)));
+            .thenReturn(Flux.fromIterable(List.of(schema)));
         when(schemaService.getSubjectByVersion(namespace, "prefix.subject-value", "1"))
             .thenReturn(Mono.just(schema));
         when(schemaService.deleteVersion(namespace, "prefix.subject-value", "1"))
@@ -715,14 +713,13 @@ class SchemaControllerTest {
     @Test
     void shouldNotBulkDeleteAllSchemaVersionsWhenVersionNotFound() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
-        SchemaList schemaList = buildSchemaList();
-        SchemaList schemaList2 = buildSchemaList2();
+        Schema schema = buildSchemaNameOnly();
+        Schema schema2 = buildSchemaNameOnly2();
 
         when(namespaceService.findByName("myNamespace"))
             .thenReturn(Optional.of(namespace));
         when(schemaService.findByWildcardName(namespace, "prefix.subject*"))
-            .thenReturn(Flux.fromIterable(List.of(schemaList, schemaList2)));
+            .thenReturn(Flux.fromIterable(List.of(schema, schema2)));
         when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
             .thenReturn(Mono.just(schema));
         when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject2-value"))
@@ -739,14 +736,13 @@ class SchemaControllerTest {
     @Test
     void shouldNotBulkDeleteSchemaVersionWhenVersionNotFound() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
-        SchemaList schemaList = buildSchemaList();
-        SchemaList schemaList2 = buildSchemaList2();
+        Schema schema = buildSchemaNameOnly();
+        Schema schema2 = buildSchemaNameOnly2();
 
         when(namespaceService.findByName("myNamespace"))
             .thenReturn(Optional.of(namespace));
         when(schemaService.findByWildcardName(namespace, "prefix.subject*"))
-            .thenReturn(Flux.fromIterable(List.of(schemaList, schemaList2)));
+            .thenReturn(Flux.fromIterable(List.of(schema, schema2)));
         when(schemaService.getSubjectByVersion(namespace, "prefix.subject-value", "1"))
             .thenReturn(Mono.just(schema));
         when(schemaService.getSubjectByVersion(namespace, "prefix.subject2-value", "1"))
@@ -763,13 +759,12 @@ class SchemaControllerTest {
     @Test
     void shouldNotBulkDeleteAllSchemaVersionsInDryRunMode() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
-        SchemaList schemaList = buildSchemaList();
+        Schema schema = buildSchemaNameOnly();
 
         when(namespaceService.findByName("myNamespace"))
             .thenReturn(Optional.of(namespace));
         when(schemaService.findByWildcardName(namespace, "prefix.subject-value"))
-            .thenReturn(Flux.fromIterable(List.of(schemaList)));
+            .thenReturn(Flux.fromIterable(List.of(schema)));
         when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
             .thenReturn(Mono.just(schema));
 
@@ -783,13 +778,12 @@ class SchemaControllerTest {
     @Test
     void shouldNotBulkDeleteSchemaVersionInDryRunMode() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
-        SchemaList schemaList = buildSchemaList();
+        Schema schema = buildSchemaNameOnly();
 
         when(namespaceService.findByName("myNamespace"))
             .thenReturn(Optional.of(namespace));
         when(schemaService.findByWildcardName(namespace, "prefix.subject-value"))
-            .thenReturn(Flux.fromIterable(List.of(schemaList)));
+            .thenReturn(Flux.fromIterable(List.of(schema)));
         when(schemaService.getSubjectByVersion(namespace, "prefix.subject-value", "1"))
             .thenReturn(Mono.just(schema));
 
