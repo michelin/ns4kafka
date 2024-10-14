@@ -24,6 +24,8 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -71,9 +73,16 @@ public class SchemaRegistryClient {
      */
     public Mono<SchemaResponse> getSubject(String kafkaCluster, String subject, String version) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
+        String encodedSubject = URLEncoder.encode(subject, StandardCharsets.UTF_8);
+        String encodedVersion = URLEncoder.encode(version, StandardCharsets.UTF_8);
+
         HttpRequest<?> request = HttpRequest.GET(
-                URI.create(StringUtils.prependUri(config.getUrl(), SUBJECTS + subject + VERSIONS + version)))
+                URI.create(
+                    StringUtils.prependUri(config.getUrl(), SUBJECTS + encodedSubject + VERSIONS + encodedVersion)
+                )
+            )
             .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+
         return Mono.from(httpClient.retrieve(request, SchemaResponse.class))
             .onErrorResume(HttpClientResponseException.class,
                 ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Mono.empty() : Mono.error(ex));
