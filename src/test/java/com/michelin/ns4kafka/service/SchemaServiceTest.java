@@ -159,7 +159,7 @@ class SchemaServiceTest {
                     .grantedTo("myNamespace")
                     .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                     .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                    .resource("prefix2.schema2-value")
+                    .resource("prefix2.schema2")
                     .build())
                 .build(),
             AccessControlEntry.builder()
@@ -210,7 +210,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void shouldGetBySubjectAndVersion() {
+    void shouldGetSubjectLatestVersion() {
         Namespace namespace = buildNamespace();
         SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
 
@@ -247,7 +247,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void shouldGetBySubjectAndVersionWhenEmpty() {
+    void shouldNotGetSubjectLatestVersionWhenEmpty() {
         Namespace namespace = buildNamespace();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "prefix.schema-one", "latest"))
@@ -598,6 +598,7 @@ class SchemaServiceTest {
                     + "\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\","
                     + "{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
                     + "\"doc\":\"Date of birth of the person\"}]}")
+            .schemaType("AVRO")
             .references(List.of(Schema.SchemaSpec.Reference.builder()
                 .name("HeaderAvro")
                 .subject("header-value")
