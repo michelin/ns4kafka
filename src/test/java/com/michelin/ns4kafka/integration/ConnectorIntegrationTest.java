@@ -625,7 +625,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
             .blockLast();
 
         // Wait for Kafka Connect to deploy and update connectors
-        Thread.sleep(4000);
+        Thread.sleep(3000);
     }
 
     private void waitForConnectorAndTasksToBeInState(String connector, Connector.TaskState state)

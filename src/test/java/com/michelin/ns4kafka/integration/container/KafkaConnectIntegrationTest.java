@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.integration.container;
 import io.micronaut.core.annotation.NonNull;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.TestInstance;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -20,7 +21,7 @@ public abstract class KafkaConnectIntegrationTest extends KafkaIntegrationTest {
         .withExposedPorts(8083)
         .withEnv("CONNECT_BOOTSTRAP_SERVERS", "broker:9092")
         .withEnv("CONNECT_REST_ADVERTISED_HOST_NAME", "connect")
-        .withEnv("CONNECT_GROUP_ID", "compose-connect-group")
+        .withEnv("CONNECT_GROUP_ID", "compose-connect-group-" + UUID.randomUUID())
         .withEnv("CONNECT_CONFIG_STORAGE_TOPIC", "docker-connect-configs")
         .withEnv("CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR", "1")
         .withEnv("CONNECT_OFFSET_STORAGE_TOPIC", "docker-connect-offsets")
