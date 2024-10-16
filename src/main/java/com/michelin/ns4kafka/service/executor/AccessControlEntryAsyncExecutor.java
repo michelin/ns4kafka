@@ -310,7 +310,6 @@ public class AccessControlEntryAsyncExecutor {
      * Convert Ns4Kafka connect ACL into Kafka ACL.
      *
      * @param accessControlEntry The Ns4Kafka ACL
-     * @param kafkaUser          The ACL owner
      * @return A list of Kafka ACLs
      */
     private AclBinding convertConnectorAccessControlEntryToAclBinding(AccessControlEntry accessControlEntry) {
