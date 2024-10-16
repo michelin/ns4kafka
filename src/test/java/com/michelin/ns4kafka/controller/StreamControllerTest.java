@@ -18,6 +18,7 @@ import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.StreamService;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
 import java.util.List;
@@ -434,7 +435,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void shouldDeleteMultipleStreams() {
+    void shouldBulkDeleteStreams() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -472,11 +473,12 @@ class StreamControllerTest {
         doNothing().when(streamService).delete(ns, stream1);
         doNothing().when(streamService).delete(ns, stream2);
         var response = streamController.bulkDelete("test", "test_stream*", false);
-        assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
+        assertEquals(HttpStatus.OK, response.getStatus());
+        assertEquals(HttpResponse.ok(List.of(stream1, stream2)).body(), response.body());
     }
 
     @Test
-    void shouldDeleteMultipleStreamsInDryRunMode() {
+    void shouldNotBulkDeleteStreamsInDryRunMode() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -510,11 +512,12 @@ class StreamControllerTest {
 
         var response = streamController.bulkDelete("test", "test_stream*", true);
         verify(streamService, never()).delete(any(), any());
-        assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
+        assertEquals(HttpStatus.OK, response.getStatus());
+        assertEquals(HttpResponse.ok(List.of(stream1, stream2)).body(), response.body());
     }
 
     @Test
-    void shouldNotDeleteMultipleStreamsWhenNotFound() {
+    void shouldNotBulkDeleteStreamsWhenNotFound() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -535,7 +538,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void shouldNotDeleteMultipleStreamsWhenNotOwner() {
+    void shouldNotBulkDeleteStreamsWhenNotOwner() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")

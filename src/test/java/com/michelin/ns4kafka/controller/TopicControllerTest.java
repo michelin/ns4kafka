@@ -178,7 +178,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void shouldDeleteMultipleTopics() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldBulkDeleteTopics() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -186,25 +186,27 @@ class TopicControllerTest {
                 .build())
             .build();
 
+        Topic topic1 = Topic.builder().metadata(Metadata.builder().name("prefix1.topic1").build()).build();
+        Topic topic2 = Topic.builder().metadata(Metadata.builder().name("prefix1.topic2").build()).build();
+        List<Topic> topics = List.of(topic1, topic2);
+
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        List<Topic> toDelete = List.of(
-            Topic.builder().metadata(Metadata.builder().name("prefix1.topic1").build()).build(),
-            Topic.builder().metadata(Metadata.builder().name("prefix1.topic2").build()).build());
-        when(topicService.findByWildcardName(ns, "prefix1.*"))
-            .thenReturn(toDelete);
+
+        when(topicService.findByWildcardName(ns, "prefix1.*")).thenReturn(topics);
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        doNothing().when(topicService).deleteTopics(toDelete);
+        doNothing().when(topicService).deleteTopics(topics);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        HttpResponse<Void> actual = topicController.bulkDelete("test", "prefix1.*", false);
-
-        assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
+        HttpResponse<?> actual = topicController.bulkDelete("test", "prefix1.*", false);
+        assertEquals(HttpStatus.OK, actual.getStatus());
+        assertEquals(HttpResponse.ok(topics).body(), actual.body());
+        verify(topicService).deleteTopics(topics);
     }
 
     @Test
-    void shouldNotDeleteMultipleTopicsWhenNotFound() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldNotBulkDeleteTopicsWhenNotFound() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -218,14 +220,14 @@ class TopicControllerTest {
         when(topicService.findByWildcardName(ns, "topic*"))
             .thenReturn(List.of());
 
-        HttpResponse<Void> actual = topicController.bulkDelete("test", "topic*", false);
+        HttpResponse<?> actual = topicController.bulkDelete("test", "topic*", false);
 
         assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
         verify(topicService, never()).delete(any());
     }
 
     @Test
-    void shouldNotDeleteMultipleTopicsInDryRunMode() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldNotBulkDeleteTopicsInDryRunMode() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -236,7 +238,7 @@ class TopicControllerTest {
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
 
-        List<Topic> toDelete = List.of(
+        List<Topic> topics = List.of(
             Topic.builder()
                 .metadata(Metadata.builder()
                     .name("prefix.topic")
@@ -244,10 +246,11 @@ class TopicControllerTest {
                 .build());
 
         when(topicService.findByWildcardName(ns, "prefix.topic"))
-            .thenReturn(toDelete);
+            .thenReturn(topics);
 
-        topicController.bulkDelete("test", "prefix.topic", true);
-
+        HttpResponse<?> response = topicController.bulkDelete("test", "prefix.topic", true);
+        assertEquals(HttpStatus.OK, response.getStatus());
+        assertEquals(HttpResponse.ok(topics).body(), response.body());
         verify(topicService, never()).delete(any());
     }
 

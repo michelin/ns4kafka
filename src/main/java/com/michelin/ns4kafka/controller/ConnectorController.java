@@ -162,7 +162,7 @@ public class ConnectorController extends NamespacedResourceController {
      *
      * @param namespace The current namespace
      * @param connector The current connector name to delete
-     * @param dryrun    Run in dry mode or not
+     * @param dryrun    Run in dry mode or not?
      * @return A HTTP response
      * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
@@ -206,13 +206,13 @@ public class ConnectorController extends NamespacedResourceController {
      * Delete connectors.
      *
      * @param namespace The current namespace
-     * @param name The name parameter
-     * @param dryrun    Run in dry mode or not
+     * @param name      The name parameter
+     * @param dryrun    Run in dry mode or not?
      * @return A HTTP response
      */
-    @Status(HttpStatus.NO_CONTENT)
+    @Status(HttpStatus.OK)
     @Delete
-    public Mono<HttpResponse<Void>> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
+    public Mono<HttpResponse<?>> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
                                                @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -220,9 +220,9 @@ public class ConnectorController extends NamespacedResourceController {
 
         // Validate ownership
         List<String> validationErrors = connectors.stream()
-                .filter(connector -> !connectorService.isNamespaceOwnerOfConnect(ns, connector.getMetadata().getName()))
-                .map(connector -> invalidOwner(connector.getMetadata().getName()))
-                .toList();
+            .filter(connector -> !connectorService.isNamespaceOwnerOfConnect(ns, connector.getMetadata().getName()))
+            .map(connector -> invalidOwner(connector.getMetadata().getName()))
+            .toList();
 
         if (!validationErrors.isEmpty()) {
             return Mono.error(new ResourceValidationException(CONNECTOR, name, validationErrors));
@@ -233,15 +233,15 @@ public class ConnectorController extends NamespacedResourceController {
         }
 
         if (dryrun) {
-            return Mono.just(HttpResponse.noContent());
+            return Mono.just(HttpResponse.ok(connectors));
         }
 
         return Flux.fromIterable(connectors)
-                .flatMap(connector -> {
-                    sendEventLog(connector, ApplyStatus.deleted, connector.getSpec(), null, EMPTY_STRING);
-                    return connectorService.delete(ns, connector);
-                })
-                .then(Mono.just(HttpResponse.noContent()));
+            .flatMap(connector -> {
+                sendEventLog(connector, ApplyStatus.deleted, connector.getSpec(), null, EMPTY_STRING);
+                return connectorService.delete(ns, connector);
+            })
+            .then(Mono.just(HttpResponse.ok(connectors)));
     }
 
     /**
@@ -305,7 +305,7 @@ public class ConnectorController extends NamespacedResourceController {
      * Import unsynchronized connectors.
      *
      * @param namespace The namespace
-     * @param dryrun    Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not?
      * @return The list of imported connectors
      */
     @Post("/_/import{?dryrun}")

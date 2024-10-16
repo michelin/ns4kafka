@@ -369,30 +369,6 @@ class ResourceQuotaControllerTest {
     }
 
     @Test
-    void shouldNotBulkDeleteQuotaWhenNotFound() {
-        when(resourceQuotaService.findByWildcardName("test", "quota*")).thenReturn(List.of());
-        HttpResponse<Void> actual = resourceQuotaController.bulkDelete("test", "quota*", false);
-        assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
-        verify(resourceQuotaService, never()).delete(ArgumentMatchers.any());
-    }
-
-    @Test
-    void shouldNotBulkDeleteQuotaWhenDryRun() {
-        ResourceQuota resourceQuota1 = ResourceQuota.builder()
-            .metadata(Metadata.builder()
-                .cluster("local")
-                .name("quota1")
-                .build())
-            .spec(Map.of("count/topics", "3"))
-            .build();
-
-        when(resourceQuotaService.findByWildcardName("test", "quota*")).thenReturn(List.of(resourceQuota1));
-        HttpResponse<Void> actual = resourceQuotaController.bulkDelete("test", "quota*", true);
-        assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
-        verify(resourceQuotaService, never()).delete(ArgumentMatchers.any());
-    }
-
-    @Test
     void shouldBulkDeleteQuota() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
             .metadata(Metadata.builder()
@@ -408,8 +384,34 @@ class ResourceQuotaControllerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
         doNothing().when(resourceQuotaService).delete(resourceQuota);
 
-        HttpResponse<Void> actual = resourceQuotaController.bulkDelete("test", "quota*", false);
-        assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
+        HttpResponse<?> actual = resourceQuotaController.bulkDelete("test", "quota*", false);
+        assertEquals(HttpStatus.OK, actual.getStatus());
+        assertEquals(HttpResponse.ok(List.of(resourceQuota)).body(), actual.body());
         verify(resourceQuotaService).delete(resourceQuota);
+    }
+
+    @Test
+    void shouldNotBulkDeleteQuotaWhenNotFound() {
+        when(resourceQuotaService.findByWildcardName("test", "quota*")).thenReturn(List.of());
+        HttpResponse<?> actual = resourceQuotaController.bulkDelete("test", "quota*", false);
+        assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
+        verify(resourceQuotaService, never()).delete(ArgumentMatchers.any());
+    }
+
+    @Test
+    void shouldNotBulkDeleteQuotaWhenDryRun() {
+        ResourceQuota resourceQuota = ResourceQuota.builder()
+            .metadata(Metadata.builder()
+                .cluster("local")
+                .name("quota1")
+                .build())
+            .spec(Map.of("count/topics", "3"))
+            .build();
+
+        when(resourceQuotaService.findByWildcardName("test", "quota*")).thenReturn(List.of(resourceQuota));
+        HttpResponse<?> actual = resourceQuotaController.bulkDelete("test", "quota*", true);
+        assertEquals(HttpStatus.OK, actual.getStatus());
+        assertEquals(HttpResponse.ok(List.of(resourceQuota)).body(), actual.body());
+        verify(resourceQuotaService, never()).delete(ArgumentMatchers.any());
     }
 }

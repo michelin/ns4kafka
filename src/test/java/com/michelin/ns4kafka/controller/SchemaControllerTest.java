@@ -18,6 +18,7 @@ import com.michelin.ns4kafka.service.SchemaService;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
 import java.util.Collections;
@@ -650,7 +651,10 @@ class SchemaControllerTest {
             .thenReturn(Mono.just(new Integer[1]));
 
         StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.empty(), false))
-            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .consumeNextWith(response -> {
+                assertEquals(HttpStatus.OK, response.getStatus());
+                assertEquals(HttpResponse.ok(List.of(Optional.of(schema))).body(), response.body());
+            })
             .verifyComplete();
 
         verify(applicationEventPublisher).publishEvent(any());
@@ -671,7 +675,10 @@ class SchemaControllerTest {
             .thenReturn(Mono.just(1));
 
         StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.of("1"), false))
-            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .consumeNextWith(response -> {
+                assertEquals(HttpStatus.OK, response.getStatus());
+                assertEquals(HttpResponse.ok(List.of(Optional.of(schema))).body(), response.body());
+            })
             .verifyComplete();
 
         verify(applicationEventPublisher).publishEvent(any());
@@ -769,7 +776,10 @@ class SchemaControllerTest {
             .thenReturn(Mono.just(schema));
 
         StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.empty(), true))
-            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .consumeNextWith(response -> {
+                assertEquals(HttpStatus.OK, response.getStatus());
+                assertEquals(HttpResponse.ok(List.of(Optional.of(schema))).body(), response.body());
+            })
             .verifyComplete();
 
         verify(schemaService, never()).deleteAllVersions(namespace, "prefix.subject-value");
@@ -788,7 +798,10 @@ class SchemaControllerTest {
             .thenReturn(Mono.just(schema));
 
         StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.of("1"), true))
-            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .consumeNextWith(response -> {
+                assertEquals(HttpStatus.OK, response.getStatus());
+                assertEquals(HttpResponse.ok(List.of(Optional.of(schema))).body(), response.body());
+            })
             .verifyComplete();
 
         verify(schemaService, never()).deleteVersion(namespace, "prefix.subject-value", "1");

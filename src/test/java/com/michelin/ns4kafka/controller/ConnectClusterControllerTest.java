@@ -296,137 +296,138 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void shouldDeleteConnectClusters() {
+    void shouldBulkDeleteConnectClusters() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
 
         ConnectCluster connectCluster1 = ConnectCluster.builder()
-                .metadata(Metadata.builder()
-                        .name("connect-cluster1")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("connect-cluster1")
+                .build())
+            .build();
 
         ConnectCluster connectCluster2 = ConnectCluster.builder()
-                .metadata(Metadata.builder()
-                        .name("connect-cluster2")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("connect-cluster2")
+                .build())
+            .build();
 
         when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
+            .thenReturn(Optional.of(ns));
         when(connectorService.findAllByConnectCluster(ns, "connect-cluster1"))
-                .thenReturn(List.of());
+            .thenReturn(List.of());
         when(connectorService.findAllByConnectCluster(ns, "connect-cluster2"))
-                .thenReturn(List.of());
+            .thenReturn(List.of());
         when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "connect-cluster*"))
-                .thenReturn(List.of(connectCluster1, connectCluster2));
+            .thenReturn(List.of(connectCluster1, connectCluster2));
         doNothing().when(connectClusterService).delete(connectCluster1);
         doNothing().when(connectClusterService).delete(connectCluster2);
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        HttpResponse<Void> actual = connectClusterController.bulkDelete("test", "connect-cluster*", false);
-        assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
+        HttpResponse<?> actual = connectClusterController.bulkDelete("test", "connect-cluster*", false);
+        assertEquals(HttpStatus.OK, actual.getStatus());
+        assertEquals(HttpResponse.ok(List.of(connectCluster1, connectCluster2)).body(), actual.body());
     }
 
     @Test
-    void shouldDeleteConnectClustersInDryRunMode() {
+    void shouldNotBulkDeleteConnectClustersInDryRunMode() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder()
-                        .name("connect-cluster")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("connect-cluster")
+                .build())
+            .build();
 
         when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
+            .thenReturn(Optional.of(ns));
         when(connectorService.findAllByConnectCluster(ns, "connect-cluster"))
-                .thenReturn(List.of());
+            .thenReturn(List.of());
         when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "connect-cluster*"))
-                .thenReturn(List.of(connectCluster));
+            .thenReturn(List.of(connectCluster));
 
-        HttpResponse<Void> actual = connectClusterController.bulkDelete("test", "connect-cluster*", true);
-        assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
-
+        HttpResponse<?> actual = connectClusterController.bulkDelete("test", "connect-cluster*", true);
+        assertEquals(HttpStatus.OK, actual.getStatus());
+        assertEquals(HttpResponse.ok(List.of(connectCluster)).body(), actual.body());
         verify(connectClusterService, never()).delete(any());
     }
 
     @Test
-    void shouldNotDeleteConnectClustersWhenNotFound() {
+    void shouldNotBulkDeleteConnectClustersWhenNotFound() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
 
         when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
+            .thenReturn(Optional.of(ns));
         when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "connect-cluster*"))
-                .thenReturn(List.of());
+            .thenReturn(List.of());
 
-        HttpResponse<Void> actual = connectClusterController.bulkDelete("test", "connect-cluster*", false);
+        HttpResponse<?> actual = connectClusterController.bulkDelete("test", "connect-cluster*", false);
         assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
     }
 
     @Test
-    void shouldNotDeleteConnectClustersWithConnectorsAssociated() {
+    void shouldNotBulkDeleteConnectClustersWithConnectors() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder()
-                        .name("connect1")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("connect1")
+                .build())
+            .build();
 
         ConnectCluster connectCluster1 = ConnectCluster.builder()
-                .metadata(Metadata.builder()
-                        .name("connect-cluster1")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("connect-cluster1")
+                .build())
+            .build();
 
         ConnectCluster connectCluster2 = ConnectCluster.builder()
-                .metadata(Metadata.builder()
-                        .name("connect-cluster2")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("connect-cluster2")
+                .build())
+            .build();
 
         when(namespaceService.findByName("test"))
-                .thenReturn(Optional.of(ns));
+            .thenReturn(Optional.of(ns));
         when(connectorService.findAllByConnectCluster(ns, "connect-cluster1"))
-                .thenReturn(List.of());
+            .thenReturn(List.of());
         when(connectorService.findAllByConnectCluster(ns, "connect-cluster2"))
-                .thenReturn(List.of());
+            .thenReturn(List.of());
         when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "connect-cluster*"))
-                .thenReturn(List.of(connectCluster1, connectCluster2));
+            .thenReturn(List.of(connectCluster1, connectCluster2));
 
         when(connectorService.findAllByConnectCluster(ns, "connect-cluster2"))
-                .thenReturn(List.of(connector));
+            .thenReturn(List.of(connector));
 
         ResourceValidationException result = assertThrows(ResourceValidationException.class,
-                () -> connectClusterController.bulkDelete("test", "connect-cluster*", false));
+            () -> connectClusterController.bulkDelete("test", "connect-cluster*", false));
 
         assertEquals(1, result.getValidationErrors().size());
         assertEquals(
-                "Invalid \"delete\" operation: The Kafka Connect \"connect-cluster2\" has 1 deployed connector(s): "
-                        + "connect1. Please remove the associated connector(s) before deleting it.",
-                result.getValidationErrors().getFirst());
+            "Invalid \"delete\" operation: The Kafka Connect \"connect-cluster2\" has 1 deployed connector(s): "
+                    + "connect1. Please remove the associated connector(s) before deleting it.",
+            result.getValidationErrors().getFirst());
     }
 
     @Test

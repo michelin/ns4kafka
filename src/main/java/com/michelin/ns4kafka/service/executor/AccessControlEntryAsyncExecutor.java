@@ -166,7 +166,7 @@ public class AccessControlEntryAsyncExecutor {
     /**
      * Collect the ACLs from broker.
      *
-     * @param managedUsersOnly Only retrieve ACLs from Kafka user managed by Ns4Kafka or not ?
+     * @param managedUsersOnly Only retrieve ACLs from Kafka user managed by Ns4Kafka or not?
      * @return A list of ACLs
      * @throws ExecutionException   Any execution exception during ACLs description
      * @throws InterruptedException Any interrupted exception during ACLs description

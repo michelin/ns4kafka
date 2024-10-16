@@ -117,6 +117,7 @@ public class RoleBindingController extends NamespacedResourceController {
     public HttpResponse<Void> delete(String namespace, String name,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         Optional<RoleBinding> roleBinding = roleBindingService.findByName(namespace, name);
+
         if (roleBinding.isEmpty()) {
             return HttpResponse.notFound();
         }
@@ -125,7 +126,7 @@ public class RoleBindingController extends NamespacedResourceController {
             return HttpResponse.noContent();
         }
 
-        var roleBindingToDelete = roleBinding.get();
+        RoleBinding roleBindingToDelete = roleBinding.get();
 
         sendEventLog(
             roleBindingToDelete,
@@ -136,6 +137,7 @@ public class RoleBindingController extends NamespacedResourceController {
         );
 
         roleBindingService.delete(roleBindingToDelete);
+
         return HttpResponse.noContent();
     }
 
@@ -147,17 +149,18 @@ public class RoleBindingController extends NamespacedResourceController {
      * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
      */
-    @Status(HttpStatus.NO_CONTENT)
+    @Status(HttpStatus.OK)
     @Delete
-    public HttpResponse<Void> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
+    public HttpResponse<?> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         List<RoleBinding> roleBindings = roleBindingService.findByWildcardName(namespace, name);
+
         if (roleBindings.isEmpty()) {
             return HttpResponse.notFound();
         }
 
         if (dryrun) {
-            return HttpResponse.noContent();
+            return HttpResponse.ok(roleBindings);
         }
 
         roleBindings.forEach(roleBinding -> {
@@ -171,6 +174,6 @@ public class RoleBindingController extends NamespacedResourceController {
             roleBindingService.delete(roleBinding);
         });
 
-        return HttpResponse.noContent();
+        return HttpResponse.ok(roleBindings);
     }
 }

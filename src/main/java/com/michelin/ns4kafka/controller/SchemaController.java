@@ -29,6 +29,7 @@ import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -161,9 +162,9 @@ public class SchemaController extends NamespacedResourceController {
      * @param dryrun            Run in dry mode or not?
      * @return A HTTP response
      */
-    @Status(HttpStatus.NO_CONTENT)
+    @Status(HttpStatus.OK)
     @Delete
-    public Mono<HttpResponse<Void>> bulkDelete(String namespace,
+    public Mono<HttpResponse<?>> bulkDelete(String namespace,
                                            @QueryValue(defaultValue = "*") String name,
                                            @QueryValue("version") Optional<String> versionOptional,
                                            @QueryValue(defaultValue = "false") boolean dryrun) {
@@ -182,7 +183,7 @@ public class SchemaController extends NamespacedResourceController {
                 }
 
                 if (dryrun) {
-                    return Mono.just(HttpResponse.noContent());
+                    return Mono.just(HttpResponse.ok(schemas));
                 }
 
                 return Flux.fromIterable(schemas)
@@ -201,7 +202,7 @@ public class SchemaController extends NamespacedResourceController {
                                 );
                                 return Mono.just(HttpResponse.noContent());
                             }))
-                    .then(Mono.just(HttpResponse.noContent()));
+                    .then(Mono.just(HttpResponse.ok(schemas)));
             });
     }
 

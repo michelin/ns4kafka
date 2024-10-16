@@ -68,7 +68,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @param namespace      The namespace
      * @param connectCluster The name
      * @return A Kafka Connect cluster
-     * @deprecated use list(String, String name) instead.
+     * @deprecated use {@link #list(String, String)} instead.
      */
     @Get("/{connectCluster}")
     @Deprecated(since = "1.12.0")
@@ -168,7 +168,16 @@ public class ConnectClusterController extends NamespacedResourceController {
             return HttpResponse.noContent();
         }
 
-        performDeletion(optionalConnectCluster.get());
+        sendEventLog(
+            optionalConnectCluster.get(),
+            ApplyStatus.deleted,
+            optionalConnectCluster.get().getSpec(),
+            null,
+            EMPTY_STRING
+        );
+
+        connectClusterService.delete(optionalConnectCluster.get());
+
         return HttpResponse.noContent();
     }
 
@@ -180,9 +189,9 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @param dryrun         Run in dry mode or not
      * @return A HTTP response
      */
-    @Status(HttpStatus.NO_CONTENT)
+    @Status(HttpStatus.OK)
     @Delete
-    public HttpResponse<Void> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
+    public HttpResponse<?> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -205,27 +214,21 @@ public class ConnectClusterController extends NamespacedResourceController {
         }
 
         if (dryrun) {
-            return HttpResponse.noContent();
+            return HttpResponse.ok(connectClusters);
         }
 
-        connectClusters.forEach(this::performDeletion);
-        return HttpResponse.noContent();
-    }
-
-    /**
-     * Perform the deletion of the connectCluster and send an event log.
-     *
-     * @param connectCluster The connectCluster to delete
-     */
-    private void performDeletion(ConnectCluster connectCluster) {
-        sendEventLog(
+        connectClusters.forEach(connectCluster -> {
+            sendEventLog(
                 connectCluster,
                 ApplyStatus.deleted,
                 connectCluster.getSpec(),
                 null,
                 EMPTY_STRING
-        );
-        connectClusterService.delete(connectCluster);
+            );
+            connectClusterService.delete(connectCluster);
+        });
+
+        return HttpResponse.ok(connectClusters);
     }
 
     /**

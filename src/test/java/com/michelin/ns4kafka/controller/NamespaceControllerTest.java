@@ -18,6 +18,8 @@ import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.server.netty.body.HttpBody;
 import io.micronaut.security.utils.SecurityService;
 import java.util.List;
 import java.util.Map;
@@ -319,7 +321,7 @@ class NamespaceControllerTest {
 
     @Test
     @SuppressWarnings("deprecation")
-    void shouldDeleteNamespaceInDryRunMode() {
+    void shouldNotDeleteNamespaceInDryRunMode() {
         Namespace existing = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -355,7 +357,7 @@ class NamespaceControllerTest {
 
     @Test
     @SuppressWarnings("deprecation")
-    void shouldNotDeleteNamespaceWhenResourcesAreStillLinkedWithIt() {
+    void shouldNotDeleteNamespaceWithResources() {
         Namespace existing = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -377,7 +379,7 @@ class NamespaceControllerTest {
     }
 
     @Test
-    void shouldDeleteNamespaces() {
+    void shouldBulkDeleteNamespaces() {
         Namespace namespace1 = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace1")
@@ -411,11 +413,12 @@ class NamespaceControllerTest {
 
         doNothing().when(applicationEventPublisher).publishEvent(any());
         var result = namespaceController.bulkDelete("namespace*", false);
-        assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
+        assertEquals(HttpStatus.OK, result.getStatus());
+        assertEquals(HttpResponse.ok(List.of(namespace1, namespace2)).body(), result.body());
     }
 
     @Test
-    void shouldDeleteNamespacesInDryRunMode() {
+    void shouldNotBulkDeleteNamespacesInDryRunMode() {
         Namespace namespace1 = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace1")
@@ -445,11 +448,12 @@ class NamespaceControllerTest {
 
         var result = namespaceController.bulkDelete("namespace*", true);
         verify(namespaceService, never()).delete(any());
-        assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
+        assertEquals(HttpStatus.OK, result.getStatus());
+        assertEquals(HttpResponse.ok(List.of(namespace1, namespace2)).body(), result.body());
     }
 
     @Test
-    void shouldNotDeleteNamespacesWhenResourcesAreStillLinkedWithIt() {
+    void shouldNotBulkDeleteNamespacesWithResources() {
         Namespace namespace1 = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace1")
@@ -483,7 +487,7 @@ class NamespaceControllerTest {
     }
 
     @Test
-    void shouldNotDeleteNamespacesWhenPatternMatchesNothing() {
+    void shouldNotBulkDeleteNamespacesWhenNoPatternMatches() {
         when(namespaceService.findByWildcardName("namespace*")).thenReturn(List.of());
         var result = namespaceController.bulkDelete("namespace*", false);
         assertEquals(HttpResponse.notFound().getStatus(), result.getStatus());

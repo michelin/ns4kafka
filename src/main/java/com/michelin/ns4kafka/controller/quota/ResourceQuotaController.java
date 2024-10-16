@@ -125,8 +125,8 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * @return An HTTP response
      */
     @Delete
-    @Status(HttpStatus.NO_CONTENT)
-    public HttpResponse<Void> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
+    @Status(HttpStatus.OK)
+    public HttpResponse<?> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
 
         List<ResourceQuota> resourceQuotas = resourceQuotaService.findByWildcardName(namespace, name);
@@ -136,7 +136,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
         }
 
         if (dryrun) {
-            return HttpResponse.noContent();
+            return HttpResponse.ok(resourceQuotas);
         }
 
         resourceQuotas.forEach(resourceQuota -> {
@@ -150,7 +150,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
             resourceQuotaService.delete(resourceQuota);
         });
 
-        return HttpResponse.noContent();
+        return HttpResponse.ok(resourceQuotas);
     }
 
     /**
