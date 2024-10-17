@@ -864,7 +864,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                 .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas?name=ns1-subject4-value&version=latest")
                 .bearerAuth(token), Schema.class);
 
-        assertEquals(HttpStatus.NO_CONTENT, deleteLatestVersionResponse.getStatus());
+        assertEquals(HttpStatus.OK, deleteLatestVersionResponse.getStatus());
 
         // Get schemas versions
         var getSchemaAfterLatestVersionDeletionResponse = schemaRegistryClient
@@ -882,7 +882,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                 .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas?name=ns1-subject4-value&version=1")
                 .bearerAuth(token), Schema.class);
 
-        assertEquals(HttpStatus.NO_CONTENT, deleteOldVersionResponse.getStatus());
+        assertEquals(HttpStatus.OK, deleteOldVersionResponse.getStatus());
 
         // Get schemas versions
         var getSchemaAfterOldVersionDeletionResponse = schemaRegistryClient
@@ -900,7 +900,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                 .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas?name=ns1-subject4-value")
                 .bearerAuth(token), Schema.class);
 
-        assertEquals(HttpStatus.NO_CONTENT, deleteAllVersionsResponse.getStatus());
+        assertEquals(HttpStatus.OK, deleteAllVersionsResponse.getStatus());
 
         // Get all schemas
         var getSchemaAfterAllVersionsDeletionResponse = schemaRegistryClient
@@ -996,7 +996,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                 .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas?name=ns1-subject5-*")
                 .bearerAuth(token), Schema.class);
 
-        assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
+        assertEquals(HttpStatus.OK, deleteResponse.getStatus());
 
         var getSchemasAfterDeletionResponse = schemaRegistryClient
             .toBlocking()
