@@ -166,7 +166,7 @@ public class AccessControlEntryAsyncExecutor {
     /**
      * Collect the ACLs from broker.
      *
-     * @param managedUsersOnly Only retrieve ACLs from Kafka user managed by Ns4Kafka or not ?
+     * @param managedUsersOnly Only retrieve ACLs from Kafka user managed by Ns4Kafka or not?
      * @return A list of ACLs
      * @throws ExecutionException   Any execution exception during ACLs description
      * @throws InterruptedException Any interrupted exception during ACLs description
@@ -310,7 +310,6 @@ public class AccessControlEntryAsyncExecutor {
      * Convert Ns4Kafka connect ACL into Kafka ACL.
      *
      * @param accessControlEntry The Ns4Kafka ACL
-     * @param kafkaUser          The ACL owner
      * @return A list of Kafka ACLs
      */
     private AclBinding convertConnectorAccessControlEntryToAclBinding(AccessControlEntry accessControlEntry) {

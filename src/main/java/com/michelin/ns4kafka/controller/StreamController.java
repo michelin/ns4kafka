@@ -155,9 +155,9 @@ public class StreamController extends NamespacedResourceController {
      * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
      */
-    @Status(HttpStatus.NO_CONTENT)
+    @Status(HttpStatus.OK)
     @Delete
-    HttpResponse<Void> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
+    HttpResponse<?> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
                                   @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -165,7 +165,7 @@ public class StreamController extends NamespacedResourceController {
 
         List<String> validationErrors = kafkaStreams.stream()
                 .filter(kafkaStream ->
-                        !streamService.isNamespaceOwnerOfKafkaStream(ns, kafkaStream.getMetadata().getName()))
+                    !streamService.isNamespaceOwnerOfKafkaStream(ns, kafkaStream.getMetadata().getName()))
                 .map(kafkaStream -> invalidOwner(kafkaStream.getMetadata().getName()))
                 .toList();
 
@@ -178,7 +178,7 @@ public class StreamController extends NamespacedResourceController {
         }
 
         if (dryrun) {
-            return HttpResponse.noContent();
+            return HttpResponse.ok(kafkaStreams);
         }
         kafkaStreams.forEach(kafkaStream -> {
             sendEventLog(
@@ -191,6 +191,6 @@ public class StreamController extends NamespacedResourceController {
             streamService.delete(ns, kafkaStream);
         });
 
-        return HttpResponse.noContent();
+        return HttpResponse.ok(kafkaStreams);
     }
 }

@@ -77,7 +77,7 @@ public class AclService {
                 allowedPatternTypes.stream().map(Object::toString).collect(Collectors.joining(", "))));
         }
 
-        // GrantedTo Namespace exists ?
+        // GrantedTo Namespace exists?
         NamespaceService namespaceService = applicationContext.getBean(NamespaceService.class);
         Optional<Namespace> grantedToNamespace =
             namespaceService.findByName(accessControlEntry.getSpec().getGrantedTo());
@@ -189,7 +189,7 @@ public class AclService {
      * @return true if it is, false otherwise
      */
     public boolean isOwnerOfTopLevelAcl(AccessControlEntry accessControlEntry, Namespace namespace) {
-        // Grantor Namespace is OWNER of Resource + ResourcePattern ?
+        // Grantor Namespace is OWNER of Resource + ResourcePattern?
         return findAllGrantedToNamespace(namespace).stream()
             .filter(ace -> ace.getSpec().getResourceType() == accessControlEntry.getSpec().getResourceType()
                 && ace.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)

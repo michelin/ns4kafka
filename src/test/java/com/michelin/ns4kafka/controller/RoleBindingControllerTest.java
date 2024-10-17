@@ -1,6 +1,5 @@
 package com.michelin.ns4kafka.controller;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
@@ -16,6 +15,7 @@ import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.RoleBindingService;
 import io.micronaut.context.event.ApplicationEventPublisher;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
 import java.util.List;
@@ -140,7 +140,7 @@ class RoleBindingControllerTest {
     }
 
     @Test
-    void shouldCreateRoleBindingInDryRunMode() {
+    void shouldNotCreateRoleBindingInDryRunMode() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -179,14 +179,14 @@ class RoleBindingControllerTest {
             .thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        assertDoesNotThrow(
-            () -> roleBindingController.delete("test", "test.rolebinding", false)
-        );
+        HttpResponse<?> response = roleBindingController.delete("test", "test.rolebinding", false);
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
+        verify(roleBindingService).delete(rolebinding);
     }
 
     @Test
     @SuppressWarnings("deprecation")
-    void shouldDeleteRoleBindingInDryRunMode() {
+    void shouldNotDeleteRoleBindingInDryRunMode() {
         RoleBinding rolebinding = RoleBinding.builder()
             .metadata(Metadata.builder()
                 .name("test.rolebinding")
@@ -196,60 +196,65 @@ class RoleBindingControllerTest {
         when(roleBindingService.findByName(any(), any()))
             .thenReturn(Optional.of(rolebinding));
 
-        roleBindingController.delete("test", "test.rolebinding", true);
+        HttpResponse<?> response = roleBindingController.delete("test", "test.rolebinding", true);
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
         verify(roleBindingService, never()).delete(any());
     }
 
     @Test
-    void shouldDeleteRoleBindings() {
+    void shouldBulkDeleteRoleBindings() {
         RoleBinding rolebinding1 = RoleBinding.builder()
-                .metadata(Metadata.builder()
-                        .name("test.rolebinding1")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("test.rolebinding1")
+                .build())
+            .build();
         RoleBinding rolebinding2 = RoleBinding.builder()
-                .metadata(Metadata.builder()
-                        .name("test.rolebinding2")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("test.rolebinding2")
+                .build())
+            .build();
 
         when(roleBindingService.findByWildcardName(any(), any()))
-                .thenReturn(List.of(rolebinding1, rolebinding2));
+            .thenReturn(List.of(rolebinding1, rolebinding2));
         when(securityService.username())
-                .thenReturn(Optional.of("test-user"));
+            .thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN))
-                .thenReturn(false);
+            .thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        assertDoesNotThrow(
-                () -> roleBindingController.bulkDelete("test", "test.rolebinding*", false)
-        );
+        HttpResponse<?> response = roleBindingController.bulkDelete("test", "test.rolebinding*", false);
+        assertEquals(HttpStatus.OK, response.getStatus());
+        assertEquals(HttpResponse.ok(List.of(rolebinding1, rolebinding2)).body(), response.body());
+        verify(roleBindingService).delete(rolebinding1);
+        verify(roleBindingService).delete(rolebinding2);
     }
 
     @Test
-    void shouldDeleteRoleBindingsInDryRunMode() {
+    void shouldNotBulkDeleteRoleBindingsInDryRunMode() {
         RoleBinding rolebinding1 = RoleBinding.builder()
-                .metadata(Metadata.builder()
-                        .name("test.rolebinding1")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("test.rolebinding1")
+                .build())
+            .build();
         RoleBinding rolebinding2 = RoleBinding.builder()
-                .metadata(Metadata.builder()
-                        .name("test.rolebinding2")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("test.rolebinding2")
+                .build())
+            .build();
 
         when(roleBindingService.findByWildcardName(any(), any()))
-                .thenReturn(List.of(rolebinding1, rolebinding2));
+            .thenReturn(List.of(rolebinding1, rolebinding2));
 
-        roleBindingController.bulkDelete("test", "test.rolebinding*", true);
+        HttpResponse<?> response = roleBindingController.bulkDelete("test", "test.rolebinding*", true);
+        assertEquals(HttpStatus.OK, response.getStatus());
+        assertEquals(HttpResponse.ok(List.of(rolebinding1, rolebinding2)).body(), response.body());
         verify(roleBindingService, never()).delete(any());
     }
 
     @Test
-    void shouldNotDeleteRoleBindingsWhenNotFound() {
+    void shouldNotBulkDeleteRoleBindingsWhenNotFound() {
         when(roleBindingService.findByWildcardName(any(), any()))
-                .thenReturn(List.of());
+            .thenReturn(List.of());
 
         var response = roleBindingController.bulkDelete("test", "test.rolebinding*", false);
         verify(roleBindingService, never()).delete(any());

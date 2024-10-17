@@ -163,8 +163,8 @@ public class AclController extends NamespacedResourceController {
      * @return An HTTP response
      */
     @Delete
-    @Status(HttpStatus.NO_CONTENT)
-    public HttpResponse<Void> bulkDelete(Authentication authentication, String namespace,
+    @Status(HttpStatus.OK)
+    public HttpResponse<?> bulkDelete(Authentication authentication, String namespace,
                                          @QueryValue(defaultValue = "*") String name,
                                          @QueryValue(defaultValue = "false") boolean dryrun) {
 
@@ -192,7 +192,7 @@ public class AclController extends NamespacedResourceController {
         }
 
         if (dryrun) {
-            return HttpResponse.noContent();
+            return HttpResponse.ok(acls);
         }
 
         acls.forEach(acl -> {
@@ -205,7 +205,7 @@ public class AclController extends NamespacedResourceController {
             aclService.delete(acl);
         });
 
-        return HttpResponse.noContent();
+        return HttpResponse.ok(acls);
     }
 
     /**

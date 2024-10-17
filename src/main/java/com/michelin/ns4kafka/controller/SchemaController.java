@@ -8,7 +8,6 @@ import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.model.schema.SchemaCompatibilityState;
-import com.michelin.ns4kafka.model.schema.SchemaList;
 import com.michelin.ns4kafka.service.SchemaService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
@@ -52,8 +51,16 @@ public class SchemaController extends NamespacedResourceController {
      * @return A list of schemas
      */
     @Get
-    public Flux<SchemaList> list(String namespace, @QueryValue(defaultValue = "*") String name) {
-        return schemaService.findByWildcardName(getNamespace(namespace), name);
+    public Flux<Schema> list(String namespace, @QueryValue(defaultValue = "*") String name) {
+        Namespace ns = getNamespace(namespace);
+        return schemaService.findByWildcardName(ns, name)
+            .collectList()
+            .flatMapMany(schemas -> schemas.size() == 1
+                ? Flux.fromIterable(schemas
+                    .stream()
+                    .map(schema -> schemaService.getSubjectLatestVersion(ns, schema.getMetadata().getName()))
+                    .toList()).flatMap(schema -> schema)
+                : Flux.fromIterable(schemas));
     }
 
     /**
@@ -154,9 +161,9 @@ public class SchemaController extends NamespacedResourceController {
      * @param dryrun            Run in dry mode or not?
      * @return A HTTP response
      */
-    @Status(HttpStatus.NO_CONTENT)
+    @Status(HttpStatus.OK)
     @Delete
-    public Mono<HttpResponse<Void>> bulkDelete(String namespace,
+    public Mono<HttpResponse<?>> bulkDelete(String namespace,
                                            @QueryValue(defaultValue = "*") String name,
                                            @QueryValue("version") Optional<String> versionOptional,
                                            @QueryValue(defaultValue = "false") boolean dryrun) {
@@ -175,7 +182,7 @@ public class SchemaController extends NamespacedResourceController {
                 }
 
                 if (dryrun) {
-                    return Mono.just(HttpResponse.noContent());
+                    return Mono.just(HttpResponse.ok(schemas));
                 }
 
                 return Flux.fromIterable(schemas)
@@ -194,7 +201,7 @@ public class SchemaController extends NamespacedResourceController {
                                 );
                                 return Mono.just(HttpResponse.noContent());
                             }))
-                    .then(Mono.just(HttpResponse.noContent()));
+                    .then(Mono.just(HttpResponse.ok(schemas)));
             });
     }
 
