@@ -8,7 +8,6 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
-import com.michelin.ns4kafka.model.schema.SchemaList;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
@@ -48,7 +47,7 @@ public class SchemaService {
      * @param namespace The namespace
      * @return A list of schemas
      */
-    public Flux<SchemaList> findAllForNamespace(Namespace namespace) {
+    public Flux<Schema> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls = aclService
             .findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
         return schemaRegistryClient
@@ -57,7 +56,7 @@ public class SchemaService {
                 String underlyingTopicName = subject.replaceAll("-(key|value)$", "");
                 return aclService.isResourceCoveredByAcls(acls, underlyingTopicName);
             })
-            .map(subject -> SchemaList.builder()
+            .map(subject -> Schema.builder()
                 .metadata(Metadata.builder()
                     .cluster(namespace.getMetadata().getCluster())
                     .namespace(namespace.getMetadata().getName())
@@ -73,11 +72,11 @@ public class SchemaService {
      * @param name      The name filter
      * @return A list of schemas
      */
-    public Flux<SchemaList> findByWildcardName(Namespace namespace, String name) {
+    public Flux<Schema> findByWildcardName(Namespace namespace, String name) {
         List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
         return findAllForNamespace(namespace)
-            .filter(schemaList -> RegexUtils
-                .isResourceCoveredByRegex(schemaList.getMetadata().getName(), nameFilterPatterns));
+            .filter(schema -> RegexUtils
+                .isResourceCoveredByRegex(schema.getMetadata().getName(), nameFilterPatterns));
     }
 
     /**
@@ -108,40 +107,51 @@ public class SchemaService {
     }
 
     /**
+     * Build the schema spec from the SchemaResponse.
+     *
+     * @param namespace         The namespace
+     * @param subjectOptional   The subject object from Http response
+     * @return A Subject
+     */
+    public Mono<Schema> buildSchemaSpec(Namespace namespace, SchemaResponse subjectOptional) {
+        return schemaRegistryClient
+            .getCurrentCompatibilityBySubject(namespace.getMetadata().getCluster(), subjectOptional.subject())
+            .map(Optional::of)
+            .defaultIfEmpty(Optional.empty())
+            .map(currentCompatibilityOptional -> {
+                Schema.Compatibility compatibility = currentCompatibilityOptional.isPresent()
+                    ? currentCompatibilityOptional.get().compatibilityLevel() : Schema.Compatibility.GLOBAL;
+
+                return Schema.builder()
+                    .metadata(Metadata.builder()
+                        .cluster(namespace.getMetadata().getCluster())
+                        .namespace(namespace.getMetadata().getName())
+                        .name(subjectOptional.subject())
+                        .build())
+                    .spec(Schema.SchemaSpec.builder()
+                        .id(subjectOptional.id())
+                        .version(subjectOptional.version())
+                        .compatibility(compatibility)
+                        .schema(subjectOptional.schema())
+                        .schemaType(subjectOptional.schemaType() == null ? Schema.SchemaType.AVRO :
+                            Schema.SchemaType.valueOf(subjectOptional.schemaType()))
+                        .build())
+                    .build();
+            });
+    }
+
+    /**
      * Get a subject by its name and version.
      *
      * @param namespace The namespace
      * @param subject   The subject
      * @param version   The version
-     * @return A Subject
+     * @return A subject
      */
     public Mono<Schema> getSubjectByVersion(Namespace namespace, String subject, String version) {
         return schemaRegistryClient
             .getSubject(namespace.getMetadata().getCluster(), subject, version)
-            .flatMap(latestSubjectOptional -> schemaRegistryClient
-                .getCurrentCompatibilityBySubject(namespace.getMetadata().getCluster(), subject)
-                .map(Optional::of)
-                .defaultIfEmpty(Optional.empty())
-                .map(currentCompatibilityOptional -> {
-                    Schema.Compatibility compatibility = currentCompatibilityOptional.isPresent()
-                        ? currentCompatibilityOptional.get().compatibilityLevel() : Schema.Compatibility.GLOBAL;
-
-                    return Schema.builder()
-                        .metadata(Metadata.builder()
-                            .cluster(namespace.getMetadata().getCluster())
-                            .namespace(namespace.getMetadata().getName())
-                            .name(latestSubjectOptional.subject())
-                            .build())
-                        .spec(Schema.SchemaSpec.builder()
-                            .id(latestSubjectOptional.id())
-                            .version(latestSubjectOptional.version())
-                            .compatibility(compatibility)
-                            .schema(latestSubjectOptional.schema())
-                            .schemaType(latestSubjectOptional.schemaType() == null ? Schema.SchemaType.AVRO :
-                                Schema.SchemaType.valueOf(latestSubjectOptional.schemaType()))
-                            .build())
-                        .build();
-                }));
+            .flatMap(subjectOptional -> buildSchemaSpec(namespace, subjectOptional));
     }
 
     /**

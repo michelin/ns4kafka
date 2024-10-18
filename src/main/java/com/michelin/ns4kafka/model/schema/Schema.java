@@ -6,7 +6,6 @@ import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.MetadataResource;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,7 +23,6 @@ import lombok.Setter;
 @EqualsAndHashCode(callSuper = true)
 public class Schema extends MetadataResource {
     @Valid
-    @NotNull
     private SchemaSpec spec;
 
     /**
