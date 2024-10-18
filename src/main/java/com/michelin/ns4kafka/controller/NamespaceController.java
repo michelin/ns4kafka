@@ -66,7 +66,7 @@ public class NamespaceController extends NonNamespacedResourceController {
      * Create a namespace.
      *
      * @param namespace The namespace
-     * @param dryrun    Does the creation is a dry run
+     * @param dryrun    Is dry run mode or not?
      * @return The created namespace
      */
     @Post("{?dryrun}")
@@ -118,7 +118,7 @@ public class NamespaceController extends NonNamespacedResourceController {
      * Delete a namespace.
      *
      * @param namespace The namespace
-     * @param dryrun    Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
      * @deprecated use bulkDelete instead.
      */
@@ -126,11 +126,13 @@ public class NamespaceController extends NonNamespacedResourceController {
     @Deprecated(since = "1.13.0")
     public HttpResponse<Void> delete(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
         Optional<Namespace> optionalNamespace = namespaceService.findByName(namespace);
+
         if (optionalNamespace.isEmpty()) {
             return HttpResponse.notFound();
         }
 
         List<String> namespaceResources = namespaceService.findAllResourcesByNamespace(optionalNamespace.get());
+
         if (!namespaceResources.isEmpty()) {
             List<String> validationErrors = namespaceResources
                 .stream()
@@ -143,21 +145,31 @@ public class NamespaceController extends NonNamespacedResourceController {
             return HttpResponse.noContent();
         }
 
-        performDeletion(optionalNamespace.get());
+        sendEventLog(
+            optionalNamespace.get(),
+            ApplyStatus.deleted,
+            optionalNamespace.get().getSpec(),
+            null,
+            EMPTY_STRING
+        );
+
+        namespaceService.delete(optionalNamespace.get());
+
         return HttpResponse.noContent();
     }
 
     /**
      * Delete namespaces.
      *
-     * @param dryrun Is dry run mode or not ?
-     * @param name The name parameter
+     * @param dryrun Is dry run mode or not?
+     * @param name   The name parameter
      * @return An HTTP response
      */
     @Delete
-    public HttpResponse<Void> bulkDelete(@QueryValue(defaultValue = "*") String name,
-                                         @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<List<Namespace>> bulkDelete(@QueryValue(defaultValue = "*") String name,
+                                                    @QueryValue(defaultValue = "false") boolean dryrun) {
         List<Namespace> namespaces = namespaceService.findByWildcardName(name);
+
         if (namespaces.isEmpty()) {
             return HttpResponse.notFound();
         }
@@ -182,26 +194,21 @@ public class NamespaceController extends NonNamespacedResourceController {
         }
 
         if (dryrun) {
-            return HttpResponse.noContent();
+            return HttpResponse.ok(namespaces);
         }
 
-        namespaces.forEach(this::performDeletion);
-        return HttpResponse.noContent();
-    }
+        namespaces.forEach(namespace -> {
+            sendEventLog(
+                namespace,
+                ApplyStatus.deleted,
+                namespace.getSpec(),
+                null,
+                EMPTY_STRING
+            );
 
-    /**
-     * Perform the deletion of the namespace and send an event log.
-     *
-     * @param namespace The namespace to delete
-     */
-    private void performDeletion(Namespace namespace) {
-        sendEventLog(
-            namespace,
-            ApplyStatus.deleted,
-            namespace.getSpec(),
-            null,
-            EMPTY_STRING
-        );
-        namespaceService.delete(namespace);
+            namespaceService.delete(namespace);
+        });
+
+        return HttpResponse.ok(namespaces);
     }
 }

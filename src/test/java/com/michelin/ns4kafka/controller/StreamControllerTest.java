@@ -434,7 +434,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void shouldDeleteMultipleStreams() {
+    void shouldBulkDeleteStreams() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -472,11 +472,11 @@ class StreamControllerTest {
         doNothing().when(streamService).delete(ns, stream1);
         doNothing().when(streamService).delete(ns, stream2);
         var response = streamController.bulkDelete("test", "test_stream*", false);
-        assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
+        assertEquals(HttpStatus.OK, response.getStatus());
     }
 
     @Test
-    void shouldDeleteMultipleStreamsInDryRunMode() {
+    void shouldNotBulkDeleteStreamsInDryRunMode() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -510,11 +510,11 @@ class StreamControllerTest {
 
         var response = streamController.bulkDelete("test", "test_stream*", true);
         verify(streamService, never()).delete(any(), any());
-        assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
+        assertEquals(HttpStatus.OK, response.getStatus());
     }
 
     @Test
-    void shouldNotDeleteMultipleStreamsWhenNotFound() {
+    void shouldNotBulkDeleteStreamsWhenNotFound() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -535,7 +535,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void shouldNotDeleteMultipleStreamsWhenNotOwner() {
+    void shouldNotBulkDeleteStreamsWhenNotOwner() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")

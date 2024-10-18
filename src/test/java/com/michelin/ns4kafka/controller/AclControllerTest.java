@@ -831,7 +831,7 @@ class AclControllerTest {
     }
 
     @Test
-    void shouldNotBulkDeleteAclWhenNotFound() {
+    void shouldNotBulkDeleteAclsWhenNotFound() {
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
@@ -843,12 +843,12 @@ class AclControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
         when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "ace1")).thenReturn(List.of());
 
-        HttpResponse<Void> actual = accessControlListController.bulkDelete(authentication, "test", "ace1", false);
+        var actual = accessControlListController.bulkDelete(authentication, "test", "ace1", false);
         assertEquals(HttpStatus.NOT_FOUND, actual.status());
     }
 
     @Test
-    void shouldNotBulkDeleteSelfAssignedAclWhenNotAdmin() {
+    void shouldNotBulkDeleteSelfAssignedAclsWhenNotAdmin() {
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -897,7 +897,7 @@ class AclControllerTest {
     }
 
     @Test
-    void shouldBulkDeleteSelfAssignedAclAsAdmin() {
+    void shouldBulkDeleteSelfAssignedAclsAsAdmin() {
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -925,13 +925,13 @@ class AclControllerTest {
         when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "ace1"))
             .thenReturn(List.of(accessControlEntry));
 
-        HttpResponse<Void> actual = accessControlListController.bulkDelete(authentication, "test", "ace1", false);
+        var actual = accessControlListController.bulkDelete(authentication, "test", "ace1", false);
 
-        assertEquals(HttpStatus.NO_CONTENT, actual.status());
+        assertEquals(HttpStatus.OK, actual.status());
     }
 
     @Test
-    void shouldBulkDeleteAcl() {
+    void shouldBulkDeleteAcls() {
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -976,13 +976,13 @@ class AclControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        HttpResponse<Void> actual = accessControlListController.bulkDelete(authentication, "test", "ace*", false);
+        var actual = accessControlListController.bulkDelete(authentication, "test", "ace*", false);
 
-        assertEquals(HttpStatus.NO_CONTENT, actual.status());
+        assertEquals(HttpStatus.OK, actual.status());
     }
 
     @Test
-    void shouldNotBulkDeleteInDryRunMode() {
+    void shouldNotBulkDeleteAclsInDryRunMode() {
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -1008,9 +1008,9 @@ class AclControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
         when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "ace1"))
             .thenReturn(List.of(accessControlEntry));
-        HttpResponse<Void> actual = accessControlListController.bulkDelete(authentication, "test", "ace1", true);
+        var actual = accessControlListController.bulkDelete(authentication, "test", "ace1", true);
 
         verify(aclService, never()).delete(any());
-        assertEquals(HttpStatus.NO_CONTENT, actual.status());
+        assertEquals(HttpStatus.OK, actual.status());
     }
 }

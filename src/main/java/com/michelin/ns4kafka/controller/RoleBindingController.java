@@ -67,7 +67,7 @@ public class RoleBindingController extends NamespacedResourceController {
      *
      * @param namespace   The namespace
      * @param roleBinding The role binding
-     * @param dryrun      Does the creation is a dry run
+     * @param dryrun      Is dry run mode or not?
      * @return The created role binding
      */
     @Post("{?dryrun}")
@@ -147,17 +147,18 @@ public class RoleBindingController extends NamespacedResourceController {
      * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
      */
-    @Status(HttpStatus.NO_CONTENT)
+    @Status(HttpStatus.OK)
     @Delete
-    public HttpResponse<Void> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
-                                     @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<List<RoleBinding>> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
+                                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         List<RoleBinding> roleBindings = roleBindingService.findByWildcardName(namespace, name);
+
         if (roleBindings.isEmpty()) {
             return HttpResponse.notFound();
         }
 
         if (dryrun) {
-            return HttpResponse.noContent();
+            return HttpResponse.ok(roleBindings);
         }
 
         roleBindings.forEach(roleBinding -> {
@@ -171,6 +172,6 @@ public class RoleBindingController extends NamespacedResourceController {
             roleBindingService.delete(roleBinding);
         });
 
-        return HttpResponse.noContent();
+        return HttpResponse.ok(roleBindings);
     }
 }

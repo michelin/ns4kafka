@@ -8,7 +8,6 @@ import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.model.schema.SchemaCompatibilityState;
-import com.michelin.ns4kafka.model.schema.SchemaList;
 import com.michelin.ns4kafka.service.SchemaService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
@@ -30,6 +29,7 @@ import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -52,8 +52,16 @@ public class SchemaController extends NamespacedResourceController {
      * @return A list of schemas
      */
     @Get
-    public Flux<SchemaList> list(String namespace, @QueryValue(defaultValue = "*") String name) {
-        return schemaService.findByWildcardName(getNamespace(namespace), name);
+    public Flux<Schema> list(String namespace, @QueryValue(defaultValue = "*") String name) {
+        Namespace ns = getNamespace(namespace);
+        return schemaService.findByWildcardName(ns, name)
+            .collectList()
+            .flatMapMany(schemas -> schemas.size() == 1
+                ? Flux.fromIterable(schemas
+                    .stream()
+                    .map(schema -> schemaService.getSubjectLatestVersion(ns, schema.getMetadata().getName()))
+                    .toList()).flatMap(schema -> schema)
+                : Flux.fromIterable(schemas));
     }
 
     /**
@@ -81,7 +89,7 @@ public class SchemaController extends NamespacedResourceController {
      *
      * @param namespace The namespace
      * @param schema    The schema to create
-     * @param dryrun    Does the creation is a dry run
+     * @param dryrun    Is dry run mode or not?
      * @return The created schema
      */
     @Post
@@ -154,12 +162,12 @@ public class SchemaController extends NamespacedResourceController {
      * @param dryrun            Run in dry mode or not?
      * @return A HTTP response
      */
-    @Status(HttpStatus.NO_CONTENT)
+    @Status(HttpStatus.OK)
     @Delete
-    public Mono<HttpResponse<Void>> bulkDelete(String namespace,
-                                           @QueryValue(defaultValue = "*") String name,
-                                           @QueryValue("version") Optional<String> versionOptional,
-                                           @QueryValue(defaultValue = "false") boolean dryrun) {
+    public Mono<HttpResponse<?>> bulkDelete(String namespace,
+                                                       @QueryValue(defaultValue = "*") String name,
+                                                       @QueryValue("version") Optional<String> versionOptional,
+                                                       @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         return schemaService.findByWildcardName(ns, name)
@@ -169,17 +177,22 @@ public class SchemaController extends NamespacedResourceController {
                 .map(Optional::of)
                 .defaultIfEmpty(Optional.empty()))
             .collectList()
-            .flatMap(schemas -> {
-                if (schemas.isEmpty() || schemas.stream().anyMatch(Optional::isEmpty)) {
+            .flatMap(optionalSchemas -> {
+                if (optionalSchemas.isEmpty() || optionalSchemas.stream().anyMatch(Optional::isEmpty)) {
                     return Mono.just(HttpResponse.notFound());
                 }
 
+                List<Schema> schemas = optionalSchemas
+                    .stream()
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .toList();
+
                 if (dryrun) {
-                    return Mono.just(HttpResponse.noContent());
+                    return Mono.just(HttpResponse.ok(schemas));
                 }
 
                 return Flux.fromIterable(schemas)
-                    .map(Optional::get)
                     .flatMap(schema -> (versionOptional.isEmpty()
                         ? schemaService.deleteAllVersions(ns, schema.getMetadata().getName()) :
                         schemaService.deleteVersion(ns, schema.getMetadata().getName(), versionOptional.get()))
@@ -194,7 +207,7 @@ public class SchemaController extends NamespacedResourceController {
                                 );
                                 return Mono.just(HttpResponse.noContent());
                             }))
-                    .then(Mono.just(HttpResponse.noContent()));
+                    .then(Mono.just(HttpResponse.ok(schemas)));
             });
     }
 

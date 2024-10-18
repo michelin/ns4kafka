@@ -21,7 +21,6 @@ public enum Kind {
     ROLE_BINDING("RoleBinding"),
     SCHEMA("Schema"),
     SCHEMA_COMPATIBILITY_STATE("SchemaCompatibilityState"),
-    SCHEMA_LIST("SchemaList"),
     STATUS("Status"),
     TOPIC("Topic"),
     VAULT_RESPONSE("VaultResponse");
