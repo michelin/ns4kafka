@@ -84,7 +84,8 @@ public class TopicController extends NamespacedResourceController {
      * @return The created topic
      */
     @Post
-    public HttpResponse<Topic> apply(String namespace, @Valid @Body Topic topic,
+    public HttpResponse<Topic> apply(String namespace,
+                                     @Valid @Body Topic topic,
                                      @QueryValue(defaultValue = "false") boolean dryrun)
         throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
@@ -164,10 +165,11 @@ public class TopicController extends NamespacedResourceController {
      * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
      */
-    @Status(HttpStatus.OK)
     @Delete
-    public HttpResponse<List<Topic>> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
-                                     @QueryValue(defaultValue = "false") boolean dryrun)
+    @Status(HttpStatus.OK)
+    public HttpResponse<List<Topic>> bulkDelete(String namespace,
+                                                @QueryValue(defaultValue = "*") String name,
+                                                @QueryValue(defaultValue = "false") boolean dryrun)
         throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
         List<Topic> topics = topicService.findByWildcardName(ns, name);
@@ -205,7 +207,8 @@ public class TopicController extends NamespacedResourceController {
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{topic}{?dryrun}")
     @Deprecated(since = "1.13.0")
-    public HttpResponse<Void> delete(String namespace, String topic,
+    public HttpResponse<Void> delete(String namespace,
+                                     String topic,
                                      @QueryValue(defaultValue = "false") boolean dryrun)
         throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
@@ -292,7 +295,8 @@ public class TopicController extends NamespacedResourceController {
      * @throws InterruptedException Any interrupted exception
      */
     @Post("{topic}/delete-records{?dryrun}")
-    public List<DeleteRecordsResponse> deleteRecords(String namespace, String topic,
+    public List<DeleteRecordsResponse> deleteRecords(String namespace,
+                                                     String topic,
                                                      @QueryValue(defaultValue = "false") boolean dryrun)
         throws InterruptedException, ExecutionException {
         Namespace ns = getNamespace(namespace);

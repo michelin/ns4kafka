@@ -85,7 +85,8 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @return The created Kafka Connect cluster
      */
     @Post("/{?dryrun}")
-    public Mono<HttpResponse<ConnectCluster>> apply(String namespace, @Body @Valid ConnectCluster connectCluster,
+    public Mono<HttpResponse<ConnectCluster>> apply(String namespace,
+                                                    @Body @Valid ConnectCluster connectCluster,
                                                     @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -140,7 +141,8 @@ public class ConnectClusterController extends NamespacedResourceController {
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{connectCluster}{?dryrun}")
     @Deprecated(since = "1.13.0")
-    public HttpResponse<Void> delete(String namespace, String connectCluster,
+    public HttpResponse<Void> delete(String namespace,
+                                     String connectCluster,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -193,7 +195,8 @@ public class ConnectClusterController extends NamespacedResourceController {
      */
     @Status(HttpStatus.OK)
     @Delete
-    public HttpResponse<List<ConnectCluster>> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
+    public HttpResponse<List<ConnectCluster>> bulkDelete(String namespace,
+                                                         @QueryValue(defaultValue = "*") String name,
                                                          @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -256,7 +259,8 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @return The encrypted password.
      */
     @Post("/{connectCluster}/vaults")
-    public List<VaultResponse> vaultPassword(final String namespace, final String connectCluster,
+    public List<VaultResponse> vaultPassword(final String namespace,
+                                             final String connectCluster,
                                              @Body final List<String> passwords) {
         final Namespace ns = getNamespace(namespace);
 

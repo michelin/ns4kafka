@@ -71,7 +71,8 @@ public class StreamController extends NamespacedResourceController {
      * @return An HTTP response
      */
     @Post("/{?dryrun}")
-    HttpResponse<KafkaStream> apply(String namespace, @Body @Valid KafkaStream stream,
+    HttpResponse<KafkaStream> apply(String namespace,
+                                    @Body @Valid KafkaStream stream,
                                     @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
         if (!streamService.isNamespaceOwnerOfKafkaStream(ns, stream.getMetadata().getName())) {
@@ -157,7 +158,8 @@ public class StreamController extends NamespacedResourceController {
      */
     @Status(HttpStatus.OK)
     @Delete
-    HttpResponse<List<KafkaStream>> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
+    HttpResponse<List<KafkaStream>> bulkDelete(String namespace,
+                                               @QueryValue(defaultValue = "*") String name,
                                                @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
         List<KafkaStream> kafkaStreams = streamService.findByWildcardName(ns, name);

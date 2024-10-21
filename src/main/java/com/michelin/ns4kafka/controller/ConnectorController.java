@@ -82,7 +82,8 @@ public class ConnectorController extends NamespacedResourceController {
      * @return The created connector
      */
     @Post("{?dryrun}")
-    public Mono<HttpResponse<Connector>> apply(String namespace, @Valid @Body Connector connector,
+    public Mono<HttpResponse<Connector>> apply(String namespace,
+                                               @Valid @Body Connector connector,
                                                @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -169,7 +170,8 @@ public class ConnectorController extends NamespacedResourceController {
     @Status(HttpStatus.NO_CONTENT)
     @Delete("/{connector}{?dryrun}")
     @Deprecated(since = "1.13.0")
-    public Mono<HttpResponse<Void>> delete(String namespace, String connector,
+    public Mono<HttpResponse<Void>> delete(String namespace,
+                                           String connector,
                                            @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -210,10 +212,11 @@ public class ConnectorController extends NamespacedResourceController {
      * @param dryrun    Run in dry mode or not?
      * @return A HTTP response
      */
-    @Status(HttpStatus.OK)
     @Delete
-    public Mono<HttpResponse<List<Connector>>> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
-                                                                 @QueryValue(defaultValue = "false") boolean dryrun) {
+    @Status(HttpStatus.OK)
+    public Mono<HttpResponse<List<Connector>>> bulkDelete(String namespace,
+                                                          @QueryValue(defaultValue = "*") String name,
+                                                          @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         List<Connector> connectors = connectorService.findByWildcardName(ns, name);

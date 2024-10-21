@@ -99,7 +99,8 @@ public class AclController extends NamespacedResourceController {
      * @return An HTTP response
      */
     @Post("{?dryrun}")
-    public HttpResponse<AccessControlEntry> apply(Authentication authentication, String namespace,
+    public HttpResponse<AccessControlEntry> apply(Authentication authentication,
+                                                  String namespace,
                                                   @Valid @Body AccessControlEntry accessControlEntry,
                                                   @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
@@ -164,7 +165,8 @@ public class AclController extends NamespacedResourceController {
      */
     @Delete
     @Status(HttpStatus.OK)
-    public HttpResponse<List<AccessControlEntry>> bulkDelete(Authentication authentication, String namespace,
+    public HttpResponse<List<AccessControlEntry>> bulkDelete(Authentication authentication,
+                                                             String namespace,
                                                              @QueryValue(defaultValue = "*") String name,
                                                              @QueryValue(defaultValue = "false") boolean dryrun) {
 
@@ -221,7 +223,9 @@ public class AclController extends NamespacedResourceController {
     @Delete("/{name}{?dryrun}")
     @Status(HttpStatus.NO_CONTENT)
     @Deprecated(since = "1.13.0")
-    public HttpResponse<Void> delete(Authentication authentication, String namespace, String name,
+    public HttpResponse<Void> delete(Authentication authentication,
+                                     String namespace,
+                                     String name,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         AccessControlEntry accessControlEntry = aclService
             .findByName(namespace, name)

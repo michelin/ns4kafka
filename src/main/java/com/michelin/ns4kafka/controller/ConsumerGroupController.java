@@ -45,7 +45,8 @@ public class ConsumerGroupController extends NamespacedResourceController {
      * @return The reset offsets response
      */
     @Post("/{consumerGroup}/reset{?dryrun}")
-    public List<ConsumerGroupResetOffsetsResponse> resetOffsets(String namespace, String consumerGroup,
+    public List<ConsumerGroupResetOffsetsResponse> resetOffsets(String namespace,
+                                                                String consumerGroup,
                                                                 @Valid @Body
                                                                 ConsumerGroupResetOffsets consumerGroupResetOffsets,
                                                                 @QueryValue(defaultValue = "false") boolean dryrun)

@@ -82,7 +82,8 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * @return The created quota
      */
     @Post("{?dryrun}")
-    public HttpResponse<ResourceQuota> apply(String namespace, @Body @Valid ResourceQuota quota,
+    public HttpResponse<ResourceQuota> apply(String namespace,
+                                             @Body @Valid ResourceQuota quota,
                                              @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -126,7 +127,8 @@ public class ResourceQuotaController extends NamespacedResourceController {
      */
     @Delete
     @Status(HttpStatus.OK)
-    public HttpResponse<List<ResourceQuota>> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
+    public HttpResponse<List<ResourceQuota>> bulkDelete(String namespace,
+                                                        @QueryValue(defaultValue = "*") String name,
                                                         @QueryValue(defaultValue = "false") boolean dryrun) {
 
         List<ResourceQuota> resourceQuotas = resourceQuotaService.findByWildcardName(namespace, name);
@@ -165,7 +167,8 @@ public class ResourceQuotaController extends NamespacedResourceController {
     @Delete("/{name}{?dryrun}")
     @Status(HttpStatus.NO_CONTENT)
     @Deprecated(since = "1.13.0")
-    public HttpResponse<Void> delete(String namespace, String name,
+    public HttpResponse<Void> delete(String namespace,
+                                     String name,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         Optional<ResourceQuota> resourceQuota = resourceQuotaService.findByName(namespace, name);
         if (resourceQuota.isEmpty()) {

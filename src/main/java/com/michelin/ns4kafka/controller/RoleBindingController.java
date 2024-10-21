@@ -71,7 +71,8 @@ public class RoleBindingController extends NamespacedResourceController {
      * @return The created role binding
      */
     @Post("{?dryrun}")
-    public HttpResponse<RoleBinding> apply(String namespace, @Valid @Body RoleBinding roleBinding,
+    public HttpResponse<RoleBinding> apply(String namespace,
+                                           @Valid @Body RoleBinding roleBinding,
                                            @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -114,7 +115,8 @@ public class RoleBindingController extends NamespacedResourceController {
     @Delete("/{name}{?dryrun}")
     @Status(HttpStatus.NO_CONTENT)
     @Deprecated(since = "1.13.0")
-    public HttpResponse<Void> delete(String namespace, String name,
+    public HttpResponse<Void> delete(String namespace,
+                                     String name,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         Optional<RoleBinding> roleBinding = roleBindingService.findByName(namespace, name);
         if (roleBinding.isEmpty()) {
@@ -149,7 +151,8 @@ public class RoleBindingController extends NamespacedResourceController {
      */
     @Status(HttpStatus.OK)
     @Delete
-    public HttpResponse<List<RoleBinding>> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
+    public HttpResponse<List<RoleBinding>> bulkDelete(String namespace,
+                                                      @QueryValue(defaultValue = "*") String name,
                                                       @QueryValue(defaultValue = "false") boolean dryrun) {
         List<RoleBinding> roleBindings = roleBindingService.findByWildcardName(namespace, name);
 

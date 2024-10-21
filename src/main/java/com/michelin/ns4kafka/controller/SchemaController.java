@@ -93,7 +93,8 @@ public class SchemaController extends NamespacedResourceController {
      * @return The created schema
      */
     @Post
-    public Mono<HttpResponse<Schema>> apply(String namespace, @Valid @Body Schema schema,
+    public Mono<HttpResponse<Schema>> apply(String namespace,
+                                            @Valid @Body Schema schema,
                                             @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -162,8 +163,8 @@ public class SchemaController extends NamespacedResourceController {
      * @param dryrun            Run in dry mode or not?
      * @return A HTTP response
      */
-    @Status(HttpStatus.OK)
     @Delete
+    @Status(HttpStatus.OK)
     public Mono<HttpResponse<List<Schema>>> bulkDelete(String namespace,
                                                        @QueryValue(defaultValue = "*") String name,
                                                        @QueryValue("version") Optional<String> versionOptional,
@@ -279,7 +280,8 @@ public class SchemaController extends NamespacedResourceController {
      * @return A schema compatibility state
      */
     @Post("/{subject}/config")
-    public Mono<HttpResponse<SchemaCompatibilityState>> config(String namespace, @PathVariable String subject,
+    public Mono<HttpResponse<SchemaCompatibilityState>> config(String namespace,
+                                                               @PathVariable String subject,
                                                                Schema.Compatibility compatibility) {
         Namespace ns = getNamespace(namespace);
 
