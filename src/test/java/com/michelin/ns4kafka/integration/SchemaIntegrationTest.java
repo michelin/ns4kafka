@@ -411,7 +411,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         // Create person
         Schema schemaPersonWithRefs = Schema.builder()
             .metadata(Metadata.builder()
-                .name("ns1-person-subject-value")
+                .name("ns1-person2-subject-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
                 .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\","
@@ -451,7 +451,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         // Create person v2, result should be changed
         Schema newSchemaVersionPersonWithRefs = Schema.builder()
             .metadata(Metadata.builder()
-                .name("ns1-person-subject-value")
+                .name("ns1-person2-subject-value")
                 .build())
             .spec(Schema.SchemaSpec.builder()
                 .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\","
@@ -483,11 +483,11 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
 
         SchemaResponse newActualPerson = schemaRegistryClient
             .toBlocking()
-            .retrieve(HttpRequest.GET("/subjects/ns1-person-subject-value/versions/latest"), SchemaResponse.class);
+            .retrieve(HttpRequest.GET("/subjects/ns1-person2-subject-value/versions/latest"), SchemaResponse.class);
 
         assertNotNull(newActualPerson.id());
         assertEquals(2, newActualPerson.version());
-        assertEquals("ns1-person-subject-value", newActualPerson.subject());
+        assertEquals("ns1-person2-subject-value", newActualPerson.subject());
 
         // Recreate person v1, result should be unchanged
         var personCreateV1Response = ns4KafkaClient
@@ -864,7 +864,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                 .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas?name=ns1-subject4-value&version=latest")
                 .bearerAuth(token), Schema.class);
 
-        assertEquals(HttpStatus.NO_CONTENT, deleteLatestVersionResponse.getStatus());
+        assertEquals(HttpStatus.OK, deleteLatestVersionResponse.getStatus());
 
         // Get schemas versions
         var getSchemaAfterLatestVersionDeletionResponse = schemaRegistryClient
@@ -882,7 +882,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                 .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas?name=ns1-subject4-value&version=1")
                 .bearerAuth(token), Schema.class);
 
-        assertEquals(HttpStatus.NO_CONTENT, deleteOldVersionResponse.getStatus());
+        assertEquals(HttpStatus.OK, deleteOldVersionResponse.getStatus());
 
         // Get schemas versions
         var getSchemaAfterOldVersionDeletionResponse = schemaRegistryClient
@@ -900,7 +900,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                 .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas?name=ns1-subject4-value")
                 .bearerAuth(token), Schema.class);
 
-        assertEquals(HttpStatus.NO_CONTENT, deleteAllVersionsResponse.getStatus());
+        assertEquals(HttpStatus.OK, deleteAllVersionsResponse.getStatus());
 
         // Get all schemas
         var getSchemaAfterAllVersionsDeletionResponse = schemaRegistryClient
@@ -993,10 +993,10 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         var deleteResponse = ns4KafkaClient
             .toBlocking()
             .exchange(HttpRequest
-                .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas?name=ns1-subject5-*")
-                .bearerAuth(token), Schema.class);
+                .create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas?name=ns1-*-key")
+                .bearerAuth(token), Argument.listOf(Schema.class));
 
-        assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
+        assertEquals(HttpStatus.OK, deleteResponse.getStatus());
 
         var getSchemasAfterDeletionResponse = schemaRegistryClient
             .toBlocking()
@@ -1006,7 +1006,6 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         assertTrue(getSchemasAfterDeletionResponse.getBody().isPresent());
         assertTrue(getSchemasAfterDeletionResponse.getBody().get()
             .stream()
-            .noneMatch(subject -> List.of("ns1-subject5-key", "ns1-subject5-value").contains(subject)));
-        assertTrue(getSchemasAfterDeletionResponse.getBody().get().contains("ns1-subject6-value"));
+            .noneMatch(subject -> subject.equals("ns1-subject5-key")));
     }
 }

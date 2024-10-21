@@ -680,7 +680,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                 .create(HttpMethod.DELETE, "/api/namespaces/ns1/topics?name=ns1-*Topic")
                 .bearerAuth(token));
 
-        assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
+        assertEquals(HttpStatus.OK, deleteResponse.getStatus());
 
         forceTopicSynchronization();
 

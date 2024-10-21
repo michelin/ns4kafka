@@ -78,7 +78,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
      *
      * @param namespace The namespace
      * @param quota     The resource quota
-     * @param dryrun    Does the creation is a dry run
+     * @param dryrun    Is dry run mode or not?
      * @return The created quota
      */
     @Post("{?dryrun}")
@@ -125,9 +125,9 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * @return An HTTP response
      */
     @Delete
-    @Status(HttpStatus.NO_CONTENT)
-    public HttpResponse<Void> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
-                                     @QueryValue(defaultValue = "false") boolean dryrun) {
+    @Status(HttpStatus.OK)
+    public HttpResponse<List<ResourceQuota>> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
+                                                        @QueryValue(defaultValue = "false") boolean dryrun) {
 
         List<ResourceQuota> resourceQuotas = resourceQuotaService.findByWildcardName(namespace, name);
 
@@ -136,7 +136,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
         }
 
         if (dryrun) {
-            return HttpResponse.noContent();
+            return HttpResponse.ok(resourceQuotas);
         }
 
         resourceQuotas.forEach(resourceQuota -> {
@@ -150,7 +150,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
             resourceQuotaService.delete(resourceQuota);
         });
 
-        return HttpResponse.noContent();
+        return HttpResponse.ok(resourceQuotas);
     }
 
     /**

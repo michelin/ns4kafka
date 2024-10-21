@@ -41,7 +41,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
      * @param namespace                 The namespace
      * @param consumerGroup             The consumer group
      * @param consumerGroupResetOffsets The information about how to reset
-     * @param dryrun                    Is dry run mode or not ?
+     * @param dryrun                    Is dry run mode or not?
      * @return The reset offsets response
      */
     @Post("/{consumerGroup}/reset{?dryrun}")

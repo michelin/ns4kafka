@@ -650,7 +650,7 @@ class SchemaControllerTest {
             .thenReturn(Mono.just(new Integer[1]));
 
         StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.empty(), false))
-            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
             .verifyComplete();
 
         verify(applicationEventPublisher).publishEvent(any());
@@ -671,7 +671,7 @@ class SchemaControllerTest {
             .thenReturn(Mono.just(1));
 
         StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.of("1"), false))
-            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
             .verifyComplete();
 
         verify(applicationEventPublisher).publishEvent(any());
@@ -769,7 +769,7 @@ class SchemaControllerTest {
             .thenReturn(Mono.just(schema));
 
         StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.empty(), true))
-            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
             .verifyComplete();
 
         verify(schemaService, never()).deleteAllVersions(namespace, "prefix.subject-value");
@@ -788,7 +788,7 @@ class SchemaControllerTest {
             .thenReturn(Mono.just(schema));
 
         StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.of("1"), true))
-            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
             .verifyComplete();
 
         verify(schemaService, never()).deleteVersion(namespace, "prefix.subject-value", "1");

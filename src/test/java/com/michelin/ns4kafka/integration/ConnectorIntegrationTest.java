@@ -2,6 +2,7 @@ package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -490,6 +491,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
             .retrieve(HttpRequest.GET("/connectors/ns1-co1/status"), ConnectorStateInfo.class);
 
         assertEquals("RUNNING", actual.connector().getState());
+        assertFalse(actual.tasks().isEmpty());
         assertEquals("RUNNING", actual.tasks().getFirst().getState());
     }
 
@@ -648,5 +650,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 // Connector not found, retry
             }
         }
+
+        Thread.sleep(2000);
     }
 }

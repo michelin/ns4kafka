@@ -263,7 +263,7 @@ class ConnectorControllerTest {
     }
 
     @Test
-    void shouldDeleteConnectors() {
+    void shouldBulkDeleteConnectors() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -290,12 +290,12 @@ class ConnectorControllerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         StepVerifier.create(connectorController.bulkDelete("test", "connect*", false))
-            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
             .verifyComplete();
     }
 
     @Test
-    void shouldNotDeleteConnectorsWhenNotFound() {
+    void shouldNotBulkDeleteConnectorsWhenNotFound() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -316,7 +316,7 @@ class ConnectorControllerTest {
     }
 
     @Test
-    void shouldDeleteConnectorsInDryRunMode() {
+    void shouldBulkDeleteConnectorsInDryRunMode() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -346,14 +346,14 @@ class ConnectorControllerTest {
             .thenReturn(true);
 
         StepVerifier.create(connectorController.bulkDelete("test", "connect*", true))
-            .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+            .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
             .verifyComplete();
 
         verify(connectorService, never()).delete(any(), any());
     }
 
     @Test
-    void shouldNotDeleteConnectorsWhenNotOwned() {
+    void shouldNotBulkDeleteConnectorsWhenNotOwner() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
