@@ -167,9 +167,9 @@ public class ConnectorController extends NamespacedResourceController {
      * @return A HTTP response
      * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
-    @Status(HttpStatus.NO_CONTENT)
     @Delete("/{connector}{?dryrun}")
     @Deprecated(since = "1.13.0")
+    @Status(HttpStatus.NO_CONTENT)
     public Mono<HttpResponse<Void>> delete(String namespace,
                                            String connector,
                                            @QueryValue(defaultValue = "false") boolean dryrun) {

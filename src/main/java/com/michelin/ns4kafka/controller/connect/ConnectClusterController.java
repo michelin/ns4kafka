@@ -138,9 +138,9 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @return A HTTP response
      * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
-    @Status(HttpStatus.NO_CONTENT)
     @Delete("/{connectCluster}{?dryrun}")
     @Deprecated(since = "1.13.0")
+    @Status(HttpStatus.NO_CONTENT)
     public HttpResponse<Void> delete(String namespace,
                                      String connectCluster,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
@@ -193,8 +193,8 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @param dryrun         Run in dry mode or not
      * @return A HTTP response
      */
-    @Status(HttpStatus.OK)
     @Delete
+    @Status(HttpStatus.OK)
     public HttpResponse<List<ConnectCluster>> bulkDelete(String namespace,
                                                          @QueryValue(defaultValue = "*") String name,
                                                          @QueryValue(defaultValue = "false") boolean dryrun) {

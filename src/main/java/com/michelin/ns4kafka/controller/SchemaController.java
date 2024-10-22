@@ -222,9 +222,9 @@ public class SchemaController extends NamespacedResourceController {
      * @return A HTTP response
      * @deprecated use {@link #bulkDelete(String, String, Optional, boolean)} instead.
      */
-    @Status(HttpStatus.NO_CONTENT)
     @Delete("/{subject}")
     @Deprecated(since = "1.13.0")
+    @Status(HttpStatus.NO_CONTENT)
     public Mono<HttpResponse<Void>> delete(String namespace,
                                            @PathVariable String subject,
                                            @QueryValue("version") Optional<String> versionOptional,

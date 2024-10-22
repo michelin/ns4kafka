@@ -115,9 +115,9 @@ public class StreamController extends NamespacedResourceController {
      * @return An HTTP response
      * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
-    @Status(HttpStatus.NO_CONTENT)
     @Delete("/{stream}{?dryrun}")
     @Deprecated(since = "1.13.0")
+    @Status(HttpStatus.NO_CONTENT)
     HttpResponse<Void> delete(String namespace, String stream, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
         if (!streamService.isNamespaceOwnerOfKafkaStream(ns, stream)) {
@@ -156,8 +156,8 @@ public class StreamController extends NamespacedResourceController {
      * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
      */
-    @Status(HttpStatus.OK)
     @Delete
+    @Status(HttpStatus.OK)
     HttpResponse<List<KafkaStream>> bulkDelete(String namespace,
                                                @QueryValue(defaultValue = "*") String name,
                                                @QueryValue(defaultValue = "false") boolean dryrun) {

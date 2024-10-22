@@ -204,9 +204,9 @@ public class TopicController extends NamespacedResourceController {
      * @return An HTTP response
      * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
-    @Status(HttpStatus.NO_CONTENT)
     @Delete("/{topic}{?dryrun}")
     @Deprecated(since = "1.13.0")
+    @Status(HttpStatus.NO_CONTENT)
     public HttpResponse<Void> delete(String namespace,
                                      String topic,
                                      @QueryValue(defaultValue = "false") boolean dryrun)

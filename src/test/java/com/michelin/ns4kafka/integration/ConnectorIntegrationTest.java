@@ -650,7 +650,5 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 // Connector not found, retry
             }
         }
-
-        Thread.sleep(2000);
     }
 }

@@ -165,8 +165,8 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
     @Delete("/{name}{?dryrun}")
-    @Status(HttpStatus.NO_CONTENT)
     @Deprecated(since = "1.13.0")
+    @Status(HttpStatus.NO_CONTENT)
     public HttpResponse<Void> delete(String namespace,
                                      String name,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {

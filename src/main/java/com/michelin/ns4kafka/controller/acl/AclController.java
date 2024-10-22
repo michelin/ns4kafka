@@ -221,8 +221,8 @@ public class AclController extends NamespacedResourceController {
      * @deprecated use {@link #bulkDelete(Authentication, String, String, boolean)} instead.
      */
     @Delete("/{name}{?dryrun}")
-    @Status(HttpStatus.NO_CONTENT)
     @Deprecated(since = "1.13.0")
+    @Status(HttpStatus.NO_CONTENT)
     public HttpResponse<Void> delete(Authentication authentication,
                                      String namespace,
                                      String name,
