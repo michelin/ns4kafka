@@ -81,11 +81,12 @@ public class ConnectClusterController extends NamespacedResourceController {
      *
      * @param namespace      The namespace
      * @param connectCluster The connect worker
-     * @param dryrun         Does the creation is a dry run
+     * @param dryrun         Is dry run mode or not?
      * @return The created Kafka Connect cluster
      */
     @Post("/{?dryrun}")
-    public Mono<HttpResponse<ConnectCluster>> apply(String namespace, @Body @Valid ConnectCluster connectCluster,
+    public Mono<HttpResponse<ConnectCluster>> apply(String namespace,
+                                                    @Body @Valid ConnectCluster connectCluster,
                                                     @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -137,10 +138,11 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @return A HTTP response
      * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
-    @Status(HttpStatus.NO_CONTENT)
     @Delete("/{connectCluster}{?dryrun}")
     @Deprecated(since = "1.13.0")
-    public HttpResponse<Void> delete(String namespace, String connectCluster,
+    @Status(HttpStatus.NO_CONTENT)
+    public HttpResponse<Void> delete(String namespace,
+                                     String connectCluster,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -160,15 +162,26 @@ public class ConnectClusterController extends NamespacedResourceController {
 
         Optional<ConnectCluster> optionalConnectCluster =
             connectClusterService.findByNameWithOwnerPermission(ns, connectCluster);
+
         if (optionalConnectCluster.isEmpty()) {
             return HttpResponse.notFound();
         }
+
 
         if (dryrun) {
             return HttpResponse.noContent();
         }
 
-        performDeletion(optionalConnectCluster.get());
+        sendEventLog(
+            optionalConnectCluster.get(),
+            ApplyStatus.deleted,
+            optionalConnectCluster.get().getSpec(),
+            null,
+            EMPTY_STRING
+        );
+
+        connectClusterService.delete(optionalConnectCluster.get());
+
         return HttpResponse.noContent();
     }
 
@@ -180,10 +193,11 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @param dryrun         Run in dry mode or not
      * @return A HTTP response
      */
-    @Status(HttpStatus.NO_CONTENT)
     @Delete
-    public HttpResponse<Void> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
-                                     @QueryValue(defaultValue = "false") boolean dryrun) {
+    @Status(HttpStatus.OK)
+    public HttpResponse<List<ConnectCluster>> bulkDelete(String namespace,
+                                                         @QueryValue(defaultValue = "*") String name,
+                                                         @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         List<ConnectCluster> connectClusters = connectClusterService.findByWildcardNameWithOwnerPermission(ns, name);
@@ -205,27 +219,22 @@ public class ConnectClusterController extends NamespacedResourceController {
         }
 
         if (dryrun) {
-            return HttpResponse.noContent();
+            return HttpResponse.ok(connectClusters);
         }
 
-        connectClusters.forEach(this::performDeletion);
-        return HttpResponse.noContent();
-    }
-
-    /**
-     * Perform the deletion of the connectCluster and send an event log.
-     *
-     * @param connectCluster The connectCluster to delete
-     */
-    private void performDeletion(ConnectCluster connectCluster) {
-        sendEventLog(
-                connectCluster,
+        connectClusters.forEach(cc -> {
+            sendEventLog(
+                cc,
                 ApplyStatus.deleted,
-                connectCluster.getSpec(),
+                cc.getSpec(),
                 null,
                 EMPTY_STRING
-        );
-        connectClusterService.delete(connectCluster);
+            );
+
+            connectClusterService.delete(cc);
+        });
+
+        return HttpResponse.ok(connectClusters);
     }
 
     /**
@@ -250,7 +259,8 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @return The encrypted password.
      */
     @Post("/{connectCluster}/vaults")
-    public List<VaultResponse> vaultPassword(final String namespace, final String connectCluster,
+    public List<VaultResponse> vaultPassword(final String namespace,
+                                             final String connectCluster,
                                              @Body final List<String> passwords) {
         final Namespace ns = getNamespace(namespace);
 

@@ -84,7 +84,8 @@ public class TopicController extends NamespacedResourceController {
      * @return The created topic
      */
     @Post
-    public HttpResponse<Topic> apply(String namespace, @Valid @Body Topic topic,
+    public HttpResponse<Topic> apply(String namespace,
+                                     @Valid @Body Topic topic,
                                      @QueryValue(defaultValue = "false") boolean dryrun)
         throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
@@ -164,23 +165,24 @@ public class TopicController extends NamespacedResourceController {
      * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
      */
-    @Status(HttpStatus.NO_CONTENT)
     @Delete
-    public HttpResponse<Void> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
-                                     @QueryValue(defaultValue = "false") boolean dryrun)
+    @Status(HttpStatus.OK)
+    public HttpResponse<List<Topic>> bulkDelete(String namespace,
+                                                @QueryValue(defaultValue = "*") String name,
+                                                @QueryValue(defaultValue = "false") boolean dryrun)
         throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
-        List<Topic> topicsToDelete = topicService.findByWildcardName(ns, name);
+        List<Topic> topics = topicService.findByWildcardName(ns, name);
 
-        if (topicsToDelete.isEmpty()) {
+        if (topics.isEmpty()) {
             return HttpResponse.notFound();
         }
 
         if (dryrun) {
-            return HttpResponse.noContent();
+            return HttpResponse.ok(topics);
         }
 
-        topicsToDelete.forEach(topicToDelete ->
+        topics.forEach(topicToDelete ->
             sendEventLog(
                 topicToDelete,
                 ApplyStatus.deleted,
@@ -188,9 +190,9 @@ public class TopicController extends NamespacedResourceController {
                 null,
                 EMPTY_STRING));
 
-        topicService.deleteTopics(topicsToDelete);
+        topicService.deleteTopics(topics);
 
-        return HttpResponse.noContent();
+        return HttpResponse.ok(topics);
     }
 
     /**
@@ -202,10 +204,11 @@ public class TopicController extends NamespacedResourceController {
      * @return An HTTP response
      * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
-    @Status(HttpStatus.NO_CONTENT)
     @Delete("/{topic}{?dryrun}")
     @Deprecated(since = "1.13.0")
-    public HttpResponse<Void> delete(String namespace, String topic,
+    @Status(HttpStatus.NO_CONTENT)
+    public HttpResponse<Void> delete(String namespace,
+                                     String topic,
                                      @QueryValue(defaultValue = "false") boolean dryrun)
         throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
@@ -242,7 +245,7 @@ public class TopicController extends NamespacedResourceController {
      * Import unsynchronized topics.
      *
      * @param namespace The namespace
-     * @param dryrun    Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not?
      * @return The list of imported topics
      * @throws ExecutionException   Any execution exception
      * @throws InterruptedException Any interrupted exception
@@ -286,13 +289,14 @@ public class TopicController extends NamespacedResourceController {
      *
      * @param namespace The namespace
      * @param topic     The topic
-     * @param dryrun    Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not?
      * @return The list of topic-partitions where records have been deleted
      * @throws ExecutionException   Any execution exception
      * @throws InterruptedException Any interrupted exception
      */
     @Post("{topic}/delete-records{?dryrun}")
-    public List<DeleteRecordsResponse> deleteRecords(String namespace, String topic,
+    public List<DeleteRecordsResponse> deleteRecords(String namespace,
+                                                     String topic,
                                                      @QueryValue(defaultValue = "false") boolean dryrun)
         throws InterruptedException, ExecutionException {
         Namespace ns = getNamespace(namespace);

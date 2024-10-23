@@ -78,11 +78,12 @@ public class ConnectorController extends NamespacedResourceController {
      *
      * @param namespace The namespace
      * @param connector The connector to create
-     * @param dryrun    Does the creation is a dry run
+     * @param dryrun    Is dry run mode or not?
      * @return The created connector
      */
     @Post("{?dryrun}")
-    public Mono<HttpResponse<Connector>> apply(String namespace, @Valid @Body Connector connector,
+    public Mono<HttpResponse<Connector>> apply(String namespace,
+                                               @Valid @Body Connector connector,
                                                @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -162,14 +163,15 @@ public class ConnectorController extends NamespacedResourceController {
      *
      * @param namespace The current namespace
      * @param connector The current connector name to delete
-     * @param dryrun    Run in dry mode or not
+     * @param dryrun    Is dry run mode or not?
      * @return A HTTP response
      * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
-    @Status(HttpStatus.NO_CONTENT)
     @Delete("/{connector}{?dryrun}")
     @Deprecated(since = "1.13.0")
-    public Mono<HttpResponse<Void>> delete(String namespace, String connector,
+    @Status(HttpStatus.NO_CONTENT)
+    public Mono<HttpResponse<Void>> delete(String namespace,
+                                           String connector,
                                            @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -206,14 +208,15 @@ public class ConnectorController extends NamespacedResourceController {
      * Delete connectors.
      *
      * @param namespace The current namespace
-     * @param name The name parameter
-     * @param dryrun    Run in dry mode or not
+     * @param name      The name parameter
+     * @param dryrun    Run in dry mode or not?
      * @return A HTTP response
      */
-    @Status(HttpStatus.NO_CONTENT)
     @Delete
-    public Mono<HttpResponse<Void>> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
-                                               @QueryValue(defaultValue = "false") boolean dryrun) {
+    @Status(HttpStatus.OK)
+    public Mono<HttpResponse<List<Connector>>> bulkDelete(String namespace,
+                                                          @QueryValue(defaultValue = "*") String name,
+                                                          @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         List<Connector> connectors = connectorService.findByWildcardName(ns, name);
@@ -233,7 +236,7 @@ public class ConnectorController extends NamespacedResourceController {
         }
 
         if (dryrun) {
-            return Mono.just(HttpResponse.noContent());
+            return Mono.just(HttpResponse.ok(connectors));
         }
 
         return Flux.fromIterable(connectors)
@@ -241,7 +244,7 @@ public class ConnectorController extends NamespacedResourceController {
                     sendEventLog(connector, ApplyStatus.deleted, connector.getSpec(), null, EMPTY_STRING);
                     return connectorService.delete(ns, connector);
                 })
-                .then(Mono.just(HttpResponse.noContent()));
+                .then(Mono.just(HttpResponse.ok(connectors)));
     }
 
     /**
@@ -305,7 +308,7 @@ public class ConnectorController extends NamespacedResourceController {
      * Import unsynchronized connectors.
      *
      * @param namespace The namespace
-     * @param dryrun    Is dry run mode or not ?
+     * @param dryrun    Is dry run mode or not?
      * @return The list of imported connectors
      */
     @Post("/_/import{?dryrun}")

@@ -178,7 +178,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void shouldDeleteMultipleTopics() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldBulkDeleteTopics() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -198,13 +198,12 @@ class TopicControllerTest {
         doNothing().when(topicService).deleteTopics(toDelete);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        HttpResponse<Void> actual = topicController.bulkDelete("test", "prefix1.*", false);
-
-        assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
+        var actual = topicController.bulkDelete("test", "prefix1.*", false);
+        assertEquals(HttpStatus.OK, actual.getStatus());
     }
 
     @Test
-    void shouldNotDeleteMultipleTopicsWhenNotFound() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldNotBulkDeleteTopicsWhenNotFound() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -218,14 +217,14 @@ class TopicControllerTest {
         when(topicService.findByWildcardName(ns, "topic*"))
             .thenReturn(List.of());
 
-        HttpResponse<Void> actual = topicController.bulkDelete("test", "topic*", false);
+        var actual = topicController.bulkDelete("test", "topic*", false);
 
         assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
         verify(topicService, never()).delete(any());
     }
 
     @Test
-    void shouldNotDeleteMultipleTopicsInDryRunMode() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldNotBulkDeleteTopicsInDryRunMode() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -246,8 +245,8 @@ class TopicControllerTest {
         when(topicService.findByWildcardName(ns, "prefix.topic"))
             .thenReturn(toDelete);
 
-        topicController.bulkDelete("test", "prefix.topic", true);
-
+        var actual = topicController.bulkDelete("test", "prefix.topic", true);
+        assertEquals(HttpStatus.OK, actual.getStatus());
         verify(topicService, never()).delete(any());
     }
 

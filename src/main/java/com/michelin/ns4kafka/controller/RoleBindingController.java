@@ -67,11 +67,12 @@ public class RoleBindingController extends NamespacedResourceController {
      *
      * @param namespace   The namespace
      * @param roleBinding The role binding
-     * @param dryrun      Does the creation is a dry run
+     * @param dryrun      Is dry run mode or not?
      * @return The created role binding
      */
     @Post("{?dryrun}")
-    public HttpResponse<RoleBinding> apply(String namespace, @Valid @Body RoleBinding roleBinding,
+    public HttpResponse<RoleBinding> apply(String namespace,
+                                           @Valid @Body RoleBinding roleBinding,
                                            @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -112,9 +113,10 @@ public class RoleBindingController extends NamespacedResourceController {
      * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
     @Delete("/{name}{?dryrun}")
-    @Status(HttpStatus.NO_CONTENT)
     @Deprecated(since = "1.13.0")
-    public HttpResponse<Void> delete(String namespace, String name,
+    @Status(HttpStatus.NO_CONTENT)
+    public HttpResponse<Void> delete(String namespace,
+                                     String name,
                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         Optional<RoleBinding> roleBinding = roleBindingService.findByName(namespace, name);
         if (roleBinding.isEmpty()) {
@@ -147,17 +149,19 @@ public class RoleBindingController extends NamespacedResourceController {
      * @param dryrun    Is dry run mode or not?
      * @return An HTTP response
      */
-    @Status(HttpStatus.NO_CONTENT)
     @Delete
-    public HttpResponse<Void> bulkDelete(String namespace, @QueryValue(defaultValue = "*") String name,
-                                     @QueryValue(defaultValue = "false") boolean dryrun) {
+    @Status(HttpStatus.OK)
+    public HttpResponse<List<RoleBinding>> bulkDelete(String namespace,
+                                                      @QueryValue(defaultValue = "*") String name,
+                                                      @QueryValue(defaultValue = "false") boolean dryrun) {
         List<RoleBinding> roleBindings = roleBindingService.findByWildcardName(namespace, name);
+
         if (roleBindings.isEmpty()) {
             return HttpResponse.notFound();
         }
 
         if (dryrun) {
-            return HttpResponse.noContent();
+            return HttpResponse.ok(roleBindings);
         }
 
         roleBindings.forEach(roleBinding -> {
@@ -171,6 +175,6 @@ public class RoleBindingController extends NamespacedResourceController {
             roleBindingService.delete(roleBinding);
         });
 
-        return HttpResponse.noContent();
+        return HttpResponse.ok(roleBindings);
     }
 }
