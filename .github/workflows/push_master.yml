@@ -1,13 +1,20 @@
-name: Pull Request
+name: Push Master
 
 on:
-  pull_request:
-    branches: [ master, hotfix/* ]
+  push:
+    branches:
+      - master
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Docker login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.MICHELIN_DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.MICHELIN_DOCKER_HUB_PASSWD }}
+
       - name: Checkout project
         uses: actions/checkout@v4
         with:
@@ -37,10 +44,13 @@ jobs:
         run: ./gradlew checkstyleMain checkstyleTest
 
       - name: Build and analyze
+        id: build_jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: ./gradlew build jacocoTestReport sonar --info
+        run: |
+          ./gradlew build jacocoTestReport sonar --info
+          echo current_version=$(echo $(./gradlew properties --no-daemon --console=plain -q | grep "^version:" | awk '{printf $2}')) >> $GITHUB_OUTPUT
 
       - name: Publish test report
         if: always()
@@ -49,4 +59,10 @@ jobs:
           report_paths: '**/build/test-results/test/TEST-*.xml'
 
       - name: Docker
-        run: ./gradlew dockerBuild
+        run: ./gradlew dockerBuild dockerPush
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ns4kafka
+          path: ${{ github.workspace }}/build/libs/ns4kafka-${{ steps.build_jar.outputs.current_version }}.jar

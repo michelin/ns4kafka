@@ -1,4 +1,4 @@
-name: Hotfix Branch
+name: Hotfix
 
 on:
   workflow_dispatch:
