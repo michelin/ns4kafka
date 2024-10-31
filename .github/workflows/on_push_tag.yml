@@ -45,7 +45,15 @@ jobs:
           report_paths: '**/build/test-results/test/TEST-*.xml'
 
       - name: Docker
-        run: ./gradlew dockerBuild dockerPush -PreleaseLatest
+        run: |
+          LATEST_VERSION=$(git tag -l --sort=-version:refname | head -1 | cut -d 'v' -f 2)
+          if [ "$LATEST_VERSION" == "${{ steps.build_jar.outputs.current_version }}" ]; then
+            echo "Latest version is $LATEST_VERSION. Current version is ${{ steps.build_jar.outputs.current_version }}. Pushing latest tag."
+            ./gradlew dockerBuild dockerPush -PreleaseLatest
+          else 
+            echo "Latest version is $LATEST_VERSION. Current version is ${{ steps.build_jar.outputs.current_version }}. Not pushing latest tag."
+            ./gradlew dockerBuild dockerPush
+          fi
 
       - name: Generate release changelog
         uses: mikepenz/release-changelog-builder-action@v5
