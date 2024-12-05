@@ -60,7 +60,7 @@ class NamespaceControllerTest {
         when(namespaceService.findByWildcardName("*"))
             .thenReturn(List.of(ns1, ns2));
 
-        assertEquals(List.of(ns1, ns2), namespaceController.list("*"));
+        assertEquals(List.of(ns1, ns2), namespaceController.list("*", ""));
     }
 
     @Test
@@ -74,13 +74,45 @@ class NamespaceControllerTest {
         when(namespaceService.findByWildcardName("ns"))
             .thenReturn(List.of(ns));
 
-        assertEquals(List.of(ns), namespaceController.list("ns"));
+        assertEquals(List.of(ns), namespaceController.list("ns", ""));
+    }
+
+    @Test
+    void shouldListNamespaceFilteredByTopic() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns")
+                .build())
+            .build();
+
+        when(namespaceService.findByWildcardName("*"))
+            .thenReturn(List.of(ns));
+        when(namespaceService.findByTopicName(List.of(ns), "topic"))
+            .thenReturn(Optional.of(ns));
+
+        assertEquals(List.of(ns), namespaceController.list("*", "topic"));
+    }
+
+    @Test
+    void shouldListNoNamespaceFilteredByTopic() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns")
+                .build())
+            .build();
+
+        when(namespaceService.findByWildcardName("*"))
+            .thenReturn(List.of(ns));
+        when(namespaceService.findByTopicName(List.of(ns), "topic"))
+            .thenReturn(Optional.empty());
+
+        assertEquals(List.of(), namespaceController.list("*", "topic"));
     }
 
     @Test
     void shouldListNamespacesWhenEmpty() {
         when(namespaceService.findByWildcardName("*")).thenReturn(List.of());
-        assertEquals(List.of(), namespaceController.list("*"));
+        assertEquals(List.of(), namespaceController.list("*", ""));
     }
 
     @Test

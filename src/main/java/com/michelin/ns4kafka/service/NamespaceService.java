@@ -9,6 +9,7 @@ import static com.michelin.ns4kafka.util.enumation.Kind.RESOURCE_QUOTA;
 import static com.michelin.ns4kafka.util.enumation.Kind.ROLE_BINDING;
 import static com.michelin.ns4kafka.util.enumation.Kind.TOPIC;
 
+import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.NamespaceRepository;
@@ -78,6 +79,21 @@ public class NamespaceService {
             .stream()
             .filter(ns -> RegexUtils.isResourceCoveredByRegex(ns.getMetadata().getName(), nameFilterPatterns))
             .toList();
+    }
+
+    /**
+     * Find the namespace which are owner of the given topic name, out of the given list.
+     *
+     * @param namespaces The namespaces list
+     * @param topic      The topic name to search
+     * @return The namespace which is owner of the given topic name
+     */
+    public Optional<Namespace> findByTopicName(List<Namespace> namespaces, String topic) {
+        return namespaces
+            .stream()
+            .filter(ns -> aclService.isResourceCoveredByAcls(
+                aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC), topic))
+            .findFirst();
     }
 
     /**
