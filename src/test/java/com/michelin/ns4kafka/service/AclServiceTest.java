@@ -150,8 +150,10 @@ class AclServiceTest {
                     .permission(AccessControlEntry.Permission.OWNER)
                     .resource("main.sub")
                     .grantedTo("namespace")
-                    .build()
-                )
+                    .build())
+                .metadata(Metadata.builder()
+                    .cluster("local")
+                    .build())
                 .build()
             ));
 
@@ -196,6 +198,9 @@ class AclServiceTest {
                     .resource("resource1")
                     .grantedTo("namespace")
                     .build())
+                .metadata(Metadata.builder()
+                    .cluster("local")
+                    .build())
                 .build()
             ));
 
@@ -217,6 +222,7 @@ class AclServiceTest {
             .metadata(Metadata.builder()
                 .name("acl-name")
                 .namespace("namespace")
+                .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -239,8 +245,10 @@ class AclServiceTest {
                     .permission(AccessControlEntry.Permission.OWNER)
                     .resource("resource1")
                     .grantedTo("namespace")
-                    .build()
-                )
+                    .build())
+                .metadata(Metadata.builder()
+                    .cluster("local")
+                    .build())
                 .build()
             ));
 
@@ -261,6 +269,7 @@ class AclServiceTest {
             .metadata(Metadata.builder()
                 .name("acl-name")
                 .namespace("namespace")
+                .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -284,8 +293,10 @@ class AclServiceTest {
                     .permission(AccessControlEntry.Permission.OWNER)
                     .resource("main")
                     .grantedTo("namespace")
-                    .build()
-                )
+                    .build())
+                .metadata(Metadata.builder()
+                    .cluster("local")
+                    .build())
                 .build()
             ));
 
@@ -306,6 +317,7 @@ class AclServiceTest {
             .metadata(Metadata.builder()
                 .name("acl-name")
                 .namespace("namespace")
+                .cluster("local")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -328,8 +340,10 @@ class AclServiceTest {
                     .permission(AccessControlEntry.Permission.OWNER)
                     .resource("main")
                     .grantedTo("namespace")
-                    .build()
-                )
+                    .build())
+                .metadata(Metadata.builder()
+                    .cluster("local")
+                    .build())
                 .build()
             ));
 
@@ -697,6 +711,7 @@ class AclServiceTest {
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace1")
+                .cluster("cluster")
                 .build())
             .build();
 
@@ -704,11 +719,17 @@ class AclServiceTest {
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .grantedTo("namespace1")
                 .build())
+            .metadata(Metadata.builder()
+                .cluster("cluster")
+                .build())
             .build();
 
         AccessControlEntry ace2 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .grantedTo("namespace1")
+                .build())
+            .metadata(Metadata.builder()
+                .cluster("cluster")
                 .build())
             .build();
 
@@ -716,11 +737,17 @@ class AclServiceTest {
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .grantedTo("namespace2")
                 .build())
+            .metadata(Metadata.builder()
+                .cluster("cluster")
+                .build())
             .build();
 
         AccessControlEntry ace4 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .grantedTo("*")
+                .build())
+            .metadata(Metadata.builder()
+                .cluster("cluster")
                 .build())
             .build();
 
@@ -935,6 +962,7 @@ class AclServiceTest {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace2")
+                .cluster("cluster")
                 .build())
             .build();
 
@@ -942,6 +970,7 @@ class AclServiceTest {
             .metadata(Metadata.builder()
                 .name("ns1-acl-topic")
                 .namespace("namespace1")
+                .cluster("cluster")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -953,6 +982,7 @@ class AclServiceTest {
             .metadata(Metadata.builder()
                 .name("acl-ns1-read-to-ns2")
                 .namespace("namespace1")
+                .cluster("cluster")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -964,6 +994,7 @@ class AclServiceTest {
             .metadata(Metadata.builder()
                 .name("ns1-connect-write-to-ns2")
                 .namespace("namespace1")
+                .cluster("cluster")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.CONNECT)
@@ -975,6 +1006,7 @@ class AclServiceTest {
             .metadata(Metadata.builder()
                 .name("ns2-acl-topic")
                 .namespace("namespace2")
+                .cluster("cluster")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -986,6 +1018,7 @@ class AclServiceTest {
             .metadata(Metadata.builder()
                 .name("ns3-read-topic-all")
                 .namespace("namespace3")
+                .cluster("cluster")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
