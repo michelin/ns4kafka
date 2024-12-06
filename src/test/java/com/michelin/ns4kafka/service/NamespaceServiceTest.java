@@ -517,6 +517,76 @@ class NamespaceServiceTest {
     }
 
     @Test
+    void shouldFindNamespaceByTopicName() {
+        Namespace ns1 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns1")
+                .build())
+            .build();
+
+        Namespace ns2 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns2")
+                .build())
+            .build();
+
+        Namespace ns3 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace1")
+                .build())
+            .build();
+
+        AccessControlEntry acl3 = AccessControlEntry.builder()
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("abc.")
+                .grantedTo("namespace1")
+                .build())
+            .build();
+
+        when(aclService.findResourceOwnerGrantedToNamespace(ns1, AccessControlEntry.ResourceType.TOPIC))
+            .thenReturn(List.of());
+        when(aclService.findResourceOwnerGrantedToNamespace(ns2, AccessControlEntry.ResourceType.TOPIC))
+            .thenReturn(List.of());
+        when(aclService.findResourceOwnerGrantedToNamespace(ns3, AccessControlEntry.ResourceType.TOPIC))
+            .thenReturn(List.of(acl3));
+        when(aclService.isResourceCoveredByAcls(List.of(), "abc.topic"))
+            .thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(List.of(acl3), "abc.topic"))
+            .thenReturn(true);
+
+        assertEquals(Optional.of(ns3), namespaceService.findByTopicName(List.of(ns1, ns2, ns3), "abc.topic"));
+    }
+
+    @Test
+    void shouldFindNoNamespaceByTopicName() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns")
+                .build())
+            .build();
+
+        AccessControlEntry acl = AccessControlEntry.builder()
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.OWNER)
+                .resource("abc.")
+                .grantedTo("ns")
+                .build())
+            .build();
+
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
+            .thenReturn(List.of(acl));
+        when(aclService.isResourceCoveredByAcls(List.of(acl), "xyz.topic"))
+            .thenReturn(false);
+
+        assertEquals(Optional.empty(), namespaceService.findByTopicName(List.of(ns), "xyz.topic"));
+    }
+
+    @Test
     void shouldListAllNamespaceResourcesWhenEmpty() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()

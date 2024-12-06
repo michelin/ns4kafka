@@ -366,7 +366,7 @@ public class AclService {
     }
 
     /**
-     * Find all owner-ACLs on a resource for a given namespace.
+     * Find all owner-ACLs on a resource granted to a given namespace.
      *
      * @param namespace    The namespace
      * @param resourceType The resource
@@ -376,10 +376,9 @@ public class AclService {
                                                                         AccessControlEntry.ResourceType resourceType) {
         return accessControlEntryRepository.findAll()
             .stream()
-            .filter(accessControlEntry ->
-                accessControlEntry.getSpec().getGrantedTo().equals(namespace.getMetadata().getName())
-                    && accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER
-                    && accessControlEntry.getSpec().getResourceType() == resourceType)
+            .filter(acl -> acl.getSpec().getGrantedTo().equals(namespace.getMetadata().getName())
+                && acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER
+                && acl.getSpec().getResourceType() == resourceType)
             .toList();
     }
 

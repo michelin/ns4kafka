@@ -24,6 +24,7 @@ import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -39,14 +40,21 @@ public class NamespaceController extends NonNamespacedResourceController {
     NamespaceService namespaceService;
 
     /**
-     * List namespaces, filtered by name parameter.
+     * List namespaces, filtered by namespace name and topic name parameters.
      *
-     * @param name The name parameter
+     * @param name  The namespace name parameter
+     * @param topic The topic name parameter
      * @return A list of namespaces
      */
     @Get
-    public List<Namespace> list(@QueryValue(defaultValue = "*") String name) {
-        return namespaceService.findByWildcardName(name);
+    public List<Namespace> list(@QueryValue(defaultValue = "*") String name,
+                                @QueryValue(defaultValue = "") String topic) {
+        List<Namespace> namespaces = namespaceService.findByWildcardName(name);
+
+        return topic.isEmpty() ? namespaces :
+            namespaceService.findByTopicName(namespaces, topic)
+                .map(Collections::singletonList)
+                .orElse(List.of());
     }
 
     /**
