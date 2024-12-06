@@ -4,15 +4,11 @@ import static org.apache.kafka.clients.CommonClientConfigs.BOOTSTRAP_SERVERS_CON
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.test.support.TestPropertyProvider;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import org.apache.kafka.clients.admin.Admin;
 import org.junit.jupiter.api.TestInstance;
-import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 /**
@@ -24,33 +20,29 @@ public abstract class KafkaIntegrationTest implements TestPropertyProvider {
     protected static final Network NETWORK = Network.newNetwork();
     private Admin adminClient;
 
-    protected final KafkaContainer broker = new KafkaContainer(DockerImageName
+    protected final ConfluentKafkaContainer broker = new ConfluentKafkaContainer(DockerImageName
         .parse("confluentinc/cp-kafka:" + CONFLUENT_PLATFORM_VERSION))
         .withNetwork(NETWORK)
         .withNetworkAliases("broker")
-        .withCreateContainerCmdModifier(modifier -> {
-            List<String> commands = new ArrayList<>(Arrays.asList(Objects.requireNonNull(modifier.getCmd())));
-            // Override the security protocol for CONTROLLER listener to SASL_PLAINTEXT defined by
-            // KafkaContainer#withRaft.
-            commands.set(1, "export KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=BROKER:SASL_PLAINTEXT,"
-                + "PLAINTEXT:SASL_PLAINTEXT,CONTROLLER:SASL_PLAINTEXT; " + commands.get(1));
-            modifier.withCmd(commands);
-        })
         .withEnv("KAFKA_SASL_ENABLED_MECHANISMS", "PLAIN")
         .withEnv("KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL", "PLAIN")
         .withEnv("KAFKA_SASL_MECHANISM_CONTROLLER_PROTOCOL", "PLAIN")
+        .withEnv(
+            "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP",
+            "BROKER:SASL_PLAINTEXT,PLAINTEXT:SASL_PLAINTEXT,CONTROLLER:SASL_PLAINTEXT"
+        )
         .withEnv("KAFKA_LISTENER_NAME_BROKER_PLAIN_SASL_JAAS_CONFIG", getSaslPlainJaasConfig())
         .withEnv("KAFKA_LISTENER_NAME_CONTROLLER_PLAIN_SASL_JAAS_CONFIG", getSaslPlainJaasConfig())
         .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG", getSaslPlainJaasConfig())
         .withEnv("KAFKA_SUPER_USERS", "User:admin")
         .withEnv("KAFKA_AUTHORIZER_CLASS_NAME", "org.apache.kafka.metadata.authorizer.StandardAuthorizer")
-        .withEnv("KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND", "false")
-        .withKraft();
+        .withEnv("KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND", "false");
 
     @NonNull
     @Override
     public Map<String, String> getProperties() {
         if (!broker.isRunning()) {
+            broker.withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
             broker.start();
         }
 
