@@ -19,7 +19,7 @@ public abstract class KafkaConnectIntegrationTest extends KafkaIntegrationTest {
         .withNetwork(NETWORK)
         .withNetworkAliases("connect")
         .withExposedPorts(8083)
-        .withEnv("CONNECT_BOOTSTRAP_SERVERS", "broker:9092")
+        .withEnv("CONNECT_BOOTSTRAP_SERVERS", "broker:9093")
         .withEnv("CONNECT_REST_ADVERTISED_HOST_NAME", "connect")
         .withEnv("CONNECT_GROUP_ID", "compose-connect-group-" + UUID.randomUUID())
         .withEnv("CONNECT_CONFIG_STORAGE_TOPIC", "docker-connect-configs")
@@ -34,8 +34,10 @@ public abstract class KafkaConnectIntegrationTest extends KafkaIntegrationTest {
         .withEnv("CONNECT_LOG4J_LOGGERS", "org.apache.zookeeper=ERROR,org.I0Itec.zkclient=ERROR,org.reflections=ERROR")
         .withEnv("CONNECT_SASL_MECHANISM", "PLAIN")
         .withEnv("CONNECT_SECURITY_PROTOCOL", "SASL_PLAINTEXT")
-        .withEnv("CONNECT_SASL_JAAS_CONFIG",
-            "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin\";")
+        .withEnv(
+            "CONNECT_SASL_JAAS_CONFIG",
+            "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin\";"
+        )
         .waitingFor(Wait.forHttp("/").forStatusCode(200));
 
     @NonNull
