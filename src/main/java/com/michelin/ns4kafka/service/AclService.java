@@ -255,7 +255,7 @@ public class AclService {
      * @return A list of ACLs
      */
     public List<AccessControlEntry> findAllGrantedToNamespace(Namespace namespace) {
-        return accessControlEntryRepository.findAll()
+        return findAllForCluster(namespace.getMetadata().getCluster())
             .stream()
             .filter(acl -> acl.getSpec().getGrantedTo().equals(namespace.getMetadata().getName())
                 || acl.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO))
@@ -269,7 +269,7 @@ public class AclService {
      * @return A list of ACLs
      */
     public List<AccessControlEntry> findAllGrantedByNamespace(Namespace namespace) {
-        return accessControlEntryRepository.findAll()
+        return findAllForCluster(namespace.getMetadata().getCluster())
             .stream()
             .filter(acl -> acl.getMetadata().getNamespace().equals(namespace.getMetadata().getName()))
             .toList();
@@ -282,7 +282,7 @@ public class AclService {
      * @return A list of ACLs
      */
     public List<AccessControlEntry> findAllGrantedByNamespaceToOthers(Namespace namespace) {
-        return accessControlEntryRepository.findAll()
+        return findAllForCluster(namespace.getMetadata().getCluster())
             .stream()
             .filter(acl -> acl.getMetadata().getNamespace().equals(namespace.getMetadata().getName()))
             .filter(acl -> !acl.getSpec().getGrantedTo().equals(namespace.getMetadata().getName()))
@@ -296,7 +296,7 @@ public class AclService {
      * @return A list of ACLs
      */
     public List<AccessControlEntry> findAllRelatedToNamespace(Namespace namespace) {
-        return accessControlEntryRepository.findAll()
+        return findAllForCluster(namespace.getMetadata().getCluster())
             .stream()
             .filter(acl -> acl.getMetadata().getNamespace().equals(namespace.getMetadata().getName())
                 || acl.getSpec().getGrantedTo().equals(namespace.getMetadata().getName())
@@ -374,7 +374,7 @@ public class AclService {
      */
     public List<AccessControlEntry> findResourceOwnerGrantedToNamespace(Namespace namespace,
                                                                         AccessControlEntry.ResourceType resourceType) {
-        return accessControlEntryRepository.findAll()
+        return findAllForCluster(namespace.getMetadata().getCluster())
             .stream()
             .filter(acl -> acl.getSpec().getGrantedTo().equals(namespace.getMetadata().getName())
                 && acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER
@@ -401,7 +401,8 @@ public class AclService {
      * @return A list of ACLs
      */
     public List<AccessControlEntry> findAllForNamespace(Namespace namespace) {
-        return accessControlEntryRepository.findAll().stream()
+        return findAllForCluster(namespace.getMetadata().getCluster())
+            .stream()
             .filter(accessControlEntry -> accessControlEntry.getMetadata().getNamespace()
                 .equals(namespace.getMetadata().getName()))
             .toList();
