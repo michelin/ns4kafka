@@ -68,7 +68,7 @@ continuous integration/continuous delivery (CI/CD) pipelines.
 You can download Ns4Kafka as a fat jar from the project's releases page on GitHub
 at https://github.com/michelin/ns4kafka/releases. Please note that Java 21 is required to run the application.
 
-Additionally, a Docker image of the solution is available at https://hub.docker.com/repository/docker/michelin/ns4kafka.
+Additionally, a Docker image is available on [Docker Hub](https://hub.docker.com/repository/docker/michelin/ns4kafka).
 
 ## Install
 
