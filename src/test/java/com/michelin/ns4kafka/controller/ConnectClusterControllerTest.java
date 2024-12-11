@@ -632,7 +632,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void shouldCreateConnectClusterInDryRunMode() {
+    void shouldNotCreateConnectClusterInDryRunMode() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -666,7 +666,28 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void shouldListVaultConnectClusterReturnEmptyWhenNoAes256Config() {
+    void shouldListNoVaultConnectClusterWhenNoConnectCluster() {
+        Namespace ns = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .spec(Namespace.NamespaceSpec.builder()
+                .topicValidator(TopicValidator.makeDefault())
+                .build())
+            .build();
+
+        when(namespaceService.findByName("test"))
+            .thenReturn(Optional.of(ns));
+        when(connectClusterService.findAllForNamespaceWithWritePermission(ns))
+            .thenReturn(List.of());
+
+        List<ConnectCluster> actual = connectClusterController.listVaults("test");
+        assertTrue(actual.isEmpty());
+    }
+
+    @Test
+    void shouldListNoVaultConnectClusterWhenNoAes256Config() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("test")
@@ -706,7 +727,7 @@ class ConnectClusterControllerTest {
                 .build())
             .build();
 
-        ConnectCluster connectCluster = ConnectCluster.builder()
+        ConnectCluster ccNoAes = ConnectCluster.builder()
             .metadata(Metadata.builder()
                 .name("connect-cluster")
                 .build())
@@ -714,7 +735,25 @@ class ConnectClusterControllerTest {
                 .build())
             .build();
 
-        ConnectCluster connectClusterAes256 = ConnectCluster.builder()
+        ConnectCluster ccAes256Key = ConnectCluster.builder()
+            .metadata(Metadata.builder()
+                .name("connect-cluster")
+                .build())
+            .spec(ConnectCluster.ConnectClusterSpec.builder()
+                .aes256Key("myKeyEncryption")
+                .build())
+            .build();
+
+        ConnectCluster ccAes256Salt = ConnectCluster.builder()
+            .metadata(Metadata.builder()
+                .name("connect-cluster")
+                .build())
+            .spec(ConnectCluster.ConnectClusterSpec.builder()
+                .aes256Salt("p8t42EhY9z2eSUdpGeq7HX7RboMrsJAhUnu3EEJJVS")
+                .build())
+            .build();
+
+        ConnectCluster ccAes256KeySalt = ConnectCluster.builder()
             .metadata(Metadata.builder()
                 .name("connect-cluster-aes256")
                 .build())
@@ -726,39 +765,10 @@ class ConnectClusterControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(connectClusterService.findAllForNamespaceWithWritePermission(ns)).thenReturn(
-            List.of(connectCluster, connectClusterAes256));
+            List.of(ccNoAes, ccAes256Key, ccAes256Salt, ccAes256KeySalt));
 
         List<ConnectCluster> actual = connectClusterController.listVaults("test");
-        assertEquals(1, actual.size());
-    }
-
-    @Test
-    void shouldNotVaultOnNotAllowedConnectCluster() {
-        String connectClusterName = "connect-cluster-na";
-        Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .spec(Namespace.NamespaceSpec.builder()
-                .topicValidator(TopicValidator.makeDefault())
-                .build())
-            .build();
-
-        when(namespaceService.findByName("test"))
-            .thenReturn(Optional.of(ns));
-        when(connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectClusterName))
-            .thenReturn(false);
-        when(connectClusterService.validateConnectClusterVault(ns, connectClusterName))
-            .thenReturn(List.of());
-
-        var secrets = List.of("secret");
-        ResourceValidationException result = assertThrows(ResourceValidationException.class,
-            () -> connectClusterController.vaultPassword("test", connectClusterName, secrets));
-        assertEquals(1, result.getValidationErrors().size());
-        assertEquals("Invalid value \"connect-cluster-na\" for field \"connect-cluster\": "
-                + "namespace is not allowed to use this Kafka Connect.",
-            result.getValidationErrors().getFirst());
+        assertEquals(List.of(ccAes256KeySalt), actual);
     }
 
     @Test
@@ -776,8 +786,6 @@ class ConnectClusterControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectClusterName))
-            .thenReturn(true);
         when(connectClusterService.validateConnectClusterVault(ns, connectClusterName))
             .thenReturn(List.of("Error config."));
 
@@ -786,6 +794,7 @@ class ConnectClusterControllerTest {
             () -> connectClusterController.vaultPassword("test", connectClusterName, secrets));
         assertEquals(1, result.getValidationErrors().size());
         assertEquals("Error config.", result.getValidationErrors().getFirst());
+        verify(connectClusterService, never()).vaultPassword(any(), any(), any());
     }
 
     @Test
@@ -803,23 +812,10 @@ class ConnectClusterControllerTest {
 
         when(namespaceService.findByName("test"))
             .thenReturn(Optional.of(ns));
-        when(connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectClusterName))
-            .thenReturn(true);
         when(connectClusterService.validateConnectClusterVault(ns, connectClusterName))
             .thenReturn(List.of());
-        when(connectClusterService.vaultPassword(ns, connectClusterName, List.of("secret")))
-            .thenReturn(List.of(VaultResponse.builder()
-                .spec(VaultResponse.VaultResponseSpec.builder()
-                    .clearText("secret")
-                    .encrypted("encryptedSecret")
-                    .build())
-                .build()
-            ));
 
-        final List<VaultResponse> actual = connectClusterController
-            .vaultPassword("test", connectClusterName, List.of("secret"));
-
-        assertEquals("secret", actual.getFirst().getSpec().getClearText());
-        assertEquals("encryptedSecret", actual.getFirst().getSpec().getEncrypted());
+        connectClusterController.vaultPassword("test", connectClusterName, List.of("secret"));
+        verify(connectClusterService).vaultPassword(ns, connectClusterName, List.of("secret"));
     }
 }

@@ -181,26 +181,13 @@ public class FormatErrorUtils {
     }
 
     /**
-     * Invalid connect cluster namespace not allowed.
+     * Invalid connect cluster missing encryption config.
      *
-     * @param invalidNameValue the invalid field value
      * @return the error message
      */
-    public static String invalidConnectClusterNotAllowed(String invalidNameValue) {
-        return String.format(INVALID_FIELD, invalidNameValue, "connect-cluster",
-            "namespace is not allowed to use this Kafka Connect");
-    }
-
-    /**
-     * Invalid connect cluster must be one of.
-     *
-     * @param invalidNameValue       the invalid field value
-     * @param allowedConnectClusters the allowed connect clusters
-     * @return the error message
-     */
-    public static String invalidConnectClusterMustBeOneOf(String invalidNameValue,
-                                                          String allowedConnectClusters) {
-        return invalidValueMustBeOneOf(FIELD_NAME, invalidNameValue, allowedConnectClusters);
+    public static String invalidConnectClusterNoEncryptionConfig() {
+        return String.format(INVALID_EMPTY_FIELDS, String.join(", ", "aes256Key", "aes256Salt"),
+            "AES key and salt are required to use connect-cluster vault");
     }
 
     /**
