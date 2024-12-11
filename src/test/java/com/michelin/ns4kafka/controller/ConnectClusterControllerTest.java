@@ -15,7 +15,6 @@ import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
-import com.michelin.ns4kafka.model.connect.cluster.VaultResponse;
 import com.michelin.ns4kafka.model.connector.Connector;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.ConnectClusterService;
