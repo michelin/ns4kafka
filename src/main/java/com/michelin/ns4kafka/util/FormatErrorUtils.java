@@ -639,6 +639,16 @@ public class FormatErrorUtils {
     }
 
     /**
+     * Invalid secured namespace grant ACL to basic namespaces.
+     *
+     * @return the error message
+     */
+    public static String invalidSecuredNamespaceGrantAcl() {
+        return String.format(INVALID_OPERATION, OPERATION_APPLY,
+            "secured namespace cannot grant ACL to basic namespaces");
+    }
+
+    /**
      * Invalid schema suffix.
      *
      * @param invalidNameValue the invalid name value

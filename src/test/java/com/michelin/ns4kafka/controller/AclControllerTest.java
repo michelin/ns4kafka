@@ -312,6 +312,9 @@ class AclControllerTest {
     @Test
     void shouldApplyFailsAsAdmin() {
         Namespace namespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.FALSE)
+                .build())
             .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
@@ -347,6 +350,9 @@ class AclControllerTest {
     @Test
     void shouldApplyWithSuccessAsAdmin() {
         Namespace namespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.FALSE)
+                .build())
             .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
@@ -356,6 +362,7 @@ class AclControllerTest {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("acl-test")
+                .namespace("test")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -381,8 +388,11 @@ class AclControllerTest {
     }
 
     @Test
-    void shouldApplyFailWithValidationErrors() {
+    void shouldApplyFailWithAclValidationErrors() {
         Namespace namespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.FALSE)
+                .build())
             .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
@@ -416,6 +426,9 @@ class AclControllerTest {
     @Test
     void shouldApplyAclWithSuccess() {
         Namespace namespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.FALSE)
+                .build())
             .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
@@ -424,6 +437,7 @@ class AclControllerTest {
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
+                .namespace("test")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -453,6 +467,9 @@ class AclControllerTest {
     @Test
     void shouldEndApplyWithSuccessWhenAclAlreadyExists() {
         Namespace namespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.FALSE)
+                .build())
             .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
@@ -462,6 +479,7 @@ class AclControllerTest {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("ace1")
+                .namespace("test")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -489,6 +507,9 @@ class AclControllerTest {
     @Test
     void shouldApplyFailWhenSpecChanges() {
         Namespace namespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.FALSE)
+                .build())
             .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
@@ -498,6 +519,7 @@ class AclControllerTest {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("ace1")
+                .namespace("test")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -511,6 +533,7 @@ class AclControllerTest {
         AccessControlEntry oldAccessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("ace1")
+                .namespace("test")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.CONNECT) // This line was changed
@@ -537,6 +560,9 @@ class AclControllerTest {
     @Test
     void shouldApplyAclWithSuccessWhenMetadataChanges() {
         Namespace namespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.FALSE)
+                .build())
             .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
@@ -546,6 +572,7 @@ class AclControllerTest {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("ace1")
+                .namespace("test")
                 .labels(Map.of("new-label", "label-value")) // This label is new
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -561,6 +588,7 @@ class AclControllerTest {
             AccessControlEntry.builder()
                 .metadata(Metadata.builder()
                     .name("ace1")
+                    .namespace("test")
                     .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -589,6 +617,9 @@ class AclControllerTest {
     @Test
     void shouldApplyAclWithSuccessWhenMetadataChangesInDryRunMode() {
         Namespace ns = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.FALSE)
+                .build())
             .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
@@ -598,6 +629,7 @@ class AclControllerTest {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
                 .name("ace1")
+                .namespace("test")
                 .labels(Map.of("new-label", "label-value")) // This label is new
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -613,6 +645,7 @@ class AclControllerTest {
             AccessControlEntry.builder()
                 .metadata(Metadata.builder()
                     .name("ace1")
+                    .namespace("test")
                     .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                     .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -638,10 +671,23 @@ class AclControllerTest {
     }
 
     @Test
-    void shouldApplyAclInDryRunModeAsAdmin() {
+    void shouldNotApplyAclInDryRunModeAsAdmin() {
         Namespace namespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.FALSE)
+                .build())
             .metadata(Metadata.builder()
                 .name("test")
+                .cluster("local")
+                .build())
+            .build();
+
+        Namespace adminNamespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.FALSE)
+                .build())
+            .metadata(Metadata.builder()
+                .name("admin")
                 .cluster("local")
                 .build())
             .build();
@@ -665,6 +711,7 @@ class AclControllerTest {
             Map.of(ROLES, List.of("isAdmin()")));
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
+        when(namespaceService.findByName("admin")).thenReturn(Optional.of(adminNamespace));
         when(aclService.validateAsAdmin(accessControlEntry, namespace)).thenReturn(List.of());
 
         var response = accessControlListController.apply(authentication, "test", accessControlEntry, true);
@@ -674,8 +721,11 @@ class AclControllerTest {
     }
 
     @Test
-    void shouldApplyAclInDryRunMode() {
+    void shouldNotApplyAclInDryRunMode() {
         Namespace namespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.FALSE)
+                .build())
             .metadata(Metadata.builder()
                 .name("test")
                 .cluster("local")
@@ -684,6 +734,7 @@ class AclControllerTest {
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
+                .namespace("test")
                 .build())
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -703,6 +754,203 @@ class AclControllerTest {
 
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(aclService, never()).create(accessControlEntry);
+    }
+
+    @Test
+    void shouldApplyAclFromSecuredNamespaceToSecuredNamespace() {
+        Namespace namespace1 = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.TRUE)
+                .build())
+            .metadata(Metadata.builder()
+                .name("secured1")
+                .cluster("local")
+                .build())
+            .build();
+
+        Namespace namespace2 = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.TRUE)
+                .build())
+            .metadata(Metadata.builder()
+                .name("secured2")
+                .cluster("local")
+                .build())
+            .build();
+
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .namespace("secured1")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.READ)
+                .resource("prefix")
+                .grantedTo("secured2")
+                .build())
+            .build();
+
+        Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
+
+        when(namespaceService.findByName("secured1")).thenReturn(Optional.of(namespace1));
+        when(namespaceService.findByName("secured2")).thenReturn(Optional.of(namespace2));
+        when(aclService.validate(accessControlEntry, namespace1)).thenReturn(List.of());
+        when(aclService.create(accessControlEntry)).thenReturn(accessControlEntry);
+
+        var response = accessControlListController.apply(authentication, "secured1", accessControlEntry, false);
+        AccessControlEntry actual = response.body();
+
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("secured1", actual.getMetadata().getNamespace());
+        assertEquals("local", actual.getMetadata().getCluster());
+    }
+
+    @Test
+    void shouldApplyAclFromBasicNamespaceToBasicNamespace() {
+        Namespace namespace1 = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.FALSE)
+                .build())
+            .metadata(Metadata.builder()
+                .name("basic1")
+                .cluster("local")
+                .build())
+            .build();
+
+        Namespace namespace2 = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.FALSE)
+                .build())
+            .metadata(Metadata.builder()
+                .name("basic2")
+                .cluster("local")
+                .build())
+            .build();
+
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .namespace("basic1")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.WRITE)
+                .resource("prefix")
+                .grantedTo("basic2")
+                .build())
+            .build();
+
+        Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
+
+        when(namespaceService.findByName("basic1")).thenReturn(Optional.of(namespace1));
+        when(namespaceService.findByName("basic2")).thenReturn(Optional.of(namespace2));
+        when(aclService.validate(accessControlEntry, namespace1)).thenReturn(List.of());
+        when(aclService.create(accessControlEntry)).thenReturn(accessControlEntry);
+
+        var response = accessControlListController.apply(authentication, "basic1", accessControlEntry, false);
+        AccessControlEntry actual = response.body();
+
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("basic1", actual.getMetadata().getNamespace());
+        assertEquals("local", actual.getMetadata().getCluster());
+    }
+
+    @Test
+    void shouldApplyAclFromBasicNamespaceToSecuredNamespace() {
+        Namespace namespace1 = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.FALSE)
+                .build())
+            .metadata(Metadata.builder()
+                .name("basic")
+                .cluster("local")
+                .build())
+            .build();
+
+        Namespace namespace2 = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.TRUE)
+                .build())
+            .metadata(Metadata.builder()
+                .name("secured")
+                .cluster("local")
+                .build())
+            .build();
+
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .namespace("basic")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.WRITE)
+                .resource("prefix")
+                .grantedTo("secured")
+                .build())
+            .build();
+
+        Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
+
+        when(namespaceService.findByName("basic")).thenReturn(Optional.of(namespace1));
+        when(namespaceService.findByName("secured")).thenReturn(Optional.of(namespace2));
+        when(aclService.validate(accessControlEntry, namespace1)).thenReturn(List.of());
+        when(aclService.create(accessControlEntry)).thenReturn(accessControlEntry);
+
+        var response = accessControlListController.apply(authentication, "basic", accessControlEntry, false);
+        AccessControlEntry actual = response.body();
+
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("basic", actual.getMetadata().getNamespace());
+        assertEquals("local", actual.getMetadata().getCluster());
+    }
+
+    @Test
+    void shouldNotApplyAclFromSecuredNamespaceToBasicNamespace() {
+        Namespace namespace1 = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.TRUE)
+                .build())
+            .metadata(Metadata.builder()
+                .name("secured")
+                .cluster("local")
+                .build())
+            .build();
+
+        Namespace namespace2 = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .isSecured(Boolean.FALSE)
+                .build())
+            .metadata(Metadata.builder()
+                .name("basic")
+                .cluster("local")
+                .build())
+            .build();
+
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .namespace("secured")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.READ)
+                .resource("prefix")
+                .grantedTo("basic")
+                .build())
+            .build();
+
+        Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
+
+        when(namespaceService.findByName("secured")).thenReturn(Optional.of(namespace1));
+        when(namespaceService.findByName("basic")).thenReturn(Optional.of(namespace2));
+
+        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
+            () -> accessControlListController.apply(authentication, "secured", accessControlEntry, false));
+        assertEquals(1, actual.getValidationErrors().size());
+        assertEquals("Invalid \"apply\" operation: secured namespace cannot grant ACL to basic namespaces.",
+            actual.getValidationErrors().getFirst());
     }
 
     @Test
