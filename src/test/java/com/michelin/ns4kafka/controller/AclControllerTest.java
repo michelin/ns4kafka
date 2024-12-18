@@ -313,7 +313,7 @@ class AclControllerTest {
     void shouldApplyFailsAsAdmin() {
         Namespace namespace = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.FALSE)
+                .secured(Boolean.FALSE)
                 .build())
             .metadata(Metadata.builder()
                 .name("test")
@@ -351,7 +351,7 @@ class AclControllerTest {
     void shouldApplyWithSuccessAsAdmin() {
         Namespace namespace = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.FALSE)
+                .secured(Boolean.FALSE)
                 .build())
             .metadata(Metadata.builder()
                 .name("test")
@@ -391,7 +391,7 @@ class AclControllerTest {
     void shouldApplyFailWithAclValidationErrors() {
         Namespace namespace = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.FALSE)
+                .secured(Boolean.FALSE)
                 .build())
             .metadata(Metadata.builder()
                 .name("test")
@@ -427,7 +427,7 @@ class AclControllerTest {
     void shouldApplyAclWithSuccess() {
         Namespace namespace = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.FALSE)
+                .secured(Boolean.FALSE)
                 .build())
             .metadata(Metadata.builder()
                 .name("test")
@@ -468,7 +468,7 @@ class AclControllerTest {
     void shouldEndApplyWithSuccessWhenAclAlreadyExists() {
         Namespace namespace = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.FALSE)
+                .secured(Boolean.FALSE)
                 .build())
             .metadata(Metadata.builder()
                 .name("test")
@@ -508,7 +508,7 @@ class AclControllerTest {
     void shouldApplyFailWhenSpecChanges() {
         Namespace namespace = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.FALSE)
+                .secured(Boolean.FALSE)
                 .build())
             .metadata(Metadata.builder()
                 .name("test")
@@ -561,7 +561,7 @@ class AclControllerTest {
     void shouldApplyAclWithSuccessWhenMetadataChanges() {
         Namespace namespace = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.FALSE)
+                .secured(Boolean.FALSE)
                 .build())
             .metadata(Metadata.builder()
                 .name("test")
@@ -618,7 +618,7 @@ class AclControllerTest {
     void shouldApplyAclWithSuccessWhenMetadataChangesInDryRunMode() {
         Namespace ns = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.FALSE)
+                .secured(Boolean.FALSE)
                 .build())
             .metadata(Metadata.builder()
                 .name("test")
@@ -674,7 +674,7 @@ class AclControllerTest {
     void shouldNotApplyAclInDryRunModeAsAdmin() {
         Namespace namespace = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.FALSE)
+                .secured(Boolean.FALSE)
                 .build())
             .metadata(Metadata.builder()
                 .name("test")
@@ -684,7 +684,7 @@ class AclControllerTest {
 
         Namespace adminNamespace = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.FALSE)
+                .secured(Boolean.FALSE)
                 .build())
             .metadata(Metadata.builder()
                 .name("admin")
@@ -724,7 +724,7 @@ class AclControllerTest {
     void shouldNotApplyAclInDryRunMode() {
         Namespace namespace = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.FALSE)
+                .secured(Boolean.FALSE)
                 .build())
             .metadata(Metadata.builder()
                 .name("test")
@@ -760,7 +760,7 @@ class AclControllerTest {
     void shouldApplyAclFromSecuredNamespaceToSecuredNamespace() {
         Namespace namespace1 = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.TRUE)
+                .secured(Boolean.TRUE)
                 .build())
             .metadata(Metadata.builder()
                 .name("secured1")
@@ -770,7 +770,7 @@ class AclControllerTest {
 
         Namespace namespace2 = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.TRUE)
+                .secured(Boolean.TRUE)
                 .build())
             .metadata(Metadata.builder()
                 .name("secured2")
@@ -810,7 +810,7 @@ class AclControllerTest {
     void shouldApplyAclFromBasicNamespaceToBasicNamespace() {
         Namespace namespace1 = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.FALSE)
+                .secured(Boolean.FALSE)
                 .build())
             .metadata(Metadata.builder()
                 .name("basic1")
@@ -820,7 +820,7 @@ class AclControllerTest {
 
         Namespace namespace2 = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.FALSE)
+                .secured(Boolean.FALSE)
                 .build())
             .metadata(Metadata.builder()
                 .name("basic2")
@@ -860,7 +860,7 @@ class AclControllerTest {
     void shouldApplyAclFromBasicNamespaceToSecuredNamespace() {
         Namespace namespace1 = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.FALSE)
+                .secured(Boolean.FALSE)
                 .build())
             .metadata(Metadata.builder()
                 .name("basic")
@@ -870,7 +870,7 @@ class AclControllerTest {
 
         Namespace namespace2 = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.TRUE)
+                .secured(Boolean.TRUE)
                 .build())
             .metadata(Metadata.builder()
                 .name("secured")
@@ -910,7 +910,7 @@ class AclControllerTest {
     void shouldNotApplyAclFromSecuredNamespaceToBasicNamespace() {
         Namespace namespace1 = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.TRUE)
+                .secured(Boolean.TRUE)
                 .build())
             .metadata(Metadata.builder()
                 .name("secured")
@@ -920,7 +920,7 @@ class AclControllerTest {
 
         Namespace namespace2 = Namespace.builder()
             .spec(Namespace.NamespaceSpec.builder()
-                .isSecured(Boolean.FALSE)
+                .secured(Boolean.FALSE)
                 .build())
             .metadata(Metadata.builder()
                 .name("basic")
@@ -950,6 +950,42 @@ class AclControllerTest {
             () -> accessControlListController.apply(authentication, "secured", accessControlEntry, false));
         assertEquals(1, actual.getValidationErrors().size());
         assertEquals("Invalid \"apply\" operation: secured namespace cannot grant ACL to basic namespaces.",
+            actual.getValidationErrors().getFirst());
+    }
+
+    @Test
+    void shouldNotApplyPublicAclFromSecuredNamespace() {
+        Namespace namespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .secured(Boolean.TRUE)
+                .build())
+            .metadata(Metadata.builder()
+                .name("test")
+                .cluster("local")
+                .build())
+            .build();
+
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .namespace("test")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.READ)
+                .resource("prefix")
+                .grantedTo("*")
+                .build())
+            .build();
+
+        Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
+
+        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
+            () -> accessControlListController.apply(authentication, "test", accessControlEntry, false));
+        assertEquals(1, actual.getValidationErrors().size());
+        assertEquals("Invalid \"apply\" operation: secured namespace cannot grant public ACL.",
             actual.getValidationErrors().getFirst());
     }
 
