@@ -3,6 +3,7 @@ package com.michelin.ns4kafka.service;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConnectClusterEncryptionConfig;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConnectClusterMalformedUrl;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConnectClusterNameAlreadyExistGlobally;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConnectClusterNoEncryptionConfig;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConnectClusterNotHealthy;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNotFound;
 
@@ -17,7 +18,6 @@ import com.michelin.ns4kafka.repository.ConnectClusterRepository;
 import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
 import com.michelin.ns4kafka.service.client.connect.entities.ServerInfo;
 import com.michelin.ns4kafka.util.EncryptionUtils;
-import com.michelin.ns4kafka.util.FormatErrorUtils;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
@@ -32,7 +32,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -190,7 +189,8 @@ public class ConnectClusterService {
     public List<ConnectCluster> findAllForNamespaceWithWritePermission(Namespace namespace) {
         return Stream.concat(
             findByWildcardNameWithOwnerPermission(namespace, "*").stream(),
-            findAllForNamespaceByPermissions(namespace, List.of(AccessControlEntry.Permission.WRITE)).stream()
+            findAllForNamespaceByPermissions(namespace, List.of(AccessControlEntry.Permission.WRITE))
+                .stream()
                 .map(connectCluster -> ConnectCluster.builder()
                     .metadata(connectCluster.getMetadata())
                     .spec(ConnectCluster.ConnectClusterSpec.builder()
@@ -281,41 +281,26 @@ public class ConnectClusterService {
     }
 
     /**
-     * Validate the given connect worker has configuration for vaults.
+     * Validate the given connect worker has configuration for vault.
      *
      * @param connectCluster The Kafka connect worker to validate
      * @return A list of validation errors
      */
     public List<String> validateConnectClusterVault(final Namespace namespace, final String connectCluster) {
         final var errors = new ArrayList<String>();
+        Optional<ConnectCluster> kafkaConnect = findAllForNamespaceWithWritePermission(namespace)
+            .stream()
+            .filter(cc -> cc.getMetadata().getName().equals(connectCluster))
+            .findFirst();
 
-        final List<ConnectCluster> kafkaConnects = findAllForNamespaceByPermissions(namespace,
-            List.of(AccessControlEntry.Permission.OWNER, AccessControlEntry.Permission.WRITE));
-
-        if (kafkaConnects.isEmpty()) {
+        if (kafkaConnect.isEmpty()) {
             errors.add(invalidNotFound(connectCluster));
             return errors;
         }
 
-        if (kafkaConnects.stream().noneMatch(cc -> StringUtils.hasText(cc.getSpec().getAes256Key())
-            && StringUtils.hasText(cc.getSpec().getAes256Salt()))) {
-            errors.add(invalidConnectClusterEncryptionConfig());
-            return errors;
-        }
-
-        final Optional<ConnectCluster> kafkaConnect = kafkaConnects.stream()
-            .filter(cc -> cc.getMetadata().getName().equals(connectCluster)
-                && StringUtils.hasText(cc.getSpec().getAes256Key())
-                && StringUtils.hasText(cc.getSpec().getAes256Salt()))
-            .findFirst();
-
-        if (kafkaConnect.isEmpty()) {
-            final String allowedConnectClusters = kafkaConnects.stream()
-                .filter(cc -> StringUtils.hasText(cc.getSpec().getAes256Key())
-                    && StringUtils.hasText(cc.getSpec().getAes256Salt()))
-                .map(cc -> cc.getMetadata().getName())
-                .collect(Collectors.joining(", "));
-            errors.add(FormatErrorUtils.invalidConnectClusterMustBeOneOf(connectCluster, allowedConnectClusters));
+        if (!StringUtils.hasText(kafkaConnect.get().getSpec().getAes256Key())
+            || !StringUtils.hasText(kafkaConnect.get().getSpec().getAes256Salt())) {
+            errors.add(invalidConnectClusterNoEncryptionConfig());
             return errors;
         }
 
@@ -341,19 +326,6 @@ public class ConnectClusterService {
     public boolean isNamespaceOwnerOfConnectCluster(Namespace namespace, String connectCluster) {
         return aclService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(),
             AccessControlEntry.ResourceType.CONNECT_CLUSTER, connectCluster);
-    }
-
-    /**
-     * Is given namespace allowed (Owner or Writer) for the given connect worker.
-     *
-     * @param namespace      The namespace
-     * @param connectCluster The Kafka connect cluster
-     * @return true if it is, false otherwise
-     */
-    public boolean isNamespaceAllowedForConnectCluster(Namespace namespace, String connectCluster) {
-        return findAllForNamespaceWithWritePermission(namespace)
-            .stream()
-            .anyMatch(kafkaConnect -> kafkaConnect.getMetadata().getName().equals(connectCluster));
     }
 
     /**

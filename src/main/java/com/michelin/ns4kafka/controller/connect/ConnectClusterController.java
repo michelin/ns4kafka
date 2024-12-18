@@ -1,7 +1,6 @@
 package com.michelin.ns4kafka.controller.connect;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConnectClusterDeleteOperation;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConnectClusterNotAllowed;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidOwner;
 import static com.michelin.ns4kafka.util.enumation.Kind.CONNECT_CLUSTER;
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
@@ -246,7 +245,8 @@ public class ConnectClusterController extends NamespacedResourceController {
     public List<ConnectCluster> listVaults(final String namespace) {
         return connectClusterService.findAllForNamespaceWithWritePermission(getNamespace(namespace))
             .stream()
-            .filter(connectCluster -> StringUtils.hasText(connectCluster.getSpec().getAes256Key()))
+            .filter(connectCluster -> StringUtils.hasText(connectCluster.getSpec().getAes256Key())
+                && StringUtils.hasText(connectCluster.getSpec().getAes256Salt()))
             .toList();
     }
 
@@ -264,12 +264,7 @@ public class ConnectClusterController extends NamespacedResourceController {
                                              @Body final List<String> passwords) {
         final Namespace ns = getNamespace(namespace);
 
-        final var validationErrors = new ArrayList<String>();
-        if (!connectClusterService.isNamespaceAllowedForConnectCluster(ns, connectCluster)) {
-            validationErrors.add(invalidConnectClusterNotAllowed(connectCluster));
-        }
-
-        validationErrors.addAll(connectClusterService.validateConnectClusterVault(ns, connectCluster));
+        List<String> validationErrors = connectClusterService.validateConnectClusterVault(ns, connectCluster);
 
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(CONNECT_CLUSTER, connectCluster, validationErrors);
