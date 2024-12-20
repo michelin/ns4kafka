@@ -844,7 +844,7 @@ class ConnectClusterServiceTest {
             .consumeNextWith(errors -> {
                 assertEquals(1L, errors.size());
                 assertEquals("Invalid empty value for fields \"aes256Key, aes256Salt\": "
-                        + "AES key and salt are required to activate encryption.",
+                        + "Both AES key and salt are required to activate encryption.",
                     errors.getFirst());
             })
             .verifyComplete();
@@ -874,7 +874,7 @@ class ConnectClusterServiceTest {
             .consumeNextWith(errors -> {
                 assertEquals(1L, errors.size());
                 assertEquals("Invalid empty value for fields \"aes256Key, aes256Salt\": "
-                        + "AES key and salt are required to activate encryption.",
+                        + "Both AES key and salt are required to activate encryption.",
                     errors.getFirst());
             })
             .verifyComplete();
@@ -905,7 +905,7 @@ class ConnectClusterServiceTest {
                 assertEquals(2L, errors.size());
                 assertTrue(errors.contains("Invalid \"test-connect\": the Kafka Connect is not healthy (error)."));
                 assertTrue(errors.contains("Invalid empty value for fields \"aes256Key, aes256Salt\": "
-                    + "AES key and salt are required to activate encryption."));
+                    + "Both AES key and salt are required to activate encryption."));
             })
             .verifyComplete();
     }
@@ -1018,15 +1018,15 @@ class ConnectClusterServiceTest {
         when(securityProperties.getAes256EncryptionKey()).thenReturn(encryptKey);
 
         assertEquals(List.of("Invalid empty value for fields \"aes256Key, aes256Salt\": "
-            + "AES key and salt are required to use connect-cluster vault."),
+            + "Both AES key and salt are required for encryption."),
             connectClusterService.validateConnectClusterVault(namespace, "prefix.noAesKeyAndSalt"));
 
         assertEquals(List.of("Invalid empty value for fields \"aes256Key, aes256Salt\": "
-            + "AES key and salt are required to use connect-cluster vault."),
+            + "Both AES key and salt are required for encryption."),
             connectClusterService.validateConnectClusterVault(namespace, "prefix.noAesSalt"));
 
         assertEquals(List.of("Invalid empty value for fields \"aes256Key, aes256Salt\": "
-            + "AES key and salt are required to use connect-cluster vault."),
+            + "Both AES key and salt are required for encryption."),
             connectClusterService.validateConnectClusterVault(namespace, "prefix.noAesKey"));
     }
 

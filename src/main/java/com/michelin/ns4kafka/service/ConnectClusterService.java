@@ -283,23 +283,25 @@ public class ConnectClusterService {
     /**
      * Validate the given connect worker has configuration for vault.
      *
-     * @param connectCluster The Kafka connect worker to validate
+     * @param namespace The namespace
+     * @param connectClusterName The Kafka connect worker to validate
      * @return A list of validation errors
      */
-    public List<String> validateConnectClusterVault(final Namespace namespace, final String connectCluster) {
-        final var errors = new ArrayList<String>();
-        Optional<ConnectCluster> kafkaConnect = findAllForNamespaceWithWritePermission(namespace)
+    public List<String> validateConnectClusterVault(final Namespace namespace, final String connectClusterName) {
+        final List<String> errors = new ArrayList<>();
+
+        Optional<ConnectCluster> connectClusters = findAllForNamespaceWithWritePermission(namespace)
             .stream()
-            .filter(cc -> cc.getMetadata().getName().equals(connectCluster))
+            .filter(connectCluster -> connectCluster.getMetadata().getName().equals(connectClusterName))
             .findFirst();
 
-        if (kafkaConnect.isEmpty()) {
-            errors.add(invalidNotFound(connectCluster));
+        if (connectClusters.isEmpty()) {
+            errors.add(invalidNotFound(connectClusterName));
             return errors;
         }
 
-        if (!StringUtils.hasText(kafkaConnect.get().getSpec().getAes256Key())
-            || !StringUtils.hasText(kafkaConnect.get().getSpec().getAes256Salt())) {
+        if (!StringUtils.hasText(connectClusters.get().getSpec().getAes256Key())
+            || !StringUtils.hasText(connectClusters.get().getSpec().getAes256Salt())) {
             errors.add(invalidConnectClusterNoEncryptionConfig());
             return errors;
         }
