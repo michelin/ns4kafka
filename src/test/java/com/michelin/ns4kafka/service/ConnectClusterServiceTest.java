@@ -844,7 +844,7 @@ class ConnectClusterServiceTest {
             .consumeNextWith(errors -> {
                 assertEquals(1L, errors.size());
                 assertEquals("Invalid empty value for fields \"aes256Key, aes256Salt\": "
-                        + "AES key and salt are required to activate encryption.",
+                        + "Both AES key and salt are required to activate encryption.",
                     errors.getFirst());
             })
             .verifyComplete();
@@ -874,7 +874,7 @@ class ConnectClusterServiceTest {
             .consumeNextWith(errors -> {
                 assertEquals(1L, errors.size());
                 assertEquals("Invalid empty value for fields \"aes256Key, aes256Salt\": "
-                        + "AES key and salt are required to activate encryption.",
+                        + "Both AES key and salt are required to activate encryption.",
                     errors.getFirst());
             })
             .verifyComplete();
@@ -905,13 +905,13 @@ class ConnectClusterServiceTest {
                 assertEquals(2L, errors.size());
                 assertTrue(errors.contains("Invalid \"test-connect\": the Kafka Connect is not healthy (error)."));
                 assertTrue(errors.contains("Invalid empty value for fields \"aes256Key, aes256Salt\": "
-                    + "AES key and salt are required to activate encryption."));
+                    + "Both AES key and salt are required to activate encryption."));
             })
             .verifyComplete();
     }
 
     @Test
-    void shouldValidateConnectClusterVaultWhenNoClusterAvailable() {
+    void shouldNotValidateConnectClusterVaultWhenNoConnectClusterAvailable() {
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("myNamespace")
@@ -927,6 +927,7 @@ class ConnectClusterServiceTest {
                 .build())
             .spec(ConnectCluster.ConnectClusterSpec.builder()
                 .aes256Key("aes256Key")
+                .aes256Salt("aes256Salt")
                 .build())
             .build();
 
@@ -955,7 +956,8 @@ class ConnectClusterServiceTest {
     }
 
     @Test
-    void shouldValidateConnectClusterVaultWhenNoClusterAvailableWithAes256() {
+    void shouldNotValidateConnectClusterVaultWhenNoConnectClusterAvailableWithAes256() {
+        String encryptKey = "changeitchangeitchangeitchangeit";
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("myNamespace")
@@ -965,34 +967,37 @@ class ConnectClusterServiceTest {
                 .build())
             .build();
 
-        ConnectCluster connectCluster1 = ConnectCluster.builder()
+        ConnectCluster ccNoAesKeyAndSalt = ConnectCluster.builder()
             .metadata(Metadata.builder()
-                .name("prefix1.connect-cluster")
+                .name("prefix.noAesKeyAndSalt")
                 .build())
             .spec(ConnectCluster.ConnectClusterSpec.builder()
+                .password(EncryptionUtils.encryptAes256Gcm("password", encryptKey))
                 .build())
             .build();
 
-        ConnectCluster connectCluster2 = ConnectCluster.builder()
+        ConnectCluster ccNoAesSalt = ConnectCluster.builder()
             .metadata(Metadata.builder()
-                .name("prefix2.connect-cluster")
+                .name("prefix.noAesSalt")
                 .build())
             .spec(ConnectCluster.ConnectClusterSpec.builder()
-                .aes256Key("aes256Key")
+                .password(EncryptionUtils.encryptAes256Gcm("password", encryptKey))
+                .aes256Salt(EncryptionUtils.encryptAes256Gcm("aes256Salt", encryptKey))
                 .build())
             .build();
 
-        ConnectCluster connectCluster3 = ConnectCluster.builder()
+        ConnectCluster ccNoAesKey = ConnectCluster.builder()
             .metadata(Metadata.builder()
-                .name("prefix3.connect-cluster")
+                .name("prefix.noAesKey")
                 .build())
             .spec(ConnectCluster.ConnectClusterSpec.builder()
-                .aes256Salt("aes256Salt")
+                .password(EncryptionUtils.encryptAes256Gcm("password", encryptKey))
+                .aes256Key(EncryptionUtils.encryptAes256Gcm("aes256Key", encryptKey))
                 .build())
             .build();
 
         when(connectClusterRepository.findAllForCluster("local"))
-            .thenReturn(List.of(connectCluster1, connectCluster2, connectCluster3));
+            .thenReturn(List.of(ccNoAesKeyAndSalt, ccNoAesSalt, ccNoAesKey));
 
         when(aclService.findAllGrantedToNamespace(namespace))
             .thenReturn(List.of(
@@ -1002,134 +1007,32 @@ class ConnectClusterServiceTest {
                         .grantedTo("namespace")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                         .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
-                        .resource("prefix1.")
+                        .resource("prefix.")
                         .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
-                        .resource("prefix2.")
-                        .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
-                        .resource("prefix3.")
-                        .build())
-                    .build()
-            ));
+                    .build()));
 
-        when(aclService.isResourceCoveredByAcls(any(), eq("prefix1.connect-cluster")))
-            .thenReturn(true);
-        when(aclService.isResourceCoveredByAcls(any(), eq("prefix2.connect-cluster")))
-            .thenReturn(true);
-        when(aclService.isResourceCoveredByAcls(any(), eq("prefix3.connect-cluster")))
+        when(aclService.isResourceCoveredByAcls(any(), any()))
             .thenReturn(true);
 
-        List<String> errors =
-            connectClusterService.validateConnectClusterVault(namespace, "prefix1.fake-connect-cluster");
+        when(kafkaConnectClient.version(any(), any())).thenReturn(Mono.just(HttpResponse.ok()));
+        when(securityProperties.getAes256EncryptionKey()).thenReturn(encryptKey);
 
-        assertEquals(1L, errors.size());
-        assertEquals("Invalid empty value for fields \"aes256Key, aes256Salt\": "
-            + "AES key and salt are required to activate encryption.", errors.getFirst());
-    }
+        assertEquals(List.of("Invalid empty value for fields \"aes256Key, aes256Salt\": "
+            + "Both AES key and salt are required for encryption."),
+            connectClusterService.validateConnectClusterVault(namespace, "prefix.noAesKeyAndSalt"));
 
-    @Test
-    void shouldValidateConnectClusterVaultWhenClusterNotAvailable() {
-        Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("myNamespace")
-                .cluster("local")
-                .build())
-            .spec(Namespace.NamespaceSpec.builder()
-                .build())
-            .build();
+        assertEquals(List.of("Invalid empty value for fields \"aes256Key, aes256Salt\": "
+            + "Both AES key and salt are required for encryption."),
+            connectClusterService.validateConnectClusterVault(namespace, "prefix.noAesSalt"));
 
-        ConnectCluster connectCluster1 = ConnectCluster.builder()
-            .metadata(Metadata.builder()
-                .name("prefix1.connect-cluster")
-                .build())
-            .spec(ConnectCluster.ConnectClusterSpec.builder()
-                .build())
-            .build();
-
-        ConnectCluster connectCluster2 = ConnectCluster.builder()
-            .metadata(Metadata.builder()
-                .name("prefix2.connect-cluster")
-                .build())
-            .spec(ConnectCluster.ConnectClusterSpec.builder()
-                .aes256Key("aes256Key")
-                .aes256Salt("aes256Salt")
-                .build())
-            .build();
-
-        ConnectCluster connectCluster3 = ConnectCluster.builder()
-            .metadata(Metadata.builder()
-                .name("prefix3.connect-cluster")
-                .build())
-            .spec(ConnectCluster.ConnectClusterSpec.builder()
-                .aes256Key("aes256Key")
-                .aes256Salt("aes256Salt")
-                .build())
-            .build();
-
-        when(connectClusterRepository.findAllForCluster("local"))
-            .thenReturn(List.of(connectCluster1, connectCluster2, connectCluster3));
-
-        when(aclService.findAllGrantedToNamespace(namespace))
-            .thenReturn(List.of(
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
-                        .resource("prefix1.")
-                        .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
-                        .resource("prefix2.")
-                        .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
-                        .resource("prefix3.")
-                        .build())
-                    .build()
-            ));
-
-        when(aclService.isResourceCoveredByAcls(any(), eq("prefix1.connect-cluster")))
-            .thenReturn(true);
-        when(aclService.isResourceCoveredByAcls(any(), eq("prefix2.connect-cluster")))
-            .thenReturn(true);
-        when(aclService.isResourceCoveredByAcls(any(), eq("prefix3.connect-cluster")))
-            .thenReturn(true);
-
-        List<String> errors =
-            connectClusterService.validateConnectClusterVault(namespace, "prefix1.fake-connect-cluster");
-
-        assertEquals(1L, errors.size());
-        assertEquals("Invalid value \"prefix1.fake-connect-cluster\" for field \"name\": "
-            + "value must be one of \"prefix2.connect-cluster, prefix3.connect-cluster\".", errors.getFirst());
+        assertEquals(List.of("Invalid empty value for fields \"aes256Key, aes256Salt\": "
+            + "Both AES key and salt are required for encryption."),
+            connectClusterService.validateConnectClusterVault(namespace, "prefix.noAesKey"));
     }
 
     @Test
     void shouldValidateConnectClusterVault() {
+        String encryptKey = "changeitchangeitchangeitchangeit";
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("myNamespace")
@@ -1144,8 +1047,10 @@ class ConnectClusterServiceTest {
                 .name("prefix.connect-cluster")
                 .build())
             .spec(ConnectCluster.ConnectClusterSpec.builder()
-                .aes256Key("aes256Key")
-                .aes256Salt("aes256Salt")
+                .username("username")
+                .password(EncryptionUtils.encryptAes256Gcm("password", encryptKey))
+                .aes256Key(EncryptionUtils.encryptAes256Gcm("aes256Key", encryptKey))
+                .aes256Salt(EncryptionUtils.encryptAes256Gcm("aes256Salt", encryptKey))
                 .build())
             .build();
 
@@ -1162,14 +1067,15 @@ class ConnectClusterServiceTest {
                         .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
                         .resource("prefix.")
                         .build())
-                    .build()
-            ));
+                    .build()));
 
         when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster"))).thenReturn(true);
+        when(kafkaConnectClient.version(any(), any())).thenReturn(Mono.just(HttpResponse.ok()));
+        when(securityProperties.getAes256EncryptionKey()).thenReturn(encryptKey);
 
         List<String> errors = connectClusterService.validateConnectClusterVault(namespace, "prefix.connect-cluster");
 
-        assertEquals(0L, errors.size());
+        assertTrue(errors.isEmpty());
     }
 
     @Test
@@ -1334,134 +1240,6 @@ class ConnectClusterServiceTest {
         boolean actual = connectClusterService.isNamespaceOwnerOfConnectCluster(namespace, "prefix.connect-cluster");
 
         assertTrue(actual);
-    }
-
-    @Test
-    void shouldNamespaceBeAllowedToWriteToConnectCluster() {
-        Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("myNamespace")
-                .cluster("local")
-                .build())
-            .spec(Namespace.NamespaceSpec.builder()
-                .build())
-            .build();
-
-        ConnectCluster connectCluster = ConnectCluster.builder()
-            .metadata(Metadata.builder()
-                .name("prefix.connect-cluster")
-                .cluster("local")
-                .build())
-            .spec(ConnectCluster.ConnectClusterSpec.builder()
-                .build())
-            .build();
-
-        ConnectCluster connectClusterOwner = ConnectCluster.builder()
-            .metadata(Metadata.builder()
-                .name("owner.connect-cluster")
-                .cluster("local")
-                .build())
-            .spec(ConnectCluster.ConnectClusterSpec.builder()
-                .build())
-            .build();
-
-        when(kafkaConnectClient.version(any(), any()))
-            .thenReturn(Mono.just(HttpResponse.ok()));
-
-        when(connectClusterRepository.findAllForCluster("local"))
-            .thenReturn(List.of(connectCluster, connectClusterOwner));
-
-        when(aclService.findAllGrantedToNamespace(namespace))
-            .thenReturn(List.of(
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
-                        .resource("prefix.")
-                        .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
-                        .resource("owner.")
-                        .build())
-                    .build()
-            ));
-
-        when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster")))
-            .thenReturn(true);
-
-        assertTrue(connectClusterService.isNamespaceAllowedForConnectCluster(namespace, "prefix.connect-cluster"));
-    }
-
-    @Test
-    void shouldNamespaceNotBeAllowedToWriteToConnectCluster() {
-        Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("myNamespace")
-                .cluster("local")
-                .build())
-            .spec(Namespace.NamespaceSpec.builder()
-                .build())
-            .build();
-
-        ConnectCluster connectCluster = ConnectCluster.builder()
-            .metadata(Metadata.builder()
-                .name("prefix.connect-cluster")
-                .cluster("local")
-                .build())
-            .spec(ConnectCluster.ConnectClusterSpec.builder()
-                .build())
-            .build();
-
-        ConnectCluster connectClusterOwner = ConnectCluster.builder()
-            .metadata(Metadata.builder()
-                .name("owner.connect-cluster")
-                .cluster("local")
-                .build())
-            .spec(ConnectCluster.ConnectClusterSpec.builder()
-                .build())
-            .build();
-
-        when(kafkaConnectClient.version(any(), any()))
-            .thenReturn(Mono.just(HttpResponse.ok()));
-
-        when(connectClusterRepository.findAllForCluster("local"))
-            .thenReturn(List.of(connectCluster, connectClusterOwner));
-
-        when(aclService.findAllGrantedToNamespace(namespace))
-            .thenReturn(List.of(
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
-                        .resource("prefix.")
-                        .build())
-                    .build(),
-                AccessControlEntry.builder()
-                    .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
-                        .resource("owner.")
-                        .build())
-                    .build()
-            ));
-
-        when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster")))
-            .thenReturn(true);
-        when(aclService.isResourceCoveredByAcls(any(), eq("owner.connect-cluster")))
-            .thenReturn(true);
-
-        assertFalse(connectClusterService.isNamespaceAllowedForConnectCluster(namespace, "not-allowed-prefix.cc"));
     }
 
     @Test

@@ -190,7 +190,8 @@ public class AclService {
      */
     public boolean isOwnerOfTopLevelAcl(AccessControlEntry accessControlEntry, Namespace namespace) {
         // Grantor Namespace is OWNER of Resource + ResourcePattern ?
-        return findAllGrantedToNamespace(namespace).stream()
+        return findAllGrantedToNamespace(namespace)
+            .stream()
             .filter(ace -> ace.getSpec().getResourceType() == accessControlEntry.getSpec().getResourceType()
                 && ace.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
             .anyMatch(ace -> {
