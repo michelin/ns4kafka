@@ -187,7 +187,7 @@ public class AccessControlEntryAsyncExecutor {
 
         List<AclBinding> userAcls = getAdminClient()
             .describeAcls(aclBindingFilter)
-            .values().get(10, TimeUnit.SECONDS)
+            .values().get(managedClusterProperties.getAclsSyncTimeout(), TimeUnit.MILLISECONDS)
             .stream()
             .filter(aclBinding -> validResourceTypes.contains(aclBinding.pattern().resourceType()))
             .toList();

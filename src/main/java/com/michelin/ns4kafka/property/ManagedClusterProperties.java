@@ -21,6 +21,7 @@ public class ManagedClusterProperties {
     private boolean manageTopics;
     private boolean manageAcls;
     private boolean dropUnsyncAcls = true;
+    private int aclsSyncTimeout = 15000;
     private boolean manageUsers;
     private boolean manageConnectors;
     private KafkaProvider provider;
