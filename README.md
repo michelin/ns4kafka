@@ -302,7 +302,6 @@ ns4kafka:
       manage-topics: true
       manage-connectors: true
       drop-unsync-acls: true
-      acls-sync-timeout: 15000
       provider: "SELF_MANAGED"
       config:
         bootstrap.servers: "localhost:9092"
