@@ -190,20 +190,6 @@ public class TopicAsyncExecutor {
     }
 
     /**
-     * Delete a topic.
-     *
-     * @param topic The topic to delete
-     */
-    public void deleteTopic(Topic topic) throws InterruptedException, ExecutionException, TimeoutException {
-        getAdminClient().deleteTopics(List.of(topic.getMetadata().getName()))
-            .all()
-            .get(30, TimeUnit.SECONDS);
-
-        log.info("Success deleting topic {} on {}", topic.getMetadata().getName(),
-            managedClusterProperties.getName());
-    }
-
-    /**
      * Delete a list of topics.
      *
      * @param topics The topics to delete
@@ -214,9 +200,10 @@ public class TopicAsyncExecutor {
             .map(topic -> topic.getMetadata().getName())
             .toList();
 
-        getAdminClient().deleteTopics(topicsNames)
+        getAdminClient()
+            .deleteTopics(topicsNames)
             .all()
-            .get(30, TimeUnit.SECONDS);
+            .get(managedClusterProperties.getTimeout().getTopic().getDelete(), TimeUnit.MILLISECONDS);
 
         log.info("Success deleting topics {} on {}", String.join(", ", topicsNames),
             managedClusterProperties.getName());
@@ -237,8 +224,10 @@ public class TopicAsyncExecutor {
      * @return All topic names
      */
     public List<String> listBrokerTopicNames() throws InterruptedException, ExecutionException, TimeoutException {
-        return getAdminClient().listTopics().listings()
-            .get(30, TimeUnit.SECONDS)
+        return getAdminClient()
+            .listTopics()
+            .listings()
+            .get(managedClusterProperties.getTimeout().getTopic().getList(), TimeUnit.MILLISECONDS)
             .stream()
             .map(TopicListing::name)
             .toList();
@@ -331,15 +320,18 @@ public class TopicAsyncExecutor {
      */
     public Map<String, Topic> collectBrokerTopicsFromNames(List<String> topicNames)
         throws InterruptedException, ExecutionException, TimeoutException {
-        Map<String, TopicDescription> topicDescriptions = getAdminClient().describeTopics(topicNames)
-            .allTopicNames().get();
+        Map<String, TopicDescription> topicDescriptions = getAdminClient()
+            .describeTopics(topicNames)
+            .allTopicNames()
+            .get();
 
         Map<String, Topic> topics = getAdminClient()
-            .describeConfigs(topicNames.stream()
-                .map(s -> new ConfigResource(ConfigResource.Type.TOPIC, s))
+            .describeConfigs(topicNames
+                .stream()
+                .map(topicName -> new ConfigResource(ConfigResource.Type.TOPIC, topicName))
                 .toList())
             .all()
-            .get(30, TimeUnit.SECONDS)
+            .get(managedClusterProperties.getTimeout().getTopic().getDescribeConfigs(), TimeUnit.MILLISECONDS)
             .entrySet()
             .stream()
             .collect(Collectors.toMap(
@@ -382,12 +374,12 @@ public class TopicAsyncExecutor {
         alterConfigsResult.values().forEach((key, value) -> {
             Topic updatedTopic = topics
                 .stream()
-                .filter(t -> t.getMetadata().getName().equals(key.name()))
+                .filter(topic -> topic.getMetadata().getName().equals(key.name()))
                 .findFirst()
                 .get();
 
             try {
-                value.get(10, TimeUnit.SECONDS);
+                value.get(managedClusterProperties.getTimeout().getTopic().getAlterConfigs(), TimeUnit.MILLISECONDS);
                 updatedTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                 updatedTopic.getMetadata().setGeneration(updatedTopic.getMetadata().getGeneration() + 1);
                 updatedTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic configs updated"));
@@ -395,7 +387,8 @@ public class TopicAsyncExecutor {
                 log.info("Success updating topic configs {} on {}: [{}]",
                     key.name(),
                     managedClusterProperties.getName(),
-                    toUpdate.get(key).stream().map(AlterConfigOp::toString).collect(Collectors.joining(", ")));
+                    toUpdate.get(key).stream().map(AlterConfigOp::toString).collect(Collectors.joining(", "))
+                );
             } catch (InterruptedException e) {
                 log.error("Error", e);
                 Thread.currentThread().interrupt();
@@ -434,7 +427,7 @@ public class TopicAsyncExecutor {
                 .get();
 
             try {
-                value.get(10, TimeUnit.SECONDS);
+                value.get(managedClusterProperties.getTimeout().getTopic().getCreate(), TimeUnit.MILLISECONDS);
                 createdTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                 createdTopic.getMetadata().setGeneration(1);
                 createdTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic created"));
@@ -575,8 +568,10 @@ public class TopicAsyncExecutor {
                 }
                 return false;
             })
-            .map(expectedEntry -> new AlterConfigOp(new ConfigEntry(expectedEntry.getKey(), expectedEntry.getValue()),
-                AlterConfigOp.OpType.SET))
+            .map(expectedEntry -> new AlterConfigOp(
+                new ConfigEntry(expectedEntry.getKey(), expectedEntry.getValue()),
+                AlterConfigOp.OpType.SET)
+            )
             .toList();
 
         List<AlterConfigOp> total = new ArrayList<>();
@@ -600,7 +595,9 @@ public class TopicAsyncExecutor {
         throws ExecutionException, InterruptedException {
         // List all partitions for topic and prepare a listOffsets call
         Map<TopicPartition, OffsetSpec> topicsPartitionsToDelete =
-            getAdminClient().describeTopics(List.of(topic)).allTopicNames().get()
+            getAdminClient().describeTopics(List.of(topic))
+                .allTopicNames()
+                .get()
                 .entrySet()
                 .stream()
                 .flatMap(topicDescriptionEntry -> topicDescriptionEntry.getValue().partitions().stream())
@@ -608,7 +605,10 @@ public class TopicAsyncExecutor {
                 .collect(Collectors.toMap(Function.identity(), v -> OffsetSpec.latest()));
 
         // list all latest offsets for each partitions
-        return getAdminClient().listOffsets(topicsPartitionsToDelete).all().get()
+        return getAdminClient()
+            .listOffsets(topicsPartitionsToDelete)
+            .all()
+            .get()
             .entrySet()
             .stream()
             .collect(Collectors.toMap(Map.Entry::getKey, kv -> RecordsToDelete.beforeOffset(kv.getValue().offset())));
@@ -642,6 +642,5 @@ public class TopicAsyncExecutor {
                     return -1L;
                 }
             }));
-
     }
 }

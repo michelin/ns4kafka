@@ -37,9 +37,20 @@ public class ConsumerGroupAsyncExecutor {
         return managedClusterProperties.getAdminClient();
     }
 
+    /**
+     * Describe the consumer groups.
+     *
+     * @param groupIds The consumer group ids
+     * @return A map of consumer group id and consumer group description
+     * @throws ExecutionException  Any execution exception during consumer groups description
+     * @throws InterruptedException Any interrupted exception during consumer groups description
+     */
     public Map<String, ConsumerGroupDescription> describeConsumerGroups(List<String> groupIds)
         throws ExecutionException, InterruptedException {
-        return getAdminClient().describeConsumerGroups(groupIds).all().get();
+        return getAdminClient()
+            .describeConsumerGroups(groupIds)
+            .all()
+            .get();
     }
 
     /**
@@ -52,11 +63,15 @@ public class ConsumerGroupAsyncExecutor {
      */
     public void alterConsumerGroupOffsets(String consumerGroupId, Map<TopicPartition, Long> preparedOffsets)
         throws InterruptedException, ExecutionException {
-        getAdminClient().alterConsumerGroupOffsets(consumerGroupId,
-            preparedOffsets.entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> new OffsetAndMetadata(e.getValue())))
-        ).all().get();
+        getAdminClient()
+            .alterConsumerGroupOffsets(
+                consumerGroupId,
+                preparedOffsets
+                    .entrySet()
+                    .stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, e -> new OffsetAndMetadata(e.getValue()))))
+            .all()
+            .get();
         log.info("Consumer group {} changed offset", consumerGroupId);
         if (log.isDebugEnabled()) {
             preparedOffsets.forEach(
@@ -111,7 +126,7 @@ public class ConsumerGroupAsyncExecutor {
      */
     public List<TopicPartition> getTopicPartitions(String topicName) throws ExecutionException, InterruptedException {
         return getAdminClient().describeTopics(Collections.singletonList(topicName))
-            .all()
+            .allTopicNames()
             .get()
             .get(topicName)
             .partitions()
