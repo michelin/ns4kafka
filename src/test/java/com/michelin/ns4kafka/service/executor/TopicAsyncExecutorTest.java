@@ -290,6 +290,15 @@ class TopicAsyncExecutorTest {
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
 
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties = new ManagedClusterProperties
+            .TimeoutProperties.TopicProperties();
+        topicProperties.setDelete(1000);
+
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
+
+        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
+
         Topic topic = Topic.builder()
             .metadata(Metadata.builder()
                 .name(TOPIC_NAME)
@@ -308,6 +317,15 @@ class TopicAsyncExecutorTest {
         when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties = new ManagedClusterProperties
+            .TimeoutProperties.TopicProperties();
+        topicProperties.setDelete(1000);
+
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
+
+        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
 
         Topic topic1 = Topic.builder()
             .metadata(Metadata.builder()
@@ -338,6 +356,15 @@ class TopicAsyncExecutorTest {
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
+
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties = new ManagedClusterProperties
+            .TimeoutProperties.TopicProperties();
+        topicProperties.setDelete(1000);
+
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
+
+        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
 
         Topic topic = Topic.builder()
             .metadata(Metadata.builder()

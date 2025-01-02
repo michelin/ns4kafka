@@ -18,11 +18,12 @@ import org.apache.kafka.clients.admin.Admin;
 @EachProperty("ns4kafka.managed-clusters")
 public class ManagedClusterProperties {
     private String name;
-    private boolean manageTopics;
     private boolean manageAcls;
-    private boolean dropUnsyncAcls = true;
-    private boolean manageUsers;
     private boolean manageConnectors;
+    private boolean manageTopics;
+    private boolean manageUsers;
+    private boolean dropUnsyncAcls = true;
+    private TimeoutProperties timeout = new TimeoutProperties();
     private KafkaProvider provider;
     private Properties config;
     private Map<String, ConnectProperties> connects;
@@ -66,9 +67,9 @@ public class ManagedClusterProperties {
     @Setter
     @Introspected
     public static class ConnectProperties {
-        String url;
-        String basicAuthUsername;
-        String basicAuthPassword;
+        private String url;
+        private String basicAuthUsername;
+        private String basicAuthPassword;
     }
 
     /**
@@ -78,9 +79,60 @@ public class ManagedClusterProperties {
     @Setter
     @ConfigurationProperties("schema-registry")
     public static class SchemaRegistryProperties {
-        String url;
-        String basicAuthUsername;
-        String basicAuthPassword;
+        private String url;
+        private String basicAuthUsername;
+        private String basicAuthPassword;
+    }
+
+    /**
+     * Timeout properties.
+     */
+    @Getter
+    @Setter
+    @ConfigurationProperties("timeout")
+    public static class TimeoutProperties {
+        private static final int DEFAULT_TIMEOUT_MS = 30000;
+        private AclProperties acl = new AclProperties();
+        private TopicProperties topic = new TopicProperties();
+        private UserProperties user = new UserProperties();
+
+        /**
+         * ACL properties.
+         */
+        @Getter
+        @Setter
+        @ConfigurationProperties("acl")
+        public static class AclProperties {
+            private int describe = DEFAULT_TIMEOUT_MS;
+            private int create = DEFAULT_TIMEOUT_MS;
+            private int delete = DEFAULT_TIMEOUT_MS;
+        }
+
+        /**
+         * Topic properties.
+         */
+        @Getter
+        @Setter
+        @ConfigurationProperties("topic")
+        public static class TopicProperties {
+            private int alterConfigs = DEFAULT_TIMEOUT_MS;
+            private int create = DEFAULT_TIMEOUT_MS;
+            private int describeConfigs = DEFAULT_TIMEOUT_MS;
+            private int delete = DEFAULT_TIMEOUT_MS;
+            private int list = DEFAULT_TIMEOUT_MS;
+        }
+
+        /**
+         * User properties.
+         */
+        @Getter
+        @Setter
+        @ConfigurationProperties("user")
+        public static class UserProperties {
+            private int alterQuotas = DEFAULT_TIMEOUT_MS;
+            private int alterScramCredentials = DEFAULT_TIMEOUT_MS;
+            private int describeQuotas = DEFAULT_TIMEOUT_MS;
+        }
     }
 
     /**

@@ -23,11 +23,26 @@ ns4kafka:
           - "userGroup"
   managed-clusters:
     test-cluster:
-      provider: SELF_MANAGED
-      manage-users: true
       manage-acls: true
-      manage-topics: true
       manage-connectors: true
+      manage-users: true
+      manage-topics: true
+      timeout:
+        acl:
+          create: 15000
+          delete: 15001
+          describe: 15002
+        topic:
+          alter-configs: 15003
+          create: 15004
+          describe-configs: 15005
+          delete: 15006
+          list: 15007
+        user:
+          alter-quotas: 15008
+          alter-scram-credentials: 15009
+          describe-quotas: 15010
+      provider: SELF_MANAGED
       config:
         bootstrap.servers: "localhost:9092" # Replaced by Testcontainers
         sasl.mechanism: "PLAIN"

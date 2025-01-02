@@ -21,7 +21,6 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ScramCredentialInfo;
 import org.apache.kafka.clients.admin.ScramMechanism;
 import org.apache.kafka.clients.admin.UserScramCredentialUpsertion;
@@ -60,7 +59,7 @@ public class UserAsyncExecutor {
         this.managedClusterProperties = managedClusterProperties;
         if (Objects.requireNonNull(managedClusterProperties.getProvider())
             == ManagedClusterProperties.KafkaProvider.SELF_MANAGED) {
-            this.userExecutor = new Scram512UserSynchronizer(managedClusterProperties.getAdminClient());
+            this.userExecutor = new Scram512UserSynchronizer(managedClusterProperties);
         } else {
             this.userExecutor = new UnimplementedUserSynchronizer();
         }
@@ -73,7 +72,6 @@ public class UserAsyncExecutor {
         if (this.managedClusterProperties.isManageUsers() && userExecutor.canSynchronizeQuotas()) {
             synchronizeUsers();
         }
-
     }
 
     /**
@@ -95,8 +93,8 @@ public class UserAsyncExecutor {
         Map<String, Map<String, Double>> toUpdate = ns4kafkaUserQuotas.entrySet()
             .stream()
             .filter(entry -> brokerUserQuotas.containsKey(entry.getKey()))
-            .filter(
-                entry -> !entry.getValue().isEmpty() && !entry.getValue().equals(brokerUserQuotas.get(entry.getKey())))
+            .filter(entry -> !entry.getValue().isEmpty()
+                && !entry.getValue().equals(brokerUserQuotas.get(entry.getKey())))
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         if (!toCreate.isEmpty()) {
@@ -162,13 +160,12 @@ public class UserAsyncExecutor {
     }
 
     static class Scram512UserSynchronizer implements AbstractUserSynchronizer {
-
         private final ScramCredentialInfo info = new ScramCredentialInfo(ScramMechanism.SCRAM_SHA_512, 4096);
         private final SecureRandom secureRandom = new SecureRandom();
-        private final Admin admin;
+        private final ManagedClusterProperties managedClusterProperties;
 
-        public Scram512UserSynchronizer(Admin admin) {
-            this.admin = admin;
+        public Scram512UserSynchronizer(ManagedClusterProperties managedClusterProperties) {
+            this.managedClusterProperties = managedClusterProperties;
         }
 
         @Override
@@ -187,8 +184,15 @@ public class UserAsyncExecutor {
             secureRandom.nextBytes(randomBytes);
             String password = Base64.getEncoder().encodeToString(randomBytes);
             UserScramCredentialUpsertion update = new UserScramCredentialUpsertion(user, info, password);
+
             try {
-                admin.alterUserScramCredentials(List.of(update)).all().get(10, TimeUnit.SECONDS);
+                managedClusterProperties.getAdminClient()
+                    .alterUserScramCredentials(List.of(update))
+                    .all()
+                    .get(
+                        managedClusterProperties.getTimeout().getUser().getAlterScramCredentials(),
+                        TimeUnit.MILLISECONDS
+                    );
                 log.info("Success resetting password for user {}", user);
             } catch (InterruptedException e) {
                 log.error("Error", e);
@@ -205,7 +209,10 @@ public class UserAsyncExecutor {
             ClientQuotaFilter filter = ClientQuotaFilter.containsOnly(
                 List.of(ClientQuotaFilterComponent.ofEntityType(ClientQuotaEntity.USER)));
             try {
-                return admin.describeClientQuotas(filter).entities().get(10, TimeUnit.SECONDS)
+                return managedClusterProperties.getAdminClient()
+                    .describeClientQuotas(filter)
+                    .entities()
+                    .get(managedClusterProperties.getTimeout().getUser().getDescribeQuotas(), TimeUnit.MILLISECONDS)
                     .entrySet()
                     .stream()
                     .map(entry -> Map.entry(entry.getKey().entries().get(ClientQuotaEntity.USER), entry.getValue()))
@@ -223,28 +230,38 @@ public class UserAsyncExecutor {
         @Override
         public void applyQuotas(String user, Map<String, Double> quotas) {
             ClientQuotaEntity client = new ClientQuotaEntity(Map.of("user", user));
-            ClientQuotaAlteration.Op producerQuota = new ClientQuotaAlteration.Op("producer_byte_rate",
-                quotas.getOrDefault("producer_byte_rate", BYTE_RATE_DEFAULT_VALUE));
-            ClientQuotaAlteration.Op consumerQuota = new ClientQuotaAlteration.Op("consumer_byte_rate",
-                quotas.getOrDefault("consumer_byte_rate", BYTE_RATE_DEFAULT_VALUE));
-            ClientQuotaAlteration clientQuota =
-                new ClientQuotaAlteration(client, List.of(producerQuota, consumerQuota));
+
+            ClientQuotaAlteration.Op producerQuota = new ClientQuotaAlteration.Op(
+                "producer_byte_rate",
+                quotas.getOrDefault("producer_byte_rate", BYTE_RATE_DEFAULT_VALUE)
+            );
+
+            ClientQuotaAlteration.Op consumerQuota = new ClientQuotaAlteration.Op(
+                "consumer_byte_rate",
+                quotas.getOrDefault("consumer_byte_rate", BYTE_RATE_DEFAULT_VALUE)
+            );
+
+            ClientQuotaAlteration clientQuota = new ClientQuotaAlteration(
+                client,
+                List.of(producerQuota, consumerQuota)
+            );
+
             try {
-                admin.alterClientQuotas(List.of(clientQuota)).all().get(10, TimeUnit.SECONDS);
+                managedClusterProperties.getAdminClient()
+                    .alterClientQuotas(List.of(clientQuota))
+                    .all()
+                    .get(managedClusterProperties.getTimeout().getUser().getAlterQuotas(), TimeUnit.MILLISECONDS);
                 log.info("Success applying quotas {} for user {}", clientQuota.ops(), user);
             } catch (InterruptedException e) {
                 log.error("Error", e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 log.error(String.format("Error while applying quotas for user %s", user), e);
-
             }
-
         }
     }
 
     static class UnimplementedUserSynchronizer implements AbstractUserSynchronizer {
-
         private final UnsupportedOperationException exception =
             new UnsupportedOperationException("This cluster provider doesn't support User operations.");
 
