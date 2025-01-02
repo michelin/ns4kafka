@@ -11,7 +11,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 @MicronautTest
-public class ConfigIntegrationTest extends KafkaIntegrationTest {
+class ConfigIntegrationTest extends KafkaIntegrationTest {
 
     @Inject
     List<ManagedClusterProperties> managedClusterProperties;
