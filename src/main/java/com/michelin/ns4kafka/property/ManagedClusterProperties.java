@@ -24,7 +24,7 @@ public class ManagedClusterProperties {
     private boolean manageTopics;
     private boolean manageUsers;
     private boolean dropUnsyncAcls = true;
-    private TimeoutProperties timeout;
+    private TimeoutProperties timeout = new TimeoutProperties();
     private KafkaProvider provider;
     private Properties config;
     private Map<String, ConnectProperties> connects;
@@ -93,9 +93,9 @@ public class ManagedClusterProperties {
     @ConfigurationProperties("timeout")
     public static class TimeoutProperties {
         private static final int DEFAULT_TIMEOUT_MS = 30000;
-        private AclProperties acl;
-        private TopicProperties topic;
-        private UserProperties user;
+        private AclProperties acl = new AclProperties();
+        private TopicProperties topic = new TopicProperties();
+        private UserProperties user = new UserProperties();
 
         /**
          * ACL properties.
