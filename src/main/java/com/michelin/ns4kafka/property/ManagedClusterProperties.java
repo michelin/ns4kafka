@@ -4,7 +4,6 @@ import io.micronaut.context.annotation.ConfigurationProperties;
 import io.micronaut.context.annotation.EachProperty;
 import io.micronaut.context.annotation.Parameter;
 import io.micronaut.core.annotation.Introspected;
-import java.sql.Time;
 import java.util.Map;
 import java.util.Properties;
 import lombok.Getter;
