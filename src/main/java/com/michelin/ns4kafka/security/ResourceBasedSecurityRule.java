@@ -1,6 +1,7 @@
 package com.michelin.ns4kafka.security;
 
 import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLE_BINDINGS;
+import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.property.SecurityProperties;
@@ -110,7 +111,9 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
         // No role binding for the target namespace. User is targeting a namespace that he is not allowed to access
         List<AuthenticationRoleBinding> namespaceRoleBindings = authenticationInfo.getRoleBindings()
             .stream()
-            .filter(roleBinding -> roleBinding.getNamespace().equals(namespace))
+            .filter(roleBinding -> roleBinding.getNamespaces()
+                .stream()
+                .anyMatch(ns -> ns.equals(namespace)))
             .toList();
 
         if (namespaceRoleBindings.isEmpty()) {

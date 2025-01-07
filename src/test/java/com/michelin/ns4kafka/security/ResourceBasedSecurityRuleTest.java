@@ -31,7 +31,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class ResourceBasedSecurityRuleTest {
-    private static final String NAMESPACE = "namespace";
+    private static final String NAMESPACES = "namespaces";
     private static final String VERBS = "verbs";
     private static final String RESOURCE_TYPES = "resourceTypes";
 
@@ -133,7 +133,7 @@ class ResourceBasedSecurityRuleTest {
         "topics,/api/namespaces/test/topics/topic.with.dots"})
     void shouldReturnAllowedWhenHyphenAndDotResourcesAndHandleRoleBindingsType(String resourceType, String path) {
         List<Map<String, ?>> jwtRoleBindings = List.of(
-            Map.of(NAMESPACE, "test",
+            Map.of(NAMESPACES, List.of("test"),
                 VERBS, List.of(GET),
                 RESOURCE_TYPES, List.of(resourceType)));
 
@@ -148,7 +148,7 @@ class ResourceBasedSecurityRuleTest {
 
         List<AuthenticationRoleBinding> basicAuthRoleBindings = List.of(
             AuthenticationRoleBinding.builder()
-                .namespace("test")
+                .namespaces(List.of("test"))
                 .verbs(List.of(GET))
                 .resourceTypes(List.of(resourceType))
                 .build());
@@ -167,7 +167,7 @@ class ResourceBasedSecurityRuleTest {
     @Test
     void shouldReturnAllowedWhenSubResource() {
         List<Map<String, ?>> jwtRoleBindings = List.of(
-            Map.of(NAMESPACE, "test",
+            Map.of(NAMESPACES, List.of("test"),
                 VERBS, List.of(GET),
                 RESOURCE_TYPES, List.of("connectors/restart", "topics/delete-records")));
 
@@ -192,7 +192,7 @@ class ResourceBasedSecurityRuleTest {
     @CsvSource({"namespace", "name-space", "name.space", "_name_space_", "namespace123"})
     void shouldReturnAllowedWhenSpecialNamespaceName(String namespace) {
         List<Map<String, ?>> roleBindings = List.of(
-            Map.of(NAMESPACE, namespace,
+            Map.of(NAMESPACES, List.of(namespace),
                 VERBS, List.of(GET),
                 RESOURCE_TYPES, List.of("topics")));
 
@@ -204,6 +204,45 @@ class ResourceBasedSecurityRuleTest {
 
         SecurityRuleResult actual =
             resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/" + namespace + "/topics"), auth);
+        assertEquals(SecurityRuleResult.ALLOWED, actual);
+    }
+
+    @Test
+    void shouldReturnAllowedWhenMultipleNamespaces() {
+        List<Map<String, ?>> roleBindings = List.of(
+            Map.of(NAMESPACES, List.of("ns1", "ns2", "ns3"),
+                VERBS, List.of(GET),
+                RESOURCE_TYPES, List.of("topics")));
+
+        Map<String, Object> claims = Map.of(SUBJECT, "user", ROLES, List.of(), ROLE_BINDINGS, roleBindings);
+        Authentication auth = Authentication.build("user", claims);
+
+        when(namespaceRepository.findByName("ns3"))
+            .thenReturn(Optional.of(Namespace.builder().build()));
+
+        SecurityRuleResult actual =
+            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/ns3/topics"), auth);
+        assertEquals(SecurityRuleResult.ALLOWED, actual);
+    }
+
+    @Test
+    void shouldReturnAllowedWhenMultipleVerbsResourceTypesCombinations() {
+        List<Map<String, ?>> roleBindings = List.of(
+            Map.of(NAMESPACES, List.of("ns1"),
+                VERBS, List.of(GET),
+                RESOURCE_TYPES, List.of("topics")),
+            Map.of(NAMESPACES, List.of("ns2"),
+                VERBS, List.of(GET),
+                RESOURCE_TYPES, List.of("connectors")));
+
+        Map<String, Object> claims = Map.of(SUBJECT, "user", ROLES, List.of(), ROLE_BINDINGS, roleBindings);
+        Authentication auth = Authentication.build("user", claims);
+
+        when(namespaceRepository.findByName("ns2"))
+            .thenReturn(Optional.of(Namespace.builder().build()));
+
+        SecurityRuleResult actual =
+            resourceBasedSecurityRule.checkSecurity(HttpRequest.GET("/api/namespaces/ns2/connectors"), auth);
         assertEquals(SecurityRuleResult.ALLOWED, actual);
     }
 
@@ -226,7 +265,7 @@ class ResourceBasedSecurityRuleTest {
     @Test
     void shouldReturnForbiddenNamespaceWhenNoRoleBindingMatchingRequestedNamespace() {
         List<Map<String, ?>> roleBindings = List.of(
-            Map.of(NAMESPACE, "namespace",
+            Map.of(NAMESPACES, List.of("namespace"),
                 VERBS, List.of(GET),
                 RESOURCE_TYPES, List.of("connectors")));
 
@@ -247,7 +286,7 @@ class ResourceBasedSecurityRuleTest {
     @Test
     void checkReturnsUnknownSubResource() {
         List<Map<String, ?>> roleBindings = List.of(
-            Map.of(NAMESPACE, "test",
+            Map.of(NAMESPACES, List.of("test"),
                 VERBS, List.of(GET),
                 RESOURCE_TYPES, List.of("connectors")));
 
@@ -266,7 +305,7 @@ class ResourceBasedSecurityRuleTest {
     @Test
     void checkReturnsUnknownSubResourceWithDot() {
         List<Map<String, ?>> roleBindings = List.of(
-            Map.of(NAMESPACE, "test",
+            Map.of(NAMESPACES, List.of("test"),
                 VERBS, List.of(GET),
                 RESOURCE_TYPES, List.of("connectors")));
 

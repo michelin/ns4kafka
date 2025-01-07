@@ -107,10 +107,10 @@ class AuthenticationServiceTest {
         assertTrue(response.getAuthentication().get().getRoles().contains(ResourceBasedSecurityRule.IS_ADMIN));
         assertTrue(response.getAuthentication().get().getAttributes()
             .containsKey("roleBindings"));
-        assertEquals("ns1",
+        assertEquals(List.of("ns1"),
             ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
                 .get("roleBindings")).getFirst()
-                .getNamespace());
+                .getNamespaces());
         assertTrue(
             ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
                 .get("roleBindings")).getFirst()
@@ -156,10 +156,10 @@ class AuthenticationServiceTest {
         assertTrue(response.getAuthentication().get().getRoles().isEmpty());
         assertTrue(response.getAuthentication().get().getAttributes()
             .containsKey("roleBindings"));
-        assertEquals("ns1",
+        assertEquals(List.of("ns1"),
             ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
                 .get("roleBindings")).getFirst()
-                .getNamespace());
+                .getNamespaces());
         assertTrue(
             ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
                 .get("roleBindings")).getFirst()
