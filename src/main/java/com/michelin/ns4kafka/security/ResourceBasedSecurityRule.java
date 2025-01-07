@@ -1,7 +1,6 @@
 package com.michelin.ns4kafka.security;
 
 import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLE_BINDINGS;
-import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.property.SecurityProperties;

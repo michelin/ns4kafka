@@ -106,19 +106,19 @@ class AuthenticationServiceTest {
         assertEquals("admin", response.getAuthentication().get().getName());
         assertTrue(response.getAuthentication().get().getRoles().contains(ResourceBasedSecurityRule.IS_ADMIN));
         assertTrue(response.getAuthentication().get().getAttributes()
-            .containsKey("roleBindings"));
+            .containsKey(ROLE_BINDINGS));
         assertEquals(List.of("ns1"),
             ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
-                .get("roleBindings")).getFirst()
+                .get(ROLE_BINDINGS)).getFirst()
                 .getNamespaces());
         assertTrue(
             ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
-                .get("roleBindings")).getFirst()
+                .get(ROLE_BINDINGS)).getFirst()
                 .getVerbs()
                 .containsAll(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET)));
         assertTrue(
             ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
-                .get("roleBindings")).getFirst()
+                .get(ROLE_BINDINGS)).getFirst()
                 .getResourceTypes()
                 .containsAll(List.of("topics", "acls")));
     }
@@ -155,20 +155,105 @@ class AuthenticationServiceTest {
         assertEquals("user", response.getAuthentication().get().getName());
         assertTrue(response.getAuthentication().get().getRoles().isEmpty());
         assertTrue(response.getAuthentication().get().getAttributes()
-            .containsKey("roleBindings"));
+            .containsKey(ROLE_BINDINGS));
         assertEquals(List.of("ns1"),
             ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
-                .get("roleBindings")).getFirst()
+                .get(ROLE_BINDINGS)).getFirst()
                 .getNamespaces());
         assertTrue(
             ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
-                .get("roleBindings")).getFirst()
+                .get(ROLE_BINDINGS)).getFirst()
                 .getVerbs()
                 .containsAll(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET)));
         assertTrue(
             ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
-                .get("roleBindings")).getFirst()
+                .get(ROLE_BINDINGS)).getFirst()
                 .getResourceTypes()
                 .containsAll(List.of("topics", "acls")));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldReturnAuthenticationSuccessWhenMultipleGroupsWithSameVerbsAndResourceTypes() {
+        RoleBinding roleBinding1 = RoleBinding.builder()
+            .metadata(Metadata.builder()
+                .name("ns1-rb")
+                .namespace("ns1")
+                .build())
+            .spec(RoleBinding.RoleBindingSpec.builder()
+                .role(RoleBinding.Role.builder()
+                    .resourceTypes(List.of("topics", "acls"))
+                    .verbs(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET))
+                    .build())
+                .subject(RoleBinding.Subject.builder()
+                    .subjectName("group1")
+                    .subjectType(RoleBinding.SubjectType.GROUP)
+                    .build())
+                .build())
+            .build();
+
+        RoleBinding roleBinding2 = RoleBinding.builder()
+            .metadata(Metadata.builder()
+                .name("ns2-rb")
+                .namespace("ns2")
+                .build())
+            .spec(RoleBinding.RoleBindingSpec.builder()
+                .role(RoleBinding.Role.builder()
+                    .resourceTypes(List.of("topics"))
+                    .verbs(List.of(RoleBinding.Verb.GET))
+                    .build())
+                .subject(RoleBinding.Subject.builder()
+                    .subjectName("group2")
+                    .subjectType(RoleBinding.SubjectType.GROUP)
+                    .build())
+                .build())
+            .build();
+
+        RoleBinding roleBinding3 = RoleBinding.builder()
+            .metadata(Metadata.builder()
+                .name("ns3-rb")
+                .namespace("ns3")
+                .build())
+            .spec(RoleBinding.RoleBindingSpec.builder()
+                .role(RoleBinding.Role.builder()
+                    .resourceTypes(List.of("topics", "acls"))
+                    .verbs(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET))
+                    .build())
+                .subject(RoleBinding.Subject.builder()
+                    .subjectName("group3")
+                    .subjectType(RoleBinding.SubjectType.GROUP)
+                    .build())
+                .build())
+            .build();
+
+        when(roleBindingService.findAllByGroups(any()))
+            .thenReturn(List.of(roleBinding1, roleBinding2, roleBinding3));
+
+        when(resourceBasedSecurityRule.computeRolesFromGroups(any()))
+            .thenReturn(List.of());
+
+        AuthenticationResponse response = authenticationService.buildAuthJwtGroups("user", List.of("group1"));
+
+        assertTrue(response.getAuthentication().isPresent());
+        assertEquals("user", response.getAuthentication().get().getName());
+        assertTrue(response.getAuthentication().get().getRoles().isEmpty());
+        assertTrue(response.getAuthentication().get().getAttributes().containsKey(ROLE_BINDINGS));
+        assertTrue(
+            ((List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes().get(ROLE_BINDINGS))
+                .containsAll(
+                    List.of(
+                        AuthenticationRoleBinding.builder()
+                            .namespaces(List.of("ns1", "ns3"))
+                            .verbs(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET))
+                            .resourceTypes(List.of("topics", "acls"))
+                            .build(),
+                        AuthenticationRoleBinding.builder()
+                            .namespaces(List.of("ns2"))
+                            .verbs(List.of(RoleBinding.Verb.GET))
+                            .resourceTypes(List.of("topics"))
+                            .build()
+                    )
+                )
+        );
     }
 }

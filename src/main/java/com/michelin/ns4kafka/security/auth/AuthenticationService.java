@@ -24,7 +24,6 @@ import lombok.extern.slf4j.Slf4j;
 @Singleton
 public class AuthenticationService {
 
-
     @Inject
     ResourceBasedSecurityRule resourceBasedSecurityRule;
 
