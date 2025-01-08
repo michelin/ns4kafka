@@ -107,7 +107,7 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
 
         AuthenticationInfo authenticationInfo = AuthenticationInfo.of(authentication);
 
-        // No role binding for the target namespace. User is targeting a namespace that he is not allowed to access
+        // No role binding for the target namespace: the user is not allowed to access the target namespace
         List<AuthenticationRoleBinding> namespaceRoleBindings = authenticationInfo.getRoleBindings()
             .stream()
             .filter(roleBinding -> roleBinding.getNamespaces()

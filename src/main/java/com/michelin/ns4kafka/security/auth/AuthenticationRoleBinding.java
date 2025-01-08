@@ -18,6 +18,4 @@ public class AuthenticationRoleBinding {
     private List<String> namespaces;
     private List<RoleBinding.Verb> verbs;
     private List<String> resourceTypes;
-
-    record VerbResourceTypes(List<RoleBinding.Verb> verbs, List<String> resourceTypes) {}
 }

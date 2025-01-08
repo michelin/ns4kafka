@@ -50,21 +50,18 @@ public class AuthenticationService {
         return AuthenticationResponse.success(username, resourceBasedSecurityRule.computeRolesFromGroups(groups),
             Map.of(ROLE_BINDINGS, roleBindings
                 .stream()
-                // group the namespaces by verbs + resourceTypes in a mapping
-                .collect(Collectors.groupingBy(roleBinding ->
-                    new AuthenticationRoleBinding.VerbResourceTypes(
-                        new ArrayList<>(roleBinding.getSpec().getRole().getVerbs()),
-                        new ArrayList<>(roleBinding.getSpec().getRole().getResourceTypes())
-                    ),
-                    Collectors.mapping(rb -> rb.getMetadata().getNamespace(), Collectors.toList())
+                // group the namespaces by roles in a mapping
+                .collect(Collectors.groupingBy(
+                    roleBinding -> roleBinding.getSpec().getRole(),
+                    Collectors.mapping(roleBinding -> roleBinding.getMetadata().getNamespace(), Collectors.toList())
                 ))
-                // build JWT with a list of namespaces for each combination of verbs + resourceTypes
+                // build JWT with a list of namespaces for each different role
                 .entrySet()
                 .stream()
                 .map(entry -> AuthenticationRoleBinding.builder()
                     .namespaces(entry.getValue())
-                    .verbs(entry.getKey().verbs())
-                    .resourceTypes(entry.getKey().resourceTypes())
+                    .verbs(new ArrayList<>(entry.getKey().getVerbs()))
+                    .resourceTypes(new ArrayList<>(entry.getKey().getResourceTypes()))
                     .build())
                 .toList()));
     }
