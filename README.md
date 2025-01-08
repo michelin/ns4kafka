@@ -154,7 +154,7 @@ The delivered JWT token will have the following format:
 {
   "roleBindings": [
     {
-      "namespace": "myNamespace",
+      "namespaces": ["myNamespace"],
       "verbs": [
         "GET",
         "POST",
@@ -165,16 +165,14 @@ The delivered JWT token will have the following format:
         "schemas",
         "schemas/config",
         "topics",
-        "topics/import",
         "topics/delete-records",
         "connectors",
-        "connectors/import",
         "connectors/change-state",
-        "connect-clusters",
-        "connect-clusters/vaults",
         "acls",
         "consumer-groups/reset",
-        "streams"
+        "streams",
+        "connect-clusters",
+        "connect-clusters/vaults"
       ]
     }
   ],
