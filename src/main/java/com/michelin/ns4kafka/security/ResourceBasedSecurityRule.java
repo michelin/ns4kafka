@@ -5,7 +5,6 @@ import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLE_BINDI
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.property.SecurityProperties;
 import com.michelin.ns4kafka.repository.NamespaceRepository;
-import com.michelin.ns4kafka.repository.RoleBindingRepository;
 import com.michelin.ns4kafka.security.auth.AuthenticationInfo;
 import com.michelin.ns4kafka.security.auth.AuthenticationRoleBinding;
 import com.michelin.ns4kafka.util.exception.ForbiddenNamespaceException;
@@ -43,9 +42,6 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
 
     @Inject
     SecurityProperties securityProperties;
-
-    @Inject
-    RoleBindingRepository roleBindingRepository;
 
     @Inject
     NamespaceRepository namespaceRepository;

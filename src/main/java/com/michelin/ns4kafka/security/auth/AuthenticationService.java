@@ -47,7 +47,9 @@ public class AuthenticationService {
             throw new AuthenticationException(new AuthenticationFailed("No namespace matches your groups"));
         }
 
-        return AuthenticationResponse.success(username, resourceBasedSecurityRule.computeRolesFromGroups(groups),
+        return AuthenticationResponse.success(
+            username,
+            resourceBasedSecurityRule.computeRolesFromGroups(groups),
             Map.of(ROLE_BINDINGS, roleBindings
                 .stream()
                 // group the namespaces by roles in a mapping
@@ -63,6 +65,7 @@ public class AuthenticationService {
                     .verbs(new ArrayList<>(entry.getKey().getVerbs()))
                     .resourceTypes(new ArrayList<>(entry.getKey().getResourceTypes()))
                     .build())
-                .toList()));
+                .toList())
+        );
     }
 }
