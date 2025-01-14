@@ -30,7 +30,7 @@ class LdapAuthenticationMapperTest {
     @SuppressWarnings("unchecked")
     void shouldMapAttributesToAuthenticationResponse() {
         AuthenticationRoleBinding authenticationRoleBinding = AuthenticationRoleBinding.builder()
-            .namespace("namespace")
+            .namespaces(List.of("namespace"))
             .verbs(List.of(RoleBinding.Verb.GET))
             .resourceTypes(List.of("topics"))
             .build();

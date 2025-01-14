@@ -14,6 +14,7 @@ import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -22,7 +23,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Singleton
 public class AuthenticationService {
-
 
     @Inject
     ResourceBasedSecurityRule resourceBasedSecurityRule;
@@ -47,14 +47,25 @@ public class AuthenticationService {
             throw new AuthenticationException(new AuthenticationFailed("No namespace matches your groups"));
         }
 
-        return AuthenticationResponse.success(username, resourceBasedSecurityRule.computeRolesFromGroups(groups),
+        return AuthenticationResponse.success(
+            username,
+            resourceBasedSecurityRule.computeRolesFromGroups(groups),
             Map.of(ROLE_BINDINGS, roleBindings
                 .stream()
-                .map(roleBinding -> AuthenticationRoleBinding.builder()
-                    .namespace(roleBinding.getMetadata().getNamespace())
-                    .verbs(new ArrayList<>(roleBinding.getSpec().getRole().getVerbs()))
-                    .resourceTypes(new ArrayList<>(roleBinding.getSpec().getRole().getResourceTypes()))
+                // group the namespaces by roles in a mapping
+                .collect(Collectors.groupingBy(
+                    roleBinding -> roleBinding.getSpec().getRole(),
+                    Collectors.mapping(roleBinding -> roleBinding.getMetadata().getNamespace(), Collectors.toList())
+                ))
+                // build JWT with a list of namespaces for each different role
+                .entrySet()
+                .stream()
+                .map(entry -> AuthenticationRoleBinding.builder()
+                    .namespaces(entry.getValue())
+                    .verbs(new ArrayList<>(entry.getKey().getVerbs()))
+                    .resourceTypes(new ArrayList<>(entry.getKey().getResourceTypes()))
                     .build())
-                .toList()));
+                .toList())
+        );
     }
 }

@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AuthenticationRoleBinding {
-    private String namespace;
+    private List<String> namespaces;
     private List<RoleBinding.Verb> verbs;
     private List<String> resourceTypes;
 }

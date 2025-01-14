@@ -5,7 +5,6 @@ import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLE_BINDI
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.property.SecurityProperties;
 import com.michelin.ns4kafka.repository.NamespaceRepository;
-import com.michelin.ns4kafka.repository.RoleBindingRepository;
 import com.michelin.ns4kafka.security.auth.AuthenticationInfo;
 import com.michelin.ns4kafka.security.auth.AuthenticationRoleBinding;
 import com.michelin.ns4kafka.util.exception.ForbiddenNamespaceException;
@@ -43,9 +42,6 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
 
     @Inject
     SecurityProperties securityProperties;
-
-    @Inject
-    RoleBindingRepository roleBindingRepository;
 
     @Inject
     NamespaceRepository namespaceRepository;
@@ -107,10 +103,12 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
 
         AuthenticationInfo authenticationInfo = AuthenticationInfo.of(authentication);
 
-        // No role binding for the target namespace. User is targeting a namespace that he is not allowed to access
+        // No role binding for the target namespace: the user is not allowed to access the target namespace
         List<AuthenticationRoleBinding> namespaceRoleBindings = authenticationInfo.getRoleBindings()
             .stream()
-            .filter(roleBinding -> roleBinding.getNamespace().equals(namespace))
+            .filter(roleBinding -> roleBinding.getNamespaces()
+                .stream()
+                .anyMatch(ns -> ns.equals(namespace)))
             .toList();
 
         if (namespaceRoleBindings.isEmpty()) {

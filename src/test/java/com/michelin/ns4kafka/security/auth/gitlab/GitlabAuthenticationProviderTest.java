@@ -52,7 +52,7 @@ class GitlabAuthenticationProviderTest {
             .thenReturn(Flux.fromIterable(groups));
 
         AuthenticationRoleBinding authenticationRoleBinding = AuthenticationRoleBinding.builder()
-            .namespace("namespace")
+            .namespaces(List.of("namespace"))
             .verbs(List.of(RoleBinding.Verb.GET))
             .resourceTypes(List.of("topics"))
             .build();
@@ -94,7 +94,7 @@ class GitlabAuthenticationProviderTest {
             .thenReturn(Flux.fromIterable(groups));
 
         AuthenticationRoleBinding authenticationRoleBinding = AuthenticationRoleBinding.builder()
-            .namespace("namespace")
+            .namespaces(List.of("namespace"))
             .verbs(List.of(RoleBinding.Verb.GET))
             .resourceTypes(List.of("topics"))
             .build();
