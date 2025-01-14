@@ -13,7 +13,7 @@
 [![SonarCloud Tests](https://img.shields.io/sonar/tests/michelin_ns4kafka/master?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonarcloud)](https://sonarcloud.io/component_measures?metric=tests&view=list&id=michelin_kstreamplify)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?logo=apache&style=for-the-badge)](https://opensource.org/licenses/Apache-2.0)
 
-[Install](#install) • [Kafkactl](https://github.com/michelin/kafkactl)
+[Download](#download) • [Install](#install) • [Kafkactl](https://github.com/michelin/kafkactl)
 
 Namespaces for Apache Kafka.
 
