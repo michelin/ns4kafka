@@ -126,10 +126,11 @@ test {
 }
 
 checkstyle {
-    toolVersion = '10.12.3'
+    toolVersion = '10.12.4'
     configFile = file(".checkstyle/checkstyle.xml")
     ignoreFailures = false
     maxErrors = 0
     maxWarnings = 0
+    configDirectory = file(".checkstyle")
 }
 

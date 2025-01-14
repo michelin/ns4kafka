@@ -1,3 +1,22 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 package com.michelin.ns4kafka.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -131,33 +150,33 @@ class ConnectClusterServiceTest {
     @Test
     void shouldFindAllConnectClustersIncludingThoseDeclaredInNs4KafkaConfigEvenIfNull() {
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder()
-                        .name("connect-cluster")
-                        .build())
-                .spec(ConnectCluster.ConnectClusterSpec.builder()
-                        .url("https://after")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("connect-cluster")
+                .build())
+            .spec(ConnectCluster.ConnectClusterSpec.builder()
+                .url("https://after")
+                .build())
+            .build();
 
         when(connectClusterRepository.findAll())
-                .thenReturn(new ArrayList<>(List.of(connectCluster)));
+            .thenReturn(new ArrayList<>(List.of(connectCluster)));
 
         ManagedClusterProperties kafka = new ManagedClusterProperties("local");
         kafka.setConnects(null);
 
         when(managedClusterPropertiesList.stream())
-                .thenReturn(Stream.of(kafka));
+            .thenReturn(Stream.of(kafka));
         when(kafkaConnectClient.version(any(), any()))
-                .thenReturn(Mono.just(HttpResponse.ok()))
-                .thenReturn(Mono.error(new Exception("error")));
+            .thenReturn(Mono.just(HttpResponse.ok()))
+            .thenReturn(Mono.error(new Exception("error")));
 
         StepVerifier.create(connectClusterService.findAll(true))
-                .consumeNextWith(result -> {
-                    assertEquals("connect-cluster", result.getMetadata().getName());
-                    assertEquals(ConnectCluster.Status.HEALTHY, result.getSpec().getStatus());
-                    assertNull(result.getSpec().getStatusMessage());
-                })
-                .verifyComplete();
+            .consumeNextWith(result -> {
+                assertEquals("connect-cluster", result.getMetadata().getName());
+                assertEquals(ConnectCluster.Status.HEALTHY, result.getSpec().getStatus());
+                assertNull(result.getSpec().getStatusMessage());
+            })
+            .verifyComplete();
     }
 
     @Test
@@ -1018,15 +1037,15 @@ class ConnectClusterServiceTest {
         when(securityProperties.getAes256EncryptionKey()).thenReturn(encryptKey);
 
         assertEquals(List.of("Invalid empty value for fields \"aes256Key, aes256Salt\": "
-            + "Both AES key and salt are required for encryption."),
+                + "Both AES key and salt are required for encryption."),
             connectClusterService.validateConnectClusterVault(namespace, "prefix.noAesKeyAndSalt"));
 
         assertEquals(List.of("Invalid empty value for fields \"aes256Key, aes256Salt\": "
-            + "Both AES key and salt are required for encryption."),
+                + "Both AES key and salt are required for encryption."),
             connectClusterService.validateConnectClusterVault(namespace, "prefix.noAesSalt"));
 
         assertEquals(List.of("Invalid empty value for fields \"aes256Key, aes256Salt\": "
-            + "Both AES key and salt are required for encryption."),
+                + "Both AES key and salt are required for encryption."),
             connectClusterService.validateConnectClusterVault(namespace, "prefix.noAesKey"));
     }
 
