@@ -9,6 +9,7 @@ on:
 
 jobs:
   tag:
+    name: Tag
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/hotfix/v')
     steps:

@@ -1,74 +1,7 @@
-micronaut:
-  application:
-    name: ns4kafka
-  netty:
-    event-loops:
-      default:
-        num-threads: 8
-      connect:
-        num-threads: 4
-        prefer-native-transport: true
-      schema:
-        num-threads: 4
-        prefer-native-transport: true
-
-  http:
-    services:
-      kafka-connect:
-        event-loop-group: connect
-      schema-registry:
-        event-loop-group: schema
-
-  security:
-    enabled: true
-    authentication: bearer
-    gitlab:
-      enabled: true
-      url: https://gitlab.com
-    ldap:
-      enabled: false
-    endpoints:
-      introspection:
-        enabled: true
-    token:
-      jwt:
-        signatures:
-          secret:
-            generator:
-              secret: '"${JWT_GENERATOR_SIGNATURE_SECRET:pleaseChangeThisSecretForANewOne}"'
-    intercept-url-map:
-      - pattern: /swagger/**
-        http-method: GET
-        access:
-          - isAnonymous()
-      - pattern: /rapidoc/**
-        http-method: GET
-        access:
-          - isAnonymous()
-
-  codec:
-    json:
-      additional-types:
-        - application/vnd.schemaregistry.v1+json
-
-  router:
-    static-resources:
-      swagger:
-        paths: classpath:META-INF/swagger
-        mapping: /swagger/**
-      rapidoc:
-        paths: classpath:META-INF/swagger/views/rapidoc
-        mapping: /rapidoc/**
-
-jackson:
-  serialization-inclusion: NON_ABSENT
-  serialization:
-    indent-output: true # Pretty-print JSON
-
 endpoints:
-  env:
-    enabled: false
   beans:
+    enabled: false
+  env:
     enabled: false
   info:
     enabled: false
@@ -82,87 +15,139 @@ endpoints:
     enabled: false
   threaddump:
     enabled: false
-
+jackson:
+  serialization:
+    indent-output: true
+  serialization-inclusion: 'NON_ABSENT'
 kafka:
-  health:
-    enabled: false
-  bootstrap.servers: "localhost:9092"
-  producers:
-    default:
-      retries: 1
-      acks: all
-      request.timeout.ms: 10000
-      delivery.timeout.ms: 10000
+  bootstrap.servers: 'localhost:9092'
   consumers:
     default:
       session.timeout.ms: 30000
-
+  health:
+    enabled: false
+  producers:
+    default:
+      acks: 'all'
+      delivery.timeout.ms: 10000
+      request.timeout.ms: 10000
+      retries: 1
+micronaut:
+  application:
+    name: 'ns4kafka'
+  codec:
+    json:
+      additional-types:
+        - 'application/vnd.schemaregistry.v1+json'
+  http:
+    services:
+      kafka-connect:
+        event-loop-group: 'connect'
+      schema-registry:
+        event-loop-group: 'schema'
+  netty:
+    event-loops:
+      connect:
+        num-threads: 4
+        prefer-native-transport: true
+      default:
+        num-threads: 8
+      schema:
+        num-threads: 4
+        prefer-native-transport: true
+  router:
+    static-resources:
+      rapidoc:
+        mapping: '/rapidoc/**'
+        paths: 'classpath:META-INF/swagger/views/rapidoc'
+      swagger:
+        mapping: '/swagger/**'
+        paths: 'classpath:META-INF/swagger'
+  security:
+    authentication: 'bearer'
+    enabled: true
+    endpoints:
+      introspection:
+        enabled: true
+    gitlab:
+      enabled: true
+      url: 'https://gitlab.com'
+    intercept-url-map:
+      - access:
+          - 'isAnonymous()'
+        http-method: 'GET'
+        pattern: '/rapidoc/**'
+      - access:
+          - 'isAnonymous()'
+        http-method: 'GET'
+        pattern: '/swagger/**'
+    ldap:
+      enabled: false
+    token:
+      jwt:
+        signatures:
+          secret:
+            generator:
+              secret: '"${JWT_GENERATOR_SIGNATURE_SECRET:pleaseChangeThisSecretForANewOne}"'
 ns4kafka:
   akhq:
-    # Namespace label to use to find which namespace the authenticating user belongs to
-    group-label: support-group
-    # AKHQ > 0.24.0
-    roles:
-      TOPIC: topic-read
-      CONNECT: connect-rw
-      SCHEMA: registry-read
-      GROUP: group-read
-      CONNECT_CLUSTER: connect-cluster-read
-    # AKHQ <= 0.24.0
-    former-roles:
-      - topic/read
-      - topic/data/read
-      - group/read
-      - registry/read
-      - connect/read
-      - connect/state/update
-
-    # Special group which will be granted ".*" on topics, connects, and groups
-    admin-group: _
-    # Roles to be granted to admin group
+    admin-group: '_'
     # AKHQ >= 0.25.0
     admin-roles:
-      TOPIC: topic-admin
-      CONNECT: connect-admin
-      SCHEMA: registry-admin
-      GROUP: group-read
-      CONNECT_CLUSTER: connect-cluster-read
+      CONNECT: 'connect-admin'
+      CONNECT_CLUSTER: 'connect-cluster-read'
+      GROUP: 'group-read'
+      SCHEMA: 'registry-admin'
+      TOPIC: 'topic-admin'
     # AKHQ <= 0.24.0
     former-admin-roles:
-      - topic/read
-      - topic/data/read
-      - group/read
-      - registry/read
-      - connect/read
-      - connect/state/update
-      - users/reset-password
-
-  security:
-    aes256-encryption-key: changeitchangeitchangeitchangeit
-    admin-group: _
-  #    local-users: # Not for production use.
-  #      - username: admin
-  #        # SHA-256 password.
-  #        password: 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
-  #        groups:
-  #          - "admin"
-  store:
-    kafka:
-      enabled: true
-      group-id: ns4kafka.group
-      init-timeout: 60000
-      topics:
-        prefix: ns4kafka
-        replication-factor: 1
-        props:
-          min.insync.replicas: 1
-          cleanup.policy: "compact"
-          min.compaction.lag.ms: "0"
-          max.compaction.lag.ms: "604800000"
-          segment.ms: "600000"
-
+      - 'connect/read'
+      - 'connect/state/update'
+      - 'group/read'
+      - 'registry/read'
+      - 'topic/data/read'
+      - 'topic/read'
+      - 'users/reset-password'
+    # AKHQ <= 0.24.0
+    former-roles:
+      - 'connect/read'
+      - 'connect/state/update'
+      - 'group/read'
+      - 'registry/read'
+      - 'topic/data/read'
+      - 'topic/read'
+    group-label: 'support-group'
+    roles:
+      CONNECT: 'connect-rw'
+      CONNECT_CLUSTER: 'connect-cluster-read'
+      GROUP: 'group-read'
+      SCHEMA: 'registry-read'
+      TOPIC: 'topic-read'
   log:
     console:
       enabled: true
     kafka:
       enabled: false
+  security:
+    admin-group: '_'
+    aes256-encryption-key: 'changeitchangeitchangeitchangeit'
+    # Not for production use.
+    # local-users:
+    #   - groups:
+    #       - 'admin'
+    #     password: '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'
+    #     username: 'admin'
+  store:
+    kafka:
+      enabled: true
+      group-id: 'ns4kafka.group'
+      init-timeout: 60000
+      topics:
+        prefix: 'ns4kafka'
+        props:
+          cleanup.policy: 'compact'
+          max.compaction.lag.ms: '604800000'
+          min.compaction.lag.ms: '0'
+          min.insync.replicas: 1
+          segment.ms: '600000'
+        replication-factor: 1

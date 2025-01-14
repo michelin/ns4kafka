@@ -1,32 +1,28 @@
+kafka:
+  bootstrap.servers: 'localhost:9092' # Replaced by Testcontainers
+  sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin";'
+  sasl.mechanism: 'PLAIN'
+  security.protocol: 'SASL_PLAINTEXT'
 micronaut:
   security:
     gitlab:
       enabled: false
-
-kafka:
-  bootstrap.servers: "localhost:9092" # Replaced by Testcontainers
-  sasl.mechanism: "PLAIN"
-  security.protocol: "SASL_PLAINTEXT"
-  sasl.jaas.config: "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin\";"
-
 ns4kafka:
-  security:
-    admin-group: adminGroup
-    local-users:
-      - username: admin
-        password: 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
-        groups:
-          - "adminGroup"
-      - username: user
-        password: 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
-        groups:
-          - "userGroup"
   managed-clusters:
     test-cluster:
+      config:
+        bootstrap.servers: 'localhost:9092' # Replaced by Testcontainers
+        sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin";'
+        sasl.mechanism: 'PLAIN'
+        security.protocol: 'SASL_PLAINTEXT'
+      connects:
+        test-connect:
+          url: 'localhost:8083' # Replaced by Testcontainers
       manage-acls: true
       manage-connectors: true
-      manage-users: true
       manage-topics: true
+      manage-users: true
+      provider: 'SELF_MANAGED'
       timeout:
         acl:
           create: 15000
@@ -35,19 +31,21 @@ ns4kafka:
         topic:
           alter-configs: 15003
           create: 15004
-          describe-configs: 15005
           delete: 15006
+          describe-configs: 15005
           list: 15007
         user:
           alter-quotas: 15008
           alter-scram-credentials: 15009
           describe-quotas: 15010
-      provider: SELF_MANAGED
-      config:
-        bootstrap.servers: "localhost:9092" # Replaced by Testcontainers
-        sasl.mechanism: "PLAIN"
-        security.protocol: "SASL_PLAINTEXT"
-        sasl.jaas.config: "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin\";"
-      connects:
-        test-connect:
-          url: "localhost:8083" # Replaced by Testcontainers
+  security:
+    admin-group: 'adminGroup'
+    local-users:
+      - groups:
+          - 'adminGroup'
+        password: '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'
+        username: 'admin'
+      - groups:
+          - 'userGroup'
+        password: '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'
+        username: 'user'

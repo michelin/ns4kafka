@@ -1,3 +1,22 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidOwner;
@@ -58,9 +77,9 @@ public class SchemaController extends NamespacedResourceController {
             .collectList()
             .flatMapMany(schemas -> schemas.size() == 1
                 ? Flux.fromIterable(schemas
-                    .stream()
-                    .map(schema -> schemaService.getSubjectLatestVersion(ns, schema.getMetadata().getName()))
-                    .toList()).flatMap(schema -> schema)
+                .stream()
+                .map(schema -> schemaService.getSubjectLatestVersion(ns, schema.getMetadata().getName()))
+                .toList()).flatMap(schema -> schema)
                 : Flux.fromIterable(schemas));
     }
 
@@ -157,10 +176,10 @@ public class SchemaController extends NamespacedResourceController {
     /**
      * Delete all schema versions or a specific schema version if specified, under all given subjects.
      *
-     * @param namespace         The namespace
-     * @param name              The subject name parameter
-     * @param versionOptional   The version of the schemas to delete
-     * @param dryrun            Run in dry mode or not?
+     * @param namespace       The namespace
+     * @param name            The subject name parameter
+     * @param versionOptional The version of the schemas to delete
+     * @param dryrun          Run in dry mode or not?
      * @return A HTTP response
      */
     @Delete
@@ -197,17 +216,17 @@ public class SchemaController extends NamespacedResourceController {
                     .flatMap(schema -> (versionOptional.isEmpty()
                         ? schemaService.deleteAllVersions(ns, schema.getMetadata().getName()) :
                         schemaService.deleteVersion(ns, schema.getMetadata().getName(), versionOptional.get()))
-                            .flatMap(deletedVersionIds -> {
-                                sendEventLog(
-                                    schema,
-                                    ApplyStatus.deleted,
-                                    schema.getSpec(),
-                                    null,
-                                    versionOptional.map(v -> String.valueOf(deletedVersionIds))
-                                            .orElse(EMPTY_STRING)
-                                );
-                                return Mono.just(HttpResponse.noContent());
-                            }))
+                        .flatMap(deletedVersionIds -> {
+                            sendEventLog(
+                                schema,
+                                ApplyStatus.deleted,
+                                schema.getSpec(),
+                                null,
+                                versionOptional.map(v -> String.valueOf(deletedVersionIds))
+                                    .orElse(EMPTY_STRING)
+                            );
+                            return Mono.just(HttpResponse.noContent());
+                        }))
                     .then(Mono.just(HttpResponse.ok(schemas)));
             });
     }
@@ -215,10 +234,10 @@ public class SchemaController extends NamespacedResourceController {
     /**
      * Delete all schema versions or a specific schema version if specified, under the given subject.
      *
-     * @param namespace         The namespace
-     * @param subject           The subject
-     * @param versionOptional   The version of the schema to delete
-     * @param dryrun            Run in dry mode or not?
+     * @param namespace       The namespace
+     * @param subject         The subject
+     * @param versionOptional The version of the schema to delete
+     * @param dryrun          Run in dry mode or not?
      * @return A HTTP response
      * @deprecated use {@link #bulkDelete(String, String, Optional, boolean)} instead.
      */

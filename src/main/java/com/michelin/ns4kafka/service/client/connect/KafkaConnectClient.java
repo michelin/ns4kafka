@@ -1,3 +1,22 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 package com.michelin.ns4kafka.service.client.connect;
 
 import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
@@ -64,7 +83,7 @@ public class KafkaConnectClient {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
 
         HttpRequest<?> request = HttpRequest.GET(
-            URI.create(StringUtils.prependUri(config.getUrl(), "/")))
+                URI.create(StringUtils.prependUri(config.getUrl(), "/")))
             .basicAuth(config.getUsername(), config.getPassword());
 
         return Mono.from(httpClient.exchange(request, ServerInfo.class));
@@ -105,8 +124,8 @@ public class KafkaConnectClient {
         String encodedConnectorClass = URLEncoder.encode(connectorClass, StandardCharsets.UTF_8);
 
         HttpRequest<?> request = HttpRequest.PUT(
-            URI.create(StringUtils.prependUri(config.getUrl(),
-                "/connector-plugins/" + encodedConnectorClass + "/config/validate")),
+                URI.create(StringUtils.prependUri(config.getUrl(),
+                    "/connector-plugins/" + encodedConnectorClass + "/config/validate")),
                 connectorSpecs)
             .basicAuth(config.getUsername(), config.getPassword());
 
@@ -130,8 +149,8 @@ public class KafkaConnectClient {
         String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
 
         HttpRequest<?> request = HttpRequest.PUT(
-            URI.create(StringUtils.prependUri(config.getUrl(),
-                CONNECTORS + encodedConnector + "/config")),
+                URI.create(StringUtils.prependUri(config.getUrl(),
+                    CONNECTORS + encodedConnector + "/config")),
                 connectorSpecs)
             .basicAuth(config.getUsername(), config.getPassword());
 
@@ -151,8 +170,8 @@ public class KafkaConnectClient {
         String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
 
         HttpRequest<?> request = HttpRequest.DELETE(
-            URI.create(StringUtils.prependUri(config.getUrl(),
-                CONNECTORS + encodedConnector)))
+                URI.create(StringUtils.prependUri(config.getUrl(),
+                    CONNECTORS + encodedConnector)))
             .basicAuth(config.getUsername(), config.getPassword());
 
         return Mono.from(httpClient.exchange(request, Void.class));
@@ -169,8 +188,8 @@ public class KafkaConnectClient {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
 
         HttpRequest<?> request = HttpRequest.GET(
-            URI.create(StringUtils.prependUri(config.getUrl(),
-                "/connector-plugins")))
+                URI.create(StringUtils.prependUri(config.getUrl(),
+                    "/connector-plugins")))
             .basicAuth(config.getUsername(), config.getPassword());
 
         return Mono.from(httpClient.retrieve(request, Argument.listOf(ConnectorPluginInfo.class)));
@@ -189,8 +208,8 @@ public class KafkaConnectClient {
         String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
 
         HttpRequest<?> request = HttpRequest.GET(
-            URI.create(StringUtils.prependUri(config.getUrl(),
-                CONNECTORS + encodedConnector + "/status")))
+                URI.create(StringUtils.prependUri(config.getUrl(),
+                    CONNECTORS + encodedConnector + "/status")))
             .basicAuth(config.getUsername(), config.getPassword());
 
         return Mono.from(httpClient.retrieve(request, ConnectorStateInfo.class));
@@ -210,8 +229,8 @@ public class KafkaConnectClient {
         String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
 
         HttpRequest<?> request = HttpRequest.POST(
-            URI.create(StringUtils.prependUri(config.getUrl(),
-                CONNECTORS + encodedConnector + "/tasks/" + taskId + "/restart")), null)
+                URI.create(StringUtils.prependUri(config.getUrl(),
+                    CONNECTORS + encodedConnector + "/tasks/" + taskId + "/restart")), null)
             .basicAuth(config.getUsername(), config.getPassword());
 
         return Mono.from(httpClient.exchange(request, Void.class));
@@ -230,8 +249,8 @@ public class KafkaConnectClient {
         String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
 
         HttpRequest<?> request = HttpRequest.PUT(
-            URI.create(StringUtils.prependUri(config.getUrl(),
-                CONNECTORS + encodedConnector + "/pause")), null)
+                URI.create(StringUtils.prependUri(config.getUrl(),
+                    CONNECTORS + encodedConnector + "/pause")), null)
             .basicAuth(config.getUsername(), config.getPassword());
 
         return Mono.from(httpClient.exchange(request, Void.class));
@@ -250,8 +269,8 @@ public class KafkaConnectClient {
         String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
 
         HttpRequest<?> request = HttpRequest.PUT(
-            URI.create(StringUtils.prependUri(config.getUrl(),
-                CONNECTORS + encodedConnector + "/resume")), null)
+                URI.create(StringUtils.prependUri(config.getUrl(),
+                    CONNECTORS + encodedConnector + "/resume")), null)
             .basicAuth(config.getUsername(), config.getPassword());
 
         return Mono.from(httpClient.exchange(request, Void.class));

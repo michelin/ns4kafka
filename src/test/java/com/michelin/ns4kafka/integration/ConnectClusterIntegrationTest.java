@@ -1,3 +1,22 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -73,11 +92,11 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
             .spec(RoleBindingSpec.builder()
                 .role(Role.builder()
                     .resourceTypes(List.of(
-                            "topics",
-                            "acls",
-                            "connect-clusters",
-                            "connect-clusters/vaults",
-                            "connectors"))
+                        "topics",
+                        "acls",
+                        "connect-clusters",
+                        "connect-clusters/vaults",
+                        "connectors"))
                     .verbs(List.of(Verb.POST, Verb.GET, Verb.PUT, Verb.DELETE))
                     .build())
                 .subject(Subject.builder()
@@ -109,46 +128,46 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
                 .body(roleBinding));
 
         AccessControlEntry aclConnect = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
-                        .name("ns1-acl")
-                        .namespace("ns1")
-                        .build())
-                .spec(AccessControlEntrySpec.builder()
-                        .resourceType(ResourceType.CONNECT)
-                        .resource("ns1-")
-                        .resourcePatternType(ResourcePatternType.PREFIXED)
-                        .permission(Permission.OWNER)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("ns1-acl")
+                .namespace("ns1")
+                .build())
+            .spec(AccessControlEntrySpec.builder()
+                .resourceType(ResourceType.CONNECT)
+                .resource("ns1-")
+                .resourcePatternType(ResourcePatternType.PREFIXED)
+                .permission(Permission.OWNER)
+                .grantedTo("ns1")
+                .build())
+            .build();
 
         ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest
-                        .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
-                        .bearerAuth(token)
-                        .body(aclConnect));
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                .bearerAuth(token)
+                .body(aclConnect));
 
         AccessControlEntry aclConnectCluster = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
-                        .name("ns1-acl-cc")
-                        .namespace("ns1")
-                        .build())
-                .spec(AccessControlEntrySpec.builder()
-                        .resourceType(ResourceType.CONNECT_CLUSTER)
-                        .resource("ns1-")
-                        .resourcePatternType(ResourcePatternType.PREFIXED)
-                        .permission(Permission.OWNER)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
+            .metadata(Metadata.builder()
+                .name("ns1-acl-cc")
+                .namespace("ns1")
+                .build())
+            .spec(AccessControlEntrySpec.builder()
+                .resourceType(ResourceType.CONNECT_CLUSTER)
+                .resource("ns1-")
+                .resourcePatternType(ResourcePatternType.PREFIXED)
+                .permission(Permission.OWNER)
+                .grantedTo("ns1")
+                .build())
+            .build();
 
         ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest
-                        .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
-                        .bearerAuth(token)
-                        .body(aclConnectCluster));
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                .bearerAuth(token)
+                .body(aclConnectCluster));
 
         AccessControlEntry aclTopic = AccessControlEntry.builder()
             .metadata(Metadata.builder()
@@ -197,10 +216,10 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
                 .body(connectCluster));
 
         HttpResponse<List<ConnectCluster>> connectClusters = ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest
-                        .create(HttpMethod.GET, "/api/namespaces/ns1/connect-clusters")
-                        .bearerAuth(token), Argument.listOf(ConnectCluster.class));
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.GET, "/api/namespaces/ns1/connect-clusters")
+                .bearerAuth(token), Argument.listOf(ConnectCluster.class));
 
         assertEquals(1, connectClusters.getBody().get().size());
         assertEquals("ns1-connectCluster", connectClusters.getBody().get().get(0).getMetadata().getName());
@@ -210,9 +229,9 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
         HttpResponse<List<VaultResponse>> vaultResponse = ns4KafkaClient
             .toBlocking()
             .exchange(HttpRequest
-                    .create(HttpMethod.POST, "/api/namespaces/ns1/connect-clusters/ns1-connectCluster/vaults")
-                    .bearerAuth(token)
-                    .body(passwordsToVault), Argument.listOf(VaultResponse.class));
+                .create(HttpMethod.POST, "/api/namespaces/ns1/connect-clusters/ns1-connectCluster/vaults")
+                .bearerAuth(token)
+                .body(passwordsToVault), Argument.listOf(VaultResponse.class));
 
         assertEquals(2, vaultResponse.getBody().get().size());
         assertEquals("password1", vaultResponse.getBody().get().get(0).getSpec().getClearText());
@@ -225,10 +244,10 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
                 .bearerAuth(token));
 
         connectClusters = ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest
-                        .create(HttpMethod.GET, "/api/namespaces/ns1/connect-clusters")
-                        .bearerAuth(token), Argument.listOf(ConnectCluster.class));
+            .toBlocking()
+            .exchange(HttpRequest
+                .create(HttpMethod.GET, "/api/namespaces/ns1/connect-clusters")
+                .bearerAuth(token), Argument.listOf(ConnectCluster.class));
 
         assertEquals(0, connectClusters.getBody().get().size());
     }

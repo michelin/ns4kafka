@@ -16,20 +16,3 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-package com.michelin.ns4kafka.log;
-
-import com.michelin.ns4kafka.model.AuditLog;
-import io.micronaut.configuration.kafka.annotation.KafkaClient;
-import io.micronaut.configuration.kafka.annotation.KafkaKey;
-import io.micronaut.configuration.kafka.annotation.Topic;
-import io.micronaut.context.annotation.Requires;
-import io.micronaut.core.util.StringUtils;
-
-@KafkaClient
-@Requires(property = "ns4kafka.log.kafka.enabled", value = StringUtils.TRUE)
-interface KafkaLogProducer {
-
-    @Topic(value = "${ns4kafka.log.kafka.topic}")
-    void sendAuditLog(@KafkaKey String namespace, AuditLog log);
-}
