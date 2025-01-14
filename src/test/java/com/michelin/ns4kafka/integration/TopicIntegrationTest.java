@@ -243,12 +243,12 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
 
         assertLinesMatch(
             List.of(
-                "topic/read",
-                "topic/data/read",
+                "connect/read",
+                "connect/state/update",
                 "group/read",
                 "registry/read",
-                "connect/read",
-                "connect/state/update"
+                "topic/data/read",
+                "topic/read"
             ),
             response.getRoles());
 
