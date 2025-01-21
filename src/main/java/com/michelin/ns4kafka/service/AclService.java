@@ -7,6 +7,8 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidAclPatternType;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidAclPermission;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidAclResourceType;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNotFound;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidProtectedNamespaceGrantAcl;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidProtectedNamespaceGrantPublicAcl;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
@@ -49,7 +51,7 @@ public class AclService {
         List<AccessControlEntry.ResourceType> allowedResourceTypes =
             List.of(AccessControlEntry.ResourceType.TOPIC, AccessControlEntry.ResourceType.CONNECT_CLUSTER);
 
-        // Which permission can be granted cross namespaces ? READ, WRITE
+        // Which permission can be granted cross namespaces: READ, WRITE
         // Only admin can grant OWNER
         List<AccessControlEntry.Permission> allowedPermissions =
             List.of(AccessControlEntry.Permission.READ,
@@ -77,12 +79,27 @@ public class AclService {
                 allowedPatternTypes.stream().map(Object::toString).collect(Collectors.joining(", "))));
         }
 
-        // GrantedTo Namespace exists ?
+        // GrantedTo namespace exists?
         NamespaceService namespaceService = applicationContext.getBean(NamespaceService.class);
-        Optional<Namespace> grantedToNamespace =
+        Optional<Namespace> granteeNamespace =
             namespaceService.findByName(accessControlEntry.getSpec().getGrantedTo());
-        if (grantedToNamespace.isEmpty() && !accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO)) {
+        boolean granteeExists = granteeNamespace.isPresent();
+        boolean granteeIsPublic = accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO);
+
+        if (!granteeExists && !granteeIsPublic) {
             validationErrors.add(invalidNotFound("grantedTo", accessControlEntry.getSpec().getGrantedTo()));
+        }
+
+        // protected namespaces are not allowed to grant public ACL
+        boolean grantorIsProtected = namespace.getSpec().isProtectionEnabled();
+        if (grantorIsProtected && granteeIsPublic) {
+            validationErrors.add(invalidProtectedNamespaceGrantPublicAcl());
+        }
+
+        // protected namespaces are only allowed to grant ACL to other protected namespaces
+        boolean granteeIsProtected = granteeExists && granteeNamespace.get().getSpec().isProtectionEnabled();
+        if (grantorIsProtected && !granteeIsPublic && !granteeIsProtected) {
+            validationErrors.add(invalidProtectedNamespaceGrantAcl());
         }
 
         if (namespace.getMetadata().getName().equals(accessControlEntry.getSpec().getGrantedTo())) {
@@ -98,13 +115,13 @@ public class AclService {
     }
 
     /**
-     * Validate a new ACL created by an admin.
+     * Validate a new self-assigned ACL created by an admin.
      *
      * @param accessControlEntry The ACL
      * @param namespace          The namespace
      * @return A list of validation errors
      */
-    public List<String> validateAsAdmin(AccessControlEntry accessControlEntry, Namespace namespace) {
+    public List<String> validateSelfAssignedAdmin(AccessControlEntry accessControlEntry, Namespace namespace) {
         // another namespace is already OWNER of PREFIXED or LITERAL resource
         // example :
         // if already exists:

@@ -66,7 +66,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 .build())
             .spec(NamespaceSpec.builder()
                 .kafkaUser("user1")
-                .secured(Boolean.FALSE)
+                .protectionEnabled(Boolean.FALSE)
                 .connectClusters(List.of("test-connect"))
                 .topicValidator(TopicValidator.makeDefaultOneBroker())
                 .build())

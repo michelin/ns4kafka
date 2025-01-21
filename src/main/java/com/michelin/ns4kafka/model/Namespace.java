@@ -49,8 +49,7 @@ public class Namespace extends MetadataResource {
     public static class NamespaceSpec {
         @NotBlank
         private String kafkaUser;
-        @Builder.Default
-        private boolean secured = Boolean.FALSE;
+        private boolean protectionEnabled;
         @Builder.Default
         private List<String> connectClusters = List.of();
         private TopicValidator topicValidator;

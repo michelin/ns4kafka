@@ -1,11 +1,8 @@
 package com.michelin.ns4kafka.controller.acl;
 
-import static com.michelin.ns4kafka.service.AclService.PUBLIC_GRANTED_TO;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidAclDeleteOnlyAdmin;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidImmutableField;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNotFound;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSecuredNamespaceGrantAcl;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSecuredNamespaceGrantPublicAcl;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSelfAssignedAclDelete;
 import static com.michelin.ns4kafka.util.enumation.Kind.ACCESS_CONTROL_ENTRY;
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
@@ -108,28 +105,14 @@ public class AclController extends NamespacedResourceController {
                                                   @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
-        boolean grantorIsSecured = getNamespace(accessControlEntry.getMetadata().getNamespace()).getSpec().isSecured();
-        boolean granteeIsPublic = PUBLIC_GRANTED_TO.equals(accessControlEntry.getSpec().getGrantedTo());
-        boolean granteeIsSecured = !granteeIsPublic
-            && getNamespace(accessControlEntry.getSpec().getGrantedTo()).getSpec().isSecured();
         boolean isAdmin = authentication.getRoles().contains(ResourceBasedSecurityRule.IS_ADMIN);
         boolean isSelfAssigned = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
 
         List<String> validationErrors;
 
-        // secured namespaces are not allowed to grant public ACL
-        if (grantorIsSecured && granteeIsPublic) {
-            throw new ResourceValidationException(accessControlEntry, invalidSecuredNamespaceGrantPublicAcl());
-        }
-
-        // secured namespaces are not allowed to grant ACL to basic namespaces
-        if (grantorIsSecured && !granteeIsSecured) {
-            throw new ResourceValidationException(accessControlEntry, invalidSecuredNamespaceGrantAcl());
-        }
-
         if (isAdmin && isSelfAssigned) {
             // Validate overlapping OWNER
-            validationErrors = aclService.validateAsAdmin(accessControlEntry, ns);
+            validationErrors = aclService.validateSelfAssignedAdmin(accessControlEntry, ns);
         } else {
             validationErrors = aclService.validate(accessControlEntry, ns);
         }

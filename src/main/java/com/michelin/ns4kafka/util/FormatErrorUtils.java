@@ -639,23 +639,23 @@ public class FormatErrorUtils {
     }
 
     /**
-     * Invalid secured namespace grant ACL to basic namespaces.
+     * Invalid protected namespace grant ACL to basic namespaces.
      *
      * @return the error message
      */
-    public static String invalidSecuredNamespaceGrantAcl() {
+    public static String invalidProtectedNamespaceGrantAcl() {
         return String.format(INVALID_OPERATION, OPERATION_APPLY,
-            "secured namespace cannot grant ACL to basic namespaces");
+            "protected namespace can only grant ACL to protected namespaces");
     }
 
     /**
-     * Invalid secured namespace grant ACL to basic namespaces.
+     * Invalid protected namespace grant ACL to basic namespaces.
      *
      * @return the error message
      */
-    public static String invalidSecuredNamespaceGrantPublicAcl() {
+    public static String invalidProtectedNamespaceGrantPublicAcl() {
         return String.format(INVALID_OPERATION, OPERATION_APPLY,
-            "secured namespace cannot grant public ACL");
+            "protected namespace can not grant public ACL");
     }
 
     /**
