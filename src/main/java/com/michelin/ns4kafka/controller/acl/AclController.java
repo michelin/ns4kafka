@@ -128,9 +128,10 @@ public class AclController extends NamespacedResourceController {
         boolean isSelfAssigned = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
 
         List<String> validationErrors;
+
         if (isAdmin && isSelfAssigned) {
             // Validate overlapping OWNER
-            validationErrors = aclService.validateAsAdmin(accessControlEntry, ns);
+            validationErrors = aclService.validateSelfAssignedAdmin(accessControlEntry, ns);
         } else {
             validationErrors = aclService.validate(accessControlEntry, ns);
         }

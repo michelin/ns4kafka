@@ -743,6 +743,26 @@ public class FormatErrorUtils {
     }
 
     /**
+     * Invalid protected namespace grant ACL to basic namespaces.
+     *
+     * @return the error message
+     */
+    public static String invalidProtectedNamespaceGrantAcl() {
+        return String.format(INVALID_OPERATION, OPERATION_APPLY,
+            "protected namespace can only grant ACL to protected namespaces");
+    }
+
+    /**
+     * Invalid protected namespace grant ACL to basic namespaces.
+     *
+     * @return the error message
+     */
+    public static String invalidProtectedNamespaceGrantPublicAcl() {
+        return String.format(INVALID_OPERATION, OPERATION_APPLY,
+            "protected namespace can not grant public ACL");
+    }
+
+    /**
      * Invalid schema suffix.
      *
      * @param invalidNameValue the invalid name value

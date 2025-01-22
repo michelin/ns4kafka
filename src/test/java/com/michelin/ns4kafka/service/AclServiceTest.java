@@ -57,6 +57,8 @@ class AclServiceTest {
     @Test
     void shouldNotValidateAcl() {
         Namespace namespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .build())
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
@@ -93,12 +95,13 @@ class AclServiceTest {
                 "Invalid value \"test/PREFIXED\" for fields \"resource/resourcePatternType\": "
                     + "cannot grant ACL because namespace is not owner of the top level resource."),
             actual);
-
     }
 
     @Test
     void shouldNotValidateAclBecauseSelfGranted() {
         Namespace namespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .build())
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
@@ -137,8 +140,19 @@ class AclServiceTest {
     @Test
     void shouldNotValidateAclBecauseNotOwnerOfTopLevelResourceHavingBadPrefix() {
         Namespace ns = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .build())
             .metadata(Metadata.builder()
                 .name("namespace")
+                .cluster("local")
+                .build())
+            .build();
+
+        Namespace targetNamespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .build())
+            .metadata(Metadata.builder()
+                .name("target-ns")
                 .cluster("local")
                 .build())
             .build();
@@ -160,7 +174,7 @@ class AclServiceTest {
         when(applicationContext.getBean(NamespaceService.class))
             .thenReturn(namespaceService);
         when(namespaceService.findByName("target-ns"))
-            .thenReturn(Optional.of(Namespace.builder().build()));
+            .thenReturn(Optional.of(targetNamespace));
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of(AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -184,8 +198,19 @@ class AclServiceTest {
     @Test
     void shouldNotValidateAclBecauseNotOwnerOfTopLevelResourceHavingBadLiteral() {
         Namespace namespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .build())
             .metadata(Metadata.builder()
                 .name("namespace")
+                .cluster("local")
+                .build())
+            .build();
+
+        Namespace targetNamespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .build())
+            .metadata(Metadata.builder()
+                .name("target-ns")
                 .cluster("local")
                 .build())
             .build();
@@ -207,7 +232,7 @@ class AclServiceTest {
         when(applicationContext.getBean(NamespaceService.class))
             .thenReturn(namespaceService);
         when(namespaceService.findByName("target-ns"))
-            .thenReturn(Optional.of(Namespace.builder().build()));
+            .thenReturn(Optional.of(targetNamespace));
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of(AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -231,8 +256,19 @@ class AclServiceTest {
     @Test
     void shouldValidateAclBecauseOwnerOfLiteral() {
         Namespace namespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .build())
             .metadata(Metadata.builder()
                 .name("namespace")
+                .cluster("local")
+                .build())
+            .build();
+
+        Namespace targetNamespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .build())
+            .metadata(Metadata.builder()
+                .name("target-ns")
                 .cluster("local")
                 .build())
             .build();
@@ -255,7 +291,7 @@ class AclServiceTest {
         when(applicationContext.getBean(NamespaceService.class))
             .thenReturn(namespaceService);
         when(namespaceService.findByName("target-ns"))
-            .thenReturn(Optional.of(Namespace.builder().build()));
+            .thenReturn(Optional.of(targetNamespace));
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of(AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -278,9 +314,19 @@ class AclServiceTest {
     @Test
     void shouldValidateAclBecauseOwnerOfPrefix() {
         Namespace namespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .build())
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
+                .build())
+            .build();
+
+        Namespace targetNamespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .build())
+            .metadata(Metadata.builder()
+                .name("target-ns")
                 .build())
             .build();
 
@@ -302,8 +348,7 @@ class AclServiceTest {
         when(applicationContext.getBean(NamespaceService.class))
             .thenReturn(namespaceService);
         when(namespaceService.findByName("target-ns"))
-            .thenReturn(
-                Optional.of(Namespace.builder().metadata(Metadata.builder().name("target-ns").build()).build()));
+            .thenReturn(Optional.of(targetNamespace));
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of(AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -326,6 +371,8 @@ class AclServiceTest {
     @Test
     void shouldValidateAclWhenGrantedToAll() {
         Namespace namespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .build())
             .metadata(Metadata.builder()
                 .name("namespace")
                 .cluster("local")
@@ -371,6 +418,180 @@ class AclServiceTest {
     }
 
     @Test
+    void shouldNotValidateAclWhenGrantedToAllByProtectedNamespace() {
+        Namespace namespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .protectionEnabled(Boolean.TRUE)
+                .build())
+            .metadata(Metadata.builder()
+                .name("namespace")
+                .cluster("local")
+                .build())
+            .build();
+
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("acl-name")
+                .namespace("namespace")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.READ)
+                .resource("main.sub")
+                .grantedTo("*")
+                .build())
+            .build();
+
+        when(applicationContext.getBean(NamespaceService.class))
+            .thenReturn(namespaceService);
+        when(namespaceService.findByName("*"))
+            .thenReturn(Optional.empty());
+        when(accessControlEntryRepository.findAll())
+            .thenReturn(List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .resource("main")
+                    .grantedTo("namespace")
+                    .build())
+                .metadata(Metadata.builder()
+                    .cluster("local")
+                    .build())
+                .build()
+            ));
+
+        List<String> actual = aclService.validate(accessControlEntry, namespace);
+        assertEquals(1, actual.size());
+        assertEquals("Invalid \"apply\" operation: "
+            + "protected namespace can not grant public ACL.", actual.getFirst());
+    }
+
+    @Test
+    void shouldNotValidateAclWhenGrantedToPublicNamespaceByProtectedNamespace() {
+        Namespace protectedNamespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .protectionEnabled(Boolean.TRUE)
+                .build())
+            .metadata(Metadata.builder()
+                .name("protected-ns")
+                .cluster("local")
+                .build())
+            .build();
+
+        Namespace publicNamespace = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .protectionEnabled(Boolean.FALSE)
+                .build())
+            .metadata(Metadata.builder()
+                .name("public-ns")
+                .cluster("local")
+                .build())
+            .build();
+
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("acl-name")
+                .namespace("protected-ns")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.READ)
+                .resource("main.sub")
+                .grantedTo("public-ns")
+                .build())
+            .build();
+
+        when(applicationContext.getBean(NamespaceService.class))
+            .thenReturn(namespaceService);
+        when(namespaceService.findByName("public-ns"))
+            .thenReturn(Optional.of(publicNamespace));
+        when(accessControlEntryRepository.findAll())
+            .thenReturn(List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .resource("main")
+                    .grantedTo("protected-ns")
+                    .build())
+                .metadata(Metadata.builder()
+                    .cluster("local")
+                    .build())
+                .build()
+            ));
+
+        List<String> actual = aclService.validate(accessControlEntry, protectedNamespace);
+        assertEquals(1, actual.size());
+        assertEquals("Invalid \"apply\" operation: "
+            + "protected namespace can only grant ACL to protected namespaces.", actual.getFirst());
+    }
+
+    @Test
+    void shouldValidateAclWhenGrantedToProtectedNamespaceByProtectedNamespace() {
+        Namespace protectedNamespace1 = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .protectionEnabled(Boolean.TRUE)
+                .build())
+            .metadata(Metadata.builder()
+                .name("protected-ns1")
+                .cluster("local")
+                .build())
+            .build();
+
+        Namespace protectedNamespace2 = Namespace.builder()
+            .spec(Namespace.NamespaceSpec.builder()
+                .protectionEnabled(Boolean.TRUE)
+                .build())
+            .metadata(Metadata.builder()
+                .name("protected-ns2")
+                .cluster("local")
+                .build())
+            .build();
+
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
+            .metadata(Metadata.builder()
+                .name("acl-name")
+                .namespace("protected-ns1")
+                .cluster("local")
+                .build())
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                .permission(AccessControlEntry.Permission.READ)
+                .resource("main.sub")
+                .grantedTo("protected-ns2")
+                .build())
+            .build();
+
+        when(applicationContext.getBean(NamespaceService.class))
+            .thenReturn(namespaceService);
+        when(namespaceService.findByName("protected-ns2"))
+            .thenReturn(Optional.of(protectedNamespace2));
+        when(accessControlEntryRepository.findAll())
+            .thenReturn(List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                    .permission(AccessControlEntry.Permission.OWNER)
+                    .resource("main")
+                    .grantedTo("protected-ns1")
+                    .build())
+                .metadata(Metadata.builder()
+                    .cluster("local")
+                    .build())
+                .build()
+            ));
+
+        List<String> actual = aclService.validate(accessControlEntry, protectedNamespace1);
+        assertTrue(actual.isEmpty());
+    }
+
+    @Test
     void shouldValidateAsAdminUpdatingExistingAcl() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
             .metadata(Metadata.builder()
@@ -397,7 +618,7 @@ class AclServiceTest {
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of(accessControlEntry));
 
-        List<String> actual = aclService.validateAsAdmin(accessControlEntry, namespace);
+        List<String> actual = aclService.validateSelfAssignedAdmin(accessControlEntry, namespace);
 
         assertTrue(actual.isEmpty());
     }
@@ -481,10 +702,10 @@ class AclServiceTest {
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of(aceTopicPrefixedOwnerOtherNsToOtherNs, aceTopicLiteralOwnerOtherNsToOtherNs));
 
-        List<String> actual = aclService.validateAsAdmin(aceTopicPrefixedOwnerTargetNsToTargetNs, namespace);
+        List<String> actual = aclService.validateSelfAssignedAdmin(aceTopicPrefixedOwnerTargetNsToTargetNs, namespace);
         assertEquals(2, actual.size());
 
-        actual = aclService.validateAsAdmin(aceTopicPrefixedOwnerTargetNsToTargetNs2, namespace);
+        actual = aclService.validateSelfAssignedAdmin(aceTopicPrefixedOwnerTargetNsToTargetNs2, namespace);
         assertEquals(1, actual.size());
     }
 
@@ -586,10 +807,10 @@ class AclServiceTest {
         when(accessControlEntryRepository.findAll())
             .thenReturn(List.of(aceTopicPrefixedOwnerOtherNsToOtherNs, aceTopicLiteralOwnerOtherNsToOtherNs));
 
-        List<String> actual = aclService.validateAsAdmin(aceTopicPrefixedOwnerTargetNsToTargetNs, namespace);
+        List<String> actual = aclService.validateSelfAssignedAdmin(aceTopicPrefixedOwnerTargetNsToTargetNs, namespace);
         assertEquals(1, actual.size());
 
-        actual = aclService.validateAsAdmin(aceTopicLiteralOwnerTargetNsToTargetNs, namespace);
+        actual = aclService.validateSelfAssignedAdmin(aceTopicLiteralOwnerTargetNsToTargetNs, namespace);
         assertEquals(1, actual.size());
     }
 
@@ -685,7 +906,7 @@ class AclServiceTest {
             .thenReturn(List.of(aceTopicPrefixedOwnerOtherNsToOtherNs, aceTopicLiteralOwnerOtherNsToOtherNs,
                 aceConnectPrefixedOwnerOtherNsToOtherNs));
 
-        List<String> actual = aclService.validateAsAdmin(aceTopicPrefixedOwnerTargetNsToTargetNs, namespace);
+        List<String> actual = aclService.validateSelfAssignedAdmin(aceTopicPrefixedOwnerTargetNsToTargetNs, namespace);
         assertTrue(actual.isEmpty());
 
         AccessControlEntry toCreate2 = AccessControlEntry.builder()
@@ -703,7 +924,7 @@ class AclServiceTest {
                 .build())
             .build();
 
-        actual = aclService.validateAsAdmin(toCreate2, namespace);
+        actual = aclService.validateSelfAssignedAdmin(toCreate2, namespace);
         assertTrue(actual.isEmpty());
 
         AccessControlEntry aceTopicLiteralOwnerTargetNsToTargetNs = AccessControlEntry.builder()
@@ -721,7 +942,7 @@ class AclServiceTest {
                 .build())
             .build();
 
-        actual = aclService.validateAsAdmin(aceTopicLiteralOwnerTargetNsToTargetNs, namespace);
+        actual = aclService.validateSelfAssignedAdmin(aceTopicLiteralOwnerTargetNsToTargetNs, namespace);
         assertTrue(actual.isEmpty());
     }
 
