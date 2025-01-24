@@ -60,9 +60,11 @@ public class NamespaceController extends NonNamespacedResourceController {
     NamespaceService namespaceService;
 
     /**
-     * List namespaces, filtered by query parameters.
+     * List namespaces, which can be filtered based on optional search query parameters.
      *
-     * @param search The mapping of query parameters where keys are parameter names ("name", "topic")
+     * @param search The map of optional query parameters used to filter namespaces. Supported parameters are:
+     *               - name: matches the namespace name. Wildcard supported.
+     *               - topic: find namespace owner of the given topic name.
      * @return A list of namespaces
      */
     @Get("{?search*}")
