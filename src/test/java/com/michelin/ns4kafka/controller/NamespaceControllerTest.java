@@ -63,7 +63,7 @@ class NamespaceControllerTest {
     NamespaceController namespaceController;
 
     @Test
-    void shouldListNamespacesWithWildcardParameter() {
+    void shouldListNamespaces() {
         Namespace ns1 = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("ns1")
@@ -79,7 +79,27 @@ class NamespaceControllerTest {
         when(namespaceService.findByWildcardName("*"))
             .thenReturn(List.of(ns1, ns2));
 
-        assertEquals(List.of(ns1, ns2), namespaceController.list("*", ""));
+        assertEquals(List.of(ns1, ns2), namespaceController.list(Map.of()));
+    }
+
+    @Test
+    void shouldListNamespacesWithWildcardNameParameter() {
+        Namespace ns1 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns1")
+                .build())
+            .build();
+
+        Namespace ns2 = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("ns2")
+                .build())
+            .build();
+
+        when(namespaceService.findByWildcardName("*"))
+            .thenReturn(List.of(ns1, ns2));
+
+        assertEquals(List.of(ns1, ns2), namespaceController.list(Map.of("name", "*")));
     }
 
     @Test
@@ -93,7 +113,7 @@ class NamespaceControllerTest {
         when(namespaceService.findByWildcardName("ns"))
             .thenReturn(List.of(ns));
 
-        assertEquals(List.of(ns), namespaceController.list("ns", ""));
+        assertEquals(List.of(ns), namespaceController.list(Map.of("name", "ns")));
     }
 
     @Test
@@ -106,10 +126,10 @@ class NamespaceControllerTest {
 
         when(namespaceService.findByWildcardName("*"))
             .thenReturn(List.of(ns));
-        when(namespaceService.findByTopicName(List.of(ns), "topic"))
+        when(namespaceService.findByTopicName(List.of(ns), "myTopicName"))
             .thenReturn(Optional.of(ns));
 
-        assertEquals(List.of(ns), namespaceController.list("*", "topic"));
+        assertEquals(List.of(ns), namespaceController.list(Map.of("topic", "myTopicName")));
     }
 
     @Test
@@ -122,16 +142,16 @@ class NamespaceControllerTest {
 
         when(namespaceService.findByWildcardName("*"))
             .thenReturn(List.of(ns));
-        when(namespaceService.findByTopicName(List.of(ns), "topic"))
+        when(namespaceService.findByTopicName(List.of(ns), "myTopicName"))
             .thenReturn(Optional.empty());
 
-        assertEquals(List.of(), namespaceController.list("*", "topic"));
+        assertEquals(List.of(), namespaceController.list(Map.of("topic", "myTopicName")));
     }
 
     @Test
     void shouldListNamespacesWhenEmpty() {
         when(namespaceService.findByWildcardName("*")).thenReturn(List.of());
-        assertEquals(List.of(), namespaceController.list("*", ""));
+        assertEquals(List.of(), namespaceController.list(Map.of()));
     }
 
     @Test
