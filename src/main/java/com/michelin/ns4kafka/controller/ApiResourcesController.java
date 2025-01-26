@@ -61,7 +61,7 @@ public class ApiResourcesController {
         .namespaced(true)
         .synchronizable(true)
         .path("connectors")
-        .names(List.of("connects", "connect", "co"))
+        .names(List.of("connects", "connect", "co", "connector", "connectors"))
         .build();
 
     /**
@@ -72,7 +72,7 @@ public class ApiResourcesController {
         .namespaced(true)
         .synchronizable(false)
         .path("streams")
-        .names(List.of("streams", "stream", "st"))
+        .names(List.of("streams", "stream", "st", "kstream", "kstreams", "ks"))
         .build();
 
     /**
@@ -127,7 +127,7 @@ public class ApiResourcesController {
         .namespaced(true)
         .synchronizable(false)
         .path("connect-clusters")
-        .names(List.of("connect-clusters", "connect-cluster", "cc"))
+        .names(List.of("connect-clusters", "connect-cluster", "cc", "kconnect", "kconnects", "kc"))
         .build();
 
     /**
