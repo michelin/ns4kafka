@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -59,21 +60,21 @@ public class NamespaceController extends NonNamespacedResourceController {
     NamespaceService namespaceService;
 
     /**
-     * List namespaces, filtered by namespace name and topic name parameters.
+     * List namespaces, which can be filtered based on optional search query parameters.
      *
-     * @param name  The namespace name parameter
-     * @param topic The topic name parameter
+     * @param search The map of optional query parameters used to filter namespaces. Supported parameters are:
+     *               - name: matches the namespace name. Wildcard supported.
+     *               - topic: find namespace owner of the given topic name.
      * @return A list of namespaces
      */
-    @Get
-    public List<Namespace> list(@QueryValue(defaultValue = "*") String name,
-                                @QueryValue(defaultValue = "") String topic) {
-        List<Namespace> namespaces = namespaceService.findByWildcardName(name);
+    @Get("{?search*}")
+    public List<Namespace> list(@QueryValue Map<String, String> search) {
+        List<Namespace> namespaces = namespaceService.findByWildcardName(search.getOrDefault("name", "*"));
 
-        return topic.isEmpty() ? namespaces :
-            namespaceService.findByTopicName(namespaces, topic)
+        return search.containsKey("topic")
+            ? namespaceService.findByTopicName(namespaces, search.get("topic"))
                 .map(Collections::singletonList)
-                .orElse(List.of());
+                .orElse(List.of()) : namespaces;
     }
 
     /**

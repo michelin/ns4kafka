@@ -101,7 +101,7 @@ public class NamespaceService {
     }
 
     /**
-     * Find the namespace which are owner of the given topic name, out of the given list.
+     * Find the namespace which is owner of the given topic name, out of the given list.
      *
      * @param namespaces The namespaces list
      * @param topic      The topic name to search
