@@ -125,7 +125,7 @@ services:
       - ./config/akhq/application.yml:/app/application.yml:ro
 
   ns4kafka:
-    image: michelin/ns4kafka:1.11.10
+    image: michelin/ns4kafka:1.13.0
     hostname: ns4kafka
     container_name: ns4kafka
     networks:
@@ -144,7 +144,7 @@ services:
       - MICRONAUT_CONFIG_FILES=/home/app/application.yml
 
   kafkactl:
-    image: michelin/kafkactl:1.11.4-native
+    image: michelin/kafkactl:1.13.0-native
     hostname: kafkactl
     container_name: kafkactl
     networks:

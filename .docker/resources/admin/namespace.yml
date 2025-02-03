@@ -81,7 +81,7 @@ spec:
     - DELETE
   subject:
     subjectType: GROUP
-    subjectName: MY_GROUP
+    subjectName: ns4kafka
 ---
 apiVersion: v1
 kind: RoleBinding
@@ -96,7 +96,7 @@ spec:
     - GET
   subject:
     subjectType: GROUP
-    subjectName: MY_GROUP
+    subjectName: ns4kafka
 ---
 apiVersion: v1
 kind: AccessControlEntry
