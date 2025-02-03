@@ -1,45 +1,43 @@
+kafka:
+  bootstrap.servers: 'broker:29092'
+  sasl.jaas.config: 'org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="admin";'
+  sasl.mechanism: 'SCRAM-SHA-512'
+  security.protocol: 'SASL_PLAINTEXT'
 micronaut:
   security:
     enabled: true
     gitlab:
       enabled: true
-      url: https://gitlab.com
+      url: 'https://gitlab.com'
     token:
       jwt:
         signatures:
           secret:
             generator:
-              secret: "pleaseChangeThisSecretForANewOne"
-
-kafka:
-  bootstrap.servers: "broker:29092"
-  sasl.mechanism: "SCRAM-SHA-512"
-  security.protocol: "SASL_PLAINTEXT"
-  sasl.jaas.config: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"admin\";"
-
+              secret: 'pleaseChangeThisSecretForANewOne'
 ns4kafka:
-  security:
-    admin-group: "ns4kafka"
-    local-users:
-      - username: gitlab
-        password: 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
-        groups:
-          - "ns4kafka"
   managed-clusters:
     local:
-      manage-users: true
-      manage-acls: true
-      manage-topics: true
-      manage-connectors: true
-      drop-unsync-acls: true
-      provider: "SELF_MANAGED"
       config:
-        bootstrap.servers: "broker:29092"
-        sasl.mechanism: "SCRAM-SHA-512"
-        security.protocol: "SASL_PLAINTEXT"
-        sasl.jaas.config: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"admin\";"
-      schema-registry:
-        url: "http://schema-registry:8081"
+        bootstrap.servers: 'broker:29092'
+        sasl.jaas.config: 'org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="admin";'
+        sasl.mechanism: 'SCRAM-SHA-512'
+        security.protocol: 'SASL_PLAINTEXT'
       connects:
         local:
-          url: "http://connect:8083"
+          url: 'http://connect:8083'
+      drop-unsync-acls: true
+      manage-acls: true
+      manage-connectors: true
+      manage-topics: true
+      manage-users: true
+      provider: 'SELF_MANAGED'
+      schema-registry:
+        url: 'http://schema-registry:8081'
+  security:
+    admin-group: 'ns4kafka'
+    local-users:
+      - groups:
+          - 'ns4kafka'
+        password: '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'
+        username: 'gitlab'
