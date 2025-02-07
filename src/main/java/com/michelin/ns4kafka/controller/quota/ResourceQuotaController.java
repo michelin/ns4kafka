@@ -117,10 +117,10 @@ public class ResourceQuotaController extends NamespacedResourceController {
 
         Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findForNamespace(namespace);
         if (resourceQuotaOptional.isPresent() && resourceQuotaOptional.get().equals(quota)) {
-            return formatHttpResponse(quota, ApplyStatus.unchanged);
+            return formatHttpResponse(quota, ApplyStatus.UNCHANGED);
         }
 
-        ApplyStatus status = resourceQuotaOptional.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
+        ApplyStatus status = resourceQuotaOptional.isPresent() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
         if (dryrun) {
             return formatHttpResponse(quota, status);
         }
@@ -163,7 +163,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
         resourceQuotas.forEach(resourceQuota -> {
             sendEventLog(
                 resourceQuota,
-                ApplyStatus.deleted,
+                ApplyStatus.DELETED,
                 resourceQuota.getSpec(),
                 null,
                 EMPTY_STRING
@@ -202,7 +202,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
 
         sendEventLog(
             resourceQuotaToDelete,
-            ApplyStatus.deleted,
+            ApplyStatus.DELETED,
             resourceQuotaToDelete.getSpec(),
             null,
             EMPTY_STRING

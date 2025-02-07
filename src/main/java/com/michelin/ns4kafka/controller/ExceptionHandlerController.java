@@ -56,7 +56,7 @@ public class ExceptionHandlerController {
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, ResourceValidationException exception) {
         var status = Status.builder()
-            .status(StatusPhase.Failed)
+            .status(StatusPhase.FAILED)
             .message("Resource validation failed")
             .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
             .details(StatusDetails.builder()
@@ -80,7 +80,7 @@ public class ExceptionHandlerController {
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, ConstraintViolationException exception) {
         var status = Status.builder()
-            .status(StatusPhase.Failed)
+            .status(StatusPhase.FAILED)
             .message("Constraint validation failed")
             .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
             .details(StatusDetails.builder()
@@ -101,7 +101,7 @@ public class ExceptionHandlerController {
     @Error(global = true, status = HttpStatus.NOT_FOUND)
     public HttpResponse<Status> error(HttpRequest<?> request) {
         var status = Status.builder()
-            .status(StatusPhase.Failed)
+            .status(StatusPhase.FAILED)
             .message("Not Found")
             .httpStatus(HttpStatus.NOT_FOUND)
             .build();
@@ -120,7 +120,7 @@ public class ExceptionHandlerController {
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, AuthenticationException exception) {
         var status = Status.builder()
-            .status(StatusPhase.Failed)
+            .status(StatusPhase.FAILED)
             .message(exception.getMessage())
             .httpStatus(HttpStatus.UNAUTHORIZED)
             .build();
@@ -140,7 +140,7 @@ public class ExceptionHandlerController {
     public HttpResponse<Status> error(HttpRequest<?> request, AuthorizationException exception) {
         if (exception.isForbidden()) {
             var status = Status.builder()
-                .status(StatusPhase.Failed)
+                .status(StatusPhase.FAILED)
                 .message("Resource forbidden")
                 .httpStatus(HttpStatus.FORBIDDEN)
                 .build();
@@ -150,7 +150,7 @@ public class ExceptionHandlerController {
         }
 
         var status = Status.builder()
-            .status(StatusPhase.Failed)
+            .status(StatusPhase.FAILED)
             .message(exception.getMessage())
             .httpStatus(HttpStatus.UNAUTHORIZED)
             .build();
@@ -169,7 +169,7 @@ public class ExceptionHandlerController {
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, UnknownNamespaceException exception) {
         var status = Status.builder()
-            .status(StatusPhase.Failed)
+            .status(StatusPhase.FAILED)
             .message(exception.getMessage())
             .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
             .build();
@@ -188,7 +188,7 @@ public class ExceptionHandlerController {
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, ForbiddenNamespaceException exception) {
         var status = Status.builder()
-            .status(StatusPhase.Failed)
+            .status(StatusPhase.FAILED)
             .message(exception.getMessage())
             .httpStatus(HttpStatus.FORBIDDEN)
             .build();
@@ -210,7 +210,7 @@ public class ExceptionHandlerController {
             request.getUri(), exception.getMessage(), exception);
 
         Status status = Status.builder()
-            .status(StatusPhase.Failed)
+            .status(StatusPhase.FAILED)
             .message("Internal server error")
             .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
             .details(StatusDetails.builder()

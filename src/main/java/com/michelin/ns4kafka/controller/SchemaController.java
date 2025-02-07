@@ -134,7 +134,7 @@ public class SchemaController extends NamespacedResourceController {
                     .flatMap(oldSchemas -> schemaService.existInOldVersions(ns, schema, oldSchemas)
                         .flatMap(exist -> {
                             if (Boolean.TRUE.equals(exist)) {
-                                return Mono.just(formatHttpResponse(schema, ApplyStatus.unchanged));
+                                return Mono.just(formatHttpResponse(schema, ApplyStatus.UNCHANGED));
                             }
 
                             return schemaService
@@ -149,7 +149,7 @@ public class SchemaController extends NamespacedResourceController {
                                     schema.getMetadata().setNamespace(ns.getMetadata().getName());
 
                                     ApplyStatus status =
-                                        oldSchemas.isEmpty() ? ApplyStatus.created : ApplyStatus.changed;
+                                        oldSchemas.isEmpty() ? ApplyStatus.CREATED : ApplyStatus.CHANGED;
                                     if (dryrun) {
                                         return Mono.just(formatHttpResponse(schema, status));
                                     }
@@ -219,7 +219,7 @@ public class SchemaController extends NamespacedResourceController {
                         .flatMap(deletedVersionIds -> {
                             sendEventLog(
                                 schema,
-                                ApplyStatus.deleted,
+                                ApplyStatus.DELETED,
                                 schema.getSpec(),
                                 null,
                                 versionOptional.map(v -> String.valueOf(deletedVersionIds))
@@ -279,7 +279,7 @@ public class SchemaController extends NamespacedResourceController {
 
                         sendEventLog(
                             deletedSchema,
-                            ApplyStatus.deleted,
+                            ApplyStatus.DELETED,
                             deletedSchema.getSpec(),
                             null,
                             versionOptional.map(v -> String.valueOf(deletedVersionIds)).orElse(EMPTY_STRING)
@@ -332,7 +332,7 @@ public class SchemaController extends NamespacedResourceController {
                     .map(schemaCompatibility -> {
                         sendEventLog(
                             latestSubjectOptional.get(),
-                            ApplyStatus.changed,
+                            ApplyStatus.CHANGED,
                             latestSubjectOptional.get().getSpec().getCompatibility(),
                             compatibility,
                             EMPTY_STRING

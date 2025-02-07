@@ -206,16 +206,6 @@ public class FormatErrorUtils {
     }
 
     /**
-     * Invalid connect cluster url.
-     *
-     * @param invalidUrlValue the invalid URL value
-     * @return the error message
-     */
-    public static String invalidConnectClusterMalformedUrl(String invalidUrlValue) {
-        return String.format(INVALID_FIELD, invalidUrlValue, "url", "malformed URL");
-    }
-
-    /**
      * Invalid connect cluster name already exist globally.
      *
      * @param invalidNameValue the invalid field value

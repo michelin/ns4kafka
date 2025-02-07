@@ -53,7 +53,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -362,10 +361,8 @@ class TopicServiceTest {
                 .build())
             .build();
 
-        // init topicAsyncExecutor
-        TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
-        when(applicationContext.getBean(TopicAsyncExecutor.class,
-            Qualifiers.byName(ns.getMetadata().getCluster()))).thenReturn(topicAsyncExecutor);
+        when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName(ns.getMetadata().getCluster())))
+            .thenReturn(topicAsyncExecutor);
 
         // list of existing broker topics
         when(topicAsyncExecutor.listBrokerTopicNames())
@@ -481,10 +478,8 @@ class TopicServiceTest {
                 .build()
         );
 
-        // init topicAsyncExecutor
-        TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
-        when(applicationContext.getBean(TopicAsyncExecutor.class,
-            Qualifiers.byName(ns.getMetadata().getCluster()))).thenReturn(topicAsyncExecutor);
+        when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName(ns.getMetadata().getCluster())))
+            .thenReturn(topicAsyncExecutor);
 
         // list of existing broker topics
         when(topicAsyncExecutor.listBrokerTopicNames())
@@ -568,10 +563,8 @@ class TopicServiceTest {
                 .build()
         );
 
-        // init topicAsyncExecutor
-        TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
-        when(applicationContext.getBean(TopicAsyncExecutor.class,
-            Qualifiers.byName(ns.getMetadata().getCluster()))).thenReturn(topicAsyncExecutor);
+        when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName(ns.getMetadata().getCluster())))
+            .thenReturn(topicAsyncExecutor);
 
         // list of existing broker topics
         when(topicAsyncExecutor.listBrokerTopicNames()).thenReturn(List.of("ns-topic1", "ns-topic2",
@@ -624,7 +617,6 @@ class TopicServiceTest {
                 .build())
             .build();
 
-        TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
         when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
             .thenReturn(topicAsyncExecutor);
         when(topicAsyncExecutor.listBrokerTopicNames())
@@ -648,7 +640,6 @@ class TopicServiceTest {
                 .build())
             .build();
 
-        TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
         when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
             .thenReturn(topicAsyncExecutor);
         when(topicAsyncExecutor.listBrokerTopicNames())
@@ -676,7 +667,6 @@ class TopicServiceTest {
                 .build())
             .build();
 
-        TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
         when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
             .thenReturn(topicAsyncExecutor);
         when(topicAsyncExecutor.listBrokerTopicNames())
@@ -705,7 +695,6 @@ class TopicServiceTest {
                 .build())
             .build();
 
-        TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
         when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
             .thenReturn(topicAsyncExecutor);
         when(topicAsyncExecutor.listBrokerTopicNames())
@@ -734,7 +723,6 @@ class TopicServiceTest {
                 .build())
             .build();
 
-        TopicAsyncExecutor topicAsyncExecutor = Mockito.mock(TopicAsyncExecutor.class);
         when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("local")))
             .thenReturn(topicAsyncExecutor);
         when(topicAsyncExecutor.listBrokerTopicNames())

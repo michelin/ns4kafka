@@ -109,7 +109,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
             if (!dryrun) {
                 sendEventLog(
                     consumerGroupResetOffsets,
-                    ApplyStatus.changed,
+                    ApplyStatus.CHANGED,
                     null,
                     consumerGroupResetOffsets.getSpec(),
                     EMPTY_STRING

@@ -105,10 +105,10 @@ public class StreamController extends NamespacedResourceController {
         // Creation of the correct ACLs
         Optional<KafkaStream> existingStream = streamService.findByName(ns, stream.getMetadata().getName());
         if (existingStream.isPresent() && existingStream.get().equals(stream)) {
-            return formatHttpResponse(stream, ApplyStatus.unchanged);
+            return formatHttpResponse(stream, ApplyStatus.UNCHANGED);
         }
 
-        ApplyStatus status = existingStream.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
+        ApplyStatus status = existingStream.isPresent() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
 
         if (dryrun) {
             return formatHttpResponse(stream, status);
@@ -157,7 +157,7 @@ public class StreamController extends NamespacedResourceController {
 
         sendEventLog(
             streamToDelete,
-            ApplyStatus.deleted,
+            ApplyStatus.DELETED,
             streamToDelete.getMetadata(),
             null,
             EMPTY_STRING
@@ -204,7 +204,7 @@ public class StreamController extends NamespacedResourceController {
         kafkaStreams.forEach(kafkaStream -> {
             sendEventLog(
                 kafkaStream,
-                ApplyStatus.deleted,
+                ApplyStatus.DELETED,
                 kafkaStream.getMetadata(),
                 null,
                 EMPTY_STRING
