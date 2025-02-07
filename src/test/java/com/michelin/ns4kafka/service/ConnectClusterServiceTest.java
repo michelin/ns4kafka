@@ -869,7 +869,6 @@ class ConnectClusterServiceTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void shouldValidateConnectClusterCreationWhenDownAndMissingKey() {
         ConnectCluster connectCluster = ConnectCluster.builder()
             .metadata(Metadata.builder()
