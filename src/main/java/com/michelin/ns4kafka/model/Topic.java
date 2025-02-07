@@ -150,6 +150,6 @@ public class Topic extends MetadataResource {
     public enum TopicPhase {
         Pending,
         Success,
-        Failed,
+        Failed
     }
 }

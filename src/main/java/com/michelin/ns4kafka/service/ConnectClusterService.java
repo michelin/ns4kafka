@@ -273,8 +273,8 @@ public class ConnectClusterService {
                 .password(connectCluster.getSpec().getPassword())
                 .url(connectCluster.getSpec().getUrl())
                 .build())
-            .doOnError(error ->
-                errors.add(invalidConnectClusterNotHealthy(connectCluster.getSpec().getUrl(), error.getMessage())))
+            .doOnError(error -> errors.add(invalidConnectClusterNotHealthy(connectCluster.getMetadata().getName(),
+                error.getMessage())))
             .doOnEach(signal -> {
                 // If the key or salt is defined, but one of them is missing
                 if ((signal.isOnError() || signal.isOnNext())
