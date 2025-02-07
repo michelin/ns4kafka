@@ -890,7 +890,7 @@ class ConnectClusterServiceTest {
         StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
             .consumeNextWith(errors -> {
                 assertEquals(2L, errors.size());
-                assertTrue(errors.contains("Invalid \"test-connect\": the Kafka Connect is not healthy (error)."));
+                assertTrue(errors.contains("Invalid \"https://after\": the Kafka Connect is not healthy (error)."));
                 assertTrue(errors.contains("Invalid empty value for fields \"aes256Key, aes256Salt\": "
                     + "Both AES key and salt are required to activate encryption."));
             })
