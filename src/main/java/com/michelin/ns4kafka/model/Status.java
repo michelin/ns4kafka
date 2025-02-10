@@ -92,7 +92,7 @@ public class Status extends Resource {
      * Status phase.
      */
     public enum StatusPhase {
-        Success,
-        Failed
+        SUCCESS,
+        FAILED
     }
 }

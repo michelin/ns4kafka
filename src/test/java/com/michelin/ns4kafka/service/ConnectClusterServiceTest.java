@@ -38,10 +38,8 @@ import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.property.SecurityProperties;
 import com.michelin.ns4kafka.repository.ConnectClusterRepository;
 import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
-import com.michelin.ns4kafka.service.client.connect.entities.ServerInfo;
 import com.michelin.ns4kafka.util.EncryptionUtils;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.exceptions.HttpClientException;
 import java.util.ArrayList;
@@ -710,14 +708,13 @@ class ConnectClusterServiceTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void shouldValidateConnectClusterCreationWhenNs4KafkaConnectClustersConfigIsNull() {
         ManagedClusterProperties kafka = new ManagedClusterProperties("local");
 
         when(managedClusterPropertiesList.stream())
             .thenReturn(Stream.of(kafka));
-        when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
-            .thenReturn(Mono.just(ServerInfo.builder().build()));
+        when(kafkaConnectClient.version(any()))
+            .thenReturn(Mono.just(HttpResponse.ok()));
 
         ConnectCluster connectCluster = ConnectCluster.builder()
             .metadata(Metadata.builder()
@@ -734,15 +731,14 @@ class ConnectClusterServiceTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void shouldValidateConnectClusterCreationWhenNotAlreadyDefined() {
         ManagedClusterProperties kafka = new ManagedClusterProperties("local");
         kafka.setConnects(Map.of("test-connect", new ManagedClusterProperties.ConnectProperties()));
 
         when(managedClusterPropertiesList.stream())
             .thenReturn(Stream.of(kafka));
-        when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
-            .thenReturn(Mono.just(ServerInfo.builder().build()));
+        when(kafkaConnectClient.version(any()))
+            .thenReturn(Mono.just(HttpResponse.ok()));
 
         ConnectCluster connectCluster = ConnectCluster.builder()
             .metadata(Metadata.builder()
@@ -759,15 +755,14 @@ class ConnectClusterServiceTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    void shouldValidateConnectClusterCreationWhenAlreadyDefined() {
+    void shouldNotValidateConnectClusterCreationWhenAlreadyDefined() {
         ManagedClusterProperties kafka = new ManagedClusterProperties("local");
         kafka.setConnects(Map.of("test-connect", new ManagedClusterProperties.ConnectProperties()));
 
         when(managedClusterPropertiesList.stream())
             .thenReturn(Stream.of(kafka));
-        when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
-            .thenReturn(Mono.just(ServerInfo.builder().build()));
+        when(kafkaConnectClient.version(any()))
+            .thenReturn(Mono.just(HttpResponse.ok()));
 
         ConnectCluster connectCluster = ConnectCluster.builder()
             .metadata(Metadata.builder()
@@ -790,7 +785,6 @@ class ConnectClusterServiceTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void shouldValidateConnectClusterCreationWhenDown() {
         ConnectCluster connectCluster = ConnectCluster.builder()
             .metadata(Metadata.builder()
@@ -805,42 +799,18 @@ class ConnectClusterServiceTest {
 
         when(managedClusterPropertiesList.stream())
             .thenReturn(Stream.of());
-        when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
+        when(kafkaConnectClient.version(any()))
             .thenReturn(Mono.error(new HttpClientException("Error")));
 
         StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
             .consumeNextWith(errors -> {
                 assertEquals(1L, errors.size());
-                assertEquals("Invalid \"test-connect\": the Kafka Connect is not healthy (error).", errors.getFirst());
+                assertEquals("Invalid \"https://after\": the Kafka Connect is not healthy (error).", errors.getFirst());
             })
             .verifyComplete();
     }
 
     @Test
-    void shouldValidateConnectClusterCreationWhenMalformedUrl() {
-        ConnectCluster connectCluster = ConnectCluster.builder()
-            .metadata(Metadata.builder()
-                .name("test-connect")
-                .build())
-            .spec(ConnectCluster.ConnectClusterSpec.builder()
-                .url("malformed-url")
-                .build())
-            .build();
-
-        when(managedClusterPropertiesList.stream())
-            .thenReturn(Stream.of());
-
-        StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
-            .consumeNextWith(errors -> {
-                assertEquals(1L, errors.size());
-                assertEquals("Invalid value \"malformed-url\" for field \"url\": malformed URL.",
-                    errors.getFirst());
-            })
-            .verifyComplete();
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
     void shouldValidateConnectClusterCreationWhenBadAes256MissingSalt() {
         ConnectCluster connectCluster = ConnectCluster.builder()
             .metadata(Metadata.builder()
@@ -856,8 +826,8 @@ class ConnectClusterServiceTest {
 
         when(managedClusterPropertiesList.stream())
             .thenReturn(Stream.of());
-        when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
-            .thenReturn(Mono.just(ServerInfo.builder().build()));
+        when(kafkaConnectClient.version(any()))
+            .thenReturn(Mono.just(HttpResponse.ok()));
 
         StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
             .consumeNextWith(errors -> {
@@ -870,7 +840,6 @@ class ConnectClusterServiceTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void shouldValidateConnectClusterCreationWhenBadAes256MissingKey() {
         ConnectCluster connectCluster = ConnectCluster.builder()
             .metadata(Metadata.builder()
@@ -886,8 +855,8 @@ class ConnectClusterServiceTest {
 
         when(managedClusterPropertiesList.stream())
             .thenReturn(Stream.of());
-        when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
-            .thenReturn(Mono.just(ServerInfo.builder().build()));
+        when(kafkaConnectClient.version(any()))
+            .thenReturn(Mono.just(HttpResponse.ok()));
 
         StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
             .consumeNextWith(errors -> {
@@ -900,7 +869,6 @@ class ConnectClusterServiceTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void shouldValidateConnectClusterCreationWhenDownAndMissingKey() {
         ConnectCluster connectCluster = ConnectCluster.builder()
             .metadata(Metadata.builder()
@@ -916,13 +884,13 @@ class ConnectClusterServiceTest {
 
         when(managedClusterPropertiesList.stream())
             .thenReturn(Stream.of());
-        when(httpClient.retrieve(any(MutableHttpRequest.class), eq(ServerInfo.class)))
+        when(kafkaConnectClient.version(any()))
             .thenReturn(Mono.error(new HttpClientException("Error")));
 
         StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
             .consumeNextWith(errors -> {
                 assertEquals(2L, errors.size());
-                assertTrue(errors.contains("Invalid \"test-connect\": the Kafka Connect is not healthy (error)."));
+                assertTrue(errors.contains("Invalid \"https://after\": the Kafka Connect is not healthy (error)."));
                 assertTrue(errors.contains("Invalid empty value for fields \"aes256Key, aes256Salt\": "
                     + "Both AES key and salt are required to activate encryption."));
             })

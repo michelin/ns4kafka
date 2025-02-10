@@ -19,9 +19,22 @@
 
 package com.michelin.ns4kafka.util.enumation;
 
+import lombok.AllArgsConstructor;
+
 /**
  * Apply status is used to track the status of a resource during an operation.
  */
+@AllArgsConstructor
 public enum ApplyStatus {
-    created, changed, unchanged, deleted
+    CREATED("created"),
+    CHANGED("changed"),
+    UNCHANGED("unchanged"),
+    DELETED("deleted");
+
+    private final String name;
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

@@ -75,18 +75,26 @@ public class KafkaConnectClient {
     /**
      * Get the Kafka connect version.
      *
-     * @param kafkaCluster   The Kafka cluster
-     * @param connectCluster The Kafka Connect
+     * @param config   The Kafka Connect config
      * @return The version
      */
-    public Mono<HttpResponse<ServerInfo>> version(String kafkaCluster, String connectCluster) {
-        KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
-
+    public Mono<HttpResponse<ServerInfo>> version(KafkaConnectHttpConfig config) {
         HttpRequest<?> request = HttpRequest.GET(
                 URI.create(StringUtils.prependUri(config.getUrl(), "/")))
             .basicAuth(config.getUsername(), config.getPassword());
 
         return Mono.from(httpClient.exchange(request, ServerInfo.class));
+    }
+
+    /**
+     * Get the Kafka connect version.
+     *
+     * @param kafkaCluster   The Kafka cluster
+     * @param connectCluster The Kafka Connect
+     * @return The version
+     */
+    public Mono<HttpResponse<ServerInfo>> version(String kafkaCluster, String connectCluster) {
+        return version(getKafkaConnectConfig(kafkaCluster, connectCluster));
     }
 
     /**
@@ -283,7 +291,7 @@ public class KafkaConnectClient {
      * @param connectCluster The Kafka Connect
      * @return The Kafka Connect configuration
      */
-    public KafkaConnectClient.KafkaConnectHttpConfig getKafkaConnectConfig(String kafkaCluster, String connectCluster) {
+    public KafkaConnectHttpConfig getKafkaConnectConfig(String kafkaCluster, String connectCluster) {
         Optional<ManagedClusterProperties> config = managedClusterProperties
             .stream()
             .filter(kafkaAsyncExecutorConfig -> kafkaAsyncExecutorConfig.getName().equals(kafkaCluster))
@@ -300,7 +308,7 @@ public class KafkaConnectClient {
             .findFirst();
 
         if (connectClusterOptional.isPresent()) {
-            return KafkaConnectClient.KafkaConnectHttpConfig.builder()
+            return KafkaConnectHttpConfig.builder()
                 .url(connectClusterOptional.get().getSpec().getUrl())
                 .username(connectClusterOptional.get().getSpec().getUsername())
                 .password(EncryptionUtils.decryptAes256Gcm(connectClusterOptional.get().getSpec().getPassword(),
@@ -313,7 +321,7 @@ public class KafkaConnectClient {
             throw new ResourceValidationException(null, null, "Connect cluster \"" + connectCluster + "\" not found");
         }
 
-        return KafkaConnectClient.KafkaConnectHttpConfig.builder()
+        return KafkaConnectHttpConfig.builder()
             .url(connectConfig.getUrl())
             .username(connectConfig.getBasicAuthUsername())
             .password(connectConfig.getBasicAuthPassword())

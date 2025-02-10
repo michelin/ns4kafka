@@ -103,7 +103,7 @@ public class TopicValidator extends ResourceValidator {
             validationErrors.add(invalidNameEmpty());
         }
 
-        if (topic.getMetadata().getName().equals(".") || topic.getMetadata().getName().equals("..")) {
+        if (List.of(".", "..").contains(topic.getMetadata().getName())) {
             validationErrors.add(invalidTopicName(topic.getMetadata().getName()));
         }
 

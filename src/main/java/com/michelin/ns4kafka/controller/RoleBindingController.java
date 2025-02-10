@@ -102,10 +102,10 @@ public class RoleBindingController extends NamespacedResourceController {
         Optional<RoleBinding> existingRoleBinding =
             roleBindingService.findByName(namespace, roleBinding.getMetadata().getName());
         if (existingRoleBinding.isPresent() && existingRoleBinding.get().equals(roleBinding)) {
-            return formatHttpResponse(existingRoleBinding.get(), ApplyStatus.unchanged);
+            return formatHttpResponse(existingRoleBinding.get(), ApplyStatus.UNCHANGED);
         }
 
-        ApplyStatus status = existingRoleBinding.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
+        ApplyStatus status = existingRoleBinding.isPresent() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
         if (dryrun) {
             return formatHttpResponse(roleBinding, status);
         }
@@ -150,7 +150,7 @@ public class RoleBindingController extends NamespacedResourceController {
 
         sendEventLog(
             roleBindingToDelete,
-            ApplyStatus.deleted,
+            ApplyStatus.DELETED,
             roleBindingToDelete.getSpec(),
             null,
             EMPTY_STRING
@@ -186,7 +186,7 @@ public class RoleBindingController extends NamespacedResourceController {
         roleBindings.forEach(roleBinding -> {
             sendEventLog(
                 roleBinding,
-                ApplyStatus.deleted,
+                ApplyStatus.DELETED,
                 roleBinding.getSpec(),
                 null,
                 EMPTY_STRING

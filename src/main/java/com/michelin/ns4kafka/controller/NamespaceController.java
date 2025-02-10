@@ -122,10 +122,10 @@ public class NamespaceController extends NonNamespacedResourceController {
         namespace.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
 
         if (existingNamespace.isPresent() && existingNamespace.get().equals(namespace)) {
-            return formatHttpResponse(existingNamespace.get(), ApplyStatus.unchanged);
+            return formatHttpResponse(existingNamespace.get(), ApplyStatus.UNCHANGED);
         }
 
-        ApplyStatus status = existingNamespace.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
+        ApplyStatus status = existingNamespace.isPresent() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
 
         if (dryrun) {
             return formatHttpResponse(namespace, status);
@@ -175,7 +175,7 @@ public class NamespaceController extends NonNamespacedResourceController {
 
         sendEventLog(
             optionalNamespace.get(),
-            ApplyStatus.deleted,
+            ApplyStatus.DELETED,
             optionalNamespace.get().getSpec(),
             null,
             EMPTY_STRING
@@ -228,7 +228,7 @@ public class NamespaceController extends NonNamespacedResourceController {
         namespaces.forEach(namespace -> {
             sendEventLog(
                 namespace,
-                ApplyStatus.deleted,
+                ApplyStatus.DELETED,
                 namespace.getSpec(),
                 null,
                 EMPTY_STRING

@@ -127,10 +127,10 @@ public class ConnectClusterController extends NamespacedResourceController {
                 Optional<ConnectCluster> existingConnectCluster = connectClusterService
                     .findByNameWithOwnerPermission(ns, connectCluster.getMetadata().getName());
                 if (existingConnectCluster.isPresent() && existingConnectCluster.get().equals(connectCluster)) {
-                    return Mono.just(formatHttpResponse(existingConnectCluster.get(), ApplyStatus.unchanged));
+                    return Mono.just(formatHttpResponse(existingConnectCluster.get(), ApplyStatus.UNCHANGED));
                 }
 
-                ApplyStatus status = existingConnectCluster.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
+                ApplyStatus status = existingConnectCluster.isPresent() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
                 if (dryrun) {
                     return Mono.just(formatHttpResponse(connectCluster, status));
                 }
@@ -192,7 +192,7 @@ public class ConnectClusterController extends NamespacedResourceController {
 
         sendEventLog(
             optionalConnectCluster.get(),
-            ApplyStatus.deleted,
+            ApplyStatus.DELETED,
             optionalConnectCluster.get().getSpec(),
             null,
             EMPTY_STRING
@@ -243,7 +243,7 @@ public class ConnectClusterController extends NamespacedResourceController {
         connectClusters.forEach(cc -> {
             sendEventLog(
                 cc,
-                ApplyStatus.deleted,
+                ApplyStatus.DELETED,
                 cc.getSpec(),
                 null,
                 EMPTY_STRING

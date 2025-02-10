@@ -83,7 +83,7 @@ public class UserController extends NamespacedResourceController {
 
         sendEventLog(
             response,
-            ApplyStatus.changed,
+            ApplyStatus.CHANGED,
             null,
             response.getSpec(),
             EMPTY_STRING

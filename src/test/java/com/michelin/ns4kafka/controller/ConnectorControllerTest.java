@@ -856,7 +856,7 @@ class ConnectorControllerTest {
                 .name("connect1")
                 .build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
-                .action(ChangeConnectorState.ConnectorAction.restart)
+                .action(ChangeConnectorState.ConnectorAction.RESTART)
                 .build())
             .build();
 
@@ -891,7 +891,7 @@ class ConnectorControllerTest {
                 .name("connect1")
                 .build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
-                .action(ChangeConnectorState.ConnectorAction.restart)
+                .action(ChangeConnectorState.ConnectorAction.RESTART)
                 .build())
             .build();
 
@@ -932,7 +932,7 @@ class ConnectorControllerTest {
                 .name("connect1")
                 .build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
-                .action(ChangeConnectorState.ConnectorAction.restart)
+                .action(ChangeConnectorState.ConnectorAction.RESTART)
                 .build())
             .build();
 
@@ -975,7 +975,7 @@ class ConnectorControllerTest {
                 .name("connect1")
                 .build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
-                .action(ChangeConnectorState.ConnectorAction.restart)
+                .action(ChangeConnectorState.ConnectorAction.RESTART)
                 .build())
             .build();
 
@@ -1018,7 +1018,7 @@ class ConnectorControllerTest {
                 .name("connect1")
                 .build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
-                .action(ChangeConnectorState.ConnectorAction.pause)
+                .action(ChangeConnectorState.ConnectorAction.PAUSE)
                 .build())
             .build();
 
@@ -1061,7 +1061,7 @@ class ConnectorControllerTest {
                 .name("connect1")
                 .build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
-                .action(ChangeConnectorState.ConnectorAction.resume)
+                .action(ChangeConnectorState.ConnectorAction.RESUME)
                 .build())
             .build();
 

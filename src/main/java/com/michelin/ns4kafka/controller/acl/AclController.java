@@ -154,10 +154,10 @@ public class AclController extends NamespacedResourceController {
         accessControlEntry.getMetadata().setNamespace(ns.getMetadata().getName());
 
         if (existingAcl.isPresent() && existingAcl.get().equals(accessControlEntry)) {
-            return formatHttpResponse(existingAcl.get(), ApplyStatus.unchanged);
+            return formatHttpResponse(existingAcl.get(), ApplyStatus.UNCHANGED);
         }
 
-        ApplyStatus status = existingAcl.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
+        ApplyStatus status = existingAcl.isPresent() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
 
         if (dryrun) {
             return formatHttpResponse(accessControlEntry, status);
@@ -220,7 +220,7 @@ public class AclController extends NamespacedResourceController {
         acls.forEach(acl -> {
             sendEventLog(
                 acl,
-                ApplyStatus.deleted,
+                ApplyStatus.DELETED,
                 acl.getSpec(),
                 null,
                 EMPTY_STRING);
@@ -264,7 +264,7 @@ public class AclController extends NamespacedResourceController {
 
         sendEventLog(
             accessControlEntry,
-            ApplyStatus.deleted,
+            ApplyStatus.DELETED,
             accessControlEntry.getSpec(),
             null,
             EMPTY_STRING

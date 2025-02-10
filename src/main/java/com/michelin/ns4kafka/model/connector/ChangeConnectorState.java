@@ -64,9 +64,9 @@ public class ChangeConnectorState extends MetadataResource {
      * Connector action.
      */
     public enum ConnectorAction {
-        pause,
-        resume,
-        restart
+        PAUSE,
+        RESUME,
+        RESTART
     }
 
     /**

@@ -152,7 +152,7 @@ public class TopicController extends NamespacedResourceController {
         topic.setStatus(Topic.TopicStatus.ofPending());
 
         if (existingTopic.isPresent() && existingTopic.get().equals(topic)) {
-            return formatHttpResponse(existingTopic.get(), ApplyStatus.unchanged);
+            return formatHttpResponse(existingTopic.get(), ApplyStatus.UNCHANGED);
         }
 
         validationErrors.addAll(resourceQuotaService.validateTopicQuota(ns, existingTopic, topic));
@@ -160,7 +160,7 @@ public class TopicController extends NamespacedResourceController {
             throw new ResourceValidationException(topic, validationErrors);
         }
 
-        ApplyStatus status = existingTopic.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
+        ApplyStatus status = existingTopic.isPresent() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
         if (dryrun) {
             return formatHttpResponse(topic, status);
         }
@@ -204,7 +204,7 @@ public class TopicController extends NamespacedResourceController {
         topics.forEach(topicToDelete ->
             sendEventLog(
                 topicToDelete,
-                ApplyStatus.deleted,
+                ApplyStatus.DELETED,
                 topicToDelete.getSpec(),
                 null,
                 EMPTY_STRING));
@@ -249,7 +249,7 @@ public class TopicController extends NamespacedResourceController {
 
         sendEventLog(
             topicToDelete,
-            ApplyStatus.deleted,
+            ApplyStatus.DELETED,
             topicToDelete.getSpec(),
             null,
             EMPTY_STRING
@@ -292,7 +292,7 @@ public class TopicController extends NamespacedResourceController {
             .map(topic -> {
                 sendEventLog(
                     topic,
-                    ApplyStatus.created,
+                    ApplyStatus.CREATED,
                     null,
                     topic.getSpec(),
                     EMPTY_STRING
@@ -342,7 +342,7 @@ public class TopicController extends NamespacedResourceController {
         } else {
             sendEventLog(
                 optionalTopic.get(),
-                ApplyStatus.deleted,
+                ApplyStatus.DELETED,
                 null,
                 null,
                 EMPTY_STRING

@@ -490,7 +490,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .name("ns1-co1")
                 .build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
-                .action(ChangeConnectorState.ConnectorAction.restart)
+                .action(ChangeConnectorState.ConnectorAction.RESTART)
                 .build())
             .build();
 
@@ -577,7 +577,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .name("ns1-co2")
                 .build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
-                .action(ChangeConnectorState.ConnectorAction.pause)
+                .action(ChangeConnectorState.ConnectorAction.PAUSE)
                 .build())
             .build();
 
@@ -607,7 +607,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .name("ns1-co2")
                 .build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
-                .action(ChangeConnectorState.ConnectorAction.resume)
+                .action(ChangeConnectorState.ConnectorAction.RESUME)
                 .build())
             .build();
 

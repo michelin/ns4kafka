@@ -147,13 +147,13 @@ public class ConnectorController extends NamespacedResourceController {
                         Optional<Connector> existingConnector =
                             connectorService.findByName(ns, connector.getMetadata().getName());
                         if (existingConnector.isPresent() && existingConnector.get().equals(connector)) {
-                            return Mono.just(formatHttpResponse(existingConnector.get(), ApplyStatus.unchanged));
+                            return Mono.just(formatHttpResponse(existingConnector.get(), ApplyStatus.UNCHANGED));
                         }
 
-                        ApplyStatus status = existingConnector.isPresent() ? ApplyStatus.changed : ApplyStatus.created;
+                        ApplyStatus status = existingConnector.isPresent() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
 
                         // Only check quota on connector creation
-                        if (status.equals(ApplyStatus.created)) {
+                        if (status.equals(ApplyStatus.CREATED)) {
                             List<String> quotaErrors = resourceQuotaService.validateConnectorQuota(ns);
                             if (!quotaErrors.isEmpty()) {
                                 return Mono.error(new ResourceValidationException(connector, quotaErrors));
@@ -212,7 +212,7 @@ public class ConnectorController extends NamespacedResourceController {
 
         sendEventLog(
             connectorToDelete,
-            ApplyStatus.deleted,
+            ApplyStatus.DELETED,
             connectorToDelete.getSpec(),
             null,
             EMPTY_STRING
@@ -260,7 +260,7 @@ public class ConnectorController extends NamespacedResourceController {
 
         return Flux.fromIterable(connectors)
             .flatMap(connector -> {
-                sendEventLog(connector, ApplyStatus.deleted, connector.getSpec(), null, EMPTY_STRING);
+                sendEventLog(connector, ApplyStatus.DELETED, connector.getSpec(), null, EMPTY_STRING);
                 return connectorService.delete(ns, connector);
             })
             .then(Mono.just(HttpResponse.ok(connectors)));
@@ -292,9 +292,9 @@ public class ConnectorController extends NamespacedResourceController {
 
         Mono<HttpResponse<Void>> response;
         switch (state.getSpec().getAction()) {
-            case restart -> response = connectorService.restart(ns, optionalConnector.get());
-            case pause -> response = connectorService.pause(ns, optionalConnector.get());
-            case resume -> response = connectorService.resume(ns, optionalConnector.get());
+            case RESTART -> response = connectorService.restart(ns, optionalConnector.get());
+            case PAUSE -> response = connectorService.pause(ns, optionalConnector.get());
+            case RESUME -> response = connectorService.resume(ns, optionalConnector.get());
             default -> {
                 return Mono.error(
                     new IllegalStateException("Unspecified action " + state.getSpec().getAction()));
@@ -345,7 +345,7 @@ public class ConnectorController extends NamespacedResourceController {
 
                 sendEventLog(
                     unsynchronizedConnector,
-                    ApplyStatus.created,
+                    ApplyStatus.CREATED,
                     null,
                     unsynchronizedConnector.getSpec(),
                     EMPTY_STRING
