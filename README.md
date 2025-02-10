@@ -32,7 +32,11 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
 * [Demo Environment](#demo-environment)
 * [Configuration](#configuration)
     * [Authentication](#authentication)
-        * [Local](#local)
+      * [Methods](#methods)
+        * [Basic Authentication](#basic-authentication)
+        * [JWT Bearer](#jwt-bearer)
+      * [ID Providers](#id-providers)
+        * [Local Users](#local-users)
         * [GitLab](#gitlab)
     * [Kafka Broker](#kafka-broker)
     * [Stream Catalog](#stream-catalog)
@@ -111,19 +115,27 @@ This command will start multiple containers, including:
 - 1 Schema registry
 - 1 Kafka Connect
 - 1 Control Center
-- Ns4Kafka, with customizable `config.yml` and `logback.xml` files
-- Kafkactl, with multiple deployable resources in `/resources`
+- 1 Ns4Kafka
+- 1 Kafkactl
 
-Please note that SASL/SCRAM authentication and authorization using ACLs are enabled on the broker.
+Note that SASL/SCRAM authentication and authorization using ACLs are enabled on the broker.
 
-To get started, you'll need to perform the following steps:
+You can access the Kafkactl container and start deploying resources from the `/resources` directory:
 
-1. Define a GitLab admin group for Ns4Kafka in the `application.yml` file. You can find an
-   example [here](#admin-account). It is recommended to choose a GitLab group you belong to in order to have admin
+```console
+docker exec -it kafkactl /bin/bash
+```
+
+By default, Kafkactl authenticates with Ns4Kafka using the [Local Users](#local-users) authentication method with the `gitlab:admin` credentials.
+
+If you want to use GitLab, you can update the configuration files as follows and restart the containers.
+
+1. Define a GitLab admin group for Ns4Kafka in the `.docker/config/ns4kafka/application.yml` file. You can find an
+   example [here](#gitlab). It is recommended to choose a GitLab group you belong to in order to have admin
    rights.
-2. Define a GitLab token for Kafkactl in the `config.yml` file. You can refer to the installation
+2. Define a GitLab token for Kafkactl in the `.docker/config/kafkactl/config.yml` file. You can refer to the installation
    instructions [here](https://github.com/michelin/kafkactl#install).
-3. Define a GitLab group you belong to in the role bindings of the `resources/admin/namespace.yml` file. This is
+3. Define a GitLab group you belong to in the role bindings of the `.docker/resources/admin/namespace.yml` file. This is
    demonstrated in the example [here](https://github.com/michelin/kafkactl#role-binding).
 
 Alternatively, a `docker-compose` file running AKHQ instead of Control Center is available in the `.docker` directory.
@@ -136,19 +148,19 @@ docker-compose -f docker-compose-akhq.yml up -d
 
 ### Authentication
 
-Ns4Kafka supports two types of authentication:
+#### Methods
 
-- Basic authentication
+Ns4Kafka supports two authentication methods.
+
+##### Basic Authentication
 
 ```shell
 curl -u username:password http://localhost:8080/api/namespaces/myNamespace/topics
 ```
 
-- Bearer token authentication
+##### JWT Bearer
 
-By generating a JWT access token from the
-built-in [Micronaut LoginController](https://micronaut-projects.github.io/micronaut-security/latest/guide/#login)
-and using it in the `Authorization` header.
+The JWT token can be retrieved using the built-in [Micronaut LoginController](https://micronaut-projects.github.io/micronaut-security/latest/guide/#login) and passed in the `Authorization` header.
 
 ```shell
 curl -X POST -d '{"username":"username","password":"password"}' -H "Content-Type: application/json" http://localhost:8080/login
@@ -199,11 +211,13 @@ The `roleBindings` field contains the permissions granted to the user.
 
 An ID provider is required to authenticate users. The following ID providers are supported.
 
-#### Local
+#### ID Providers
 
-The local ID provider is used for testing purposes. It is not recommended for production environments.
+Ns4Kafka supports two ID providers.
 
-To set up authentication with the local ID provider, you can use the following configuration:
+##### Local Users
+
+The local ID provider is intended for testing purposes. It allows authentication using local users defined in the configuration.
 
 ```yaml
 ns4kafka:
@@ -220,14 +234,17 @@ ns4kafka:
           - "userGroup"
 ```
 
-Identities are stored in the `local-users` configuration.
-The password is hashed using the SHA-256 algorithm.
+The passwords are hashed using the SHA-256 algorithm.
 The groups used to grant access to namespaces are defined in the `groups` field.
 
 The admin group is set to "adminGroup" in the example above. Users will be granted admin privileges if they belong to
 the local group "adminGroup".
 
-#### GitLab
+The default `application.yml` file includes a sample configuration with a local user named `admin` and a password set to `admin`.
+
+To authenticate with Kafkactl using local users, set the username to `gitlab`. The password will serve as the authentication token.
+
+##### GitLab
 
 GitLab is recommended for production environments.
 It uses GitLab groups to grant access to namespaces.
