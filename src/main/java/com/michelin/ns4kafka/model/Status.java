@@ -21,6 +21,7 @@ package com.michelin.ns4kafka.model;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.STATUS;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.michelin.ns4kafka.util.enumation.Kind;
 import io.micronaut.core.annotation.Introspected;
 import io.micronaut.http.HttpStatus;
@@ -39,7 +40,7 @@ import lombok.NoArgsConstructor;
 @Introspected
 @EqualsAndHashCode(callSuper = true)
 public class Status extends Resource {
-    private String status;
+    private StatusPhase status;
     private String message;
     private String reason;
     private StatusDetails details;
@@ -56,7 +57,7 @@ public class Status extends Resource {
      */
     public Status(StatusPhase status, String message, String reason, StatusDetails details, int code) {
         super("v1", STATUS);
-        this.status = status.toString();
+        this.status = status;
         this.message = message;
         this.reason = reason;
         this.details = details;
@@ -100,6 +101,7 @@ public class Status extends Resource {
 
         private final String name;
 
+        @JsonValue
         @Override
         public String toString() {
             return name;
