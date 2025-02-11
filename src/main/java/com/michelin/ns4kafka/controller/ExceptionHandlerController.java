@@ -19,9 +19,10 @@
 
 package com.michelin.ns4kafka.controller;
 
+import static com.michelin.ns4kafka.model.Status.StatusPhase.FAILED;
+
 import com.michelin.ns4kafka.model.Status;
 import com.michelin.ns4kafka.model.Status.StatusDetails;
-import com.michelin.ns4kafka.model.Status.StatusPhase;
 import com.michelin.ns4kafka.util.exception.ForbiddenNamespaceException;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import com.michelin.ns4kafka.util.exception.UnknownNamespaceException;
@@ -56,7 +57,7 @@ public class ExceptionHandlerController {
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, ResourceValidationException exception) {
         var status = Status.builder()
-            .status(StatusPhase.FAILED)
+            .status(FAILED)
             .message("Resource validation failed")
             .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
             .details(StatusDetails.builder()
@@ -80,7 +81,7 @@ public class ExceptionHandlerController {
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, ConstraintViolationException exception) {
         var status = Status.builder()
-            .status(StatusPhase.FAILED)
+            .status(FAILED)
             .message("Constraint validation failed")
             .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
             .details(StatusDetails.builder()
@@ -101,7 +102,7 @@ public class ExceptionHandlerController {
     @Error(global = true, status = HttpStatus.NOT_FOUND)
     public HttpResponse<Status> error(HttpRequest<?> request) {
         var status = Status.builder()
-            .status(StatusPhase.FAILED)
+            .status(FAILED)
             .message("Not Found")
             .httpStatus(HttpStatus.NOT_FOUND)
             .build();
@@ -120,7 +121,7 @@ public class ExceptionHandlerController {
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, AuthenticationException exception) {
         var status = Status.builder()
-            .status(StatusPhase.FAILED)
+            .status(FAILED)
             .message(exception.getMessage())
             .httpStatus(HttpStatus.UNAUTHORIZED)
             .build();
@@ -140,7 +141,7 @@ public class ExceptionHandlerController {
     public HttpResponse<Status> error(HttpRequest<?> request, AuthorizationException exception) {
         if (exception.isForbidden()) {
             var status = Status.builder()
-                .status(StatusPhase.FAILED)
+                .status(FAILED)
                 .message("Resource forbidden")
                 .httpStatus(HttpStatus.FORBIDDEN)
                 .build();
@@ -150,7 +151,7 @@ public class ExceptionHandlerController {
         }
 
         var status = Status.builder()
-            .status(StatusPhase.FAILED)
+            .status(FAILED)
             .message(exception.getMessage())
             .httpStatus(HttpStatus.UNAUTHORIZED)
             .build();
@@ -169,7 +170,7 @@ public class ExceptionHandlerController {
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, UnknownNamespaceException exception) {
         var status = Status.builder()
-            .status(StatusPhase.FAILED)
+            .status(FAILED)
             .message(exception.getMessage())
             .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
             .build();
@@ -188,7 +189,7 @@ public class ExceptionHandlerController {
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, ForbiddenNamespaceException exception) {
         var status = Status.builder()
-            .status(StatusPhase.FAILED)
+            .status(FAILED)
             .message(exception.getMessage())
             .httpStatus(HttpStatus.FORBIDDEN)
             .build();
@@ -210,7 +211,7 @@ public class ExceptionHandlerController {
             request.getUri(), exception.getMessage(), exception);
 
         Status status = Status.builder()
-            .status(StatusPhase.FAILED)
+            .status(FAILED)
             .message("Internal server error")
             .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
             .details(StatusDetails.builder()

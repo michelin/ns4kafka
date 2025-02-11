@@ -29,6 +29,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
@@ -38,7 +39,7 @@ import lombok.NoArgsConstructor;
 @Introspected
 @EqualsAndHashCode(callSuper = true)
 public class Status extends Resource {
-    private StatusPhase status;
+    private String status;
     private String message;
     private String reason;
     private StatusDetails details;
@@ -55,7 +56,7 @@ public class Status extends Resource {
      */
     public Status(StatusPhase status, String message, String reason, StatusDetails details, int code) {
         super("v1", STATUS);
-        this.status = status;
+        this.status = status.toString();
         this.message = message;
         this.reason = reason;
         this.details = details;
@@ -91,8 +92,17 @@ public class Status extends Resource {
     /**
      * Status phase.
      */
+    @Getter
+    @AllArgsConstructor
     public enum StatusPhase {
-        SUCCESS,
-        FAILED
+        SUCCESS("Success"),
+        FAILED("Failed");
+
+        private final String name;
+
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 }
