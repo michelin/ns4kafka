@@ -30,7 +30,7 @@ import lombok.Setter;
 @Setter
 @ConfigurationProperties("ns4kafka.confluent-cloud")
 public class ConfluentCloudProperties {
-    private StreamCatalogProperties streamCatalog;
+    private StreamCatalogProperties streamCatalog = new StreamCatalogProperties();
 
     /**
      * Stream Catalog properties.
@@ -39,6 +39,6 @@ public class ConfluentCloudProperties {
     @Setter
     @ConfigurationProperties("stream-catalog")
     public static class StreamCatalogProperties {
-        int pageSize = 500;
+        private int pageSize = 500;
     }
 }
