@@ -21,6 +21,7 @@ package com.michelin.ns4kafka.model.connector;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.CHANGE_CONNECTOR_STATE;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.MetadataResource;
 import io.micronaut.core.annotation.Introspected;
@@ -66,7 +67,23 @@ public class ChangeConnectorState extends MetadataResource {
     public enum ConnectorAction {
         PAUSE,
         RESUME,
-        RESTART
+        RESTART;
+
+        /**
+         * Build connector action from string.
+         *
+         * @param key the key
+         * @return the connector action
+         */
+        @JsonCreator
+        public static ConnectorAction fromString(String key) {
+            for (ConnectorAction type : ConnectorAction.values()) {
+                if (type.name().equalsIgnoreCase(key)) {
+                    return type;
+                }
+            }
+            return null;
+        }
     }
 
     /**

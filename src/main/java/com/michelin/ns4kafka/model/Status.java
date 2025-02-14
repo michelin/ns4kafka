@@ -21,6 +21,7 @@ package com.michelin.ns4kafka.model;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.STATUS;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.michelin.ns4kafka.util.enumation.Kind;
 import io.micronaut.core.annotation.Introspected;
 import io.micronaut.http.HttpStatus;
@@ -29,6 +30,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
@@ -91,8 +93,18 @@ public class Status extends Resource {
     /**
      * Status phase.
      */
+    @Getter
+    @AllArgsConstructor
     public enum StatusPhase {
-        SUCCESS,
-        FAILED
+        SUCCESS("Success"),
+        FAILED("Failed");
+
+        private final String name;
+
+        @JsonValue
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 }
