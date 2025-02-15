@@ -107,22 +107,6 @@ public class TopicService {
     }
 
     /**
-     * Test coverage of a given namespace and name.
-     *
-     * @param namespace The namespace
-     * @param name     The name filter
-     * @return A list of topics
-     */
-    public List<Topic> testCoverage(Namespace namespace, String name) {
-        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
-        return findAllForNamespace(namespace)
-            .stream()
-            .filter(topic -> RegexUtils.isResourceCoveredByRegex(topic.getMetadata().getName(), nameFilterPatterns))
-            .toList();
-    }
-
-
-    /**
      * Find a topic by namespace and name.
      *
      * @param namespace The namespace
