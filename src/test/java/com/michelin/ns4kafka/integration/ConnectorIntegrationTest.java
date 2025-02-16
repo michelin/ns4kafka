@@ -503,7 +503,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         assertEquals(HttpStatus.OK, restartResponse.status());
 
-        waitForConnectorAndTasksToBeInState("ns1-co1", Connector.TaskState.RUNNING);
+        waitForConnectorAndTasksToBeInState("ns1-co1", Connector.TaskState.RUNNING, 1);
 
         ConnectorStateInfo actual = connectClient
             .toBlocking()
@@ -562,12 +562,14 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .body(connector));
 
         forceConnectorSynchronization();
-        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.RUNNING);
+        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.RUNNING, 3);
 
         ConnectorStateInfo actual = connectClient
             .toBlocking()
             .retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
 
+        log.info("Connector state: {}", actual);
+        
         assertEquals("RUNNING", actual.connector().getState());
         assertEquals("RUNNING", actual.tasks().get(0).getState());
         assertEquals("RUNNING", actual.tasks().get(1).getState());
@@ -651,13 +653,14 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         Thread.sleep(3000);
     }
 
-    private void waitForConnectorAndTasksToBeInState(String connector, Connector.TaskState state)
+    private void waitForConnectorAndTasksToBeInState(String connector, Connector.TaskState state, int numberOfTasks)
         throws InterruptedException {
         boolean tasksInState = false;
 
         while (!tasksInState) {
             log.info("Waiting for connector and tasks to be in state {}...", state);
             Thread.sleep(2000);
+
             try {
                 HttpResponse<ConnectorStateInfo> response = connectClient
                     .toBlocking()
@@ -666,7 +669,8 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
                 log.info("Connector response: {}", response.body());
 
-                tasksInState = response.body().tasks()
+                tasksInState = response.body().tasks().size() == numberOfTasks
+                    && response.body().tasks()
                     .stream()
                     .allMatch(task -> task.getState().equals(state.toString()));
             } catch (HttpClientResponseException ignored) {
