@@ -569,7 +569,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
             .retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
 
         log.info("Connector state: {}", actual);
-        
+
         assertEquals("RUNNING", actual.connector().getState());
         assertEquals("RUNNING", actual.tasks().get(0).getState());
         assertEquals("RUNNING", actual.tasks().get(1).getState());
@@ -594,11 +594,13 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         assertEquals(HttpStatus.OK, pauseResponse.status());
 
-        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.PAUSED);
+        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.PAUSED, 3);
 
         actual = connectClient
             .toBlocking()
             .retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
+
+        log.info("Connector state: {}", actual);
 
         assertEquals("PAUSED", actual.connector().getState());
         assertEquals("PAUSED", actual.tasks().get(0).getState());
@@ -624,12 +626,14 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         assertEquals(HttpStatus.OK, resumeResponse.status());
 
-        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.RUNNING);
+        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.RUNNING, 3);
 
         // Verify resumed directly on connect cluster
         actual = connectClient
             .toBlocking()
             .retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
+
+        log.info("Connector state: {}", actual);
 
         assertEquals("RUNNING", actual.connector().getState());
         assertEquals("RUNNING", actual.tasks().get(0).getState());
