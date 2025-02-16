@@ -47,7 +47,7 @@ jobs:
       - name: Build
         id: build_jar
         run: |
-          ./gradlew build
+          ./gradlew build --info
           echo current_version=$(echo $(./gradlew properties --no-daemon --console=plain -q | grep "^version:" | awk '{printf $2}')) >> $GITHUB_OUTPUT
 
       - name: Publish test report
@@ -63,7 +63,7 @@ jobs:
           path: ${{ github.workspace }}/build/libs/ns4kafka-${{ steps.build_jar.outputs.current_version }}.jar
 
       - name: Sonar
-        run: ./gradlew jacocoTestReport sonar --info
+        run: ./gradlew jacocoTestReport sonar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
