@@ -38,8 +38,6 @@ import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient.KafkaConn
 import com.michelin.ns4kafka.util.EncryptionUtils;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.core.util.StringUtils;
-import io.micronaut.http.client.HttpClient;
-import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientException;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -78,10 +76,6 @@ public class ConnectClusterService {
 
     @Inject
     SecurityProperties securityProperties;
-
-    @Inject
-    @Client
-    HttpClient httpClient;
 
     /**
      * Find all self deployed Connect clusters.

@@ -50,11 +50,22 @@ public abstract class KafkaConnectIntegrationTest extends KafkaIntegrationTest {
         .withEnv("CONNECT_KEY_CONVERTER", "org.apache.kafka.connect.json.JsonConverter")
         .withEnv("CONNECT_VALUE_CONVERTER", "org.apache.kafka.connect.json.JsonConverter")
         .withEnv("CONNECT_PLUGIN_PATH", "/usr/share/java,/usr/share/filestream-connectors")
-        .withEnv("CONNECT_LOG4J_LOGGERS", "org.apache.zookeeper=ERROR,org.I0Itec.zkclient=ERROR,org.reflections=ERROR")
         .withEnv("CONNECT_SASL_MECHANISM", "PLAIN")
         .withEnv("CONNECT_SECURITY_PROTOCOL", "SASL_PLAINTEXT")
         .withEnv(
             "CONNECT_SASL_JAAS_CONFIG",
+            "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin\";"
+        )
+        .withEnv("CONNECT_PRODUCER_SASL_MECHANISM", "PLAIN")
+        .withEnv("CONNECT_PRODUCER_SECURITY_PROTOCOL", "SASL_PLAINTEXT")
+        .withEnv(
+            "CONNECT_PRODUCER_SASL_JAAS_CONFIG",
+            "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin\";"
+        )
+        .withEnv("CONNECT_CONSUMER_SASL_MECHANISM", "PLAIN")
+        .withEnv("CONNECT_CONSUMER_SECURITY_PROTOCOL", "SASL_PLAINTEXT")
+        .withEnv(
+            "CONNECT_CONSUMER_SASL_JAAS_CONFIG",
             "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin\";"
         )
         .waitingFor(Wait.forHttp("/").forStatusCode(200));

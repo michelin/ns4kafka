@@ -61,7 +61,6 @@ public abstract class KafkaIntegrationTest implements TestPropertyProvider {
     @Override
     public Map<String, String> getProperties() {
         if (!broker.isRunning()) {
-            broker.withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
             broker.start();
         }
 

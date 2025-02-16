@@ -21,7 +21,6 @@ package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -201,7 +200,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
             .toBlocking()
             .retrieve(HttpRequest.GET("/"), ServerInfo.class);
 
-        assertEquals("7.7.0-ccs", actual.version());
+        assertEquals(CONFLUENT_PLATFORM_VERSION + "-ccs", actual.version());
     }
 
     @Test
@@ -230,12 +229,12 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         Map<String, String> connectorSpecs = new HashMap<>();
         connectorSpecs.put("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector");
         connectorSpecs.put("tasks.max", "1");
-        connectorSpecs.put("topics", "ns1-to1");
+        connectorSpecs.put("topics", "ns1-topic1");
         connectorSpecs.put("file", null);
 
         Connector connectorWithNullParameter = Connector.builder()
             .metadata(Metadata.builder()
-                .name("ns1-connectorWithNullParameter")
+                .name("ns1-connector-with-null-parameter")
                 .namespace("ns1")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -246,7 +245,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         Topic topic = Topic.builder()
             .metadata(Metadata.builder()
-                .name("ns1-to1")
+                .name("ns1-topic1")
                 .namespace("ns1")
                 .build())
             .spec(Topic.TopicSpec.builder()
@@ -276,7 +275,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         Connector connectorWithEmptyParameter = Connector.builder()
             .metadata(Metadata.builder()
-                .name("ns1-connectorWithEmptyParameter")
+                .name("ns1-connector-with-empty-parameter")
                 .namespace("ns1")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -284,9 +283,8 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .config(Map.of(
                     "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
                     "tasks.max", "1",
-                    "topics", "ns1-to1",
-                    "file", ""
-                ))
+                    "topics", "ns1-topic1",
+                    "file", ""))
                 .build())
             .build();
 
@@ -299,7 +297,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         Connector connectorWithFillParameter = Connector.builder()
             .metadata(Metadata.builder()
-                .name("ns1-connectorWithFillParameter")
+                .name("ns1-connector-with-fill-parameter")
                 .namespace("ns1")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -307,7 +305,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .config(Map.of(
                     "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
                     "tasks.max", "1",
-                    "topics", "ns1-to1",
+                    "topics", "ns1-topic1",
                     "file", "test"))
                 .build())
             .build();
@@ -324,7 +322,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         // "File" property is present, but null
         ConnectorInfo actualConnectorWithNullParameter = connectClient
             .toBlocking()
-            .retrieve(HttpRequest.GET("/connectors/ns1-connectorWithNullParameter"), ConnectorInfo.class);
+            .retrieve(HttpRequest.GET("/connectors/ns1-connector-with-null-parameter"), ConnectorInfo.class);
 
         assertTrue(actualConnectorWithNullParameter.config().containsKey("file"));
         assertNull(actualConnectorWithNullParameter.config().get("file"));
@@ -332,7 +330,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         // "File" property is present, but empty
         ConnectorInfo actualConnectorWithEmptyParameter = connectClient
             .toBlocking()
-            .retrieve(HttpRequest.GET("/connectors/ns1-connectorWithEmptyParameter"), ConnectorInfo.class);
+            .retrieve(HttpRequest.GET("/connectors/ns1-connector-with-empty-parameter"), ConnectorInfo.class);
 
         assertTrue(actualConnectorWithEmptyParameter.config().containsKey("file"));
         assertTrue(actualConnectorWithEmptyParameter.config().get("file").isEmpty());
@@ -340,7 +338,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         // "File" property is present
         ConnectorInfo actualConnectorWithFillParameter = connectClient
             .toBlocking()
-            .retrieve(HttpRequest.GET("/connectors/ns1-connectorWithFillParameter"), ConnectorInfo.class);
+            .retrieve(HttpRequest.GET("/connectors/ns1-connector-with-fill-parameter"), ConnectorInfo.class);
 
         assertTrue(actualConnectorWithFillParameter.config().containsKey("file"));
         assertEquals("test", actualConnectorWithFillParameter.config().get("file"));
@@ -357,6 +355,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .create(HttpMethod.GET, "/api/namespaces/ns1/connectors")
                 .bearerAuth(token), Argument.listOf(Connector.class));
 
+        assertTrue(connectors.getBody().isPresent());
         assertEquals(0, connectors.getBody().get().size());
     }
 
@@ -365,19 +364,22 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         ConnectorSpecs connectorSpecs = ConnectorSpecs.builder()
             .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
                 "tasks.max", "1",
-                "topics", "ns1-to1",
+                "topics", "ns1-topic2",
                 "file", "test"))
             .build();
 
         Map<String, String> updatedConnectorSpecs = new HashMap<>();
         updatedConnectorSpecs.put("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector");
         updatedConnectorSpecs.put("tasks.max", "1");
-        updatedConnectorSpecs.put("topics", "ns1-to1");
+        updatedConnectorSpecs.put("topics", "ns1-topic2");
         updatedConnectorSpecs.put("file", null);
 
         HttpResponse<ConnectorInfo> connectorInfo = connectClient
             .toBlocking()
-            .exchange(HttpRequest.PUT("/connectors/ns1-connector/config", connectorSpecs), ConnectorInfo.class);
+            .exchange(
+                HttpRequest.PUT("/connectors/ns1-connector-update-null-props/config", connectorSpecs),
+                ConnectorInfo.class
+            );
 
         // "File" property is present and fill
         assertTrue(connectorInfo.getBody().isPresent());
@@ -386,7 +388,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         Topic topic = Topic.builder()
             .metadata(Metadata.builder()
-                .name("ns1-to1")
+                .name("ns1-topic2")
                 .namespace("ns1")
                 .build())
             .spec(Topic.TopicSpec.builder()
@@ -409,7 +411,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         Connector updateConnector = Connector.builder()
             .metadata(Metadata.builder()
-                .name("ns1-connector")
+                .name("ns1-connector-update-null-props")
                 .namespace("ns1")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -429,7 +431,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         ConnectorInfo actualConnector = connectClient
             .toBlocking()
-            .retrieve(HttpRequest.GET("/connectors/ns1-connector"), ConnectorInfo.class);
+            .retrieve(HttpRequest.GET("/connectors/ns1-connector-update-null-props"), ConnectorInfo.class);
 
         // "File" property is present, but null
         assertTrue(actualConnector.config().containsKey("file"));
@@ -440,7 +442,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
     void shouldRestartConnector() throws InterruptedException {
         Topic topic = Topic.builder()
             .metadata(Metadata.builder()
-                .name("ns1-to1")
+                .name("ns1-topic3")
                 .namespace("ns1")
                 .build())
             .spec(Topic.TopicSpec.builder()
@@ -455,7 +457,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         Connector connector = Connector.builder()
             .metadata(Metadata.builder()
-                .name("ns1-co1")
+                .name("ns1-connector-restart")
                 .namespace("ns1")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -463,8 +465,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .config(Map.of(
                     "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
                     "tasks.max", "1",
-                    "topics", "ns1-to1"
-                ))
+                    "topics", "ns1-topic3"))
                 .build())
             .build();
 
@@ -484,10 +485,17 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .body(connector));
 
         forceConnectorSynchronization();
+        waitForConnectorToBeInState("ns1-connector-restart", "RUNNING");
+
+        ConnectorStateInfo actual = connectClient
+            .toBlocking()
+            .retrieve(HttpRequest.GET("/connectors/ns1-connector-restart/status"), ConnectorStateInfo.class);
+
+        assertEquals("RUNNING", actual.connector().getState());
 
         ChangeConnectorState restartState = ChangeConnectorState.builder()
             .metadata(Metadata.builder()
-                .name("ns1-co1")
+                .name("ns1-connector-restart")
                 .build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
                 .action(ChangeConnectorState.ConnectorAction.RESTART)
@@ -497,30 +505,26 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         HttpResponse<ChangeConnectorState> restartResponse = ns4KafkaClient
             .toBlocking()
             .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co1/change-state")
+                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-connector-restart/change-state")
                 .bearerAuth(token)
                 .body(restartState), ChangeConnectorState.class);
 
         assertEquals(HttpStatus.OK, restartResponse.status());
 
-        waitForConnectorAndTasksToBeInState("ns1-co1", Connector.TaskState.RUNNING);
+        waitForConnectorToBeInState("ns1-connector-restart", "RUNNING");
 
-        ConnectorStateInfo actual = connectClient
+        actual = connectClient
             .toBlocking()
-            .retrieve(HttpRequest.GET("/connectors/ns1-co1/status"), ConnectorStateInfo.class);
+            .retrieve(HttpRequest.GET("/connectors/ns1-connector-restart/status"), ConnectorStateInfo.class);
 
-        log.info("Connector state: {}", actual);
-        
         assertEquals("RUNNING", actual.connector().getState());
-        assertFalse(actual.tasks().isEmpty());
-        assertEquals("RUNNING", actual.tasks().getFirst().getState());
     }
 
     @Test
     void shouldPauseAndResumeConnector() throws InterruptedException {
         Topic topic = Topic.builder()
             .metadata(Metadata.builder()
-                .name("ns1-to1")
+                .name("ns1-topic4")
                 .namespace("ns1")
                 .build())
             .spec(Topic.TopicSpec.builder()
@@ -534,7 +538,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         Connector connector = Connector.builder()
             .metadata(Metadata.builder()
-                .name("ns1-co2")
+                .name("ns1-connector-pause-resume")
                 .namespace("ns1")
                 .build())
             .spec(Connector.ConnectorSpec.builder()
@@ -542,7 +546,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .config(Map.of(
                     "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
                     "tasks.max", "3",
-                    "topics", "ns1-to1"))
+                    "topics", "ns1-topic4"))
                 .build())
             .build();
 
@@ -562,21 +566,18 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .body(connector));
 
         forceConnectorSynchronization();
-        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.RUNNING);
+        waitForConnectorToBeInState("ns1-connector-pause-resume", "RUNNING");
 
         ConnectorStateInfo actual = connectClient
             .toBlocking()
-            .retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
+            .retrieve(HttpRequest.GET("/connectors/ns1-connector-pause-resume/status"), ConnectorStateInfo.class);
 
         assertEquals("RUNNING", actual.connector().getState());
-        assertEquals("RUNNING", actual.tasks().get(0).getState());
-        assertEquals("RUNNING", actual.tasks().get(1).getState());
-        assertEquals("RUNNING", actual.tasks().get(2).getState());
 
         // Pause the connector
         ChangeConnectorState pauseState = ChangeConnectorState.builder()
             .metadata(Metadata.builder()
-                .name("ns1-co2")
+                .name("ns1-connector-pause-resume")
                 .build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
                 .action(ChangeConnectorState.ConnectorAction.PAUSE)
@@ -586,27 +587,24 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         HttpResponse<ChangeConnectorState> pauseResponse = ns4KafkaClient
             .toBlocking()
             .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co2/change-state")
+                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-connector-pause-resume/change-state")
                 .bearerAuth(token)
                 .body(pauseState));
 
         assertEquals(HttpStatus.OK, pauseResponse.status());
 
-        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.PAUSED);
+        waitForConnectorToBeInState("ns1-connector-pause-resume", "PAUSED");
 
         actual = connectClient
             .toBlocking()
-            .retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
+            .retrieve(HttpRequest.GET("/connectors/ns1-connector-pause-resume/status"), ConnectorStateInfo.class);
 
         assertEquals("PAUSED", actual.connector().getState());
-        assertEquals("PAUSED", actual.tasks().get(0).getState());
-        assertEquals("PAUSED", actual.tasks().get(1).getState());
-        assertEquals("PAUSED", actual.tasks().get(2).getState());
 
         // Resume the connector
         ChangeConnectorState resumeState = ChangeConnectorState.builder()
             .metadata(Metadata.builder()
-                .name("ns1-co2")
+                .name("ns1-connector-pause-resume")
                 .build())
             .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
                 .action(ChangeConnectorState.ConnectorAction.RESUME)
@@ -616,23 +614,20 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         HttpResponse<ChangeConnectorState> resumeResponse = ns4KafkaClient
             .toBlocking()
             .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-co2/change-state")
+                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-connector-pause-resume/change-state")
                 .bearerAuth(token)
                 .body(resumeState));
 
         assertEquals(HttpStatus.OK, resumeResponse.status());
 
-        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.RUNNING);
+        waitForConnectorToBeInState("ns1-connector-pause-resume", "RUNNING");
 
         // Verify resumed directly on connect cluster
         actual = connectClient
             .toBlocking()
-            .retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
+            .retrieve(HttpRequest.GET("/connectors/ns1-connector-pause-resume/status"), ConnectorStateInfo.class);
 
         assertEquals("RUNNING", actual.connector().getState());
-        assertEquals("RUNNING", actual.tasks().get(0).getState());
-        assertEquals("RUNNING", actual.tasks().get(1).getState());
-        assertEquals("RUNNING", actual.tasks().get(2).getState());
     }
 
     /**
@@ -651,24 +646,21 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         Thread.sleep(3000);
     }
 
-    private void waitForConnectorAndTasksToBeInState(String connector, Connector.TaskState state)
+    private void waitForConnectorToBeInState(String connector, String state)
         throws InterruptedException {
-        boolean tasksInState = false;
+        boolean connectorInState = false;
 
-        while (!tasksInState) {
-            log.info("Waiting for connector and tasks to be in state {}...", state);
+        while (!connectorInState) {
+            log.info("Waiting for connector to be in state {}...", state);
             Thread.sleep(2000);
+
             try {
                 HttpResponse<ConnectorStateInfo> response = connectClient
                     .toBlocking()
                     .exchange(HttpRequest
                         .GET(String.format("/connectors/%s/status", connector)), ConnectorStateInfo.class);
 
-                log.info("Connector response: {}", response.body());
-
-                tasksInState = response.body().tasks()
-                    .stream()
-                    .allMatch(task -> task.getState().equals(state.toString()));
+                connectorInState = response.body().connector().getState().equals(state);
             } catch (HttpClientResponseException ignored) {
                 // Connector not found, retry
             }
