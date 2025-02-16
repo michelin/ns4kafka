@@ -509,6 +509,8 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
             .toBlocking()
             .retrieve(HttpRequest.GET("/connectors/ns1-co1/status"), ConnectorStateInfo.class);
 
+        log.info("Connector state: {}", actual);
+        
         assertEquals("RUNNING", actual.connector().getState());
         assertFalse(actual.tasks().isEmpty());
         assertEquals("RUNNING", actual.tasks().getFirst().getState());
@@ -661,6 +663,8 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                     .toBlocking()
                     .exchange(HttpRequest
                         .GET(String.format("/connectors/%s/status", connector)), ConnectorStateInfo.class);
+
+                log.info("Connector response: {}", response.body());
 
                 tasksInState = response.body().tasks()
                     .stream()
