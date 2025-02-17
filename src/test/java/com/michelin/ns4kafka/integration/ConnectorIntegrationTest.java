@@ -97,6 +97,8 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         // Create HTTP client as bean to load client configuration from application.yml
         connectClient = applicationContext.createBean(HttpClient.class, getConnectUrl());
 
+        log.info("connectClient URL: {}", getConnectUrl());
+
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("ns1")
@@ -671,7 +673,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                     .exchange(HttpRequest
                         .GET(String.format("/connectors/%s/status", connector)), ConnectorStateInfo.class);
 
-                log.info("Connector response: {}", response.body());
+                log.info("Connector response: {}", response.body().toString());
 
                 tasksInState = response.body().tasks().size() == numberOfTasks
                     && response.body().tasks()
