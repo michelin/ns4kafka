@@ -201,6 +201,7 @@ public class NamespaceService {
      * @param namespace The namespace to delete
      */
     public void delete(Namespace namespace) {
+        aclService.deleteAllGrantedToNamespace(namespace);
         namespaceRepository.delete(namespace);
     }
 

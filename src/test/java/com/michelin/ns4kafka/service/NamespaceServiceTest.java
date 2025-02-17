@@ -23,6 +23,7 @@ import static com.michelin.ns4kafka.property.ManagedClusterProperties.KafkaProvi
 import static com.michelin.ns4kafka.property.ManagedClusterProperties.KafkaProvider.SELF_MANAGED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -864,7 +865,7 @@ class NamespaceServiceTest {
     }
 
     @Test
-    void shouldDeleteNamespace() {
+    void shouldDeleteGrantedToAclAndNamespace() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
@@ -876,8 +877,11 @@ class NamespaceServiceTest {
                 .build())
             .build();
 
+        doNothing().when(aclService).deleteAllGrantedToNamespace(ns);
+
         namespaceService.delete(ns);
 
+        verify(aclService).deleteAllGrantedToNamespace(ns);
         verify(namespaceRepository).delete(ns);
     }
 }
