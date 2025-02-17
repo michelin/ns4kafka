@@ -1741,13 +1741,6 @@ class AclServiceTest {
 
     @Test
     void shouldDeleteAllGrantedToAclsForNamespaceAndNotDeletePublicAcl() {
-        Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("namespace1")
-                .cluster("cluster")
-                .build())
-            .build();
-
         AccessControlEntry acl1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .grantedTo("namespace1")
@@ -1779,6 +1772,13 @@ class AclServiceTest {
         when(applicationContext.getBean(AccessControlEntryAsyncExecutor.class, Qualifiers.byName("cluster")))
             .thenReturn(accessControlEntryAsyncExecutor);
         doNothing().when(accessControlEntryRepository).delete(any());
+
+        Namespace namespace = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace1")
+                .cluster("cluster")
+                .build())
+            .build();
 
         aclService.deleteAllGrantedToNamespace(namespace);
 
