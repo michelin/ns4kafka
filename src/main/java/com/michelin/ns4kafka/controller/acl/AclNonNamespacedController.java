@@ -41,7 +41,7 @@ public class AclNonNamespacedController extends NonNamespacedResourceController 
     AclService aclService;
 
     /**
-     * List ACLs.
+     * List all ACLs.
      *
      * @return A list of ACLs
      */
