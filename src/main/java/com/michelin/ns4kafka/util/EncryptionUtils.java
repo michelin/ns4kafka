@@ -26,6 +26,7 @@ import com.nimbusds.jose.JWECryptoParts;
 import com.nimbusds.jose.JWEHeader;
 import com.nimbusds.jose.crypto.AESDecrypter;
 import com.nimbusds.jose.crypto.AESEncrypter;
+import com.nimbusds.jose.crypto.impl.AAD;
 import com.nimbusds.jose.util.Base64URL;
 import io.micronaut.core.util.StringUtils;
 import java.io.ByteArrayOutputStream;
@@ -86,10 +87,13 @@ public class EncryptionUtils {
                 return clearText;
             }
 
+            JWEHeader header = new JWEHeader(JWEAlgorithm.A256KW, EncryptionMethod.A256GCM);
             AESEncrypter encrypter = new AESEncrypter(key.getBytes(StandardCharsets.UTF_8));
-            JWECryptoParts encryptedData =
-                encrypter.encrypt(new JWEHeader(JWEAlgorithm.A256KW, EncryptionMethod.A256GCM),
-                    clearText.getBytes(StandardCharsets.UTF_8));
+            JWECryptoParts encryptedData = encrypter.encrypt(
+                header,
+                clearText.getBytes(StandardCharsets.UTF_8),
+                AAD.compute(header)
+            );
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             outputStream.write(encryptedData.getEncryptedKey().decode());
@@ -126,8 +130,8 @@ public class EncryptionUtils {
             Base64URL auth = Base64URL.encode(Arrays.copyOfRange(encryptedData, 52, 68));
             Base64URL text = Base64URL.encode(Arrays.copyOfRange(encryptedData, 68, encryptedData.length));
 
-            byte[] clearTextAsBytes = decrypter.decrypt(new JWEHeader(JWEAlgorithm.A256KW, EncryptionMethod.A256GCM),
-                encryptedKey, iv, text, auth);
+            JWEHeader header = new JWEHeader(JWEAlgorithm.A256KW, EncryptionMethod.A256GCM);
+            byte[] clearTextAsBytes = decrypter.decrypt(header, encryptedKey, iv, text, auth, AAD.compute(header));
 
             return new String(clearTextAsBytes);
         } catch (JOSEException e) {
