@@ -58,7 +58,7 @@ jobs:
           path: ${{ github.workspace }}/build/libs/ns4kafka-${{ steps.build_jar.outputs.current_version }}.jar
 
       - name: Sonar
-        if: env.SONAR_TOKEN != ''
+        if: github.event.pull_request.head.repo.fork == false
         run: ./gradlew jacocoTestReport sonar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
