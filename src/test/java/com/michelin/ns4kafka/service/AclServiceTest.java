@@ -36,10 +36,9 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
+import io.micronaut.inject.qualifiers.Qualifiers;
 import java.util.List;
 import java.util.Optional;
-
-import io.micronaut.inject.qualifiers.Qualifiers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -1693,14 +1692,7 @@ class AclServiceTest {
     }
     
     @Test
-    void shouldDeleteAllAclsGrantedToNamespace() {
-        Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("namespace1")
-                .cluster("cluster")
-                .build())
-            .build();
-
+    void shouldDeleteAllGrantedToAclsForNamespace() {
         AccessControlEntry acl1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .grantedTo("namespace1")
@@ -1734,6 +1726,13 @@ class AclServiceTest {
             .thenReturn(accessControlEntryAsyncExecutor);
         doNothing().when(accessControlEntryRepository).delete(any());
 
+        Namespace namespace = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace1")
+                .cluster("cluster")
+                .build())
+            .build();
+
         aclService.deleteAllGrantedToNamespace(namespace);
 
         verify(accessControlEntryRepository, times(2)).delete(any());
@@ -1741,7 +1740,54 @@ class AclServiceTest {
     }
 
     @Test
-    void shouldNotDeletePublicGrantedToNamespace() {
+    void shouldDeleteAllGrantedToAclsForNamespaceAndNotDeletePublicAcl() {
+        Namespace namespace = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace1")
+                .cluster("cluster")
+                .build())
+            .build();
+
+        AccessControlEntry acl1 = AccessControlEntry.builder()
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .grantedTo("namespace1")
+                .build())
+            .metadata(Metadata.builder()
+                .cluster("cluster")
+                .build())
+            .build();
+
+        AccessControlEntry acl2 = AccessControlEntry.builder()
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .grantedTo("namespace1")
+                .build())
+            .metadata(Metadata.builder()
+                .cluster("cluster")
+                .build())
+            .build();
+
+        AccessControlEntry publicAcl = AccessControlEntry.builder()
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .grantedTo("*")
+                .build())
+            .metadata(Metadata.builder()
+                .cluster("cluster")
+                .build())
+            .build();
+
+        when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, publicAcl));
+        when(applicationContext.getBean(AccessControlEntryAsyncExecutor.class, Qualifiers.byName("cluster")))
+            .thenReturn(accessControlEntryAsyncExecutor);
+        doNothing().when(accessControlEntryRepository).delete(any());
+
+        aclService.deleteAllGrantedToNamespace(namespace);
+
+        verify(accessControlEntryRepository, times(2)).delete(any());
+        verify(accessControlEntryRepository, never()).delete(publicAcl);
+    }
+
+    @Test
+    void shouldNotDeletePublicAcl() {
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace1")
@@ -1759,6 +1805,22 @@ class AclServiceTest {
             .build();
 
         when(accessControlEntryRepository.findAll()).thenReturn(List.of(publicAcl));
+
+        aclService.deleteAllGrantedToNamespace(namespace);
+
+        verify(accessControlEntryRepository, never()).delete(any());
+    }
+
+    @Test
+    void shouldNotDeleteAllAclsForNamespaceWhenNoAcl() {
+        Namespace namespace = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace1")
+                .cluster("cluster")
+                .build())
+            .build();
+
+        when(accessControlEntryRepository.findAll()).thenReturn(List.of());
 
         aclService.deleteAllGrantedToNamespace(namespace);
 

@@ -865,7 +865,7 @@ class NamespaceServiceTest {
     }
 
     @Test
-    void shouldDeleteNamespaceAndGrantedToACL() {
+    void shouldDeleteGrantedToAclAndNamespace() {
         Namespace ns = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace")
