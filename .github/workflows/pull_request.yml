@@ -39,17 +39,23 @@ jobs:
       - name: Check style
         run: ./gradlew checkstyleMain checkstyleTest
 
-      - name: Build and analyze
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: ./gradlew build jacocoTestReport sonar --info
+      - name: Build
+        id: build_jar
+        run: |
+          ./gradlew build --info
+          echo current_version=$(echo $(./gradlew properties --no-daemon --console=plain -q | grep "^version:" | awk '{printf $2}')) >> $GITHUB_OUTPUT
 
       - name: Publish test report
         if: always()
         uses: mikepenz/action-junit-report@v5
         with:
           report_paths: '**/build/test-results/test/TEST-*.xml'
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ns4kafka
+          path: ${{ github.workspace }}/build/libs/ns4kafka-${{ steps.build_jar.outputs.current_version }}.jar
 
       - name: Docker
         run: ./gradlew dockerBuild
