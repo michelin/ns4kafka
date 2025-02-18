@@ -67,6 +67,7 @@ public abstract class KafkaConnectIntegrationTest extends KafkaIntegrationTest {
         Map<String, String> brokerProperties = super.getProperties();
 
         if (!connect.isRunning()) {
+            connect.withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
             connect.start();
         }
 
