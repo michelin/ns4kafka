@@ -24,6 +24,7 @@ import static org.apache.kafka.clients.CommonClientConfigs.BOOTSTRAP_SERVERS_CON
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.test.support.TestPropertyProvider;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
 import org.junit.jupiter.api.TestInstance;
 import org.testcontainers.containers.Network;
@@ -33,6 +34,7 @@ import org.testcontainers.utility.DockerImageName;
 /**
  * Base class for Kafka integration tests.
  */
+@Slf4j
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class KafkaIntegrationTest implements TestPropertyProvider {
     protected static final String CONFLUENT_PLATFORM_VERSION = "7.7.0";
@@ -61,9 +63,10 @@ public abstract class KafkaIntegrationTest implements TestPropertyProvider {
     @Override
     public Map<String, String> getProperties() {
         if (!broker.isRunning()) {
-            broker.withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
             broker.start();
         }
+
+        log.info("Kafka bootstrap servers: {}", broker.getContainerInfo().getConfig().getHostName());
 
         return Map.of(
             "kafka." + BOOTSTRAP_SERVERS_CONFIG, broker.getBootstrapServers(),

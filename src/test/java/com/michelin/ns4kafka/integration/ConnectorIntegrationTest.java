@@ -97,6 +97,8 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         // Create HTTP client as bean to load client configuration from application.yml
         connectClient = applicationContext.createBean(HttpClient.class, getConnectUrl());
 
+        log.info("connectClient URL: {}", getConnectUrl());
+
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("ns1")
@@ -503,12 +505,14 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         assertEquals(HttpStatus.OK, restartResponse.status());
 
-        waitForConnectorAndTasksToBeInState("ns1-co1", Connector.TaskState.RUNNING);
+        waitForConnectorAndTasksToBeInState("ns1-co1", Connector.TaskState.RUNNING, 1);
 
         ConnectorStateInfo actual = connectClient
             .toBlocking()
             .retrieve(HttpRequest.GET("/connectors/ns1-co1/status"), ConnectorStateInfo.class);
 
+        log.info("Connector state: {}", actual);
+        
         assertEquals("RUNNING", actual.connector().getState());
         assertFalse(actual.tasks().isEmpty());
         assertEquals("RUNNING", actual.tasks().getFirst().getState());
@@ -560,11 +564,13 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .body(connector));
 
         forceConnectorSynchronization();
-        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.RUNNING);
+        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.RUNNING, 3);
 
         ConnectorStateInfo actual = connectClient
             .toBlocking()
             .retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
+
+        log.info("Connector state: {}", actual);
 
         assertEquals("RUNNING", actual.connector().getState());
         assertEquals("RUNNING", actual.tasks().get(0).getState());
@@ -590,11 +596,13 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         assertEquals(HttpStatus.OK, pauseResponse.status());
 
-        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.PAUSED);
+        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.PAUSED, 3);
 
         actual = connectClient
             .toBlocking()
             .retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
+
+        log.info("Connector state: {}", actual);
 
         assertEquals("PAUSED", actual.connector().getState());
         assertEquals("PAUSED", actual.tasks().get(0).getState());
@@ -620,12 +628,14 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         assertEquals(HttpStatus.OK, resumeResponse.status());
 
-        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.RUNNING);
+        waitForConnectorAndTasksToBeInState("ns1-co2", Connector.TaskState.RUNNING, 3);
 
         // Verify resumed directly on connect cluster
         actual = connectClient
             .toBlocking()
             .retrieve(HttpRequest.GET("/connectors/ns1-co2/status"), ConnectorStateInfo.class);
+
+        log.info("Connector state: {}", actual);
 
         assertEquals("RUNNING", actual.connector().getState());
         assertEquals("RUNNING", actual.tasks().get(0).getState());
@@ -649,20 +659,24 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         Thread.sleep(3000);
     }
 
-    private void waitForConnectorAndTasksToBeInState(String connector, Connector.TaskState state)
+    private void waitForConnectorAndTasksToBeInState(String connector, Connector.TaskState state, int numberOfTasks)
         throws InterruptedException {
         boolean tasksInState = false;
 
         while (!tasksInState) {
             log.info("Waiting for connector and tasks to be in state {}...", state);
             Thread.sleep(2000);
+
             try {
                 HttpResponse<ConnectorStateInfo> response = connectClient
                     .toBlocking()
                     .exchange(HttpRequest
                         .GET(String.format("/connectors/%s/status", connector)), ConnectorStateInfo.class);
 
-                tasksInState = response.body().tasks()
+                log.info("Connector response: {}", response.body().toString());
+
+                tasksInState = response.body().tasks().size() == numberOfTasks
+                    && response.body().tasks()
                     .stream()
                     .allMatch(task -> task.getState().equals(state.toString()));
             } catch (HttpClientResponseException ignored) {

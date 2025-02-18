@@ -23,6 +23,7 @@ import io.micronaut.core.annotation.NonNull;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.TestInstance;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -31,6 +32,7 @@ import org.testcontainers.utility.DockerImageName;
 /**
  * Base class for Kafka Connect integration tests.
  */
+@Slf4j
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class KafkaConnectIntegrationTest extends KafkaIntegrationTest {
     private final GenericContainer<?> connect = new GenericContainer<>(DockerImageName
@@ -65,8 +67,11 @@ public abstract class KafkaConnectIntegrationTest extends KafkaIntegrationTest {
         Map<String, String> brokerProperties = super.getProperties();
 
         if (!connect.isRunning()) {
+            connect.withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
             connect.start();
         }
+
+        log.info("Kafka Connect URL: {}", getConnectUrl());
 
         Map<String, String> properties = new HashMap<>(brokerProperties);
         properties.put("ns4kafka.managed-clusters.test-cluster.connects.test-connect.url", getConnectUrl());
