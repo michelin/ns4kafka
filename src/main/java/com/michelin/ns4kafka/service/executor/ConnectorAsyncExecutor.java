@@ -94,7 +94,8 @@ public class ConnectorAsyncExecutor {
     private Flux<ConnectCluster> getConnectClusters() {
         return connectClusterService.findAll(true)
             .filter(
-                connectCluster -> connectCluster.getMetadata().getCluster().equals(managedClusterProperties.getName()));
+                connectCluster -> connectCluster.getMetadata().getCluster().equals(managedClusterProperties.getName())
+            );
     }
 
     /**

@@ -20,6 +20,7 @@
 package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.integration.TopicIntegrationTest.BearerAccessRefreshToken;
 import com.michelin.ns4kafka.integration.container.KafkaConnectIntegrationTest;
@@ -221,8 +222,9 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
                 .create(HttpMethod.GET, "/api/namespaces/ns1/connect-clusters")
                 .bearerAuth(token), Argument.listOf(ConnectCluster.class));
 
+        assertTrue(connectClusters.getBody().isPresent());
         assertEquals(1, connectClusters.getBody().get().size());
-        assertEquals("ns1-connectCluster", connectClusters.getBody().get().get(0).getMetadata().getName());
+        assertEquals("ns1-connectCluster", connectClusters.getBody().get().getFirst().getMetadata().getName());
 
         List<String> passwordsToVault = List.of("password1", "password2");
 
@@ -233,6 +235,7 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
                 .bearerAuth(token)
                 .body(passwordsToVault), Argument.listOf(VaultResponse.class));
 
+        assertTrue(vaultResponse.getBody().isPresent());
         assertEquals(2, vaultResponse.getBody().get().size());
         assertEquals("password1", vaultResponse.getBody().get().get(0).getSpec().getClearText());
         assertEquals("password2", vaultResponse.getBody().get().get(1).getSpec().getClearText());
