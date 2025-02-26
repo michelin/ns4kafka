@@ -26,6 +26,7 @@ import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
 import com.michelin.ns4kafka.repository.kafka.KafkaStoreException;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
+import com.michelin.ns4kafka.service.client.schema.entities.GraphQueryResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.TagInfo;
 import com.michelin.ns4kafka.service.client.schema.entities.TagTopicInfo;
 import com.michelin.ns4kafka.service.client.schema.entities.TopicDescriptionUpdateAttributes;
@@ -64,6 +65,7 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.admin.TopicListing;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.ConfigResource;
+import reactor.core.publisher.Mono;
 
 /**
  * Topic executor.
@@ -155,16 +157,27 @@ public class TopicAsyncExecutor {
 
             createTopics(createTopics);
             alterTopics(updateTopics, checkTopics);
+            alterCatalogInfo(checkTopics, brokerTopics);
 
-            if (managedClusterProperties.isConfluentCloud()) {
-                alterTags(checkTopics, brokerTopics);
-                alterDescriptions(checkTopics, brokerTopics);
-            }
         } catch (ExecutionException | TimeoutException | CancellationException | KafkaStoreException e) {
             log.error("An error occurred during the topic synchronization", e);
         } catch (InterruptedException e) {
             log.error("Thread interrupted during the topic synchronization", e);
             Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * Alter catalog info.
+     *
+     * @param checkTopics    Topics from ns4kafka
+     * @param brokerTopics   Topics from broker
+     */
+    public void alterCatalogInfo(List<Topic> checkTopics, Map<String, Topic> brokerTopics) {
+        if (confluentCloudProperties.getStreamCatalog().isSyncCatalog()
+            && managedClusterProperties.isConfluentCloud()) {
+            alterTags(checkTopics, brokerTopics);
+            alterDescriptions(checkTopics, brokerTopics);
         }
     }
 
@@ -294,38 +307,89 @@ public class TopicAsyncExecutor {
     }
 
     /**
-     * Enrich topics with confluent description.
+     * Enrich topics with Confluent catalog info.
      *
-     * @param topics Topics to complete
+     * @param topics Topics to enrich
      */
 
     public void enrichWithCatalogInfo(Map<String, Topic> topics) {
-        if (managedClusterProperties.isConfluentCloud()) {
-            TopicListResponse topicListResponse;
-
-            // getting list of topics by managing offset & limit
-            int offset = 0;
-            int limit = confluentCloudProperties.getStreamCatalog().getPageSize();
-            do {
-                topicListResponse = schemaRegistryClient.getTopicWithCatalogInfo(
-                    managedClusterProperties.getName(), limit, offset).block();
-                if (topicListResponse == null) {
-                    break;
-                }
-                topicListResponse.entities()
-                    .stream()
-                    .filter(topicEntity -> (topicEntity.attributes().description() != null
-                        || !topicEntity.classificationNames().isEmpty())
-                        && topics.containsKey(topicEntity.attributes().name()))
-                    .forEach(topicEntity -> {
-                        topics.get(topicEntity.attributes().name()).getSpec()
-                            .setTags(topicEntity.classificationNames());
-                        topics.get(topicEntity.attributes().name()).getSpec()
-                            .setDescription(topicEntity.attributes().description());
-                    });
-                offset += limit;
-            } while (!topicListResponse.entities().isEmpty());
+        if (confluentCloudProperties.getStreamCatalog().isSyncCatalog()
+            && managedClusterProperties.isConfluentCloud()) {
+            try {
+                enrichWithGraphQlCatalogInfo(topics);
+            } catch (Exception e) {
+                enrichWithRestCatalogInfo(topics);
+            }
         }
+    }
+
+    /**
+     * Enrich topics with Confluent catalog information, using Confluent Stream Catalog GraphQL API.
+     *
+     * @param topics Topics to enrich
+     */
+    public void enrichWithGraphQlCatalogInfo(Map<String, Topic> topics) {
+        schemaRegistryClient.getTopicsWithDescriptionWithGraphQl(managedClusterProperties.getName())
+            .subscribe(response -> {
+                if (response.data() != null && response.data().kafkaTopic() != null) {
+                    response
+                        .data()
+                        .kafkaTopic()
+                        .forEach(describedTopic ->
+                            topics.get(describedTopic.name()).getSpec().setDescription(describedTopic.description()));
+                }
+            });
+
+        schemaRegistryClient.listTags(managedClusterProperties.getName())
+            .flatMap(tagsList ->
+                tagsList.isEmpty() ? Mono.just(GraphQueryResponse.builder().data(null).build())
+                    : schemaRegistryClient.getTopicsWithTagsWithGraphQl(
+                        managedClusterProperties.getName(),
+                        tagsList
+                            .stream()
+                            .map(tagInfo -> "\"" + tagInfo.name() + "\"")
+                            .toList()))
+            .subscribe(response -> {
+                if (response.data() != null && response.data().kafkaTopic() != null) {
+                    response
+                        .data()
+                        .kafkaTopic()
+                        .forEach(taggedTopic ->
+                            topics.get(taggedTopic.name()).getSpec().setTags(taggedTopic.tags()));
+                }
+            });
+    }
+
+    /**
+     * Enrich topics with Confluent catalog information, using Confluent Stream Catalog REST API.
+     *
+     * @param topics Topics to enrich
+     */
+    public void enrichWithRestCatalogInfo(Map<String, Topic> topics) {
+        // getting topics by managing offset & limit
+        TopicListResponse topicListResponse;
+        int offset = 0;
+        int limit = confluentCloudProperties.getStreamCatalog().getPageSize();
+
+        do {
+            topicListResponse = schemaRegistryClient.getTopicsWithStreamCatalog(
+                managedClusterProperties.getName(), limit, offset).block();
+            if (topicListResponse == null) {
+                break;
+            }
+            topicListResponse.entities()
+                .stream()
+                .filter(topicEntity -> (topicEntity.attributes().description() != null
+                    || !topicEntity.classificationNames().isEmpty())
+                    && topics.containsKey(topicEntity.attributes().name()))
+                .forEach(topicEntity -> {
+                    topics.get(topicEntity.attributes().name()).getSpec()
+                        .setTags(topicEntity.classificationNames());
+                    topics.get(topicEntity.attributes().name()).getSpec()
+                        .setDescription(topicEntity.attributes().description());
+                });
+            offset += limit;
+        } while (!topicListResponse.entities().isEmpty());
     }
 
     /**

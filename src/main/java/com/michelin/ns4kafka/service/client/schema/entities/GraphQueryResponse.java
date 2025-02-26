@@ -17,29 +17,15 @@
  * under the License.
  */
 
-package com.michelin.ns4kafka.property;
+package com.michelin.ns4kafka.service.client.schema.entities;
 
-import io.micronaut.context.annotation.ConfigurationProperties;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Builder;
 
 /**
- * Confluent Cloud properties.
+ * GraphQL query response.
+ *
+ * @param data the response data
  */
-@Getter
-@Setter
-@ConfigurationProperties("ns4kafka.confluent-cloud")
-public class ConfluentCloudProperties {
-    private StreamCatalogProperties streamCatalog = new StreamCatalogProperties();
-
-    /**
-     * Stream Catalog properties.
-     */
-    @Getter
-    @Setter
-    @ConfigurationProperties("stream-catalog")
-    public static class StreamCatalogProperties {
-        private int pageSize = 500;
-        private boolean syncCatalog;
-    }
+@Builder
+public record GraphQueryResponse(GraphQueryData data) {
 }

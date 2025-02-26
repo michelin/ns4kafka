@@ -20,6 +20,7 @@
 package com.michelin.ns4kafka.service.client.schema;
 
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
+import com.michelin.ns4kafka.service.client.schema.entities.GraphQueryResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
@@ -47,6 +48,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -283,11 +285,28 @@ public class SchemaRegistryClient {
     }
 
     /**
-     * Add a tag to a topic.
+     * List tags.
      *
      * @param kafkaCluster The Kafka cluster
-     * @param tagSpecs     Tags to add
-     * @return Information about added tags
+     * @return List of existing tags
+     */
+    public Mono<List<TagInfo>> listTags(String kafkaCluster) {
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
+
+        HttpRequest<?> request = HttpRequest.GET(
+                URI.create(StringUtils.prependUri(config.getUrl(),
+                    "/catalog/v1/types/tagdefs")))
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+
+        return Mono.from(httpClient.retrieve(request, Argument.listOf(TagInfo.class)));
+    }
+
+    /**
+     * Add tags to a topic.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @param tagSpecs     The tags to add
+     * @return List of associated tags
      */
     public Mono<List<TagTopicInfo>> associateTags(String kafkaCluster, List<TagTopicInfo> tagSpecs) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
@@ -305,7 +324,7 @@ public class SchemaRegistryClient {
      *
      * @param tags         The list of tags to create
      * @param kafkaCluster The Kafka cluster
-     * @return Information about created tags
+     * @return List of created tags
      */
     public Mono<List<TagInfo>> createTags(String kafkaCluster, List<TagInfo> tags) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
@@ -319,10 +338,10 @@ public class SchemaRegistryClient {
     }
 
     /**
-     * Delete a tag to a topic.
+     * Delete a tag from a topic.
      *
      * @param kafkaCluster The Kafka cluster
-     * @param entityName   The topic's name
+     * @param entityName   The topic name
      * @param tagName      The tag to delete
      * @return The resume response
      */
@@ -338,12 +357,12 @@ public class SchemaRegistryClient {
     }
 
     /**
-     * List topics with catalog info, including tag & description.
+     * List topics with catalog info including tags & description, using Stream Catalog API.
      *
      * @param kafkaCluster The Kafka cluster
-     * @return A list of description
+     * @return The topics list with their catalog information
      */
-    public Mono<TopicListResponse> getTopicWithCatalogInfo(String kafkaCluster, int limit, int offset) {
+    public Mono<TopicListResponse> getTopicsWithStreamCatalog(String kafkaCluster, int limit, int offset) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
 
         HttpRequest<?> request = HttpRequest.GET(
@@ -355,10 +374,52 @@ public class SchemaRegistryClient {
     }
 
     /**
+     * Query Stream Catalog information, using GraphQL.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @param query        The GraphQL query
+     * @return The GraphQL response
+     */
+    private Mono<GraphQueryResponse> queryWithGraphQl(String kafkaCluster, String query) {
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
+
+        HttpRequest<?> request = HttpRequest.POST(
+                URI.create(StringUtils.prependUri(config.getUrl(),
+                    "/catalog/graphql")),
+                Map.of("query", query))
+            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+
+        return Mono.from(httpClient.retrieve(request, GraphQueryResponse.class));
+    }
+
+    /**
+     * List topics with tags, using GraphQL.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @return The GraphQL response containing the topics list with their tags
+     */
+    public Mono<GraphQueryResponse> getTopicsWithTagsWithGraphQl(String kafkaCluster, List<String> tagsNames) {
+        String query = "query { kafka_topic(tags: [" + String.join(",", tagsNames) + "]) { nameLower tags } }";
+
+        return queryWithGraphQl(kafkaCluster, query);
+    }
+
+    /**
+     * List topics with description, using GraphQL.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @return The GraphQL query response containing the topics list with their descriptions
+     */
+    public Mono<GraphQueryResponse> getTopicsWithDescriptionWithGraphQl(String kafkaCluster) {
+        String query = "query { kafka_topic(where: {description: {_gte: null}}) { nameLower description } }";
+        return queryWithGraphQl(kafkaCluster, query);
+    }
+
+    /**
      * Update a topic description.
      *
      * @param kafkaCluster The Kafka cluster
-     * @param body         The body passed to the request
+     * @param body         The body given to the request
      * @return Information about description
      */
     public Mono<HttpResponse<TopicDescriptionUpdateResponse>> updateDescription(String kafkaCluster,

@@ -17,29 +17,19 @@
  * under the License.
  */
 
-package com.michelin.ns4kafka.property;
+package com.michelin.ns4kafka.service.client.schema.entities;
 
-import io.micronaut.context.annotation.ConfigurationProperties;
-import lombok.Getter;
-import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
+import lombok.Builder;
 
 /**
- * Confluent Cloud properties.
+ * GraphQL query kafka topic.
+ *
+ * @param name        the topic name
+ * @param description the topic description
+ * @param tags        the topic tags
  */
-@Getter
-@Setter
-@ConfigurationProperties("ns4kafka.confluent-cloud")
-public class ConfluentCloudProperties {
-    private StreamCatalogProperties streamCatalog = new StreamCatalogProperties();
-
-    /**
-     * Stream Catalog properties.
-     */
-    @Getter
-    @Setter
-    @ConfigurationProperties("stream-catalog")
-    public static class StreamCatalogProperties {
-        private int pageSize = 500;
-        private boolean syncCatalog;
-    }
+@Builder
+public record GraphQueryTopic(@JsonProperty("nameLower") String name, String description, List<String> tags) {
 }
