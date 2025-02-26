@@ -598,7 +598,7 @@ class TopicAsyncExecutorTest {
     }
 
     @Test
-    void shouldEnrichWithCatalogInfoWithGraphQl() {
+    void shouldEnrichWithGraphQlCatalogInfo() {
         when(confluentCloudProperties.getStreamCatalog()).thenReturn(streamCatalogProperties);
         when(streamCatalogProperties.isSyncCatalog()).thenReturn(true);
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
@@ -734,7 +734,7 @@ class TopicAsyncExecutorTest {
     }
 
     @Test
-    void shouldEnrichMultipleTopicsWithCatalogInfoWithGraphQl() {
+    void shouldEnrichMultipleTopicsWithGraphQlCatalogInfo() {
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
         List<TagInfo> tags = List.of(TagInfo.builder().name(TAG1).build());
@@ -805,7 +805,7 @@ class TopicAsyncExecutorTest {
     }
 
     @Test
-    void shouldNotEnrichWithCatalogInfoWithGraphQlWhenResponseIsNull() {
+    void shouldNotEnrichWithGraphQlCatalogInfoWhenResponseIsNull() {
         List<TagInfo> tags = List.of(TagInfo.builder().name(TAG1).build());
 
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
@@ -935,7 +935,7 @@ class TopicAsyncExecutorTest {
     }
 
     @Test
-    void shouldEnrichMultipleTopicsWithCatalogInfoWithStreamCatalog() {
+    void shouldEnrichMultipleTopicsWithRestCatalogInfo() {
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
         when(confluentCloudProperties.getStreamCatalog()).thenReturn(streamCatalogProperties);
         when(streamCatalogProperties.getPageSize()).thenReturn(500);
