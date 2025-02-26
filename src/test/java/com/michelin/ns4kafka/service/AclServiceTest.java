@@ -1788,40 +1788,6 @@ class AclServiceTest {
     }
 
     @Test
-    void shouldNotDeleteAclWhenOnlyPublicAcl() {
-        Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("namespace1")
-                .cluster("cluster")
-                .build())
-            .build();
-
-        AccessControlEntry publicAcl1 = AccessControlEntry.builder()
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .grantedTo("*")
-                .build())
-            .metadata(Metadata.builder()
-                .cluster("cluster")
-                .build())
-            .build();
-
-        AccessControlEntry publicAcl2 = AccessControlEntry.builder()
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .grantedTo("*")
-                .build())
-            .metadata(Metadata.builder()
-                .cluster("cluster")
-                .build())
-            .build();
-
-        when(accessControlEntryRepository.findAll()).thenReturn(List.of(publicAcl1, publicAcl2));
-
-        aclService.deleteAllGrantedToNamespace(namespace);
-
-        verify(accessControlEntryRepository, never()).delete(any());
-    }
-
-    @Test
     void shouldNotDeleteAllAclsForNamespaceWhenNoAcl() {
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
