@@ -57,6 +57,16 @@ public class AclService {
     ApplicationContext applicationContext;
 
     /**
+     * Is public ACL.
+     *
+     * @param accessControlEntry The ACL
+     * @return A list of validation errors
+     */
+    public boolean isPublicAcl(AccessControlEntry accessControlEntry) {
+        return accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO);
+    }
+
+    /**
      * Validate a new ACL.
      *
      * @param accessControlEntry The ACL
@@ -103,7 +113,7 @@ public class AclService {
         Optional<Namespace> granteeNamespace =
             namespaceService.findByName(accessControlEntry.getSpec().getGrantedTo());
         boolean granteeExists = granteeNamespace.isPresent();
-        boolean granteeIsPublic = accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO);
+        boolean granteeIsPublic = isPublicAcl(accessControlEntry);
 
         if (!granteeExists && !granteeIsPublic) {
             validationErrors.add(invalidNotFound("grantedTo", accessControlEntry.getSpec().getGrantedTo()));
@@ -228,9 +238,9 @@ public class AclService {
         // Grantor Namespace is OWNER of Resource + ResourcePattern ?
         return findAllGrantedToNamespace(namespace)
             .stream()
-            .filter(ace -> ace.getSpec().getResourceType() == accessControlEntry.getSpec().getResourceType()
-                && ace.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
-            .anyMatch(ace -> {
+            .filter(acl -> acl.getSpec().getResourceType() == accessControlEntry.getSpec().getResourceType()
+                && acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
+            .anyMatch(acl -> {
                 // if grantor is owner of PREFIXED resource that starts with
                 // owner  PREFIXED: priv_bsm_
                 // grants LITERAL : priv_bsm_topic  OK
@@ -239,8 +249,8 @@ public class AclService {
                 // grants LITERAL : priv_b          NO
                 // grants PREFIXED: priv_bsm_       OK
                 // grants LITERAL : pric_bsm_       OK
-                if (ace.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.PREFIXED
-                    && accessControlEntry.getSpec().getResource().startsWith(ace.getSpec().getResource())) {
+                if (acl.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.PREFIXED
+                    && accessControlEntry.getSpec().getResource().startsWith(acl.getSpec().getResource())) {
                     // if so, either patternType are fine (LITERAL/PREFIXED)
                     return true;
                 }
@@ -253,10 +263,10 @@ public class AclService {
                 // grants LITERAL : priv_b          NO
                 // grants PREFIXED: priv_bsm_topic2 NO
                 // grants LITERAL : pric_bsm_topic2 NO
-                return ace.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.LITERAL
+                return acl.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.LITERAL
                     && accessControlEntry.getSpec().getResourcePatternType()
                     == AccessControlEntry.ResourcePatternType.LITERAL
-                    && accessControlEntry.getSpec().getResource().equals(ace.getSpec().getResource());
+                    && accessControlEntry.getSpec().getResource().equals(acl.getSpec().getResource());
             });
     }
 
@@ -295,7 +305,7 @@ public class AclService {
         return findAllForCluster(namespace.getMetadata().getCluster())
             .stream()
             .filter(acl -> acl.getSpec().getGrantedTo().equals(namespace.getMetadata().getName())
-                || acl.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO))
+                || isPublicAcl(acl))
             .toList();
     }
 
@@ -337,7 +347,7 @@ public class AclService {
             .stream()
             .filter(acl -> acl.getMetadata().getNamespace().equals(namespace.getMetadata().getName())
                 || acl.getSpec().getGrantedTo().equals(namespace.getMetadata().getName())
-                || acl.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO))
+                || isPublicAcl(acl))
             .toList();
     }
 
@@ -427,7 +437,7 @@ public class AclService {
     public List<AccessControlEntry> findAllPublicGrantedTo() {
         return accessControlEntryRepository.findAll()
             .stream()
-            .filter(accessControlEntry -> accessControlEntry.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO))
+            .filter(this::isPublicAcl)
             .toList();
     }
 
@@ -475,7 +485,8 @@ public class AclService {
      * @param resource     The resource name
      * @return true if it is, false otherwise
      */
-    public boolean isNamespaceOwnerOfResource(String namespace, AccessControlEntry.ResourceType resourceType,
+    public boolean isNamespaceOwnerOfResource(String namespace,
+                                              AccessControlEntry.ResourceType resourceType,
                                               String resource) {
         return accessControlEntryRepository.findAll()
             .stream()
@@ -514,5 +525,17 @@ public class AclService {
                 case PREFIXED -> resourceName.startsWith(acl.getSpec().getResource());
                 case LITERAL -> resourceName.equals(acl.getSpec().getResource());
             });
+    }
+
+    /**
+     * Delete all the ACLs granted to the given namespace.
+     *
+     * @param namespace The namespace
+     */
+    public void deleteAllGrantedToNamespace(Namespace namespace) {
+        findAllGrantedToNamespace(namespace)
+            .stream()
+            .filter(acl -> !isPublicAcl(acl))
+            .forEach(this::delete);
     }
 }
