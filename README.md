@@ -295,9 +295,9 @@ The configuration will depend on the authentication method selected for your bro
 
 ### Stream Catalog
 
-For Confluent Cloud only, you can activate the synchronization of topic tags and description in ns4kafka with topic tags and description in Confluent Cloud.
+For Confluent Cloud only, topic tags and description can be synchronized with Ns4kafka.
 
-The synchronization is done with the Confluent Stream Catalog GraphQL API if you have the appropriate Stream package on Confluent, otherwise with the Confluent Stream Catalog REST API.
+The synchronization is done with the [Confluent Stream Catalog GraphQL API](https://docs.confluent.io/cloud/current/stream-governance/graphql-apis.html) if you have the appropriate Stream Governance package on Confluent, otherwise with the [Confluent Stream Catalog REST API](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#list-all-topics).
 
 You can configure the synchronization using the following properties:
 
@@ -309,7 +309,7 @@ ns4kafka:
       sync-catalog: true
 ```
 
-The max page size is used for the Stream Catalog API and is capped at 500 as described in the [Confluent Cloud documentation](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#list-all-topics).
+The page size is used for the Stream Catalog REST API and is capped at 500 as described in the [Confluent Cloud documentation](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#limits-on-topic-listings).
 
 Reminder that the `config.cluster.id` parameter from [managed cluster properties](#managed-clusters) must be set to use Confluent Cloud.
 
