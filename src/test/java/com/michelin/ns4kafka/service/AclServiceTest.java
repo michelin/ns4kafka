@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -1735,7 +1736,7 @@ class AclServiceTest {
 
         aclService.deleteAllGrantedToNamespace(namespace);
 
-        verify(accessControlEntryRepository, times(2)).delete(any());
+        verify(accessControlEntryRepository, times(2)).delete(argThat(arg -> arg.equals(acl1) || arg.equals(acl2)));
         verify(accessControlEntryRepository, never()).delete(acl3);
     }
 
@@ -1782,12 +1783,12 @@ class AclServiceTest {
 
         aclService.deleteAllGrantedToNamespace(namespace);
 
-        verify(accessControlEntryRepository, times(2)).delete(any());
+        verify(accessControlEntryRepository, times(2)).delete(argThat(arg -> arg.equals(acl1) || arg.equals(acl2)));
         verify(accessControlEntryRepository, never()).delete(publicAcl);
     }
 
     @Test
-    void shouldNotDeletePublicAcl() {
+    void shouldNotDeleteAclWhenOnlyPublicAcl() {
         Namespace namespace = Namespace.builder()
             .metadata(Metadata.builder()
                 .name("namespace1")
@@ -1795,7 +1796,7 @@ class AclServiceTest {
                 .build())
             .build();
 
-        AccessControlEntry publicAcl = AccessControlEntry.builder()
+        AccessControlEntry publicAcl1 = AccessControlEntry.builder()
             .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                 .grantedTo("*")
                 .build())
@@ -1804,7 +1805,16 @@ class AclServiceTest {
                 .build())
             .build();
 
-        when(accessControlEntryRepository.findAll()).thenReturn(List.of(publicAcl));
+        AccessControlEntry publicAcl2 = AccessControlEntry.builder()
+            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                .grantedTo("*")
+                .build())
+            .metadata(Metadata.builder()
+                .cluster("cluster")
+                .build())
+            .build();
+
+        when(accessControlEntryRepository.findAll()).thenReturn(List.of(publicAcl1, publicAcl2));
 
         aclService.deleteAllGrantedToNamespace(namespace);
 
