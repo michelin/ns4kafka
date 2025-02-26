@@ -651,7 +651,7 @@ class TopicAsyncExecutorTest {
     }
 
     @Test
-    void shouldEnrichWithCatalogInfoWithStreamCatalogAfterExceptionInGraphQl() {
+    void shouldEnrichWithRestCatalogInfoAfterExceptionInGraphQl() {
         when(confluentCloudProperties.getStreamCatalog()).thenReturn(streamCatalogProperties);
         when(streamCatalogProperties.isSyncCatalog()).thenReturn(true);
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
@@ -790,7 +790,7 @@ class TopicAsyncExecutorTest {
                 .spec(Topic.TopicSpec.builder().build())
                 .build());
 
-        topicAsyncExecutor.enrichWithCatalogInfoWithGraphQl(brokerTopics);
+        topicAsyncExecutor.enrichWithGraphQlCatalogInfo(brokerTopics);
 
         assertEquals(brokerTopics.get(TOPIC_NAME).getSpec(),
             Topic.TopicSpec.builder()
@@ -831,7 +831,7 @@ class TopicAsyncExecutorTest {
                 .spec(Topic.TopicSpec.builder().build())
                 .build());
 
-        topicAsyncExecutor.enrichWithCatalogInfoWithGraphQl(brokerTopics);
+        topicAsyncExecutor.enrichWithGraphQlCatalogInfo(brokerTopics);
 
         assertNull(brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
         assertNull(brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());
@@ -862,7 +862,7 @@ class TopicAsyncExecutorTest {
                 .spec(Topic.TopicSpec.builder().build())
                 .build());
 
-        topicAsyncExecutor.enrichWithCatalogInfoWithGraphQl(brokerTopics);
+        topicAsyncExecutor.enrichWithGraphQlCatalogInfo(brokerTopics);
 
         assertNull(brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
         assertTrue(brokerTopics.get(TOPIC_NAME).getSpec().getTags().isEmpty());
@@ -897,7 +897,7 @@ class TopicAsyncExecutorTest {
                 .spec(Topic.TopicSpec.builder().build())
                 .build());
 
-        topicAsyncExecutor.enrichWithCatalogInfoWithGraphQl(brokerTopics);
+        topicAsyncExecutor.enrichWithGraphQlCatalogInfo(brokerTopics);
 
         assertNull(brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
         assertTrue(brokerTopics.get(TOPIC_NAME).getSpec().getTags().isEmpty());
@@ -928,7 +928,7 @@ class TopicAsyncExecutorTest {
                 .spec(Topic.TopicSpec.builder().build())
                 .build());
 
-        topicAsyncExecutor.enrichWithCatalogInfoWithGraphQl(brokerTopics);
+        topicAsyncExecutor.enrichWithGraphQlCatalogInfo(brokerTopics);
 
         assertNull(brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
         assertTrue(brokerTopics.get(TOPIC_NAME).getSpec().getTags().isEmpty());
@@ -1005,7 +1005,7 @@ class TopicAsyncExecutorTest {
                 .spec(Topic.TopicSpec.builder().build())
                 .build());
 
-        topicAsyncExecutor.enrichWithCatalogInfoWithStreamCatalog(brokerTopics);
+        topicAsyncExecutor.enrichWithRestCatalogInfo(brokerTopics);
 
         assertNull(brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
         assertTrue(brokerTopics.get(TOPIC_NAME).getSpec().getTags().isEmpty());
@@ -1018,7 +1018,7 @@ class TopicAsyncExecutorTest {
     }
 
     @Test
-    void shouldEnrichWithCatalogInfoWithStreamCatalogWhenResponseIsNull() {
+    void shouldEnrichWithRestCatalogInfoWhenResponseIsNull() {
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
         when(confluentCloudProperties.getStreamCatalog()).thenReturn(streamCatalogProperties);
         when(streamCatalogProperties.getPageSize()).thenReturn(500);
@@ -1040,7 +1040,7 @@ class TopicAsyncExecutorTest {
                 .spec(Topic.TopicSpec.builder().build())
                 .build());
 
-        topicAsyncExecutor.enrichWithCatalogInfoWithStreamCatalog(brokerTopics);
+        topicAsyncExecutor.enrichWithRestCatalogInfo(brokerTopics);
 
         assertNull(brokerTopics.get(TOPIC_NAME).getSpec().getDescription());
         assertNull(brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());

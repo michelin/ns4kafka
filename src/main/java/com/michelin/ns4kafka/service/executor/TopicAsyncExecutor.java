@@ -316,19 +316,19 @@ public class TopicAsyncExecutor {
         if (confluentCloudProperties.getStreamCatalog().isSyncCatalog()
             && managedClusterProperties.isConfluentCloud()) {
             try {
-                enrichWithCatalogInfoWithGraphQl(topics);
+                enrichWithGraphQlCatalogInfo(topics);
             } catch (Exception e) {
-                enrichWithCatalogInfoWithStreamCatalog(topics);
+                enrichWithRestCatalogInfo(topics);
             }
         }
     }
 
     /**
-     * Enrich topics with Confluent catalog information, using Confluent GraphQL API.
+     * Enrich topics with Confluent catalog information, using Confluent Stream Catalog GraphQL API.
      *
      * @param topics Topics to enrich
      */
-    public void enrichWithCatalogInfoWithGraphQl(Map<String, Topic> topics) {
+    public void enrichWithGraphQlCatalogInfo(Map<String, Topic> topics) {
         schemaRegistryClient.getTopicsWithDescriptionWithGraphQl(managedClusterProperties.getName())
             .subscribe(response -> {
                 if (response.data() != null && response.data().kafkaTopic() != null) {
@@ -361,11 +361,11 @@ public class TopicAsyncExecutor {
     }
 
     /**
-     * Enrich topics with Confluent catalog information, using Confluent Stream Catalog API.
+     * Enrich topics with Confluent catalog information, using Confluent Stream Catalog REST API.
      *
      * @param topics Topics to enrich
      */
-    public void enrichWithCatalogInfoWithStreamCatalog(Map<String, Topic> topics) {
+    public void enrichWithRestCatalogInfo(Map<String, Topic> topics) {
         // getting topics by managing offset & limit
         TopicListResponse topicListResponse;
         int offset = 0;

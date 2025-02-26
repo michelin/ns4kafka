@@ -295,18 +295,23 @@ The configuration will depend on the authentication method selected for your bro
 
 ### Stream Catalog
 
-For Confluent Cloud only, the Stream Catalog API is used to retrieve the list of topics with their tags and their description. Reminder that the `config.cluster.id` parameter from [managed cluster properties](#managed-clusters) must be set to use Confluent Cloud.
+For Confluent Cloud only, you can activate the synchronization of topic tags and description in ns4kafka with topic tags and description in Confluent Cloud.
 
-You can configure the page size of the response of the API using the following properties:
+The synchronization is done with the Confluent Stream Catalog GraphQL API if you have the appropriate Stream package on Confluent, otherwise with the Confluent Stream Catalog REST API.
+
+You can configure the synchronization using the following properties:
 
 ```yaml
 ns4kafka:
   confluent-cloud:
     stream-catalog:
       page-size: 500
+      sync-catalog: true
 ```
 
-The max page size is at 500 as described in the [Confluent Cloud documentation](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#list-all-topics).
+The max page size is used for the Stream Catalog API and is capped at 500 as described in the [Confluent Cloud documentation](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#list-all-topics).
+
+Reminder that the `config.cluster.id` parameter from [managed cluster properties](#managed-clusters) must be set to use Confluent Cloud.
 
 ### Managed Kafka Clusters
 

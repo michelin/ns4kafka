@@ -380,7 +380,7 @@ public class SchemaRegistryClient {
      * @param query        The GraphQL query
      * @return The GraphQL response
      */
-    public Mono<GraphQueryResponse> queryWithGraphQl(String kafkaCluster, String query) {
+    private Mono<GraphQueryResponse> queryWithGraphQl(String kafkaCluster, String query) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
 
         HttpRequest<?> request = HttpRequest.POST(
