@@ -43,6 +43,7 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
     * [Managed Kafka Clusters](#managed-kafka-clusters)
     * [AKHQ](#akhq)
     * [Sensitive Endpoints](#sensitive-endpoints)
+* [RapiDoc](#rapidoc)
 * [Administration](#administration)
 * [Contribution](#contribution)
 
@@ -473,6 +474,19 @@ the [Micronaut documentation](https://docs.micronaut.io/latest/guide/#providedEn
 These endpoints are disabled by default in Ns4Kafka and can be enabled by setting the `endpoints.*.enabled` property
 to `true`.
 When enabled, these endpoints require to be authenticated as an admin user to be accessed.
+
+## RapiDoc
+
+Ns4Kafka provides a [RapiDoc](https://rapidocweb.com/) interface to interact with the API.
+
+By default:
+- The RapiDoc interface is available at http://localhost:8080/rapidoc.
+- The OpenAPI description is available at http://localhost:8080/swagger/ns4kafka-0.1.yml.
+
+You can authenticate using the `POST /login` endpoint and then use the `HTTP Bearer` button to add the JWT token 
+in the `Authorization` header.
+
+Refers to the [Authentication](#authentication) section for details on the required credentials.
 
 ## Administration
 
