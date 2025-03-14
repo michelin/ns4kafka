@@ -102,7 +102,8 @@ public class TopicValidator extends ResourceValidator {
      * @param topic The topic
      * @return A list of validation errors
      * @see <a
-     *     href="https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/internals/Topic.java#L36">GitHub</a>
+     *     href="https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/internals/Topic.java#L36">
+     *     GitHub</a>
      */
     public List<String> validate(Topic topic) {
         List<String> validationErrors = new ArrayList<>();

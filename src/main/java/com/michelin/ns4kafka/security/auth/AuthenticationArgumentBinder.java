@@ -30,9 +30,8 @@ import java.util.Optional;
  * Authentication argument binder. Binds the AuthenticationInfo from the Authentication, so it can be injected in the
  * controllers.
  *
- * @see <a
- *     href="https://micronaut-projects.github.io/micronaut-security/latest/guide/#customAuthenticatedUser">Micronaut
- *     Custom Binding</a>
+ * @see <a href="https://micronaut-projects.github.io/micronaut-security/latest/guide/#customAuthenticatedUser">
+ *     Micronaut Custom Binding</a>
  */
 @Singleton
 public class AuthenticationArgumentBinder implements TypedRequestArgumentBinder<AuthenticationInfo> {
