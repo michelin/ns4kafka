@@ -32,7 +32,7 @@ import java.util.List;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-/** Kafka role binding repository. */
+/** Kafka Role Binding repository. */
 @Singleton
 @KafkaListener(
         offsetReset = OffsetReset.EARLIEST,

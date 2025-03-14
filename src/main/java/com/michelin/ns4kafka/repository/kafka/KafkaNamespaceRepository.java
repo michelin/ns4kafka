@@ -32,7 +32,7 @@ import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-/** Kafka namespace repository. */
+/** Kafka Namespace repository. */
 @Singleton
 @KafkaListener(
         offsetReset = OffsetReset.EARLIEST,

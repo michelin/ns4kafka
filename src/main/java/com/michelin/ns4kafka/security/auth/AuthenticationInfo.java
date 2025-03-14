@@ -31,8 +31,9 @@ import lombok.Getter;
  * Authentication info. Type-safe representation of the authentication information and attributes. This class can be
  * injected in controllers to get the authenticated user information.
  *
- * @see <a href="https://micronaut-projects.github.io/micronaut-security/latest/guide/#customAuthenticatedUser">
- *     Micronaut Custom Binding</a>
+ * @see <a
+ *     href="https://micronaut-projects.github.io/micronaut-security/latest/guide/#customAuthenticatedUser">Micronaut
+ *     Custom Binding</a>
  */
 @Getter
 @Builder

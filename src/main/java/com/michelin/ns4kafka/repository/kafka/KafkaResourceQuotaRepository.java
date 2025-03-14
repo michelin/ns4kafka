@@ -33,7 +33,7 @@ import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-/** Kafka resource quota repository. */
+/** Kafka Resource Quota repository. */
 @Singleton
 @KafkaListener(
         offsetReset = OffsetReset.EARLIEST,

@@ -289,7 +289,7 @@ public abstract class KafkaStore<T> {
     }
 
     /**
-     * Handle a new consumed record. See:
+     * Handle a new consumed record See:
      * /core/src/main/java/io/confluent/kafka/schemaregistry/storage/KafkaStoreReaderThread.java#L326
      *
      * @param message The record
