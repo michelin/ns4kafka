@@ -16,15 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.util.config;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-/**
- * Connector configuration.
- */
+/** Connector configuration. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ConnectorConfig {
     public static final String CONNECTOR_CLASS = "connector.class";

@@ -16,16 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller.generic;
 
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.service.NamespaceService;
 import jakarta.inject.Inject;
 
-/**
- * Namespaced resource controller.
- */
+/** Namespaced resource controller. */
 public abstract class NamespacedResourceController extends ResourceController {
     @Inject
     private NamespaceService namespaceService;

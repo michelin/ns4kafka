@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.repository.kafka;
 
 import io.micronaut.context.event.ApplicationEventListener;
@@ -25,17 +24,15 @@ import jakarta.inject.Inject;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Delay startup listener.
- */
+/** Delay startup listener. */
 @Slf4j
 public class DelayStartupListener implements ApplicationEventListener<StartupEvent> {
     @Inject
     List<KafkaStore<?>> kafkaStores;
 
     /**
-     * Wait for KafkaStores to be ready before starting the HTTP listener.
-     * This is required to avoid serving requests before KafkaStores are ready.
+     * Wait for KafkaStores to be ready before starting the HTTP listener. This is required to avoid serving requests
+     * before KafkaStores are ready.
      *
      * @param event the event to respond to
      */

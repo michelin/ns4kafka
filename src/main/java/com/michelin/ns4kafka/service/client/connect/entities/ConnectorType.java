@@ -16,18 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service.client.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Locale;
 
-/**
- * Connector type.
- */
+/** Connector type. */
 public enum ConnectorType {
-    SOURCE, SINK, UNKNOWN;
+    SOURCE,
+    SINK,
+    UNKNOWN;
 
     @JsonCreator
     public static ConnectorType forValue(String value) {

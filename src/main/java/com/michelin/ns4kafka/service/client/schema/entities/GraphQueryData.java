@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service.client.schema.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -29,5 +28,4 @@ import lombok.Builder;
  * @param kafkaTopic the list of queried kafka topics
  */
 @Builder
-public record GraphQueryData(@JsonProperty("kafka_topic") List<GraphQueryTopic> kafkaTopic) {
-}
+public record GraphQueryData(@JsonProperty("kafka_topic") List<GraphQueryTopic> kafkaTopic) {}

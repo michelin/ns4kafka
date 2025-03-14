@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.ROLE_BINDING;
@@ -33,22 +32,18 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-/**
- * Role binding.
- */
+/** Role binding. */
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
 public class RoleBinding extends MetadataResource {
-    @Valid
-    @NotNull
-    private RoleBindingSpec spec;
+    @Valid @NotNull private RoleBindingSpec spec;
 
     /**
      * Constructor.
      *
      * @param metadata The metadata
-     * @param spec     The spec
+     * @param spec The spec
      */
     @Builder
     public RoleBinding(Metadata metadata, RoleBindingSpec spec) {
@@ -56,9 +51,7 @@ public class RoleBinding extends MetadataResource {
         this.spec = spec;
     }
 
-    /**
-     * HTTP verbs.
-     */
+    /** HTTP verbs. */
     public enum Verb {
         GET,
         POST,
@@ -66,64 +59,45 @@ public class RoleBinding extends MetadataResource {
         DELETE
     }
 
-    /**
-     * Subject type.
-     */
+    /** Subject type. */
     public enum SubjectType {
         GROUP,
         USER
     }
 
-    /**
-     * Role binding spec.
-     */
+    /** Role binding spec. */
     @Data
     @Builder
     @Introspected
     @NoArgsConstructor
     @AllArgsConstructor
     public static class RoleBindingSpec {
-        @Valid
-        @NotNull
-        private Role role;
+        @Valid @NotNull private Role role;
 
-        @Valid
-        @NotNull
-        private Subject subject;
+        @Valid @NotNull private Subject subject;
     }
 
-    /**
-     * Role.
-     */
+    /** Role. */
     @Data
     @Builder
     @Introspected
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Role {
-        @NotNull
-        @NotEmpty
-        private Collection<String> resourceTypes;
+        @NotNull @NotEmpty private Collection<String> resourceTypes;
 
-        @NotNull
-        @NotEmpty
-        private Collection<Verb> verbs;
+        @NotNull @NotEmpty private Collection<Verb> verbs;
     }
 
-    /**
-     * Subject.
-     */
+    /** Subject. */
     @Data
     @Builder
     @Introspected
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Subject {
-        @NotNull
-        private SubjectType subjectType;
+        @NotNull private SubjectType subjectType;
 
-        @NotNull
-        @NotBlank
-        private String subjectName;
+        @NotNull @NotBlank private String subjectName;
     }
 }

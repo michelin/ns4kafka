@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller.quota;
 
 import com.michelin.ns4kafka.controller.generic.NonNamespacedResourceController;
@@ -31,9 +30,7 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import java.util.List;
 
-/**
- * Non namespaced resource quota controller.
- */
+/** Non namespaced resource quota controller. */
 @Tag(name = "Quotas", description = "Manage the resource quotas.")
 @Controller(value = "/api/resource-quotas")
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)

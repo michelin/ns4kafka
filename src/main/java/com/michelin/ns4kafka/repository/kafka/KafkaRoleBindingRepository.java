@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.repository.kafka;
 
 import com.michelin.ns4kafka.model.RoleBinding;
@@ -33,25 +32,22 @@ import java.util.List;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-/**
- * Kafka Role Binding repository.
- */
+/** Kafka Role Binding repository. */
 @Singleton
 @KafkaListener(
-    offsetReset = OffsetReset.EARLIEST,
-    groupId = "${ns4kafka.store.kafka.group-id}",
-    offsetStrategy = OffsetStrategy.DISABLED
-)
+        offsetReset = OffsetReset.EARLIEST,
+        groupId = "${ns4kafka.store.kafka.group-id}",
+        offsetStrategy = OffsetStrategy.DISABLED)
 public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implements RoleBindingRepository {
     /**
      * Constructor.
      *
-     * @param kafkaTopic    The role bindings topic
+     * @param kafkaTopic The role bindings topic
      * @param kafkaProducer The role bindings kafka producer
      */
-    public KafkaRoleBindingRepository(@Value("${ns4kafka.store.kafka.topics.prefix}.role-bindings") String kafkaTopic,
-                                      @KafkaClient("role-binding-producer")
-                                      Producer<String, RoleBinding> kafkaProducer) {
+    public KafkaRoleBindingRepository(
+            @Value("${ns4kafka.store.kafka.topics.prefix}.role-bindings") String kafkaTopic,
+            @KafkaClient("role-binding-producer") Producer<String, RoleBinding> kafkaProducer) {
         super(kafkaTopic, kafkaProducer);
     }
 
@@ -63,7 +59,8 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
      */
     @Override
     String getMessageKey(RoleBinding roleBinding) {
-        return roleBinding.getMetadata().getNamespace() + "-" + roleBinding.getMetadata().getName();
+        return roleBinding.getMetadata().getNamespace() + "-"
+                + roleBinding.getMetadata().getName();
     }
 
     /**
@@ -106,13 +103,16 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
      */
     @Override
     public List<RoleBinding> findAllForGroups(Collection<String> groups) {
-        return getKafkaStore().values()
-            .stream()
-            .filter(roleBinding -> groups
-                .stream()
-                .anyMatch(group -> roleBinding.getSpec().getSubject().getSubjectType() == RoleBinding.SubjectType.GROUP
-                    && roleBinding.getSpec().getSubject().getSubjectName().equals(group)))
-            .toList();
+        return getKafkaStore().values().stream()
+                .filter(roleBinding -> groups.stream()
+                        .anyMatch(group ->
+                                roleBinding.getSpec().getSubject().getSubjectType() == RoleBinding.SubjectType.GROUP
+                                        && roleBinding
+                                                .getSpec()
+                                                .getSubject()
+                                                .getSubjectName()
+                                                .equals(group)))
+                .toList();
     }
 
     /**
@@ -123,9 +123,8 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
      */
     @Override
     public List<RoleBinding> findAllForNamespace(String namespace) {
-        return getKafkaStore().values()
-            .stream()
-            .filter(roleBinding -> roleBinding.getMetadata().getNamespace().equals(namespace))
-            .toList();
+        return getKafkaStore().values().stream()
+                .filter(roleBinding -> roleBinding.getMetadata().getNamespace().equals(namespace))
+                .toList();
     }
 }

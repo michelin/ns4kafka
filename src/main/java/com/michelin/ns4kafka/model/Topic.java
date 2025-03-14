@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.TOPIC;
@@ -41,16 +40,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Topic.
- */
+/** Topic. */
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
 public class Topic extends MetadataResource {
-    @Valid
-    @NotNull
-    private TopicSpec spec;
+    @Valid @NotNull private TopicSpec spec;
 
     @EqualsAndHashCode.Exclude
     private TopicStatus status;
@@ -59,8 +54,8 @@ public class Topic extends MetadataResource {
      * Constructor.
      *
      * @param metadata The metadata
-     * @param spec     The spec
-     * @param status   The status
+     * @param spec The spec
+     * @param status The status
      */
     @Builder
     public Topic(Metadata metadata, TopicSpec spec, TopicStatus status) {
@@ -69,9 +64,7 @@ public class Topic extends MetadataResource {
         this.status = status;
     }
 
-    /**
-     * Topic spec.
-     */
+    /** Topic spec. */
     @Data
     @Builder
     @Introspected
@@ -80,16 +73,16 @@ public class Topic extends MetadataResource {
     public static class TopicSpec {
         private int replicationFactor;
         private int partitions;
+
         @Builder.Default
         @JsonSetter(nulls = Nulls.AS_EMPTY)
         private List<String> tags = new ArrayList<>();
+
         private String description;
         private Map<String, String> configs;
     }
 
-    /**
-     * Topic status.
-     */
+    /** Topic status. */
     @Getter
     @Setter
     @Builder
@@ -111,10 +104,10 @@ public class Topic extends MetadataResource {
          */
         public static TopicStatus ofSuccess(String message) {
             return TopicStatus.builder()
-                .phase(TopicPhase.Success)
-                .message(message)
-                .lastUpdateTime(Date.from(Instant.now()))
-                .build();
+                    .phase(TopicPhase.Success)
+                    .message(message)
+                    .lastUpdateTime(Date.from(Instant.now()))
+                    .build();
         }
 
         /**
@@ -125,10 +118,10 @@ public class Topic extends MetadataResource {
          */
         public static TopicStatus ofFailed(String message) {
             return TopicStatus.builder()
-                .phase(TopicPhase.Failed)
-                .message(message)
-                .lastUpdateTime(Date.from(Instant.now()))
-                .build();
+                    .phase(TopicPhase.Failed)
+                    .message(message)
+                    .lastUpdateTime(Date.from(Instant.now()))
+                    .build();
         }
 
         /**
@@ -138,15 +131,13 @@ public class Topic extends MetadataResource {
          */
         public static TopicStatus ofPending() {
             return Topic.TopicStatus.builder()
-                .phase(Topic.TopicPhase.Pending)
-                .message("Awaiting processing by executor")
-                .build();
+                    .phase(Topic.TopicPhase.Pending)
+                    .message("Awaiting processing by executor")
+                    .build();
         }
     }
 
-    /**
-     * Topic phase.
-     */
+    /** Topic phase. */
     public enum TopicPhase {
         Pending,
         Success,

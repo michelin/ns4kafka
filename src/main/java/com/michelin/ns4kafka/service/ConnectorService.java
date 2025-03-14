@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConnectorConnectCluster;
@@ -49,9 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/**
- * Service to manage connectors.
- */
+/** Service to manage connectors. */
 @Slf4j
 @Singleton
 public class ConnectorService {
@@ -77,42 +74,40 @@ public class ConnectorService {
      * @return A list of connectors
      */
     public List<Connector> findAllForNamespace(Namespace namespace) {
-        List<AccessControlEntry> acls = aclService
-            .findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.CONNECT);
-        return connectorRepository.findAllForCluster(namespace.getMetadata().getCluster())
-            .stream()
-            .filter(connector -> aclService.isResourceCoveredByAcls(acls, connector.getMetadata().getName()))
-            .toList();
+        List<AccessControlEntry> acls =
+                aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.CONNECT);
+        return connectorRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
+                .filter(connector -> aclService.isResourceCoveredByAcls(
+                        acls, connector.getMetadata().getName()))
+                .toList();
     }
 
     /**
      * Find all connectors by given namespace, filtered by name parameter.
      *
      * @param namespace The namespace
-     * @param name      The name parameter
+     * @param name The name parameter
      * @return A list of connectors
      */
     public List<Connector> findByWildcardName(Namespace namespace, String name) {
         List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
-        return findAllForNamespace(namespace)
-            .stream()
-            .filter(connector -> RegexUtils
-                .isResourceCoveredByRegex(connector.getMetadata().getName(), nameFilterPatterns))
-            .toList();
+        return findAllForNamespace(namespace).stream()
+                .filter(connector -> RegexUtils.isResourceCoveredByRegex(
+                        connector.getMetadata().getName(), nameFilterPatterns))
+                .toList();
     }
 
     /**
      * Find all connectors by given namespace and Connect cluster.
      *
-     * @param namespace      The namespace
+     * @param namespace The namespace
      * @param connectCluster The Connect cluster
      * @return A list of connectors
      */
     public List<Connector> findAllByConnectCluster(Namespace namespace, String connectCluster) {
-        return connectorRepository.findAllForCluster(namespace.getMetadata().getCluster())
-            .stream()
-            .filter(connector -> connector.getSpec().getConnectCluster().equals(connectCluster))
-            .toList();
+        return connectorRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
+                .filter(connector -> connector.getSpec().getConnectCluster().equals(connectCluster))
+                .toList();
     }
 
     /**
@@ -123,10 +118,9 @@ public class ConnectorService {
      * @return An optional connector
      */
     public Optional<Connector> findByName(Namespace namespace, String connector) {
-        return findAllForNamespace(namespace)
-            .stream()
-            .filter(connect -> connect.getMetadata().getName().equals(connector))
-            .findFirst();
+        return findAllForNamespace(namespace).stream()
+                .filter(connect -> connect.getMetadata().getName().equals(connector))
+                .findFirst();
     }
 
     /**
@@ -138,18 +132,21 @@ public class ConnectorService {
      */
     public Mono<List<String>> validateLocally(Namespace namespace, Connector connector) {
         // Check whether target Connect Cluster is allowed for this namespace
-        List<String> selfDeployedConnectClusters = connectClusterService
-            .findAllForNamespaceWithWritePermission(namespace)
-            .stream()
-            .map(connectCluster -> connectCluster.getMetadata().getName()).toList();
+        List<String> selfDeployedConnectClusters =
+                connectClusterService.findAllForNamespaceWithWritePermission(namespace).stream()
+                        .map(connectCluster -> connectCluster.getMetadata().getName())
+                        .toList();
 
-        if (!namespace.getSpec().getConnectClusters().contains(connector.getSpec().getConnectCluster())
-            && !selfDeployedConnectClusters.contains(connector.getSpec().getConnectCluster())) {
-            String allowedConnectClusters =
-                Stream.concat(namespace.getSpec().getConnectClusters().stream(), selfDeployedConnectClusters.stream())
+        if (!namespace
+                        .getSpec()
+                        .getConnectClusters()
+                        .contains(connector.getSpec().getConnectCluster())
+                && !selfDeployedConnectClusters.contains(connector.getSpec().getConnectCluster())) {
+            String allowedConnectClusters = Stream.concat(
+                            namespace.getSpec().getConnectClusters().stream(), selfDeployedConnectClusters.stream())
                     .collect(Collectors.joining(", "));
-            return Mono.just(List.of(invalidConnectorConnectCluster(connector.getSpec().getConnectCluster(),
-                allowedConnectClusters)));
+            return Mono.just(List.of(
+                    invalidConnectorConnectCluster(connector.getSpec().getConnectCluster(), allowedConnectClusters)));
         }
 
         // If class does not exist, no need to go further
@@ -158,36 +155,40 @@ public class ConnectorService {
         }
 
         // Connector type exists on this target connect cluster
-        return kafkaConnectClient.connectPlugins(namespace.getMetadata().getCluster(),
-                connector.getSpec().getConnectCluster())
-            .map(connectorPluginInfos -> {
-                Optional<String> connectorType = connectorPluginInfos
-                    .stream()
-                    .filter(connectPluginItem -> connectPluginItem.className()
-                        .equals(connector.getSpec().getConfig().get(CONNECTOR_CLASS)))
-                    .map(connectorPluginInfo -> connectorPluginInfo.type().toString().toLowerCase(Locale.ROOT))
-                    .findFirst();
+        return kafkaConnectClient
+                .connectPlugins(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster())
+                .map(connectorPluginInfos -> {
+                    Optional<String> connectorType = connectorPluginInfos.stream()
+                            .filter(connectPluginItem -> connectPluginItem
+                                    .className()
+                                    .equals(connector.getSpec().getConfig().get(CONNECTOR_CLASS)))
+                            .map(connectorPluginInfo ->
+                                    connectorPluginInfo.type().toString().toLowerCase(Locale.ROOT))
+                            .findFirst();
 
-                if (connectorType.isEmpty()) {
-                    return List.of(invalidConnectorNoPlugin(connector.getSpec().getConfig().get(CONNECTOR_CLASS)));
-                }
+                    if (connectorType.isEmpty()) {
+                        return List.of(invalidConnectorNoPlugin(
+                                connector.getSpec().getConfig().get(CONNECTOR_CLASS)));
+                    }
 
-                return namespace.getSpec().getConnectValidator() != null
-                    ? namespace.getSpec().getConnectValidator().validate(connector, connectorType.get())
-                    : Collections.emptyList();
-            });
+                    return namespace.getSpec().getConnectValidator() != null
+                            ? namespace.getSpec().getConnectValidator().validate(connector, connectorType.get())
+                            : Collections.emptyList();
+                });
     }
 
     /**
      * Is given namespace owner of the given connector.
      *
      * @param namespace The namespace
-     * @param connect   The connector
+     * @param connect The connector
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceOwnerOfConnect(Namespace namespace, String connect) {
-        return aclService.isNamespaceOwnerOfResource(namespace.getMetadata().getName(),
-            AccessControlEntry.ResourceType.CONNECT, connect);
+        return aclService.isNamespaceOwnerOfResource(
+                namespace.getMetadata().getName(), AccessControlEntry.ResourceType.CONNECT, connect);
     }
 
     /**
@@ -198,20 +199,20 @@ public class ConnectorService {
      * @return A list of errors
      */
     public Mono<List<String>> validateRemotely(Namespace namespace, Connector connector) {
-        return kafkaConnectClient.validate(namespace.getMetadata().getCluster(),
-                connector.getSpec().getConnectCluster(),
-                connector.getSpec().getConfig().get(CONNECTOR_CLASS),
-                ConnectorSpecs.builder()
-                    .config(connector.getSpec().getConfig())
-                    .build()
-            )
-            .map(configInfos -> configInfos.configs()
-                .stream()
-                .filter(configInfo -> !configInfo.configValue().errors().isEmpty())
-                .flatMap(configInfo -> configInfo.configValue().errors()
-                    .stream()
-                    .map(error -> FormatErrorUtils.invalidConnectorRemote(connector.getMetadata().getName(), error)))
-                .toList());
+        return kafkaConnectClient
+                .validate(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getSpec().getConfig().get(CONNECTOR_CLASS),
+                        ConnectorSpecs.builder()
+                                .config(connector.getSpec().getConfig())
+                                .build())
+                .map(configInfos -> configInfos.configs().stream()
+                        .filter(configInfo -> !configInfo.configValue().errors().isEmpty())
+                        .flatMap(configInfo -> configInfo.configValue().errors().stream()
+                                .map(error -> FormatErrorUtils.invalidConnectorRemote(
+                                        connector.getMetadata().getName(), error)))
+                        .toList());
     }
 
     /**
@@ -231,20 +232,24 @@ public class ConnectorService {
      * @param connector The connector
      */
     public Mono<HttpResponse<Void>> delete(Namespace namespace, Connector connector) {
-        return kafkaConnectClient.delete(namespace.getMetadata().getCluster(), connector.getSpec().getConnectCluster(),
-                connector.getMetadata().getName())
-            .defaultIfEmpty(HttpResponse.noContent())
-            .map(httpResponse -> {
-                connectorRepository.delete(connector);
+        return kafkaConnectClient
+                .delete(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName())
+                .defaultIfEmpty(HttpResponse.noContent())
+                .map(httpResponse -> {
+                    connectorRepository.delete(connector);
 
-                if (log.isInfoEnabled()) {
-                    log.info("Success removing Connector [" + connector.getMetadata().getName()
-                        + "] on Kafka [" + namespace.getMetadata().getName()
-                        + "] Connect [" + connector.getSpec().getConnectCluster() + "]");
-                }
+                    if (log.isInfoEnabled()) {
+                        log.info("Success removing Connector ["
+                                + connector.getMetadata().getName()
+                                + "] on Kafka [" + namespace.getMetadata().getName()
+                                + "] Connect [" + connector.getSpec().getConnectCluster() + "]");
+                    }
 
-                return httpResponse;
-            });
+                    return httpResponse;
+                });
     }
 
     /**
@@ -254,19 +259,22 @@ public class ConnectorService {
      * @return The list of connectors
      */
     public Flux<Connector> listUnsynchronizedConnectors(Namespace namespace) {
-        ConnectorAsyncExecutor connectorAsyncExecutor = applicationContext.getBean(ConnectorAsyncExecutor.class,
-            Qualifiers.byName(namespace.getMetadata().getCluster()));
+        ConnectorAsyncExecutor connectorAsyncExecutor = applicationContext.getBean(
+                ConnectorAsyncExecutor.class,
+                Qualifiers.byName(namespace.getMetadata().getCluster()));
 
         // Get all connectors from all connect clusters
-        Stream<String> connectClusters = Stream.concat(namespace.getSpec().getConnectClusters().stream(),
-            connectClusterService.findAllForNamespaceWithWritePermission(namespace)
-                .stream()
-                .map(connectCluster -> connectCluster.getMetadata().getName()));
+        Stream<String> connectClusters = Stream.concat(
+                namespace.getSpec().getConnectClusters().stream(),
+                connectClusterService.findAllForNamespaceWithWritePermission(namespace).stream()
+                        .map(connectCluster -> connectCluster.getMetadata().getName()));
 
-        return Flux.fromStream(connectClusters)
-            .flatMap(connectClusterName -> connectorAsyncExecutor.collectBrokerConnectors(connectClusterName)
-                .filter(connector -> isNamespaceOwnerOfConnect(namespace, connector.getMetadata().getName()))
-                .filter(connector -> findByName(namespace, connector.getMetadata().getName()).isEmpty()));
+        return Flux.fromStream(connectClusters).flatMap(connectClusterName -> connectorAsyncExecutor
+                .collectBrokerConnectors(connectClusterName)
+                .filter(connector -> isNamespaceOwnerOfConnect(
+                        namespace, connector.getMetadata().getName()))
+                .filter(connector ->
+                        findByName(namespace, connector.getMetadata().getName()).isEmpty()));
     }
 
     /**
@@ -277,16 +285,23 @@ public class ConnectorService {
      * @return An HTTP response
      */
     public Mono<HttpResponse<Void>> restart(Namespace namespace, Connector connector) {
-        return kafkaConnectClient.status(namespace.getMetadata().getCluster(), connector.getSpec().getConnectCluster(),
-                connector.getMetadata().getName())
-            .flatMap(status -> Flux.fromIterable(status.tasks())
-                .flatMap(task -> kafkaConnectClient.restart(namespace.getMetadata().getCluster(),
-                    connector.getSpec().getConnectCluster(), connector.getMetadata().getName(), task.getId()))
-                .doOnNext(restart -> log.info("Success restarting connector [{}] on namespace [{}] connect [{}]",
-                    connector.getMetadata().getName(),
-                    namespace.getMetadata().getName(),
-                    connector.getSpec().getConnectCluster()))
-                .then(Mono.just(HttpResponse.ok())));
+        return kafkaConnectClient
+                .status(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName())
+                .flatMap(status -> Flux.fromIterable(status.tasks())
+                        .flatMap(task -> kafkaConnectClient.restart(
+                                namespace.getMetadata().getCluster(),
+                                connector.getSpec().getConnectCluster(),
+                                connector.getMetadata().getName(),
+                                task.getId()))
+                        .doOnNext(restart -> log.info(
+                                "Success restarting connector [{}] on namespace [{}] connect [{}]",
+                                connector.getMetadata().getName(),
+                                namespace.getMetadata().getName(),
+                                connector.getSpec().getConnectCluster()))
+                        .then(Mono.just(HttpResponse.ok())));
     }
 
     /**
@@ -297,16 +312,20 @@ public class ConnectorService {
      * @return An HTTP response
      */
     public Mono<HttpResponse<Void>> pause(Namespace namespace, Connector connector) {
-        return kafkaConnectClient.pause(namespace.getMetadata().getCluster(),
-                connector.getSpec().getConnectCluster(), connector.getMetadata().getName())
-            .map(pause -> {
-                log.info("Success pausing Connector [{}] on Namespace [{}] Connect [{}]",
-                    connector.getMetadata().getName(),
-                    namespace.getMetadata().getName(),
-                    connector.getSpec().getConnectCluster());
+        return kafkaConnectClient
+                .pause(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName())
+                .map(pause -> {
+                    log.info(
+                            "Success pausing Connector [{}] on Namespace [{}] Connect [{}]",
+                            connector.getMetadata().getName(),
+                            namespace.getMetadata().getName(),
+                            connector.getSpec().getConnectCluster());
 
-                return HttpResponse.accepted();
-            });
+                    return HttpResponse.accepted();
+                });
     }
 
     /**
@@ -317,15 +336,19 @@ public class ConnectorService {
      * @return An HTTP response
      */
     public Mono<HttpResponse<Void>> resume(Namespace namespace, Connector connector) {
-        return kafkaConnectClient.resume(namespace.getMetadata().getCluster(),
-                connector.getSpec().getConnectCluster(), connector.getMetadata().getName())
-            .map(resume -> {
-                log.info("Success resuming Connector [{}] on Namespace [{}] Connect [{}]",
-                    connector.getMetadata().getName(),
-                    namespace.getMetadata().getName(),
-                    connector.getSpec().getConnectCluster());
+        return kafkaConnectClient
+                .resume(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName())
+                .map(resume -> {
+                    log.info(
+                            "Success resuming Connector [{}] on Namespace [{}] Connect [{}]",
+                            connector.getMetadata().getName(),
+                            namespace.getMetadata().getName(),
+                            connector.getSpec().getConnectCluster());
 
-                return HttpResponse.accepted();
-            });
+                    return HttpResponse.accepted();
+                });
     }
 }

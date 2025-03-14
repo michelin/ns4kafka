@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.repository.kafka;
 
 import com.michelin.ns4kafka.model.connector.Connector;
@@ -32,24 +31,23 @@ import java.util.List;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-/**
- * Kafka Connector repository.
- */
+/** Kafka Connector repository. */
 @Singleton
 @KafkaListener(
-    offsetReset = OffsetReset.EARLIEST,
-    groupId = "${ns4kafka.store.kafka.group-id}",
-    offsetStrategy = OffsetStrategy.DISABLED
-)
+        offsetReset = OffsetReset.EARLIEST,
+        groupId = "${ns4kafka.store.kafka.group-id}",
+        offsetStrategy = OffsetStrategy.DISABLED)
 public class KafkaConnectorRepository extends KafkaStore<Connector> implements ConnectorRepository {
-    public KafkaConnectorRepository(@Value("${ns4kafka.store.kafka.topics.prefix}.connectors") String kafkaTopic,
-                                    @KafkaClient("connectors-producer") Producer<String, Connector> kafkaProducer) {
+    public KafkaConnectorRepository(
+            @Value("${ns4kafka.store.kafka.topics.prefix}.connectors") String kafkaTopic,
+            @KafkaClient("connectors-producer") Producer<String, Connector> kafkaProducer) {
         super(kafkaTopic, kafkaProducer);
     }
 
     @Override
     String getMessageKey(Connector connector) {
-        return connector.getMetadata().getNamespace() + "/" + connector.getMetadata().getName();
+        return connector.getMetadata().getNamespace() + "/"
+                + connector.getMetadata().getName();
     }
 
     @Override
@@ -88,7 +86,7 @@ public class KafkaConnectorRepository extends KafkaStore<Connector> implements C
     @Override
     public List<Connector> findAllForCluster(String cluster) {
         return getKafkaStore().values().stream()
-            .filter(connector -> connector.getMetadata().getCluster().equals(cluster))
-            .toList();
+                .filter(connector -> connector.getMetadata().getCluster().equals(cluster))
+                .toList();
     }
 }

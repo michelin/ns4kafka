@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.security.auth.gitlab;
 
 import io.micronaut.http.HttpResponse;
@@ -28,21 +27,19 @@ import java.util.Map;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/**
- * Gitlab API client.
- */
+/** Gitlab API client. */
 @Client("${micronaut.security.gitlab.url}")
 public interface GitlabApiClient {
     /**
      * Get user groups.
      *
      * @param token The user token
-     * @param page  The current page to fetch groups
+     * @param page The current page to fetch groups
      * @return The groups
      */
     @Get("/api/v4/groups?min_access_level=10&sort=asc&page={page}&per_page=100")
-    Flux<HttpResponse<List<Map<String, Object>>>> getGroupsPage(@Header(value = "PRIVATE-TOKEN") String token,
-                                                                int page);
+    Flux<HttpResponse<List<Map<String, Object>>>> getGroupsPage(
+            @Header(value = "PRIVATE-TOKEN") String token, int page);
 
     /**
      * Find a user by given token.

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.security.auth.gitlab;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -61,118 +60,119 @@ class GitlabAuthenticationProviderTest {
     @SuppressWarnings("unchecked")
     void authenticationSuccess() {
         AuthenticationRequest<String, String> authenticationRequest =
-            new UsernamePasswordCredentials("username", "53cu23d_70k3n");
+                new UsernamePasswordCredentials("username", "53cu23d_70k3n");
 
         List<String> groups = List.of("group-1", "group-2");
 
         when(gitlabAuthenticationService.findUsername(authenticationRequest.getSecret()))
-            .thenReturn(Mono.just("username"));
+                .thenReturn(Mono.just("username"));
         when(gitlabAuthenticationService.findAllGroups(authenticationRequest.getSecret()))
-            .thenReturn(Flux.fromIterable(groups));
+                .thenReturn(Flux.fromIterable(groups));
 
         AuthenticationRoleBinding authenticationRoleBinding = AuthenticationRoleBinding.builder()
-            .namespaces(List.of("namespace"))
-            .verbs(List.of(RoleBinding.Verb.GET))
-            .resourceTypes(List.of("topics"))
-            .build();
+                .namespaces(List.of("namespace"))
+                .verbs(List.of(RoleBinding.Verb.GET))
+                .resourceTypes(List.of("topics"))
+                .build();
 
-        AuthenticationResponse authenticationResponse = AuthenticationResponse.success("username", null,
-            Map.of("roleBindings", List.of(authenticationRoleBinding)));
+        AuthenticationResponse authenticationResponse = AuthenticationResponse.success(
+                "username", null, Map.of("roleBindings", List.of(authenticationRoleBinding)));
 
-        when(authenticationService.buildAuthJwtGroups("username", groups))
-            .thenReturn(authenticationResponse);
+        when(authenticationService.buildAuthJwtGroups("username", groups)).thenReturn(authenticationResponse);
 
         Publisher<AuthenticationResponse> authenticationResponsePublisher =
-            gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
+                gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
 
         StepVerifier.create(authenticationResponsePublisher)
-            .consumeNextWith(response -> {
-                assertTrue(response.isAuthenticated());
-                assertTrue(response.getAuthentication().isPresent());
-                assertEquals("username", response.getAuthentication().get().getName());
-                assertIterableEquals(List.of(authenticationRoleBinding),
-                    (List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
-                        .get("roleBindings"));
-                assertIterableEquals(List.of(), response.getAuthentication().get().getRoles(),
-                    "User has no custom roles");
-            })
-            .verifyComplete();
+                .consumeNextWith(response -> {
+                    assertTrue(response.isAuthenticated());
+                    assertTrue(response.getAuthentication().isPresent());
+                    assertEquals("username", response.getAuthentication().get().getName());
+                    assertIterableEquals(List.of(authenticationRoleBinding), (List<AuthenticationRoleBinding>)
+                            response.getAuthentication().get().getAttributes().get("roleBindings"));
+                    assertIterableEquals(
+                            List.of(), response.getAuthentication().get().getRoles(), "User has no custom roles");
+                })
+                .verifyComplete();
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void authenticationSuccessAdmin() {
         AuthenticationRequest<String, String> authenticationRequest =
-            new UsernamePasswordCredentials("usernameAdmin", "53cu23d_70k3n");
+                new UsernamePasswordCredentials("usernameAdmin", "53cu23d_70k3n");
 
         List<String> groups = List.of("group-1", "group-2", "group-admin");
 
         when(gitlabAuthenticationService.findUsername(authenticationRequest.getSecret()))
-            .thenReturn(Mono.just("usernameAdmin"));
+                .thenReturn(Mono.just("usernameAdmin"));
         when(gitlabAuthenticationService.findAllGroups(authenticationRequest.getSecret()))
-            .thenReturn(Flux.fromIterable(groups));
+                .thenReturn(Flux.fromIterable(groups));
 
         AuthenticationRoleBinding authenticationRoleBinding = AuthenticationRoleBinding.builder()
-            .namespaces(List.of("namespace"))
-            .verbs(List.of(RoleBinding.Verb.GET))
-            .resourceTypes(List.of("topics"))
-            .build();
+                .namespaces(List.of("namespace"))
+                .verbs(List.of(RoleBinding.Verb.GET))
+                .resourceTypes(List.of("topics"))
+                .build();
 
-        AuthenticationResponse authenticationResponse = AuthenticationResponse.success("usernameAdmin",
-            List.of(ResourceBasedSecurityRule.IS_ADMIN), Map.of("roleBindings", List.of(authenticationRoleBinding)));
+        AuthenticationResponse authenticationResponse = AuthenticationResponse.success(
+                "usernameAdmin",
+                List.of(ResourceBasedSecurityRule.IS_ADMIN),
+                Map.of("roleBindings", List.of(authenticationRoleBinding)));
 
-        when(authenticationService.buildAuthJwtGroups("usernameAdmin", groups))
-            .thenReturn(authenticationResponse);
+        when(authenticationService.buildAuthJwtGroups("usernameAdmin", groups)).thenReturn(authenticationResponse);
 
         Publisher<AuthenticationResponse> authenticationResponsePublisher =
-            gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
+                gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
 
         StepVerifier.create(authenticationResponsePublisher)
-            .consumeNextWith(response -> {
-                assertTrue(response.isAuthenticated());
-                assertTrue(response.getAuthentication().isPresent());
-                assertEquals("usernameAdmin", response.getAuthentication().get().getName());
-                assertIterableEquals(List.of(authenticationRoleBinding),
-                    (List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
-                        .get("roleBindings"));
-                assertIterableEquals(List.of(ResourceBasedSecurityRule.IS_ADMIN),
-                    response.getAuthentication().get().getRoles(),
-                    "User has no custom roles");
-            })
-            .verifyComplete();
+                .consumeNextWith(response -> {
+                    assertTrue(response.isAuthenticated());
+                    assertTrue(response.getAuthentication().isPresent());
+                    assertEquals(
+                            "usernameAdmin", response.getAuthentication().get().getName());
+                    assertIterableEquals(List.of(authenticationRoleBinding), (List<AuthenticationRoleBinding>)
+                            response.getAuthentication().get().getAttributes().get("roleBindings"));
+                    assertIterableEquals(
+                            List.of(ResourceBasedSecurityRule.IS_ADMIN),
+                            response.getAuthentication().get().getRoles(),
+                            "User has no custom roles");
+                })
+                .verifyComplete();
     }
 
     @Test
     void authenticationFailureUsername() {
         AuthenticationRequest<String, String> authenticationRequest =
-            new UsernamePasswordCredentials("username", "f4k3_70k3n");
+                new UsernamePasswordCredentials("username", "f4k3_70k3n");
 
         when(gitlabAuthenticationService.findUsername(authenticationRequest.getSecret()))
-            .thenReturn(Mono.error(new HttpClientResponseException("403 Unauthorized", HttpResponse.unauthorized())));
+                .thenReturn(
+                        Mono.error(new HttpClientResponseException("403 Unauthorized", HttpResponse.unauthorized())));
 
         Publisher<AuthenticationResponse> authenticationResponsePublisher =
-            gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
+                gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
 
         StepVerifier.create(authenticationResponsePublisher)
-            .consumeErrorWith(error -> assertEquals(AuthenticationException.class, error.getClass()))
-            .verify();
+                .consumeErrorWith(error -> assertEquals(AuthenticationException.class, error.getClass()))
+                .verify();
     }
 
     @Test
     void authenticationFailureUsernameGroups() {
         AuthenticationRequest<String, String> authenticationRequest =
-            new UsernamePasswordCredentials("username", "f4k3_70k3n");
+                new UsernamePasswordCredentials("username", "f4k3_70k3n");
 
         when(gitlabAuthenticationService.findUsername(authenticationRequest.getSecret()))
-            .thenReturn(Mono.just("username"));
+                .thenReturn(Mono.just("username"));
         when(gitlabAuthenticationService.findAllGroups(authenticationRequest.getSecret()))
-            .thenReturn(Flux.error(new HttpClientResponseException("Error", HttpResponse.unauthorized())));
+                .thenReturn(Flux.error(new HttpClientResponseException("Error", HttpResponse.unauthorized())));
 
         Publisher<AuthenticationResponse> authenticationResponsePublisher =
-            gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
+                gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
 
         StepVerifier.create(authenticationResponsePublisher)
-            .consumeErrorWith(error -> assertEquals(AuthenticationException.class, error.getClass()))
-            .verify();
+                .consumeErrorWith(error -> assertEquals(AuthenticationException.class, error.getClass()))
+                .verify();
     }
 }

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller.quota;
 
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
@@ -47,9 +46,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Resource quota controller.
- */
+/** Resource quota controller. */
 @Tag(name = "Quotas", description = "Manage the resource quotas.")
 @Controller(value = "/api/namespaces/{namespace}/resource-quotas")
 @ExecuteOn(TaskExecutors.IO)
@@ -61,23 +58,22 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * List quotas by namespace.
      *
      * @param namespace The namespace
-     * @param name      The name parameter
+     * @param name The name parameter
      * @return A list of quotas
      */
     @Get
     public List<ResourceQuotaResponse> list(String namespace, @QueryValue(defaultValue = "*") String name) {
-        return resourceQuotaService.findByWildcardName(namespace, name)
-            .stream()
-            .map(resourceQuota -> resourceQuotaService.getUsedResourcesByQuotaByNamespace(getNamespace(namespace),
-                Optional.of(resourceQuota)))
-            .toList();
+        return resourceQuotaService.findByWildcardName(namespace, name).stream()
+                .map(resourceQuota -> resourceQuotaService.getUsedResourcesByQuotaByNamespace(
+                        getNamespace(namespace), Optional.of(resourceQuota)))
+                .toList();
     }
 
     /**
      * Get a quota by namespace and name.
      *
      * @param namespace The name
-     * @param quota     The quota name
+     * @param quota The quota name
      * @return A quota
      * @deprecated use {@link #list(String, String)} instead.
      */
@@ -89,21 +85,20 @@ public class ResourceQuotaController extends NamespacedResourceController {
             return Optional.empty();
         }
         return Optional.of(
-            resourceQuotaService.getUsedResourcesByQuotaByNamespace(getNamespace(namespace), resourceQuota));
+                resourceQuotaService.getUsedResourcesByQuotaByNamespace(getNamespace(namespace), resourceQuota));
     }
 
     /**
      * Create a quota.
      *
      * @param namespace The namespace
-     * @param quota     The resource quota
-     * @param dryrun    Is dry run mode or not?
+     * @param quota The resource quota
+     * @param dryrun Is dry run mode or not?
      * @return The created quota
      */
     @Post("{?dryrun}")
-    public HttpResponse<ResourceQuota> apply(String namespace,
-                                             @Body @Valid ResourceQuota quota,
-                                             @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<ResourceQuota> apply(
+            String namespace, @Body @Valid ResourceQuota quota, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         quota.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
@@ -126,12 +121,11 @@ public class ResourceQuotaController extends NamespacedResourceController {
         }
 
         sendEventLog(
-            quota,
-            status,
-            resourceQuotaOptional.<Object>map(ResourceQuota::getSpec).orElse(null),
-            quota.getSpec(),
-            EMPTY_STRING
-        );
+                quota,
+                status,
+                resourceQuotaOptional.<Object>map(ResourceQuota::getSpec).orElse(null),
+                quota.getSpec(),
+                EMPTY_STRING);
 
         return formatHttpResponse(resourceQuotaService.create(quota), status);
     }
@@ -140,15 +134,16 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * Delete quotas.
      *
      * @param namespace The namespace
-     * @param name      The name parameter
-     * @param dryrun    Is dry run mode or not?
+     * @param name The name parameter
+     * @param dryrun Is dry run mode or not?
      * @return An HTTP response
      */
     @Delete
     @Status(HttpStatus.OK)
-    public HttpResponse<List<ResourceQuota>> bulkDelete(String namespace,
-                                                        @QueryValue(defaultValue = "*") String name,
-                                                        @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<List<ResourceQuota>> bulkDelete(
+            String namespace,
+            @QueryValue(defaultValue = "*") String name,
+            @QueryValue(defaultValue = "false") boolean dryrun) {
 
         List<ResourceQuota> resourceQuotas = resourceQuotaService.findByWildcardName(namespace, name);
 
@@ -161,13 +156,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
         }
 
         resourceQuotas.forEach(resourceQuota -> {
-            sendEventLog(
-                resourceQuota,
-                ApplyStatus.DELETED,
-                resourceQuota.getSpec(),
-                null,
-                EMPTY_STRING
-            );
+            sendEventLog(resourceQuota, ApplyStatus.DELETED, resourceQuota.getSpec(), null, EMPTY_STRING);
             resourceQuotaService.delete(resourceQuota);
         });
 
@@ -178,17 +167,16 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * Delete a quota.
      *
      * @param namespace The namespace
-     * @param name      The resource quota
-     * @param dryrun    Is dry run mode or not?
+     * @param name The resource quota
+     * @param dryrun Is dry run mode or not?
      * @return An HTTP response
      * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
     @Delete("/{name}{?dryrun}")
     @Deprecated(since = "1.13.0")
     @Status(HttpStatus.NO_CONTENT)
-    public HttpResponse<Void> delete(String namespace,
-                                     String name,
-                                     @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<Void> delete(
+            String namespace, String name, @QueryValue(defaultValue = "false") boolean dryrun) {
         Optional<ResourceQuota> resourceQuota = resourceQuotaService.findByName(namespace, name);
         if (resourceQuota.isEmpty()) {
             return HttpResponse.notFound();
@@ -200,13 +188,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
 
         ResourceQuota resourceQuotaToDelete = resourceQuota.get();
 
-        sendEventLog(
-            resourceQuotaToDelete,
-            ApplyStatus.DELETED,
-            resourceQuotaToDelete.getSpec(),
-            null,
-            EMPTY_STRING
-        );
+        sendEventLog(resourceQuotaToDelete, ApplyStatus.DELETED, resourceQuotaToDelete.getSpec(), null, EMPTY_STRING);
 
         resourceQuotaService.delete(resourceQuotaToDelete);
         return HttpResponse.noContent();

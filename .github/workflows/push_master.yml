@@ -41,8 +41,8 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
           restore-keys: ${{ runner.os }}-gradle
 
-      - name: Check style
-        run: ./gradlew checkstyleMain checkstyleTest
+      - name: Lint
+        run: ./gradlew spotlessCheck
 
       - name: Build
         id: build_jar

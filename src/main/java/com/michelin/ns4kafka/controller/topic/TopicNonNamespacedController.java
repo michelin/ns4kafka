@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller.topic;
 
 import com.michelin.ns4kafka.controller.generic.NonNamespacedResourceController;
@@ -30,9 +29,7 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import java.util.List;
 
-/**
- * Non namespaced controller for topics.
- */
+/** Non namespaced controller for topics. */
 @Tag(name = "Topics", description = "Manage the topics.")
 @Controller(value = "/api/topics")
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)

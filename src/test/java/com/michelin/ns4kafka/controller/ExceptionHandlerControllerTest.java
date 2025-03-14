@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.TOPIC;
@@ -40,8 +39,9 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void shouldHandleResourceValidationException() {
-        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
-            new ResourceValidationException(TOPIC, "Name", List.of("Error1", "Error2")));
+        var response = exceptionHandlerController.error(
+                HttpRequest.create(HttpMethod.POST, "local"),
+                new ResourceValidationException(TOPIC, "Name", List.of("Error1", "Error2")));
         var status = response.body();
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatus());
@@ -55,8 +55,8 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void shouldHandleConstraintViolationException() {
-        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
-            new ConstraintViolationException(Set.of()));
+        var response = exceptionHandlerController.error(
+                HttpRequest.create(HttpMethod.POST, "local"), new ConstraintViolationException(Set.of()));
         var status = response.body();
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatus());
@@ -65,8 +65,8 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void shouldHandleAuthorizationExceptionAndConvertToUnauthorized() {
-        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
-            new AuthorizationException(null));
+        var response = exceptionHandlerController.error(
+                HttpRequest.create(HttpMethod.POST, "local"), new AuthorizationException(null));
         var status = response.body();
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatus());
@@ -75,8 +75,9 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void shouldHandleAuthorizationExceptionAndConvertToForbidden() {
-        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
-            new AuthorizationException(Authentication.build("user", Map.of())));
+        var response = exceptionHandlerController.error(
+                HttpRequest.create(HttpMethod.POST, "local"),
+                new AuthorizationException(Authentication.build("user", Map.of())));
         var status = response.body();
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatus());
@@ -85,8 +86,8 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void shouldHandleAuthenticationException() {
-        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
-            new AuthenticationException());
+        var response = exceptionHandlerController.error(
+                HttpRequest.create(HttpMethod.POST, "local"), new AuthenticationException());
         var status = response.body();
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatus());
@@ -95,8 +96,7 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void shouldHandleAnyException() {
-        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"),
-            new Exception());
+        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"), new Exception());
         var status = response.body();
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());

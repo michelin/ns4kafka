@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.repository.kafka;
 
 import com.michelin.ns4kafka.model.Topic;
@@ -32,19 +31,17 @@ import java.util.List;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-/**
- * Kafka Topic repository.
- */
+/** Kafka Topic repository. */
 @Singleton
 @KafkaListener(
-    offsetReset = OffsetReset.EARLIEST,
-    groupId = "${ns4kafka.store.kafka.group-id}",
-    offsetStrategy = OffsetStrategy.DISABLED
-)
+        offsetReset = OffsetReset.EARLIEST,
+        groupId = "${ns4kafka.store.kafka.group-id}",
+        offsetStrategy = OffsetStrategy.DISABLED)
 public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepository {
 
-    public KafkaTopicRepository(@Value("${ns4kafka.store.kafka.topics.prefix}.topics") String kafkaTopic,
-                                @KafkaClient("topics-producer") Producer<String, Topic> kafkaProducer) {
+    public KafkaTopicRepository(
+            @Value("${ns4kafka.store.kafka.topics.prefix}.topics") String kafkaTopic,
+            @KafkaClient("topics-producer") Producer<String, Topic> kafkaProducer) {
         super(kafkaTopic, kafkaProducer);
     }
 
@@ -98,9 +95,8 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
      */
     @Override
     public List<Topic> findAllForCluster(String cluster) {
-        return getKafkaStore().values()
-            .stream()
-            .filter(topic -> topic.getMetadata().getCluster().equals(cluster))
-            .toList();
+        return getKafkaStore().values().stream()
+                .filter(topic -> topic.getMetadata().getCluster().equals(cluster))
+                .toList();
     }
 }

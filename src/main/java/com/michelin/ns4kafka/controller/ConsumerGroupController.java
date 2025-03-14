@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConsumerGroupOperation;
@@ -45,9 +44,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import org.apache.kafka.common.TopicPartition;
 
-/**
- * Controller to manage the consumer groups.
- */
+/** Controller to manage the consumer groups. */
 @Tag(name = "Consumer Groups", description = "Manage the consumer groups.")
 @Controller("/api/namespaces/{namespace}/consumer-groups")
 public class ConsumerGroupController extends NamespacedResourceController {
@@ -57,19 +54,19 @@ public class ConsumerGroupController extends NamespacedResourceController {
     /**
      * Reset offsets by topic and consumer group.
      *
-     * @param namespace                 The namespace
-     * @param consumerGroup             The consumer group
+     * @param namespace The namespace
+     * @param consumerGroup The consumer group
      * @param consumerGroupResetOffsets The information about how to reset
-     * @param dryrun                    Is dry run mode or not?
+     * @param dryrun Is dry run mode or not?
      * @return The reset offsets response
      */
     @Post("/{consumerGroup}/reset{?dryrun}")
-    public List<ConsumerGroupResetOffsetsResponse> resetOffsets(String namespace,
-                                                                String consumerGroup,
-                                                                @Valid @Body
-                                                                ConsumerGroupResetOffsets consumerGroupResetOffsets,
-                                                                @QueryValue(defaultValue = "false") boolean dryrun)
-        throws ExecutionException {
+    public List<ConsumerGroupResetOffsetsResponse> resetOffsets(
+            String namespace,
+            String consumerGroup,
+            @Valid @Body ConsumerGroupResetOffsets consumerGroupResetOffsets,
+            @QueryValue(defaultValue = "false") boolean dryrun)
+            throws ExecutionException {
 
         List<String> validationErrors = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
 
@@ -93,42 +90,45 @@ public class ConsumerGroupController extends NamespacedResourceController {
             // Validate Consumer Group is dead or inactive
             String currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
             if (!List.of("Empty", "Dead").contains(currentState)) {
-                throw new ResourceValidationException(CONSUMER_GROUP_RESET_OFFSET, consumerGroup,
-                    invalidConsumerGroupOperation(consumerGroup, currentState.toLowerCase()));
+                throw new ResourceValidationException(
+                        CONSUMER_GROUP_RESET_OFFSET,
+                        consumerGroup,
+                        invalidConsumerGroupOperation(consumerGroup, currentState.toLowerCase()));
             }
 
             // List partitions
-            List<TopicPartition> partitionsToReset = consumerGroupService.getPartitionsToReset(ns, consumerGroup,
-                consumerGroupResetOffsets.getSpec().getTopic());
+            List<TopicPartition> partitionsToReset = consumerGroupService.getPartitionsToReset(
+                    ns, consumerGroup, consumerGroupResetOffsets.getSpec().getTopic());
 
             // Prepare offsets
-            Map<TopicPartition, Long> preparedOffsets = consumerGroupService.prepareOffsetsToReset(ns, consumerGroup,
-                consumerGroupResetOffsets.getSpec().getOptions(), partitionsToReset,
-                consumerGroupResetOffsets.getSpec().getMethod());
+            Map<TopicPartition, Long> preparedOffsets = consumerGroupService.prepareOffsetsToReset(
+                    ns,
+                    consumerGroup,
+                    consumerGroupResetOffsets.getSpec().getOptions(),
+                    partitionsToReset,
+                    consumerGroupResetOffsets.getSpec().getMethod());
 
             if (!dryrun) {
                 sendEventLog(
-                    consumerGroupResetOffsets,
-                    ApplyStatus.CHANGED,
-                    null,
-                    consumerGroupResetOffsets.getSpec(),
-                    EMPTY_STRING
-                );
+                        consumerGroupResetOffsets,
+                        ApplyStatus.CHANGED,
+                        null,
+                        consumerGroupResetOffsets.getSpec(),
+                        EMPTY_STRING);
 
                 consumerGroupService.alterConsumerGroupOffsets(ns, consumerGroup, preparedOffsets);
             }
 
-            topicPartitionOffsets = preparedOffsets.entrySet()
-                .stream()
-                .map(entry -> ConsumerGroupResetOffsetsResponse.builder()
-                    .spec(ConsumerGroupResetOffsetsResponse.ConsumerGroupResetOffsetsResponseSpec.builder()
-                        .topic(entry.getKey().topic())
-                        .partition(entry.getKey().partition())
-                        .offset(entry.getValue())
-                        .consumerGroup(consumerGroup)
-                        .build())
-                    .build())
-                .toList();
+            topicPartitionOffsets = preparedOffsets.entrySet().stream()
+                    .map(entry -> ConsumerGroupResetOffsetsResponse.builder()
+                            .spec(ConsumerGroupResetOffsetsResponse.ConsumerGroupResetOffsetsResponseSpec.builder()
+                                    .topic(entry.getKey().topic())
+                                    .partition(entry.getKey().partition())
+                                    .offset(entry.getValue())
+                                    .consumerGroup(consumerGroup)
+                                    .build())
+                            .build())
+                    .toList();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

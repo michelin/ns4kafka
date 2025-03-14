@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.security.auth.local;
 
 import io.micronaut.core.annotation.Introspected;
@@ -29,9 +28,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Local user.
- */
+/** Local user. */
 @Slf4j
 @Getter
 @Setter
@@ -53,8 +50,7 @@ public class LocalUser {
         MessageDigest digest;
         try {
             digest = MessageDigest.getInstance("SHA-256");
-            byte[] encodedHash = digest.digest(
-                inputPassword.getBytes(StandardCharsets.UTF_8));
+            byte[] encodedHash = digest.digest(inputPassword.getBytes(StandardCharsets.UTF_8));
 
             StringBuilder hexString = new StringBuilder(2 * encodedHash.length);
             for (byte hash : encodedHash) {
@@ -72,5 +68,4 @@ public class LocalUser {
             return false;
         }
     }
-
 }

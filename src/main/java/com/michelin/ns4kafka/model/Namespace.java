@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.NAMESPACE;
@@ -34,22 +33,18 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-/**
- * Namespace.
- */
+/** Namespace. */
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
 public class Namespace extends MetadataResource {
-    @Valid
-    @NotNull
-    private NamespaceSpec spec;
+    @Valid @NotNull private NamespaceSpec spec;
 
     /**
      * Constructor.
      *
      * @param metadata The metadata
-     * @param spec     The spec
+     * @param spec The spec
      */
     @Builder
     public Namespace(Metadata metadata, NamespaceSpec spec) {
@@ -57,20 +52,20 @@ public class Namespace extends MetadataResource {
         this.spec = spec;
     }
 
-    /**
-     * Namespace spec.
-     */
+    /** Namespace spec. */
     @Data
     @Builder
     @Introspected
     @NoArgsConstructor
     @AllArgsConstructor
     public static class NamespaceSpec {
-        @NotBlank
-        private String kafkaUser;
+        @NotBlank private String kafkaUser;
+
         private boolean protectionEnabled;
+
         @Builder.Default
         private List<String> connectClusters = List.of();
+
         private TopicValidator topicValidator;
         private ConnectValidator connectValidator;
     }

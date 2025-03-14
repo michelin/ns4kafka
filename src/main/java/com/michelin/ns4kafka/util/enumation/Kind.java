@@ -16,14 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.util.enumation;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
-/**
- * Resource kind.
- */
+/** Resource kind. */
 public enum Kind {
     ACCESS_CONTROL_ENTRY("AccessControlEntry"),
     CHANGE_CONNECTOR_STATE("ChangeConnectorState"),

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.security;
 
 import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLE_BINDINGS;
@@ -45,9 +44,7 @@ import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 
-/**
- * Security rule to check if a user can access a given URL.
- */
+/** Security rule to check if a user can access a given URL. */
 @Slf4j
 @Singleton
 public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
@@ -55,9 +52,9 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
 
     public static final String RESOURCE_PATTERN = "[a-zA-Z0-9_.-]";
 
-    private final Pattern namespacedResourcePattern = Pattern.compile(
-        "^/api/namespaces/(?<namespace>" + RESOURCE_PATTERN + "+)"
-            + "/(?<resourceType>[a-z_-]+)(/(" + RESOURCE_PATTERN + "+)(/(?<resourceSubtype>[a-z-]+))?)?$");
+    private final Pattern namespacedResourcePattern =
+            Pattern.compile("^/api/namespaces/(?<namespace>" + RESOURCE_PATTERN + "+)" + "/(?<resourceType>[a-z_-]+)(/("
+                    + RESOURCE_PATTERN + "+)(/(?<resourceSubtype>[a-z-]+))?)?$");
 
     @Inject
     SecurityProperties securityProperties;
@@ -66,15 +63,15 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
     NamespaceRepository namespaceRepository;
 
     @Override
-    public Publisher<SecurityRuleResult> check(@Nullable HttpRequest<?> request,
-                                               @Nullable Authentication authentication) {
+    public Publisher<SecurityRuleResult> check(
+            @Nullable HttpRequest<?> request, @Nullable Authentication authentication) {
         return Publishers.just(checkSecurity(request, authentication));
     }
 
     /**
      * Check a user can access a given URL.
      *
-     * @param request        The current request
+     * @param request The current request
      * @param authentication The claims from the token
      * @return A security rule allowing the user or not
      */
@@ -123,36 +120,41 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
         AuthenticationInfo authenticationInfo = AuthenticationInfo.of(authentication);
 
         // No role binding for the target namespace: the user is not allowed to access the target namespace
-        List<AuthenticationRoleBinding> namespaceRoleBindings = authenticationInfo.getRoleBindings()
-            .stream()
-            .filter(roleBinding -> roleBinding.getNamespaces()
-                .stream()
-                .anyMatch(ns -> ns.equals(namespace)))
-            .toList();
+        List<AuthenticationRoleBinding> namespaceRoleBindings = authenticationInfo.getRoleBindings().stream()
+                .filter(roleBinding -> roleBinding.getNamespaces().stream().anyMatch(ns -> ns.equals(namespace)))
+                .toList();
 
         if (namespaceRoleBindings.isEmpty()) {
-            log.debug("No matching role binding for user \"{}\" and namespace \"{}\" on path \"{}\"", sub,
-                namespace, request.getPath());
+            log.debug(
+                    "No matching role binding for user \"{}\" and namespace \"{}\" on path \"{}\"",
+                    sub,
+                    namespace,
+                    request.getPath());
             throw new ForbiddenNamespaceException(namespace);
         }
 
-        List<AuthenticationRoleBinding> authorizedRoleBindings = namespaceRoleBindings
-            .stream()
-            .filter(roleBinding -> roleBinding.getResourceTypes().contains(resourceType))
-            .filter(roleBinding -> roleBinding.getVerbs().contains(RoleBinding.Verb.valueOf(request.getMethodName())))
-            .toList();
+        List<AuthenticationRoleBinding> authorizedRoleBindings = namespaceRoleBindings.stream()
+                .filter(roleBinding -> roleBinding.getResourceTypes().contains(resourceType))
+                .filter(roleBinding ->
+                        roleBinding.getVerbs().contains(RoleBinding.Verb.valueOf(request.getMethodName())))
+                .toList();
 
         // User not authorized to access requested resource
         if (authorizedRoleBindings.isEmpty()) {
-            log.debug("No matching role binding for user \"{}\", namespace \"{}\", resource type \"{}\" "
-                    + "and HTTP verb \"{}\" on path \"{}\"",
-                sub, namespace, resourceType, request.getMethodName(), request.getPath());
+            log.debug(
+                    "No matching role binding for user \"{}\", namespace \"{}\", resource type \"{}\" "
+                            + "and HTTP verb \"{}\" on path \"{}\"",
+                    sub,
+                    namespace,
+                    resourceType,
+                    request.getMethodName(),
+                    request.getPath());
             return SecurityRuleResult.UNKNOWN;
         }
 
         if (log.isDebugEnabled()) {
             authorizedRoleBindings.forEach(
-                roleBinding -> log.debug("Found matching role binding \"{}\"", roleBinding.toString()));
+                    roleBinding -> log.debug("Found matching role binding \"{}\"", roleBinding.toString()));
             log.debug("Authorized user \"{}\" on path \"{}\"", sub, request.getPath());
         }
 

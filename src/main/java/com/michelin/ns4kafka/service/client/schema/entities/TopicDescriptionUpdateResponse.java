@@ -16,15 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service.client.schema.entities;
 
 import lombok.Builder;
 
-/**
- * Update topic description response.
- */
+/** Update topic description response. */
 @Builder
-public record TopicDescriptionUpdateResponse() {
-
-}
+public record TopicDescriptionUpdateResponse() {}

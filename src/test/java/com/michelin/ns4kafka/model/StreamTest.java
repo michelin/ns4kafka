@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,22 +27,16 @@ class StreamTest {
     @Test
     void shouldBeEqual() {
         KafkaStream original = KafkaStream.builder()
-            .metadata(Metadata.builder()
-                .name("stream1")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("stream1").build())
+                .build();
 
         KafkaStream same = KafkaStream.builder()
-            .metadata(Metadata.builder()
-                .name("stream1")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("stream1").build())
+                .build();
 
         KafkaStream different = KafkaStream.builder()
-            .metadata(Metadata.builder()
-                .name("stream2")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("stream2").build())
+                .build();
 
         assertEquals(original, same);
         assertNotEquals(original, different);

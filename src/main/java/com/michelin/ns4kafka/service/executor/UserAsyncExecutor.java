@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service.executor;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidResetPasswordProvider;
@@ -48,9 +47,7 @@ import org.apache.kafka.common.quota.ClientQuotaEntity;
 import org.apache.kafka.common.quota.ClientQuotaFilter;
 import org.apache.kafka.common.quota.ClientQuotaFilterComponent;
 
-/**
- * User executor.
- */
+/** User executor. */
 @Slf4j
 @EachBean(ManagedClusterProperties.class)
 @Singleton
@@ -77,25 +74,21 @@ public class UserAsyncExecutor {
     public UserAsyncExecutor(ManagedClusterProperties managedClusterProperties) {
         this.managedClusterProperties = managedClusterProperties;
         if (Objects.requireNonNull(managedClusterProperties.getProvider())
-            == ManagedClusterProperties.KafkaProvider.SELF_MANAGED) {
+                == ManagedClusterProperties.KafkaProvider.SELF_MANAGED) {
             this.userExecutor = new Scram512UserSynchronizer(managedClusterProperties);
         } else {
             this.userExecutor = new UnimplementedUserSynchronizer();
         }
     }
 
-    /**
-     * Run the user synchronization.
-     */
+    /** Run the user synchronization. */
     public void run() {
         if (this.managedClusterProperties.isManageUsers() && userExecutor.canSynchronizeQuotas()) {
             synchronizeUsers();
         }
     }
 
-    /**
-     * Start the user synchronization.
-     */
+    /** Start the user synchronization. */
     public void synchronizeUsers() {
         log.debug("Starting user collection for cluster {}", managedClusterProperties.getName());
 
@@ -104,17 +97,15 @@ public class UserAsyncExecutor {
         // List user details from ns4kafka
         Map<String, Map<String, Double>> ns4kafkaUserQuotas = collectNs4kafkaQuotas();
 
-        Map<String, Map<String, Double>> toCreate = ns4kafkaUserQuotas.entrySet()
-            .stream()
-            .filter(entry -> !brokerUserQuotas.containsKey(entry.getKey()))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        Map<String, Map<String, Double>> toCreate = ns4kafkaUserQuotas.entrySet().stream()
+                .filter(entry -> !brokerUserQuotas.containsKey(entry.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        Map<String, Map<String, Double>> toUpdate = ns4kafkaUserQuotas.entrySet()
-            .stream()
-            .filter(entry -> brokerUserQuotas.containsKey(entry.getKey()))
-            .filter(entry -> !entry.getValue().isEmpty()
-                && !entry.getValue().equals(brokerUserQuotas.get(entry.getKey())))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        Map<String, Map<String, Double>> toUpdate = ns4kafkaUserQuotas.entrySet().stream()
+                .filter(entry -> brokerUserQuotas.containsKey(entry.getKey()))
+                .filter(entry ->
+                        !entry.getValue().isEmpty() && !entry.getValue().equals(brokerUserQuotas.get(entry.getKey())))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         if (!toCreate.isEmpty()) {
             log.debug("User quota(s) to create : " + String.join(", ", toCreate.keySet()));
@@ -138,28 +129,28 @@ public class UserAsyncExecutor {
         if (userExecutor.canResetPassword()) {
             return userExecutor.resetPassword(user);
         } else {
-            throw new ResourceValidationException(KAFKA_USER_RESET_PASSWORD, user,
-                invalidResetPasswordProvider(managedClusterProperties.getProvider()));
+            throw new ResourceValidationException(
+                    KAFKA_USER_RESET_PASSWORD,
+                    user,
+                    invalidResetPasswordProvider(managedClusterProperties.getProvider()));
         }
     }
 
     private Map<String, Map<String, Double>> collectNs4kafkaQuotas() {
-        return namespaceRepository.findAllForCluster(managedClusterProperties.getName())
-            .stream()
-            .map(namespace -> {
-                Optional<ResourceQuota> quota = quotaRepository.findForNamespace(namespace.getMetadata().getName());
-                Map<String, Double> userQuota = new HashMap<>();
+        return namespaceRepository.findAllForCluster(managedClusterProperties.getName()).stream()
+                .map(namespace -> {
+                    Optional<ResourceQuota> quota = quotaRepository.findForNamespace(
+                            namespace.getMetadata().getName());
+                    Map<String, Double> userQuota = new HashMap<>();
 
-                quota.ifPresent(resourceQuota -> resourceQuota.getSpec().entrySet()
-                    .stream()
-                    .filter(q -> q.getKey().startsWith(USER_QUOTA_PREFIX))
-                    .forEach(q -> userQuota.put(
-                        q.getKey().replace(USER_QUOTA_PREFIX, ""),
-                        Double.parseDouble(q.getValue()))));
+                    quota.ifPresent(resourceQuota -> resourceQuota.getSpec().entrySet().stream()
+                            .filter(q -> q.getKey().startsWith(USER_QUOTA_PREFIX))
+                            .forEach(q -> userQuota.put(
+                                    q.getKey().replace(USER_QUOTA_PREFIX, ""), Double.parseDouble(q.getValue()))));
 
-                return Map.entry(namespace.getSpec().getKafkaUser(), userQuota);
-            })
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                    return Map.entry(namespace.getSpec().getKafkaUser(), userQuota);
+                })
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     private void createUserQuotas(Map<String, Map<String, Double>> toCreate) {
@@ -205,13 +196,13 @@ public class UserAsyncExecutor {
             UserScramCredentialUpsertion update = new UserScramCredentialUpsertion(user, info, password);
 
             try {
-                managedClusterProperties.getAdminClient()
-                    .alterUserScramCredentials(List.of(update))
-                    .all()
-                    .get(
-                        managedClusterProperties.getTimeout().getUser().getAlterScramCredentials(),
-                        TimeUnit.MILLISECONDS
-                    );
+                managedClusterProperties
+                        .getAdminClient()
+                        .alterUserScramCredentials(List.of(update))
+                        .all()
+                        .get(
+                                managedClusterProperties.getTimeout().getUser().getAlterScramCredentials(),
+                                TimeUnit.MILLISECONDS);
                 log.info("Success resetting password for user {}", user);
             } catch (InterruptedException e) {
                 log.error("Error", e);
@@ -226,16 +217,17 @@ public class UserAsyncExecutor {
         @Override
         public Map<String, Map<String, Double>> listQuotas() {
             ClientQuotaFilter filter = ClientQuotaFilter.containsOnly(
-                List.of(ClientQuotaFilterComponent.ofEntityType(ClientQuotaEntity.USER)));
+                    List.of(ClientQuotaFilterComponent.ofEntityType(ClientQuotaEntity.USER)));
             try {
-                return managedClusterProperties.getAdminClient()
-                    .describeClientQuotas(filter)
-                    .entities()
-                    .get(managedClusterProperties.getTimeout().getUser().getDescribeQuotas(), TimeUnit.MILLISECONDS)
-                    .entrySet()
-                    .stream()
-                    .map(entry -> Map.entry(entry.getKey().entries().get(ClientQuotaEntity.USER), entry.getValue()))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                return managedClusterProperties
+                        .getAdminClient()
+                        .describeClientQuotas(filter)
+                        .entities()
+                        .get(managedClusterProperties.getTimeout().getUser().getDescribeQuotas(), TimeUnit.MILLISECONDS)
+                        .entrySet()
+                        .stream()
+                        .map(entry -> Map.entry(entry.getKey().entries().get(ClientQuotaEntity.USER), entry.getValue()))
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
             } catch (InterruptedException e) {
                 log.error("Error", e);
                 Thread.currentThread().interrupt();
@@ -243,7 +235,6 @@ public class UserAsyncExecutor {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-
         }
 
         @Override
@@ -251,25 +242,20 @@ public class UserAsyncExecutor {
             ClientQuotaEntity client = new ClientQuotaEntity(Map.of("user", user));
 
             ClientQuotaAlteration.Op producerQuota = new ClientQuotaAlteration.Op(
-                "producer_byte_rate",
-                quotas.getOrDefault("producer_byte_rate", BYTE_RATE_DEFAULT_VALUE)
-            );
+                    "producer_byte_rate", quotas.getOrDefault("producer_byte_rate", BYTE_RATE_DEFAULT_VALUE));
 
             ClientQuotaAlteration.Op consumerQuota = new ClientQuotaAlteration.Op(
-                "consumer_byte_rate",
-                quotas.getOrDefault("consumer_byte_rate", BYTE_RATE_DEFAULT_VALUE)
-            );
+                    "consumer_byte_rate", quotas.getOrDefault("consumer_byte_rate", BYTE_RATE_DEFAULT_VALUE));
 
-            ClientQuotaAlteration clientQuota = new ClientQuotaAlteration(
-                client,
-                List.of(producerQuota, consumerQuota)
-            );
+            ClientQuotaAlteration clientQuota =
+                    new ClientQuotaAlteration(client, List.of(producerQuota, consumerQuota));
 
             try {
-                managedClusterProperties.getAdminClient()
-                    .alterClientQuotas(List.of(clientQuota))
-                    .all()
-                    .get(managedClusterProperties.getTimeout().getUser().getAlterQuotas(), TimeUnit.MILLISECONDS);
+                managedClusterProperties
+                        .getAdminClient()
+                        .alterClientQuotas(List.of(clientQuota))
+                        .all()
+                        .get(managedClusterProperties.getTimeout().getUser().getAlterQuotas(), TimeUnit.MILLISECONDS);
                 log.info("Success applying quotas {} for user {}", clientQuota.ops(), user);
             } catch (InterruptedException e) {
                 log.error("Error", e);
@@ -282,7 +268,7 @@ public class UserAsyncExecutor {
 
     static class UnimplementedUserSynchronizer implements AbstractUserSynchronizer {
         private final UnsupportedOperationException exception =
-            new UnsupportedOperationException("This cluster provider doesn't support User operations.");
+                new UnsupportedOperationException("This cluster provider doesn't support User operations.");
 
         @Override
         public boolean canSynchronizeQuotas() {

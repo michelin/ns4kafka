@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidOwner;
@@ -46,9 +45,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Controller to manage Kafka Streams.
- */
+/** Controller to manage Kafka Streams. */
 @Tag(name = "Kafka Streams", description = "Manage the Kafka Streams.")
 @Controller(value = "/api/namespaces/{namespace}/streams")
 public class StreamController extends NamespacedResourceController {
@@ -59,7 +56,7 @@ public class StreamController extends NamespacedResourceController {
      * List Kafka Streams by namespace, filtered by name parameter.
      *
      * @param namespace The namespace
-     * @param name      The name parameter
+     * @param name The name parameter
      * @return A list of Kafka Streams
      */
     @Get
@@ -71,7 +68,7 @@ public class StreamController extends NamespacedResourceController {
      * Get a Kafka Streams by namespace and name.
      *
      * @param namespace The name
-     * @param stream    The Kafka Streams name
+     * @param stream The Kafka Streams name
      * @return The Kafka Streams
      * @deprecated Use ${@link #list(String, String)}
      */
@@ -85,17 +82,18 @@ public class StreamController extends NamespacedResourceController {
      * Create a Kafka Streams.
      *
      * @param namespace The namespace
-     * @param stream    The Kafka Stream
-     * @param dryrun    Is dry run mode or not?
+     * @param stream The Kafka Stream
+     * @param dryrun Is dry run mode or not?
      * @return An HTTP response
      */
     @Post("/{?dryrun}")
-    HttpResponse<KafkaStream> apply(String namespace,
-                                    @Body @Valid KafkaStream stream,
-                                    @QueryValue(defaultValue = "false") boolean dryrun) {
+    HttpResponse<KafkaStream> apply(
+            String namespace, @Body @Valid KafkaStream stream, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
-        if (!streamService.isNamespaceOwnerOfKafkaStream(ns, stream.getMetadata().getName())) {
-            throw new ResourceValidationException(stream, invalidOwner(stream.getMetadata().getName()));
+        if (!streamService.isNamespaceOwnerOfKafkaStream(
+                ns, stream.getMetadata().getName())) {
+            throw new ResourceValidationException(
+                    stream, invalidOwner(stream.getMetadata().getName()));
         }
 
         stream.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
@@ -103,7 +101,8 @@ public class StreamController extends NamespacedResourceController {
         stream.getMetadata().setNamespace(ns.getMetadata().getName());
 
         // Creation of the correct ACLs
-        Optional<KafkaStream> existingStream = streamService.findByName(ns, stream.getMetadata().getName());
+        Optional<KafkaStream> existingStream =
+                streamService.findByName(ns, stream.getMetadata().getName());
         if (existingStream.isPresent() && existingStream.get().equals(stream)) {
             return formatHttpResponse(stream, ApplyStatus.UNCHANGED);
         }
@@ -115,12 +114,11 @@ public class StreamController extends NamespacedResourceController {
         }
 
         sendEventLog(
-            stream,
-            status,
-            existingStream.<Object>map(KafkaStream::getMetadata).orElse(null),
-            stream.getMetadata(),
-            EMPTY_STRING
-        );
+                stream,
+                status,
+                existingStream.<Object>map(KafkaStream::getMetadata).orElse(null),
+                stream.getMetadata(),
+                EMPTY_STRING);
 
         return formatHttpResponse(streamService.create(stream), status);
     }
@@ -129,8 +127,8 @@ public class StreamController extends NamespacedResourceController {
      * Delete a Kafka Streams.
      *
      * @param namespace The namespace
-     * @param stream    The Kafka Streams
-     * @param dryrun    Is dry run mode or not?
+     * @param stream The Kafka Streams
+     * @param dryrun Is dry run mode or not?
      * @return An HTTP response
      * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
@@ -155,13 +153,7 @@ public class StreamController extends NamespacedResourceController {
 
         var streamToDelete = optionalStream.get();
 
-        sendEventLog(
-            streamToDelete,
-            ApplyStatus.DELETED,
-            streamToDelete.getMetadata(),
-            null,
-            EMPTY_STRING
-        );
+        sendEventLog(streamToDelete, ApplyStatus.DELETED, streamToDelete.getMetadata(), null, EMPTY_STRING);
 
         streamService.delete(ns, optionalStream.get());
         return HttpResponse.noContent();
@@ -171,23 +163,24 @@ public class StreamController extends NamespacedResourceController {
      * Delete a Kafka Streams.
      *
      * @param namespace The namespace
-     * @param name      The name parameter
-     * @param dryrun    Is dry run mode or not?
+     * @param name The name parameter
+     * @param dryrun Is dry run mode or not?
      * @return An HTTP response
      */
     @Delete
     @Status(HttpStatus.OK)
-    HttpResponse<List<KafkaStream>> bulkDelete(String namespace,
-                                               @QueryValue(defaultValue = "*") String name,
-                                               @QueryValue(defaultValue = "false") boolean dryrun) {
+    HttpResponse<List<KafkaStream>> bulkDelete(
+            String namespace,
+            @QueryValue(defaultValue = "*") String name,
+            @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
         List<KafkaStream> kafkaStreams = streamService.findByWildcardName(ns, name);
 
         List<String> validationErrors = kafkaStreams.stream()
-            .filter(kafkaStream ->
-                !streamService.isNamespaceOwnerOfKafkaStream(ns, kafkaStream.getMetadata().getName()))
-            .map(kafkaStream -> invalidOwner(kafkaStream.getMetadata().getName()))
-            .toList();
+                .filter(kafkaStream -> !streamService.isNamespaceOwnerOfKafkaStream(
+                        ns, kafkaStream.getMetadata().getName()))
+                .map(kafkaStream -> invalidOwner(kafkaStream.getMetadata().getName()))
+                .toList();
 
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(KAFKA_STREAM, name, validationErrors);
@@ -202,13 +195,7 @@ public class StreamController extends NamespacedResourceController {
         }
 
         kafkaStreams.forEach(kafkaStream -> {
-            sendEventLog(
-                kafkaStream,
-                ApplyStatus.DELETED,
-                kafkaStream.getMetadata(),
-                null,
-                EMPTY_STRING
-            );
+            sendEventLog(kafkaStream, ApplyStatus.DELETED, kafkaStream.getMetadata(), null, EMPTY_STRING);
 
             streamService.delete(ns, kafkaStream);
         });

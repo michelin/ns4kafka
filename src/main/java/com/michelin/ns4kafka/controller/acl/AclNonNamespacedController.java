@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller.acl;
 
 import com.michelin.ns4kafka.controller.generic.NonNamespacedResourceController;
@@ -30,9 +29,7 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import java.util.List;
 
-/**
- * Non-namespaced controller to manage ACLs.
- */
+/** Non-namespaced controller to manage ACLs. */
 @Tag(name = "ACLs", description = "Manage the ACLs.")
 @Controller("/api/acls")
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)

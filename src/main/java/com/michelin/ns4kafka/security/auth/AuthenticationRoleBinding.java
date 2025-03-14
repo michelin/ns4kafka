@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.security.auth;
 
 import com.michelin.ns4kafka.model.RoleBinding;
@@ -26,9 +25,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Authentication role binding.
- */
+/** Authentication role binding. */
 @Data
 @Builder
 @NoArgsConstructor

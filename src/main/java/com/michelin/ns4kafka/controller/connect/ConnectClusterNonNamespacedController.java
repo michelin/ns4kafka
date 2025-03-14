@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller.connect;
 
 import com.michelin.ns4kafka.controller.generic.NonNamespacedResourceController;
@@ -33,9 +32,7 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import reactor.core.publisher.Flux;
 
-/**
- * Non-namespaced controller to manage Kafka Connect clusters.
- */
+/** Non-namespaced controller to manage Kafka Connect clusters. */
 @Tag(name = "Connect Clusters", description = "Manage the Kafka Connect clusters.")
 @Controller(value = "/api/connect-clusters")
 @ExecuteOn(TaskExecutors.IO)

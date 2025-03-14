@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model;
 
 import com.michelin.ns4kafka.util.enumation.Kind;
@@ -24,9 +23,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Resource.
- */
+/** Resource. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

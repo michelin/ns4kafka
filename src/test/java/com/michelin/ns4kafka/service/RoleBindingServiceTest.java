@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -43,28 +42,27 @@ class RoleBindingServiceTest {
     @Test
     void shouldFindByName() {
         RoleBinding rb1 = RoleBinding.builder()
-            .metadata(Metadata.builder()
-                .name("namespace-rb1")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("namespace-rb1")
+                        .cluster("local")
+                        .build())
+                .build();
 
         RoleBinding rb2 = RoleBinding.builder()
-            .metadata(Metadata.builder()
-                .name("namespace-rb2")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("namespace-rb2")
+                        .cluster("local")
+                        .build())
+                .build();
 
         RoleBinding rb3 = RoleBinding.builder()
-            .metadata(Metadata.builder()
-                .name("namespace-rb3")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("namespace-rb3")
+                        .cluster("local")
+                        .build())
+                .build();
 
-        when(roleBindingRepository.findAllForNamespace("namespace"))
-            .thenReturn(List.of(rb1, rb2, rb3));
+        when(roleBindingRepository.findAllForNamespace("namespace")).thenReturn(List.of(rb1, rb2, rb3));
 
         var result = roleBindingService.findByName("namespace", "namespace-rb2");
         assertEquals(rb2, result.orElse(null));
@@ -73,25 +71,18 @@ class RoleBindingServiceTest {
     @Test
     void shouldListRoleBindingsWithoutParameter() {
         RoleBinding rb1 = RoleBinding.builder()
-            .metadata(Metadata.builder()
-                .name("namespace-rb1")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("namespace-rb1").build())
+                .build();
 
         RoleBinding rb2 = RoleBinding.builder()
-            .metadata(Metadata.builder()
-                .name("namespace-rb2")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("namespace-rb2").build())
+                .build();
 
         RoleBinding rb3 = RoleBinding.builder()
-            .metadata(Metadata.builder()
-                .name("namespace-rb3")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("namespace-rb3").build())
+                .build();
 
-        when(roleBindingRepository.findAllForNamespace("namespace"))
-            .thenReturn(List.of(rb1, rb2, rb3));
+        when(roleBindingRepository.findAllForNamespace("namespace")).thenReturn(List.of(rb1, rb2, rb3));
 
         assertEquals(List.of(rb1, rb2, rb3), roleBindingService.findAllForNamespace("namespace"));
     }
@@ -99,25 +90,18 @@ class RoleBindingServiceTest {
     @Test
     void shouldListRoleBindingsWithNameParameter() {
         RoleBinding rb1 = RoleBinding.builder()
-            .metadata(Metadata.builder()
-                .name("namespace-rb1")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("namespace-rb1").build())
+                .build();
 
         RoleBinding rb2 = RoleBinding.builder()
-            .metadata(Metadata.builder()
-                .name("namespace-rb2")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("namespace-rb2").build())
+                .build();
 
         RoleBinding rb3 = RoleBinding.builder()
-            .metadata(Metadata.builder()
-                .name("namespace-rb3")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("namespace-rb3").build())
+                .build();
 
-        when(roleBindingRepository.findAllForNamespace("namespace"))
-            .thenReturn(List.of(rb1, rb2, rb3));
+        when(roleBindingRepository.findAllForNamespace("namespace")).thenReturn(List.of(rb1, rb2, rb3));
 
         assertEquals(List.of(rb1), roleBindingService.findByWildcardName("namespace", "namespace-rb1"));
         assertEquals(List.of(rb1, rb2, rb3), roleBindingService.findByWildcardName("namespace", ""));
@@ -127,31 +111,22 @@ class RoleBindingServiceTest {
     @Test
     void shouldListRoleBindingsWithWildcardNameParameter() {
         RoleBinding rb1 = RoleBinding.builder()
-            .metadata(Metadata.builder()
-                .name("namespace-rb1")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("namespace-rb1").build())
+                .build();
 
         RoleBinding rb2 = RoleBinding.builder()
-            .metadata(Metadata.builder()
-                .name("namespace-rb2")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("namespace-rb2").build())
+                .build();
 
         RoleBinding rb3 = RoleBinding.builder()
-            .metadata(Metadata.builder()
-                .name("namespace-rb3")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("namespace-rb3").build())
+                .build();
 
         RoleBinding rb4 = RoleBinding.builder()
-            .metadata(Metadata.builder()
-                .name("rb4")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("rb4").build())
+                .build();
 
-        when(roleBindingRepository.findAllForNamespace("namespace"))
-            .thenReturn(List.of(rb1, rb2, rb3, rb4));
+        when(roleBindingRepository.findAllForNamespace("namespace")).thenReturn(List.of(rb1, rb2, rb3, rb4));
 
         assertEquals(List.of(rb1, rb2, rb3), roleBindingService.findByWildcardName("namespace", "namespace-*"));
         assertEquals(List.of(rb1, rb2, rb3, rb4), roleBindingService.findByWildcardName("namespace", "*rb?"));

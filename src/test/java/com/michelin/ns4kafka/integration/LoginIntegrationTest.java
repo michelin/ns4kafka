@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,9 +40,8 @@ class LoginIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldLoginWithJwt() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
-        HttpResponse<String> response = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest.POST("/login", credentials), String.class);
+        HttpResponse<String> response =
+                ns4KafkaClient.toBlocking().exchange(HttpRequest.POST("/login", credentials), String.class);
 
         assertEquals(HttpStatus.OK, response.status());
     }
@@ -51,10 +49,8 @@ class LoginIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldLoginWithBasicAuth() {
         HttpResponse<String> response = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .GET("/api/namespaces")
-                .basicAuth("admin", "admin"), String.class);
+                .toBlocking()
+                .exchange(HttpRequest.GET("/api/namespaces").basicAuth("admin", "admin"), String.class);
 
         assertEquals(HttpStatus.OK, response.status());
     }

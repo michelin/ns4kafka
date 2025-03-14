@@ -16,15 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.util.config;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-/**
- * Topic configuration.
- */
+/** Topic configuration. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TopicConfig {
     public static final String PARTITIONS = "partitions";

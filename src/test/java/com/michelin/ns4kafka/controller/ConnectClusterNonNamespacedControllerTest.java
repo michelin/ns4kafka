@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -47,14 +46,14 @@ class ConnectClusterNonNamespacedControllerTest {
     @Test
     void shouldListAll() {
         ConnectCluster connectCluster = ConnectCluster.builder()
-            .metadata(Metadata.builder().name("connect-cluster")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("connect-cluster").build())
+                .build();
 
         when(connectClusterService.findAll(anyBoolean())).thenReturn(Flux.fromIterable(List.of(connectCluster)));
 
         StepVerifier.create(connectClusterNonNamespacedController.listAll(false))
-            .consumeNextWith(result -> assertEquals("connect-cluster", result.getMetadata().getName()))
-            .verifyComplete();
+                .consumeNextWith(result ->
+                        assertEquals("connect-cluster", result.getMetadata().getName()))
+                .verifyComplete();
     }
 }

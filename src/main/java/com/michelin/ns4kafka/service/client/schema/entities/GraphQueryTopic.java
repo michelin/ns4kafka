@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service.client.schema.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -26,10 +25,9 @@ import lombok.Builder;
 /**
  * GraphQL query kafka topic.
  *
- * @param name        the topic name
+ * @param name the topic name
  * @param description the topic description
- * @param tags        the topic tags
+ * @param tags the topic tags
  */
 @Builder
-public record GraphQueryTopic(@JsonProperty("nameLower") String name, String description, List<String> tags) {
-}
+public record GraphQueryTopic(@JsonProperty("nameLower") String name, String description, List<String> tags) {}

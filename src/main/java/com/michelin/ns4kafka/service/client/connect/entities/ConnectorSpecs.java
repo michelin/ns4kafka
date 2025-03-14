@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service.client.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
@@ -31,5 +30,4 @@ import lombok.Builder;
  */
 @Builder
 public record ConnectorSpecs(
-    @JsonAnyGetter @JsonInclude(value = JsonInclude.Include.NON_ABSENT) Map<String, String> config) {
-}
+        @JsonAnyGetter @JsonInclude(value = JsonInclude.Include.NON_ABSENT) Map<String, String> config) {}

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.property;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
@@ -26,9 +25,7 @@ import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Akhq properties.
- */
+/** Akhq properties. */
 @Getter
 @Setter
 @ConfigurationProperties("ns4kafka.akhq")

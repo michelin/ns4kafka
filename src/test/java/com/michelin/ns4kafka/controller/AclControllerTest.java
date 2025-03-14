@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLES;
@@ -74,95 +73,86 @@ class AclControllerTest {
     @Test
     void shouldListAclsWithoutNameParameter() {
         Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         AccessControlEntry aceTopicPrefixedOwnerAdminToTest = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .namespace("admin")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource("prefix")
-                .grantedTo("test")
-                .build())
-            .build();
+                .metadata(Metadata.builder().namespace("admin").cluster("local").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
 
         AccessControlEntry aceConnectPrefixedOwnerAdminToTest = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .namespace("admin")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.CONNECT)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource("prefix")
-                .grantedTo("test")
-                .build())
-            .build();
+                .metadata(Metadata.builder().namespace("admin").cluster("local").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
 
         AccessControlEntry aceTopicPrefixedReadTestToNamespaceOther = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .namespace("test")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.READ)
-                .resource("prefix")
-                .grantedTo("namespace-other")
-                .build())
-            .build();
+                .metadata(Metadata.builder().namespace("test").cluster("local").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("prefix")
+                        .grantedTo("namespace-other")
+                        .build())
+                .build();
 
         AccessControlEntry aceTopicPrefixedReadNamespaceOtherToTest = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .namespace("namespace-other")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.READ)
-                .resource("other-prefix")
-                .grantedTo("test")
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .namespace("namespace-other")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("other-prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
 
         AccessControlEntry aceTopicPrefixedReadAdminToAll = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .namespace("admin")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.READ)
-                .resource("public-prefix")
-                .grantedTo("*")
-                .build())
-            .build();
+                .metadata(Metadata.builder().namespace("admin").cluster("local").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("public-prefix")
+                        .grantedTo("*")
+                        .build())
+                .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
-        when(aclService.findAllGrantedToNamespaceByWildcardName(namespace, "*")).thenReturn(
-            List.of(aceTopicPrefixedOwnerAdminToTest, aceConnectPrefixedOwnerAdminToTest,
-                aceTopicPrefixedReadNamespaceOtherToTest, aceTopicPrefixedReadAdminToAll));
+        when(aclService.findAllGrantedToNamespaceByWildcardName(namespace, "*"))
+                .thenReturn(List.of(
+                        aceTopicPrefixedOwnerAdminToTest,
+                        aceConnectPrefixedOwnerAdminToTest,
+                        aceTopicPrefixedReadNamespaceOtherToTest,
+                        aceTopicPrefixedReadAdminToAll));
         when(aclService.findAllGrantedByNamespaceToOthersByWildcardName(namespace, "*"))
-            .thenReturn(List.of(aceTopicPrefixedReadTestToNamespaceOther));
-        when(aclService.findAllRelatedToNamespaceByWildcardName(namespace, "*")).thenReturn(
-            List.of(aceTopicPrefixedReadTestToNamespaceOther, aceTopicPrefixedOwnerAdminToTest,
-                aceConnectPrefixedOwnerAdminToTest, aceTopicPrefixedReadNamespaceOtherToTest,
-                aceTopicPrefixedReadAdminToAll));
+                .thenReturn(List.of(aceTopicPrefixedReadTestToNamespaceOther));
+        when(aclService.findAllRelatedToNamespaceByWildcardName(namespace, "*"))
+                .thenReturn(List.of(
+                        aceTopicPrefixedReadTestToNamespaceOther,
+                        aceTopicPrefixedOwnerAdminToTest,
+                        aceConnectPrefixedOwnerAdminToTest,
+                        aceTopicPrefixedReadNamespaceOtherToTest,
+                        aceTopicPrefixedReadAdminToAll));
 
-        List<AccessControlEntry> actual = accessControlListController
-            .list("test", Optional.of(AclController.AclLimit.GRANTEE), "*");
+        List<AccessControlEntry> actual =
+                accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTEE), "*");
 
         assertEquals(4, actual.size());
         assertTrue(actual.contains(aceTopicPrefixedOwnerAdminToTest));
@@ -186,128 +176,130 @@ class AclControllerTest {
     @Test
     void shouldListAclsWithNameParameter() {
         Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         AccessControlEntry ownerAcl = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ownerAcl")
-                .namespace("test")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource("prefix")
-                .grantedTo("test")
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ownerAcl")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
 
         AccessControlEntry aclGrantedByNamespace = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("aclGrantedByNamespace")
-                .namespace("admin")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.WRITE)
-                .resource("prefix")
-                .grantedTo("test")
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("aclGrantedByNamespace")
+                        .namespace("admin")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.WRITE)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
 
         AccessControlEntry aclGrantedToNamespace = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("aclGrantedToNamespace")
-                .namespace("test")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.READ)
-                .resource("prefix")
-                .grantedTo("admin")
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("aclGrantedToNamespace")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("prefix")
+                        .grantedTo("admin")
+                        .build())
+                .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
         when(aclService.findAllGrantedToNamespaceByWildcardName(namespace, "aclGrantedToNamespace"))
-            .thenReturn(List.of(aclGrantedToNamespace));
+                .thenReturn(List.of(aclGrantedToNamespace));
         when(aclService.findAllGrantedToNamespaceByWildcardName(namespace, "ownerAcl"))
-            .thenReturn(List.of());
+                .thenReturn(List.of());
         when(aclService.findAllGrantedByNamespaceToOthersByWildcardName(namespace, "aclGrantedByNamespace"))
-            .thenReturn(List.of(aclGrantedByNamespace));
+                .thenReturn(List.of(aclGrantedByNamespace));
         when(aclService.findAllGrantedToNamespaceByWildcardName(namespace, "ownerAcl"))
-            .thenReturn(List.of());
+                .thenReturn(List.of());
         when(aclService.findAllRelatedToNamespaceByWildcardName(namespace, "ownerAcl"))
-            .thenReturn(List.of(ownerAcl));
+                .thenReturn(List.of(ownerAcl));
 
-        assertEquals(List.of(aclGrantedToNamespace), accessControlListController.list("test",
-            Optional.of(AclController.AclLimit.GRANTEE), "aclGrantedToNamespace"));
+        assertEquals(
+                List.of(aclGrantedToNamespace),
+                accessControlListController.list(
+                        "test", Optional.of(AclController.AclLimit.GRANTEE), "aclGrantedToNamespace"));
 
-        assertEquals(List.of(), accessControlListController.list("test",
-            Optional.of(AclController.AclLimit.GRANTEE), "ownerAcl"));
+        assertEquals(
+                List.of(),
+                accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTEE), "ownerAcl"));
 
-        assertEquals(List.of(aclGrantedByNamespace), accessControlListController.list("test",
-            Optional.of(AclController.AclLimit.GRANTOR), "aclGrantedByNamespace"));
+        assertEquals(
+                List.of(aclGrantedByNamespace),
+                accessControlListController.list(
+                        "test", Optional.of(AclController.AclLimit.GRANTOR), "aclGrantedByNamespace"));
 
-        assertEquals(List.of(), accessControlListController.list("test",
-            Optional.of(AclController.AclLimit.GRANTOR), "ownerAcl"));
+        assertEquals(
+                List.of(),
+                accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTOR), "ownerAcl"));
 
-        assertEquals(List.of(ownerAcl), accessControlListController.list("test",
-            Optional.of(AclController.AclLimit.ALL), "ownerAcl"));
+        assertEquals(
+                List.of(ownerAcl),
+                accessControlListController.list("test", Optional.of(AclController.AclLimit.ALL), "ownerAcl"));
     }
 
     @Test
     @SuppressWarnings("deprecation")
     void shouldGetAcl() {
         Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         AccessControlEntry aceTopicPrefixedReadTestToNamespaceOther = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ace3")
-                .namespace("test")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.READ)
-                .resource("prefix")
-                .grantedTo("namespace-other")
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ace3")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("prefix")
+                        .grantedTo("namespace-other")
+                        .build())
+                .build();
 
         AccessControlEntry aceTopicPrefixedReadNamespaceOtherToTest = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ace5")
-                .namespace("namespace-other")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.READ)
-                .resource("other-prefix")
-                .grantedTo("test")
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ace5")
+                        .namespace("namespace-other")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("other-prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
-        when(aclService.findAllRelatedToNamespace(namespace)).thenReturn(
-            List.of(aceTopicPrefixedReadTestToNamespaceOther, aceTopicPrefixedReadNamespaceOtherToTest));
+        when(aclService.findAllRelatedToNamespace(namespace))
+                .thenReturn(
+                        List.of(aceTopicPrefixedReadTestToNamespaceOther, aceTopicPrefixedReadNamespaceOtherToTest));
 
         // Name not in list
         assertTrue(accessControlListController.get("test", "ace6").isEmpty());
@@ -331,72 +323,62 @@ class AclControllerTest {
     @Test
     void shouldApplyFailsAsAdmin() {
         Namespace namespace = Namespace.builder()
-            .spec(Namespace.NamespaceSpec.builder()
-                .protectionEnabled(Boolean.FALSE)
-                .build())
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .spec(Namespace.NamespaceSpec.builder()
+                        .protectionEnabled(Boolean.FALSE)
+                        .build())
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .namespace("test")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource("prefix")
-                .grantedTo("test")
-                .build())
-            .build();
+                .metadata(Metadata.builder().namespace("test").cluster("local").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
 
-        Authentication authentication = Authentication.build("admin", List.of("isAdmin()"),
-            Map.of(ROLES, List.of("isAdmin()")));
+        Authentication authentication =
+                Authentication.build("admin", List.of("isAdmin()"), Map.of(ROLES, List.of("isAdmin()")));
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
         when(aclService.validateSelfAssignedAdmin(accessControlEntry, namespace))
-            .thenReturn(List.of("ValidationError"));
+                .thenReturn(List.of("ValidationError"));
 
-        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
-            () -> accessControlListController.apply(authentication, "test", accessControlEntry, false));
+        ResourceValidationException actual = assertThrows(
+                ResourceValidationException.class,
+                () -> accessControlListController.apply(authentication, "test", accessControlEntry, false));
         assertEquals(1, actual.getValidationErrors().size());
     }
 
     @Test
     void shouldApplyWithSuccessAsAdmin() {
         Namespace namespace = Namespace.builder()
-            .spec(Namespace.NamespaceSpec.builder()
-                .protectionEnabled(Boolean.FALSE)
-                .build())
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .spec(Namespace.NamespaceSpec.builder()
+                        .protectionEnabled(Boolean.FALSE)
+                        .build())
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("acl-test")
-                .namespace("test")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource("prefix")
-                .grantedTo("test")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("acl-test").namespace("test").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
 
-        Authentication authentication = Authentication.build("admin", List.of("isAdmin()"),
-            Map.of(ROLES, List.of("isAdmin()")));
+        Authentication authentication =
+                Authentication.build("admin", List.of("isAdmin()"), Map.of(ROLES, List.of("isAdmin()")));
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
-        when(aclService.validateSelfAssignedAdmin(accessControlEntry, namespace)).thenReturn(List.of());
+        when(aclService.validateSelfAssignedAdmin(accessControlEntry, namespace))
+                .thenReturn(List.of());
         when(aclService.create(accessControlEntry)).thenReturn(accessControlEntry);
 
         var response = accessControlListController.apply(authentication, "test", accessControlEntry, false);
@@ -409,63 +391,53 @@ class AclControllerTest {
     @Test
     void shouldApplyFailWithAclValidationErrors() {
         Namespace namespace = Namespace.builder()
-            .spec(Namespace.NamespaceSpec.builder()
-                .protectionEnabled(Boolean.FALSE)
-                .build())
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .spec(Namespace.NamespaceSpec.builder()
+                        .protectionEnabled(Boolean.FALSE)
+                        .build())
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .namespace("test")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource("prefix")
-                .grantedTo("test")
-                .build())
-            .build();
+                .metadata(Metadata.builder().namespace("test").cluster("local").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
 
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
         when(aclService.validate(accessControlEntry, namespace)).thenReturn(List.of("ValidationError"));
 
-        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
-            () -> accessControlListController.apply(authentication, "test", accessControlEntry, false));
+        ResourceValidationException actual = assertThrows(
+                ResourceValidationException.class,
+                () -> accessControlListController.apply(authentication, "test", accessControlEntry, false));
         assertEquals(1, actual.getValidationErrors().size());
     }
 
     @Test
     void shouldApplyAclWithSuccess() {
         Namespace namespace = Namespace.builder()
-            .spec(Namespace.NamespaceSpec.builder()
-                .protectionEnabled(Boolean.FALSE)
-                .build())
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .spec(Namespace.NamespaceSpec.builder()
+                        .protectionEnabled(Boolean.FALSE)
+                        .build())
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .namespace("test")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource("prefix")
-                .grantedTo("test")
-                .build())
-            .build();
+                .metadata(Metadata.builder().namespace("test").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
 
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
 
@@ -486,28 +458,22 @@ class AclControllerTest {
     @Test
     void shouldEndApplyWithSuccessWhenAclAlreadyExists() {
         Namespace namespace = Namespace.builder()
-            .spec(Namespace.NamespaceSpec.builder()
-                .protectionEnabled(Boolean.FALSE)
-                .build())
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .spec(Namespace.NamespaceSpec.builder()
+                        .protectionEnabled(Boolean.FALSE)
+                        .build())
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ace1")
-                .namespace("test")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource("prefix")
-                .grantedTo("test")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ace1").namespace("test").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
 
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
 
@@ -526,42 +492,33 @@ class AclControllerTest {
     @Test
     void shouldApplyFailWhenSpecChanges() {
         Namespace namespace = Namespace.builder()
-            .spec(Namespace.NamespaceSpec.builder()
-                .protectionEnabled(Boolean.FALSE)
-                .build())
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .spec(Namespace.NamespaceSpec.builder()
+                        .protectionEnabled(Boolean.FALSE)
+                        .build())
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ace1")
-                .namespace("test")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource("prefix")
-                .grantedTo("test")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ace1").namespace("test").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
 
         AccessControlEntry oldAccessControlEntry = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ace1")
-                .namespace("test")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.CONNECT) // This line was changed
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource("prefix")
-                .grantedTo("test")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ace1").namespace("test").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.CONNECT) // This line was changed
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
 
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
 
@@ -569,53 +526,48 @@ class AclControllerTest {
         when(aclService.validate(accessControlEntry, namespace)).thenReturn(List.of());
         when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(oldAccessControlEntry));
 
-        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
-            () -> accessControlListController.apply(authentication, "test", accessControlEntry, false));
+        ResourceValidationException actual = assertThrows(
+                ResourceValidationException.class,
+                () -> accessControlListController.apply(authentication, "test", accessControlEntry, false));
         assertEquals(1, actual.getValidationErrors().size());
-        assertEquals("Invalid \"apply\" operation: field \"spec\" is immutable.",
-            actual.getValidationErrors().getFirst());
+        assertEquals(
+                "Invalid \"apply\" operation: field \"spec\" is immutable.",
+                actual.getValidationErrors().getFirst());
     }
 
     @Test
     void shouldApplyAclWithSuccessWhenMetadataChanges() {
         Namespace namespace = Namespace.builder()
-            .spec(Namespace.NamespaceSpec.builder()
-                .protectionEnabled(Boolean.FALSE)
-                .build())
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .spec(Namespace.NamespaceSpec.builder()
+                        .protectionEnabled(Boolean.FALSE)
+                        .build())
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ace1")
-                .namespace("test")
-                .labels(Map.of("new-label", "label-value")) // This label is new
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource("prefix")
-                .grantedTo("test")
-                .build())
-            .build();
-
-        AccessControlEntry oldAccessControlEntry =
-            AccessControlEntry.builder()
                 .metadata(Metadata.builder()
-                    .name("ace1")
-                    .namespace("test")
-                    .build())
+                        .name("ace1")
+                        .namespace("test")
+                        .labels(Map.of("new-label", "label-value")) // This label is new
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                    .permission(AccessControlEntry.Permission.OWNER)
-                    .resource("prefix")
-                    .grantedTo("test")
-                    .build())
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
+
+        AccessControlEntry oldAccessControlEntry = AccessControlEntry.builder()
+                .metadata(Metadata.builder().name("ace1").namespace("test").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
                 .build();
 
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
@@ -636,43 +588,36 @@ class AclControllerTest {
     @Test
     void shouldApplyAclWithSuccessWhenMetadataChangesInDryRunMode() {
         Namespace ns = Namespace.builder()
-            .spec(Namespace.NamespaceSpec.builder()
-                .protectionEnabled(Boolean.FALSE)
-                .build())
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .spec(Namespace.NamespaceSpec.builder()
+                        .protectionEnabled(Boolean.FALSE)
+                        .build())
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ace1")
-                .namespace("test")
-                .labels(Map.of("new-label", "label-value")) // This label is new
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource("prefix")
-                .grantedTo("test")
-                .build())
-            .build();
-
-        AccessControlEntry oldAccessControlEntry =
-            AccessControlEntry.builder()
                 .metadata(Metadata.builder()
-                    .name("ace1")
-                    .namespace("test")
-                    .build())
+                        .name("ace1")
+                        .namespace("test")
+                        .labels(Map.of("new-label", "label-value")) // This label is new
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                    .permission(AccessControlEntry.Permission.OWNER)
-                    .resource("prefix")
-                    .grantedTo("test")
-                    .build())
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
+
+        AccessControlEntry oldAccessControlEntry = AccessControlEntry.builder()
+                .metadata(Metadata.builder().name("ace1").namespace("test").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
                 .build();
 
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
@@ -692,34 +637,27 @@ class AclControllerTest {
     @Test
     void shouldNotApplyAclInDryRunModeAsAdmin() {
         Namespace adminNamespace = Namespace.builder()
-            .spec(Namespace.NamespaceSpec.builder()
-                .build())
-            .metadata(Metadata.builder()
-                .name("admin")
-                .cluster("local")
-                .build())
-            .build();
-
-        AccessControlEntry accessControlEntry =
-            AccessControlEntry.builder()
-                .metadata(Metadata.builder()
-                    .namespace("admin")
-                    .cluster("local")
-                    .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                    .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                    .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                    .permission(AccessControlEntry.Permission.OWNER)
-                    .resource("prefix")
-                    .grantedTo("admin")
-                    .build())
+                .spec(Namespace.NamespaceSpec.builder().build())
+                .metadata(Metadata.builder().name("admin").cluster("local").build())
                 .build();
 
-        Authentication authentication = Authentication.build("admin", List.of("isAdmin()"),
-            Map.of(ROLES, List.of("isAdmin()")));
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
+                .metadata(Metadata.builder().namespace("admin").cluster("local").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("admin")
+                        .build())
+                .build();
+
+        Authentication authentication =
+                Authentication.build("admin", List.of("isAdmin()"), Map.of(ROLES, List.of("isAdmin()")));
 
         when(namespaceService.findByName("admin")).thenReturn(Optional.of(adminNamespace));
-        when(aclService.validateSelfAssignedAdmin(accessControlEntry, adminNamespace)).thenReturn(List.of());
+        when(aclService.validateSelfAssignedAdmin(accessControlEntry, adminNamespace))
+                .thenReturn(List.of());
 
         var response = accessControlListController.apply(authentication, "admin", accessControlEntry, true);
 
@@ -730,27 +668,22 @@ class AclControllerTest {
     @Test
     void shouldNotApplyAclInDryRunMode() {
         Namespace namespace = Namespace.builder()
-            .spec(Namespace.NamespaceSpec.builder()
-                .protectionEnabled(Boolean.FALSE)
-                .build())
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .spec(Namespace.NamespaceSpec.builder()
+                        .protectionEnabled(Boolean.FALSE)
+                        .build())
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .namespace("test")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource("prefix")
-                .grantedTo("test")
-                .build())
-            .build();
+                .metadata(Metadata.builder().namespace("test").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
 
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
 
@@ -770,60 +703,66 @@ class AclControllerTest {
 
         when(aclService.findByName("test", "ace1")).thenReturn(Optional.empty());
 
-        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
-            () -> accessControlListController.delete(authentication, "test", "ace1", false));
+        ResourceValidationException actual = assertThrows(
+                ResourceValidationException.class,
+                () -> accessControlListController.delete(authentication, "test", "ace1", false));
 
-        assertEquals("Invalid value \"ace1\" for field \"name\": resource not found.",
-            actual.getValidationErrors().getFirst());
+        assertEquals(
+                "Invalid value \"ace1\" for field \"name\": resource not found.",
+                actual.getValidationErrors().getFirst());
     }
 
     @Test
     @SuppressWarnings("deprecation")
     void shouldNotDeleteSelfAssignedAclWhenNotAdmin() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ace1")
-                .namespace("test")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.READ)
-                .resource("prefix")
-                .grantedTo("test").build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ace1")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
 
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
 
         when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(accessControlEntry));
 
-        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
-            () -> accessControlListController.delete(authentication, "test", "ace1", false));
+        ResourceValidationException actual = assertThrows(
+                ResourceValidationException.class,
+                () -> accessControlListController.delete(authentication, "test", "ace1", false));
 
-        assertEquals("Invalid value \"ace1\" for field \"name\": only administrators can delete this ACL.",
-            actual.getValidationErrors().getFirst());
+        assertEquals(
+                "Invalid value \"ace1\" for field \"name\": only administrators can delete this ACL.",
+                actual.getValidationErrors().getFirst());
     }
 
     @Test
     @SuppressWarnings("deprecation")
     void shouldDeleteSelfAssignedAclAsAdmin() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ace1")
-                .namespace("test")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.READ)
-                .resource("prefix")
-                .grantedTo("test").build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ace1")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
 
-        Authentication authentication = Authentication.build("user", List.of("isAdmin()"),
-            Map.of("roles", List.of("isAdmin()")));
+        Authentication authentication =
+                Authentication.build("user", List.of("isAdmin()"), Map.of("roles", List.of("isAdmin()")));
 
         when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(accessControlEntry));
 
@@ -836,19 +775,19 @@ class AclControllerTest {
     @SuppressWarnings("deprecation")
     void shouldDeleteAcl() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ace1")
-                .namespace("test")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.READ)
-                .resource("prefix")
-                .grantedTo("namespace-other")
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ace1")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("prefix")
+                        .grantedTo("namespace-other")
+                        .build())
+                .build();
 
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
 
@@ -866,18 +805,19 @@ class AclControllerTest {
     @SuppressWarnings("deprecation")
     void shouldNotDeleteInDryRunMode() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ace1")
-                .namespace("test")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.READ)
-                .resource("prefix")
-                .grantedTo("namespace-other")
-                .build()).build();
+                .metadata(Metadata.builder()
+                        .name("ace1")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("prefix")
+                        .grantedTo("namespace-other")
+                        .build())
+                .build();
 
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
 
@@ -892,14 +832,12 @@ class AclControllerTest {
     void shouldNotBulkDeleteAclsWhenNotFound() {
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
         Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
-        when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "ace1")).thenReturn(List.of());
+        when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "ace1"))
+                .thenReturn(List.of());
 
         var actual = accessControlListController.bulkDelete(authentication, "test", "ace1", false);
         assertEquals(HttpStatus.NOT_FOUND, actual.status());
@@ -908,80 +846,80 @@ class AclControllerTest {
     @Test
     void shouldNotBulkDeleteSelfAssignedAclsWhenNotAdmin() {
         Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
         AccessControlEntry acl1 = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ace1")
-                .namespace("test")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource("prefix")
-                .grantedTo("test").build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ace1")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
 
         AccessControlEntry acl2 = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ace2")
-                .namespace("test")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.READ)
-                .resource("prefix")
-                .grantedTo("other").build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ace2")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("prefix")
+                        .grantedTo("other")
+                        .build())
+                .build();
 
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
-        when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "ace*")).thenReturn(List.of(acl1, acl2));
+        when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "ace*"))
+                .thenReturn(List.of(acl1, acl2));
 
-        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
-            () -> accessControlListController.bulkDelete(authentication, "test", "ace*", false));
+        ResourceValidationException actual = assertThrows(
+                ResourceValidationException.class,
+                () -> accessControlListController.bulkDelete(authentication, "test", "ace*", false));
 
-        assertEquals("Invalid value \"ace*\" for field \"name\":"
-                + " only administrators can delete the following self-assigned ACLs: ace1.",
-            actual.getValidationErrors().getFirst());
+        assertEquals(
+                "Invalid value \"ace*\" for field \"name\":"
+                        + " only administrators can delete the following self-assigned ACLs: ace1.",
+                actual.getValidationErrors().getFirst());
     }
 
     @Test
     void shouldBulkDeleteSelfAssignedAclsAsAdmin() {
         Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ace1")
-                .namespace("test")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.OWNER)
-                .resource("prefix")
-                .grantedTo("test").build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ace1")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
 
-        Authentication authentication = Authentication.build("user", List.of("isAdmin()"),
-            Map.of("roles", List.of("isAdmin()")));
+        Authentication authentication =
+                Authentication.build("user", List.of("isAdmin()"), Map.of("roles", List.of("isAdmin()")));
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
         when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "ace1"))
-            .thenReturn(List.of(accessControlEntry));
+                .thenReturn(List.of(accessControlEntry));
 
         var actual = accessControlListController.bulkDelete(authentication, "test", "ace1", false);
 
@@ -991,45 +929,43 @@ class AclControllerTest {
     @Test
     void shouldBulkDeleteAcls() {
         Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
         AccessControlEntry acl1 = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ace1")
-                .namespace("test")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.READ)
-                .resource("prefix")
-                .grantedTo("namespace-other")
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ace1")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("prefix")
+                        .grantedTo("namespace-other")
+                        .build())
+                .build();
 
         AccessControlEntry acl2 = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ace2")
-                .namespace("test")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.WRITE)
-                .resource("prefix")
-                .grantedTo("namespace-other2")
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ace2")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.WRITE)
+                        .resource("prefix")
+                        .grantedTo("namespace-other2")
+                        .build())
+                .build();
 
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
-        when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "ace*")).thenReturn(List.of(acl1, acl2));
+        when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "ace*"))
+                .thenReturn(List.of(acl1, acl2));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -1042,30 +978,28 @@ class AclControllerTest {
     @Test
     void shouldNotBulkDeleteAclsInDryRunMode() {
         Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ace1")
-                .namespace("test")
-                .cluster("local")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                .permission(AccessControlEntry.Permission.READ)
-                .resource("prefix")
-                .grantedTo("namespace-other")
-                .build()).build();
+                .metadata(Metadata.builder()
+                        .name("ace1")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("prefix")
+                        .grantedTo("namespace-other")
+                        .build())
+                .build();
 
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
         when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "ace1"))
-            .thenReturn(List.of(accessControlEntry));
+                .thenReturn(List.of(accessControlEntry));
         var actual = accessControlListController.bulkDelete(authentication, "test", "ace1", true);
 
         verify(aclService, never()).delete(any());

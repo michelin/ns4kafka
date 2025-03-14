@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.security;
 
 import static com.michelin.ns4kafka.security.ResourceBasedSecurityRule.IS_ADMIN;
@@ -35,9 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
-/**
- * Security rule to check if a user can access a given sensitive endpoint.
- */
+/** Security rule to check if a user can access a given sensitive endpoint. */
 @Slf4j
 @Singleton
 @Replaces(SensitiveEndpointRule.class)
@@ -52,10 +49,10 @@ public class SensitiveEndpointRuleReplacement extends SensitiveEndpointRule {
     }
 
     @Override
-    protected @NonNull Publisher<SecurityRuleResult> checkSensitiveAuthenticated(@NonNull HttpRequest<?> request,
-                                                                                 @NonNull Authentication authentication,
-                                                                                 @NonNull ExecutableMethod<?, ?> method
-    ) {
+    protected @NonNull Publisher<SecurityRuleResult> checkSensitiveAuthenticated(
+            @NonNull HttpRequest<?> request,
+            @NonNull Authentication authentication,
+            @NonNull ExecutableMethod<?, ?> method) {
         String sub = authentication.getName();
         Collection<String> roles = authentication.getRoles();
         if (roles.contains(IS_ADMIN)) {

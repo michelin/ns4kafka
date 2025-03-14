@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service.client.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -25,13 +24,15 @@ import java.util.List;
 /**
  * Connector configuration information.
  *
- * @param name              Name
- * @param value             Value
+ * @param name Name
+ * @param value Value
  * @param recommendedValues Recommended values
- * @param errors            Errors
- * @param visible           Visible
+ * @param errors Errors
+ * @param visible Visible
  */
-public record ConfigValueInfo(String name, String value,
-                              @JsonProperty("recommended_values") List<String> recommendedValues,
-                              List<String> errors, @JsonProperty("visible") boolean visible) {
-}
+public record ConfigValueInfo(
+        String name,
+        String value,
+        @JsonProperty("recommended_values") List<String> recommendedValues,
+        List<String> errors,
+        @JsonProperty("visible") boolean visible) {}

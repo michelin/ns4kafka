@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.util.exception;
 
 import com.michelin.ns4kafka.model.MetadataResource;
@@ -26,9 +25,7 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-/**
- * Resource validation exception.
- */
+/** Resource validation exception. */
 @Getter
 @AllArgsConstructor
 public class ResourceValidationException extends RuntimeException {
@@ -44,8 +41,8 @@ public class ResourceValidationException extends RuntimeException {
     /**
      * Constructor.
      *
-     * @param kind            The kind of the resource
-     * @param name            The name of the resource
+     * @param kind The kind of the resource
+     * @param name The name of the resource
      * @param validationError The validation error
      */
     public ResourceValidationException(Kind kind, String name, String validationError) {
@@ -55,7 +52,7 @@ public class ResourceValidationException extends RuntimeException {
     /**
      * Constructor.
      *
-     * @param resource        The resource
+     * @param resource The resource
      * @param validationError The validation error
      */
     public ResourceValidationException(MetadataResource resource, String validationError) {
@@ -65,7 +62,7 @@ public class ResourceValidationException extends RuntimeException {
     /**
      * Constructor.
      *
-     * @param resource         The resource
+     * @param resource The resource
      * @param validationErrors The validation errors
      */
     public ResourceValidationException(MetadataResource resource, List<String> validationErrors) {

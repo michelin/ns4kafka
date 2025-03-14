@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.KAFKA_USER_RESET_PASSWORD;
@@ -29,9 +28,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * Kafka user reset password.
- */
+/** Kafka user reset password. */
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
@@ -42,7 +39,7 @@ public class KafkaUserResetPassword extends MetadataResource {
      * Constructor.
      *
      * @param metadata The metadata
-     * @param spec     The spec
+     * @param spec The spec
      */
     @Builder
     public KafkaUserResetPassword(Metadata metadata, KafkaUserResetPasswordSpec spec) {
@@ -50,9 +47,7 @@ public class KafkaUserResetPassword extends MetadataResource {
         this.spec = spec;
     }
 
-    /**
-     * Kafka user reset password spec.
-     */
+    /** Kafka user reset password spec. */
     @Getter
     @Builder
     @Introspected

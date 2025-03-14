@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -44,18 +43,13 @@ class TopicNonNamespacedControllerTest {
     @Test
     void shouldFindAll() {
         when(topicService.findAll())
-            .thenReturn(List.of(
-                Topic.builder()
-                    .metadata(Metadata.builder()
-                        .name("topic1")
-                        .build())
-                    .build(),
-                Topic.builder()
-                    .metadata(Metadata.builder()
-                        .name("topic2")
-                        .build())
-                    .build()
-            ));
+                .thenReturn(List.of(
+                        Topic.builder()
+                                .metadata(Metadata.builder().name("topic1").build())
+                                .build(),
+                        Topic.builder()
+                                .metadata(Metadata.builder().name("topic2").build())
+                                .build()));
 
         List<Topic> actual = topicController.listAll();
 

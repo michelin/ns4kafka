@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.ACCESS_CONTROL_ENTRY;
@@ -31,22 +30,18 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-/**
- * Access control entry.
- */
+/** Access control entry. */
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
 public class AccessControlEntry extends MetadataResource {
-    @Valid
-    @NotNull
-    private AccessControlEntrySpec spec;
+    @Valid @NotNull private AccessControlEntrySpec spec;
 
     /**
      * Constructor.
      *
      * @param metadata The metadata
-     * @param spec     The spec
+     * @param spec The spec
      */
     @Builder
     public AccessControlEntry(Metadata metadata, AccessControlEntrySpec spec) {
@@ -54,9 +49,7 @@ public class AccessControlEntry extends MetadataResource {
         this.spec = spec;
     }
 
-    /**
-     * Resource type managed by Ns4kafka.
-     */
+    /** Resource type managed by Ns4kafka. */
     public enum ResourceType {
         TOPIC,
         GROUP,
@@ -66,47 +59,34 @@ public class AccessControlEntry extends MetadataResource {
         TRANSACTIONAL_ID
     }
 
-    /**
-     * Resource pattern type.
-     */
+    /** Resource pattern type. */
     public enum ResourcePatternType {
         LITERAL,
         PREFIXED
     }
 
-    /**
-     * Permission.
-     */
+    /** Permission. */
     public enum Permission {
         OWNER,
         READ,
         WRITE
     }
 
-    /**
-     * Access control entry specification.
-     */
+    /** Access control entry specification. */
     @Data
     @Builder
     @Introspected
     @NoArgsConstructor
     @AllArgsConstructor
     public static class AccessControlEntrySpec {
-        @NotNull
-        protected AccessControlEntry.ResourceType resourceType;
+        @NotNull protected AccessControlEntry.ResourceType resourceType;
 
-        @NotNull
-        @NotBlank
-        protected String resource;
+        @NotNull @NotBlank protected String resource;
 
-        @NotNull
-        protected ResourcePatternType resourcePatternType;
+        @NotNull protected ResourcePatternType resourcePatternType;
 
-        @NotNull
-        protected Permission permission;
+        @NotNull protected Permission permission;
 
-        @NotBlank
-        @NotNull
-        protected String grantedTo;
+        @NotBlank @NotNull protected String grantedTo;
     }
 }

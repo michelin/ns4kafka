@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.validation;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationNull;
@@ -40,9 +39,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
-/**
- * Topic validator.
- */
+/** Topic validator. */
 @Getter
 @Setter
 @SuperBuilder
@@ -56,17 +53,22 @@ public class TopicValidator extends ResourceValidator {
      */
     public static TopicValidator makeDefault() {
         return TopicValidator.builder()
-            .validationConstraints(
-                Map.of("replication.factor", ResourceValidator.Range.between(3, 3),
-                    "partitions", ResourceValidator.Range.between(3, 6),
-                    "cleanup.policy", ResourceValidator.ValidList.in("delete", "compact"),
-                    "min.insync.replicas", ResourceValidator.Range.between(2, 2),
-                    "retention.ms", ResourceValidator.Range.between(60000, 604800000),
-                    "retention.bytes", ResourceValidator.Range.optionalBetween(-1, 104857600),
-                    "preallocate", ResourceValidator.ValidString.optionalIn("true", "false")
-                )
-            )
-            .build();
+                .validationConstraints(Map.of(
+                        "replication.factor",
+                        ResourceValidator.Range.between(3, 3),
+                        "partitions",
+                        ResourceValidator.Range.between(3, 6),
+                        "cleanup.policy",
+                        ResourceValidator.ValidList.in("delete", "compact"),
+                        "min.insync.replicas",
+                        ResourceValidator.Range.between(2, 2),
+                        "retention.ms",
+                        ResourceValidator.Range.between(60000, 604800000),
+                        "retention.bytes",
+                        ResourceValidator.Range.optionalBetween(-1, 104857600),
+                        "preallocate",
+                        ResourceValidator.ValidString.optionalIn("true", "false")))
+                .build();
     }
 
     /**
@@ -76,17 +78,22 @@ public class TopicValidator extends ResourceValidator {
      */
     public static TopicValidator makeDefaultOneBroker() {
         return TopicValidator.builder()
-            .validationConstraints(
-                Map.of("replication.factor", ResourceValidator.Range.between(1, 1),
-                    "partitions", ResourceValidator.Range.between(3, 6),
-                    "cleanup.policy", ResourceValidator.ValidList.in("delete", "compact"),
-                    "min.insync.replicas", ResourceValidator.Range.between(1, 1),
-                    "retention.ms", ResourceValidator.Range.between(60000, 604800000),
-                    "retention.bytes", ResourceValidator.Range.optionalBetween(-1, 104857600),
-                    "preallocate", ResourceValidator.ValidString.optionalIn("true", "false")
-                )
-            )
-            .build();
+                .validationConstraints(Map.of(
+                        "replication.factor",
+                        ResourceValidator.Range.between(1, 1),
+                        "partitions",
+                        ResourceValidator.Range.between(3, 6),
+                        "cleanup.policy",
+                        ResourceValidator.ValidList.in("delete", "compact"),
+                        "min.insync.replicas",
+                        ResourceValidator.Range.between(1, 1),
+                        "retention.ms",
+                        ResourceValidator.Range.between(60000, 604800000),
+                        "retention.bytes",
+                        ResourceValidator.Range.optionalBetween(-1, 104857600),
+                        "preallocate",
+                        ResourceValidator.ValidString.optionalIn("true", "false")))
+                .build();
     }
 
     /**
@@ -94,7 +101,9 @@ public class TopicValidator extends ResourceValidator {
      *
      * @param topic The topic
      * @return A list of validation errors
-     * @see <a href="https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/internals/Topic.java#L36">GitHub</a>
+     * @see <a
+     *     href="https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/internals/Topic.java#L36">
+     *     GitHub</a>
      */
     public List<String> validate(Topic topic) {
         List<String> validationErrors = new ArrayList<>();
@@ -116,14 +125,12 @@ public class TopicValidator extends ResourceValidator {
         }
 
         if (!validationConstraints.isEmpty() && topic.getSpec().getConfigs() != null) {
-            Map<String, String> configsWithoutConstraints = topic.getSpec().getConfigs().entrySet()
-                .stream()
-                .filter(entry -> !validationConstraints.containsKey(entry.getKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            Map<String, String> configsWithoutConstraints = topic.getSpec().getConfigs().entrySet().stream()
+                    .filter(entry -> !validationConstraints.containsKey(entry.getKey()))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
             if (!configsWithoutConstraints.isEmpty()) {
-                configsWithoutConstraints
-                    .forEach((key, value) -> validationErrors.add(invalidTopicSpec(key, value)));
+                configsWithoutConstraints.forEach((key, value) -> validationErrors.add(invalidTopicSpec(key, value)));
             }
         }
 
@@ -146,5 +153,4 @@ public class TopicValidator extends ResourceValidator {
         });
         return validationErrors;
     }
-
 }

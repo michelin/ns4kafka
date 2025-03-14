@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.repository.kafka;
 
 import com.michelin.ns4kafka.model.Namespace;
@@ -33,19 +32,17 @@ import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-/**
- * Kafka Namespace repository.
- */
+/** Kafka Namespace repository. */
 @Singleton
 @KafkaListener(
-    offsetReset = OffsetReset.EARLIEST,
-    groupId = "${ns4kafka.store.kafka.group-id}",
-    offsetStrategy = OffsetStrategy.DISABLED
-)
+        offsetReset = OffsetReset.EARLIEST,
+        groupId = "${ns4kafka.store.kafka.group-id}",
+        offsetStrategy = OffsetStrategy.DISABLED)
 public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements NamespaceRepository {
 
-    public KafkaNamespaceRepository(@Value("${ns4kafka.store.kafka.topics.prefix}.namespaces") String kafkaTopic,
-                                    @KafkaClient("namespace-producer") Producer<String, Namespace> kafkaProducer) {
+    public KafkaNamespaceRepository(
+            @Value("${ns4kafka.store.kafka.topics.prefix}.namespaces") String kafkaTopic,
+            @KafkaClient("namespace-producer") Producer<String, Namespace> kafkaProducer) {
         super(kafkaTopic, kafkaProducer);
     }
 
@@ -72,17 +69,15 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
 
     @Override
     public List<Namespace> findAllForCluster(String cluster) {
-        return getKafkaStore().values()
-            .stream()
-            .filter(namespace -> namespace.getMetadata().getCluster().equals(cluster))
-            .toList();
+        return getKafkaStore().values().stream()
+                .filter(namespace -> namespace.getMetadata().getCluster().equals(cluster))
+                .toList();
     }
 
     @Override
     public Optional<Namespace> findByName(String namespace) {
-        return getKafkaStore().values()
-            .stream()
-            .filter(ns -> ns.getMetadata().getName().equals(namespace))
-            .findFirst();
+        return getKafkaStore().values().stream()
+                .filter(ns -> ns.getMetadata().getName().equals(namespace))
+                .findFirst();
     }
 }

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.repository.kafka;
 
 import com.michelin.ns4kafka.model.quota.ResourceQuota;
@@ -34,25 +33,22 @@ import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-/**
- * Kafka Resource Quota repository.
- */
+/** Kafka Resource Quota repository. */
 @Singleton
 @KafkaListener(
-    offsetReset = OffsetReset.EARLIEST,
-    groupId = "${ns4kafka.store.kafka.group-id}",
-    offsetStrategy = OffsetStrategy.DISABLED
-)
+        offsetReset = OffsetReset.EARLIEST,
+        groupId = "${ns4kafka.store.kafka.group-id}",
+        offsetStrategy = OffsetStrategy.DISABLED)
 public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> implements ResourceQuotaRepository {
     /**
      * Constructor.
      *
-     * @param kafkaTopic    The resource quota topic
+     * @param kafkaTopic The resource quota topic
      * @param kafkaProducer The resource quota producer
      */
     public KafkaResourceQuotaRepository(
-        @Value("${ns4kafka.store.kafka.topics.prefix}.resource-quotas") String kafkaTopic,
-        @KafkaClient("resource-quotas") Producer<String, ResourceQuota> kafkaProducer) {
+            @Value("${ns4kafka.store.kafka.topics.prefix}.resource-quotas") String kafkaTopic,
+            @KafkaClient("resource-quotas") Producer<String, ResourceQuota> kafkaProducer) {
         super(kafkaTopic, kafkaProducer);
     }
 
@@ -79,10 +75,10 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
      */
     @Override
     public Optional<ResourceQuota> findForNamespace(String namespace) {
-        return getKafkaStore().values()
-            .stream()
-            .filter(resourceQuota -> resourceQuota.getMetadata().getNamespace().equals(namespace))
-            .findFirst();
+        return getKafkaStore().values().stream()
+                .filter(resourceQuota ->
+                        resourceQuota.getMetadata().getNamespace().equals(namespace))
+                .findFirst();
     }
 
     /**

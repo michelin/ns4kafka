@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service.client.schema.entities;
 
 import lombok.Builder;
@@ -25,9 +24,7 @@ import lombok.Builder;
  * Topic description update body's entity.
  *
  * @param attributes attributes of the topic
- * @param typeName   topic type name
+ * @param typeName topic type name
  */
 @Builder
-public record TopicDescriptionUpdateEntity(TopicDescriptionUpdateAttributes attributes, String typeName) {
-
-}
+public record TopicDescriptionUpdateEntity(TopicDescriptionUpdateAttributes attributes, String typeName) {}

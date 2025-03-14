@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidImmutableValue;
@@ -49,9 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Controller to manage the namespaces.
- */
+/** Controller to manage the namespaces. */
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 @Tag(name = "Namespaces", description = "Manage the namespaces.")
 @Controller("/api/namespaces")
@@ -62,9 +59,8 @@ public class NamespaceController extends NonNamespacedResourceController {
     /**
      * List namespaces, which can be filtered based on optional search query parameters.
      *
-     * @param search The map of optional query parameters used to filter namespaces. Supported parameters are:
-     *               - name: matches the namespace name. Wildcard supported.
-     *               - topic: find namespace owner of the given topic name.
+     * @param search The map of optional query parameters used to filter namespaces. Supported parameters are: - name:
+     *     matches the namespace name. Wildcard supported. - topic: find namespace owner of the given topic name.
      * @return A list of namespaces
      */
     @Get("{?search*}")
@@ -72,9 +68,11 @@ public class NamespaceController extends NonNamespacedResourceController {
         List<Namespace> namespaces = namespaceService.findByWildcardName(search.getOrDefault("name", "*"));
 
         return search.containsKey("topic")
-            ? namespaceService.findByTopicName(namespaces, search.get("topic"))
-                .map(Collections::singletonList)
-                .orElse(List.of()) : namespaces;
+                ? namespaceService
+                        .findByTopicName(namespaces, search.get("topic"))
+                        .map(Collections::singletonList)
+                        .orElse(List.of())
+                : namespaces;
     }
 
     /**
@@ -94,21 +92,25 @@ public class NamespaceController extends NonNamespacedResourceController {
      * Create a namespace.
      *
      * @param namespace The namespace
-     * @param dryrun    Is dry run mode or not?
+     * @param dryrun Is dry run mode or not?
      * @return The created namespace
      */
     @Post("{?dryrun}")
-    public HttpResponse<Namespace> apply(@Valid @Body Namespace namespace,
-                                         @QueryValue(defaultValue = "false") boolean dryrun) {
-        Optional<Namespace> existingNamespace = namespaceService.findByName(namespace.getMetadata().getName());
+    public HttpResponse<Namespace> apply(
+            @Valid @Body Namespace namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
+        Optional<Namespace> existingNamespace =
+                namespaceService.findByName(namespace.getMetadata().getName());
 
         List<String> validationErrors = new ArrayList<>();
         if (existingNamespace.isEmpty()) {
             validationErrors.addAll(namespaceService.validateCreation(namespace));
         } else {
-            if (!namespace.getMetadata().getCluster().equals(existingNamespace.get().getMetadata().getCluster())) {
-                validationErrors.add(invalidImmutableValue("cluster",
-                    existingNamespace.get().getMetadata().getCluster()));
+            if (!namespace
+                    .getMetadata()
+                    .getCluster()
+                    .equals(existingNamespace.get().getMetadata().getCluster())) {
+                validationErrors.add(invalidImmutableValue(
+                        "cluster", existingNamespace.get().getMetadata().getCluster()));
             }
         }
 
@@ -132,12 +134,11 @@ public class NamespaceController extends NonNamespacedResourceController {
         }
 
         sendEventLog(
-            namespace,
-            status,
-            existingNamespace.<Object>map(Namespace::getSpec).orElse(null),
-            namespace.getSpec(),
-            EMPTY_STRING
-        );
+                namespace,
+                status,
+                existingNamespace.<Object>map(Namespace::getSpec).orElse(null),
+                namespace.getSpec(),
+                EMPTY_STRING);
 
         return formatHttpResponse(namespaceService.createOrUpdate(namespace), status);
     }
@@ -146,7 +147,7 @@ public class NamespaceController extends NonNamespacedResourceController {
      * Delete a namespace.
      *
      * @param namespace The namespace
-     * @param dryrun    Is dry run mode or not?
+     * @param dryrun Is dry run mode or not?
      * @return An HTTP response
      * @deprecated use bulkDelete instead.
      */
@@ -162,10 +163,9 @@ public class NamespaceController extends NonNamespacedResourceController {
         List<String> namespaceResources = namespaceService.findAllResourcesByNamespace(optionalNamespace.get());
 
         if (!namespaceResources.isEmpty()) {
-            List<String> validationErrors = namespaceResources
-                .stream()
-                .map(FormatErrorUtils::invalidNamespaceDeleteOperation)
-                .toList();
+            List<String> validationErrors = namespaceResources.stream()
+                    .map(FormatErrorUtils::invalidNamespaceDeleteOperation)
+                    .toList();
             throw new ResourceValidationException(NAMESPACE, namespace, validationErrors);
         }
 
@@ -174,12 +174,11 @@ public class NamespaceController extends NonNamespacedResourceController {
         }
 
         sendEventLog(
-            optionalNamespace.get(),
-            ApplyStatus.DELETED,
-            optionalNamespace.get().getSpec(),
-            null,
-            EMPTY_STRING
-        );
+                optionalNamespace.get(),
+                ApplyStatus.DELETED,
+                optionalNamespace.get().getSpec(),
+                null,
+                EMPTY_STRING);
 
         namespaceService.delete(optionalNamespace.get());
 
@@ -190,35 +189,35 @@ public class NamespaceController extends NonNamespacedResourceController {
      * Delete namespaces.
      *
      * @param dryrun Is dry run mode or not?
-     * @param name   The name parameter
+     * @param name The name parameter
      * @return An HTTP response
      */
     @Delete
-    public HttpResponse<List<Namespace>> bulkDelete(@QueryValue(defaultValue = "*") String name,
-                                                    @QueryValue(defaultValue = "false") boolean dryrun) {
+    public HttpResponse<List<Namespace>> bulkDelete(
+            @QueryValue(defaultValue = "*") String name, @QueryValue(defaultValue = "false") boolean dryrun) {
         List<Namespace> namespaces = namespaceService.findByWildcardName(name);
 
         if (namespaces.isEmpty()) {
             return HttpResponse.notFound();
         }
 
-        List<String> namespaceResources = namespaces
-            .stream()
-            .flatMap(namespace -> namespaceService.findAllResourcesByNamespace(namespace)
-                .stream())
-            .toList();
-
-        if (!namespaceResources.isEmpty()) {
-            List<String> validationErrors = namespaceResources
-                .stream()
-                .map(FormatErrorUtils::invalidNamespaceDeleteOperation)
+        List<String> namespaceResources = namespaces.stream()
+                .flatMap(namespace -> namespaceService.findAllResourcesByNamespace(namespace).stream())
                 .toList();
 
+        if (!namespaceResources.isEmpty()) {
+            List<String> validationErrors = namespaceResources.stream()
+                    .map(FormatErrorUtils::invalidNamespaceDeleteOperation)
+                    .toList();
+
             throw new ResourceValidationException(
-                NAMESPACE,
-                String.join(",", namespaces.stream().map(namespace -> namespace.getMetadata().getName()).toList()),
-                validationErrors
-            );
+                    NAMESPACE,
+                    String.join(
+                            ",",
+                            namespaces.stream()
+                                    .map(namespace -> namespace.getMetadata().getName())
+                                    .toList()),
+                    validationErrors);
         }
 
         if (dryrun) {
@@ -226,13 +225,7 @@ public class NamespaceController extends NonNamespacedResourceController {
         }
 
         namespaces.forEach(namespace -> {
-            sendEventLog(
-                namespace,
-                ApplyStatus.DELETED,
-                namespace.getSpec(),
-                null,
-                EMPTY_STRING
-            );
+            sendEventLog(namespace, ApplyStatus.DELETED, namespace.getSpec(), null, EMPTY_STRING);
 
             namespaceService.delete(namespace);
         });

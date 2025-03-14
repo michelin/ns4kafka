@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -97,108 +96,93 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         connectClient = applicationContext.createBean(HttpClient.class, getConnectUrl());
 
         Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("ns1")
-                .cluster("test-cluster")
-                .build())
-            .spec(NamespaceSpec.builder()
-                .kafkaUser("user1")
-                .connectClusters(List.of("test-connect"))
-                .topicValidator(TopicValidator.makeDefaultOneBroker())
-                .connectValidator(ConnectValidator.builder()
-                    .validationConstraints(Map.of())
-                    .sinkValidationConstraints(Map.of())
-                    .classValidationConstraints(Map.of())
-                    .build())
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ns1").cluster("test-cluster").build())
+                .spec(NamespaceSpec.builder()
+                        .kafkaUser("user1")
+                        .connectClusters(List.of("test-connect"))
+                        .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .connectValidator(ConnectValidator.builder()
+                                .validationConstraints(Map.of())
+                                .sinkValidationConstraints(Map.of())
+                                .classValidationConstraints(Map.of())
+                                .build())
+                        .build())
+                .build();
 
         RoleBinding roleBinding = RoleBinding.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-rb")
-                .namespace("ns1")
-                .build())
-            .spec(RoleBindingSpec.builder()
-                .role(Role.builder()
-                    .resourceTypes(List.of("topics", "acls"))
-                    .verbs(List.of(Verb.POST, Verb.GET))
-                    .build())
-                .subject(Subject.builder()
-                    .subjectName("group1")
-                    .subjectType(SubjectType.GROUP)
-                    .build())
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ns1-rb").namespace("ns1").build())
+                .spec(RoleBindingSpec.builder()
+                        .role(Role.builder()
+                                .resourceTypes(List.of("topics", "acls"))
+                                .verbs(List.of(Verb.POST, Verb.GET))
+                                .build())
+                        .subject(Subject.builder()
+                                .subjectName("group1")
+                                .subjectType(SubjectType.GROUP)
+                                .build())
+                        .build())
+                .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
         HttpResponse<BearerAccessRefreshToken> response = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
+                .toBlocking()
+                .exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
 
         token = response.getBody().get().getAccessToken();
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces")
-                .bearerAuth(token)
-                .body(namespace));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
+                        .bearerAuth(token)
+                        .body(namespace));
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings")
-                .bearerAuth(token)
-                .body(roleBinding));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings")
+                        .bearerAuth(token)
+                        .body(roleBinding));
 
         AccessControlEntry aclConnect = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-acl")
-                .namespace("ns1")
-                .build())
-            .spec(AccessControlEntrySpec.builder()
-                .resourceType(ResourceType.CONNECT)
-                .resource("ns1-")
-                .resourcePatternType(ResourcePatternType.PREFIXED)
-                .permission(Permission.OWNER)
-                .grantedTo("ns1")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ns1-acl").namespace("ns1").build())
+                .spec(AccessControlEntrySpec.builder()
+                        .resourceType(ResourceType.CONNECT)
+                        .resource("ns1-")
+                        .resourcePatternType(ResourcePatternType.PREFIXED)
+                        .permission(Permission.OWNER)
+                        .grantedTo("ns1")
+                        .build())
+                .build();
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
-                .bearerAuth(token)
-                .body(aclConnect));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                        .bearerAuth(token)
+                        .body(aclConnect));
 
         AccessControlEntry aclTopic = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-acl-topic")
-                .namespace("ns1")
-                .build())
-            .spec(AccessControlEntrySpec.builder()
-                .resourceType(ResourceType.TOPIC)
-                .resource("ns1-")
-                .resourcePatternType(ResourcePatternType.PREFIXED)
-                .permission(Permission.OWNER)
-                .grantedTo("ns1")
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ns1-acl-topic")
+                        .namespace("ns1")
+                        .build())
+                .spec(AccessControlEntrySpec.builder()
+                        .resourceType(ResourceType.TOPIC)
+                        .resource("ns1-")
+                        .resourcePatternType(ResourcePatternType.PREFIXED)
+                        .permission(Permission.OWNER)
+                        .grantedTo("ns1")
+                        .build())
+                .build();
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
-                .bearerAuth(token)
-                .body(aclTopic));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                        .bearerAuth(token)
+                        .body(aclTopic));
     }
 
     @Test
     void shouldGetConnectClusterVersion() {
-        ServerInfo actual = connectClient
-            .toBlocking()
-            .retrieve(HttpRequest.GET("/"), ServerInfo.class);
+        ServerInfo actual = connectClient.toBlocking().retrieve(HttpRequest.GET("/"), ServerInfo.class);
 
         assertEquals(CONFLUENT_PLATFORM_VERSION + "-ccs", actual.version());
     }
@@ -206,22 +190,21 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
     @Test
     void shouldCreateNamespaceWithoutConnect() {
         Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("ns-without-connect")
-                .cluster("test-cluster")
-                .build())
-            .spec(NamespaceSpec.builder()
-                .kafkaUser("user-without-connect")
-                .topicValidator(TopicValidator.makeDefaultOneBroker())
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ns-without-connect")
+                        .cluster("test-cluster")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .kafkaUser("user-without-connect")
+                        .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .build())
+                .build();
 
         assertDoesNotThrow(() -> ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces")
-                .bearerAuth(token)
-                .body(namespace)));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
+                        .bearerAuth(token)
+                        .body(namespace)));
     }
 
     @Test
@@ -233,127 +216,119 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         connectorSpecs.put("file", null);
 
         Connector connectorWithNullParameter = Connector.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-connector-with-null-parameter")
-                .namespace("ns1")
-                .build())
-            .spec(Connector.ConnectorSpec.builder()
-                .connectCluster("test-connect")
-                .config(connectorSpecs)
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ns1-connector-with-null-parameter")
+                        .namespace("ns1")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(connectorSpecs)
+                        .build())
+                .build();
 
         Topic topic = Topic.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-topic1")
-                .namespace("ns1")
-                .build())
-            .spec(Topic.TopicSpec.builder()
-                .partitions(3)
-                .replicationFactor(1)
-                .configs(Map.of("cleanup.policy", "delete",
-                    "min.insync.replicas", "1",
-                    "retention.ms", "60000"))
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ns1-topic1").namespace("ns1").build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(
+                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "1", "retention.ms", "60000"))
+                        .build())
+                .build();
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
-                .bearerAuth(token)
-                .body(topic));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(topic));
 
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
-                .bearerAuth(token)
-                .body(connectorWithNullParameter));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
+                        .bearerAuth(token)
+                        .body(connectorWithNullParameter));
 
         Connector connectorWithEmptyParameter = Connector.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-connector-with-empty-parameter")
-                .namespace("ns1")
-                .build())
-            .spec(Connector.ConnectorSpec.builder()
-                .connectCluster("test-connect")
-                .config(Map.of(
-                    "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
-                    "tasks.max", "1",
-                    "topics", "ns1-topic1",
-                    "file", ""))
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ns1-connector-with-empty-parameter")
+                        .namespace("ns1")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(Map.of(
+                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                                "tasks.max", "1",
+                                "topics", "ns1-topic1",
+                                "file", ""))
+                        .build())
+                .build();
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
-                .bearerAuth(token)
-                .body(connectorWithEmptyParameter));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
+                        .bearerAuth(token)
+                        .body(connectorWithEmptyParameter));
 
         Connector connectorWithFillParameter = Connector.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-connector-with-fill-parameter")
-                .namespace("ns1")
-                .build())
-            .spec(Connector.ConnectorSpec.builder()
-                .connectCluster("test-connect")
-                .config(Map.of(
-                    "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
-                    "tasks.max", "1",
-                    "topics", "ns1-topic1",
-                    "file", "test"))
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ns1-connector-with-fill-parameter")
+                        .namespace("ns1")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(Map.of(
+                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                                "tasks.max", "1",
+                                "topics", "ns1-topic1",
+                                "file", "test"))
+                        .build())
+                .build();
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
-                .bearerAuth(token)
-                .body(connectorWithFillParameter));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
+                        .bearerAuth(token)
+                        .body(connectorWithFillParameter));
 
         forceConnectorSynchronization();
 
         // "File" property is present, but null
         ConnectorInfo actualConnectorWithNullParameter = connectClient
-            .toBlocking()
-            .retrieve(HttpRequest.GET("/connectors/ns1-connector-with-null-parameter"), ConnectorInfo.class);
+                .toBlocking()
+                .retrieve(HttpRequest.GET("/connectors/ns1-connector-with-null-parameter"), ConnectorInfo.class);
 
         assertTrue(actualConnectorWithNullParameter.config().containsKey("file"));
         assertNull(actualConnectorWithNullParameter.config().get("file"));
 
         // "File" property is present, but empty
         ConnectorInfo actualConnectorWithEmptyParameter = connectClient
-            .toBlocking()
-            .retrieve(HttpRequest.GET("/connectors/ns1-connector-with-empty-parameter"), ConnectorInfo.class);
+                .toBlocking()
+                .retrieve(HttpRequest.GET("/connectors/ns1-connector-with-empty-parameter"), ConnectorInfo.class);
 
         assertTrue(actualConnectorWithEmptyParameter.config().containsKey("file"));
         assertTrue(actualConnectorWithEmptyParameter.config().get("file").isEmpty());
 
         // "File" property is present
         ConnectorInfo actualConnectorWithFillParameter = connectClient
-            .toBlocking()
-            .retrieve(HttpRequest.GET("/connectors/ns1-connector-with-fill-parameter"), ConnectorInfo.class);
+                .toBlocking()
+                .retrieve(HttpRequest.GET("/connectors/ns1-connector-with-fill-parameter"), ConnectorInfo.class);
 
         assertTrue(actualConnectorWithFillParameter.config().containsKey("file"));
         assertEquals("test", actualConnectorWithFillParameter.config().get("file"));
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.DELETE, "/api/namespaces/ns1/connectors?name=ns1*")
-                .bearerAuth(token));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/connectors?name=ns1*")
+                        .bearerAuth(token));
 
         HttpResponse<List<Connector>> connectors = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.GET, "/api/namespaces/ns1/connectors")
-                .bearerAuth(token), Argument.listOf(Connector.class));
+                .toBlocking()
+                .exchange(
+                        HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/connectors")
+                                .bearerAuth(token),
+                        Argument.listOf(Connector.class));
 
         assertTrue(connectors.getBody().isPresent());
         assertEquals(0, connectors.getBody().get().size());
@@ -362,11 +337,16 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
     @Test
     void shouldUpdateConnectorsWithNullProperty() throws InterruptedException {
         ConnectorSpecs connectorSpecs = ConnectorSpecs.builder()
-            .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
-                "tasks.max", "1",
-                "topics", "ns1-topic2",
-                "file", "test"))
-            .build();
+                .config(Map.of(
+                        "connector.class",
+                        "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                        "tasks.max",
+                        "1",
+                        "topics",
+                        "ns1-topic2",
+                        "file",
+                        "test"))
+                .build();
 
         Map<String, String> updatedConnectorSpecs = new HashMap<>();
         updatedConnectorSpecs.put("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector");
@@ -375,11 +355,10 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         updatedConnectorSpecs.put("file", null);
 
         HttpResponse<ConnectorInfo> connectorInfo = connectClient
-            .toBlocking()
-            .exchange(
-                HttpRequest.PUT("/connectors/ns1-connector-update-null-props/config", connectorSpecs),
-                ConnectorInfo.class
-            );
+                .toBlocking()
+                .exchange(
+                        HttpRequest.PUT("/connectors/ns1-connector-update-null-props/config", connectorSpecs),
+                        ConnectorInfo.class);
 
         // "File" property is present and fill
         assertTrue(connectorInfo.getBody().isPresent());
@@ -387,51 +366,45 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         assertEquals("test", connectorInfo.getBody().get().config().get("file"));
 
         Topic topic = Topic.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-topic2")
-                .namespace("ns1")
-                .build())
-            .spec(Topic.TopicSpec.builder()
-                .partitions(3)
-                .replicationFactor(1)
-                .configs(Map.of("cleanup.policy", "delete",
-                    "min.insync.replicas", "1",
-                    "retention.ms", "60000"))
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ns1-topic2").namespace("ns1").build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(
+                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "1", "retention.ms", "60000"))
+                        .build())
+                .build();
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
-                .bearerAuth(token)
-                .body(topic));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(topic));
 
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
 
         Connector updateConnector = Connector.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-connector-update-null-props")
-                .namespace("ns1")
-                .build())
-            .spec(Connector.ConnectorSpec.builder()
-                .connectCluster("test-connect")
-                .config(updatedConnectorSpecs)
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ns1-connector-update-null-props")
+                        .namespace("ns1")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(updatedConnectorSpecs)
+                        .build())
+                .build();
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
-                .bearerAuth(token)
-                .body(updateConnector));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
+                        .bearerAuth(token)
+                        .body(updateConnector));
 
         forceConnectorSynchronization();
 
         ConnectorInfo actualConnector = connectClient
-            .toBlocking()
-            .retrieve(HttpRequest.GET("/connectors/ns1-connector-update-null-props"), ConnectorInfo.class);
+                .toBlocking()
+                .retrieve(HttpRequest.GET("/connectors/ns1-connector-update-null-props"), ConnectorInfo.class);
 
         // "File" property is present, but null
         assertTrue(actualConnector.config().containsKey("file"));
@@ -441,81 +414,77 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
     @Test
     void shouldRestartConnector() throws InterruptedException {
         Topic topic = Topic.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-topic3")
-                .namespace("ns1")
-                .build())
-            .spec(Topic.TopicSpec.builder()
-                .partitions(3)
-                .replicationFactor(1)
-                .configs(Map.of(
-                    "cleanup.policy", "delete",
-                    "min.insync.replicas", "1",
-                    "retention.ms", "60000"))
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ns1-topic3").namespace("ns1").build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(Map.of(
+                                "cleanup.policy", "delete",
+                                "min.insync.replicas", "1",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
 
         Connector connector = Connector.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-connector-restart")
-                .namespace("ns1")
-                .build())
-            .spec(Connector.ConnectorSpec.builder()
-                .connectCluster("test-connect")
-                .config(Map.of(
-                    "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
-                    "tasks.max", "1",
-                    "topics", "ns1-topic3"))
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ns1-connector-restart")
+                        .namespace("ns1")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(Map.of(
+                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                                "tasks.max", "1",
+                                "topics", "ns1-topic3"))
+                        .build())
+                .build();
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
-                .bearerAuth(token)
-                .body(topic));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(topic));
 
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
-                .bearerAuth(token)
-                .body(connector));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
+                        .bearerAuth(token)
+                        .body(connector));
 
         forceConnectorSynchronization();
         waitForConnectorToBeInState("ns1-connector-restart", "RUNNING");
 
         ConnectorStateInfo actual = connectClient
-            .toBlocking()
-            .retrieve(HttpRequest.GET("/connectors/ns1-connector-restart/status"), ConnectorStateInfo.class);
+                .toBlocking()
+                .retrieve(HttpRequest.GET("/connectors/ns1-connector-restart/status"), ConnectorStateInfo.class);
 
         assertEquals("RUNNING", actual.connector().getState());
 
         ChangeConnectorState restartState = ChangeConnectorState.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-connector-restart")
-                .build())
-            .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
-                .action(ChangeConnectorState.ConnectorAction.RESTART)
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ns1-connector-restart").build())
+                .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
+                        .action(ChangeConnectorState.ConnectorAction.RESTART)
+                        .build())
+                .build();
 
         HttpResponse<ChangeConnectorState> restartResponse = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-connector-restart/change-state")
-                .bearerAuth(token)
-                .body(restartState), ChangeConnectorState.class);
+                .toBlocking()
+                .exchange(
+                        HttpRequest.create(
+                                        HttpMethod.POST,
+                                        "/api/namespaces/ns1/connectors/ns1-connector-restart/change-state")
+                                .bearerAuth(token)
+                                .body(restartState),
+                        ChangeConnectorState.class);
 
         assertEquals(HttpStatus.OK, restartResponse.status());
 
         waitForConnectorToBeInState("ns1-connector-restart", "RUNNING");
 
         actual = connectClient
-            .toBlocking()
-            .retrieve(HttpRequest.GET("/connectors/ns1-connector-restart/status"), ConnectorStateInfo.class);
+                .toBlocking()
+                .retrieve(HttpRequest.GET("/connectors/ns1-connector-restart/status"), ConnectorStateInfo.class);
 
         assertEquals("RUNNING", actual.connector().getState());
     }
@@ -523,100 +492,92 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
     @Test
     void shouldPauseAndResumeConnector() throws InterruptedException {
         Topic topic = Topic.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-topic4")
-                .namespace("ns1")
-                .build())
-            .spec(Topic.TopicSpec.builder()
-                .partitions(3)
-                .replicationFactor(1)
-                .configs(Map.of("cleanup.policy", "delete",
-                    "min.insync.replicas", "1",
-                    "retention.ms", "60000"))
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ns1-topic4").namespace("ns1").build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(
+                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "1", "retention.ms", "60000"))
+                        .build())
+                .build();
 
         Connector connector = Connector.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-connector-pause-resume")
-                .namespace("ns1")
-                .build())
-            .spec(Connector.ConnectorSpec.builder()
-                .connectCluster("test-connect")
-                .config(Map.of(
-                    "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
-                    "tasks.max", "3",
-                    "topics", "ns1-topic4"))
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ns1-connector-pause-resume")
+                        .namespace("ns1")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(Map.of(
+                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                                "tasks.max", "3",
+                                "topics", "ns1-topic4"))
+                        .build())
+                .build();
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
-                .bearerAuth(token)
-                .body(topic));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(topic));
 
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
-                .bearerAuth(token)
-                .body(connector));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
+                        .bearerAuth(token)
+                        .body(connector));
 
         forceConnectorSynchronization();
         waitForConnectorToBeInState("ns1-connector-pause-resume", "RUNNING");
 
         ConnectorStateInfo actual = connectClient
-            .toBlocking()
-            .retrieve(HttpRequest.GET("/connectors/ns1-connector-pause-resume/status"), ConnectorStateInfo.class);
+                .toBlocking()
+                .retrieve(HttpRequest.GET("/connectors/ns1-connector-pause-resume/status"), ConnectorStateInfo.class);
 
         assertEquals("RUNNING", actual.connector().getState());
 
         // Pause the connector
         ChangeConnectorState pauseState = ChangeConnectorState.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-connector-pause-resume")
-                .build())
-            .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
-                .action(ChangeConnectorState.ConnectorAction.PAUSE)
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ns1-connector-pause-resume").build())
+                .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
+                        .action(ChangeConnectorState.ConnectorAction.PAUSE)
+                        .build())
+                .build();
 
         HttpResponse<ChangeConnectorState> pauseResponse = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-connector-pause-resume/change-state")
-                .bearerAuth(token)
-                .body(pauseState));
+                .toBlocking()
+                .exchange(HttpRequest.create(
+                                HttpMethod.POST,
+                                "/api/namespaces/ns1/connectors/ns1-connector-pause-resume/change-state")
+                        .bearerAuth(token)
+                        .body(pauseState));
 
         assertEquals(HttpStatus.OK, pauseResponse.status());
 
         waitForConnectorToBeInState("ns1-connector-pause-resume", "PAUSED");
 
         actual = connectClient
-            .toBlocking()
-            .retrieve(HttpRequest.GET("/connectors/ns1-connector-pause-resume/status"), ConnectorStateInfo.class);
+                .toBlocking()
+                .retrieve(HttpRequest.GET("/connectors/ns1-connector-pause-resume/status"), ConnectorStateInfo.class);
 
         assertEquals("PAUSED", actual.connector().getState());
 
         // Resume the connector
         ChangeConnectorState resumeState = ChangeConnectorState.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-connector-pause-resume")
-                .build())
-            .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
-                .action(ChangeConnectorState.ConnectorAction.RESUME)
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ns1-connector-pause-resume").build())
+                .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
+                        .action(ChangeConnectorState.ConnectorAction.RESUME)
+                        .build())
+                .build();
 
         HttpResponse<ChangeConnectorState> resumeResponse = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-connector-pause-resume/change-state")
-                .bearerAuth(token)
-                .body(resumeState));
+                .toBlocking()
+                .exchange(HttpRequest.create(
+                                HttpMethod.POST,
+                                "/api/namespaces/ns1/connectors/ns1-connector-pause-resume/change-state")
+                        .bearerAuth(token)
+                        .body(resumeState));
 
         assertEquals(HttpStatus.OK, resumeResponse.status());
 
@@ -624,30 +585,27 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         // Verify resumed directly on connect cluster
         actual = connectClient
-            .toBlocking()
-            .retrieve(HttpRequest.GET("/connectors/ns1-connector-pause-resume/status"), ConnectorStateInfo.class);
+                .toBlocking()
+                .retrieve(HttpRequest.GET("/connectors/ns1-connector-pause-resume/status"), ConnectorStateInfo.class);
 
         assertEquals("RUNNING", actual.connector().getState());
     }
 
-    /**
-     * Force synchronization of all connectors synchronously.
-     */
+    /** Force synchronization of all connectors synchronously. */
     private void forceConnectorSynchronization() throws InterruptedException {
         Flux.fromIterable(connectorAsyncExecutorList)
-            .flatMap(ConnectorAsyncExecutor::runHealthCheck)
-            .blockLast();
+                .flatMap(ConnectorAsyncExecutor::runHealthCheck)
+                .blockLast();
 
         Flux.fromIterable(connectorAsyncExecutorList)
-            .flatMap(ConnectorAsyncExecutor::run)
-            .blockLast();
+                .flatMap(ConnectorAsyncExecutor::run)
+                .blockLast();
 
         // Wait for Kafka Connect to deploy and update connectors
         Thread.sleep(3000);
     }
 
-    private void waitForConnectorToBeInState(String connector, String state)
-        throws InterruptedException {
+    private void waitForConnectorToBeInState(String connector, String state) throws InterruptedException {
         boolean connectorInState = false;
 
         while (!connectorInState) {
@@ -656,9 +614,10 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
             try {
                 HttpResponse<ConnectorStateInfo> response = connectClient
-                    .toBlocking()
-                    .exchange(HttpRequest
-                        .GET(String.format("/connectors/%s/status", connector)), ConnectorStateInfo.class);
+                        .toBlocking()
+                        .exchange(
+                                HttpRequest.GET(String.format("/connectors/%s/status", connector)),
+                                ConnectorStateInfo.class);
 
                 connectorInState = response.body().connector().getState().equals(state);
             } catch (HttpClientResponseException ignored) {

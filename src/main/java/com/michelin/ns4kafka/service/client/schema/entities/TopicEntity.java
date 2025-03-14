@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service.client.schema.entities;
 
 import java.util.List;
@@ -28,6 +27,4 @@ import lombok.Builder;
  * @param attributes attributes of the topic
  */
 @Builder
-public record TopicEntity(TopicEntityAttributes attributes, List<String> classificationNames) {
-
-}
+public record TopicEntity(TopicEntityAttributes attributes, List<String> classificationNames) {}

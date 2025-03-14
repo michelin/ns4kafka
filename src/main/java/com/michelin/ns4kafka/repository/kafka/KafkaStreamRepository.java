@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.repository.kafka;
 
 import com.michelin.ns4kafka.model.KafkaStream;
@@ -32,19 +31,17 @@ import java.util.List;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-/**
- * Kafka Stream repository.
- */
+/** Kafka Stream repository. */
 @Singleton
 @KafkaListener(
-    offsetReset = OffsetReset.EARLIEST,
-    groupId = "${ns4kafka.store.kafka.group-id}",
-    offsetStrategy = OffsetStrategy.DISABLED
-)
+        offsetReset = OffsetReset.EARLIEST,
+        groupId = "${ns4kafka.store.kafka.group-id}",
+        offsetStrategy = OffsetStrategy.DISABLED)
 public class KafkaStreamRepository extends KafkaStore<KafkaStream> implements StreamRepository {
 
-    public KafkaStreamRepository(@Value("${ns4kafka.store.kafka.topics.prefix}.streams") String kafkaTopic,
-                                 @KafkaClient("streams-producer") Producer<String, KafkaStream> kafkaProducer) {
+    public KafkaStreamRepository(
+            @Value("${ns4kafka.store.kafka.topics.prefix}.streams") String kafkaTopic,
+            @KafkaClient("streams-producer") Producer<String, KafkaStream> kafkaProducer) {
         super(kafkaTopic, kafkaProducer);
     }
 
@@ -55,10 +52,9 @@ public class KafkaStreamRepository extends KafkaStore<KafkaStream> implements St
 
     @Override
     public List<KafkaStream> findAllForCluster(String cluster) {
-        return getKafkaStore().values()
-            .stream()
-            .filter(stream -> stream.getMetadata().getCluster().equals(cluster))
-            .toList();
+        return getKafkaStore().values().stream()
+                .filter(stream -> stream.getMetadata().getCluster().equals(cluster))
+                .toList();
     }
 
     @Override
@@ -76,5 +72,4 @@ public class KafkaStreamRepository extends KafkaStore<KafkaStream> implements St
     public void delete(KafkaStream stream) {
         this.produce(getMessageKey(stream), null);
     }
-
 }

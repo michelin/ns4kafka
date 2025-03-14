@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller;
 
 import com.michelin.ns4kafka.repository.RoleBindingRepository;
@@ -35,115 +34,93 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Controller to manage API resources.
- */
+/** Controller to manage API resources. */
 @Tag(name = "Resources", description = "Manage the API resources.")
 @RolesAllowed(SecurityRule.IS_ANONYMOUS)
 @Controller("/api-resources")
 public class ApiResourcesController {
-    /**
-     * ACL resource definition.
-     */
+    /** ACL resource definition. */
     public static final ResourceDefinition ACL = ResourceDefinition.builder()
-        .kind("AccessControlEntry")
-        .namespaced(true)
-        .synchronizable(false)
-        .path("acls")
-        .names(List.of("acls", "acl", "ac"))
-        .build();
+            .kind("AccessControlEntry")
+            .namespaced(true)
+            .synchronizable(false)
+            .path("acls")
+            .names(List.of("acls", "acl", "ac"))
+            .build();
 
-    /**
-     * Connector resource definition.
-     */
+    /** Connector resource definition. */
     public static final ResourceDefinition CONNECTOR = ResourceDefinition.builder()
-        .kind("Connector")
-        .namespaced(true)
-        .synchronizable(true)
-        .path("connectors")
-        .names(List.of("connects", "connect", "co", "connector", "connectors"))
-        .build();
+            .kind("Connector")
+            .namespaced(true)
+            .synchronizable(true)
+            .path("connectors")
+            .names(List.of("connects", "connect", "co", "connector", "connectors"))
+            .build();
 
-    /**
-     * Kafka Streams resource definition.
-     */
+    /** Kafka Streams resource definition. */
     public static final ResourceDefinition KSTREAM = ResourceDefinition.builder()
-        .kind("KafkaStream")
-        .namespaced(true)
-        .synchronizable(false)
-        .path("streams")
-        .names(List.of("streams", "stream", "st", "kstream", "kstreams", "ks"))
-        .build();
+            .kind("KafkaStream")
+            .namespaced(true)
+            .synchronizable(false)
+            .path("streams")
+            .names(List.of("streams", "stream", "st", "kstream", "kstreams", "ks"))
+            .build();
 
-    /**
-     * Role binding resource definition.
-     */
+    /** Role binding resource definition. */
     public static final ResourceDefinition ROLE_BINDING = ResourceDefinition.builder()
-        .kind("RoleBinding")
-        .namespaced(true)
-        .synchronizable(false)
-        .path("role-bindings")
-        .names(List.of("rolebindings", "rolebinding", "rb"))
-        .build();
+            .kind("RoleBinding")
+            .namespaced(true)
+            .synchronizable(false)
+            .path("role-bindings")
+            .names(List.of("rolebindings", "rolebinding", "rb"))
+            .build();
 
-    /**
-     * Topic resource definition.
-     */
+    /** Topic resource definition. */
     public static final ResourceDefinition TOPIC = ResourceDefinition.builder()
-        .kind("Topic")
-        .namespaced(true)
-        .synchronizable(true)
-        .path("topics")
-        .names(List.of("topics", "topic", "to"))
-        .build();
+            .kind("Topic")
+            .namespaced(true)
+            .synchronizable(true)
+            .path("topics")
+            .names(List.of("topics", "topic", "to"))
+            .build();
 
-    /**
-     * Schema resource definition.
-     */
+    /** Schema resource definition. */
     public static final ResourceDefinition SCHEMA = ResourceDefinition.builder()
-        .kind("Schema")
-        .namespaced(true)
-        .synchronizable(false)
-        .path("schemas")
-        .names(List.of("schemas", "schema", "sc"))
-        .build();
+            .kind("Schema")
+            .namespaced(true)
+            .synchronizable(false)
+            .path("schemas")
+            .names(List.of("schemas", "schema", "sc"))
+            .build();
 
-    /**
-     * Resource quota resource definition.
-     */
+    /** Resource quota resource definition. */
     public static final ResourceDefinition RESOURCE_QUOTA = ResourceDefinition.builder()
-        .kind("ResourceQuota")
-        .namespaced(true)
-        .synchronizable(false)
-        .path("resource-quotas")
-        .names(List.of("resource-quotas", "resource-quota", "quotas", "quota", "qu"))
-        .build();
+            .kind("ResourceQuota")
+            .namespaced(true)
+            .synchronizable(false)
+            .path("resource-quotas")
+            .names(List.of("resource-quotas", "resource-quota", "quotas", "quota", "qu"))
+            .build();
 
-    /**
-     * Connect worker resource definition.
-     */
+    /** Connect worker resource definition. */
     public static final ResourceDefinition CONNECT_CLUSTER = ResourceDefinition.builder()
-        .kind("ConnectCluster")
-        .namespaced(true)
-        .synchronizable(false)
-        .path("connect-clusters")
-        .names(List.of("connect-clusters", "connect-cluster", "cc", "kconnect", "kconnects", "kc"))
-        .build();
+            .kind("ConnectCluster")
+            .namespaced(true)
+            .synchronizable(false)
+            .path("connect-clusters")
+            .names(List.of("connect-clusters", "connect-cluster", "cc", "kconnect", "kconnects", "kc"))
+            .build();
 
-    /**
-     * Namespace resource definition.
-     */
+    /** Namespace resource definition. */
     public static final ResourceDefinition NAMESPACE = ResourceDefinition.builder()
-        .kind("Namespace")
-        .namespaced(false)
-        .synchronizable(false)
-        .path("namespaces")
-        .names(List.of("namespaces", "namespace", "ns"))
-        .build();
+            .kind("Namespace")
+            .namespaced(false)
+            .synchronizable(false)
+            .path("namespaces")
+            .names(List.of("namespaces", "namespace", "ns"))
+            .build();
 
-    /**
-     * Role binding repository.
-     */
+    /** Role binding repository. */
     @Inject
     RoleBindingRepository roleBindingRepository;
 
@@ -156,16 +133,7 @@ public class ApiResourcesController {
     @Get
     public List<ResourceDefinition> list(@Nullable AuthenticationInfo authentication) {
         List<ResourceDefinition> all = List.of(
-            ACL,
-            CONNECTOR,
-            KSTREAM,
-            ROLE_BINDING,
-            RESOURCE_QUOTA,
-            CONNECT_CLUSTER,
-            TOPIC,
-            NAMESPACE,
-            SCHEMA
-        );
+                ACL, CONNECTOR, KSTREAM, ROLE_BINDING, RESOURCE_QUOTA, CONNECT_CLUSTER, TOPIC, NAMESPACE, SCHEMA);
 
         if (authentication == null) {
             return all; // Backward compatibility for cli <= 1.3.0
@@ -175,21 +143,17 @@ public class ApiResourcesController {
             return all;
         }
 
-        List<String> authorizedResources = authentication.getRoleBindings()
-            .stream()
-            .flatMap(roleBinding -> roleBinding.getResourceTypes().stream())
-            .distinct()
-            .toList();
+        List<String> authorizedResources = authentication.getRoleBindings().stream()
+                .flatMap(roleBinding -> roleBinding.getResourceTypes().stream())
+                .distinct()
+                .toList();
 
-        return all
-            .stream()
-            .filter(resourceDefinition -> authorizedResources.contains(resourceDefinition.getPath()))
-            .toList();
+        return all.stream()
+                .filter(resourceDefinition -> authorizedResources.contains(resourceDefinition.getPath()))
+                .toList();
     }
 
-    /**
-     * API resource definition.
-     */
+    /** API resource definition. */
     @Introspected
     @Builder
     @Getter

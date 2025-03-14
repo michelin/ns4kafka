@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.KAFKA_STREAM;
@@ -26,9 +25,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-/**
- * Kafka Stream.
- */
+/** Kafka Stream. */
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)

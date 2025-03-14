@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.security;
 
 import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLES;
@@ -52,12 +51,12 @@ class SensitiveEndpointRuleReplacementTest {
         Map<String, Object> claims = Map.of(SUBJECT, "user", ROLES, List.of());
         Authentication auth = Authentication.build("user", List.of(), claims);
 
-        Publisher<SecurityRuleResult> actual = sensitiveEndpointRuleReplacement
-            .checkSensitiveAuthenticated(HttpRequest.GET("/anything"), auth, null);
+        Publisher<SecurityRuleResult> actual =
+                sensitiveEndpointRuleReplacement.checkSensitiveAuthenticated(HttpRequest.GET("/anything"), auth, null);
 
         StepVerifier.create(actual)
-            .consumeNextWith(response -> assertEquals(REJECTED, response))
-            .verifyComplete();
+                .consumeNextWith(response -> assertEquals(REJECTED, response))
+                .verifyComplete();
     }
 
     @Test
@@ -65,11 +64,11 @@ class SensitiveEndpointRuleReplacementTest {
         Map<String, Object> claims = Map.of(SUBJECT, "user", ROLES, List.of("isAdmin()"));
         Authentication auth = Authentication.build("user", List.of("isAdmin()"), claims);
 
-        Publisher<SecurityRuleResult> actual = sensitiveEndpointRuleReplacement
-            .checkSensitiveAuthenticated(HttpRequest.GET("/anything"), auth, null);
+        Publisher<SecurityRuleResult> actual =
+                sensitiveEndpointRuleReplacement.checkSensitiveAuthenticated(HttpRequest.GET("/anything"), auth, null);
 
         StepVerifier.create(actual)
-            .consumeNextWith(response -> assertEquals(ALLOWED, response))
-            .verifyComplete();
+                .consumeNextWith(response -> assertEquals(ALLOWED, response))
+                .verifyComplete();
     }
 }

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -90,167 +89,145 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
     @BeforeAll
     void init() {
         Namespace ns1 = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("ns1")
-                .cluster("test-cluster")
-                .labels(Map.of("support-group", "LDAP-GROUP-1"))
-                .build())
-            .spec(NamespaceSpec.builder()
-                .kafkaUser("user1")
-                .connectClusters(List.of("test-connect"))
-                .topicValidator(TopicValidator.makeDefaultOneBroker())
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ns1")
+                        .cluster("test-cluster")
+                        .labels(Map.of("support-group", "LDAP-GROUP-1"))
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .kafkaUser("user1")
+                        .connectClusters(List.of("test-connect"))
+                        .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .build())
+                .build();
 
         RoleBinding rb1 = RoleBinding.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-rb")
-                .namespace("ns1")
-                .build())
-            .spec(RoleBindingSpec.builder()
-                .role(Role.builder()
-                    .resourceTypes(List.of("topics", "acls"))
-                    .verbs(List.of(Verb.POST, Verb.GET))
-                    .build())
-                .subject(Subject.builder()
-                    .subjectName("group1")
-                    .subjectType(SubjectType.GROUP)
-                    .build())
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ns1-rb").namespace("ns1").build())
+                .spec(RoleBindingSpec.builder()
+                        .role(Role.builder()
+                                .resourceTypes(List.of("topics", "acls"))
+                                .verbs(List.of(Verb.POST, Verb.GET))
+                                .build())
+                        .subject(Subject.builder()
+                                .subjectName("group1")
+                                .subjectType(SubjectType.GROUP)
+                                .build())
+                        .build())
+                .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
         HttpResponse<BearerAccessRefreshToken> response = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .POST("/login", credentials), BearerAccessRefreshToken.class);
+                .toBlocking()
+                .exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
 
         token = response.getBody().get().getAccessToken();
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces")
-                .bearerAuth(token)
-                .body(ns1));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
+                        .bearerAuth(token)
+                        .body(ns1));
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings")
-                .bearerAuth(token)
-                .body(rb1));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings")
+                        .bearerAuth(token)
+                        .body(rb1));
 
         AccessControlEntry ns1acl = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-acl")
-                .namespace("ns1")
-                .build())
-            .spec(AccessControlEntrySpec.builder()
-                .resourceType(ResourceType.TOPIC)
-                .resource("ns1-")
-                .resourcePatternType(ResourcePatternType.PREFIXED)
-                .permission(Permission.OWNER)
-                .grantedTo("ns1")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ns1-acl").namespace("ns1").build())
+                .spec(AccessControlEntrySpec.builder()
+                        .resourceType(ResourceType.TOPIC)
+                        .resource("ns1-")
+                        .resourcePatternType(ResourcePatternType.PREFIXED)
+                        .permission(Permission.OWNER)
+                        .grantedTo("ns1")
+                        .build())
+                .build();
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
-                .bearerAuth(token)
-                .body(ns1acl));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                        .bearerAuth(token)
+                        .body(ns1acl));
 
         Namespace ns2 = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("ns2")
-                .cluster("test-cluster")
-                .build())
-            .spec(NamespaceSpec.builder()
-                .kafkaUser("user2")
-                .connectClusters(List.of("test-connect"))
-                .topicValidator(TopicValidator.makeDefaultOneBroker())
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ns2").cluster("test-cluster").build())
+                .spec(NamespaceSpec.builder()
+                        .kafkaUser("user2")
+                        .connectClusters(List.of("test-connect"))
+                        .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .build())
+                .build();
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces")
-                .bearerAuth(token)
-                .body(ns2));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
+                        .bearerAuth(token)
+                        .body(ns2));
 
         RoleBinding rb2 = RoleBinding.builder()
-            .metadata(Metadata.builder()
-                .name("ns2-rb")
-                .namespace("ns2")
-                .build())
-            .spec(RoleBindingSpec.builder()
-                .role(Role.builder()
-                    .resourceTypes(List.of("topics", "acls"))
-                    .verbs(List.of(Verb.POST, Verb.GET))
-                    .build())
-                .subject(Subject.builder()
-                    .subjectName("group2")
-                    .subjectType(SubjectType.GROUP)
-                    .build())
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ns2-rb").namespace("ns2").build())
+                .spec(RoleBindingSpec.builder()
+                        .role(Role.builder()
+                                .resourceTypes(List.of("topics", "acls"))
+                                .verbs(List.of(Verb.POST, Verb.GET))
+                                .build())
+                        .subject(Subject.builder()
+                                .subjectName("group2")
+                                .subjectType(SubjectType.GROUP)
+                                .build())
+                        .build())
+                .build();
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns2/role-bindings")
-                .bearerAuth(token)
-                .body(rb2));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns2/role-bindings")
+                        .bearerAuth(token)
+                        .body(rb2));
 
         AccessControlEntry ns2acl = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ns2-acl")
-                .namespace("ns2")
-                .build())
-            .spec(AccessControlEntrySpec.builder()
-                .resourceType(ResourceType.TOPIC)
-                .resource("ns2-")
-                .resourcePatternType(ResourcePatternType.PREFIXED)
-                .permission(Permission.OWNER)
-                .grantedTo("ns2")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ns2-acl").namespace("ns2").build())
+                .spec(AccessControlEntrySpec.builder()
+                        .resourceType(ResourceType.TOPIC)
+                        .resource("ns2-")
+                        .resourcePatternType(ResourcePatternType.PREFIXED)
+                        .permission(Permission.OWNER)
+                        .grantedTo("ns2")
+                        .build())
+                .build();
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns2/acls")
-                .bearerAuth(token)
-                .body(ns2acl));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns2/acls")
+                        .bearerAuth(token)
+                        .body(ns2acl));
     }
 
     @Test
     void shouldValidateAkhqClaims() {
         AkhqClaimProviderController.AkhqClaimRequest akhqClaimRequest =
-            AkhqClaimProviderController.AkhqClaimRequest.builder()
-                .username("test")
-                .groups(List.of("LDAP-GROUP-1"))
-                .providerName("LDAP")
-                .build();
+                AkhqClaimProviderController.AkhqClaimRequest.builder()
+                        .username("test")
+                        .groups(List.of("LDAP-GROUP-1"))
+                        .providerName("LDAP")
+                        .build();
 
         AkhqClaimProviderController.AkhqClaimResponse response = ns4KafkaClient
-            .toBlocking()
-            .retrieve(HttpRequest
-                .POST("/akhq-claim", akhqClaimRequest), AkhqClaimProviderController.AkhqClaimResponse.class);
+                .toBlocking()
+                .retrieve(
+                        HttpRequest.POST("/akhq-claim", akhqClaimRequest),
+                        AkhqClaimProviderController.AkhqClaimResponse.class);
 
         assertLinesMatch(
-            List.of(
-                "connect/read",
-                "connect/state/update",
-                "group/read",
-                "registry/read",
-                "topic/data/read",
-                "topic/read"
-            ),
-            response.getRoles());
+                List.of(
+                        "connect/read",
+                        "connect/state/update",
+                        "group/read",
+                        "registry/read",
+                        "topic/data/read",
+                        "topic/read"),
+                response.getRoles());
 
         assertEquals(1, response.getAttributes().get("topicsFilterRegexp").size());
 
@@ -260,25 +237,23 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldCreateTopic() throws InterruptedException, ExecutionException {
         Topic topicFirstCreate = Topic.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-topicFirstCreate")
-                .namespace("ns1")
-                .build())
-            .spec(TopicSpec.builder()
-                .partitions(3)
-                .replicationFactor(1)
-                .configs(Map.of("cleanup.policy", "delete",
-                    "min.insync.replicas", "1",
-                    "retention.ms", "60000"))
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ns1-topicFirstCreate")
+                        .namespace("ns1")
+                        .build())
+                .spec(TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(
+                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "1", "retention.ms", "60000"))
+                        .build())
+                .build();
 
         var response = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
-                .bearerAuth(token)
-                .body(topicFirstCreate));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(topicFirstCreate));
 
         assertEquals("created", response.header("X-Ns4kafka-Result"));
 
@@ -287,11 +262,11 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
         Admin kafkaClient = getAdminClient();
 
         List<TopicPartitionInfo> topicPartitionInfos = kafkaClient
-            .describeTopics(List.of("ns1-topicFirstCreate"))
-            .allTopicNames()
-            .get()
-            .get("ns1-topicFirstCreate")
-            .partitions();
+                .describeTopics(List.of("ns1-topicFirstCreate"))
+                .allTopicNames()
+                .get()
+                .get("ns1-topicFirstCreate")
+                .partitions();
 
         assertEquals(topicFirstCreate.getSpec().getPartitions(), topicPartitionInfos.size());
 
@@ -299,15 +274,10 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
         Set<String> configKey = config.keySet();
 
         ConfigResource configResource = new ConfigResource(ConfigResource.Type.TOPIC, "ns1-topicFirstCreate");
-        List<ConfigEntry> valueToVerify = kafkaClient
-            .describeConfigs(List.of(configResource))
-            .all()
-            .get()
-            .get(configResource)
-            .entries()
-            .stream()
-            .filter(e -> configKey.contains(e.name()))
-            .toList();
+        List<ConfigEntry> valueToVerify =
+                kafkaClient.describeConfigs(List.of(configResource)).all().get().get(configResource).entries().stream()
+                        .filter(e -> configKey.contains(e.name()))
+                        .toList();
 
         assertEquals(config.size(), valueToVerify.size());
         valueToVerify.forEach(entry -> assertEquals(config.get(entry.name()), entry.value()));
@@ -316,60 +286,56 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldUpdateTopic() throws InterruptedException, ExecutionException {
         Topic topic = Topic.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-topic2Create")
-                .namespace("ns1")
-                .build())
-            .spec(TopicSpec.builder()
-                .partitions(3)
-                .replicationFactor(1)
-                .configs(Map.of("cleanup.policy", "delete",
-                    "min.insync.replicas", "1",
-                    "retention.ms", "60000"))
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ns1-topic2Create")
+                        .namespace("ns1")
+                        .build())
+                .spec(TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(
+                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "1", "retention.ms", "60000"))
+                        .build())
+                .build();
 
         var response = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
-                .bearerAuth(token)
-                .body(topic));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(topic));
 
         assertEquals("created", response.header("X-Ns4kafka-Result"));
 
         forceTopicSynchronization();
 
         response = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
-                .bearerAuth(token)
-                .body(topic));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(topic));
 
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
 
         Topic topicToUpdate = Topic.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-topic2Create")
-                .namespace("ns1")
-                .build())
-            .spec(TopicSpec.builder()
-                .partitions(3)
-                .replicationFactor(1)
-                .configs(Map.of(
-                    "cleanup.policy", "delete",
-                    "min.insync.replicas", "1",
-                    "retention.ms", "70000")) //This line was changed
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ns1-topic2Create")
+                        .namespace("ns1")
+                        .build())
+                .spec(TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(Map.of(
+                                "cleanup.policy", "delete",
+                                "min.insync.replicas", "1",
+                                "retention.ms", "70000")) // This line was changed
+                        .build())
+                .build();
 
         response = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
-                .bearerAuth(token)
-                .body(topicToUpdate));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(topicToUpdate));
 
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
 
@@ -378,11 +344,11 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
         Admin kafkaClient = getAdminClient();
 
         List<TopicPartitionInfo> topicPartitionInfos = kafkaClient
-            .describeTopics(List.of("ns1-topic2Create"))
-            .allTopicNames()
-            .get()
-            .get("ns1-topic2Create")
-            .partitions();
+                .describeTopics(List.of("ns1-topic2Create"))
+                .allTopicNames()
+                .get()
+                .get("ns1-topic2Create")
+                .partitions();
 
         // verify partition of the updated topic
         assertEquals(topicToUpdate.getSpec().getPartitions(), topicPartitionInfos.size());
@@ -392,15 +358,10 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
         Set<String> configKey = config.keySet();
 
         ConfigResource configResource = new ConfigResource(ConfigResource.Type.TOPIC, "ns1-topic2Create");
-        List<ConfigEntry> valueToVerify = kafkaClient
-            .describeConfigs(List.of(configResource))
-            .all()
-            .get()
-            .get(configResource)
-            .entries()
-            .stream()
-            .filter(e -> configKey.contains(e.name()))
-            .toList();
+        List<ConfigEntry> valueToVerify =
+                kafkaClient.describeConfigs(List.of(configResource)).all().get().get(configResource).entries().stream()
+                        .filter(e -> configKey.contains(e.name()))
+                        .toList();
 
         assertEquals(config.size(), valueToVerify.size());
         valueToVerify.forEach(entry -> assertEquals(config.get(entry.name()), entry.value()));
@@ -409,148 +370,150 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldInvalidateTopicName() {
         Topic topicFirstCreate = Topic.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-invalid-é")
-                .namespace("ns1")
-                .build())
-            .spec(TopicSpec.builder()
-                .partitions(3)
-                .replicationFactor(1)
-                .configs(Map.of("cleanup.policy", "delete",
-                    "min.insync.replicas", "1",
-                    "retention.ms", "60000"))
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ns1-invalid-é")
+                        .namespace("ns1")
+                        .build())
+                .spec(TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(
+                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "1", "retention.ms", "60000"))
+                        .build())
+                .build();
 
-        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
-            () -> ns4KafkaClient
+        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class, () -> ns4KafkaClient
                 .toBlocking()
-                .exchange(HttpRequest
-                    .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
-                    .bearerAuth(token)
-                    .body(topicFirstCreate)));
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(topicFirstCreate)));
 
         assertEquals("Constraint validation failed", exception.getMessage());
         assertTrue(exception.getResponse().getBody(Status.class).isPresent());
-        assertEquals("topic.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"",
-            exception.getResponse().getBody(Status.class).get().getDetails().getCauses().getFirst());
+        assertEquals(
+                "topic.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"",
+                exception
+                        .getResponse()
+                        .getBody(Status.class)
+                        .get()
+                        .getDetails()
+                        .getCauses()
+                        .getFirst());
     }
 
     @Test
     void shouldUpdateTopicWithNoChange() {
         AccessControlEntry aclns1Tons2 = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-acltons2")
-                .namespace("ns1")
-                .build())
-            .spec(AccessControlEntrySpec.builder()
-                .resourceType(ResourceType.TOPIC)
-                .resource("ns1-")
-                .resourcePatternType(ResourcePatternType.PREFIXED)
-                .permission(Permission.READ)
-                .grantedTo("ns2")
-                .build())
-            .build();
+                .metadata(
+                        Metadata.builder().name("ns1-acltons2").namespace("ns1").build())
+                .spec(AccessControlEntrySpec.builder()
+                        .resourceType(ResourceType.TOPIC)
+                        .resource("ns1-")
+                        .resourcePatternType(ResourcePatternType.PREFIXED)
+                        .permission(Permission.READ)
+                        .grantedTo("ns2")
+                        .build())
+                .build();
 
         Topic topicToModify = Topic.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-topicToModify")
-                .namespace("ns1")
-                .build())
-            .spec(TopicSpec.builder()
-                .partitions(3)
-                .replicationFactor(1)
-                .configs(Map.of(
-                    "cleanup.policy", "delete",
-                    "min.insync.replicas", "1",
-                    "retention.ms", "60000"))
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ns1-topicToModify")
+                        .namespace("ns1")
+                        .build())
+                .spec(TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(Map.of(
+                                "cleanup.policy", "delete",
+                                "min.insync.replicas", "1",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/acls")
-                .bearerAuth(token)
-                .body(aclns1Tons2));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                        .bearerAuth(token)
+                        .body(aclns1Tons2));
 
-        assertEquals(HttpStatus.OK, ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
-                .bearerAuth(token)
-                .body(topicToModify))
-            .getStatus());
+        assertEquals(
+                HttpStatus.OK,
+                ns4KafkaClient
+                        .toBlocking()
+                        .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                                .bearerAuth(token)
+                                .body(topicToModify))
+                        .getStatus());
 
         Topic topicToModifyBis = Topic.builder()
-            .metadata(topicToModify.getMetadata())
-            .spec(TopicSpec.builder()
-                .partitions(3)
-                .replicationFactor(1)
-                .configs(Map.of(
-                    "cleanup.policy", "delete",
-                    "min.insync.replicas", "1",
-                    "retention.ms", "90000"))
-                .build())
-            .build();
+                .metadata(topicToModify.getMetadata())
+                .spec(TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(Map.of(
+                                "cleanup.policy", "delete",
+                                "min.insync.replicas", "1",
+                                "retention.ms", "90000"))
+                        .build())
+                .build();
 
-        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
-            () -> ns4KafkaClient
+        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class, () -> ns4KafkaClient
                 .toBlocking()
-                .exchange(HttpRequest
-                    .create(HttpMethod.POST, "/api/namespaces/ns2/topics")
-                    .bearerAuth(token)
-                    .body(topicToModifyBis)));
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns2/topics")
+                        .bearerAuth(token)
+                        .body(topicToModifyBis)));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
 
         // Compare spec of the topics and assure there is no change
-        assertEquals(topicToModify.getSpec(), ns4KafkaClient
-            .toBlocking()
-            .retrieve(HttpRequest
-                .create(HttpMethod.GET, "/api/namespaces/ns1/topics/ns1-topicToModify")
-                .bearerAuth(token), Topic.class)
-            .getSpec());
+        assertEquals(
+                topicToModify.getSpec(),
+                ns4KafkaClient
+                        .toBlocking()
+                        .retrieve(
+                                HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/topics/ns1-topicToModify")
+                                        .bearerAuth(token),
+                                Topic.class)
+                        .getSpec());
     }
 
     @Test
     void shouldDeleteRecords() throws InterruptedException {
         Topic topicToDelete = Topic.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-topicToDelete")
-                .namespace("ns1")
-                .build())
-            .spec(TopicSpec.builder()
-                .partitions(3)
-                .replicationFactor(1)
-                .configs(Map.of("cleanup.policy", "delete",
-                    "min.insync.replicas", "1",
-                    "retention.ms", "60000"))
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ns1-topicToDelete")
+                        .namespace("ns1")
+                        .build())
+                .spec(TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(
+                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "1", "retention.ms", "60000"))
+                        .build())
+                .build();
 
         var response = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
-                .bearerAuth(token)
-                .body(topicToDelete));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(topicToDelete));
 
         assertEquals("created", response.header("X-Ns4kafka-Result"));
 
         forceTopicSynchronization();
 
         List<DeleteRecordsResponse> deleteRecordsResponse = ns4KafkaClient
-            .toBlocking()
-            .retrieve(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/topics/ns1-topicToDelete/delete-records")
-                .bearerAuth(token), Argument.listOf(DeleteRecordsResponse.class));
+                .toBlocking()
+                .retrieve(
+                        HttpRequest.create(
+                                        HttpMethod.POST, "/api/namespaces/ns1/topics/ns1-topicToDelete/delete-records")
+                                .bearerAuth(token),
+                        Argument.listOf(DeleteRecordsResponse.class));
 
-        DeleteRecordsResponse resultPartition0 = deleteRecordsResponse
-            .stream()
-            .filter(deleteRecord -> deleteRecord.getSpec().getPartition() == 0)
-            .findFirst()
-            .orElse(null);
+        DeleteRecordsResponse resultPartition0 = deleteRecordsResponse.stream()
+                .filter(deleteRecord -> deleteRecord.getSpec().getPartition() == 0)
+                .findFirst()
+                .orElse(null);
 
         assertEquals(3L, deleteRecordsResponse.size());
 
@@ -559,22 +522,20 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
         assertEquals(0, resultPartition0.getSpec().getPartition());
         assertEquals("ns1-topicToDelete", resultPartition0.getSpec().getTopic());
 
-        DeleteRecordsResponse resultPartition1 = deleteRecordsResponse
-            .stream()
-            .filter(deleteRecord -> deleteRecord.getSpec().getPartition() == 1)
-            .findFirst()
-            .orElse(null);
+        DeleteRecordsResponse resultPartition1 = deleteRecordsResponse.stream()
+                .filter(deleteRecord -> deleteRecord.getSpec().getPartition() == 1)
+                .findFirst()
+                .orElse(null);
 
         assertNotNull(resultPartition1);
         assertEquals(0, resultPartition1.getSpec().getOffset());
         assertEquals(1, resultPartition1.getSpec().getPartition());
         assertEquals("ns1-topicToDelete", resultPartition1.getSpec().getTopic());
 
-        DeleteRecordsResponse resultPartition2 = deleteRecordsResponse
-            .stream()
-            .filter(deleteRecord -> deleteRecord.getSpec().getPartition() == 2)
-            .findFirst()
-            .orElse(null);
+        DeleteRecordsResponse resultPartition2 = deleteRecordsResponse.stream()
+                .filter(deleteRecord -> deleteRecord.getSpec().getPartition() == 2)
+                .findFirst()
+                .orElse(null);
 
         assertNotNull(resultPartition2);
         assertEquals(0, resultPartition2.getSpec().getOffset());
@@ -585,37 +546,35 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldDeleteRecordsOnCompactTopic() throws InterruptedException {
         Topic topicToDelete = Topic.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-compactTopicToDelete")
-                .namespace("ns1")
-                .build())
-            .spec(TopicSpec.builder()
-                .partitions(3)
-                .replicationFactor(1)
-                .configs(Map.of(
-                    "cleanup.policy", "compact",
-                    "min.insync.replicas", "1",
-                    "retention.ms", "60000"))
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ns1-compactTopicToDelete")
+                        .namespace("ns1")
+                        .build())
+                .spec(TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(Map.of(
+                                "cleanup.policy", "compact",
+                                "min.insync.replicas", "1",
+                                "retention.ms", "60000"))
+                        .build())
+                .build();
 
         var response = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
-                .bearerAuth(token)
-                .body(topicToDelete));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(topicToDelete));
 
         assertEquals("created", response.header("X-Ns4kafka-Result"));
 
         forceTopicSynchronization();
 
-        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class,
-            () -> ns4KafkaClient
+        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class, () -> ns4KafkaClient
                 .toBlocking()
-                .exchange(HttpRequest
-                    .create(HttpMethod.POST, "/api/namespaces/ns1/topics/compactTopicToDelete/delete-records")
-                    .bearerAuth(token)));
+                .exchange(HttpRequest.create(
+                                HttpMethod.POST, "/api/namespaces/ns1/topics/compactTopicToDelete/delete-records")
+                        .bearerAuth(token)));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
     }
@@ -623,81 +582,71 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldDeleteTopics() throws InterruptedException, ExecutionException {
         Topic deleteTopic = Topic.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-deleteTopic")
-                .namespace("ns1")
-                .build())
-            .spec(TopicSpec.builder()
-                .partitions(3)
-                .replicationFactor(1)
-                .configs(Map.of("cleanup.policy", "delete",
-                    "min.insync.replicas", "1",
-                    "retention.ms", "60000"))
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ns1-deleteTopic")
+                        .namespace("ns1")
+                        .build())
+                .spec(TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(
+                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "1", "retention.ms", "60000"))
+                        .build())
+                .build();
 
         Topic compactTopic = Topic.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-compactTopic")
-                .namespace("ns1")
-                .build())
-            .spec(TopicSpec.builder()
-                .partitions(3)
-                .replicationFactor(1)
-                .configs(Map.of("cleanup.policy", "compact",
-                    "min.insync.replicas", "1",
-                    "retention.ms", "60000"))
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name("ns1-compactTopic")
+                        .namespace("ns1")
+                        .build())
+                .spec(TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(Map.of(
+                                "cleanup.policy", "compact", "min.insync.replicas", "1", "retention.ms", "60000"))
+                        .build())
+                .build();
 
         Topic topicNotToDelete = Topic.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-test")
-                .namespace("ns1")
-                .build())
-            .spec(TopicSpec.builder()
-                .partitions(3)
-                .replicationFactor(1)
-                .configs(Map.of("cleanup.policy", "compact",
-                    "min.insync.replicas", "1",
-                    "retention.ms", "60000"))
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ns1-test").namespace("ns1").build())
+                .spec(TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(Map.of(
+                                "cleanup.policy", "compact", "min.insync.replicas", "1", "retention.ms", "60000"))
+                        .build())
+                .build();
 
         var createResponse1 = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
-                .bearerAuth(token)
-                .body(deleteTopic));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(deleteTopic));
 
         assertEquals("created", createResponse1.header("X-Ns4kafka-Result"));
 
         var createResponse2 = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
-                .bearerAuth(token)
-                .body(compactTopic));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(compactTopic));
 
         assertEquals("created", createResponse2.header("X-Ns4kafka-Result"));
 
         var createResponse3 = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/topics")
-                .bearerAuth(token)
-                .body(topicNotToDelete));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(topicNotToDelete));
 
         assertEquals("created", createResponse3.header("X-Ns4kafka-Result"));
 
         forceTopicSynchronization();
 
         var deleteResponse = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.DELETE, "/api/namespaces/ns1/topics?name=ns1-*Topic")
-                .bearerAuth(token));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/topics?name=ns1-*Topic")
+                        .bearerAuth(token));
 
         assertEquals(HttpStatus.OK, deleteResponse.getStatus());
 
@@ -705,7 +654,8 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
 
         Admin kafkaClient = getAdminClient();
 
-        Map<String, TopicListing> topics = kafkaClient.listTopics().namesToListings().get();
+        Map<String, TopicListing> topics =
+                kafkaClient.listTopics().namesToListings().get();
 
         assertFalse(topics.containsKey("ns1-deleteTopic"));
         assertFalse(topics.containsKey("ns1-compactTopic"));
@@ -725,10 +675,13 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
     public static class BearerAccessRefreshToken {
         private String username;
         private Collection<String> roles;
+
         @JsonProperty("access_token")
         private String accessToken;
+
         @JsonProperty("token_type")
         private String tokenType;
+
         @JsonProperty("expires_in")
         private Integer expiresIn;
     }

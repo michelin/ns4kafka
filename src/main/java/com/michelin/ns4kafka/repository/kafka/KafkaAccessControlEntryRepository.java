@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.repository.kafka;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
@@ -33,26 +32,24 @@ import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-/**
- * Access control entry repository.
- */
+/** Access control entry repository. */
 @Singleton
 @KafkaListener(
-    offsetReset = OffsetReset.EARLIEST,
-    groupId = "${ns4kafka.store.kafka.group-id}",
-    offsetStrategy = OffsetStrategy.DISABLED
-)
+        offsetReset = OffsetReset.EARLIEST,
+        groupId = "${ns4kafka.store.kafka.group-id}",
+        offsetStrategy = OffsetStrategy.DISABLED)
 public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlEntry>
-    implements AccessControlEntryRepository {
+        implements AccessControlEntryRepository {
     public KafkaAccessControlEntryRepository(
-        @Value("${ns4kafka.store.kafka.topics.prefix}.access-control-entries") String kafkaTopic,
-        @KafkaClient("access-control-entries-producer") Producer<String, AccessControlEntry> kafkaProducer) {
+            @Value("${ns4kafka.store.kafka.topics.prefix}.access-control-entries") String kafkaTopic,
+            @KafkaClient("access-control-entries-producer") Producer<String, AccessControlEntry> kafkaProducer) {
         super(kafkaTopic, kafkaProducer);
     }
 
     @Override
     String getMessageKey(AccessControlEntry accessControlEntry) {
-        return accessControlEntry.getMetadata().getNamespace() + "/" + accessControlEntry.getMetadata().getName();
+        return accessControlEntry.getMetadata().getNamespace() + "/"
+                + accessControlEntry.getMetadata().getName();
     }
 
     @Override
@@ -67,11 +64,10 @@ public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlE
 
     @Override
     public Optional<AccessControlEntry> findByName(String namespace, String name) {
-        return getKafkaStore().values()
-            .stream()
-            .filter(ace -> ace.getMetadata().getNamespace().equals(namespace))
-            .filter(ace -> ace.getMetadata().getName().equals(name))
-            .findFirst();
+        return getKafkaStore().values().stream()
+                .filter(ace -> ace.getMetadata().getNamespace().equals(namespace))
+                .filter(ace -> ace.getMetadata().getName().equals(name))
+                .findFirst();
     }
 
     @Override
@@ -84,5 +80,4 @@ public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlE
     public Collection<AccessControlEntry> findAll() {
         return getKafkaStore().values();
     }
-
 }

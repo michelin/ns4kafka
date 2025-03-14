@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller.generic;
 
-/**
- * Non namespaced resource controller.
- */
-public abstract class NonNamespacedResourceController extends ResourceController {
-
-}
+/** Non namespaced resource controller. */
+public abstract class NonNamespacedResourceController extends ResourceController {}

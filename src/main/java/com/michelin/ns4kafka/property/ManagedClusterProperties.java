@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.property;
 
 import io.micronaut.context.annotation.ConfigurationProperties;
@@ -29,9 +28,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.kafka.clients.admin.Admin;
 
-/**
- * Managed cluster properties.
- */
+/** Managed cluster properties. */
 @Getter
 @Setter
 @EachProperty("ns4kafka.managed-clusters")
@@ -71,17 +68,13 @@ public class ManagedClusterProperties {
         return this.adminClient;
     }
 
-    /**
-     * Kafka provider.
-     */
+    /** Kafka provider. */
     public enum KafkaProvider {
         SELF_MANAGED,
         CONFLUENT_CLOUD
     }
 
-    /**
-     * Connect properties.
-     */
+    /** Connect properties. */
     @Getter
     @Setter
     @Introspected
@@ -91,9 +84,7 @@ public class ManagedClusterProperties {
         private String basicAuthPassword;
     }
 
-    /**
-     * Schema registry properties.
-     */
+    /** Schema registry properties. */
     @Getter
     @Setter
     @ConfigurationProperties("schema-registry")
@@ -103,9 +94,7 @@ public class ManagedClusterProperties {
         private String basicAuthPassword;
     }
 
-    /**
-     * Timeout properties.
-     */
+    /** Timeout properties. */
     @Getter
     @Setter
     @ConfigurationProperties("timeout")
@@ -115,9 +104,7 @@ public class ManagedClusterProperties {
         private TopicProperties topic = new TopicProperties();
         private UserProperties user = new UserProperties();
 
-        /**
-         * ACL properties.
-         */
+        /** ACL properties. */
         @Getter
         @Setter
         @ConfigurationProperties("acl")
@@ -127,9 +114,7 @@ public class ManagedClusterProperties {
             private int delete = DEFAULT_TIMEOUT_MS;
         }
 
-        /**
-         * Topic properties.
-         */
+        /** Topic properties. */
         @Getter
         @Setter
         @ConfigurationProperties("topic")
@@ -141,9 +126,7 @@ public class ManagedClusterProperties {
             private int list = DEFAULT_TIMEOUT_MS;
         }
 
-        /**
-         * User properties.
-         */
+        /** User properties. */
         @Getter
         @Setter
         @ConfigurationProperties("user")

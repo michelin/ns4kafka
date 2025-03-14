@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model.consumer.group;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.CONSUMER_GROUP_RESET_OFFSET_RESPONSE;
@@ -34,25 +33,19 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-/**
- * Consumer group reset offsets response.
- */
+/** Consumer group reset offsets response. */
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
 public class ConsumerGroupResetOffsetsResponse extends MetadataResource {
-    /**
-     * Resource specifications.
-     */
-    @Valid
-    @NotNull
-    private ConsumerGroupResetOffsetsResponseSpec spec;
+    /** Resource specifications. */
+    @Valid @NotNull private ConsumerGroupResetOffsetsResponseSpec spec;
 
     /**
      * Constructor.
      *
      * @param metadata The metadata
-     * @param spec     The spec
+     * @param spec The spec
      */
     @Builder
     public ConsumerGroupResetOffsetsResponse(Metadata metadata, ConsumerGroupResetOffsetsResponseSpec spec) {
@@ -60,9 +53,7 @@ public class ConsumerGroupResetOffsetsResponse extends MetadataResource {
         this.spec = spec;
     }
 
-    /**
-     * Consumer group reset offsets response specification.
-     */
+    /** Consumer group reset offsets response specification. */
     @Getter
     @Builder
     @ToString
@@ -70,24 +61,16 @@ public class ConsumerGroupResetOffsetsResponse extends MetadataResource {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class ConsumerGroupResetOffsetsResponseSpec {
-        /**
-         * The topic that was reset.
-         */
+        /** The topic that was reset. */
         private String topic;
 
-        /**
-         * The partition that was reset.
-         */
+        /** The partition that was reset. */
         private int partition;
 
-        /**
-         * The new offset.
-         */
+        /** The new offset. */
         private Long offset;
 
-        /**
-         * The consumer group.
-         */
+        /** The consumer group. */
         private String consumerGroup;
     }
 }

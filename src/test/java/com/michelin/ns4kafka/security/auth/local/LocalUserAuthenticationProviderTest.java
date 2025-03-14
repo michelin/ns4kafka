@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.security.auth.local;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -56,15 +55,14 @@ class LocalUserAuthenticationProviderTest {
     void authenticateNoMatchUser() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
 
-        when(securityProperties.getLocalUsers())
-            .thenReturn(List.of());
+        when(securityProperties.getLocalUsers()).thenReturn(List.of());
 
         Publisher<AuthenticationResponse> authenticationResponsePublisher =
-            localUserAuthenticationProvider.authenticate(null, credentials);
+                localUserAuthenticationProvider.authenticate(null, credentials);
 
         StepVerifier.create(authenticationResponsePublisher)
-            .consumeErrorWith(error -> assertEquals(AuthenticationException.class, error.getClass()))
-            .verify();
+                .consumeErrorWith(error -> assertEquals(AuthenticationException.class, error.getClass()))
+                .verify();
     }
 
     @Test
@@ -72,18 +70,17 @@ class LocalUserAuthenticationProviderTest {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
 
         when(securityProperties.getLocalUsers())
-            .thenReturn(List.of(LocalUser.builder()
-                .username("admin")
-                .password("invalid_sha256_signature")
-                .build()));
+                .thenReturn(List.of(LocalUser.builder()
+                        .username("admin")
+                        .password("invalid_sha256_signature")
+                        .build()));
 
         Publisher<AuthenticationResponse> authenticationResponsePublisher =
-            localUserAuthenticationProvider.authenticate(null,
-                credentials);
+                localUserAuthenticationProvider.authenticate(null, credentials);
 
         StepVerifier.create(authenticationResponsePublisher)
-            .consumeErrorWith(error -> assertEquals(AuthenticationException.class, error.getClass()))
-            .verify();
+                .consumeErrorWith(error -> assertEquals(AuthenticationException.class, error.getClass()))
+                .verify();
     }
 
     @Test
@@ -92,36 +89,35 @@ class LocalUserAuthenticationProviderTest {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
 
         when(securityProperties.getLocalUsers())
-            .thenReturn(List.of(LocalUser.builder()
-                .username("admin")
-                .password("8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918")
-                .groups(List.of("admin"))
-                .build()));
+                .thenReturn(List.of(LocalUser.builder()
+                        .username("admin")
+                        .password("8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918")
+                        .groups(List.of("admin"))
+                        .build()));
 
         AuthenticationRoleBinding authenticationRoleBinding = AuthenticationRoleBinding.builder()
-            .namespaces(List.of("namespace"))
-            .verbs(List.of(RoleBinding.Verb.GET))
-            .resourceTypes(List.of("topics"))
-            .build();
+                .namespaces(List.of("namespace"))
+                .verbs(List.of(RoleBinding.Verb.GET))
+                .resourceTypes(List.of("topics"))
+                .build();
 
-        AuthenticationResponse authenticationResponse = AuthenticationResponse.success("admin", null,
-            Map.of("roleBindings", List.of(authenticationRoleBinding)));
+        AuthenticationResponse authenticationResponse = AuthenticationResponse.success(
+                "admin", null, Map.of("roleBindings", List.of(authenticationRoleBinding)));
 
         when(authenticationService.buildAuthJwtGroups("admin", List.of("admin")))
-            .thenReturn(authenticationResponse);
+                .thenReturn(authenticationResponse);
 
         Publisher<AuthenticationResponse> authenticationResponsePublisher =
-            localUserAuthenticationProvider.authenticate(null, credentials);
+                localUserAuthenticationProvider.authenticate(null, credentials);
 
         StepVerifier.create(authenticationResponsePublisher)
-            .consumeNextWith(response -> {
-                assertTrue(response.isAuthenticated());
-                assertTrue(response.getAuthentication().isPresent());
-                assertEquals("admin", response.getAuthentication().get().getName());
-                assertIterableEquals(List.of(authenticationRoleBinding),
-                    (List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes()
-                        .get("roleBindings"));
-            })
-            .verifyComplete();
+                .consumeNextWith(response -> {
+                    assertTrue(response.isAuthenticated());
+                    assertTrue(response.getAuthentication().isPresent());
+                    assertEquals("admin", response.getAuthentication().get().getName());
+                    assertIterableEquals(List.of(authenticationRoleBinding), (List<AuthenticationRoleBinding>)
+                            response.getAuthentication().get().getAttributes().get("roleBindings"));
+                })
+                .verifyComplete();
     }
 }

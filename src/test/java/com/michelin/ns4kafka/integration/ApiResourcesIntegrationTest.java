@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,16 +48,15 @@ class ApiResourcesIntegrationTest extends KafkaIntegrationTest {
     void shouldListResourcesAsAdmin() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
         HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
+                .toBlocking()
+                .exchange(HttpRequest.POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
 
         String token = response.getBody().get().getAccessToken();
         List<ApiResourcesController.ResourceDefinition> resources = ns4KafkaClient
-            .toBlocking()
-            .retrieve(HttpRequest
-                .GET("/api-resources")
-                .bearerAuth(token), Argument.listOf(ApiResourcesController.ResourceDefinition.class));
+                .toBlocking()
+                .retrieve(
+                        HttpRequest.GET("/api-resources").bearerAuth(token),
+                        Argument.listOf(ApiResourcesController.ResourceDefinition.class));
 
         assertEquals(9, resources.size());
     }
@@ -68,9 +66,10 @@ class ApiResourcesIntegrationTest extends KafkaIntegrationTest {
         // This feature is not about restricting access, but easing user experience within the CLI
         // If the user is not authenticated, show everything
         List<ApiResourcesController.ResourceDefinition> resources = ns4KafkaClient
-            .toBlocking()
-            .retrieve(HttpRequest
-                .GET("/api-resources"), Argument.listOf(ApiResourcesController.ResourceDefinition.class));
+                .toBlocking()
+                .retrieve(
+                        HttpRequest.GET("/api-resources"),
+                        Argument.listOf(ApiResourcesController.ResourceDefinition.class));
 
         assertEquals(9, resources.size());
     }
@@ -78,67 +77,60 @@ class ApiResourcesIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldListResourcesAsUser() {
         Namespace ns1 = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("ns1")
-                .cluster("test-cluster")
-                .build())
-            .spec(Namespace.NamespaceSpec.builder()
-                .kafkaUser("user1")
-                .topicValidator(TopicValidator.makeDefaultOneBroker())
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ns1").cluster("test-cluster").build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user1")
+                        .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .build())
+                .build();
 
         RoleBinding rb1 = RoleBinding.builder()
-            .metadata(Metadata.builder()
-                .name("ns1-rb")
-                .namespace("ns1")
-                .build())
-            .spec(RoleBinding.RoleBindingSpec.builder()
-                .role(RoleBinding.Role.builder()
-                    .resourceTypes(List.of("topics", "acls"))
-                    .verbs(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET))
-                    .build())
-                .subject(RoleBinding.Subject.builder()
-                    .subjectName("userGroup")
-                    .subjectType(RoleBinding.SubjectType.GROUP)
-                    .build())
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("ns1-rb").namespace("ns1").build())
+                .spec(RoleBinding.RoleBindingSpec.builder()
+                        .role(RoleBinding.Role.builder()
+                                .resourceTypes(List.of("topics", "acls"))
+                                .verbs(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET))
+                                .build())
+                        .subject(RoleBinding.Subject.builder()
+                                .subjectName("userGroup")
+                                .subjectType(RoleBinding.SubjectType.GROUP)
+                                .build())
+                        .build())
+                .build();
 
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
         HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
+                .toBlocking()
+                .exchange(HttpRequest.POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
 
         String token = response.getBody().get().getAccessToken();
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces")
-                .bearerAuth(token)
-                .body(ns1));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
+                        .bearerAuth(token)
+                        .body(ns1));
 
         ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest
-                .create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings")
-                .bearerAuth(token)
-                .body(rb1));
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/role-bindings")
+                        .bearerAuth(token)
+                        .body(rb1));
 
         UsernamePasswordCredentials userCredentials = new UsernamePasswordCredentials("user", "admin");
         HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> userResponse = ns4KafkaClient
-            .toBlocking()
-            .exchange(HttpRequest.POST("/login", userCredentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
+                .toBlocking()
+                .exchange(
+                        HttpRequest.POST("/login", userCredentials),
+                        TopicIntegrationTest.BearerAccessRefreshToken.class);
 
         String userToken = userResponse.getBody().get().getAccessToken();
 
         List<ApiResourcesController.ResourceDefinition> resources = ns4KafkaClient
-            .toBlocking()
-            .retrieve(HttpRequest
-                .GET("/api-resources")
-                .bearerAuth(userToken), Argument.listOf(ApiResourcesController.ResourceDefinition.class));
+                .toBlocking()
+                .retrieve(
+                        HttpRequest.GET("/api-resources").bearerAuth(userToken),
+                        Argument.listOf(ApiResourcesController.ResourceDefinition.class));
 
         assertEquals(2, resources.size());
     }

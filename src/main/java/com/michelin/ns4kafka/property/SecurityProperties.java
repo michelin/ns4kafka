@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.property;
 
 import com.michelin.ns4kafka.security.auth.local.LocalUser;
@@ -25,9 +24,7 @@ import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Security properties.
- */
+/** Security properties. */
 @Getter
 @Setter
 @ConfigurationProperties("ns4kafka.security")

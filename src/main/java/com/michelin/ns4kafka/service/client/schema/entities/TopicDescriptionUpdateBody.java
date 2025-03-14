@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service.client.schema.entities;
 
 import lombok.Builder;
@@ -27,6 +26,4 @@ import lombok.Builder;
  * @param entity entity
  */
 @Builder
-public record TopicDescriptionUpdateBody(TopicDescriptionUpdateEntity entity) {
-
-}
+public record TopicDescriptionUpdateBody(TopicDescriptionUpdateEntity entity) {}

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
@@ -33,9 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Service to manage Kafka Streams.
- */
+/** Service to manage Kafka Streams. */
 @Singleton
 public class StreamService {
     @Inject
@@ -55,58 +52,61 @@ public class StreamService {
      */
     public List<KafkaStream> findAllForNamespace(Namespace namespace) {
         return streamRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
-            .filter(stream -> stream.getMetadata().getNamespace().equals(namespace.getMetadata().getName()))
-            .toList();
+                .filter(stream -> stream.getMetadata()
+                        .getNamespace()
+                        .equals(namespace.getMetadata().getName()))
+                .toList();
     }
 
     /**
      * Find all Kafka Streams of a given namespace, filtered by name parameter.
      *
      * @param namespace The namespace
-     * @param name      The name filter
+     * @param name The name filter
      * @return A list of Kafka Streams
      */
     public List<KafkaStream> findByWildcardName(Namespace namespace, String name) {
         List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
-        return findAllForNamespace(namespace)
-            .stream()
-            .filter(stream -> RegexUtils.isResourceCoveredByRegex(stream.getMetadata().getName(), nameFilterPatterns))
-            .toList();
+        return findAllForNamespace(namespace).stream()
+                .filter(stream ->
+                        RegexUtils.isResourceCoveredByRegex(stream.getMetadata().getName(), nameFilterPatterns))
+                .toList();
     }
 
     /**
      * Find a Kafka Streams by namespace and name.
      *
      * @param namespace The namespace
-     * @param stream    The Kafka Streams name
+     * @param stream The Kafka Streams name
      * @return An optional Kafka Streams
      */
     public Optional<KafkaStream> findByName(Namespace namespace, String stream) {
         return findAllForNamespace(namespace).stream()
-            .filter(kafkaStream -> kafkaStream.getMetadata().getName().equals(stream))
-            .findFirst();
+                .filter(kafkaStream -> kafkaStream.getMetadata().getName().equals(stream))
+                .findFirst();
     }
 
     /**
-     * Is given namespace owner of the given Kafka Streams.
-     * Kafka Streams ownership is determined by both topic and group ownership on prefixed resource.
-     * This is because Kafka Streams "application.id" is a consumer group but also a prefix for internal topic names.
+     * Is given namespace owner of the given Kafka Streams. Kafka Streams ownership is determined by both topic and
+     * group ownership on prefixed resource. This is because Kafka Streams "application.id" is a consumer group but also
+     * a prefix for internal topic names.
      *
      * @param namespace The namespace
-     * @param resource  The Kafka Streams
+     * @param resource The Kafka Streams
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceOwnerOfKafkaStream(Namespace namespace, String resource) {
-        return new HashSet<>(aclService.findAllGrantedToNamespace(namespace)
-            .stream()
-            .filter(accessControlEntry -> accessControlEntry.getSpec().getPermission()
-                == AccessControlEntry.Permission.OWNER)
-            .filter(accessControlEntry -> accessControlEntry.getSpec().getResourcePatternType()
-                == AccessControlEntry.ResourcePatternType.PREFIXED)
-            .filter(accessControlEntry -> resource.startsWith(accessControlEntry.getSpec().getResource()))
-            .map(accessControlEntry -> accessControlEntry.getSpec().getResourceType())
-            .toList())
-            .containsAll(List.of(AccessControlEntry.ResourceType.TOPIC, AccessControlEntry.ResourceType.GROUP));
+        return new HashSet<>(aclService.findAllGrantedToNamespace(namespace).stream()
+                        .filter(accessControlEntry ->
+                                accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
+                        .filter(accessControlEntry ->
+                                accessControlEntry.getSpec().getResourcePatternType()
+                                        == AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .filter(accessControlEntry ->
+                                resource.startsWith(accessControlEntry.getSpec().getResource()))
+                        .map(accessControlEntry -> accessControlEntry.getSpec().getResourceType())
+                        .toList())
+                .containsAll(List.of(AccessControlEntry.ResourceType.TOPIC, AccessControlEntry.ResourceType.GROUP));
     }
 
     /**
@@ -125,8 +125,8 @@ public class StreamService {
      * @param stream The Kafka Stream
      */
     public void delete(Namespace namespace, KafkaStream stream) {
-        AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor =
-            applicationContext.getBean(AccessControlEntryAsyncExecutor.class,
+        AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor = applicationContext.getBean(
+                AccessControlEntryAsyncExecutor.class,
                 Qualifiers.byName(stream.getMetadata().getCluster()));
         accessControlEntryAsyncExecutor.deleteKafkaStreams(namespace, stream);
 

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service.client.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -25,11 +24,10 @@ import java.util.List;
 /**
  * Connector configuration information.
  *
- * @param name       Name
+ * @param name Name
  * @param errorCount Number of errors
- * @param groups     Groups
- * @param configs    Configurations
+ * @param groups Groups
+ * @param configs Configurations
  */
-public record ConfigInfos(String name, @JsonProperty("error_count") int errorCount, List<String> groups,
-                          List<ConfigInfo> configs) {
-}
+public record ConfigInfos(
+        String name, @JsonProperty("error_count") int errorCount, List<String> groups, List<ConfigInfo> configs) {}

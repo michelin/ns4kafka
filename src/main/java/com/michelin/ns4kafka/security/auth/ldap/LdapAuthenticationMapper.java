@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.security.auth.ldap;
 
 import com.michelin.ns4kafka.security.auth.AuthenticationService;
@@ -33,9 +32,7 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Custom LDAP authentication mapper.
- */
+/** Custom LDAP authentication mapper. */
 @Singleton
 @Replaces(DefaultContextAuthenticationMapper.class)
 @Requires(property = LdapConfiguration.PREFIX + ".enabled", notEquals = StringUtils.FALSE)

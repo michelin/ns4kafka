@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -26,9 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/**
- * Regex utils test.
- */
+/** Regex utils test. */
 class RegexUtilsTest {
     @Test
     void shouldConvertDefaultStringToRegexPattern() {
@@ -55,8 +52,9 @@ class RegexUtilsTest {
 
     @Test
     void shouldConvertMultipleWildcardsToRegexPatterns() {
-        assertEquals(List.of("^prefix.*$", "^.*suffix$"),
-            RegexUtils.convertWildcardStringsToRegex(List.of("prefix*", "*suffix")));
+        assertEquals(
+                List.of("^prefix.*$", "^.*suffix$"),
+                RegexUtils.convertWildcardStringsToRegex(List.of("prefix*", "*suffix")));
     }
 
     @Test
@@ -104,9 +102,7 @@ class RegexUtilsTest {
         assertFalse(RegexUtils.isResourceCoveredByRegex("topic", pattern));
     }
 
-    /**
-     * Functional tests for wildcard filter.
-     */
+    /** Functional tests for wildcard filter. */
     @Test
     void shouldResourceBeCoveredByWildcardOnly() {
         List<String> pattern1 = RegexUtils.convertWildcardStringsToRegex(List.of("*"));

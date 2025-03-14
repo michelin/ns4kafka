@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.repository.kafka;
 
 import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
@@ -33,19 +32,16 @@ import java.util.List;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-/**
- * Kafka Connect Cluster repository.
- */
+/** Kafka Connect Cluster repository. */
 @Singleton
 @KafkaListener(
-    offsetReset = OffsetReset.EARLIEST,
-    groupId = "${ns4kafka.store.kafka.group-id}",
-    offsetStrategy = OffsetStrategy.DISABLED
-)
+        offsetReset = OffsetReset.EARLIEST,
+        groupId = "${ns4kafka.store.kafka.group-id}",
+        offsetStrategy = OffsetStrategy.DISABLED)
 public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> implements ConnectClusterRepository {
     public KafkaConnectClusterRepository(
-        @Value("${ns4kafka.store.kafka.topics.prefix}.connect-workers") String kafkaTopic,
-        @KafkaClient("connect-workers") Producer<String, ConnectCluster> kafkaProducer) {
+            @Value("${ns4kafka.store.kafka.topics.prefix}.connect-workers") String kafkaTopic,
+            @KafkaClient("connect-workers") Producer<String, ConnectCluster> kafkaProducer) {
         super(kafkaTopic, kafkaProducer);
     }
 
@@ -57,8 +53,9 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
     @Override
     public List<ConnectCluster> findAllForCluster(String cluster) {
         return getKafkaStore().values().stream()
-            .filter(connectCluster -> connectCluster.getMetadata().getCluster().equals(cluster))
-            .toList();
+                .filter(connectCluster ->
+                        connectCluster.getMetadata().getCluster().equals(cluster))
+                .toList();
     }
 
     @Override
@@ -79,6 +76,7 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
 
     @Override
     String getMessageKey(ConnectCluster connectCluster) {
-        return connectCluster.getMetadata().getNamespace() + "/" + connectCluster.getMetadata().getName();
+        return connectCluster.getMetadata().getNamespace() + "/"
+                + connectCluster.getMetadata().getName();
     }
 }

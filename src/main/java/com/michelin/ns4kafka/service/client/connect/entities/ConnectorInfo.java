@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service.client.connect.entities;
 
 import java.util.List;
@@ -25,10 +24,9 @@ import java.util.Map;
 /**
  * Connector info.
  *
- * @param name   Name
+ * @param name Name
  * @param config Config
- * @param tasks  Tasks
- * @param type   Type
+ * @param tasks Tasks
+ * @param type Type
  */
-public record ConnectorInfo(String name, Map<String, String> config, List<ConnectorTaskId> tasks, ConnectorType type) {
-}
+public record ConnectorInfo(String name, Map<String, String> config, List<ConnectorTaskId> tasks, ConnectorType type) {}

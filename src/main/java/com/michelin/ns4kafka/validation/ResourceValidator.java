@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.validation;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationAtLeast;
@@ -42,9 +41,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
-/**
- * Resource validator.
- */
+/** Resource validator. */
 @Data
 @SuperBuilder
 @AllArgsConstructor
@@ -54,12 +51,8 @@ public abstract class ResourceValidator {
     @JsonSetter(nulls = Nulls.AS_EMPTY)
     protected Map<String, Validator> validationConstraints = new HashMap<>();
 
-    /**
-     * Validate the configuration.
-     */
-    @JsonTypeInfo(
-        use = JsonTypeInfo.Id.NAME,
-        property = "validation-type")
+    /** Validate the configuration. */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "validation-type")
     @JsonSubTypes({
         @JsonSubTypes.Type(value = Range.class, name = "Range"),
         @JsonSubTypes.Type(value = ValidList.class, name = "ValidList"),
@@ -71,16 +64,14 @@ public abstract class ResourceValidator {
         /**
          * Perform single configuration validation.
          *
-         * @param name  The name of the configuration
+         * @param name The name of the configuration
          * @param value The value of the configuration
          * @throws FieldValidationException if the value is invalid.
          */
         void ensureValid(String name, Object value);
     }
 
-    /**
-     * Validation logic for numeric ranges.
-     */
+    /** Validation logic for numeric ranges. */
     @Data
     @NoArgsConstructor
     public static class Range implements ResourceValidator.Validator {
@@ -109,16 +100,12 @@ public abstract class ResourceValidator {
             return new ResourceValidator.Range(min, null, false);
         }
 
-        /**
-         * A numeric range that checks both the upper (inclusive) and lower bound.
-         */
+        /** A numeric range that checks both the upper (inclusive) and lower bound. */
         public static ResourceValidator.Range between(Number min, Number max) {
             return new ResourceValidator.Range(min, max, false);
         }
 
-        /**
-         * A numeric range that checks both the upper (inclusive) and lower bound, and accepts null as well.
-         */
+        /** A numeric range that checks both the upper (inclusive) and lower bound, and accepts null as well. */
         public static ResourceValidator.Range optionalBetween(Number min, Number max) {
             return new ResourceValidator.Range(min, max, true);
         }
@@ -127,7 +114,7 @@ public abstract class ResourceValidator {
          * Ensure that the value is in the range.
          *
          * @param name The name of the configuration
-         * @param o    The value of the configuration
+         * @param o The value of the configuration
          */
         public void ensureValid(String name, Object o) {
             Number n;
@@ -168,9 +155,7 @@ public abstract class ResourceValidator {
         }
     }
 
-    /**
-     * Validation logic for a list of valid strings.
-     */
+    /** Validation logic for a list of valid strings. */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -190,7 +175,7 @@ public abstract class ResourceValidator {
          * Ensure that the value is one of the valid strings.
          *
          * @param name The name of the configuration
-         * @param o    The value of the configuration
+         * @param o The value of the configuration
          */
         @Override
         public void ensureValid(final String name, final Object o) {
@@ -202,9 +187,9 @@ public abstract class ResourceValidator {
             }
             String s = (String) o;
 
-            List<String> values = List.of(s); //default if no "," (most of the time)
+            List<String> values = List.of(s); // default if no "," (most of the time)
             if (s.contains(",")) {
-                //split and strip
+                // split and strip
                 values = Arrays.stream(s.split(",")).map(String::strip).toList();
             }
 
@@ -224,9 +209,7 @@ public abstract class ResourceValidator {
         }
     }
 
-    /**
-     * Validation logic for a valid string.
-     */
+    /** Validation logic for a valid string. */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -246,7 +229,7 @@ public abstract class ResourceValidator {
          * Ensure that the value is one of the valid strings.
          *
          * @param name The name of the configuration
-         * @param o    The value of the configuration
+         * @param o The value of the configuration
          */
         @Override
         public void ensureValid(String name, Object o) {
@@ -258,10 +241,9 @@ public abstract class ResourceValidator {
             }
             String s = (String) o;
             if (!validStrings.contains(s)) {
-                throw new FieldValidationException(invalidFieldValidationOneOf(name, o.toString(),
-                    String.join(",", validStrings)));
+                throw new FieldValidationException(
+                        invalidFieldValidationOneOf(name, o.toString(), String.join(",", validStrings)));
             }
-
         }
 
         /**
@@ -274,15 +256,13 @@ public abstract class ResourceValidator {
         }
     }
 
-    /**
-     * Validation logic for a non-empty string.
-     */
+    /** Validation logic for a non-empty string. */
     public static class NonEmptyString implements ResourceValidator.Validator {
         /**
          * Ensure that the value is non-empty.
          *
          * @param name The name of the configuration
-         * @param o    The value of the configuration
+         * @param o The value of the configuration
          */
         @Override
         public void ensureValid(String name, Object o) {
@@ -322,9 +302,7 @@ public abstract class ResourceValidator {
         }
     }
 
-    /**
-     * Validation logic for a composite validator.
-     */
+    /** Validation logic for a composite validator. */
     @Data
     @NoArgsConstructor
     public static class CompositeValidator implements ResourceValidator.Validator {

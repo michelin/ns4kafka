@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service;
 
 import com.michelin.ns4kafka.model.RoleBinding;
@@ -28,9 +27,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Service to manage role bindings.
- */
+/** Service to manage role bindings. */
 @Singleton
 public class RoleBindingService {
     @Inject
@@ -50,15 +47,15 @@ public class RoleBindingService {
      * List role bindings of a given namespace, filtered by name parameter.
      *
      * @param namespace The namespace used to research
-     * @param name      The name filter
+     * @param name The name filter
      * @return The list of associated role bindings
      */
     public List<RoleBinding> findByWildcardName(String namespace, String name) {
         List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
-        return findAllForNamespace(namespace)
-            .stream()
-            .filter(rb -> RegexUtils.isResourceCoveredByRegex(rb.getMetadata().getName(), nameFilterPatterns))
-            .toList();
+        return findAllForNamespace(namespace).stream()
+                .filter(rb ->
+                        RegexUtils.isResourceCoveredByRegex(rb.getMetadata().getName(), nameFilterPatterns))
+                .toList();
     }
 
     /**
@@ -75,14 +72,13 @@ public class RoleBindingService {
      * Find a role binding by name.
      *
      * @param namespace The namespace used to research
-     * @param name      The role binding name
+     * @param name The role binding name
      * @return The researched role binding
      */
     public Optional<RoleBinding> findByName(String namespace, String name) {
-        return findAllForNamespace(namespace)
-            .stream()
-            .filter(t -> t.getMetadata().getName().equals(name))
-            .findFirst();
+        return findAllForNamespace(namespace).stream()
+                .filter(t -> t.getMetadata().getName().equals(name))
+                .findFirst();
     }
 
     /**

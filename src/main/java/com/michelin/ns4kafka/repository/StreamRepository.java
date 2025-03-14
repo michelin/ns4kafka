@@ -16,15 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.repository;
 
 import com.michelin.ns4kafka.model.KafkaStream;
 import java.util.List;
 
-/**
- * Stream repository.
- */
+/** Stream repository. */
 public interface StreamRepository {
     List<KafkaStream> findAllForCluster(String cluster);
 

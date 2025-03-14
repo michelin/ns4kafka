@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller.generic;
 
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
@@ -32,9 +31,7 @@ import jakarta.inject.Inject;
 import java.time.Instant;
 import java.util.Date;
 
-/**
- * Resource controller.
- */
+/** Resource controller. */
 public abstract class ResourceController {
     private static final String STATUS_HEADER = "X-Ns4kafka-Result";
 
@@ -51,27 +48,23 @@ public abstract class ResourceController {
     /**
      * Send an audit log event.
      *
-     * @param resource  the resource
+     * @param resource the resource
      * @param operation the operation
-     * @param before    the resource before the operation
-     * @param after     the resource after the operation
+     * @param before the resource before the operation
+     * @param after the resource after the operation
      */
-    public void sendEventLog(MetadataResource resource,
-                             ApplyStatus operation,
-                             Object before,
-                             Object after,
-                             String version) {
+    public void sendEventLog(
+            MetadataResource resource, ApplyStatus operation, Object before, Object after, String version) {
         AuditLog auditLog = new AuditLog(
-            securityService.username().orElse(EMPTY_STRING),
-            securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN),
-            Date.from(Instant.now()),
-            resource.getKind(),
-            resource.getMetadata(),
-            operation,
-            before,
-            after,
-            version
-        );
+                securityService.username().orElse(EMPTY_STRING),
+                securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN),
+                Date.from(Instant.now()),
+                resource.getKind(),
+                resource.getMetadata(),
+                operation,
+                before,
+                after,
+                version);
 
         applicationEventPublisher.publishEvent(auditLog);
     }
