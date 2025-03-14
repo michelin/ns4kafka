@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model.schema;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.SCHEMA_COMPATIBILITY_STATE;
@@ -34,33 +33,26 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-/**
- * Schema compatibility state.
- */
+/** Schema compatibility state. */
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
 public class SchemaCompatibilityState extends MetadataResource {
-    @Valid
-    @NotNull
-    private SchemaCompatibilityState.SchemaCompatibilityStateSpec spec;
+    @Valid @NotNull private SchemaCompatibilityState.SchemaCompatibilityStateSpec spec;
 
     /**
      * Constructor.
      *
      * @param metadata The metadata
-     * @param spec     The spec
+     * @param spec The spec
      */
     @Builder
-    public SchemaCompatibilityState(Metadata metadata,
-                                    SchemaCompatibilityState.SchemaCompatibilityStateSpec spec) {
+    public SchemaCompatibilityState(Metadata metadata, SchemaCompatibilityState.SchemaCompatibilityStateSpec spec) {
         super("v1", SCHEMA_COMPATIBILITY_STATE, metadata);
         this.spec = spec;
     }
 
-    /**
-     * Schema compatibility state spec.
-     */
+    /** Schema compatibility state spec. */
     @Getter
     @Builder
     @ToString

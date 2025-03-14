@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.security.auth.gitlab;
 
 import com.michelin.ns4kafka.security.auth.AuthenticationService;
@@ -34,9 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
-/**
- * Gitlab authentication provider.
- */
+/** Gitlab authentication provider. */
 @Slf4j
 @Singleton
 public class GitlabAuthenticationProvider implements ReactiveAuthenticationProvider<HttpRequest<?>, String, String> {
@@ -49,25 +46,27 @@ public class GitlabAuthenticationProvider implements ReactiveAuthenticationProvi
     /**
      * Perform user authentication with GitLab.
      *
-     * @param requestContext        The HTTP request
+     * @param requestContext The HTTP request
      * @param authenticationRequest The authentication request
      * @return An authentication response with the user details
      */
     @Override
-    public @NonNull Publisher<AuthenticationResponse> authenticate(@Nullable HttpRequest<?> requestContext,
-                                                                   @NonNull AuthenticationRequest<String, String>
-                                                                       authenticationRequest) {
+    public @NonNull Publisher<AuthenticationResponse> authenticate(
+            @Nullable HttpRequest<?> requestContext,
+            @NonNull AuthenticationRequest<String, String> authenticationRequest) {
         String token = authenticationRequest.getSecret();
 
         log.debug("Checking authentication with token {}", token);
 
-        return gitlabAuthenticationService.findUsername(token)
-            .onErrorResume(
-                error -> Mono.error(new AuthenticationException(new AuthenticationFailed("Bad GitLab token"))))
-            .flatMap(username -> gitlabAuthenticationService.findAllGroups(token).collectList()
-                .onErrorResume(error -> Mono.error(
-                    new AuthenticationException(new AuthenticationFailed("Cannot retrieve your GitLab groups"))))
-                .flatMap(groups -> Mono.just(authenticationService.buildAuthJwtGroups(username, groups))));
+        return gitlabAuthenticationService
+                .findUsername(token)
+                .onErrorResume(
+                        error -> Mono.error(new AuthenticationException(new AuthenticationFailed("Bad GitLab token"))))
+                .flatMap(username -> gitlabAuthenticationService
+                        .findAllGroups(token)
+                        .collectList()
+                        .onErrorResume(error -> Mono.error(new AuthenticationException(
+                                new AuthenticationFailed("Cannot retrieve your GitLab groups"))))
+                        .flatMap(groups -> Mono.just(authenticationService.buildAuthJwtGroups(username, groups))));
     }
-
 }

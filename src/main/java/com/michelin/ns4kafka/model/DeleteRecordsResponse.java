@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.DELETE_RECORDS_RESPONSE;
@@ -32,22 +31,18 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-/**
- * Delete records response.
- */
+/** Delete records response. */
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
 public class DeleteRecordsResponse extends MetadataResource {
-    @Valid
-    @NotNull
-    private DeleteRecordsResponseSpec spec;
+    @Valid @NotNull private DeleteRecordsResponseSpec spec;
 
     /**
      * Constructor.
      *
      * @param metadata The metadata
-     * @param spec     The spec
+     * @param spec The spec
      */
     @Builder
     public DeleteRecordsResponse(Metadata metadata, DeleteRecordsResponseSpec spec) {
@@ -55,9 +50,7 @@ public class DeleteRecordsResponse extends MetadataResource {
         this.spec = spec;
     }
 
-    /**
-     * Delete records response specification.
-     */
+    /** Delete records response specification. */
     @Getter
     @Builder
     @ToString

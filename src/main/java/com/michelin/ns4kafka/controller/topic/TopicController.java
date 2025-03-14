@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller.topic;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNotFound;
@@ -56,9 +55,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.common.TopicPartition;
 
-/**
- * Controller to manage topics.
- */
+/** Controller to manage topics. */
 @Tag(name = "Topics", description = "Manage the topics.")
 @Controller(value = "/api/namespaces/{namespace}/topics")
 public class TopicController extends NamespacedResourceController {
@@ -72,7 +69,7 @@ public class TopicController extends NamespacedResourceController {
      * List topics by namespace, filtered by name parameter.
      *
      * @param namespace The namespace
-     * @param name      The name parameter
+     * @param name The name parameter
      * @return A list of topics
      */
     @Get
@@ -84,7 +81,7 @@ public class TopicController extends NamespacedResourceController {
      * Get a topic by namespace and name.
      *
      * @param namespace The name
-     * @param topic     The topic name
+     * @param topic The topic name
      * @return The topic
      * @deprecated use {@link #list(String, String)} instead.
      */
@@ -98,27 +95,28 @@ public class TopicController extends NamespacedResourceController {
      * Create a topic.
      *
      * @param namespace The namespace
-     * @param topic     The topic
-     * @param dryrun    Is dry run mode or not?
+     * @param topic The topic
+     * @param dryrun Is dry run mode or not?
      * @return The created topic
      */
     @Post
-    public HttpResponse<Topic> apply(String namespace,
-                                     @Valid @Body Topic topic,
-                                     @QueryValue(defaultValue = "false") boolean dryrun)
-        throws InterruptedException, ExecutionException, TimeoutException {
+    public HttpResponse<Topic> apply(
+            String namespace, @Valid @Body Topic topic, @QueryValue(defaultValue = "false") boolean dryrun)
+            throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
 
-        Optional<Topic> existingTopic = topicService.findByName(ns, topic.getMetadata().getName());
+        Optional<Topic> existingTopic =
+                topicService.findByName(ns, topic.getMetadata().getName());
 
         // Request is valid ?
-        List<String> validationErrors =
-            ns.getSpec().getTopicValidator() != null ? ns.getSpec().getTopicValidator().validate(topic)
+        List<String> validationErrors = ns.getSpec().getTopicValidator() != null
+                ? ns.getSpec().getTopicValidator().validate(topic)
                 : new ArrayList<>();
 
         if (existingTopic.isEmpty()) {
             // Topic namespace ownership validation
-            if (!topicService.isNamespaceOwnerOfTopic(namespace, topic.getMetadata().getName())) {
+            if (!topicService.isNamespaceOwnerOfTopic(
+                    namespace, topic.getMetadata().getName())) {
                 validationErrors.add(invalidOwner(topic.getMetadata().getName()));
             }
 
@@ -126,17 +124,17 @@ public class TopicController extends NamespacedResourceController {
             List<String> collidingTopics = topicService.findCollidingTopics(ns, topic);
             if (!collidingTopics.isEmpty()) {
                 validationErrors.addAll(collidingTopics.stream()
-                    .map(collidingTopic -> invalidTopicCollide(topic.getMetadata().getName(), collidingTopic))
-                    .toList());
+                        .map(collidingTopic ->
+                                invalidTopicCollide(topic.getMetadata().getName(), collidingTopic))
+                        .toList());
             }
         } else {
             validationErrors.addAll(topicService.validateTopicUpdate(ns, existingTopic.get(), topic));
         }
 
         topic.getSpec().getTags().replaceAll(String::toUpperCase);
-        List<String> existingTags = existingTopic
-            .map(oldTopic -> oldTopic.getSpec().getTags())
-            .orElse(Collections.emptyList());
+        List<String> existingTags =
+                existingTopic.map(oldTopic -> oldTopic.getSpec().getTags()).orElse(Collections.emptyList());
         if (topic.getSpec().getTags().stream().anyMatch(newTag -> !existingTags.contains(newTag))) {
             validationErrors.addAll(topicService.validateTags(ns, topic));
         }
@@ -145,7 +143,7 @@ public class TopicController extends NamespacedResourceController {
             throw new ResourceValidationException(topic, validationErrors);
         }
 
-        //3. Fill server-side fields (server side metadata + status)
+        // 3. Fill server-side fields (server side metadata + status)
         topic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
         topic.getMetadata().setCluster(ns.getMetadata().getCluster());
         topic.getMetadata().setNamespace(ns.getMetadata().getName());
@@ -166,12 +164,7 @@ public class TopicController extends NamespacedResourceController {
         }
 
         sendEventLog(
-            topic,
-            status,
-            existingTopic.<Object>map(Topic::getSpec).orElse(null),
-            topic.getSpec(),
-            EMPTY_STRING
-        );
+                topic, status, existingTopic.<Object>map(Topic::getSpec).orElse(null), topic.getSpec(), EMPTY_STRING);
 
         return formatHttpResponse(topicService.create(topic), status);
     }
@@ -180,16 +173,17 @@ public class TopicController extends NamespacedResourceController {
      * Delete topics.
      *
      * @param namespace The namespace
-     * @param name      The name parameter
-     * @param dryrun    Is dry run mode or not?
+     * @param name The name parameter
+     * @param dryrun Is dry run mode or not?
      * @return An HTTP response
      */
     @Delete
     @Status(HttpStatus.OK)
-    public HttpResponse<List<Topic>> bulkDelete(String namespace,
-                                                @QueryValue(defaultValue = "*") String name,
-                                                @QueryValue(defaultValue = "false") boolean dryrun)
-        throws InterruptedException, ExecutionException, TimeoutException {
+    public HttpResponse<List<Topic>> bulkDelete(
+            String namespace,
+            @QueryValue(defaultValue = "*") String name,
+            @QueryValue(defaultValue = "false") boolean dryrun)
+            throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
         List<Topic> topics = topicService.findByWildcardName(ns, name);
 
@@ -202,12 +196,7 @@ public class TopicController extends NamespacedResourceController {
         }
 
         topics.forEach(topicToDelete ->
-            sendEventLog(
-                topicToDelete,
-                ApplyStatus.DELETED,
-                topicToDelete.getSpec(),
-                null,
-                EMPTY_STRING));
+                sendEventLog(topicToDelete, ApplyStatus.DELETED, topicToDelete.getSpec(), null, EMPTY_STRING));
 
         topicService.deleteTopics(topics);
 
@@ -218,18 +207,16 @@ public class TopicController extends NamespacedResourceController {
      * Delete a topic.
      *
      * @param namespace The namespace
-     * @param topic     The topic
-     * @param dryrun    Is dry run mode or not?
+     * @param topic The topic
+     * @param dryrun Is dry run mode or not?
      * @return An HTTP response
      * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
     @Delete("/{topic}{?dryrun}")
     @Deprecated(since = "1.13.0")
     @Status(HttpStatus.NO_CONTENT)
-    public HttpResponse<Void> delete(String namespace,
-                                     String topic,
-                                     @QueryValue(defaultValue = "false") boolean dryrun)
-        throws InterruptedException, ExecutionException, TimeoutException {
+    public HttpResponse<Void> delete(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun)
+            throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic)) {
             throw new ResourceValidationException(TOPIC, topic, invalidOwner(topic));
@@ -247,13 +234,7 @@ public class TopicController extends NamespacedResourceController {
 
         Topic topicToDelete = optionalTopic.get();
 
-        sendEventLog(
-            topicToDelete,
-            ApplyStatus.DELETED,
-            topicToDelete.getSpec(),
-            null,
-            EMPTY_STRING
-        );
+        sendEventLog(topicToDelete, ApplyStatus.DELETED, topicToDelete.getSpec(), null, EMPTY_STRING);
 
         topicService.delete(topicToDelete);
 
@@ -264,15 +245,15 @@ public class TopicController extends NamespacedResourceController {
      * Import unsynchronized topics.
      *
      * @param namespace The namespace
-     * @param dryrun    Is dry run mode or not?
+     * @param dryrun Is dry run mode or not?
      * @return The list of imported topics
-     * @throws ExecutionException   Any execution exception
+     * @throws ExecutionException Any execution exception
      * @throws InterruptedException Any interrupted exception
-     * @throws TimeoutException     Any timeout exception
+     * @throws TimeoutException Any timeout exception
      */
     @Post("/_/import{?dryrun}")
     public List<Topic> importResources(String namespace, @QueryValue(defaultValue = "false") boolean dryrun)
-        throws ExecutionException, InterruptedException, TimeoutException {
+            throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = getNamespace(namespace);
         List<Topic> unsynchronizedTopics = topicService.listUnsynchronizedTopics(ns);
 
@@ -287,37 +268,29 @@ public class TopicController extends NamespacedResourceController {
             return unsynchronizedTopics;
         }
 
-        return unsynchronizedTopics
-            .stream()
-            .map(topic -> {
-                sendEventLog(
-                    topic,
-                    ApplyStatus.CREATED,
-                    null,
-                    topic.getSpec(),
-                    EMPTY_STRING
-                );
+        return unsynchronizedTopics.stream()
+                .map(topic -> {
+                    sendEventLog(topic, ApplyStatus.CREATED, null, topic.getSpec(), EMPTY_STRING);
 
-                return topicService.create(topic);
-            })
-            .toList();
+                    return topicService.create(topic);
+                })
+                .toList();
     }
 
     /**
      * Delete records from topic.
      *
      * @param namespace The namespace
-     * @param topic     The topic
-     * @param dryrun    Is dry run mode or not?
+     * @param topic The topic
+     * @param dryrun Is dry run mode or not?
      * @return The list of topic-partitions where records have been deleted
-     * @throws ExecutionException   Any execution exception
+     * @throws ExecutionException Any execution exception
      * @throws InterruptedException Any interrupted exception
      */
     @Post("{topic}/delete-records{?dryrun}")
-    public List<DeleteRecordsResponse> deleteRecords(String namespace,
-                                                     String topic,
-                                                     @QueryValue(defaultValue = "false") boolean dryrun)
-        throws InterruptedException, ExecutionException {
+    public List<DeleteRecordsResponse> deleteRecords(
+            String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun)
+            throws InterruptedException, ExecutionException {
         Namespace ns = getNamespace(namespace);
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic)) {
             throw new ResourceValidationException(TOPIC, topic, invalidOwner(topic));
@@ -340,26 +313,19 @@ public class TopicController extends NamespacedResourceController {
         if (dryrun) {
             deletedRecords = recordsToDelete;
         } else {
-            sendEventLog(
-                optionalTopic.get(),
-                ApplyStatus.DELETED,
-                null,
-                null,
-                EMPTY_STRING
-            );
+            sendEventLog(optionalTopic.get(), ApplyStatus.DELETED, null, null, EMPTY_STRING);
 
             deletedRecords = topicService.deleteRecords(optionalTopic.get(), recordsToDelete);
         }
 
-        return deletedRecords.entrySet()
-            .stream()
-            .map(entry -> DeleteRecordsResponse.builder()
-                .spec(DeleteRecordsResponse.DeleteRecordsResponseSpec.builder()
-                    .topic(entry.getKey().topic())
-                    .partition(entry.getKey().partition())
-                    .offset(entry.getValue())
-                    .build())
-                .build())
-            .toList();
+        return deletedRecords.entrySet().stream()
+                .map(entry -> DeleteRecordsResponse.builder()
+                        .spec(DeleteRecordsResponse.DeleteRecordsResponseSpec.builder()
+                                .topic(entry.getKey().topic())
+                                .partition(entry.getKey().partition())
+                                .offset(entry.getValue())
+                                .build())
+                        .build())
+                .toList();
     }
 }

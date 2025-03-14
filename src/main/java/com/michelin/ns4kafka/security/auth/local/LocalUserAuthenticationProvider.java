@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.security.auth.local;
 
 import com.michelin.ns4kafka.property.SecurityProperties;
@@ -37,9 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
-/**
- * Local user authentication provider.
- */
+/** Local user authentication provider. */
 @Slf4j
 @Singleton
 public class LocalUserAuthenticationProvider implements ReactiveAuthenticationProvider<HttpRequest<?>, String, String> {
@@ -50,25 +47,25 @@ public class LocalUserAuthenticationProvider implements ReactiveAuthenticationPr
     AuthenticationService authenticationService;
 
     @Override
-    public @NonNull Publisher<AuthenticationResponse> authenticate(@Nullable HttpRequest<?> requestContext,
-                                                                   @NonNull AuthenticationRequest<String, String>
-                                                                       authenticationRequest) {
+    public @NonNull Publisher<AuthenticationResponse> authenticate(
+            @Nullable HttpRequest<?> requestContext,
+            @NonNull AuthenticationRequest<String, String> authenticationRequest) {
         return Mono.create(emitter -> {
             String username = authenticationRequest.getIdentity();
             String password = authenticationRequest.getSecret();
             log.debug("Checking local authentication for user: {}", username);
 
             Optional<LocalUser> authenticatedUser = securityProperties.getLocalUsers().stream()
-                .filter(localUser -> localUser.getUsername().equals(username))
-                .filter(localUser -> localUser.isValidPassword(password))
-                .findFirst();
+                    .filter(localUser -> localUser.getUsername().equals(username))
+                    .filter(localUser -> localUser.isValidPassword(password))
+                    .findFirst();
 
             if (authenticatedUser.isPresent()) {
-                emitter.success(
-                    authenticationService.buildAuthJwtGroups(username, authenticatedUser.get().getGroups()));
+                emitter.success(authenticationService.buildAuthJwtGroups(
+                        username, authenticatedUser.get().getGroups()));
             } else {
                 emitter.error(new AuthenticationException(
-                    new AuthenticationFailed(AuthenticationFailureReason.CREDENTIALS_DO_NOT_MATCH)));
+                        new AuthenticationFailed(AuthenticationFailureReason.CREDENTIALS_DO_NOT_MATCH)));
             }
         });
     }

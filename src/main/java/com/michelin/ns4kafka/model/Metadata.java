@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model;
 
 import static com.michelin.ns4kafka.security.ResourceBasedSecurityRule.RESOURCE_PATTERN;
@@ -33,23 +32,22 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-/**
- * Object metadata.
- */
+/** Object metadata. */
 @Data
 @Builder
 @Introspected
 @NoArgsConstructor
 @AllArgsConstructor
 public class Metadata {
-    @NotBlank
-    @Pattern(regexp = "^" + RESOURCE_PATTERN + "+$")
-    private String name;
+    @NotBlank @Pattern(regexp = "^" + RESOURCE_PATTERN + "+$") private String name;
+
     private String namespace;
     private String cluster;
     private Map<String, String> labels;
+
     @EqualsAndHashCode.Exclude
     private int generation;
+
     @EqualsAndHashCode.Exclude
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Date creationTimestamp;

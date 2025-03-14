@@ -16,15 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.repository;
 
 import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
 import java.util.List;
 
-/**
- * Repository to manage Kafka Connect clusters.
- */
+/** Repository to manage Kafka Connect clusters. */
 public interface ConnectClusterRepository {
     List<ConnectCluster> findAll();
 

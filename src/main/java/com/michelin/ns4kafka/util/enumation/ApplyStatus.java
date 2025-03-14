@@ -16,14 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.util.enumation;
 
 import lombok.AllArgsConstructor;
 
-/**
- * Apply status is used to track the status of a resource during an operation.
- */
+/** Apply status is used to track the status of a resource during an operation. */
 @AllArgsConstructor
 public enum ApplyStatus {
     CREATED("created"),

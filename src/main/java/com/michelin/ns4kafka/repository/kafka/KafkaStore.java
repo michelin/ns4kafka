@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.repository.kafka;
 
 import com.michelin.ns4kafka.property.KafkaStoreProperties;
@@ -119,9 +118,7 @@ public abstract class KafkaStore<T> {
      */
     private void createOrVerifyInternalTopic() throws KafkaStoreException {
         try {
-            Set<String> allTopics = adminClient.listTopics()
-                .names()
-                .get(initTimeout, TimeUnit.MILLISECONDS);
+            Set<String> allTopics = adminClient.listTopics().names().get(initTimeout, TimeUnit.MILLISECONDS);
 
             if (allTopics.contains(kafkaTopic)) {
                 verifyInternalTopic();
@@ -131,85 +128,86 @@ public abstract class KafkaStore<T> {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new KafkaStoreException(
-                "Thread interrupted trying to create or validate configuration of topic " + kafkaTopic + ".", e);
+                    "Thread interrupted trying to create or validate configuration of topic " + kafkaTopic + ".", e);
         } catch (ExecutionException e) {
             throw new KafkaStoreException(
-                "Execution error trying to create or validate configuration of topic " + kafkaTopic + ".", e);
+                    "Execution error trying to create or validate configuration of topic " + kafkaTopic + ".", e);
         } catch (TimeoutException e) {
             throw new KafkaStoreException(
-                "Timed out trying to create or validate configuration of topic " + kafkaTopic + ".", e);
+                    "Timed out trying to create or validate configuration of topic " + kafkaTopic + ".", e);
         }
     }
 
     /**
      * Verify the internal topic.
      *
-     * @throws KafkaStoreException  Exception thrown during internal topic verification
+     * @throws KafkaStoreException Exception thrown during internal topic verification
      * @throws InterruptedException Exception thrown during internal topic verification
-     * @throws ExecutionException   Exception thrown during internal topic verification
-     * @throws TimeoutException     Exception thrown during internal topic verification
+     * @throws ExecutionException Exception thrown during internal topic verification
+     * @throws TimeoutException Exception thrown during internal topic verification
      */
     private void verifyInternalTopic()
-        throws KafkaStoreException, InterruptedException, ExecutionException, TimeoutException {
+            throws KafkaStoreException, InterruptedException, ExecutionException, TimeoutException {
         log.info("Validating topic {}.", kafkaTopic);
 
         Set<String> topics = Collections.singleton(kafkaTopic);
-        Map<String, TopicDescription> topicDescription = adminClient.describeTopics(topics)
-            .allTopicNames()
-            .get(initTimeout, TimeUnit.MILLISECONDS);
+        Map<String, TopicDescription> topicDescription =
+                adminClient.describeTopics(topics).allTopicNames().get(initTimeout, TimeUnit.MILLISECONDS);
 
         TopicDescription description = topicDescription.get(kafkaTopic);
         final int numPartitions = description.partitions().size();
         if (numPartitions != 1) {
             throw new KafkaStoreException(
-                "The topic " + kafkaTopic + " should have only 1 partition but has " + numPartitions + ".");
+                    "The topic " + kafkaTopic + " should have only 1 partition but has " + numPartitions + ".");
         }
 
         if (description.partitions().getFirst().replicas().size() < kafkaStoreProperties.getReplicationFactor()
-            && log.isWarnEnabled()) {
+                && log.isWarnEnabled()) {
             log.warn("The replication factor of the topic " + kafkaTopic + " is less than the desired one of "
-                + kafkaStoreProperties.getReplicationFactor()
-                + ". If this is a production environment, it's crucial to add more brokers and "
-                + "increase the replication factor of the topic.");
+                    + kafkaStoreProperties.getReplicationFactor()
+                    + ". If this is a production environment, it's crucial to add more brokers and "
+                    + "increase the replication factor of the topic.");
         }
 
         ConfigResource topicResource = new ConfigResource(ConfigResource.Type.TOPIC, kafkaTopic);
-        Map<ConfigResource, Config> configs = adminClient.describeConfigs(Collections.singleton(topicResource))
-            .all()
-            .get(initTimeout, TimeUnit.MILLISECONDS);
+        Map<ConfigResource, Config> configs = adminClient
+                .describeConfigs(Collections.singleton(topicResource))
+                .all()
+                .get(initTimeout, TimeUnit.MILLISECONDS);
 
         Config topicConfigs = configs.get(topicResource);
-        String retentionPolicy = topicConfigs.get(TopicConfig.CLEANUP_POLICY_CONFIG).value();
+        String retentionPolicy =
+                topicConfigs.get(TopicConfig.CLEANUP_POLICY_CONFIG).value();
         if (!TopicConfig.CLEANUP_POLICY_COMPACT.equals(retentionPolicy)) {
             if (log.isErrorEnabled()) {
                 log.error("The retention policy of the topic " + kafkaTopic + " is incorrect. "
-                    + "You must configure the topic to 'compact' cleanup policy to avoid Kafka "
-                    + "deleting your data after a week. Refer to Kafka documentation for more details "
-                    + "on cleanup policies");
+                        + "You must configure the topic to 'compact' cleanup policy to avoid Kafka "
+                        + "deleting your data after a week. Refer to Kafka documentation for more details "
+                        + "on cleanup policies");
             }
 
             throw new KafkaStoreException("The retention policy of the schema kafkaTopic " + kafkaTopic
-                + " is incorrect. Expected cleanup.policy to be 'compact' but it is " + retentionPolicy);
-
+                    + " is incorrect. Expected cleanup.policy to be 'compact' but it is " + retentionPolicy);
         }
     }
 
     /**
      * Create the internal topic.
      *
-     * @throws KafkaStoreException  Exception thrown during internal topic creation
+     * @throws KafkaStoreException Exception thrown during internal topic creation
      * @throws InterruptedException Exception thrown during internal topic creation
-     * @throws ExecutionException   Exception thrown during internal topic creation
-     * @throws TimeoutException     Exception thrown during internal topic creation
+     * @throws ExecutionException Exception thrown during internal topic creation
+     * @throws TimeoutException Exception thrown during internal topic creation
      */
     private void createInternalTopic()
-        throws KafkaStoreException, InterruptedException, ExecutionException, TimeoutException {
+            throws KafkaStoreException, InterruptedException, ExecutionException, TimeoutException {
         log.info("Creating topic {}.", kafkaTopic);
 
-        int numLiveBrokers = adminClient.describeCluster()
-            .nodes()
-            .get(initTimeout, TimeUnit.MILLISECONDS)
-            .size();
+        int numLiveBrokers = adminClient
+                .describeCluster()
+                .nodes()
+                .get(initTimeout, TimeUnit.MILLISECONDS)
+                .size();
 
         if (numLiveBrokers == 0) {
             throw new KafkaStoreException("No live Kafka brokers.");
@@ -218,18 +216,19 @@ public abstract class KafkaStore<T> {
         int schemaTopicReplicationFactor = Math.min(numLiveBrokers, kafkaStoreProperties.getReplicationFactor());
         if (schemaTopicReplicationFactor < kafkaStoreProperties.getReplicationFactor() && log.isWarnEnabled()) {
             log.warn("Creating the kafkaTopic " + kafkaTopic + " using a replication factor of "
-                + schemaTopicReplicationFactor + ", which is less than the desired one of "
-                + kafkaStoreProperties.getReplicationFactor() + ". If this is a production environment, it's "
-                + "crucial to add more brokers and increase the replication factor of the kafkaTopic.");
+                    + schemaTopicReplicationFactor + ", which is less than the desired one of "
+                    + kafkaStoreProperties.getReplicationFactor() + ". If this is a production environment, it's "
+                    + "crucial to add more brokers and increase the replication factor of the kafkaTopic.");
         }
 
         NewTopic schemaTopicRequest = new NewTopic(kafkaTopic, 1, (short) schemaTopicReplicationFactor);
         schemaTopicRequest.configs(kafkaStoreProperties.getProps());
 
         try {
-            adminClient.createTopics(Collections.singleton(schemaTopicRequest))
-                .all()
-                .get(initTimeout, TimeUnit.MILLISECONDS);
+            adminClient
+                    .createTopics(Collections.singleton(schemaTopicRequest))
+                    .all()
+                    .get(initTimeout, TimeUnit.MILLISECONDS);
         } catch (ExecutionException e) {
             if (e.getCause() instanceof TopicExistsException) {
                 verifyInternalTopic();
@@ -251,7 +250,7 @@ public abstract class KafkaStore<T> {
     /**
      * Produce a new record.
      *
-     * @param key     The record key
+     * @param key The record key
      * @param message The record body
      * @return The produced record
      * @throws KafkaStoreException Exception thrown during the send process
@@ -290,8 +289,8 @@ public abstract class KafkaStore<T> {
     }
 
     /**
-     * Handle a new consumed record
-     * See: /core/src/main/java/io/confluent/kafka/schemaregistry/storage/KafkaStoreReaderThread.java#L326
+     * Handle a new consumed record See:
+     * /core/src/main/java/io/confluent/kafka/schemaregistry/storage/KafkaStoreReaderThread.java#L326
      *
      * @param message The record
      */
@@ -319,10 +318,7 @@ public abstract class KafkaStore<T> {
         }
     }
 
-    /**
-     * Wait until the Kafka reader reaches the last offset.
-     * Mark the store as initialized when it is done.
-     */
+    /** Wait until the Kafka reader reaches the last offset. Mark the store as initialized when it is done. */
     public void waitUntilKafkaReaderReachesLastOffsetInit() {
         try {
             waitUntilOffset(getLatestOffset(), TimeUnit.MILLISECONDS);
@@ -356,13 +352,13 @@ public abstract class KafkaStore<T> {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new KafkaStoreException(
-                "Thread interrupted while waiting for the latest offset of topic " + kafkaTopic + ".", e);
+                    "Thread interrupted while waiting for the latest offset of topic " + kafkaTopic + ".", e);
         } catch (ExecutionException e) {
             throw new KafkaStoreException(
-                "Execution error while waiting for the latest offset of topic " + kafkaTopic + ".", e);
+                    "Execution error while waiting for the latest offset of topic " + kafkaTopic + ".", e);
         } catch (TimeoutException e) {
-            throw new KafkaStoreException("Timeout while waiting for the latest offset of topic " + kafkaTopic + ".",
-                e);
+            throw new KafkaStoreException(
+                    "Timeout while waiting for the latest offset of topic " + kafkaTopic + ".", e);
         } catch (Exception e) {
             throw new KafkaStoreException("Error while waiting for the latest offset of topic " + kafkaTopic + ".", e);
         }
@@ -371,7 +367,7 @@ public abstract class KafkaStore<T> {
     /**
      * Wait until the given offset is read.
      *
-     * @param offset   The offset
+     * @param offset The offset
      * @param timeUnit The time unit to wait
      * @throws KafkaStoreException Exception thrown during the wait process
      */
@@ -390,9 +386,11 @@ public abstract class KafkaStore<T> {
                     timeoutNs = offsetReachedThreshold.awaitNanos(timeoutNs);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    log.debug("Interrupted while waiting for the background store reader thread "
-                            + "to reach the specified offset: {}",
-                        offset, e);
+                    log.debug(
+                            "Interrupted while waiting for the background store reader thread "
+                                    + "to reach the specified offset: {}",
+                            offset,
+                            e);
                 }
             }
         } finally {
@@ -401,8 +399,8 @@ public abstract class KafkaStore<T> {
 
         if (offsetInSchemasTopic < offset) {
             throw new KafkaStoreException("Failed to reach target offset within the timeout interval. targetOffset: "
-                + offset + ", offsetReached: " + offsetInSchemasTopic + ", timeout(ms): "
-                + TimeUnit.MILLISECONDS.convert(initTimeout, timeUnit));
+                    + offset + ", offsetReached: " + offsetInSchemasTopic + ", timeout(ms): "
+                    + TimeUnit.MILLISECONDS.convert(initTimeout, timeUnit));
         }
     }
 
@@ -415,9 +413,7 @@ public abstract class KafkaStore<T> {
         return initialized.get();
     }
 
-    /**
-     * Report the init process.
-     */
+    /** Report the init process. */
     public void reportInitProgress() {
         if (isInitialized()) {
             log.info("{} is ready! ({} records)", kafkaTopic, store.size());

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.model.Status.StatusPhase.FAILED;
@@ -41,56 +40,54 @@ import java.util.Iterator;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Exception handler controller.
- */
+/** Exception handler controller. */
 @Slf4j
 @Controller("/errors")
 public class ExceptionHandlerController {
     /**
      * Handle resource validation exception.
      *
-     * @param request   the request
+     * @param request the request
      * @param exception the exception
      * @return the http response
      */
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, ResourceValidationException exception) {
         var status = Status.builder()
-            .status(FAILED)
-            .message("Resource validation failed")
-            .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
-            .details(StatusDetails.builder()
-                .kind(exception.getKind())
-                .name(exception.getName())
-                .causes(exception.getValidationErrors())
-                .build())
-            .build();
+                .status(FAILED)
+                .message("Resource validation failed")
+                .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+                .details(StatusDetails.builder()
+                        .kind(exception.getKind())
+                        .name(exception.getName())
+                        .causes(exception.getValidationErrors())
+                        .build())
+                .build();
 
-        return HttpResponse.unprocessableEntity()
-            .body(status);
+        return HttpResponse.unprocessableEntity().body(status);
     }
 
     /**
      * Handle constraint violation exception.
      *
-     * @param request   the request
+     * @param request the request
      * @param exception the exception
      * @return the http response
      */
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, ConstraintViolationException exception) {
         var status = Status.builder()
-            .status(FAILED)
-            .message("Constraint validation failed")
-            .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
-            .details(StatusDetails.builder()
-                .causes(exception.getConstraintViolations().stream().map(this::formatViolation).toList())
-                .build())
-            .build();
+                .status(FAILED)
+                .message("Constraint validation failed")
+                .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+                .details(StatusDetails.builder()
+                        .causes(exception.getConstraintViolations().stream()
+                                .map(this::formatViolation)
+                                .toList())
+                        .build())
+                .build();
 
-        return HttpResponse.unprocessableEntity()
-            .body(status);
+        return HttpResponse.unprocessableEntity().body(status);
     }
 
     /**
@@ -102,38 +99,36 @@ public class ExceptionHandlerController {
     @Error(global = true, status = HttpStatus.NOT_FOUND)
     public HttpResponse<Status> error(HttpRequest<?> request) {
         var status = Status.builder()
-            .status(FAILED)
-            .message("Not Found")
-            .httpStatus(HttpStatus.NOT_FOUND)
-            .build();
+                .status(FAILED)
+                .message("Not Found")
+                .httpStatus(HttpStatus.NOT_FOUND)
+                .build();
 
-        return HttpResponse.notFound()
-            .body(status);
+        return HttpResponse.notFound().body(status);
     }
 
     /**
      * Handle authentication exception.
      *
-     * @param request   the request
+     * @param request the request
      * @param exception the exception
      * @return the http response
      */
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, AuthenticationException exception) {
         var status = Status.builder()
-            .status(FAILED)
-            .message(exception.getMessage())
-            .httpStatus(HttpStatus.UNAUTHORIZED)
-            .build();
+                .status(FAILED)
+                .message(exception.getMessage())
+                .httpStatus(HttpStatus.UNAUTHORIZED)
+                .build();
 
-        return HttpResponse.unauthorized()
-            .body(status);
+        return HttpResponse.unauthorized().body(status);
     }
 
     /**
      * Handle authorization exception.
      *
-     * @param request   the request
+     * @param request the request
      * @param exception the exception
      * @return the http response
      */
@@ -141,86 +136,85 @@ public class ExceptionHandlerController {
     public HttpResponse<Status> error(HttpRequest<?> request, AuthorizationException exception) {
         if (exception.isForbidden()) {
             var status = Status.builder()
-                .status(FAILED)
-                .message("Resource forbidden")
-                .httpStatus(HttpStatus.FORBIDDEN)
-                .build();
+                    .status(FAILED)
+                    .message("Resource forbidden")
+                    .httpStatus(HttpStatus.FORBIDDEN)
+                    .build();
 
-            return HttpResponse.status(HttpStatus.FORBIDDEN)
-                .body(status);
+            return HttpResponse.status(HttpStatus.FORBIDDEN).body(status);
         }
 
         var status = Status.builder()
-            .status(FAILED)
-            .message(exception.getMessage())
-            .httpStatus(HttpStatus.UNAUTHORIZED)
-            .build();
+                .status(FAILED)
+                .message(exception.getMessage())
+                .httpStatus(HttpStatus.UNAUTHORIZED)
+                .build();
 
-        return HttpResponse.unauthorized()
-            .body(status);
+        return HttpResponse.unauthorized().body(status);
     }
 
     /**
      * Handle namespace unknown exception.
      *
-     * @param request   the request
+     * @param request the request
      * @param exception the exception
      * @return the http response
      */
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, UnknownNamespaceException exception) {
         var status = Status.builder()
-            .status(FAILED)
-            .message(exception.getMessage())
-            .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
-            .build();
+                .status(FAILED)
+                .message(exception.getMessage())
+                .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+                .build();
 
-        return HttpResponse.unprocessableEntity()
-            .body(status);
+        return HttpResponse.unprocessableEntity().body(status);
     }
 
     /**
      * Handle namespace forbidden exception.
      *
-     * @param request   the request
+     * @param request the request
      * @param exception the exception
      * @return the http response
      */
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, ForbiddenNamespaceException exception) {
         var status = Status.builder()
-            .status(FAILED)
-            .message(exception.getMessage())
-            .httpStatus(HttpStatus.FORBIDDEN)
-            .build();
+                .status(FAILED)
+                .message(exception.getMessage())
+                .httpStatus(HttpStatus.FORBIDDEN)
+                .build();
 
-        return HttpResponse.status(HttpStatus.FORBIDDEN)
-            .body(status);
+        return HttpResponse.status(HttpStatus.FORBIDDEN).body(status);
     }
 
     /**
      * Handle exception.
      *
-     * @param request   the request
+     * @param request the request
      * @param exception the exception
      * @return the http response
      */
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, Exception exception) {
-        log.error("An error occurred on API endpoint {} {}: {}", request.getMethodName(),
-            request.getUri(), exception.getMessage(), exception);
+        log.error(
+                "An error occurred on API endpoint {} {}: {}",
+                request.getMethodName(),
+                request.getUri(),
+                exception.getMessage(),
+                exception);
 
         Status status = Status.builder()
-            .status(FAILED)
-            .message("Internal server error")
-            .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-            .details(StatusDetails.builder()
-                .causes(List.of(exception.getMessage() != null ? exception.getMessage() : exception.toString()))
-                .build())
-            .build();
+                .status(FAILED)
+                .message("Internal server error")
+                .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+                .details(StatusDetails.builder()
+                        .causes(List.of(exception.getMessage() != null ? exception.getMessage() : exception.toString()))
+                        .build())
+                .build();
 
-        return HttpResponse.serverError()
-            .body(status);
+        return HttpResponse.serverError().body(status);
     }
 
     private String formatViolation(ConstraintViolation<?> violation) {

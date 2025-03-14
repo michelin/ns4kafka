@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,27 +49,22 @@ class ResourceQuotaNonNamespacedControllerTest {
     @Test
     void shouldFindAll() {
         Namespace namespace = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("namespace")
-                .cluster("local")
-                .build())
-            .spec(Namespace.NamespaceSpec.builder()
-                .connectClusters(List.of("local-name"))
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
 
         ResourceQuotaResponse response = ResourceQuotaResponse.builder()
-            .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
-                .countTopic("2/5")
-                .countPartition("2/10")
-                .countConnector("5/5")
-                .build())
-            .build();
+                .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
+                        .countTopic("2/5")
+                        .countPartition("2/10")
+                        .countConnector("5/5")
+                        .build())
+                .build();
 
-        when(namespaceService.findAll())
-            .thenReturn(List.of(namespace));
-        when(resourceQuotaService.getUsedQuotaByNamespaces(any()))
-            .thenReturn(List.of(response));
+        when(namespaceService.findAll()).thenReturn(List.of(namespace));
+        when(resourceQuotaService.getUsedQuotaByNamespaces(any())).thenReturn(List.of(response));
 
         List<ResourceQuotaResponse> actual = resourceQuotaController.listAll();
         assertEquals(1, actual.size());

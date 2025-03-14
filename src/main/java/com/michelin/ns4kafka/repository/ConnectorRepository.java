@@ -16,15 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.repository;
 
 import com.michelin.ns4kafka.model.connector.Connector;
 import java.util.List;
 
-/**
- * Connector repository interface.
- */
+/** Connector repository interface. */
 public interface ConnectorRepository {
     /**
      * Find all connectors by cluster.

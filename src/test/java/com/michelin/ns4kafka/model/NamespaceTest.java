@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,103 +30,82 @@ class NamespaceTest {
     @Test
     void shouldBeEqual() {
         Namespace original = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("namespace1")
-                .cluster("local")
-                .build())
-            .spec(Namespace.NamespaceSpec.builder()
-                .kafkaUser("user1")
-                .connectClusters(List.of("connect1"))
-                .topicValidator(TopicValidator.makeDefault())
-                .connectValidator(ConnectValidator.makeDefault())
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user1")
+                        .connectClusters(List.of("connect1"))
+                        .topicValidator(TopicValidator.makeDefault())
+                        .connectValidator(ConnectValidator.makeDefault())
+                        .build())
+                .build();
         Namespace same = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("namespace1")
-                .cluster("local")
-                .build())
-            .spec(Namespace.NamespaceSpec.builder()
-                .kafkaUser("user1")
-                .connectClusters(List.of("connect1"))
-                .topicValidator(TopicValidator.makeDefault())
-                .connectValidator(ConnectValidator.makeDefault())
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user1")
+                        .connectClusters(List.of("connect1"))
+                        .topicValidator(TopicValidator.makeDefault())
+                        .connectValidator(ConnectValidator.makeDefault())
+                        .build())
+                .build();
         Namespace differentByMetadata = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("namespace2")
-                .cluster("local")
-                .build())
-            .spec(Namespace.NamespaceSpec.builder()
-                .kafkaUser("user1")
-                .connectClusters(List.of("connect1"))
-                .topicValidator(TopicValidator.makeDefault())
-                .connectValidator(ConnectValidator.makeDefault())
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("namespace2").cluster("local").build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user1")
+                        .connectClusters(List.of("connect1"))
+                        .topicValidator(TopicValidator.makeDefault())
+                        .connectValidator(ConnectValidator.makeDefault())
+                        .build())
+                .build();
 
         assertEquals(original, same);
 
         assertNotEquals(original, differentByMetadata);
 
         Namespace differentByUser = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("namespace1")
-                .cluster("local")
-                .build())
-            .spec(Namespace.NamespaceSpec.builder()
-                .kafkaUser("user2")
-                .connectClusters(List.of("connect1"))
-                .topicValidator(TopicValidator.makeDefault())
-                .connectValidator(ConnectValidator.makeDefault())
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user2")
+                        .connectClusters(List.of("connect1"))
+                        .topicValidator(TopicValidator.makeDefault())
+                        .connectValidator(ConnectValidator.makeDefault())
+                        .build())
+                .build();
 
         assertNotEquals(original, differentByUser);
 
         Namespace differentByConnectClusters = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("namespace1")
-                .cluster("local")
-                .build())
-            .spec(Namespace.NamespaceSpec.builder()
-                .kafkaUser("user1")
-                .connectClusters(List.of("connect1", "connect2"))
-                .topicValidator(TopicValidator.makeDefault())
-                .connectValidator(ConnectValidator.makeDefault())
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user1")
+                        .connectClusters(List.of("connect1", "connect2"))
+                        .topicValidator(TopicValidator.makeDefault())
+                        .connectValidator(ConnectValidator.makeDefault())
+                        .build())
+                .build();
 
         assertNotEquals(original, differentByConnectClusters);
 
         Namespace differentByTopicValidator = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("namespace1")
-                .cluster("local")
-                .build())
-            .spec(Namespace.NamespaceSpec.builder()
-                .kafkaUser("user1")
-                .connectClusters(List.of("connect1"))
-                .topicValidator(TopicValidator.builder().build())
-                .connectValidator(ConnectValidator.makeDefault())
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user1")
+                        .connectClusters(List.of("connect1"))
+                        .topicValidator(TopicValidator.builder().build())
+                        .connectValidator(ConnectValidator.makeDefault())
+                        .build())
+                .build();
 
         assertNotEquals(original, differentByTopicValidator);
 
         Namespace differentByConnectValidator = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("namespace1")
-                .cluster("local")
-                .build())
-            .spec(Namespace.NamespaceSpec.builder()
-                .kafkaUser("user1")
-                .connectClusters(List.of("connect1"))
-                .topicValidator(TopicValidator.makeDefault())
-                .connectValidator(ConnectValidator.builder().build())
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user1")
+                        .connectClusters(List.of("connect1"))
+                        .topicValidator(TopicValidator.makeDefault())
+                        .connectValidator(ConnectValidator.builder().build())
+                        .build())
+                .build();
 
         assertNotEquals(original, differentByConnectValidator);
     }

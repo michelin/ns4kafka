@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service.client.schema.entities;
 
 import com.michelin.ns4kafka.model.schema.Schema;
@@ -28,5 +27,4 @@ import lombok.Builder;
  * @param compatibilityLevel The compatibility level
  */
 @Builder
-public record SchemaCompatibilityResponse(Schema.Compatibility compatibilityLevel) {
-}
+public record SchemaCompatibilityResponse(Schema.Compatibility compatibilityLevel) {}

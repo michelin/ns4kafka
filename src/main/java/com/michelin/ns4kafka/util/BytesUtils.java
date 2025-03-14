@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.util;
 
 import java.math.BigDecimal;
@@ -24,9 +23,7 @@ import java.math.RoundingMode;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-/**
- * BytesUtils is a utility class to convert bytes to human-readable values and vice-versa.
- */
+/** BytesUtils is a utility class to convert bytes to human-readable values and vice-versa. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class BytesUtils {
     public static final String BYTE = "B";
@@ -46,15 +43,24 @@ public class BytesUtils {
         double gibibyte = mebibyte * 1024;
 
         if (bytes >= kibibyte && bytes < mebibyte) {
-            return BigDecimal.valueOf(bytes / kibibyte).setScale(3, RoundingMode.CEILING).doubleValue() + KIBIBYTE;
+            return BigDecimal.valueOf(bytes / kibibyte)
+                            .setScale(3, RoundingMode.CEILING)
+                            .doubleValue()
+                    + KIBIBYTE;
         }
 
         if (bytes >= mebibyte && bytes < gibibyte) {
-            return BigDecimal.valueOf(bytes / mebibyte).setScale(3, RoundingMode.CEILING).doubleValue() + MEBIBYTE;
+            return BigDecimal.valueOf(bytes / mebibyte)
+                            .setScale(3, RoundingMode.CEILING)
+                            .doubleValue()
+                    + MEBIBYTE;
         }
 
         if (bytes >= gibibyte) {
-            return BigDecimal.valueOf(bytes / gibibyte).setScale(3, RoundingMode.CEILING).doubleValue() + GIBIBYTE;
+            return BigDecimal.valueOf(bytes / gibibyte)
+                            .setScale(3, RoundingMode.CEILING)
+                            .doubleValue()
+                    + GIBIBYTE;
         }
 
         return bytes + BYTE;
@@ -73,20 +79,20 @@ public class BytesUtils {
 
         if (quota.endsWith(KIBIBYTE)) {
             return BigDecimal.valueOf(Double.parseDouble(quota.replace(KIBIBYTE, "")) * kibibyte)
-                .setScale(0, RoundingMode.CEILING)
-                .longValue();
+                    .setScale(0, RoundingMode.CEILING)
+                    .longValue();
         }
 
         if (quota.endsWith(MEBIBYTE)) {
             return BigDecimal.valueOf(Double.parseDouble(quota.replace(MEBIBYTE, "")) * mebibyte)
-                .setScale(0, RoundingMode.CEILING)
-                .longValue();
+                    .setScale(0, RoundingMode.CEILING)
+                    .longValue();
         }
 
         if (quota.endsWith(GIBIBYTE)) {
             return BigDecimal.valueOf(Double.parseDouble(quota.replace(GIBIBYTE, "")) * gibibyte)
-                .setScale(0, RoundingMode.CEILING)
-                .longValue();
+                    .setScale(0, RoundingMode.CEILING)
+                    .longValue();
         }
 
         return Long.parseLong(quota.replace(BYTE, ""));

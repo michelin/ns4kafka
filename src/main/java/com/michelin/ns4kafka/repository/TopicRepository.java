@@ -16,15 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.repository;
 
 import com.michelin.ns4kafka.model.Topic;
 import java.util.List;
 
-/**
- * Topic repository.
- */
+/** Topic repository. */
 public interface TopicRepository {
     /**
      * Find all topics.

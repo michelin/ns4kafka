@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.property;
 
 import io.micronaut.context.annotation.ConfigurationProperties;
@@ -25,9 +24,7 @@ import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Kafka store properties.
- */
+/** Kafka store properties. */
 @Getter
 @Setter
 @ConfigurationProperties("ns4kafka.store.kafka.topics")

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service.executor;
 
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
@@ -37,9 +36,7 @@ import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
-/**
- * Consumer group executor.
- */
+/** Consumer group executor. */
 @Slf4j
 @EachBean(ManagedClusterProperties.class)
 @Singleton
@@ -61,15 +58,12 @@ public class ConsumerGroupAsyncExecutor {
      *
      * @param groupIds The consumer group ids
      * @return A map of consumer group id and consumer group description
-     * @throws ExecutionException   Any execution exception during consumer groups description
+     * @throws ExecutionException Any execution exception during consumer groups description
      * @throws InterruptedException Any interrupted exception during consumer groups description
      */
     public Map<String, ConsumerGroupDescription> describeConsumerGroups(List<String> groupIds)
-        throws ExecutionException, InterruptedException {
-        return getAdminClient()
-            .describeConsumerGroups(groupIds)
-            .all()
-            .get();
+            throws ExecutionException, InterruptedException {
+        return getAdminClient().describeConsumerGroups(groupIds).all().get();
     }
 
     /**
@@ -78,24 +72,21 @@ public class ConsumerGroupAsyncExecutor {
      * @param consumerGroupId The consumer group
      * @param preparedOffsets The offsets to set
      * @throws InterruptedException Any interrupted exception during offsets alteration
-     * @throws ExecutionException   Any execution exception during offsets alteration
+     * @throws ExecutionException Any execution exception during offsets alteration
      */
     public void alterConsumerGroupOffsets(String consumerGroupId, Map<TopicPartition, Long> preparedOffsets)
-        throws InterruptedException, ExecutionException {
+            throws InterruptedException, ExecutionException {
         getAdminClient()
-            .alterConsumerGroupOffsets(
-                consumerGroupId,
-                preparedOffsets
-                    .entrySet()
-                    .stream()
-                    .collect(Collectors.toMap(Map.Entry::getKey, e -> new OffsetAndMetadata(e.getValue()))))
-            .all()
-            .get();
+                .alterConsumerGroupOffsets(
+                        consumerGroupId,
+                        preparedOffsets.entrySet().stream()
+                                .collect(Collectors.toMap(Map.Entry::getKey, e -> new OffsetAndMetadata(e.getValue()))))
+                .all()
+                .get();
         log.info("Consumer group {} changed offset", consumerGroupId);
         if (log.isDebugEnabled()) {
-            preparedOffsets.forEach(
-                (topicPartition, offset) -> log.debug("Topic-Partition {} has the new offset {}", topicPartition,
-                    offset));
+            preparedOffsets.forEach((topicPartition, offset) ->
+                    log.debug("Topic-Partition {} has the new offset {}", topicPartition, offset));
         }
     }
 
@@ -104,17 +95,13 @@ public class ConsumerGroupAsyncExecutor {
      *
      * @param offsetsForTheSpec The offset specs
      * @return A map of topic-partition and offsets
-     * @throws ExecutionException   Any execution exception during offsets description
+     * @throws ExecutionException Any execution exception during offsets description
      * @throws InterruptedException Any interrupted exception during offsets description
      */
     public Map<TopicPartition, Long> listOffsets(Map<TopicPartition, OffsetSpec> offsetsForTheSpec)
-        throws InterruptedException, ExecutionException {
-        return getAdminClient().listOffsets(offsetsForTheSpec)
-            .all()
-            .get()
-            .entrySet()
-            .stream()
-            .collect(Collectors.toMap(Map.Entry::getKey, kv -> kv.getValue().offset()));
+            throws InterruptedException, ExecutionException {
+        return getAdminClient().listOffsets(offsetsForTheSpec).all().get().entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, kv -> kv.getValue().offset()));
     }
 
     /**
@@ -122,17 +109,18 @@ public class ConsumerGroupAsyncExecutor {
      *
      * @param groupId The consumer group
      * @return A map of topic-partition and committed offset number
-     * @throws ExecutionException   Any execution exception during consumer groups description
+     * @throws ExecutionException Any execution exception during consumer groups description
      * @throws InterruptedException Any interrupted exception during consumer groups description
      */
     public Map<TopicPartition, Long> getCommittedOffsets(String groupId)
-        throws ExecutionException, InterruptedException {
-        return getAdminClient().listConsumerGroupOffsets(groupId)
-            .partitionsToOffsetAndMetadata()
-            .get()
-            .entrySet()
-            .stream()
-            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().offset()));
+            throws ExecutionException, InterruptedException {
+        return getAdminClient()
+                .listConsumerGroupOffsets(groupId)
+                .partitionsToOffsetAndMetadata()
+                .get()
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().offset()));
     }
 
     /**
@@ -140,18 +128,19 @@ public class ConsumerGroupAsyncExecutor {
      *
      * @param topicName The topic name
      * @return A list of partitions
-     * @throws ExecutionException   Any execution exception during topics description
+     * @throws ExecutionException Any execution exception during topics description
      * @throws InterruptedException Any interrupted exception during topics description
      */
     public List<TopicPartition> getTopicPartitions(String topicName) throws ExecutionException, InterruptedException {
-        return getAdminClient().describeTopics(Collections.singletonList(topicName))
-            .allTopicNames()
-            .get()
-            .get(topicName)
-            .partitions()
-            .stream()
-            .map(partitionInfo -> new TopicPartition(topicName, partitionInfo.partition()))
-            .toList();
+        return getAdminClient()
+                .describeTopics(Collections.singletonList(topicName))
+                .allTopicNames()
+                .get()
+                .get(topicName)
+                .partitions()
+                .stream()
+                .map(partitionInfo -> new TopicPartition(topicName, partitionInfo.partition()))
+                .toList();
     }
 
     /**
@@ -159,14 +148,13 @@ public class ConsumerGroupAsyncExecutor {
      *
      * @param partitionsToReset The topic-partitions list
      * @return A map of topic-partition and offsets
-     * @throws ExecutionException   Any execution exception during offsets description
+     * @throws ExecutionException Any execution exception during offsets description
      * @throws InterruptedException Any interrupted exception during offsets description
      */
     public Map<TopicPartition, Long> getLogStartOffsets(List<TopicPartition> partitionsToReset)
-        throws ExecutionException, InterruptedException {
-        Map<TopicPartition, OffsetSpec> startOffsets = partitionsToReset
-            .stream()
-            .collect(Collectors.toMap(Function.identity(), v -> OffsetSpec.earliest()));
+            throws ExecutionException, InterruptedException {
+        Map<TopicPartition, OffsetSpec> startOffsets =
+                partitionsToReset.stream().collect(Collectors.toMap(Function.identity(), v -> OffsetSpec.earliest()));
         return listOffsets(startOffsets);
     }
 
@@ -175,14 +163,13 @@ public class ConsumerGroupAsyncExecutor {
      *
      * @param partitionsToReset The topic-partitions list
      * @return A map of topic-partition and offsets
-     * @throws ExecutionException   Any execution exception during offsets description
+     * @throws ExecutionException Any execution exception during offsets description
      * @throws InterruptedException Any interrupted exception during offsets description
      */
     public Map<TopicPartition, Long> getLogEndOffsets(List<TopicPartition> partitionsToReset)
-        throws ExecutionException, InterruptedException {
-        Map<TopicPartition, OffsetSpec> endOffsets = partitionsToReset
-            .stream()
-            .collect(Collectors.toMap(Function.identity(), v -> OffsetSpec.latest()));
+            throws ExecutionException, InterruptedException {
+        Map<TopicPartition, OffsetSpec> endOffsets =
+                partitionsToReset.stream().collect(Collectors.toMap(Function.identity(), v -> OffsetSpec.latest()));
         return listOffsets(endOffsets);
     }
 
@@ -190,29 +177,28 @@ public class ConsumerGroupAsyncExecutor {
      * Get offsets from timestamp for given list of topic-partitions.
      *
      * @param partitionsToReset The topic-partitions list
-     * @param timestamp         The timestamp used to filter
+     * @param timestamp The timestamp used to filter
      * @return A map of topic-partition and offsets
-     * @throws ExecutionException   Any execution exception during offsets description
+     * @throws ExecutionException Any execution exception during offsets description
      * @throws InterruptedException Any interrupted exception during offsets description
      */
     public Map<TopicPartition, Long> getLogTimestampOffsets(List<TopicPartition> partitionsToReset, long timestamp)
-        throws ExecutionException, InterruptedException {
-        Map<TopicPartition, OffsetSpec> dateOffsets = partitionsToReset
-            .stream()
-            .collect(Collectors.toMap(Function.identity(), e -> OffsetSpec.forTimestamp(timestamp)));
+            throws ExecutionException, InterruptedException {
+        Map<TopicPartition, OffsetSpec> dateOffsets = partitionsToReset.stream()
+                .collect(Collectors.toMap(Function.identity(), e -> OffsetSpec.forTimestamp(timestamp)));
         // list offsets for this timestamp
         Map<TopicPartition, Long> offsets = listOffsets(dateOffsets);
 
         // extract successful offsets (>= 0)
         Map<TopicPartition, Long> successfulLogTimestampOffsets = offsets.entrySet().stream()
-            .filter(e -> e.getValue() >= 0)
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .filter(e -> e.getValue() >= 0)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         // extract failed offsets partitions (== -1)
         List<TopicPartition> unsuccessfulPartitions = offsets.entrySet().stream()
-            .filter(e -> e.getValue() == -1L)
-            .map(Map.Entry::getKey)
-            .toList();
+                .filter(e -> e.getValue() == -1L)
+                .map(Map.Entry::getKey)
+                .toList();
 
         // reprocess failed offsets to OffsetSpec.latest()
         Map<TopicPartition, Long> reprocessedUnsuccessfulOffsets = getLogEndOffsets(unsuccessfulPartitions);
@@ -226,11 +212,11 @@ public class ConsumerGroupAsyncExecutor {
      *
      * @param requestedOffsets The offsets to check for topic-partitions
      * @return A map of topic-partition and offsets with no unbound offsets
-     * @throws ExecutionException   Any execution exception during offsets description
+     * @throws ExecutionException Any execution exception during offsets description
      * @throws InterruptedException Any interrupted exception during offsets description
      */
     public Map<TopicPartition, Long> checkOffsetsRange(Map<TopicPartition, Long> requestedOffsets)
-        throws ExecutionException, InterruptedException {
+            throws ExecutionException, InterruptedException {
         // lower bound
         Map<TopicPartition, Long> logStartOffsets = getLogStartOffsets(new ArrayList<>(requestedOffsets.keySet()));
         // upper bound
@@ -238,17 +224,17 @@ public class ConsumerGroupAsyncExecutor {
 
         // replace inside boundaries if required
         return requestedOffsets.entrySet().stream()
-            .map(entry -> {
-                if (entry.getValue() > logEndOffsets.get(entry.getKey())) {
-                    // went too much forward
-                    return Map.entry(entry.getKey(), logEndOffsets.get(entry.getKey()));
-                } else if (entry.getValue() < logStartOffsets.get(entry.getKey())) {
-                    // went too much backward
-                    return Map.entry(entry.getKey(), logStartOffsets.get(entry.getKey()));
-                } else {
-                    return entry;
-                }
-            })
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .map(entry -> {
+                    if (entry.getValue() > logEndOffsets.get(entry.getKey())) {
+                        // went too much forward
+                        return Map.entry(entry.getKey(), logEndOffsets.get(entry.getKey()));
+                    } else if (entry.getValue() < logStartOffsets.get(entry.getKey())) {
+                        // went too much backward
+                        return Map.entry(entry.getKey(), logStartOffsets.get(entry.getKey()));
+                    } else {
+                        return entry;
+                    }
+                })
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 }

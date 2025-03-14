@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.security.auth;
 
 import io.micronaut.core.convert.ArgumentConversionContext;
@@ -28,10 +27,12 @@ import jakarta.inject.Singleton;
 import java.util.Optional;
 
 /**
- * Authentication argument binder.
- * Binds the AuthenticationInfo from the Authentication, so it can be injected in the controllers.
+ * Authentication argument binder. Binds the AuthenticationInfo from the Authentication, so it can be injected in the
+ * controllers.
  *
- * @see <a href="https://micronaut-projects.github.io/micronaut-security/latest/guide/#customAuthenticatedUser">Micronaut Custom Binding</a>
+ * @see <a
+ *     href="https://micronaut-projects.github.io/micronaut-security/latest/guide/#customAuthenticatedUser">Micronaut
+ *     Custom Binding</a>
  */
 @Singleton
 public class AuthenticationArgumentBinder implements TypedRequestArgumentBinder<AuthenticationInfo> {
@@ -41,10 +42,9 @@ public class AuthenticationArgumentBinder implements TypedRequestArgumentBinder<
     }
 
     @Override
-    public BindingResult<AuthenticationInfo> bind(ArgumentConversionContext<AuthenticationInfo> context,
-                                                  HttpRequest<?> source) {
+    public BindingResult<AuthenticationInfo> bind(
+            ArgumentConversionContext<AuthenticationInfo> context, HttpRequest<?> source) {
         final Optional<Authentication> authentication = source.getUserPrincipal(Authentication.class);
-        return authentication.isPresent() ? (() -> authentication.map(AuthenticationInfo::of))
-            : Optional::empty;
+        return authentication.isPresent() ? (() -> authentication.map(AuthenticationInfo::of)) : Optional::empty;
     }
 }

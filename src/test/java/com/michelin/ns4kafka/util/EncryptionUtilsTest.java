@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,9 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.junit.jupiter.api.Test;
 
-/**
- * Encryption utils test.
- */
+/** Encryption utils test. */
 class EncryptionUtilsTest {
     @Test
     void shouldValidateEncryptAndDecryptAes256GcmNullText() {
@@ -102,7 +99,7 @@ class EncryptionUtilsTest {
         String encryptedText2 = EncryptionUtils.encryptAesWithPrefix(clearText, encryptionKey, encryptionSalt);
         String clearTextDecrypted = EncryptionUtils.decryptAesWithPrefix(encryptedText, encryptionKey, encryptionSalt);
         String clearTextDecrypted2 =
-            EncryptionUtils.decryptAesWithPrefix(encryptedText2, encryptionKey, encryptionSalt);
+                EncryptionUtils.decryptAesWithPrefix(encryptedText2, encryptionKey, encryptionSalt);
 
         assertEquals(clearText, clearTextDecrypted);
         assertNotEquals(encryptedText2, encryptedText);

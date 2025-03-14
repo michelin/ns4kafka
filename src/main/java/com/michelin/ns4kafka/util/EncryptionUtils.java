@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.util;
 
 import com.nimbusds.jose.EncryptionMethod;
@@ -48,37 +47,27 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Encryption utils.
- */
+/** Encryption utils. */
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class EncryptionUtils {
-    /**
-     * The AES encryption algorithm.
-     */
+    /** The AES encryption algorithm. */
     private static final String ENCRYPT_ALGO = "AES/GCM/NoPadding";
 
-    /**
-     * The authentication tag length.
-     */
+    /** The authentication tag length. */
     private static final int TAG_LENGTH_BIT = 128;
 
-    /**
-     * The Initial Value length.
-     */
+    /** The Initial Value length. */
     private static final int IV_LENGTH_BYTE = 12;
 
-    /**
-     * The NS4KAFKA prefix.
-     */
+    /** The NS4KAFKA prefix. */
     private static final String NS4KAFKA_PREFIX = "NS4K";
 
     /**
      * Encrypt given text with the given key to AES256 GCM then encode it to Base64.
      *
      * @param clearText The text to encrypt
-     * @param key       The key encryption key (KEK)
+     * @param key The key encryption key (KEK)
      * @return The encrypted password
      */
     public static String encryptAes256Gcm(String clearText, String key) {
@@ -89,11 +78,8 @@ public class EncryptionUtils {
 
             JWEHeader header = new JWEHeader(JWEAlgorithm.A256KW, EncryptionMethod.A256GCM);
             AESEncrypter encrypter = new AESEncrypter(key.getBytes(StandardCharsets.UTF_8));
-            JWECryptoParts encryptedData = encrypter.encrypt(
-                header,
-                clearText.getBytes(StandardCharsets.UTF_8),
-                AAD.compute(header)
-            );
+            JWECryptoParts encryptedData =
+                    encrypter.encrypt(header, clearText.getBytes(StandardCharsets.UTF_8), AAD.compute(header));
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             outputStream.write(encryptedData.getEncryptedKey().decode());
@@ -113,7 +99,7 @@ public class EncryptionUtils {
      * Decrypt given text with the given key from AES256 GCM.
      *
      * @param encryptedText The text to decrypt
-     * @param key           The key encryption key (KEK)
+     * @param key The key encryption key (KEK)
      * @return The decrypted text
      */
     public static String decryptAes256Gcm(String encryptedText, String key) {
@@ -145,8 +131,8 @@ public class EncryptionUtils {
      * Encrypt clear text with the given key and salt to AES256 encrypted text.
      *
      * @param clearText The text to encrypt.
-     * @param key       The encryption key.
-     * @param salt      The encryption salt.
+     * @param key The encryption key.
+     * @param salt The encryption salt.
      * @return The encrypted password.
      */
     public static String encryptAesWithPrefix(final String clearText, final String key, final String salt) {
@@ -162,10 +148,10 @@ public class EncryptionUtils {
             final byte[] cipherText = cipher.doFinal(clearText.getBytes(StandardCharsets.UTF_8));
             final byte[] prefix = NS4KAFKA_PREFIX.getBytes(StandardCharsets.UTF_8);
             final byte[] cipherTextWithIv = ByteBuffer.allocate(prefix.length + iv.length + cipherText.length)
-                .put(prefix)
-                .put(iv)
-                .put(cipherText)
-                .array();
+                    .put(prefix)
+                    .put(iv)
+                    .put(cipherText)
+                    .array();
             return Base64.getEncoder().encodeToString(cipherTextWithIv);
         } catch (Exception e) {
             log.error("An error occurred during Connect cluster AES256 string encryption", e);
@@ -178,8 +164,8 @@ public class EncryptionUtils {
      * Decrypt text with the given key and salt from AES256 encrypted text.
      *
      * @param encryptedText The text to decrypt.
-     * @param key           The encryption key.
-     * @param salt          The encryption salt.
+     * @param key The encryption key.
+     * @param salt The encryption salt.
      * @return The encrypted password.
      */
     public static String decryptAesWithPrefix(final String encryptedText, final String key, final String salt) {
@@ -209,18 +195,17 @@ public class EncryptionUtils {
         return encryptedText;
     }
 
-
     /**
      * Gets the secret key derived AES 256 bits key.
      *
-     * @param key  The encryption key
+     * @param key The encryption key
      * @param salt The encryption salt
      * @return The encryption secret key.
      * @throws NoSuchAlgorithmException No such algorithm exception.
-     * @throws InvalidKeySpecException  Invalid key spec exception.
+     * @throws InvalidKeySpecException Invalid key spec exception.
      */
     private static SecretKey getAesSecretKey(final String key, final String salt)
-        throws NoSuchAlgorithmException, InvalidKeySpecException {
+            throws NoSuchAlgorithmException, InvalidKeySpecException {
         var factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
         var spec = new PBEKeySpec(key.toCharArray(), salt.getBytes(StandardCharsets.UTF_8), 65536, 256);
         return new SecretKeySpec(factory.generateSecret(spec).getEncoded(), "AES");

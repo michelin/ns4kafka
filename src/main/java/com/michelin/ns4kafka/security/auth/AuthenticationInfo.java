@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.security.auth;
 
 import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLE_BINDINGS;
@@ -29,11 +28,12 @@ import lombok.Builder;
 import lombok.Getter;
 
 /**
- * Authentication info.
- * Type-safe representation of the authentication information and attributes.
- * This class can be injected in controllers to get the authenticated user information.
+ * Authentication info. Type-safe representation of the authentication information and attributes. This class can be
+ * injected in controllers to get the authenticated user information.
  *
- * @see <a href="https://micronaut-projects.github.io/micronaut-security/latest/guide/#customAuthenticatedUser">Micronaut Custom Binding</a>
+ * @see <a
+ *     href="https://micronaut-projects.github.io/micronaut-security/latest/guide/#customAuthenticatedUser">Micronaut
+ *     Custom Binding</a>
  */
 @Getter
 @Builder
@@ -49,9 +49,8 @@ public class AuthenticationInfo {
      * @return the authentication info
      */
     public static AuthenticationInfo of(Authentication authentication) {
-        AuthenticationInfoBuilder builder = AuthenticationInfo.builder()
-            .name(authentication.getName())
-            .roles(authentication.getRoles());
+        AuthenticationInfoBuilder builder =
+                AuthenticationInfo.builder().name(authentication.getName()).roles(authentication.getRoles());
 
         // Type-safe the role bindings attribute
         // JWT authentication role bindings attributes is a List of Map<String, String>
@@ -59,13 +58,10 @@ public class AuthenticationInfo {
         // In all cases, convert attributes to avoid generic type or unchecked cast warnings
         List<?> roleBindings = (List<?>) authentication.getAttributes().get(ROLE_BINDINGS);
         ObjectMapper objectMapper = new ObjectMapper();
-        List<AuthenticationRoleBinding> typedRoleBindings = roleBindings
-            .stream()
-            .map(roleBinding -> objectMapper.convertValue(roleBinding, AuthenticationRoleBinding.class))
-            .toList();
+        List<AuthenticationRoleBinding> typedRoleBindings = roleBindings.stream()
+                .map(roleBinding -> objectMapper.convertValue(roleBinding, AuthenticationRoleBinding.class))
+                .toList();
 
-        return builder
-            .roleBindings(typedRoleBindings)
-            .build();
+        return builder.roleBindings(typedRoleBindings).build();
     }
 }

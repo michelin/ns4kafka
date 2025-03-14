@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model.schema;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.SCHEMA;
@@ -34,21 +33,18 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Schema.
- */
+/** Schema. */
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
 public class Schema extends MetadataResource {
-    @Valid
-    private SchemaSpec spec;
+    @Valid private SchemaSpec spec;
 
     /**
      * Constructor.
      *
      * @param metadata The metadata
-     * @param spec     The spec
+     * @param spec The spec
      */
     @Builder
     public Schema(Metadata metadata, SchemaSpec spec) {
@@ -56,9 +52,7 @@ public class Schema extends MetadataResource {
         this.spec = spec;
     }
 
-    /**
-     * Schema compatibility.
-     */
+    /** Schema compatibility. */
     public enum Compatibility {
         GLOBAL,
         BACKWARD,
@@ -70,18 +64,14 @@ public class Schema extends MetadataResource {
         NONE
     }
 
-    /**
-     * Schema type.
-     */
+    /** Schema type. */
     public enum SchemaType {
         AVRO,
         JSON,
         PROTOBUF
     }
 
-    /**
-     * Schema spec.
-     */
+    /** Schema spec. */
     @Data
     @Builder
     @Introspected
@@ -97,11 +87,10 @@ public class Schema extends MetadataResource {
 
         @Builder.Default
         private Compatibility compatibility = Compatibility.GLOBAL;
+
         private List<Reference> references;
 
-        /**
-         * Schema reference.
-         */
+        /** Schema reference. */
         @Getter
         @Setter
         @Builder

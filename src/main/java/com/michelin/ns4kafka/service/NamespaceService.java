@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.service;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNamespaceNoCluster;
@@ -42,9 +41,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 import org.apache.kafka.common.config.TopicConfig;
 
-/**
- * Service to manage the namespaces.
- */
+/** Service to manage the namespaces. */
 @Singleton
 public class NamespaceService {
     private static final List<String> NOT_EDITABLE_CONFIGS = List.of(TopicConfig.MIN_CLEANABLE_DIRTY_RATIO_CONFIG);
@@ -79,11 +76,10 @@ public class NamespaceService {
      * @return The list of namespaces
      */
     public List<Namespace> findAll() {
-        return managedClusterProperties
-            .stream()
-            .map(ManagedClusterProperties::getName)
-            .flatMap(s -> namespaceRepository.findAllForCluster(s).stream())
-            .toList();
+        return managedClusterProperties.stream()
+                .map(ManagedClusterProperties::getName)
+                .flatMap(s -> namespaceRepository.findAllForCluster(s).stream())
+                .toList();
     }
 
     /**
@@ -94,25 +90,25 @@ public class NamespaceService {
      */
     public List<Namespace> findByWildcardName(String name) {
         List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
-        return findAll()
-            .stream()
-            .filter(ns -> RegexUtils.isResourceCoveredByRegex(ns.getMetadata().getName(), nameFilterPatterns))
-            .toList();
+        return findAll().stream()
+                .filter(ns ->
+                        RegexUtils.isResourceCoveredByRegex(ns.getMetadata().getName(), nameFilterPatterns))
+                .toList();
     }
 
     /**
      * Find the namespace which is owner of the given topic name, out of the given list.
      *
      * @param namespaces The namespaces list
-     * @param topic      The topic name to search
+     * @param topic The topic name to search
      * @return The namespace which is owner of the given topic name
      */
     public Optional<Namespace> findByTopicName(List<Namespace> namespaces, String topic) {
-        return namespaces
-            .stream()
-            .filter(ns -> aclService.isResourceCoveredByAcls(
-                aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC), topic))
-            .findFirst();
+        return namespaces.stream()
+                .filter(ns -> aclService.isResourceCoveredByAcls(
+                        aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC),
+                        topic))
+                .findFirst();
     }
 
     /**
@@ -134,10 +130,10 @@ public class NamespaceService {
     public List<String> validateCreation(Namespace namespace) {
         List<String> validationErrors = new ArrayList<>();
 
-        if (managedClusterProperties
-            .stream()
-            .noneMatch(config -> config.getName().equals(namespace.getMetadata().getCluster()))) {
-            validationErrors.add(invalidNamespaceNoCluster(namespace.getMetadata().getCluster()));
+        if (managedClusterProperties.stream().noneMatch(config -> config.getName()
+                .equals(namespace.getMetadata().getCluster()))) {
+            validationErrors.add(
+                    invalidNamespaceNoCluster(namespace.getMetadata().getCluster()));
         }
 
         return validationErrors;
@@ -152,34 +148,40 @@ public class NamespaceService {
     public List<String> validate(Namespace namespace) {
         List<String> validationErrors = new ArrayList<>();
 
-        Optional<ManagedClusterProperties> managedCluster = managedClusterProperties
-            .stream()
-            .filter(cluster -> namespace.getMetadata().getCluster().equals(cluster.getName()))
-            .findFirst();
+        Optional<ManagedClusterProperties> managedCluster = managedClusterProperties.stream()
+                .filter(cluster -> namespace.getMetadata().getCluster().equals(cluster.getName()))
+                .findFirst();
 
         if (managedCluster.isPresent()) {
             if (managedCluster.get().isConfluentCloud()) {
-                validationErrors.addAll(NOT_EDITABLE_CONFIGS
-                    .stream()
-                    .filter(config -> namespace.getSpec().getTopicValidator().getValidationConstraints()
-                        .containsKey(config))
-                    .map(FormatErrorUtils::invalidNamespaceTopicValidatorKeyConfluentCloud)
-                    .toList());
+                validationErrors.addAll(NOT_EDITABLE_CONFIGS.stream()
+                        .filter(config -> namespace
+                                .getSpec()
+                                .getTopicValidator()
+                                .getValidationConstraints()
+                                .containsKey(config))
+                        .map(FormatErrorUtils::invalidNamespaceTopicValidatorKeyConfluentCloud)
+                        .toList());
             }
 
-            validationErrors.addAll(namespace.getSpec().getConnectClusters()
-                .stream()
-                .filter(connectCluster -> !managedCluster.get().getConnects().containsKey(connectCluster))
-                .map(FormatErrorUtils::invalidNamespaceNoConnectCluster)
-                .toList());
+            validationErrors.addAll(namespace.getSpec().getConnectClusters().stream()
+                    .filter(connectCluster ->
+                            !managedCluster.get().getConnects().containsKey(connectCluster))
+                    .map(FormatErrorUtils::invalidNamespaceNoConnectCluster)
+                    .toList());
         }
 
-        if (namespaceRepository.findAllForCluster(namespace.getMetadata().getCluster())
-            .stream()
-            .filter(foundNamespace -> !foundNamespace.getMetadata().getName().equals(namespace.getMetadata().getName()))
-            .anyMatch(foundNamespace -> foundNamespace.getSpec().getKafkaUser()
-                .equals(namespace.getSpec().getKafkaUser()))) {
-            validationErrors.add(invalidNamespaceUserAlreadyExist(namespace.getSpec().getKafkaUser()));
+        if (namespaceRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
+                .filter(foundNamespace -> !foundNamespace
+                        .getMetadata()
+                        .getName()
+                        .equals(namespace.getMetadata().getName()))
+                .anyMatch(foundNamespace -> foundNamespace
+                        .getSpec()
+                        .getKafkaUser()
+                        .equals(namespace.getSpec().getKafkaUser()))) {
+            validationErrors.add(
+                    invalidNamespaceUserAlreadyExist(namespace.getSpec().getKafkaUser()));
         }
 
         return validationErrors;
@@ -213,21 +215,29 @@ public class NamespaceService {
      */
     public List<String> findAllResourcesByNamespace(Namespace namespace) {
         return Stream.of(
-                topicService.findAllForNamespace(namespace).stream()
-                    .map(topic -> TOPIC + "/" + topic.getMetadata().getName()),
-                connectorService.findAllForNamespace(namespace).stream()
-                    .map(connector -> CONNECTOR + "/" + connector.getMetadata().getName()),
-                connectClusterService.findAllForNamespaceWithOwnerPermission(namespace).stream()
-                    .map(connectCluster -> CONNECT_CLUSTER + "/" + connectCluster.getMetadata().getName()),
-                aclService.findAllForNamespace(namespace).stream()
-                    .map(ace -> ACCESS_CONTROL_ENTRY + "/" + ace.getMetadata().getName()),
-                resourceQuotaService.findForNamespace(namespace.getMetadata().getName()).stream()
-                    .map(resourceQuota -> RESOURCE_QUOTA + "/" + resourceQuota.getMetadata().getName()),
-                roleBindingService.findAllForNamespace(namespace.getMetadata().getName()).stream()
-                    .map(roleBinding -> ROLE_BINDING + "/" + roleBinding.getMetadata().getName())
-            )
-            .reduce(Stream::concat)
-            .orElseGet(Stream::empty)
-            .toList();
+                        topicService.findAllForNamespace(namespace).stream()
+                                .map(topic -> TOPIC + "/" + topic.getMetadata().getName()),
+                        connectorService.findAllForNamespace(namespace).stream()
+                                .map(connector -> CONNECTOR + "/"
+                                        + connector.getMetadata().getName()),
+                        connectClusterService.findAllForNamespaceWithOwnerPermission(namespace).stream()
+                                .map(connectCluster -> CONNECT_CLUSTER + "/"
+                                        + connectCluster.getMetadata().getName()),
+                        aclService.findAllForNamespace(namespace).stream()
+                                .map(ace -> ACCESS_CONTROL_ENTRY + "/"
+                                        + ace.getMetadata().getName()),
+                        resourceQuotaService
+                                .findForNamespace(namespace.getMetadata().getName())
+                                .stream()
+                                .map(resourceQuota -> RESOURCE_QUOTA + "/"
+                                        + resourceQuota.getMetadata().getName()),
+                        roleBindingService
+                                .findAllForNamespace(namespace.getMetadata().getName())
+                                .stream()
+                                .map(roleBinding -> ROLE_BINDING + "/"
+                                        + roleBinding.getMetadata().getName()))
+                .reduce(Stream::concat)
+                .orElseGet(Stream::empty)
+                .toList();
     }
 }

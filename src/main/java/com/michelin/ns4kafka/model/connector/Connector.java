@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model.connector;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.CONNECTOR;
@@ -40,16 +39,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Connector.
- */
+/** Connector. */
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
 public class Connector extends MetadataResource {
-    @Valid
-    @NotNull
-    private ConnectorSpec spec;
+    @Valid @NotNull private ConnectorSpec spec;
 
     @EqualsAndHashCode.Exclude
     private ConnectorStatus status;
@@ -58,8 +53,8 @@ public class Connector extends MetadataResource {
      * Constructor.
      *
      * @param metadata The metadata
-     * @param spec     The spec
-     * @param status   The status
+     * @param spec The spec
+     * @param status The status
      */
     @Builder
     public Connector(Metadata metadata, ConnectorSpec spec, ConnectorStatus status) {
@@ -68,11 +63,10 @@ public class Connector extends MetadataResource {
         this.status = status;
     }
 
-    /**
-     * Connector task state.
-     */
+    /** Connector task state. */
     public enum TaskState {
-        // From https://github.com/apache/kafka/blob/trunk/connect/runtime/src/main/java/org/apache/kafka/connect/runtime/AbstractStatus.java
+        // From
+        // https://github.com/apache/kafka/blob/trunk/connect/runtime/src/main/java/org/apache/kafka/connect/runtime/AbstractStatus.java
         UNASSIGNED,
         RUNNING,
         PAUSED,
@@ -80,26 +74,20 @@ public class Connector extends MetadataResource {
         DESTROYED,
     }
 
-    /**
-     * Connector specification.
-     */
+    /** Connector specification. */
     @Data
     @Builder
     @Introspected
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ConnectorSpec {
-        @NotBlank
-        private String connectCluster;
+        @NotBlank private String connectCluster;
 
-        @NotNull
-        @JsonInclude(value = JsonInclude.Include.NON_ABSENT)
+        @NotNull @JsonInclude(value = JsonInclude.Include.NON_ABSENT)
         private Map<String, String> config;
     }
 
-    /**
-     * Connector status.
-     */
+    /** Connector status. */
     @Getter
     @Setter
     @Builder
@@ -113,12 +101,9 @@ public class Connector extends MetadataResource {
 
         @JsonFormat(shape = JsonFormat.Shape.STRING)
         private Date lastUpdateTime;
-
     }
 
-    /**
-     * Connector task status.
-     */
+    /** Connector task status. */
     @Getter
     @Setter
     @Builder

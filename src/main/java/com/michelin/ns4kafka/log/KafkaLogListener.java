@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.log;
 
 import com.michelin.ns4kafka.model.AuditLog;
@@ -27,9 +26,7 @@ import io.micronaut.scheduling.annotation.Async;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-/**
- * Kafka Log Listener.
- */
+/** Kafka Log Listener. */
 @Singleton
 @Requires(property = "ns4kafka.log.kafka.enabled", value = StringUtils.TRUE)
 public class KafkaLogListener implements ApplicationEventListener<AuditLog> {
@@ -42,5 +39,3 @@ public class KafkaLogListener implements ApplicationEventListener<AuditLog> {
         kafkaProducer.sendAuditLog(event.getMetadata().getNamespace(), event);
     }
 }
-
-

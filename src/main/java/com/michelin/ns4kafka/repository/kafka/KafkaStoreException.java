@@ -16,12 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.repository.kafka;
 
-/**
- * Kafka Store Exception.
- */
+/** Kafka Store Exception. */
 public class KafkaStoreException extends RuntimeException {
 
     public KafkaStoreException(String message, Throwable cause) {

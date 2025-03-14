@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -78,127 +77,101 @@ class ConsumerGroupControllerTest {
     @Test
     void shouldResetConsumerGroup() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
-            .metadata(Metadata.builder()
-                .name("groupID")
-                .cluster("local")
-                .build())
-            .spec(ConsumerGroupResetOffsetsSpec.builder()
-                .topic("topic1")
-                .method(ResetOffsetsMethod.TO_EARLIEST)
-                .options(null)
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("groupID").cluster("local").build())
+                .spec(ConsumerGroupResetOffsetsSpec.builder()
+                        .topic("topic1")
+                        .method(ResetOffsetsMethod.TO_EARLIEST)
+                        .options(null)
+                        .build())
+                .build();
 
         TopicPartition topicPartition1 = new TopicPartition("topic1", 0);
         TopicPartition topicPartition2 = new TopicPartition("topic1", 1);
         List<TopicPartition> topicPartitions = List.of(topicPartition1, topicPartition2);
 
-        when(namespaceService.findByName("test"))
-            .thenReturn(Optional.of(ns));
-        when(consumerGroupService.validateResetOffsets(resetOffset))
-            .thenReturn(List.of());
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
-            .thenReturn(true);
-        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID"))
-            .thenReturn("Empty");
-        when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1"))
-            .thenReturn(topicPartitions);
-        when(consumerGroupService.prepareOffsetsToReset(ns, "groupID", null, topicPartitions,
-            ResetOffsetsMethod.TO_EARLIEST))
-            .thenReturn(Map.of(topicPartition1, 5L, topicPartition2, 10L));
-        when(securityService.username())
-            .thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN))
-            .thenReturn(false);
+                .thenReturn(true);
+        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn("Empty");
+        when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1")).thenReturn(topicPartitions);
+        when(consumerGroupService.prepareOffsetsToReset(
+                        ns, "groupID", null, topicPartitions, ResetOffsetsMethod.TO_EARLIEST))
+                .thenReturn(Map.of(topicPartition1, 5L, topicPartition2, 10L));
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        List<ConsumerGroupResetOffsetsResponse> result = consumerGroupController
-            .resetOffsets("test", "groupID", resetOffset, false);
+        List<ConsumerGroupResetOffsetsResponse> result =
+                consumerGroupController.resetOffsets("test", "groupID", resetOffset, false);
 
-        ConsumerGroupResetOffsetsResponse response = result
-            .stream()
-            .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 0)
-            .findFirst()
-            .orElse(null);
+        ConsumerGroupResetOffsetsResponse response = result.stream()
+                .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 0)
+                .findFirst()
+                .orElse(null);
 
         assertNotNull(response);
         assertEquals(5L, response.getSpec().getOffset());
 
-        ConsumerGroupResetOffsetsResponse response2 = result
-            .stream()
-            .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 1)
-            .findFirst()
-            .orElse(null);
+        ConsumerGroupResetOffsetsResponse response2 = result.stream()
+                .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 1)
+                .findFirst()
+                .orElse(null);
 
         assertNotNull(response2);
         assertEquals(10L, response2.getSpec().getOffset());
 
-        verify(consumerGroupService).alterConsumerGroupOffsets(ArgumentMatchers.eq(ns),
-            ArgumentMatchers.eq("groupID"), anyMap());
+        verify(consumerGroupService)
+                .alterConsumerGroupOffsets(ArgumentMatchers.eq(ns), ArgumentMatchers.eq("groupID"), anyMap());
     }
 
     @Test
     void shouldResetConsumerGroupInDryRunMode() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
-            .metadata(Metadata.builder()
-                .name("groupID")
-                .cluster("local")
-                .build())
-            .spec(ConsumerGroupResetOffsetsSpec.builder()
-                .topic("topic1")
-                .method(ResetOffsetsMethod.TO_EARLIEST)
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("groupID").cluster("local").build())
+                .spec(ConsumerGroupResetOffsetsSpec.builder()
+                        .topic("topic1")
+                        .method(ResetOffsetsMethod.TO_EARLIEST)
+                        .build())
+                .build();
 
         TopicPartition topicPartition1 = new TopicPartition("topic1", 0);
         TopicPartition topicPartition2 = new TopicPartition("topic1", 1);
         List<TopicPartition> topicPartitions = List.of(topicPartition1, topicPartition2);
 
-        when(namespaceService.findByName("test"))
-            .thenReturn(Optional.of(ns));
-        when(consumerGroupService.validateResetOffsets(resetOffset))
-            .thenReturn(List.of());
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
-            .thenReturn(true);
-        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID"))
-            .thenReturn("Empty");
-        when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1"))
-            .thenReturn(topicPartitions);
-        when(consumerGroupService.prepareOffsetsToReset(ns, "groupID", null, topicPartitions,
-            ResetOffsetsMethod.TO_EARLIEST))
-            .thenReturn(Map.of(topicPartition1, 5L, topicPartition2, 10L));
+                .thenReturn(true);
+        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn("Empty");
+        when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1")).thenReturn(topicPartitions);
+        when(consumerGroupService.prepareOffsetsToReset(
+                        ns, "groupID", null, topicPartitions, ResetOffsetsMethod.TO_EARLIEST))
+                .thenReturn(Map.of(topicPartition1, 5L, topicPartition2, 10L));
 
         List<ConsumerGroupResetOffsetsResponse> result =
-            consumerGroupController.resetOffsets("test", "groupID", resetOffset, true);
+                consumerGroupController.resetOffsets("test", "groupID", resetOffset, true);
 
-        ConsumerGroupResetOffsetsResponse resultTopicPartition1 = result
-            .stream()
-            .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 0)
-            .findFirst()
-            .orElse(null);
+        ConsumerGroupResetOffsetsResponse resultTopicPartition1 = result.stream()
+                .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 0)
+                .findFirst()
+                .orElse(null);
 
         assertNotNull(resultTopicPartition1);
         assertEquals(5L, resultTopicPartition1.getSpec().getOffset());
 
-        ConsumerGroupResetOffsetsResponse resultTopicPartition2 = result
-            .stream()
-            .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 1)
-            .findFirst()
-            .orElse(null);
+        ConsumerGroupResetOffsetsResponse resultTopicPartition2 = result.stream()
+                .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 1)
+                .findFirst()
+                .orElse(null);
 
         assertNotNull(resultTopicPartition2);
         assertEquals(10L, resultTopicPartition2.getSpec().getOffset());
@@ -209,36 +182,28 @@ class ConsumerGroupControllerTest {
     @Test
     void shouldHandleExceptionDuringReset() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
-            .metadata(Metadata.builder()
-                .name("groupID")
-                .cluster("local")
-                .build())
-            .spec(ConsumerGroupResetOffsetsSpec.builder()
-                .topic("topic1")
-                .method(ResetOffsetsMethod.TO_EARLIEST)
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("groupID").cluster("local").build())
+                .spec(ConsumerGroupResetOffsetsSpec.builder()
+                        .topic("topic1")
+                        .method(ResetOffsetsMethod.TO_EARLIEST)
+                        .build())
+                .build();
 
-        when(namespaceService.findByName("test"))
-            .thenReturn(Optional.of(ns));
-        when(consumerGroupService.validateResetOffsets(resetOffset))
-            .thenReturn(List.of());
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
-            .thenReturn(true);
-        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID"))
-            .thenReturn("Empty");
+                .thenReturn(true);
+        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn("Empty");
         when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1"))
-            .thenThrow(new ExecutionException("Error during getPartitionsToReset", new Throwable()));
+                .thenThrow(new ExecutionException("Error during getPartitionsToReset", new Throwable()));
 
-        ExecutionException result = assertThrows(ExecutionException.class,
-            () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
+        ExecutionException result = assertThrows(
+                ExecutionException.class,
+                () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
 
         assertEquals("Error during getPartitionsToReset", result.getMessage());
     }
@@ -246,49 +211,43 @@ class ConsumerGroupControllerTest {
     @Test
     void shouldNotResetConsumerGroupWhenNotOwner() {
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
-            .metadata(Metadata.builder()
-                .name("groupID")
-                .cluster("local")
-                .build())
-            .spec(ConsumerGroupResetOffsetsSpec.builder()
-                .topic("topic1")
-                .method(ResetOffsetsMethod.TO_EARLIEST)
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("groupID").cluster("local").build())
+                .spec(ConsumerGroupResetOffsetsSpec.builder()
+                        .topic("topic1")
+                        .method(ResetOffsetsMethod.TO_EARLIEST)
+                        .build())
+                .build();
 
-        when(consumerGroupService.validateResetOffsets(resetOffset))
-            .thenReturn(new ArrayList<>());
+        when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(new ArrayList<>());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
-            .thenReturn(false);
+                .thenReturn(false);
 
-        ResourceValidationException result = assertThrows(ResourceValidationException.class,
-            () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
+        ResourceValidationException result = assertThrows(
+                ResourceValidationException.class,
+                () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
 
-        assertLinesMatch(List.of("Invalid value \"groupID\" for field \"group\": "
-                + "namespace is not owner of the resource."),
-            result.getValidationErrors());
+        assertLinesMatch(
+                List.of("Invalid value \"groupID\" for field \"group\": " + "namespace is not owner of the resource."),
+                result.getValidationErrors());
     }
 
     @Test
     void shouldNotResetConsumerGroupWhenValidationErrors() {
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
-            .metadata(Metadata.builder()
-                .name("groupID")
-                .cluster("local")
-                .build())
-            .spec(ConsumerGroupResetOffsetsSpec.builder()
-                .topic("topic1")
-                .method(ResetOffsetsMethod.TO_EARLIEST)
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("groupID").cluster("local").build())
+                .spec(ConsumerGroupResetOffsetsSpec.builder()
+                        .topic("topic1")
+                        .method(ResetOffsetsMethod.TO_EARLIEST)
+                        .build())
+                .build();
 
-        when(consumerGroupService.validateResetOffsets(resetOffset))
-            .thenReturn(List.of("Validation Error"));
+        when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of("Validation Error"));
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
-            .thenReturn(true);
+                .thenReturn(true);
 
-        ResourceValidationException result = assertThrows(ResourceValidationException.class,
-            () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
+        ResourceValidationException result = assertThrows(
+                ResourceValidationException.class,
+                () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
 
         assertLinesMatch(List.of("Validation Error"), result.getValidationErrors());
     }
@@ -296,38 +255,30 @@ class ConsumerGroupControllerTest {
     @Test
     void shouldNotResetConsumerGroupWhenItIsActive() throws ExecutionException, InterruptedException {
         Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
-            .metadata(Metadata.builder()
-                .name("groupID")
-                .cluster("local")
-                .build())
-            .spec(ConsumerGroupResetOffsetsSpec.builder()
-                .topic("topic1")
-                .method(ResetOffsetsMethod.TO_EARLIEST)
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("groupID").cluster("local").build())
+                .spec(ConsumerGroupResetOffsetsSpec.builder()
+                        .topic("topic1")
+                        .method(ResetOffsetsMethod.TO_EARLIEST)
+                        .build())
+                .build();
 
-        when(namespaceService.findByName("test"))
-            .thenReturn(Optional.of(ns));
-        when(consumerGroupService.validateResetOffsets(resetOffset))
-            .thenReturn(new ArrayList<>());
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(new ArrayList<>());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
-            .thenReturn(true);
-        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID"))
-            .thenReturn("Active");
+                .thenReturn(true);
+        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn("Active");
 
-        ResourceValidationException result = assertThrows(ResourceValidationException.class,
-            () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
+        ResourceValidationException result = assertThrows(
+                ResourceValidationException.class,
+                () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
 
         assertEquals(
-            "Invalid \"reset offset\" operation: assignments can only be reset if the consumer group "
-                + "\"groupID\" is inactive but the current state is active.",
-            result.getValidationErrors().getFirst());
+                "Invalid \"reset offset\" operation: assignments can only be reset if the consumer group "
+                        + "\"groupID\" is inactive but the current state is active.",
+                result.getValidationErrors().getFirst());
     }
 }

@@ -16,25 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.property;
 
 import io.micronaut.context.annotation.ConfigurationProperties;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Confluent Cloud properties.
- */
+/** Confluent Cloud properties. */
 @Getter
 @Setter
 @ConfigurationProperties("ns4kafka.confluent-cloud")
 public class ConfluentCloudProperties {
     private StreamCatalogProperties streamCatalog = new StreamCatalogProperties();
 
-    /**
-     * Stream Catalog properties.
-     */
+    /** Stream Catalog properties. */
     @Getter
     @Setter
     @ConfigurationProperties("stream-catalog")

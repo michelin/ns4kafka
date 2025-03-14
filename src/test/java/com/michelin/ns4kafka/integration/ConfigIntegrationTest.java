@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -39,18 +38,37 @@ class ConfigIntegrationTest extends KafkaIntegrationTest {
     void shouldHaveDefaultTimeouts() {
         assertNotNull(managedClusterProperties.getFirst());
 
-        assertEquals(15000, managedClusterProperties.getFirst().getTimeout().getAcl().getCreate());
-        assertEquals(15001, managedClusterProperties.getFirst().getTimeout().getAcl().getDelete());
-        assertEquals(15002, managedClusterProperties.getFirst().getTimeout().getAcl().getDescribe());
+        assertEquals(
+                15000, managedClusterProperties.getFirst().getTimeout().getAcl().getCreate());
+        assertEquals(
+                15001, managedClusterProperties.getFirst().getTimeout().getAcl().getDelete());
+        assertEquals(
+                15002, managedClusterProperties.getFirst().getTimeout().getAcl().getDescribe());
 
-        assertEquals(15003, managedClusterProperties.getFirst().getTimeout().getTopic().getAlterConfigs());
-        assertEquals(15004, managedClusterProperties.getFirst().getTimeout().getTopic().getCreate());
-        assertEquals(15005, managedClusterProperties.getFirst().getTimeout().getTopic().getDescribeConfigs());
-        assertEquals(15006, managedClusterProperties.getFirst().getTimeout().getTopic().getDelete());
-        assertEquals(15007, managedClusterProperties.getFirst().getTimeout().getTopic().getList());
+        assertEquals(
+                15003,
+                managedClusterProperties.getFirst().getTimeout().getTopic().getAlterConfigs());
+        assertEquals(
+                15004,
+                managedClusterProperties.getFirst().getTimeout().getTopic().getCreate());
+        assertEquals(
+                15005,
+                managedClusterProperties.getFirst().getTimeout().getTopic().getDescribeConfigs());
+        assertEquals(
+                15006,
+                managedClusterProperties.getFirst().getTimeout().getTopic().getDelete());
+        assertEquals(
+                15007,
+                managedClusterProperties.getFirst().getTimeout().getTopic().getList());
 
-        assertEquals(15008, managedClusterProperties.getFirst().getTimeout().getUser().getAlterQuotas());
-        assertEquals(15009, managedClusterProperties.getFirst().getTimeout().getUser().getAlterScramCredentials());
-        assertEquals(15010, managedClusterProperties.getFirst().getTimeout().getUser().getDescribeQuotas());
+        assertEquals(
+                15008,
+                managedClusterProperties.getFirst().getTimeout().getUser().getAlterQuotas());
+        assertEquals(
+                15009,
+                managedClusterProperties.getFirst().getTimeout().getUser().getAlterScramCredentials());
+        assertEquals(
+                15010,
+                managedClusterProperties.getFirst().getTimeout().getUser().getDescribeQuotas());
     }
 }

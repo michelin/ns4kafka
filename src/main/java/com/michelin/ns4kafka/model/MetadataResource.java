@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model;
 
 import com.michelin.ns4kafka.util.enumation.Kind;
@@ -27,22 +26,18 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-/**
- * Metadata resource.
- */
+/** Metadata resource. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class MetadataResource extends Resource {
-    @Valid
-    @NotNull
-    private Metadata metadata;
+    @Valid @NotNull private Metadata metadata;
 
     /**
      * Constructor.
      *
-     * @param version  The version
+     * @param version The version
      * @param metadata The metadata
      */
     public MetadataResource(String version, Kind kind, Metadata metadata) {

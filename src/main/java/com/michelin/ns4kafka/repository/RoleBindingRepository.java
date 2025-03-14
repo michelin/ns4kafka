@@ -16,16 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.repository;
 
 import com.michelin.ns4kafka.model.RoleBinding;
 import java.util.Collection;
 import java.util.List;
 
-/**
- * Role binding repository.
- */
+/** Role binding repository. */
 public interface RoleBindingRepository {
     /**
      * List role bindings by groups.

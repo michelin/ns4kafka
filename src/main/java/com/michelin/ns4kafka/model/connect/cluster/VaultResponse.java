@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model.connect.cluster;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.VAULT_RESPONSE;
@@ -34,25 +33,19 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-/**
- * Represents the Kafka Connect Cluster Vault Response.
- */
+/** Represents the Kafka Connect Cluster Vault Response. */
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
 public class VaultResponse extends MetadataResource {
-    /**
-     * The vault resource spec.
-     */
-    @Valid
-    @NotNull
-    private VaultResponseSpec spec;
+    /** The vault resource spec. */
+    @Valid @NotNull private VaultResponseSpec spec;
 
     /**
      * Constructor.
      *
      * @param metadata The metadata
-     * @param spec     The spec
+     * @param spec The spec
      */
     @Builder
     public VaultResponse(Metadata metadata, VaultResponseSpec spec) {
@@ -60,9 +53,7 @@ public class VaultResponse extends MetadataResource {
         this.spec = spec;
     }
 
-    /**
-     * Represents the vault response specification.
-     */
+    /** Represents the vault response specification. */
     @Getter
     @Builder
     @ToString
@@ -70,14 +61,10 @@ public class VaultResponse extends MetadataResource {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class VaultResponseSpec {
-        /**
-         * The clear text to encrypt.
-         */
+        /** The clear text to encrypt. */
         private String clearText;
 
-        /**
-         * The encrypted text.
-         */
+        /** The encrypted text. */
         private String encrypted;
     }
 }

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model.quota;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.RESOURCE_QUOTA_RESPONSE;
@@ -34,22 +33,18 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-/**
- * Resource quota response.
- */
+/** Resource quota response. */
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
 public class ResourceQuotaResponse extends MetadataResource {
-    @Valid
-    @NotNull
-    private ResourceQuotaResponseSpec spec;
+    @Valid @NotNull private ResourceQuotaResponseSpec spec;
 
     /**
      * Constructor.
      *
      * @param metadata The metadata
-     * @param spec     The spec
+     * @param spec The spec
      */
     @Builder
     public ResourceQuotaResponse(Metadata metadata, ResourceQuotaResponseSpec spec) {
@@ -57,9 +52,7 @@ public class ResourceQuotaResponse extends MetadataResource {
         this.spec = spec;
     }
 
-    /**
-     * Resource quota response spec.
-     */
+    /** Resource quota response spec. */
     @Getter
     @Builder
     @ToString

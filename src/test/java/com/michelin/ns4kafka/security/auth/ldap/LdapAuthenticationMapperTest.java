@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.security.auth.ldap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,24 +48,23 @@ class LdapAuthenticationMapperTest {
     @SuppressWarnings("unchecked")
     void shouldMapAttributesToAuthenticationResponse() {
         AuthenticationRoleBinding authenticationRoleBinding = AuthenticationRoleBinding.builder()
-            .namespaces(List.of("namespace"))
-            .verbs(List.of(RoleBinding.Verb.GET))
-            .resourceTypes(List.of("topics"))
-            .build();
+                .namespaces(List.of("namespace"))
+                .verbs(List.of(RoleBinding.Verb.GET))
+                .resourceTypes(List.of("topics"))
+                .build();
 
-        AuthenticationResponse authenticationResponse = AuthenticationResponse.success("username", null,
-            Map.of("roleBindings", List.of(authenticationRoleBinding)));
+        AuthenticationResponse authenticationResponse = AuthenticationResponse.success(
+                "username", null, Map.of("roleBindings", List.of(authenticationRoleBinding)));
 
         when(authenticationService.buildAuthJwtGroups("username", List.of("group-1")))
-            .thenReturn(authenticationResponse);
+                .thenReturn(authenticationResponse);
 
-        AuthenticationResponse response =
-            ldapAuthenticationMapper.map(null, "username", Set.of("group-1"));
+        AuthenticationResponse response = ldapAuthenticationMapper.map(null, "username", Set.of("group-1"));
 
         assertTrue(response.isAuthenticated());
         assertTrue(response.getAuthentication().isPresent());
         assertEquals("username", response.getAuthentication().get().getName());
-        assertIterableEquals(List.of(authenticationRoleBinding),
-            (List<AuthenticationRoleBinding>) response.getAuthentication().get().getAttributes().get("roleBindings"));
+        assertIterableEquals(List.of(authenticationRoleBinding), (List<AuthenticationRoleBinding>)
+                response.getAuthentication().get().getAttributes().get("roleBindings"));
     }
 }

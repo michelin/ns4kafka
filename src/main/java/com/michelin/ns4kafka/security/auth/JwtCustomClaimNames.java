@@ -16,15 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.security.auth;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-/**
- * JWT custom claim names.
- */
+/** JWT custom claim names. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class JwtCustomClaimNames {
     public static final String ROLES = "roles";

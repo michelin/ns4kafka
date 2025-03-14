@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model.connector;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.CHANGE_CONNECTOR_STATE;
@@ -34,36 +33,30 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-/**
- * Change connector state.
- */
+/** Change connector state. */
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
 public class ChangeConnectorState extends MetadataResource {
-    @Valid
-    @NotNull
-    private ChangeConnectorStateSpec spec;
+    @Valid @NotNull private ChangeConnectorStateSpec spec;
+
     private ChangeConnectorStateStatus status;
 
     /**
      * Constructor.
      *
      * @param metadata The metadata
-     * @param spec     The spec
-     * @param status   The status
+     * @param spec The spec
+     * @param status The status
      */
     @Builder
-    public ChangeConnectorState(Metadata metadata, ChangeConnectorStateSpec spec,
-                                ChangeConnectorStateStatus status) {
+    public ChangeConnectorState(Metadata metadata, ChangeConnectorStateSpec spec, ChangeConnectorStateStatus status) {
         super("v1", CHANGE_CONNECTOR_STATE, metadata);
         this.spec = spec;
         this.status = status;
     }
 
-    /**
-     * Connector action.
-     */
+    /** Connector action. */
     public enum ConnectorAction {
         PAUSE,
         RESUME,
@@ -86,22 +79,17 @@ public class ChangeConnectorState extends MetadataResource {
         }
     }
 
-    /**
-     * Change connector state specification.
-     */
+    /** Change connector state specification. */
     @Data
     @Builder
     @Introspected
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ChangeConnectorStateSpec {
-        @NotNull
-        private ConnectorAction action;
+        @NotNull private ConnectorAction action;
     }
 
-    /**
-     * Change connector state status.
-     */
+    /** Change connector state status. */
     @Data
     @Builder
     @Introspected

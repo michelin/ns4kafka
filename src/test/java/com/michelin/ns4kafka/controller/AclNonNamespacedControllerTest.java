@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -44,22 +43,18 @@ class AclNonNamespacedControllerTest {
     @Test
     void shouldListAcls() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .namespace("namespace1")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .grantedTo("namespace1")
-                .build())
-            .build();
+                .metadata(Metadata.builder().namespace("namespace1").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .grantedTo("namespace1")
+                        .build())
+                .build();
 
         AccessControlEntry accessControlEntry2 = AccessControlEntry.builder()
-            .metadata(Metadata.builder()
-                .namespace("namespace2")
-                .build())
-            .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                .grantedTo("namespace2")
-                .build())
-            .build();
+                .metadata(Metadata.builder().namespace("namespace2").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .grantedTo("namespace2")
+                        .build())
+                .build();
 
         when(aclService.findAll()).thenReturn(List.of(accessControlEntry, accessControlEntry2));
 

@@ -16,16 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.repository;
 
 import com.michelin.ns4kafka.model.Namespace;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Namespace repository.
- */
+/** Namespace repository. */
 public interface NamespaceRepository {
     List<Namespace> findAllForCluster(String cluster);
 

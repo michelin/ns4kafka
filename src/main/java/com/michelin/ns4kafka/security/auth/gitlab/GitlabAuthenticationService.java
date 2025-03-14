@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.security.auth.gitlab;
 
 import io.micronaut.core.util.StringUtils;
@@ -29,9 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/**
- * Gitlab authentication service.
- */
+/** Gitlab authentication service. */
 @Slf4j
 @Singleton
 public class GitlabAuthenticationService {
@@ -46,9 +43,8 @@ public class GitlabAuthenticationService {
      */
     public Flux<String> findAllGroups(String token) {
         return getPageAndNext(token, 1)
-            .flatMap(response -> Flux.fromStream(response.body()
-                .stream()
-                .map(stringObjectMap -> stringObjectMap.get("full_path").toString())));
+                .flatMap(response -> Flux.fromStream(response.body().stream()
+                        .map(stringObjectMap -> stringObjectMap.get("full_path").toString())));
     }
 
     /**
@@ -58,29 +54,28 @@ public class GitlabAuthenticationService {
      * @return The username
      */
     public Mono<String> findUsername(String token) {
-        return gitlabApiClient.findUser(token)
-            .map(stringObjectMap -> stringObjectMap.get("email").toString());
+        return gitlabApiClient
+                .findUser(token)
+                .map(stringObjectMap -> stringObjectMap.get("email").toString());
     }
 
     /**
      * Fetch all pages of GitLab user groups.
      *
      * @param token The user token
-     * @param page  The current page to fetch
+     * @param page The current page to fetch
      * @return The user groups information
      */
     private Flux<HttpResponse<List<Map<String, Object>>>> getPageAndNext(String token, int page) {
-        return gitlabApiClient.getGroupsPage(token, page)
-            .concatMap(response -> {
-                log.debug("Call GitLab groups page {}/{}.", page, response.header("X-Total-Pages"));
+        return gitlabApiClient.getGroupsPage(token, page).concatMap(response -> {
+            log.debug("Call GitLab groups page {}/{}.", page, response.header("X-Total-Pages"));
 
-                if (StringUtils.isEmpty(response.header("X-Next-Page"))) {
-                    return Flux.just(response);
-                } else {
-                    int nextPage = Integer.parseInt(response.header("X-Next-Page"));
-                    return Flux.just(response)
-                        .concatWith(getPageAndNext(token, nextPage));
-                }
-            });
+            if (StringUtils.isEmpty(response.header("X-Next-Page"))) {
+                return Flux.just(response);
+            } else {
+                int nextPage = Integer.parseInt(response.header("X-Next-Page"));
+                return Flux.just(response).concatWith(getPageAndNext(token, nextPage));
+            }
+        });
     }
 }

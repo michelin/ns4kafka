@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.model.consumer.group;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.CONSUMER_GROUP_RESET_OFFSET;
@@ -36,22 +35,18 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-/**
- * Consumer group reset offsets.
- */
+/** Consumer group reset offsets. */
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
 public class ConsumerGroupResetOffsets extends MetadataResource {
-    @Valid
-    @NotNull
-    private ConsumerGroupResetOffsetsSpec spec;
+    @Valid @NotNull private ConsumerGroupResetOffsetsSpec spec;
 
     /**
      * Constructor.
      *
      * @param metadata The metadata
-     * @param spec     The spec
+     * @param spec The spec
      */
     @Builder
     public ConsumerGroupResetOffsets(Metadata metadata, ConsumerGroupResetOffsetsSpec spec) {
@@ -59,9 +54,7 @@ public class ConsumerGroupResetOffsets extends MetadataResource {
         this.spec = spec;
     }
 
-    /**
-     * Represents the reset offsets method.
-     */
+    /** Represents the reset offsets method. */
     public enum ResetOffsetsMethod {
         TO_EARLIEST,
         TO_LATEST,
@@ -71,9 +64,7 @@ public class ConsumerGroupResetOffsets extends MetadataResource {
         TO_OFFSET
     }
 
-    /**
-     * Consumer group reset offsets specification.
-     */
+    /** Consumer group reset offsets specification. */
     @Getter
     @Setter
     @Builder
@@ -82,12 +73,10 @@ public class ConsumerGroupResetOffsets extends MetadataResource {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ConsumerGroupResetOffsetsSpec {
-        @NotNull
-        @NotBlank
-        private String topic;
+        @NotNull @NotBlank private String topic;
 
-        @NotNull
-        private ResetOffsetsMethod method;
+        @NotNull private ResetOffsetsMethod method;
+
         private String options;
     }
 }

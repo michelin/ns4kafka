@@ -16,16 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.repository;
 
 import com.michelin.ns4kafka.model.quota.ResourceQuota;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Resource quota repository.
- */
+/** Resource quota repository. */
 public interface ResourceQuotaRepository {
     /**
      * Find all quotas of all namespaces.

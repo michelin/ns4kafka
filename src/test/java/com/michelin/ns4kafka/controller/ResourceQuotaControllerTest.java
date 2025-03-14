@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -73,30 +72,25 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldListQuotaWithoutNameParameter() {
         Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         ResourceQuota quota = ResourceQuota.builder()
-            .metadata(Metadata.builder()
-                .cluster("local")
-                .name("test")
-                .build())
-            .build();
+                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .build();
 
         ResourceQuotaResponse response = ResourceQuotaResponse.builder()
-            .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
-                .countTopic("0/INF")
-                .countPartition("0/INF")
-                .countConnector("0/INF")
-                .build())
-            .build();
+                .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
+                        .countTopic("0/INF")
+                        .countPartition("0/INF")
+                        .countConnector("0/INF")
+                        .build())
+                .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.findByWildcardName("test", "*")).thenReturn(List.of(quota));
-        when(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.of(quota))).thenReturn(response);
+        when(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.of(quota)))
+                .thenReturn(response);
 
         assertEquals(List.of(response), resourceQuotaController.list("test", "*"));
     }
@@ -104,31 +98,26 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldListQuotaWithNameParameter() {
         Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         ResourceQuota quota = ResourceQuota.builder()
-            .metadata(Metadata.builder()
-                .cluster("local")
-                .name("quotaName")
-                .build())
-            .build();
+                .metadata(Metadata.builder().cluster("local").name("quotaName").build())
+                .build();
 
         ResourceQuotaResponse response = ResourceQuotaResponse.builder()
-            .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
-                .countTopic("0/INF")
-                .countPartition("0/INF")
-                .countConnector("0/INF")
-                .build())
-            .build();
+                .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
+                        .countTopic("0/INF")
+                        .countPartition("0/INF")
+                        .countConnector("0/INF")
+                        .build())
+                .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.findByWildcardName("test", "quotaName")).thenReturn(List.of(quota));
         when(resourceQuotaService.findByWildcardName("test", "not-found")).thenReturn(List.of());
-        when(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.of(quota))).thenReturn(response);
+        when(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.of(quota)))
+                .thenReturn(response);
 
         assertEquals(List.of(response), resourceQuotaController.list("test", "quotaName"));
         assertTrue(resourceQuotaController.list("test", "not-found").isEmpty());
@@ -138,13 +127,11 @@ class ResourceQuotaControllerTest {
     @SuppressWarnings("deprecation")
     void shouldGetQuotaWhenEmpty() {
         Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
-        when(resourceQuotaService.findByName(ns.getMetadata().getName(), "quotaName")).thenReturn(Optional.empty());
+        when(resourceQuotaService.findByName(ns.getMetadata().getName(), "quotaName"))
+                .thenReturn(Optional.empty());
 
         Optional<ResourceQuotaResponse> actual = resourceQuotaController.get("test", "quotaName");
         assertTrue(actual.isEmpty());
@@ -154,31 +141,25 @@ class ResourceQuotaControllerTest {
     @SuppressWarnings("deprecation")
     void shouldGetQuotaWhenPresent() {
         Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(Metadata.builder()
-                .cluster("local")
-                .name("test")
-                .build())
-            .spec(Map.of("count/topics", "1"))
-            .build();
+                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .spec(Map.of("count/topics", "1"))
+                .build();
 
         ResourceQuotaResponse response = ResourceQuotaResponse.builder()
-            .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
-                .countTopic("0/INF")
-                .build())
-            .build();
+                .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
+                        .countTopic("0/INF")
+                        .build())
+                .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(resourceQuotaService.findByName(ns.getMetadata().getName(), "quotaName")).thenReturn(
-            Optional.of(resourceQuota));
-        when(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.of(resourceQuota))).thenReturn(
-            response);
+        when(resourceQuotaService.findByName(ns.getMetadata().getName(), "quotaName"))
+                .thenReturn(Optional.of(resourceQuota));
+        when(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.of(resourceQuota)))
+                .thenReturn(response);
 
         Optional<ResourceQuotaResponse> actual = resourceQuotaController.get("test", "quotaName");
         assertTrue(actual.isPresent());
@@ -188,26 +169,20 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldApplyValidationErrors() {
         Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(Metadata.builder()
-                .cluster("local")
-                .name("test")
-                .build())
-            .spec(Map.of("count/topics", "1"))
-            .build();
+                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .spec(Map.of("count/topics", "1"))
+                .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(
-            List.of("Quota already exceeded"));
+        when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota))
+                .thenReturn(List.of("Quota already exceeded"));
 
-        ResourceValidationException actual = assertThrows(ResourceValidationException.class,
-            () -> resourceQuotaController.apply("test", resourceQuota, false));
+        ResourceValidationException actual = assertThrows(
+                ResourceValidationException.class, () -> resourceQuotaController.apply("test", resourceQuota, false));
         assertEquals(1, actual.getValidationErrors().size());
         assertLinesMatch(List.of("Quota already exceeded"), actual.getValidationErrors());
 
@@ -217,19 +192,13 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldApplyUnchanged() {
         Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(Metadata.builder()
-                .cluster("local")
-                .name("test")
-                .build())
-            .spec(Map.of("count/topics", "1"))
-            .build();
+                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .spec(Map.of("count/topics", "1"))
+                .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
@@ -244,19 +213,13 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldApplyDryRun() {
         Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(Metadata.builder()
-                .cluster("local")
-                .name("test")
-                .build())
-            .spec(Map.of("count/topics", "1"))
-            .build();
+                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .spec(Map.of("count/topics", "1"))
+                .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
@@ -270,19 +233,16 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldApplyCreated() {
         Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(Metadata.builder()
-                .cluster("local")
-                .name("created-quota")
-                .build())
-            .spec(Map.of("count/topics", "1"))
-            .build();
+                .metadata(Metadata.builder()
+                        .cluster("local")
+                        .name("created-quota")
+                        .build())
+                .spec(Map.of("count/topics", "1"))
+                .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
@@ -301,32 +261,29 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldApplyUpdated() {
         Namespace ns = Namespace.builder()
-            .metadata(Metadata.builder()
-                .name("test")
-                .cluster("local")
-                .build())
-            .build();
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
 
         ResourceQuota resourceQuotaExisting = ResourceQuota.builder()
-            .metadata(Metadata.builder()
-                .cluster("local")
-                .name("created-quota")
-                .build())
-            .spec(Map.of("count/topics", "3"))
-            .build();
+                .metadata(Metadata.builder()
+                        .cluster("local")
+                        .name("created-quota")
+                        .build())
+                .spec(Map.of("count/topics", "3"))
+                .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(Metadata.builder()
-                .cluster("local")
-                .name("created-quota")
-                .build())
-            .spec(Map.of("count/topics", "1"))
-            .build();
+                .metadata(Metadata.builder()
+                        .cluster("local")
+                        .name("created-quota")
+                        .build())
+                .spec(Map.of("count/topics", "1"))
+                .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
-        when(resourceQuotaService.findForNamespace(ns.getMetadata().getName())).thenReturn(
-            Optional.of(resourceQuotaExisting));
+        when(resourceQuotaService.findForNamespace(ns.getMetadata().getName()))
+                .thenReturn(Optional.of(resourceQuotaExisting));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -352,12 +309,9 @@ class ResourceQuotaControllerTest {
     @SuppressWarnings("deprecation")
     void shouldNotDeleteQuotaWhenDryRun() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(Metadata.builder()
-                .cluster("local")
-                .name("quota")
-                .build())
-            .spec(Map.of("count/topics", "3"))
-            .build();
+                .metadata(Metadata.builder().cluster("local").name("quota").build())
+                .spec(Map.of("count/topics", "3"))
+                .build();
 
         when(resourceQuotaService.findByName("test", "quota")).thenReturn(Optional.of(resourceQuota));
         HttpResponse<Void> actual = resourceQuotaController.delete("test", "quota", true);
@@ -369,12 +323,9 @@ class ResourceQuotaControllerTest {
     @SuppressWarnings("deprecation")
     void shouldDeleteQuota() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(Metadata.builder()
-                .cluster("local")
-                .name("quota")
-                .build())
-            .spec(Map.of("count/topics", "3"))
-            .build();
+                .metadata(Metadata.builder().cluster("local").name("quota").build())
+                .spec(Map.of("count/topics", "3"))
+                .build();
 
         when(resourceQuotaService.findByName("test", "quota")).thenReturn(Optional.of(resourceQuota));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
@@ -398,12 +349,9 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldNotBulkDeleteQuotaInDryRunMode() {
         ResourceQuota resourceQuota1 = ResourceQuota.builder()
-            .metadata(Metadata.builder()
-                .cluster("local")
-                .name("quota1")
-                .build())
-            .spec(Map.of("count/topics", "3"))
-            .build();
+                .metadata(Metadata.builder().cluster("local").name("quota1").build())
+                .spec(Map.of("count/topics", "3"))
+                .build();
 
         when(resourceQuotaService.findByWildcardName("test", "quota*")).thenReturn(List.of(resourceQuota1));
         var actual = resourceQuotaController.bulkDelete("test", "quota*", true);
@@ -414,12 +362,9 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldBulkDeleteQuota() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
-            .metadata(Metadata.builder()
-                .cluster("local")
-                .name("quota")
-                .build())
-            .spec(Map.of("count/topics", "3"))
-            .build();
+                .metadata(Metadata.builder().cluster("local").name("quota").build())
+                .spec(Map.of("count/topics", "3"))
+                .build();
 
         when(resourceQuotaService.findByWildcardName("test", "quota*")).thenReturn(List.of(resourceQuota));
         when(securityService.username()).thenReturn(Optional.of("test-user"));

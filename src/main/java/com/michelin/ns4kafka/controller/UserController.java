@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidKafkaUser;
@@ -40,9 +39,7 @@ import jakarta.inject.Inject;
 import java.time.Instant;
 import java.util.Date;
 
-/**
- * Controller to manage users.
- */
+/** Controller to manage users. */
 @Tag(name = "Users", description = "Manage the users.")
 @Controller(value = "/api/namespaces/{namespace}/users")
 public class UserController extends NamespacedResourceController {
@@ -53,7 +50,7 @@ public class UserController extends NamespacedResourceController {
      * Reset a password.
      *
      * @param namespace The namespace
-     * @param user      The user
+     * @param user The user
      * @return The new password
      */
     @Post("/{user}/reset-password")
@@ -64,30 +61,24 @@ public class UserController extends NamespacedResourceController {
             throw new ResourceValidationException(KAFKA_USER_RESET_PASSWORD, user, invalidKafkaUser(user));
         }
 
-        UserAsyncExecutor userAsyncExecutor =
-            applicationContext.getBean(UserAsyncExecutor.class, Qualifiers.byName(ns.getMetadata().getCluster()));
+        UserAsyncExecutor userAsyncExecutor = applicationContext.getBean(
+                UserAsyncExecutor.class, Qualifiers.byName(ns.getMetadata().getCluster()));
 
         String password = userAsyncExecutor.resetPassword(ns.getSpec().getKafkaUser());
 
         KafkaUserResetPassword response = KafkaUserResetPassword.builder()
-            .metadata(Metadata.builder()
-                .name(ns.getSpec().getKafkaUser())
-                .namespace(namespace)
-                .cluster(ns.getMetadata().getCluster())
-                .creationTimestamp(Date.from(Instant.now()))
-                .build())
-            .spec(KafkaUserResetPassword.KafkaUserResetPasswordSpec.builder()
-                .newPassword(password)
-                .build())
-            .build();
+                .metadata(Metadata.builder()
+                        .name(ns.getSpec().getKafkaUser())
+                        .namespace(namespace)
+                        .cluster(ns.getMetadata().getCluster())
+                        .creationTimestamp(Date.from(Instant.now()))
+                        .build())
+                .spec(KafkaUserResetPassword.KafkaUserResetPasswordSpec.builder()
+                        .newPassword(password)
+                        .build())
+                .build();
 
-        sendEventLog(
-            response,
-            ApplyStatus.CHANGED,
-            null,
-            response.getSpec(),
-            EMPTY_STRING
-        );
+        sendEventLog(response, ApplyStatus.CHANGED, null, response.getSpec(), EMPTY_STRING);
 
         return HttpResponse.ok(response);
     }
