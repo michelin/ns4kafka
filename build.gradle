@@ -144,7 +144,6 @@ spotless {
 	}
 	groovyGradle {
 		target "*.gradle"
-		greclipse()
 		importOrder()
 		removeSemicolons()
 	}
