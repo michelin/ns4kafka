@@ -242,7 +242,7 @@ public class AkhqClaimProviderController {
     }
 
     /**
-     * Remove ACL that are already included by another ACL on the same resource and cluster Ex: LITERAL ACL1 with
+     * Remove ACL that are already included by another ACL on the same resource and cluster. Ex: LITERAL ACL1 with
      * project.topic1 resource + PREFIXED ACL2 with project -> return ACL2 only
      *
      * @param acl the input list of acl to optimize

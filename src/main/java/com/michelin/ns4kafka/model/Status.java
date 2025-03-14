@@ -46,11 +46,11 @@ public class Status extends Resource {
     /**
      * Constructor.
      *
-     * @param status the status
-     * @param message the message
-     * @param reason the reason
-     * @param details the details
-     * @param code the code
+     * @param status The status
+     * @param message The message
+     * @param reason The reason
+     * @param details The details
+     * @param code The code
      */
     public Status(StatusPhase status, String message, String reason, StatusDetails details, int code) {
         super("v1", STATUS);
@@ -64,10 +64,10 @@ public class Status extends Resource {
     /**
      * Constructor.
      *
-     * @param status the status
-     * @param message the message
-     * @param httpStatus the http status
-     * @param details the details
+     * @param status The status
+     * @param message The message
+     * @param httpStatus The http status
+     * @param details The details
      */
     @Builder
     public Status(StatusPhase status, String message, HttpStatus httpStatus, StatusDetails details) {

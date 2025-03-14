@@ -31,7 +31,7 @@ import java.util.List;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-/** Kafka Topic repository. */
+/** Kafka topic repository. */
 @Singleton
 @KafkaListener(
         offsetReset = OffsetReset.EARLIEST,

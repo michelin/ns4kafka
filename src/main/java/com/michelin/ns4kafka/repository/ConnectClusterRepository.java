@@ -21,7 +21,7 @@ package com.michelin.ns4kafka.repository;
 import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
 import java.util.List;
 
-/** Repository to manage Kafka Connect clusters. */
+/** Kafka Connect clusters repository. */
 public interface ConnectClusterRepository {
     List<ConnectCluster> findAll();
 
