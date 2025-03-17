@@ -1,150 +1,146 @@
 plugins {
-	id("com.github.johnrengelman.shadow") version "8.1.1"
-	id("io.micronaut.application") version "4.5.0"
-	id("jacoco")
-	id("org.sonarqube") version "6.0.1.5171"
-	id("pl.allegro.tech.build.axion-release") version "1.18.18"
-	id("com.diffplug.spotless") version "7.0.2"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("io.micronaut.application") version "4.5.0"
+    id("jacoco")
+    id("org.sonarqube") version "6.0.1.5171"
+    id("pl.allegro.tech.build.axion-release") version "1.18.18"
+    id("com.diffplug.spotless") version "7.0.2"
 }
 
 version = scmVersion.version
 group = "com.michelin.ns4kafka"
 
 repositories {
-	mavenCentral()
-	maven {
-		url "https://packages.confluent.io/maven"
-	}
+    mavenCentral()
+    maven {
+        url "https://packages.confluent.io/maven"
+    }
 }
 
 dependencies {
-	annotationProcessor("org.projectlombok:lombok")
-	annotationProcessor("io.micronaut:micronaut-http-validation")
-	annotationProcessor("io.micronaut.openapi:micronaut-openapi")
-	annotationProcessor("io.micronaut.security:micronaut-security-annotations")
-	annotationProcessor("io.micronaut.validation:micronaut-validation-processor")
+    annotationProcessor("org.projectlombok:lombok")
+    annotationProcessor("io.micronaut:micronaut-http-validation")
+    annotationProcessor("io.micronaut.openapi:micronaut-openapi")
+    annotationProcessor("io.micronaut.security:micronaut-security-annotations")
+    annotationProcessor("io.micronaut.validation:micronaut-validation-processor")
 
-	implementation("io.micronaut:micronaut-http-client")
-	implementation("io.micronaut:micronaut-jackson-databind")
-	implementation("io.micronaut.kafka:micronaut-kafka")
-	implementation("io.micronaut:micronaut-management")
-	implementation("io.micronaut.validation:micronaut-validation")
-	implementation("io.micronaut.reactor:micronaut-reactor")
-	implementation("io.micronaut.security:micronaut-security")
-	implementation("io.micronaut.security:micronaut-security-jwt")
-	implementation("io.micronaut.security:micronaut-security-ldap")
-	implementation("io.micronaut.openapi:micronaut-openapi")
-	implementation("io.swagger.core.v3:swagger-annotations")
-	implementation("jakarta.annotation:jakarta.annotation-api")
-	implementation("jakarta.validation:jakarta.validation-api")
-	implementation("io.confluent:kafka-schema-registry-client:7.9.0")
+    implementation("io.micronaut:micronaut-http-client")
+    implementation("io.micronaut:micronaut-jackson-databind")
+    implementation("io.micronaut.kafka:micronaut-kafka")
+    implementation("io.micronaut:micronaut-management")
+    implementation("io.micronaut.validation:micronaut-validation")
+    implementation("io.micronaut.reactor:micronaut-reactor")
+    implementation("io.micronaut.security:micronaut-security")
+    implementation("io.micronaut.security:micronaut-security-jwt")
+    implementation("io.micronaut.security:micronaut-security-ldap")
+    implementation("io.micronaut.openapi:micronaut-openapi")
+    implementation("io.swagger.core.v3:swagger-annotations")
+    implementation("jakarta.annotation:jakarta.annotation-api")
+    implementation("jakarta.validation:jakarta.validation-api")
+    implementation("io.confluent:kafka-schema-registry-client:7.9.0")
 
-	compileOnly("org.projectlombok:lombok")
-	compileOnly("com.google.code.findbugs:jsr305") // https://github.com/micronaut-projects/micronaut-core/pull/5691
+    compileOnly("org.projectlombok:lombok")
+    compileOnly("com.google.code.findbugs:jsr305") // https://github.com/micronaut-projects/micronaut-core/pull/5691
 
-	runtimeOnly("ch.qos.logback:logback-classic")
+    runtimeOnly("ch.qos.logback:logback-classic")
 
-	testImplementation("org.mockito:mockito-core")
-	testImplementation("org.testcontainers:junit-jupiter:1.20.6")
-	testImplementation("org.testcontainers:testcontainers:1.20.6")
-	testImplementation("org.testcontainers:kafka:1.20.6")
-	testImplementation("org.mockito:mockito-junit-jupiter:5.16.1")
-	testImplementation("org.junit.jupiter:junit-jupiter-params:5.12.1")
-	testImplementation("io.projectreactor:reactor-test")
+    testImplementation("org.mockito:mockito-core")
+    testImplementation("org.testcontainers:junit-jupiter:1.20.6")
+    testImplementation("org.testcontainers:testcontainers:1.20.6")
+    testImplementation("org.testcontainers:kafka:1.20.6")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.16.1")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.12.1")
+    testImplementation("io.projectreactor:reactor-test")
 
-	testAnnotationProcessor("org.projectlombok:lombok")
-	testCompileOnly("org.projectlombok:lombok")
+    testAnnotationProcessor("org.projectlombok:lombok")
+    testCompileOnly("org.projectlombok:lombok")
 }
 
 application {
-	mainClass.set("com.michelin.ns4kafka.Application")
+    mainClass.set("com.michelin.ns4kafka.Application")
 }
 
 java {
-	sourceCompatibility = JavaVersion.toVersion('21')
-	targetCompatibility = JavaVersion.toVersion('21')
+    sourceCompatibility = JavaVersion.toVersion('21')
+    targetCompatibility = JavaVersion.toVersion('21')
 }
 
 run {
-	// environment("MICRONAUT_ENVIRONMENTS", "dev")
+    // environment("MICRONAUT_ENVIRONMENTS", "dev")
 }
 
 micronaut {
-	runtime("netty")
-	testRuntime("junit5")
-	processing {
-		incremental(true)
-		annotations("com.michelin.ns4kafka.*")
-	}
+    runtime("netty")
+    testRuntime("junit5")
+    processing {
+        incremental(true)
+        annotations("com.michelin.ns4kafka.*")
+    }
 }
 
 shadowJar {
-	archiveClassifier.set("")
-	dependsOn(distTar, distZip)
+    archiveClassifier.set("")
+    dependsOn(distTar, distZip)
 }
 
 dockerfile {
-	baseImage = "eclipse-temurin:21-jre-alpine"
+    baseImage = "eclipse-temurin:21-jre-alpine"
 }
 
 if (project.hasProperty("releaseLatest")) {
-	dockerBuild {
-		images.set([
-			"michelin/ns4kafka:" + version,
-			"michelin/ns4kafka:latest"
-		])
-	}
+    dockerBuild {
+        images.set(["michelin/ns4kafka:" + version, "michelin/ns4kafka:latest"])
+    }
 } else {
-	dockerBuild {
-		images.set([
-			"michelin/ns4kafka:" + version
-		])
-	}
+    dockerBuild {
+        images.set(["michelin/ns4kafka:" + version])
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
-	options.fork = true
-	options.forkOptions.jvmArgs << "-Dmicronaut.openapi.views.spec=rapidoc.enabled=true"
+    options.fork = true
+    options.forkOptions.jvmArgs << "-Dmicronaut.openapi.views.spec=rapidoc.enabled=true"
 }
 
 sonarqube {
-	properties {
-		property "sonar.projectKey", "michelin_ns4kafka"
-		property "sonar.organization", "michelin"
-		property "sonar.host.url", "https://sonarcloud.io"
-	}
+    properties {
+        property "sonar.projectKey", "michelin_ns4kafka"
+        property "sonar.organization", "michelin"
+        property "sonar.host.url", "https://sonarcloud.io"
+    }
 }
 
 jacocoTestReport {
-	dependsOn test
-	reports {
-		html.required = true
-		xml.required = true
-	}
+    dependsOn test
+    reports {
+        html.required = true
+        xml.required = true
+    }
 }
 
 test {
-	reports {
-		html.required = false
-	}
+    reports {
+        html.required = false
+    }
 }
 
 spotless {
-	java {
-		target "src/main/java/**/*.java", "src/test/java/**/*.java"
-		palantirJavaFormat("2.58.0").style("PALANTIR").formatJavadoc(true)
-		removeUnusedImports()
-		formatAnnotations()
-		importOrder()
-		trimTrailingWhitespace()
-		endWithNewline()
-		licenseHeaderFile {
-			file ".spotless/HEADER"
-		}
-	}
-	groovyGradle {
-		target "*.gradle"
-		importOrder()
-		removeSemicolons()
-	}
+    java {
+        target "src/main/java/**/*.java", "src/test/java/**/*.java"
+        palantirJavaFormat("2.58.0").style("PALANTIR").formatJavadoc(true)
+        removeUnusedImports()
+        formatAnnotations()
+        importOrder()
+        trimTrailingWhitespace()
+        endWithNewline()
+        licenseHeaderFile {
+            file ".spotless/HEADER"
+        }
+    }
+    groovyGradle {
+        target "*.gradle"
+        importOrder()
+        removeSemicolons()
+        leadingTabsToSpaces()
+    }
 }
