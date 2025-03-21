@@ -175,4 +175,29 @@ class ResourceValidatorTest {
         assertDoesNotThrow(() -> original.ensureValid("k", "b,c"));
         assertDoesNotThrow(() -> original.ensureValid("k", "c,b,a"));
     }
+
+    @Test
+    void shouldValidateContainsList() {
+        ResourceValidator.Validator original = ResourceValidator.ContainsList.contains("a", "b", "c");
+
+        assertThrows(FieldValidationException.class, () -> original.ensureValid("k", null));
+        assertThrows(FieldValidationException.class, () -> original.ensureValid("k", ""));
+        assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "A"));
+        assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "d"));
+        assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "1"));
+        assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "A,B"));
+        assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "a,b"));
+        assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "a,c"));
+        assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "b,c"));
+        assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "c,a"));
+        assertThrows(FieldValidationException.class, () -> original.ensureValid("k", "c,b"));
+        assertDoesNotThrow(() -> original.ensureValid("k", "a,b,c"));
+        assertDoesNotThrow(() -> original.ensureValid("k", "a,c,b"));
+        assertDoesNotThrow(() -> original.ensureValid("k", "b,c,a"));
+        assertDoesNotThrow(() -> original.ensureValid("k", "c,a,b"));
+        assertDoesNotThrow(() -> original.ensureValid("k", "c,b,a"));
+        assertDoesNotThrow(() -> original.ensureValid("k", "a,b,c,d"));
+        assertDoesNotThrow(() -> original.ensureValid("k", "d,a,b,c"));
+        assertDoesNotThrow(() -> original.ensureValid("k", "a,d,b,c"));
+    }
 }
