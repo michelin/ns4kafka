@@ -39,6 +39,7 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
         * [Local Users](#local-users)
         * [GitLab](#gitlab)
     * [Kafka Broker](#kafka-broker)
+    * [Security](#security)
     * [Stream Catalog](#stream-catalog)
     * [Managed Kafka Clusters](#managed-kafka-clusters)
     * [AKHQ](#akhq)
@@ -293,6 +294,22 @@ kafka:
 ```
 
 The configuration will depend on the authentication method selected for your broker.
+
+### Security
+
+Ns4Kafka encrypts sensitive data at rest in topics using AES-256 GCM encryption. This is used, for example, to encrypt Kafka Connect credentials.
+
+Encryption requires a key for both encryption and decryption, which is defined in the following properties:
+
+```yaml
+ns4kafka:
+  security:
+    aes256-encryption-key: 'changeitchangeitchangeitchangeit'
+```
+
+The key must be 256 bits long (32 characters).
+
+It is recommended to use a different key for each environment.
 
 ### Stream Catalog
 
