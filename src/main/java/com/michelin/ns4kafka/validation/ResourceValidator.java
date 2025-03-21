@@ -332,7 +332,7 @@ public abstract class ResourceValidator {
 
             if (!new HashSet<>(values).containsAll(mandatoryStrings)) {
                 throw new FieldValidationException(
-                    invalidFieldValidationContains(name, value.toString(), String.join(",", mandatoryStrings)));
+                        invalidFieldValidationContains(name, value.toString(), String.join(",", mandatoryStrings)));
             }
         }
     }
