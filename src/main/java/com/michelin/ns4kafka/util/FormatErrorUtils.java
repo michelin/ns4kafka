@@ -92,12 +92,12 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidValueMustBeOneOf(
-            String invalidFieldName, String invalidFieldValue, String allowedFieldTypes) {
+        String invalidFieldName, String invalidFieldValue, String allowedFieldTypes) {
         return String.format(
-                INVALID_FIELD,
-                invalidFieldValue,
-                invalidFieldName,
-                String.format("value must be one of \"%s\"", allowedFieldTypes));
+            INVALID_FIELD,
+            invalidFieldValue,
+            invalidFieldName,
+            String.format("value must be one of \"%s\"", allowedFieldTypes));
     }
 
     /**
@@ -438,6 +438,22 @@ public class FormatErrorUtils {
     public static String invalidFieldValidationOneOf(
             String invalidFieldName, String invalidFieldValue, String allowedValues) {
         return invalidValueMustBeOneOf(invalidFieldName, invalidFieldValue, allowedValues);
+    }
+
+    /**
+     * Invalid field must contain values
+     * @param invalidFieldName the invalid field name
+     * @param invalidFieldValue the invalid field value
+     * @param mandatoryFieldValues the mandatory field values
+     * @return the error message
+     */
+    public static String invalidFieldValidationContains(
+        String invalidFieldName, String invalidFieldValue, String mandatoryFieldValues) {
+        return String.format(
+            INVALID_FIELD,
+            invalidFieldValue,
+            invalidFieldName,
+            String.format("value must contain \"%s\"", mandatoryFieldValues));
     }
 
     /**

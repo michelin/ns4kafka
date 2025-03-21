@@ -20,6 +20,7 @@ package com.michelin.ns4kafka.validation;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationAtLeast;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationAtMost;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationContains;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationEmpty;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationNull;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationNumber;
@@ -33,6 +34,7 @@ import com.fasterxml.jackson.annotation.Nulls;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -56,6 +58,7 @@ public abstract class ResourceValidator {
     @JsonSubTypes({
         @JsonSubTypes.Type(value = Range.class, name = "Range"),
         @JsonSubTypes.Type(value = ValidList.class, name = "ValidList"),
+        @JsonSubTypes.Type(value = ContainsList.class, name = "ContainsList"),
         @JsonSubTypes.Type(value = ValidString.class, name = "ValidString"),
         @JsonSubTypes.Type(value = NonEmptyString.class, name = "NonEmptyString"),
         @JsonSubTypes.Type(value = CompositeValidator.class, name = "CompositeValidator")
@@ -299,6 +302,38 @@ public abstract class ResourceValidator {
         @Override
         public int hashCode() {
             return 1;
+        }
+    }
+
+    /** Validation logic for a mandatory list in a string/comma-separated list. */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ContainsList implements Validator {
+        private List<String> mandatoryStrings;
+
+        public static ContainsList contains(String... validRegexes) {
+            return new ContainsList(Arrays.asList(validRegexes));
+        }
+
+        @Override
+        public void ensureValid(String name, Object value) {
+            if (value == null) {
+                throw new FieldValidationException(invalidFieldValidationNull(name));
+            }
+
+            String s = (String) value;
+
+            List<String> values = List.of(s);
+            if (s.contains(",")) {
+                // split and strip
+                values = Arrays.stream(s.split(",")).map(String::strip).toList();
+            }
+
+            if (!new HashSet<>(values).containsAll(mandatoryStrings)) {
+                throw new FieldValidationException(
+                    invalidFieldValidationContains(name, value.toString(), String.join(",", mandatoryStrings)));
+            }
         }
     }
 
