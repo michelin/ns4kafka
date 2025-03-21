@@ -221,7 +221,7 @@ public class ConnectClusterService {
                             connectCluster.getSpec().getPassword(), securityProperties.getAes256EncryptionKey()));
         }
 
-        // encrypt aes256 key if present
+        // Encrypt aes256 key if present
         if (StringUtils.hasText(connectCluster.getSpec().getAes256Key())) {
             connectCluster
                     .getSpec()
@@ -229,7 +229,7 @@ public class ConnectClusterService {
                             connectCluster.getSpec().getAes256Key(), securityProperties.getAes256EncryptionKey()));
         }
 
-        // encrypt aes256 salt if present
+        // Encrypt aes256 salt if present
         if (StringUtils.hasText(connectCluster.getSpec().getAes256Salt())) {
             connectCluster
                     .getSpec()
