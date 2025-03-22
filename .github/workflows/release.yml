@@ -34,10 +34,10 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
           restore-keys: ${{ runner.os }}-gradle
 
-      - name: Build and test
+      - name: Build
         id: build_jar
         run: |
-          ./gradlew build check
+          ./gradlew build --info
           echo current_version=$(echo $(./gradlew properties --no-daemon --console=plain -q | grep "^version:" | awk '{printf $2}')) >> $GITHUB_OUTPUT
 
       - name: Publish test report
