@@ -39,6 +39,7 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
         * [Local Users](#local-users)
         * [GitLab](#gitlab)
     * [Kafka Broker](#kafka-broker)
+    * [Security](#security)
     * [Stream Catalog](#stream-catalog)
     * [Managed Kafka Clusters](#managed-kafka-clusters)
     * [AKHQ](#akhq)
@@ -294,9 +295,25 @@ kafka:
 
 The configuration will depend on the authentication method selected for your broker.
 
+### Security
+
+Ns4Kafka encrypts sensitive data at rest in topics using AES-256 GCM encryption. This is used to encrypt Kafka Connect sensitive data (i.e., password, aes256 key, aes256 salt).
+
+Encryption requires a key for both encryption and decryption, which is defined in the following properties:
+
+```yaml
+ns4kafka:
+  security:
+    aes256-encryption-key: 'changeitchangeitchangeitchangeit'
+```
+
+The key must be 256 bits long (32 characters).
+
+It is recommended to use a different key for each environment.
+
 ### Stream Catalog
 
-For Confluent Cloud only, topic tags and description can be synchronized with Ns4kafka.
+For Confluent Cloud only, topic tags and description can be synchronized with Ns4Kafka.
 
 The synchronization is done with the [Confluent Stream Catalog GraphQL API](https://docs.confluent.io/cloud/current/stream-governance/graphql-apis.html) if you have the appropriate Stream Governance package on Confluent, otherwise with the [Confluent Stream Catalog REST API](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#list-all-topics).
 
