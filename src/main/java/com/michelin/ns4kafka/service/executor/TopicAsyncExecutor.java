@@ -355,17 +355,20 @@ public class TopicAsyncExecutor {
      * @param topics Topics to enrich
      */
     public void enrichWithGraphQlCatalogInfo(Map<String, Topic> topics) {
-        schemaRegistryClient
+        // block tags & description enrichment to make sure they are present during NS4 & broker comparison
+        GraphQueryResponse descriptionResponse = schemaRegistryClient
                 .getTopicsWithDescriptionWithGraphQl(managedClusterProperties.getName())
-                .subscribe(response -> {
-                    if (response.data() != null && response.data().kafkaTopic() != null) {
-                        response.data().kafkaTopic().forEach(describedTopic -> topics.get(describedTopic.name())
-                                .getSpec()
-                                .setDescription(describedTopic.description()));
-                    }
-                });
+                .block();
 
-        schemaRegistryClient
+        if (descriptionResponse != null
+                && descriptionResponse.data() != null
+                && descriptionResponse.data().kafkaTopic() != null) {
+            descriptionResponse.data().kafkaTopic().forEach(describedTopic -> topics.get(describedTopic.name())
+                    .getSpec()
+                    .setDescription(describedTopic.description()));
+        }
+
+        GraphQueryResponse tagsResponse = schemaRegistryClient
                 .listTags(managedClusterProperties.getName())
                 .flatMap(tagsList -> tagsList.isEmpty()
                         ? Mono.just(GraphQueryResponse.builder().data(null).build())
@@ -374,13 +377,15 @@ public class TopicAsyncExecutor {
                                 tagsList.stream()
                                         .map(tagInfo -> "\"" + tagInfo.name() + "\"")
                                         .toList()))
-                .subscribe(response -> {
-                    if (response.data() != null && response.data().kafkaTopic() != null) {
-                        response.data().kafkaTopic().forEach(taggedTopic -> topics.get(taggedTopic.name())
-                                .getSpec()
-                                .setTags(taggedTopic.tags()));
-                    }
-                });
+                .block();
+
+        if (tagsResponse != null
+                && tagsResponse.data() != null
+                && tagsResponse.data().kafkaTopic() != null) {
+            tagsResponse.data().kafkaTopic().forEach(taggedTopic -> topics.get(taggedTopic.name())
+                    .getSpec()
+                    .setTags(taggedTopic.tags()));
+        }
     }
 
     /**
