@@ -297,7 +297,7 @@ The configuration will depend on the authentication method selected for your bro
 
 ### Security
 
-Ns4Kafka encrypts sensitive data at rest in topics using AES-256 GCM encryption. This is used, for example, to encrypt Kafka Connect credentials.
+Ns4Kafka encrypts sensitive data at rest in topics using AES-256 GCM encryption. This is used to encrypt Kafka Connect sensitive data (i.e., password, aes256 key, aes256 salt).
 
 Encryption requires a key for both encryption and decryption, which is defined in the following properties:
 
@@ -313,7 +313,7 @@ It is recommended to use a different key for each environment.
 
 ### Stream Catalog
 
-For Confluent Cloud only, topic tags and description can be synchronized with Ns4kafka.
+For Confluent Cloud only, topic tags and description can be synchronized with Ns4Kafka.
 
 The synchronization is done with the [Confluent Stream Catalog GraphQL API](https://docs.confluent.io/cloud/current/stream-governance/graphql-apis.html) if you have the appropriate Stream Governance package on Confluent, otherwise with the [Confluent Stream Catalog REST API](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#list-all-topics).
 
