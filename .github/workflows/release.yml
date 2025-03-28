@@ -10,12 +10,6 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     steps:
-      - name: Docker login
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.MICHELIN_DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.MICHELIN_DOCKER_HUB_PASSWD }}
-
       - name: Checkout project
         uses: actions/checkout@v4
         with:
@@ -35,25 +29,27 @@ jobs:
           restore-keys: ${{ runner.os }}-gradle
 
       - name: Build
-        id: build_jar
-        run: |
-          ./gradlew build --info
-          echo current_version=$(echo $(./gradlew properties --no-daemon --console=plain -q | grep "^version:" | awk '{printf $2}')) >> $GITHUB_OUTPUT
+        run: ./gradlew build -x test --info
 
-      - name: Publish test report
-        if: always()
-        uses: mikepenz/action-junit-report@v5
+      - name: Metadata
+        id: metadata
+        run: |
+          CURRENT_VERSION=$(./gradlew properties --no-daemon --console=plain -q | grep "^version:" | awk '{printf $2}')
+          LATEST_VERSION=$(git tag -l --sort=-version:refname | head -1 | cut -d 'v' -f 2)
+          echo current_version=$(echo $CURRENT_VERSION) >> $GITHUB_OUTPUT
+          echo is_latest_version=$(echo $(test "$LATEST_VERSION" == "$CURRENT_VERSION" && echo true || echo false)) >> $GITHUB_OUTPUT
+
+      - name: Docker login
+        uses: docker/login-action@v3
         with:
-          report_paths: '**/build/test-results/test/TEST-*.xml'
+          username: ${{ secrets.MICHELIN_DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.MICHELIN_DOCKER_HUB_PASSWD }}
 
       - name: Docker
         run: |
-          LATEST_VERSION=$(git tag -l --sort=-version:refname | head -1 | cut -d 'v' -f 2)
-          if [ "$LATEST_VERSION" == "${{ steps.build_jar.outputs.current_version }}" ]; then
-            echo "Latest version is $LATEST_VERSION. Current version is ${{ steps.build_jar.outputs.current_version }}. Pushing latest tag."
+          if [ "${{ steps.metadata.outputs.is_latest_version }}" == "true" ]; then
             ./gradlew dockerBuild dockerPush -PreleaseLatest
           else 
-            echo "Latest version is $LATEST_VERSION. Current version is ${{ steps.build_jar.outputs.current_version }}. Not pushing latest tag."
             ./gradlew dockerBuild dockerPush
           fi
 
@@ -70,7 +66,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           body: ${{ steps.build_changelog.outputs.changelog }}
-          artifacts: ${{ github.workspace }}/build/libs/ns4kafka-${{ steps.build_jar.outputs.current_version }}.jar
+          artifacts: ${{ github.workspace }}/build/libs/ns4kafka-${{ steps.metadata.outputs.current_version }}.jar
           draft: true
           prerelease: true
           allowUpdates: true
