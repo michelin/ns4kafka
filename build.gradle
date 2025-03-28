@@ -85,6 +85,7 @@ shadowJar {
 
 dockerfile {
     baseImage = "eclipse-temurin:21-jre-alpine"
+    runCommand("apk update && apk upgrade && rm -rf /var/cache/apk/*")
 }
 
 if (project.hasProperty("releaseLatest")) {
