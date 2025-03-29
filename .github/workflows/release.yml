@@ -45,7 +45,7 @@ jobs:
           username: ${{ secrets.MICHELIN_DOCKER_HUB_USERNAME }}
           password: ${{ secrets.MICHELIN_DOCKER_HUB_PASSWD }}
 
-      - name: Docker
+      - name: Docker build and push
         run: |
           if [ "${{ steps.metadata.outputs.is_latest_version }}" == "true" ]; then
             ./gradlew dockerBuild dockerPush -PreleaseLatest
