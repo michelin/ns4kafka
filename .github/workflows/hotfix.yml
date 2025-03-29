@@ -11,7 +11,7 @@ jobs:
   create-branch:
     name: Create Branch
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     steps:
       - name: Checkout project
         uses: actions/checkout@v4
