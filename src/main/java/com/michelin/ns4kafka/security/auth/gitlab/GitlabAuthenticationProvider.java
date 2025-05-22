@@ -60,8 +60,12 @@ public class GitlabAuthenticationProvider implements ReactiveAuthenticationProvi
 
         return gitlabAuthenticationService
                 .findUsername(token)
-                .onErrorResume(
-                        error -> Mono.error(new AuthenticationException(new AuthenticationFailed(String.format("Bad GitLab token: %s", error)))))
+                .onErrorResume(error -> {
+                    log.error("An error occurred when retrieving the user info with their gitlab token: "
+                            + error.getMessage());
+                    return (Mono.error(new AuthenticationException(
+                            new AuthenticationFailed(String.format("Bad GitLab token: %s", error.getMessage())))));
+                })
                 .flatMap(username -> gitlabAuthenticationService
                         .findAllGroups(token)
                         .collectList()
