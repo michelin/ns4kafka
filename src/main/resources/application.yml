@@ -43,6 +43,9 @@ micronaut:
     services:
       kafka-connect:
         event-loop-group: 'connect'
+      gitlab:
+        event-loop-group: 'gitlab'
+        url: ${micronaut.security.gitlab.url}
       schema-registry:
         event-loop-group: 'schema'
   netty:
@@ -52,6 +55,10 @@ micronaut:
         prefer-native-transport: true
       default:
         num-threads: 8
+        prefer-native-transport: true
+      gitlab:
+        num-threads: 4
+        prefer-native-transport: true
       schema:
         num-threads: 4
         prefer-native-transport: true

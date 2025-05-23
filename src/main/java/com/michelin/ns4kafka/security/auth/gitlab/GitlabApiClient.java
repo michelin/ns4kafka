@@ -30,7 +30,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /** Gitlab API client. */
-@Client("${micronaut.security.gitlab.url}")
+@Client(id = "gitlab")
 public interface GitlabApiClient {
     /**
      * Get user groups.

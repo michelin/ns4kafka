@@ -44,6 +44,8 @@ dependencies {
     compileOnly("com.google.code.findbugs:jsr305") // https://github.com/micronaut-projects/micronaut-core/pull/5691
 
     runtimeOnly("ch.qos.logback:logback-classic")
+    runtimeOnly("io.netty:netty-transport-native-epoll::linux-x86_64")
+    runtimeOnly("io.netty:netty-transport-native-epoll::linux-aarch_64")
 
     testImplementation("org.mockito:mockito-core")
     testImplementation("org.testcontainers:junit-jupiter:1.21.0")
