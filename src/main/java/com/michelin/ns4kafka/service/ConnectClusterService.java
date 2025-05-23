@@ -58,19 +58,19 @@ public class ConnectClusterService {
     private static final String WILDCARD_SECRET = "*****";
 
     @Inject
-    private KafkaConnectClient kafkaConnectClient;
+    KafkaConnectClient kafkaConnectClient;
 
     @Inject
-    private AclService aclService;
+    AclService aclService;
 
     @Inject
-    private ConnectClusterRepository connectClusterRepository;
+    ConnectClusterRepository connectClusterRepository;
 
     @Inject
-    private List<ManagedClusterProperties> managedClusterProperties;
+    List<ManagedClusterProperties> managedClusterProperties;
 
     @Inject
-    private SecurityProperties securityProperties;
+    SecurityProperties securityProperties;
 
     /**
      * Find all self deployed Connect clusters.

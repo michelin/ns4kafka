@@ -5,12 +5,15 @@
             <pattern>%cyan(%d{HH:mm:ss.SSS}) %gray([%thread]) %highlight(%-5level) %magenta(%logger{36}) - %msg%n</pattern>
         </encoder>
     </appender>
+    <logger name="io.micronaut.security" level="debug"/>
+    <logger name="io.micronaut.configuration.security.ldap" level="debug"/>
     <logger name="io.micronaut" level="info"/>
     <logger name="com.michelin" level="info" />
     <logger name="org.apache" level="error" />
-    <logger name="io.micronaut.configuration.kafka" level="error" />
+
+    <!-- removes embedded kafka logs -->
+    <logger name="kafka" level="error" />
     <logger name="state.change.logger" level="error" />
-    <logger name="io.micronaut.http.client.netty.DefaultHttpClient" level="off" />
 
     <root level="info">
         <appender-ref ref="STDOUT" />
