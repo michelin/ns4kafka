@@ -41,10 +41,10 @@ public interface GitlabApiClient {
      */
     @Get("/api/v4/groups?min_access_level=10&sort=asc&page={page}&per_page=100")
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     Flux<HttpResponse<List<Map<String, Object>>>> getGroupsPage(
             @Header(value = "PRIVATE-TOKEN") String token, int page);
 
@@ -56,9 +56,9 @@ public interface GitlabApiClient {
      */
     @Get("/api/v4/user")
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     Mono<Map<String, Object>> findUser(@Header(value = "PRIVATE-TOKEN") String token);
 }
