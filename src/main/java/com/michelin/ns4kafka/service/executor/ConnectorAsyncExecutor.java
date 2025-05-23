@@ -103,12 +103,16 @@ public class ConnectorAsyncExecutor {
     private Flux<ConnectCluster> checkConnectClusterHealth() {
         return getConnectClusters().doOnNext(connectCluster -> {
             if (connectCluster.getSpec().getStatus().equals(ConnectCluster.Status.HEALTHY)) {
-                log.debug("Kafka Connect \"" + connectCluster.getMetadata().getName() + "\" is healthy.");
+                log.debug(
+                        "Kafka Connect \"{}\" is healthy.",
+                        connectCluster.getMetadata().getName());
                 healthyConnectClusters.add(connectCluster.getMetadata().getName());
                 idleConnectClusters.remove(connectCluster.getMetadata().getName());
             } else if (connectCluster.getSpec().getStatus().equals(ConnectCluster.Status.IDLE)) {
-                log.debug("Kafka Connect \"" + connectCluster.getMetadata().getName() + "\" is not healthy: "
-                        + connectCluster.getSpec().getStatusMessage() + ".");
+                log.debug(
+                        "Kafka Connect \"{}\" is not healthy: {}.",
+                        connectCluster.getMetadata().getName(),
+                        connectCluster.getSpec().getStatusMessage());
                 idleConnectClusters.add(connectCluster.getMetadata().getName());
                 healthyConnectClusters.remove(connectCluster.getMetadata().getName());
             }
