@@ -22,7 +22,6 @@ import com.michelin.ns4kafka.security.auth.AuthenticationService;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpRequest;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthenticationFailed;
 import io.micronaut.security.authentication.AuthenticationRequest;
@@ -61,39 +60,13 @@ public class GitlabAuthenticationProvider implements ReactiveAuthenticationProvi
 
         return gitlabAuthenticationService
                 .findUsername(token)
-                .onErrorResume(error -> {
-                    if (error instanceof HttpClientResponseException) {
-                        String correlationId = ((HttpClientResponseException) error)
-                                .getResponse()
-                                .getHeaders()
-                                .get("x-gitlab-meta");
-                        log.error(
-                                "An error occurred when retrieving the user info with their gitlab token {}",
-                                correlationId);
-                    }
-                    log.error(error.getMessage(), error);
-
-                    return (Mono.error(
-                            new AuthenticationException(new AuthenticationFailed(String.format(error.getMessage())))));
-                })
+                .onErrorResume(
+                        error -> Mono.error(new AuthenticationException(new AuthenticationFailed("Bad GitLab token"))))
                 .flatMap(username -> gitlabAuthenticationService
                         .findAllGroups(token)
                         .collectList()
-                        .onErrorResume(error -> {
-                            if (error instanceof HttpClientResponseException) {
-                                String correlationId = ((HttpClientResponseException) error)
-                                        .getResponse()
-                                        .getHeaders()
-                                        .get("x-gitlab-meta");
-                                log.error(
-                                        "An error occurred when retrieving the user groups with their gitlab token {}",
-                                        correlationId);
-                            }
-                            log.error(error.getMessage(), error);
-
-                            return Mono.error(new AuthenticationException(new AuthenticationFailed(
-                                    String.format("Cannot retrieve your GitLab groups: %s", error.getMessage()))));
-                        })
+                        .onErrorResume(error -> Mono.error(new AuthenticationException(
+                                new AuthenticationFailed("Cannot retrieve your GitLab groups"))))
                         .flatMap(groups -> Mono.just(authenticationService.buildAuthJwtGroups(username, groups))));
     }
 }

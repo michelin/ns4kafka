@@ -67,7 +67,7 @@ java {
 }
 
 run {
-    environment("MICRONAUT_ENVIRONMENTS", "dev")
+    // environment("MICRONAUT_ENVIRONMENTS", "dev")
 }
 
 micronaut {
