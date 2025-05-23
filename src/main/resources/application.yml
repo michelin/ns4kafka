@@ -52,16 +52,12 @@ micronaut:
     event-loops:
       connect:
         num-threads: 4
-        prefer-native-transport: true
       default:
         num-threads: 8
-        prefer-native-transport: true
       gitlab:
         num-threads: 4
-        prefer-native-transport: true
       schema:
         num-threads: 4
-        prefer-native-transport: true
   router:
     static-resources:
       rapidoc:
