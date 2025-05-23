@@ -30,6 +30,7 @@ dependencies {
     implementation("io.micronaut:micronaut-management")
     implementation("io.micronaut.validation:micronaut-validation")
     implementation("io.micronaut.reactor:micronaut-reactor")
+    implementation("io.micronaut:micronaut-retry")
     implementation("io.micronaut.security:micronaut-security")
     implementation("io.micronaut.security:micronaut-security-jwt")
     implementation("io.micronaut.security:micronaut-security-ldap")

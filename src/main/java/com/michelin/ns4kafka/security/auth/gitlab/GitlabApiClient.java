@@ -22,6 +22,8 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Header;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.ReadTimeoutException;
+import io.micronaut.retry.annotation.Retryable;
 import java.util.List;
 import java.util.Map;
 import reactor.core.publisher.Flux;
@@ -38,6 +40,11 @@ public interface GitlabApiClient {
      * @return The groups
      */
     @Get("/api/v4/groups?min_access_level=10&sort=asc&page={page}&per_page=100")
+    @Retryable(
+        delay = "${ns4kafka.retry.delay}",
+        attempts = "${ns4kafka.retry.attempt}",
+        multiplier = "${ns4kafka.retry.multiplier}",
+        includes = ReadTimeoutException.class)
     Flux<HttpResponse<List<Map<String, Object>>>> getGroupsPage(
             @Header(value = "PRIVATE-TOKEN") String token, int page);
 
@@ -48,5 +55,10 @@ public interface GitlabApiClient {
      * @return The user information
      */
     @Get("/api/v4/user")
+    @Retryable(
+        delay = "${ns4kafka.retry.delay}",
+        attempts = "${ns4kafka.retry.attempt}",
+        multiplier = "${ns4kafka.retry.multiplier}",
+        includes = ReadTimeoutException.class)
     Mono<Map<String, Object>> findUser(@Header(value = "PRIVATE-TOKEN") String token);
 }

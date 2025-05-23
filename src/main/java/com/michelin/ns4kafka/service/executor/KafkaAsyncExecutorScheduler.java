@@ -91,8 +91,8 @@ public class KafkaAsyncExecutorScheduler {
                 .concatMap(mapper ->
                         Flux.fromIterable(connectorAsyncExecutors).flatMap(ConnectorAsyncExecutor::runHealthCheck))
                 .onErrorContinue((error, body) ->
-                        log.trace("Continue Connect cluster health check after error: " + error.getMessage() + "."))
-                .subscribe(connectCluster -> log.trace("Health check completed for Connect cluster \""
-                        + connectCluster.getMetadata().getName() + "\"."));
+                    log.trace("Continue Connect cluster health check after error: {}.", error.getMessage()))
+                .subscribe(connectCluster -> log.trace("Health check completed for Connect cluster \"{}\".",
+                    connectCluster.getMetadata().getName()));
     }
 }
