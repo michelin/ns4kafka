@@ -41,11 +41,14 @@ micronaut:
         - 'application/vnd.schemaregistry.v1+json'
   http:
     services:
+      gitlab:
+        connect-timeout: '60s'
+        event-loop-group: 'gitlab'
+        read-idle-timeout: '60s'
+        read-timeout: '60s'
+        url: '${micronaut.security.gitlab.url}'
       kafka-connect:
         event-loop-group: 'connect'
-      gitlab:
-        event-loop-group: 'gitlab'
-        url: ${micronaut.security.gitlab.url}
       schema-registry:
         event-loop-group: 'schema'
   netty:
