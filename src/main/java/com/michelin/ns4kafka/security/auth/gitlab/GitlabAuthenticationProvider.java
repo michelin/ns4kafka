@@ -62,43 +62,37 @@ public class GitlabAuthenticationProvider implements ReactiveAuthenticationProvi
         return gitlabAuthenticationService
                 .findUsername(token)
                 .onErrorResume(error -> {
-                    String correlationId = "";
                     if (error instanceof HttpClientResponseException) {
-                        correlationId = ((HttpClientResponseException) error)
+                        String correlationId = ((HttpClientResponseException) error)
                                 .getResponse()
                                 .getHeaders()
                                 .get("x-gitlab-meta");
-                    } else {
                         log.error(
-                                "Cannot cast error to HttpClientResponseException, error class is {}",
-                                error.getClass());
+                                "An error occurred when retrieving the user info with their gitlab token {}",
+                                correlationId);
                     }
-                    log.error(
-                            "An error occurred when retrieving the user info with their gitlab token {}",
-                            correlationId);
-                    return (Mono.error(new AuthenticationException(new AuthenticationFailed(
-                            String.format("Bad GitLab token: %s %s", error.getMessage(), correlationId)))));
+                    log.error(error.getMessage(), error);
+
+                    return (Mono.error(
+                            new AuthenticationException(new AuthenticationFailed(String.format(error.getMessage())))));
                 })
                 .flatMap(username -> gitlabAuthenticationService
                         .findAllGroups(token)
                         .collectList()
                         .onErrorResume(error -> {
-                            String correlationId = "";
                             if (error instanceof HttpClientResponseException) {
-                                correlationId = ((HttpClientResponseException) error)
+                                String correlationId = ((HttpClientResponseException) error)
                                         .getResponse()
                                         .getHeaders()
                                         .get("x-gitlab-meta");
-                            } else {
                                 log.error(
-                                        "Cannot cast error to HttpClientResponseException, because error class is {}",
-                                        error.getClass());
+                                        "An error occurred when retrieving the user groups with their gitlab token {}",
+                                        correlationId);
                             }
-                            log.error(
-                                    "An error occurred when retrieving the user groups with their gitlab token {}",
-                                    correlationId);
-                            return Mono.error(new AuthenticationException(new AuthenticationFailed(String.format(
-                                    "Cannot retrieve your GitLab groups: %s %s", error.getMessage(), correlationId))));
+                            log.error(error.getMessage(), error);
+
+                            return Mono.error(new AuthenticationException(new AuthenticationFailed(
+                                    String.format("Cannot retrieve your GitLab groups: %s", error.getMessage()))));
                         })
                         .flatMap(groups -> Mono.just(authenticationService.buildAuthJwtGroups(username, groups))));
     }
