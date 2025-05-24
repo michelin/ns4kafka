@@ -541,9 +541,9 @@ The Ns4Kafka HTTP clients are configured to retry requests in case of errors. Th
 ```yaml
 ns4kafka:
   retry:
-    attempt: '10'
+    attempt: '3'
     delay: '2s'
-    multiplier: '1.0'
+    multiplier: '2.0'
 ```
 
 #### Sensitive Endpoints

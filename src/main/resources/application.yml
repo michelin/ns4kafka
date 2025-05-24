@@ -141,9 +141,9 @@ ns4kafka:
     kafka:
       enabled: false
   retry:
-    attempt: '10'
+    attempt: '3'
     delay: '2s'
-    multiplier: '1.0'
+    multiplier: '2.0'
   security:
     admin-group: '_'
     aes256-encryption-key: 'changeitchangeitchangeitchangeit'
