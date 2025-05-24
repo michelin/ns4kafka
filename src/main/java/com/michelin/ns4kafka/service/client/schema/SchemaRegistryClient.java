@@ -77,10 +77,10 @@ public class SchemaRegistryClient {
      * @return A list of subjects
      */
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Flux<String> getSubjects(String kafkaCluster) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/subjects")))
@@ -97,10 +97,10 @@ public class SchemaRegistryClient {
      * @return A subject
      */
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<SchemaResponse> getSubject(String kafkaCluster, String subject, String version) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         String encodedSubject = URLEncoder.encode(subject, StandardCharsets.UTF_8);
@@ -124,10 +124,10 @@ public class SchemaRegistryClient {
      * @return All the versions of a subject
      */
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Flux<SchemaResponse> getAllSubjectVersions(String kafkaCluster, String subject) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         String encodedSubject = URLEncoder.encode(subject, StandardCharsets.UTF_8);
@@ -158,10 +158,10 @@ public class SchemaRegistryClient {
      * @return The response of the registration
      */
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<SchemaResponse> register(String kafkaCluster, String subject, SchemaRequest body) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         String encodedSubject = URLEncoder.encode(subject, StandardCharsets.UTF_8);
@@ -183,10 +183,10 @@ public class SchemaRegistryClient {
      * @return The versions of the deleted subject
      */
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<Integer[]> deleteSubject(String kafkaCluster, String subject, boolean hardDelete) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         String encodedSubject = URLEncoder.encode(subject, StandardCharsets.UTF_8);
@@ -208,10 +208,10 @@ public class SchemaRegistryClient {
      * @return The version of the deleted subject
      */
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<Integer> deleteSubjectVersion(String kafkaCluster, String subject, String version, boolean hardDelete) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         String encodedSubject = URLEncoder.encode(subject, StandardCharsets.UTF_8);
@@ -234,10 +234,10 @@ public class SchemaRegistryClient {
      * @return The schema compatibility validation
      */
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<SchemaCompatibilityCheckResponse> validateSchemaCompatibility(
             String kafkaCluster, String subject, SchemaRequest body) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
@@ -265,10 +265,10 @@ public class SchemaRegistryClient {
      * @return The schema compatibility update
      */
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<SchemaCompatibilityResponse> updateSubjectCompatibility(
             String kafkaCluster, String subject, SchemaCompatibilityRequest body) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
@@ -289,10 +289,10 @@ public class SchemaRegistryClient {
      * @return The current schema compatibility
      */
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<SchemaCompatibilityResponse> getCurrentCompatibilityBySubject(String kafkaCluster, String subject) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         String encodedSubject = URLEncoder.encode(subject, StandardCharsets.UTF_8);
@@ -315,10 +315,10 @@ public class SchemaRegistryClient {
      * @return The deleted schema compatibility
      */
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<SchemaCompatibilityResponse> deleteCurrentCompatibilityBySubject(String kafkaCluster, String subject) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         String encodedSubject = URLEncoder.encode(subject, StandardCharsets.UTF_8);
@@ -337,10 +337,10 @@ public class SchemaRegistryClient {
      * @return List of existing tags
      */
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<List<TagInfo>> listTags(String kafkaCluster) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
 
@@ -359,10 +359,10 @@ public class SchemaRegistryClient {
      * @return List of associated tags
      */
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<List<TagTopicInfo>> associateTags(String kafkaCluster, List<TagTopicInfo> tagSpecs) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
 
@@ -381,10 +381,10 @@ public class SchemaRegistryClient {
      * @return List of created tags
      */
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<List<TagInfo>> createTags(String kafkaCluster, List<TagInfo> tags) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
 
@@ -404,10 +404,10 @@ public class SchemaRegistryClient {
      * @return The resume response
      */
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<HttpResponse<Void>> dissociateTag(String kafkaCluster, String entityName, String tagName) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
 
@@ -426,10 +426,10 @@ public class SchemaRegistryClient {
      * @return The topics list with their catalog information
      */
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<TopicListResponse> getTopicsWithStreamCatalog(String kafkaCluster, int limit, int offset) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
 
@@ -471,16 +471,16 @@ public class SchemaRegistryClient {
      * @return The GraphQL response
      */
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     private Mono<GraphQueryResponse> queryWithGraphQl(String kafkaCluster, String query) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
 
         HttpRequest<?> request = HttpRequest.POST(
-                URI.create(StringUtils.prependUri(config.getUrl(), "/catalog/graphql")), Map.of("query", query))
-            .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+                        URI.create(StringUtils.prependUri(config.getUrl(), "/catalog/graphql")), Map.of("query", query))
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
 
         return Mono.from(httpClient.retrieve(request, GraphQueryResponse.class));
     }
@@ -493,10 +493,10 @@ public class SchemaRegistryClient {
      * @return Information about description
      */
     @Retryable(
-        delay = "${ns4kafka.retry.delay}",
-        attempts = "${ns4kafka.retry.attempt}",
-        multiplier = "${ns4kafka.retry.multiplier}",
-        includes = ReadTimeoutException.class)
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<HttpResponse<TopicDescriptionUpdateResponse>> updateDescription(
             String kafkaCluster, TopicDescriptionUpdateBody body) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
