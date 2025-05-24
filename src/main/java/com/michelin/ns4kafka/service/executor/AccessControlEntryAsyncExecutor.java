@@ -225,16 +225,17 @@ public class AccessControlEntryAsyncExecutor {
                     .toList();
 
             if (!userAcls.isEmpty()) {
-                log.trace("ACL(s) found in broker (managed scope): "
-                        + String.join(
+                log.trace(
+                        "ACL(s) found in broker (managed scope): {}",
+                        String.join(
                                 ",", userAcls.stream().map(AclBinding::toString).toList()));
             }
         }
 
         if (!userAcls.isEmpty()) {
-            log.trace("ACL(s) found in broker: "
-                    + String.join(
-                            ",", userAcls.stream().map(AclBinding::toString).toList()));
+            log.trace(
+                    "ACL(s) found in broker: {}",
+                    String.join(",", userAcls.stream().map(AclBinding::toString).toList()));
         }
 
         return userAcls;
@@ -380,10 +381,7 @@ public class AccessControlEntryAsyncExecutor {
                         log.error("Error", e);
                         Thread.currentThread().interrupt();
                     } catch (Exception e) {
-                        log.error(
-                                String.format(
-                                        "Error while deleting ACL %s on %s", key, managedClusterProperties.getName()),
-                                e);
+                        log.error("Error while deleting ACL {} on {}", key, managedClusterProperties.getName(), e);
                     }
                 });
     }
@@ -439,8 +437,7 @@ public class AccessControlEntryAsyncExecutor {
                 log.error("Error", e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
-                log.error(
-                        String.format("Error while creating ACL %s on %s", key, managedClusterProperties.getName()), e);
+                log.error("Error while creating ACL {} on {}", key, managedClusterProperties.getName(), e);
             }
         });
     }

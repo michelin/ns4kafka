@@ -37,6 +37,8 @@ import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.ReadTimeoutException;
+import io.micronaut.retry.annotation.Retryable;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.net.URI;
@@ -70,7 +72,7 @@ public class KafkaConnectClient {
     private SecurityProperties securityProperties;
 
     /**
-     * Get the Kafka connect version.
+     * Get the Kafka connect version. Used to determine if the Kafka Connect is up and running.
      *
      * @param config The Kafka Connect config
      * @return The version
@@ -83,7 +85,7 @@ public class KafkaConnectClient {
     }
 
     /**
-     * Get the Kafka connect version.
+     * Get the Kafka connect version. Used to determine if the Kafka Connect is up and running.
      *
      * @param kafkaCluster The Kafka cluster
      * @param connectCluster The Kafka Connect
@@ -100,6 +102,11 @@ public class KafkaConnectClient {
      * @param connectCluster The Kafka Connect
      * @return The connectors
      */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<Map<String, ConnectorStatus>> listAll(String kafkaCluster, String connectCluster) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
 
@@ -119,6 +126,11 @@ public class KafkaConnectClient {
      * @param connectorSpecs The connector config
      * @return The configuration infos
      */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<ConfigInfos> validate(
             String kafkaCluster, String connectCluster, String connectorClass, ConnectorSpecs connectorSpecs) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
@@ -142,6 +154,11 @@ public class KafkaConnectClient {
      * @param connectorSpecs The connector config
      * @return The creation or update response
      */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<ConnectorInfo> createOrUpdate(
             String kafkaCluster, String connectCluster, String connector, ConnectorSpecs connectorSpecs) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
@@ -163,6 +180,11 @@ public class KafkaConnectClient {
      * @param connector The connector
      * @return The deletion response
      */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<HttpResponse<Void>> delete(String kafkaCluster, String connectCluster, String connector) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
         String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
@@ -181,6 +203,11 @@ public class KafkaConnectClient {
      * @param connectCluster The Kafka Connect
      * @return The list of connector plugins
      */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<List<ConnectorPluginInfo>> connectPlugins(String kafkaCluster, String connectCluster) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
 
@@ -199,6 +226,11 @@ public class KafkaConnectClient {
      * @param connector The connector
      * @return The status
      */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<ConnectorStateInfo> status(String kafkaCluster, String connectCluster, String connector) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
         String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
@@ -219,6 +251,11 @@ public class KafkaConnectClient {
      * @param taskId The task ID
      * @return The restart response
      */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<HttpResponse<Void>> restart(String kafkaCluster, String connectCluster, String connector, int taskId) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
         String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
@@ -240,6 +277,11 @@ public class KafkaConnectClient {
      * @param connector The connector
      * @return The pause response
      */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<HttpResponse<Void>> pause(String kafkaCluster, String connectCluster, String connector) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
         String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
@@ -260,6 +302,11 @@ public class KafkaConnectClient {
      * @param connector The connector
      * @return The resume response
      */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<HttpResponse<Void>> resume(String kafkaCluster, String connectCluster, String connector) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
         String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
