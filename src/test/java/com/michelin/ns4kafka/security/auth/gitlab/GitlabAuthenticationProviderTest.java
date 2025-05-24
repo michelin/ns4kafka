@@ -154,7 +154,10 @@ class GitlabAuthenticationProviderTest {
                 gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
 
         StepVerifier.create(authenticationResponsePublisher)
-                .consumeErrorWith(error -> assertEquals(AuthenticationException.class, error.getClass()))
+                .consumeErrorWith(error -> {
+                    assertEquals(AuthenticationException.class, error.getClass());
+                    assertEquals("403 Unauthorized", error.getMessage());
+                })
                 .verify();
     }
 
