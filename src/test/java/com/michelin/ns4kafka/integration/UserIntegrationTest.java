@@ -35,6 +35,7 @@ import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.BlockingHttpClient;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
@@ -96,6 +97,8 @@ class UserIntegrationTest extends KafkaIntegrationTest {
                 .toBlocking()
                 .exchange(HttpRequest.POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
 
+        assertTrue(response.getBody().isPresent());
+
         token = response.getBody().get().getAccessToken();
 
         ns4KafkaClient
@@ -153,9 +156,12 @@ class UserIntegrationTest extends KafkaIntegrationTest {
                 .entities()
                 .get();
 
-        assertEquals(1, mapQuota.entrySet().size());
+        assertEquals(1, mapQuota.size());
+        assertTrue(mapQuota.entrySet().stream().findFirst().isPresent());
+
         Map<String, Double> quotas =
                 mapQuota.entrySet().stream().findFirst().get().getValue();
+
         assertTrue(quotas.containsKey("producer_byte_rate"));
         assertEquals(102400.0, quotas.get("producer_byte_rate"));
         assertTrue(quotas.containsKey("consumer_byte_rate"));
@@ -170,9 +176,12 @@ class UserIntegrationTest extends KafkaIntegrationTest {
                 .entities()
                 .get();
 
-        assertEquals(1, mapQuota.entrySet().size());
+        assertEquals(1, mapQuota.size());
+        assertTrue(mapQuota.entrySet().stream().findFirst().isPresent());
+
         Map<String, Double> quotas =
                 mapQuota.entrySet().stream().findFirst().get().getValue();
+
         assertTrue(quotas.containsKey("producer_byte_rate"));
         assertEquals(204800.0, quotas.get("producer_byte_rate"));
         assertTrue(quotas.containsKey("consumer_byte_rate"));
@@ -204,9 +213,12 @@ class UserIntegrationTest extends KafkaIntegrationTest {
                 .entities()
                 .get();
 
-        assertEquals(1, mapQuota.entrySet().size());
+        assertEquals(1, mapQuota.size());
+        assertTrue(mapQuota.entrySet().stream().findFirst().isPresent());
+
         Map<String, Double> quotas =
                 mapQuota.entrySet().stream().findFirst().get().getValue();
+
         assertTrue(quotas.containsKey("producer_byte_rate"));
         assertEquals(204800.0, quotas.get("producer_byte_rate"));
         assertTrue(quotas.containsKey("consumer_byte_rate"));
@@ -237,14 +249,17 @@ class UserIntegrationTest extends KafkaIntegrationTest {
 
     @Test
     void shouldUpdateUserFailWhenItDoesNotBelongToNamespace() {
-        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class, () -> ns4KafkaClient
-                .toBlocking()
-                .retrieve(
-                        HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/users/user2/reset-password")
-                                .bearerAuth(token),
-                        KafkaUserResetPassword.class));
+        HttpRequest<?> request = HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/users/user2/reset-password")
+                .bearerAuth(token);
+
+        BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
+
+        HttpClientResponseException exception = assertThrows(
+                HttpClientResponseException.class,
+                () -> blockingClient.retrieve(request, KafkaUserResetPassword.class));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
+        assertTrue(exception.getResponse().getBody(Status.class).isPresent());
         assertEquals(
                 "Invalid value \"user2\" for field \"user\": user does not belong to namespace.",
                 exception

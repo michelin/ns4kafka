@@ -101,6 +101,8 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
                 .toBlocking()
                 .exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
 
+        assertTrue(response.getBody().isPresent());
+
         token = response.getBody().get().getAccessToken();
 
         ns4KafkaClient
