@@ -447,6 +447,11 @@ public class SchemaRegistryClient {
      * @param kafkaCluster The Kafka cluster
      * @return The GraphQL response containing the topics list with their tags
      */
+    @Retryable(
+        delay = "${ns4kafka.retry.delay}",
+        attempts = "${ns4kafka.retry.attempt}",
+        multiplier = "${ns4kafka.retry.multiplier}",
+        includes = ReadTimeoutException.class)
     public Mono<GraphQueryResponse> getTopicsWithTagsWithGraphQl(String kafkaCluster, List<String> tagsNames) {
         String query = "query { kafka_topic(tags: [" + String.join(",", tagsNames) + "]) { nameLower tags } }";
         return queryWithGraphQl(kafkaCluster, query);
@@ -458,6 +463,11 @@ public class SchemaRegistryClient {
      * @param kafkaCluster The Kafka cluster
      * @return The GraphQL query response containing the topics list with their descriptions
      */
+    @Retryable(
+        delay = "${ns4kafka.retry.delay}",
+        attempts = "${ns4kafka.retry.attempt}",
+        multiplier = "${ns4kafka.retry.multiplier}",
+        includes = ReadTimeoutException.class)
     public Mono<GraphQueryResponse> getTopicsWithDescriptionWithGraphQl(String kafkaCluster) {
         String query = "query { kafka_topic(where: {description: {_gte: null}}) { nameLower description } }";
         return queryWithGraphQl(kafkaCluster, query);
@@ -470,11 +480,6 @@ public class SchemaRegistryClient {
      * @param query The GraphQL query
      * @return The GraphQL response
      */
-    @Retryable(
-            delay = "${ns4kafka.retry.delay}",
-            attempts = "${ns4kafka.retry.attempt}",
-            multiplier = "${ns4kafka.retry.multiplier}",
-            includes = ReadTimeoutException.class)
     private Mono<GraphQueryResponse> queryWithGraphQl(String kafkaCluster, String query) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
 
