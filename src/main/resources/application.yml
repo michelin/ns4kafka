@@ -48,9 +48,15 @@ micronaut:
         read-timeout: '60s'
         url: '${micronaut.security.gitlab.url}'
       kafka-connect:
+        connect-timeout: '30s'
         event-loop-group: 'connect'
+        read-idle-timeout: '30s'
+        read-timeout: '30s'
       schema-registry:
+        connect-timeout: '30s'
         event-loop-group: 'schema'
+        read-idle-timeout: '30s'
+        read-timeout: '30s'
   netty:
     event-loops:
       connect:
