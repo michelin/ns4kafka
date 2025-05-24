@@ -507,7 +507,7 @@ The key must be 256 bits long (32 characters).
 
 #### HTTP Client
 
-HTTP clients in Ns4Kafka are configured to retry requests in case of errors. The list of HTTP clients includes:
+Ns4Kafka includes multiple HTTP clients:
 - GitLab, for authentication
 - Kafka Connect
 - Schema Registry
@@ -536,7 +536,7 @@ micronaut:
 
 ##### Retry
 
-The retry mechanism is configured with the following properties:
+The Ns4Kafka HTTP clients are configured to retry requests in case of errors. The retry behavior is controlled by the following properties:
 
 ```yaml
 ns4kafka:
