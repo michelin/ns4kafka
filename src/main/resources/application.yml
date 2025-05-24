@@ -42,10 +42,10 @@ micronaut:
   http:
     services:
       gitlab:
-        connect-timeout: '60s'
+        connect-timeout: '30s'
         event-loop-group: 'gitlab'
-        read-idle-timeout: '60s'
-        read-timeout: '60s'
+        read-idle-timeout: '30s'
+        read-timeout: '30s'
         url: '${micronaut.security.gitlab.url}'
       kafka-connect:
         connect-timeout: '30s'
@@ -141,7 +141,7 @@ ns4kafka:
     kafka:
       enabled: false
   retry:
-    attempt: '3'
+    attempt: '4'
     delay: '2s'
     multiplier: '2.0'
   security:

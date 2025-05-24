@@ -521,9 +521,9 @@ micronaut:
   http:
     services:
       gitlab:
-        connect-timeout: '60s'
-        read-idle-timeout: '60s'
-        read-timeout: '60s'
+        connect-timeout: '30s'
+        read-idle-timeout: '30s'
+        read-timeout: '30s'
       kafka-connect:
         connect-timeout: '30s'
         read-idle-timeout: '30s'
@@ -536,15 +536,18 @@ micronaut:
 
 ##### Retry
 
-The Ns4Kafka HTTP clients are configured to retry requests in case of errors. The retry behavior is controlled by the following properties:
+The Ns4Kafka HTTP clients are configured to retry requests in case of a timeout. The retry behavior is controlled by the following properties:
 
 ```yaml
 ns4kafka:
   retry:
-    attempt: '3'
+    attempt: '4'
     delay: '2s'
     multiplier: '2.0'
 ```
+
+By default, requests are retried 4 additional times, with a 2-second delay that doubles between each attempt.
+As a result, a request can take up to 180 seconds to complete if all retries fail.
 
 #### Sensitive Endpoints
 
