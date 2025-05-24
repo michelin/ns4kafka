@@ -85,6 +85,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                         .body(namespace)));
 
         assertEquals("Constraint validation failed", exception.getMessage());
+        assertTrue(exception.getResponse().getBody(Status.class).isPresent());
         assertEquals(
                 "namespace.metadata.name: must match \"^[a-zA-Z0-9_.-]+$\"",
                 exception
@@ -354,5 +355,75 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
         assertEquals("Accessing forbidden namespace \"namespace2\"", exception.getMessage());
         assertTrue(exception.getResponse().getBody(Status.class).isPresent());
+    }
+
+    @Test
+    void shouldIgnoreCaseOnGroupsAndAccessNamespace() {
+        Namespace namespace = Namespace.builder()
+            .metadata(Metadata.builder()
+                .name("namespace3")
+                .cluster("test-cluster")
+                .labels(Map.of("support-group", "LDAP-GROUP-1"))
+                .build())
+            .spec(Namespace.NamespaceSpec.builder()
+                .kafkaUser("user3")
+                .connectClusters(List.of("test-connect"))
+                .topicValidator(TopicValidator.makeDefaultOneBroker())
+                .build())
+            .build();
+
+        RoleBinding roleBinding = RoleBinding.builder()
+            .metadata(Metadata.builder()
+                .name("ns3-rb")
+                .namespace("namespace3")
+                .build())
+            .spec(RoleBinding.RoleBindingSpec.builder()
+                .role(RoleBinding.Role.builder()
+                    .resourceTypes(List.of("topics", "acls"))
+                    .verbs(List.of(RoleBinding.Verb.POST, RoleBinding.Verb.GET))
+                    .build())
+                .subject(RoleBinding.Subject.builder()
+                    .subjectName("uSeRGROuP")
+                    .subjectType(RoleBinding.SubjectType.GROUP)
+                    .build())
+                .build())
+            .build();
+
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
+                .bearerAuth(token)
+                .body(namespace));
+
+        ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/namespace2/role-bindings")
+                .bearerAuth(token)
+                .body(roleBinding));
+
+        UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("user", "admin");
+
+        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response = ns4KafkaClient
+            .toBlocking()
+            .exchange(HttpRequest.POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
+
+        String userToken = response.getBody().get().getAccessToken();
+
+        /*HttpRequest<?> request = HttpRequest.create(HttpMethod.GET, "/api/namespaces/namespace3/topics")
+            .bearerAuth(userToken)
+            .body(roleBinding);
+
+        HttpResponse<TopicIntegrationTest.BearerAccessRefreshToken> response = ns4KafkaClient
+            .toBlocking()
+            .exchange(request, TopicIntegrationTest.BearerAccessRefreshToken.class);
+
+        BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
+
+        HttpClientResponseException exception =
+            assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        assertEquals("Accessing forbidden namespace \"namespace2\"", exception.getMessage());
+        assertTrue(exception.getResponse().getBody(Status.class).isPresent());*/
     }
 }

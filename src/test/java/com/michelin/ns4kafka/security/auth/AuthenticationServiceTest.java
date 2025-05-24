@@ -71,10 +71,11 @@ class AuthenticationServiceTest {
     }
 
     @Test
-    void shouldReturnAuthenticationSuccessWhenAdminNoGroup() {
+    void shouldReturnAuthenticationSuccessWhenAdminAndNoGroup() {
         when(roleBindingService.findAllByGroups(any())).thenReturn(Collections.emptyList());
 
-        when(securityProperties.getAdminGroup()).thenReturn("admin");
+        // Case should be ignored
+        when(securityProperties.getAdminGroup()).thenReturn("aDmIn");
 
         when(resourceBasedSecurityRule.computeRolesFromGroups(any()))
                 .thenReturn(List.of(ResourceBasedSecurityRule.IS_ADMIN));
