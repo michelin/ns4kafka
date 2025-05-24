@@ -38,12 +38,17 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
       * [ID Providers](#id-providers)
         * [Local Users](#local-users)
         * [GitLab](#gitlab)
-    * [Kafka Broker](#kafka-broker)
-    * [Security](#security)
-    * [Stream Catalog](#stream-catalog)
-    * [Managed Kafka Clusters](#managed-kafka-clusters)
-    * [AKHQ](#akhq)
-    * [Sensitive Endpoints](#sensitive-endpoints)
+    * [Kafka](#kafka) 
+      * [Kafka Broker](#kafka-broker)
+      * [Managed Kafka Clusters](#managed-kafka-clusters)
+      * [Stream Catalog](#stream-catalog)
+      * [AKHQ](#akhq)
+    * [Technical](#technical)
+      * [Security](#security)
+      * [HTTP Client](#http-client)
+        * [Timeout](#timeout)
+        * [Retry](#retry)
+      * [Sensitive Endpoints](#sensitive-endpoints)
 * [RapiDoc](#rapidoc)
 * [Administration](#administration)
 * [Contribution](#contribution)
@@ -279,7 +284,9 @@ changed update to a secure value.
 The admin group is set to "ADMIN_GROUP" in the example above. Users will be granted admin privileges if they belong
 to the GitLab group "ADMIN_GROUP".
 
-### Kafka Broker
+### Kafka
+
+#### Kafka Broker
 
 Ns4Kafka requires a Kafka broker to store data.
 
@@ -295,43 +302,7 @@ kafka:
 
 The configuration will depend on the authentication method selected for your broker.
 
-### Security
-
-Ns4Kafka encrypts sensitive data at rest in topics using AES-256 GCM encryption. This is used to encrypt Kafka Connect sensitive data (i.e., password, aes256 key, aes256 salt).
-
-Encryption requires a key for both encryption and decryption, which is defined in the following properties:
-
-```yaml
-ns4kafka:
-  security:
-    aes256-encryption-key: 'changeitchangeitchangeitchangeit'
-```
-
-The key must be 256 bits long (32 characters).
-
-It is recommended to use a different key for each environment.
-
-### Stream Catalog
-
-For Confluent Cloud only, topic tags and description can be synchronized with Ns4Kafka.
-
-The synchronization is done with the [Confluent Stream Catalog GraphQL API](https://docs.confluent.io/cloud/current/stream-governance/graphql-apis.html) if you have the appropriate Stream Governance package on Confluent, otherwise with the [Confluent Stream Catalog REST API](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#list-all-topics).
-
-You can configure the synchronization using the following properties:
-
-```yaml
-ns4kafka:
-  confluent-cloud:
-    stream-catalog:
-      page-size: 500
-      sync-catalog: true
-```
-
-The page size is used for the Stream Catalog REST API and is capped at 500 as described in the [Confluent Cloud documentation](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#limits-on-topic-listings).
-
-Reminder that the `config.cluster.id` parameter from [managed cluster properties](#managed-clusters) must be set to use Confluent Cloud.
-
-### Managed Kafka Clusters
+#### Managed Kafka Clusters
 
 Managed clusters are the clusters where Ns4Kafka namespaces are deployed, and Kafka resources are managed.
 
@@ -353,15 +324,30 @@ ns4kafka:
         security.protocol: "SASL_PLAINTEXT"
         sasl.jaas.config: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"admin\";"
         cluster.id: "lkc-abcde"
-      schema-registry:
-        url: "http://localhost:8081"
-        basicAuthUsername: "user"
-        basicAuthPassword: "password"
       connects:
         connectOne:
           url: "http://localhost:8083"
           basicAuthUsername: "user"
           basicAuthPassword: "password"
+      schema-registry:
+        url: "http://localhost:8081"
+        basicAuthUsername: "user"
+        basicAuthPassword: "password"
+      timeout:
+        acl:
+          create: 30000
+          delete: 30000
+          describe: 30000
+        topic:
+          alter-configs: 30000
+          create: 30000
+          describe-configs: 30000
+          delete: 30000
+          list: 30000
+        user:
+          alter-client-quotas: 30000
+          alter-scram-credentials: 30000
+          describe-quotas: 10000
 ```
 
 The name for each managed cluster has to be unique. This is this name you have to set in the field **metadata.cluster**
@@ -397,7 +383,27 @@ of your namespace descriptors.
 
 The configuration will depend on the authentication method selected for your broker, schema registry and Kafka Connect.
 
-### AKHQ
+#### Stream Catalog
+
+For Confluent Cloud only, topic tags and description can be synchronized with Ns4Kafka.
+
+The synchronization is done with the [Confluent Stream Catalog GraphQL API](https://docs.confluent.io/cloud/current/stream-governance/graphql-apis.html) if you have the appropriate Stream Governance package on Confluent, otherwise with the [Confluent Stream Catalog REST API](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#list-all-topics).
+
+You can configure the synchronization using the following properties:
+
+```yaml
+ns4kafka:
+  confluent-cloud:
+    stream-catalog:
+      page-size: 500
+      sync-catalog: true
+```
+
+The page size is used for the Stream Catalog REST API and is capped at 500 as described in the [Confluent Cloud documentation](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#limits-on-topic-listings).
+
+Reminder that the `config.cluster.id` parameter from [managed Kafka cluster properties](#managed-kafka-clusters) must be set to use Confluent Cloud.
+
+#### AKHQ
 
 [AKHQ](https://github.com/tchiotludo/akhq) can be integrated with Ns4Kafka to provide access to resources within your
 namespace during the authentication process.
@@ -482,15 +488,72 @@ metadata:
 Once the configuration is in place, after successful authentication in AKHQ, users belonging to
 the `NAMESPACE-LDAP-GROUP` will be able to access the resources within the `myNamespace` namespace.
 
-### Sensitive Endpoints
+### Technical
 
-Micronaut sensitive endpoints can be enabled or disabled in the application configuration.
-The list of sensitive endpoints can be found in
-the [Micronaut documentation](https://docs.micronaut.io/latest/guide/#providedEndpoints).
+#### Security
+
+Ns4Kafka encrypts sensitive data at rest in topics using AES-256 GCM encryption. 
+This is used to encrypt Kafka Connect sensitive data (i.e., password, AES-256 key, AES-256 salt).
+
+Encryption requires a key for both encryption and decryption, defined in the following properties:
+
+```yaml
+ns4kafka:
+  security:
+    aes256-encryption-key: 'changeitchangeitchangeitchangeit'
+```
+
+The key must be 256 bits long (32 characters).
+
+#### HTTP Client
+
+HTTP clients in Ns4Kafka are configured to retry requests in case of errors. The list of HTTP clients includes:
+- GitLab, for authentication
+- Kafka Connect
+- Schema Registry
+
+##### Timeout
+
+HTTP client timeouts can be configured individually using the following properties:
+
+```yaml
+micronaut:
+  http:
+    services:
+      gitlab:
+        connect-timeout: '60s'
+        read-idle-timeout: '60s'
+        read-timeout: '60s'
+      kafka-connect:
+        connect-timeout: '30s'
+        read-idle-timeout: '30s'
+        read-timeout: '30s'
+      schema-registry:
+        connect-timeout: '30s'
+        read-idle-timeout: '30s'
+        read-timeout: '30s'
+```
+
+##### Retry
+
+The retry mechanism is configured with the following properties:
+
+```yaml
+ns4kafka:
+  retry:
+    attempt: '10'
+    delay: '2s'
+    multiplier: '1.0'
+```
+
+#### Sensitive Endpoints
+
+Micronaut sensitive endpoints can be enabled or disabled through the application configuration.
+The list of sensitive endpoints is available in the [Micronaut documentation](https://docs.micronaut.io/latest/guide/#providedEndpoints).
 
 These endpoints are disabled by default in Ns4Kafka and can be enabled by setting the `endpoints.*.enabled` property
 to `true`.
-When enabled, these endpoints require to be authenticated as an admin user to be accessed.
+When enabled, these endpoints require authentication as an admin user.
 
 ## RapiDoc
 
