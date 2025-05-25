@@ -16,26 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.log;
+package com.michelin.ns4kafka.controller;
 
-import com.michelin.ns4kafka.model.AuditLog;
-import io.micronaut.context.annotation.Requires;
-import io.micronaut.context.event.ApplicationEventListener;
-import io.micronaut.core.util.StringUtils;
-import io.micronaut.scheduling.annotation.Async;
+import com.michelin.ns4kafka.model.AppInfo;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
+import io.micronaut.http.annotation.Controller;
+import io.micronaut.http.annotation.Get;
+import io.micronaut.security.rules.SecurityRule;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
-/** Kafka Log Listener. */
-@Singleton
-@Requires(property = "ns4kafka.log.kafka.enabled", value = StringUtils.TRUE)
-public class KafkaLogListener implements ApplicationEventListener<AuditLog> {
+@Tag(name = "Version", description = "Get the version.")
+@RolesAllowed(SecurityRule.IS_ANONYMOUS)
+@Controller(value = "/api/app-info")
+public class AppInfoController {
     @Inject
-    private KafkaLogProducer kafkaProducer;
+    private Ns4KafkaProperties ns4KafkaProperties;
 
-    @Override
-    @Async
-    public void onApplicationEvent(AuditLog event) {
-        kafkaProducer.sendAuditLog(event.getMetadata().getNamespace(), event);
+    @Get("/version")
+    public AppInfo version() {
+        return AppInfo.builder()
+            .version(ns4KafkaProperties.getVersion())
+            .build();
     }
 }

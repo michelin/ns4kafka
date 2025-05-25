@@ -167,3 +167,4 @@ ns4kafka:
           min.insync.replicas: 1
           segment.ms: '600000'
         replication-factor: 1
+  version: '@version@'

@@ -1,3 +1,5 @@
+package com.michelin.ns4kafka.model;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,26 +18,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.log;
 
-import com.michelin.ns4kafka.model.AuditLog;
-import io.micronaut.context.annotation.Requires;
-import io.micronaut.context.event.ApplicationEventListener;
-import io.micronaut.core.util.StringUtils;
-import io.micronaut.scheduling.annotation.Async;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
+import io.micronaut.core.annotation.Introspected;
+import lombok.Builder;
+import lombok.Data;
 
-/** Kafka Log Listener. */
-@Singleton
-@Requires(property = "ns4kafka.log.kafka.enabled", value = StringUtils.TRUE)
-public class KafkaLogListener implements ApplicationEventListener<AuditLog> {
-    @Inject
-    private KafkaLogProducer kafkaProducer;
-
-    @Override
-    @Async
-    public void onApplicationEvent(AuditLog event) {
-        kafkaProducer.sendAuditLog(event.getMetadata().getNamespace(), event);
-    }
+/**
+ * Version.
+ */
+@Data
+@Builder
+@Introspected
+public class AppInfo {
+    private String version;
 }

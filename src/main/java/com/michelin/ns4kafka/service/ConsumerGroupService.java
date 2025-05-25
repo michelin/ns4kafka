@@ -50,10 +50,10 @@ import org.apache.kafka.common.TopicPartition;
 @Singleton
 public class ConsumerGroupService {
     @Inject
-    ApplicationContext applicationContext;
+    private ApplicationContext applicationContext;
 
     @Inject
-    AclService aclService;
+    private AclService aclService;
 
     /**
      * Check if a given namespace is owner of a given group.

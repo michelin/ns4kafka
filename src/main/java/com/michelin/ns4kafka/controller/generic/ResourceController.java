@@ -36,10 +36,10 @@ public abstract class ResourceController {
     private static final String STATUS_HEADER = "X-Ns4kafka-Result";
 
     @Inject
-    public SecurityService securityService;
+    protected SecurityService securityService;
 
     @Inject
-    public ApplicationEventPublisher<AuditLog> applicationEventPublisher;
+    protected ApplicationEventPublisher<AuditLog> applicationEventPublisher;
 
     public <T> HttpResponse<T> formatHttpResponse(T body, ApplyStatus status) {
         return HttpResponse.ok(body).header(STATUS_HEADER, status.toString());

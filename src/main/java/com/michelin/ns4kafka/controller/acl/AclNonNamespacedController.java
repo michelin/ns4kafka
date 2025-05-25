@@ -35,7 +35,7 @@ import java.util.List;
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 public class AclNonNamespacedController extends NonNamespacedResourceController {
     @Inject
-    AclService aclService;
+    private AclService aclService;
 
     /**
      * List ACLs.

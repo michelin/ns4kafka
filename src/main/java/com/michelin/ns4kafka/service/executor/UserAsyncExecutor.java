@@ -61,10 +61,10 @@ public class UserAsyncExecutor {
     private final AbstractUserSynchronizer userExecutor;
 
     @Inject
-    NamespaceRepository namespaceRepository;
+    private NamespaceRepository namespaceRepository;
 
     @Inject
-    ResourceQuotaRepository quotaRepository;
+    private ResourceQuotaRepository quotaRepository;
 
     /**
      * Constructor.

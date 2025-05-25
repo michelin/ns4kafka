@@ -31,7 +31,7 @@ import java.util.Optional;
 @Singleton
 public class RoleBindingService {
     @Inject
-    RoleBindingRepository roleBindingRepository;
+    private RoleBindingRepository roleBindingRepository;
 
     /**
      * List role bindings of a given namespace.

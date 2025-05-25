@@ -54,7 +54,7 @@ import java.util.Optional;
 @Controller("/api/namespaces")
 public class NamespaceController extends NonNamespacedResourceController {
     @Inject
-    NamespaceService namespaceService;
+    private NamespaceService namespaceService;
 
     /**
      * List namespaces, which can be filtered based on optional search query parameters.

@@ -36,13 +36,13 @@ import java.util.Optional;
 @Singleton
 public class StreamService {
     @Inject
-    StreamRepository streamRepository;
+    private StreamRepository streamRepository;
 
     @Inject
-    AclService aclService;
+    private AclService aclService;
 
     @Inject
-    ApplicationContext applicationContext;
+    private ApplicationContext applicationContext;
 
     /**
      * Find all Kafka Streams of a given namespace.

@@ -38,10 +38,10 @@ import reactor.core.publisher.Mono;
 @Singleton
 public class GitlabAuthenticationProvider implements ReactiveAuthenticationProvider<HttpRequest<?>, String, String> {
     @Inject
-    GitlabAuthenticationService gitlabAuthenticationService;
+    private GitlabAuthenticationService gitlabAuthenticationService;
 
     @Inject
-    AuthenticationService authenticationService;
+    private AuthenticationService authenticationService;
 
     /**
      * Perform user authentication with GitLab.

@@ -35,7 +35,7 @@ import java.util.List;
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 public class TopicNonNamespacedController extends NonNamespacedResourceController {
     @Inject
-    TopicService topicService;
+    private TopicService topicService;
 
     /**
      * List topics.

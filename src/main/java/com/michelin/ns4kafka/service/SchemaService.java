@@ -52,10 +52,10 @@ import reactor.core.publisher.Mono;
 @Singleton
 public class SchemaService {
     @Inject
-    AclService aclService;
+    private AclService aclService;
 
     @Inject
-    SchemaRegistryClient schemaRegistryClient;
+    private SchemaRegistryClient schemaRegistryClient;
 
     /**
      * Get all the schemas of a given namespace.

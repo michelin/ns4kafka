@@ -52,7 +52,7 @@ import java.util.Optional;
 @ExecuteOn(TaskExecutors.IO)
 public class ResourceQuotaController extends NamespacedResourceController {
     @Inject
-    ResourceQuotaService resourceQuotaService;
+    private ResourceQuotaService resourceQuotaService;
 
     /**
      * List quotas by namespace.

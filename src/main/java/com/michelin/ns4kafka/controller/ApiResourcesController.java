@@ -18,7 +18,6 @@
  */
 package com.michelin.ns4kafka.controller;
 
-import com.michelin.ns4kafka.repository.RoleBindingRepository;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.security.auth.AuthenticationInfo;
 import io.micronaut.core.annotation.Introspected;
@@ -28,7 +27,6 @@ import io.micronaut.http.annotation.Get;
 import io.micronaut.security.rules.SecurityRule;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
-import jakarta.inject.Inject;
 import java.util.List;
 import lombok.Builder;
 import lombok.Getter;
@@ -119,10 +117,6 @@ public class ApiResourcesController {
             .path("namespaces")
             .names(List.of("namespaces", "namespace", "ns"))
             .build();
-
-    /** Role binding repository. */
-    @Inject
-    RoleBindingRepository roleBindingRepository;
 
     /**
      * List API resources.

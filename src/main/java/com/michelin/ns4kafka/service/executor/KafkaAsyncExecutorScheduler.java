@@ -36,16 +36,16 @@ public class KafkaAsyncExecutorScheduler {
     private final AtomicBoolean ready = new AtomicBoolean(false);
 
     @Inject
-    List<TopicAsyncExecutor> topicAsyncExecutors;
+    private List<TopicAsyncExecutor> topicAsyncExecutors;
 
     @Inject
-    List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutors;
+    private List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutors;
 
     @Inject
-    List<ConnectorAsyncExecutor> connectorAsyncExecutors;
+    private List<ConnectorAsyncExecutor> connectorAsyncExecutors;
 
     @Inject
-    List<UserAsyncExecutor> userAsyncExecutors;
+    private List<UserAsyncExecutor> userAsyncExecutors;
 
     /**
      * Register when the application is ready.
@@ -78,9 +78,9 @@ public class KafkaAsyncExecutorScheduler {
                         log.debug("Skipping next connector synchronization. The previous one is still running."))
                 .concatMap(mapper -> Flux.fromIterable(connectorAsyncExecutors).flatMap(ConnectorAsyncExecutor::run))
                 .onErrorContinue((error, body) ->
-                    log.trace("Continue connector synchronization after error: {}.", error.getMessage()))
+                        log.trace("Continue connector synchronization after error: {}.", error.getMessage()))
                 .subscribe(connectorInfo ->
-                    log.trace("Synchronization completed for connector \"{}\".", connectorInfo.name()));
+                        log.trace("Synchronization completed for connector \"{}\".", connectorInfo.name()));
     }
 
     /** Schedule connector synchronization. */
