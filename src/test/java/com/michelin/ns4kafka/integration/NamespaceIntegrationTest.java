@@ -76,7 +76,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                         .labels(Map.of("support-group", "LDAP-GROUP-1"))
                         .build())
                 .spec(Namespace.NamespaceSpec.builder()
-                        .kafkaUser("user1")
+                        .kafkaUser("wrong_user")
                         .topicValidator(TopicValidator.makeDefaultOneBroker())
                         .build())
                 .build();
@@ -204,7 +204,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                         .labels(Map.of("support-group", "LDAP-GROUP-1"))
                         .build())
                 .spec(Namespace.NamespaceSpec.builder()
-                        .kafkaUser("user2")
+                        .kafkaUser("user")
                         .connectClusters(List.of("test-connect"))
                         .topicValidator(TopicValidator.makeDefaultOneBroker())
                         .build())
@@ -263,7 +263,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                         .labels(Map.of("support-group", "LDAP-GROUP-1"))
                         .build())
                 .spec(Namespace.NamespaceSpec.builder()
-                        .kafkaUser("user3")
+                        .kafkaUser("user2")
                         .connectClusters(List.of("test-connect"))
                         .topicValidator(TopicValidator.makeDefaultOneBroker())
                         .build())
@@ -305,7 +305,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                         .labels(Map.of("support-group", "LDAP-GROUP-1"))
                         .build())
                 .spec(Namespace.NamespaceSpec.builder()
-                        .kafkaUser("user4")
+                        .kafkaUser("user3")
                         .connectClusters(List.of("test-connect"))
                         .topicValidator(TopicValidator.makeDefaultOneBroker())
                         .build())
@@ -369,12 +369,12 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
     void shouldIgnoreCaseOnGroupsAndAccessNamespace() {
         Namespace namespace = Namespace.builder()
                 .metadata(Metadata.builder()
-                        .name("namespace3")
+                        .name("namespace4")
                         .cluster("test-cluster")
-                        .labels(Map.of("support-group", "LDAP-GROUP-3"))
+                        .labels(Map.of("support-group", "LDAP-GROUP-4"))
                         .build())
                 .spec(Namespace.NamespaceSpec.builder()
-                        .kafkaUser("user3")
+                        .kafkaUser("user4")
                         .connectClusters(List.of("test-connect"))
                         .topicValidator(TopicValidator.makeDefaultOneBroker())
                         .build())
@@ -382,8 +382,8 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
 
         RoleBinding roleBinding = RoleBinding.builder()
                 .metadata(Metadata.builder()
-                        .name("ns3-rb")
-                        .namespace("namespace3")
+                        .name("ns4-rb")
+                        .namespace("namespace4")
                         .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                         .role(RoleBinding.Role.builder()
@@ -405,7 +405,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
 
         ns4KafkaClient
                 .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/namespace3/role-bindings")
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/namespace4/role-bindings")
                         .bearerAuth(token)
                         .body(roleBinding));
 
@@ -419,7 +419,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
 
         String userToken = response.getBody().get().getAccessToken();
 
-        HttpRequest<?> topicRequest = HttpRequest.create(HttpMethod.GET, "/api/namespaces/namespace3/topics")
+        HttpRequest<?> topicRequest = HttpRequest.create(HttpMethod.GET, "/api/namespaces/namespace4/topics")
                 .bearerAuth(userToken)
                 .body(roleBinding);
 
