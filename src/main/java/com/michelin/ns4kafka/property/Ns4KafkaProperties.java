@@ -51,10 +51,10 @@ import lombok.Setter;
 @Setter
 @ConfigurationProperties("ns4kafka")
 public class Ns4KafkaProperties {
-    private AkhqProperties akhq;
-    private ConfluentCloudProperties confluentCloud;
-    private SecurityProperties security;
-    private StoreProperties store;
+    private AkhqProperties akhq = new AkhqProperties();
+    private ConfluentCloudProperties confluentCloud = new ConfluentCloudProperties();
+    private SecurityProperties security = new SecurityProperties();
+    private StoreProperties store = new StoreProperties();
     private String version;
 
     @Getter
@@ -74,7 +74,7 @@ public class Ns4KafkaProperties {
     @Setter
     @ConfigurationProperties("confluent-cloud")
     public static class ConfluentCloudProperties {
-        private StreamCatalogProperties streamCatalog;
+        private StreamCatalogProperties streamCatalog = new StreamCatalogProperties();
 
         @Getter
         @Setter
@@ -98,14 +98,14 @@ public class Ns4KafkaProperties {
     @Setter
     @ConfigurationProperties("store")
     public static class StoreProperties {
-        private KafkaProperties kafka;
+        private KafkaProperties kafka = new KafkaProperties();
 
         @Getter
         @Setter
         @ConfigurationProperties("kafka")
         public static class KafkaProperties {
             private int initTimeout;
-            private TopicsProperties topics;
+            private TopicsProperties topics = new TopicsProperties();
 
             @Getter
             @Setter
