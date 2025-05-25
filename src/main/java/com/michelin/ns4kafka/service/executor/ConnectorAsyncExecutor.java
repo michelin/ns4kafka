@@ -191,8 +191,9 @@ public class ConnectorAsyncExecutor {
                             .toList();
 
                     if (!toCreate.isEmpty()) {
-                        log.debug("Connector(s) to create: "
-                                + String.join(
+                        log.debug(
+                                "Connector(s) to create: {}",
+                                String.join(
                                         ",",
                                         toCreate.stream()
                                                 .map(connector ->
@@ -201,8 +202,9 @@ public class ConnectorAsyncExecutor {
                     }
 
                     if (!toUpdate.isEmpty()) {
-                        log.debug("Connector(s) to update: "
-                                + String.join(
+                        log.debug(
+                                "Connector(s) to update: {}",
+                                String.join(
                                         ",",
                                         toUpdate.stream()
                                                 .map(connector ->

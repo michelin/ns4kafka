@@ -31,10 +31,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @SecurityScheme(name = "JWT", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT")
 @OpenAPIDefinition(
         security = @SecurityRequirement(name = "JWT"),
-        info = @Info(title = "Ns4Kafka", version = "0.1", description = "Getting started with REST APIs."))
+        info = @Info(title = "Ns4Kafka", description = "Getting started with REST APIs."))
 @OpenAPIInclude(
         classes = {io.micronaut.security.endpoints.LoginController.class},
-        tags = @Tag(name = "_Security", description = "All the login endpoints."))
+        tags = @Tag(name = "Login", description = "All the login endpoints."))
 public class Application {
 
     public static void main(String[] args) {
