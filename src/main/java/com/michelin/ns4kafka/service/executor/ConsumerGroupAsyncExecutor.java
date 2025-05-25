@@ -144,7 +144,7 @@ public class ConsumerGroupAsyncExecutor {
     }
 
     /**
-     * Get earliest offsets for given list of topic-partitions.
+     * Get the earliest offsets for given list of topic-partitions.
      *
      * @param partitionsToReset The topic-partitions list
      * @return A map of topic-partition and offsets

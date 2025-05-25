@@ -78,9 +78,9 @@ public class KafkaAsyncExecutorScheduler {
                         log.debug("Skipping next connector synchronization. The previous one is still running."))
                 .concatMap(mapper -> Flux.fromIterable(connectorAsyncExecutors).flatMap(ConnectorAsyncExecutor::run))
                 .onErrorContinue((error, body) ->
-                        log.trace("Continue connector synchronization after error: " + error.getMessage() + "."))
+                    log.trace("Continue connector synchronization after error: {}.", error.getMessage()))
                 .subscribe(connectorInfo ->
-                        log.trace("Synchronization completed for connector \"" + connectorInfo.name() + "\"."));
+                    log.trace("Synchronization completed for connector \"{}\".", connectorInfo.name()));
     }
 
     /** Schedule connector synchronization. */
