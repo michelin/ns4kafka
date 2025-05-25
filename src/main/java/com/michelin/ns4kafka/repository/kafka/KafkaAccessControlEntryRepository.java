@@ -40,6 +40,7 @@ import org.apache.kafka.clients.producer.Producer;
         offsetStrategy = OffsetStrategy.DISABLED)
 public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlEntry>
         implements AccessControlEntryRepository {
+
     public KafkaAccessControlEntryRepository(
             @Value("${ns4kafka.store.kafka.topics.prefix}.access-control-entries") String kafkaTopic,
             @KafkaClient("access-control-entries-producer") Producer<String, AccessControlEntry> kafkaProducer) {

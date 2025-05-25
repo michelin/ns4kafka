@@ -33,7 +33,7 @@ import reactor.core.publisher.Mono;
 @Singleton
 public class GitlabAuthenticationService {
     @Inject
-    GitlabApiClient gitlabApiClient;
+    private GitlabApiClient gitlabApiClient;
 
     /**
      * Get all GitLab user groups.

@@ -39,7 +39,7 @@ import reactor.core.publisher.Flux;
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 public class ConnectClusterNonNamespacedController extends NonNamespacedResourceController {
     @Inject
-    ConnectClusterService connectClusterService;
+    private ConnectClusterService connectClusterService;
 
     /**
      * List Kafka Connect clusters.

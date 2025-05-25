@@ -56,7 +56,7 @@ import java.util.Optional;
 @Controller("/api/namespaces/{namespace}/acls")
 public class AclController extends NamespacedResourceController {
     @Inject
-    AclService aclService;
+    private AclService aclService;
 
     /**
      * List ACLs by namespace.

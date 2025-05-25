@@ -30,7 +30,7 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
 import com.michelin.ns4kafka.model.connect.cluster.VaultResponse;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
-import com.michelin.ns4kafka.property.SecurityProperties;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.ConnectClusterRepository;
 import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
 import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient.KafkaConnectHttpConfig;
@@ -70,7 +70,7 @@ public class ConnectClusterService {
     private List<ManagedClusterProperties> managedClusterProperties;
 
     @Inject
-    private SecurityProperties securityProperties;
+    private Ns4KafkaProperties ns4KafkaProperties;
 
     /**
      * Find all self deployed Connect clusters.
@@ -218,7 +218,8 @@ public class ConnectClusterService {
             connectCluster
                     .getSpec()
                     .setPassword(EncryptionUtils.encryptAes256Gcm(
-                            connectCluster.getSpec().getPassword(), securityProperties.getAes256EncryptionKey()));
+                            connectCluster.getSpec().getPassword(),
+                            ns4KafkaProperties.getSecurity().getAes256EncryptionKey()));
         }
 
         // Encrypt aes256 key if present
@@ -226,7 +227,8 @@ public class ConnectClusterService {
             connectCluster
                     .getSpec()
                     .setAes256Key(EncryptionUtils.encryptAes256Gcm(
-                            connectCluster.getSpec().getAes256Key(), securityProperties.getAes256EncryptionKey()));
+                            connectCluster.getSpec().getAes256Key(),
+                            ns4KafkaProperties.getSecurity().getAes256EncryptionKey()));
         }
 
         // Encrypt aes256 salt if present
@@ -234,7 +236,8 @@ public class ConnectClusterService {
             connectCluster
                     .getSpec()
                     .setAes256Salt(EncryptionUtils.encryptAes256Gcm(
-                            connectCluster.getSpec().getAes256Salt(), securityProperties.getAes256EncryptionKey()));
+                            connectCluster.getSpec().getAes256Salt(),
+                            ns4KafkaProperties.getSecurity().getAes256EncryptionKey()));
         }
 
         return connectClusterRepository.create(connectCluster);
@@ -359,9 +362,11 @@ public class ConnectClusterService {
         }
 
         final String aes256Key = EncryptionUtils.decryptAes256Gcm(
-                kafkaConnect.get().getSpec().getAes256Key(), securityProperties.getAes256EncryptionKey());
+                kafkaConnect.get().getSpec().getAes256Key(),
+                ns4KafkaProperties.getSecurity().getAes256EncryptionKey());
         final String aes256Salt = EncryptionUtils.decryptAes256Gcm(
-                kafkaConnect.get().getSpec().getAes256Salt(), securityProperties.getAes256EncryptionKey());
+                kafkaConnect.get().getSpec().getAes256Salt(),
+                ns4KafkaProperties.getSecurity().getAes256EncryptionKey());
         final String aes256Format =
                 StringUtils.hasText(kafkaConnect.get().getSpec().getAes256Format())
                         ? kafkaConnect.get().getSpec().getAes256Format()
@@ -390,11 +395,14 @@ public class ConnectClusterService {
                 .url(connectCluster.getSpec().getUrl())
                 .username(connectCluster.getSpec().getUsername())
                 .password(EncryptionUtils.decryptAes256Gcm(
-                        connectCluster.getSpec().getPassword(), securityProperties.getAes256EncryptionKey()))
+                        connectCluster.getSpec().getPassword(),
+                        ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
                 .aes256Key(EncryptionUtils.decryptAes256Gcm(
-                        connectCluster.getSpec().getAes256Key(), securityProperties.getAes256EncryptionKey()))
+                        connectCluster.getSpec().getAes256Key(),
+                        ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
                 .aes256Salt(EncryptionUtils.decryptAes256Gcm(
-                        connectCluster.getSpec().getAes256Salt(), securityProperties.getAes256EncryptionKey()))
+                        connectCluster.getSpec().getAes256Salt(),
+                        ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
                 .aes256Format(connectCluster.getSpec().getAes256Format());
 
         try {

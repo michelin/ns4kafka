@@ -18,9 +18,7 @@
  */
 package com.michelin.ns4kafka.repository.kafka;
 
-import com.michelin.ns4kafka.property.KafkaStoreProperties;
-import io.micronaut.context.ApplicationContext;
-import io.micronaut.context.annotation.Property;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.TaskScheduler;
 import jakarta.annotation.PostConstruct;
@@ -60,20 +58,14 @@ import org.apache.kafka.common.errors.TopicExistsException;
 @Slf4j
 public abstract class KafkaStore<T> {
     @Inject
-    ApplicationContext applicationContext;
+    private AdminClient adminClient;
 
     @Inject
-    AdminClient adminClient;
-
-    @Inject
-    KafkaStoreProperties kafkaStoreProperties;
+    private Ns4KafkaProperties ns4KafkaProperties;
 
     @Inject
     @Named(TaskExecutors.SCHEDULED)
-    TaskScheduler taskScheduler;
-
-    @Property(name = "ns4kafka.store.kafka.init-timeout")
-    int initTimeout;
+    private TaskScheduler taskScheduler;
 
     private final Map<String, T> store;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
@@ -118,7 +110,10 @@ public abstract class KafkaStore<T> {
      */
     private void createOrVerifyInternalTopic() throws KafkaStoreException {
         try {
-            Set<String> allTopics = adminClient.listTopics().names().get(initTimeout, TimeUnit.MILLISECONDS);
+            Set<String> allTopics = adminClient
+                    .listTopics()
+                    .names()
+                    .get(ns4KafkaProperties.getStore().getKafka().getInitTimeout(), TimeUnit.MILLISECONDS);
 
             if (allTopics.contains(kafkaTopic)) {
                 verifyInternalTopic();
@@ -151,8 +146,10 @@ public abstract class KafkaStore<T> {
         log.info("Validating topic {}.", kafkaTopic);
 
         Set<String> topics = Collections.singleton(kafkaTopic);
-        Map<String, TopicDescription> topicDescription =
-                adminClient.describeTopics(topics).allTopicNames().get(initTimeout, TimeUnit.MILLISECONDS);
+        Map<String, TopicDescription> topicDescription = adminClient
+                .describeTopics(topics)
+                .allTopicNames()
+                .get(ns4KafkaProperties.getStore().getKafka().getInitTimeout(), TimeUnit.MILLISECONDS);
 
         TopicDescription description = topicDescription.get(kafkaTopic);
         final int numPartitions = description.partitions().size();
@@ -161,29 +158,29 @@ public abstract class KafkaStore<T> {
                     "The topic " + kafkaTopic + " should have only 1 partition but has " + numPartitions + ".");
         }
 
-        if (description.partitions().getFirst().replicas().size() < kafkaStoreProperties.getReplicationFactor()
+        if (description.partitions().getFirst().replicas().size()
+                        < ns4KafkaProperties.getStore().getKafka().getTopics().getReplicationFactor()
                 && log.isWarnEnabled()) {
-            log.warn("The replication factor of the topic " + kafkaTopic + " is less than the desired one of "
-                    + kafkaStoreProperties.getReplicationFactor()
-                    + ". If this is a production environment, it's crucial to add more brokers and "
-                    + "increase the replication factor of the topic.");
+            log.warn(
+                    "The replication factor of the topic {} is less than the desired one of {}. If this is a production environment, it's crucial to add more brokers and increase the replication factor of the topic.",
+                    kafkaTopic,
+                    ns4KafkaProperties.getStore().getKafka().getTopics().getReplicationFactor());
         }
 
         ConfigResource topicResource = new ConfigResource(ConfigResource.Type.TOPIC, kafkaTopic);
         Map<ConfigResource, Config> configs = adminClient
                 .describeConfigs(Collections.singleton(topicResource))
                 .all()
-                .get(initTimeout, TimeUnit.MILLISECONDS);
+                .get(ns4KafkaProperties.getStore().getKafka().getInitTimeout(), TimeUnit.MILLISECONDS);
 
         Config topicConfigs = configs.get(topicResource);
         String retentionPolicy =
                 topicConfigs.get(TopicConfig.CLEANUP_POLICY_CONFIG).value();
         if (!TopicConfig.CLEANUP_POLICY_COMPACT.equals(retentionPolicy)) {
             if (log.isErrorEnabled()) {
-                log.error("The retention policy of the topic " + kafkaTopic + " is incorrect. "
-                        + "You must configure the topic to 'compact' cleanup policy to avoid Kafka "
-                        + "deleting your data after a week. Refer to Kafka documentation for more details "
-                        + "on cleanup policies");
+                log.error(
+                        "The retention policy of the topic {} is incorrect. You must configure the topic to 'compact' cleanup policy to avoid Kafka deleting your data after a week. Refer to Kafka documentation for more details on cleanup policies",
+                        kafkaTopic);
             }
 
             throw new KafkaStoreException("The retention policy of the schema kafkaTopic " + kafkaTopic
@@ -206,29 +203,35 @@ public abstract class KafkaStore<T> {
         int numLiveBrokers = adminClient
                 .describeCluster()
                 .nodes()
-                .get(initTimeout, TimeUnit.MILLISECONDS)
+                .get(ns4KafkaProperties.getStore().getKafka().getInitTimeout(), TimeUnit.MILLISECONDS)
                 .size();
 
         if (numLiveBrokers == 0) {
             throw new KafkaStoreException("No live Kafka brokers.");
         }
 
-        int schemaTopicReplicationFactor = Math.min(numLiveBrokers, kafkaStoreProperties.getReplicationFactor());
-        if (schemaTopicReplicationFactor < kafkaStoreProperties.getReplicationFactor() && log.isWarnEnabled()) {
-            log.warn("Creating the kafkaTopic " + kafkaTopic + " using a replication factor of "
-                    + schemaTopicReplicationFactor + ", which is less than the desired one of "
-                    + kafkaStoreProperties.getReplicationFactor() + ". If this is a production environment, it's "
-                    + "crucial to add more brokers and increase the replication factor of the kafkaTopic.");
+        int schemaTopicReplicationFactor = Math.min(
+                numLiveBrokers,
+                ns4KafkaProperties.getStore().getKafka().getTopics().getReplicationFactor());
+        if (schemaTopicReplicationFactor
+                        < ns4KafkaProperties.getStore().getKafka().getTopics().getReplicationFactor()
+                && log.isWarnEnabled()) {
+            log.warn(
+                    "Creating the kafkaTopic {} using a replication factor of {}, which is less than the desired one of {}. If this is a production environment, it's crucial to add more brokers and increase the replication factor of the kafkaTopic.",
+                    kafkaTopic,
+                    schemaTopicReplicationFactor,
+                    ns4KafkaProperties.getStore().getKafka().getTopics().getReplicationFactor());
         }
 
         NewTopic schemaTopicRequest = new NewTopic(kafkaTopic, 1, (short) schemaTopicReplicationFactor);
-        schemaTopicRequest.configs(kafkaStoreProperties.getProps());
+        schemaTopicRequest.configs(
+                ns4KafkaProperties.getStore().getKafka().getTopics().getProps());
 
         try {
             adminClient
                     .createTopics(Collections.singleton(schemaTopicRequest))
                     .all()
-                    .get(initTimeout, TimeUnit.MILLISECONDS);
+                    .get(ns4KafkaProperties.getStore().getKafka().getInitTimeout(), TimeUnit.MILLISECONDS);
         } catch (ExecutionException e) {
             if (e.getCause() instanceof TopicExistsException) {
                 verifyInternalTopic();
@@ -265,7 +268,8 @@ public abstract class KafkaStore<T> {
             ProducerRecord<String, T> producerRecord = new ProducerRecord<>(kafkaTopic, key, message);
             log.trace("Sending record to topic {}", producerRecord);
             Future<RecordMetadata> ack = kafkaProducer.send(producerRecord);
-            RecordMetadata recordMetadata = ack.get(initTimeout, TimeUnit.MILLISECONDS);
+            RecordMetadata recordMetadata =
+                    ack.get(ns4KafkaProperties.getStore().getKafka().getInitTimeout(), TimeUnit.MILLISECONDS);
 
             log.trace("Waiting for the local store to catch up to offset {}", recordMetadata.offset());
             lastWrittenOffset = recordMetadata.offset();
@@ -345,7 +349,8 @@ public abstract class KafkaStore<T> {
         try {
             log.trace("Sending NOOP record to topic {} to find last offset.", kafkaTopic);
             Future<RecordMetadata> ack = kafkaProducer.send(new ProducerRecord<>(kafkaTopic, "NOOP", null));
-            RecordMetadata metadata = ack.get(initTimeout, TimeUnit.MILLISECONDS);
+            RecordMetadata metadata =
+                    ack.get(ns4KafkaProperties.getStore().getKafka().getInitTimeout(), TimeUnit.MILLISECONDS);
             this.lastWrittenOffset = metadata.offset();
             log.trace("NOOP record's offset is {}", lastWrittenOffset);
             return lastWrittenOffset;
@@ -380,7 +385,8 @@ public abstract class KafkaStore<T> {
 
         try {
             offsetUpdateLock.lock();
-            long timeoutNs = TimeUnit.NANOSECONDS.convert(initTimeout, timeUnit);
+            long timeoutNs = TimeUnit.NANOSECONDS.convert(
+                    ns4KafkaProperties.getStore().getKafka().getInitTimeout(), timeUnit);
             while ((offsetInSchemasTopic < offset) && (timeoutNs > 0)) {
                 try {
                     timeoutNs = offsetReachedThreshold.awaitNanos(timeoutNs);
@@ -400,7 +406,8 @@ public abstract class KafkaStore<T> {
         if (offsetInSchemasTopic < offset) {
             throw new KafkaStoreException("Failed to reach target offset within the timeout interval. targetOffset: "
                     + offset + ", offsetReached: " + offsetInSchemasTopic + ", timeout(ms): "
-                    + TimeUnit.MILLISECONDS.convert(initTimeout, timeUnit));
+                    + TimeUnit.MILLISECONDS.convert(
+                            ns4KafkaProperties.getStore().getKafka().getInitTimeout(), timeUnit));
         }
     }
 

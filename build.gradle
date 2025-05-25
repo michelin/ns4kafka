@@ -146,3 +146,11 @@ spotless {
         leadingTabsToSpaces()
     }
 }
+
+import org.apache.tools.ant.filters.ReplaceTokens
+
+processResources {
+    filesMatching("application.yml") {
+        filter(ReplaceTokens, tokens: [version: project.version])
+    }
+}

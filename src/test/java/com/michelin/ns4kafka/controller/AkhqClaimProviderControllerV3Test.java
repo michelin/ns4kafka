@@ -20,22 +20,23 @@ package com.michelin.ns4kafka.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
-import com.michelin.ns4kafka.property.AkhqProperties;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -46,11 +47,36 @@ class AkhqClaimProviderControllerV3Test {
     @Mock
     AclService aclService;
 
+    @Mock
+    List<ManagedClusterProperties> managedClusters;
+
+    @Mock
+    Ns4KafkaProperties ns4KafkaProperties;
+
     @InjectMocks
     AkhqClaimProviderController akhqClaimProviderController;
 
-    @Spy
-    AkhqProperties akhqProperties = getAkhqClaimProviderControllerConfig();
+    @Test
+    void shouldGenerateClaimForAdmin() {
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
+
+        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+                .groups(List.of("GP-ADMIN"))
+                .build();
+
+        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+
+        assertEquals(1, actual.getGroups().size());
+
+        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
+                actual.getGroups().get("group");
+
+        assertEquals(4, groups.size());
+        assertTrue(groups.stream().anyMatch(group -> group.getRole().equals("connect-admin")));
+        assertTrue(groups.stream().anyMatch(group -> group.getRole().equals("group-read")));
+        assertTrue(groups.stream().anyMatch(group -> group.getRole().equals("registry-admin")));
+        assertTrue(groups.stream().anyMatch(group -> group.getRole().equals("topic-admin")));
+    }
 
     @Test
     void shouldGenerateClaimHappyPath() {
@@ -71,9 +97,10 @@ class AkhqClaimProviderControllerV3Test {
                         .build())
                 .build();
 
-        akhqClaimProviderController.managedClusters =
-                List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
-
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
+        when(managedClusters.stream())
+                .thenReturn(
+                        Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
@@ -88,9 +115,9 @@ class AkhqClaimProviderControllerV3Test {
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(2, groups.size());
-        assertEquals("topic-read", groups.get(0).getRole());
-        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
-        assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
+        assertEquals("topic-read", groups.getFirst().getRole());
+        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.getFirst().getPatterns());
+        assertEquals(List.of("^cluster1$"), groups.getFirst().getClusters());
         assertEquals("registry-read", groups.get(1).getRole());
     }
 
@@ -122,9 +149,8 @@ class AkhqClaimProviderControllerV3Test {
                         .build())
                 .build();
 
-        akhqClaimProviderController.managedClusters =
-                List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
-
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
+        when(managedClusters.stream()).thenReturn(Stream.of(new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1, ace2Ns1Cluster1));
 
@@ -139,9 +165,9 @@ class AkhqClaimProviderControllerV3Test {
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(3, groups.size());
-        assertEquals("topic-read", groups.get(0).getRole());
-        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
-        assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
+        assertEquals("topic-read", groups.getFirst().getRole());
+        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.getFirst().getPatterns());
+        assertEquals(List.of("^cluster1$"), groups.getFirst().getClusters());
         assertEquals("group-read", groups.get(1).getRole());
         assertEquals("registry-read", groups.get(2).getRole());
     }
@@ -165,9 +191,10 @@ class AkhqClaimProviderControllerV3Test {
                         .build())
                 .build();
 
-        akhqClaimProviderController.managedClusters =
-                List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
-
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
+        when(managedClusters.stream())
+                .thenReturn(
+                        Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
@@ -182,9 +209,9 @@ class AkhqClaimProviderControllerV3Test {
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(2, groups.size());
-        assertEquals("topic-read", groups.get(0).getRole());
-        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
-        assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
+        assertEquals("topic-read", groups.getFirst().getRole());
+        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.getFirst().getPatterns());
+        assertEquals(List.of("^cluster1$"), groups.getFirst().getClusters());
         assertEquals("registry-read", groups.get(1).getRole());
     }
 
@@ -198,9 +225,10 @@ class AkhqClaimProviderControllerV3Test {
                         .build())
                 .build();
 
-        akhqClaimProviderController.managedClusters =
-                List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
-
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
+        when(managedClusters.stream())
+                .thenReturn(
+                        Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
 
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
@@ -238,9 +266,10 @@ class AkhqClaimProviderControllerV3Test {
                         .build())
                 .build();
 
-        akhqClaimProviderController.managedClusters =
-                List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
-
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
+        when(managedClusters.stream())
+                .thenReturn(
+                        Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1, ns1Cluster2));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
@@ -266,9 +295,9 @@ class AkhqClaimProviderControllerV3Test {
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(2, groups.size());
-        assertEquals("topic-read", groups.get(0).getRole());
-        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
-        assertEquals(List.of("^.*$"), groups.get(0).getClusters());
+        assertEquals("topic-read", groups.getFirst().getRole());
+        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.getFirst().getPatterns());
+        assertEquals(List.of("^.*$"), groups.getFirst().getClusters());
         assertEquals("registry-read", groups.get(1).getRole());
     }
 
@@ -299,9 +328,10 @@ class AkhqClaimProviderControllerV3Test {
                         .build())
                 .build();
 
-        akhqClaimProviderController.managedClusters =
-                List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
-
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
+        when(managedClusters.stream())
+                .thenReturn(
+                        Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1, ns2Cluster1));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
@@ -327,11 +357,11 @@ class AkhqClaimProviderControllerV3Test {
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(2, groups.size());
-        assertEquals("topic-read", groups.get(0).getRole());
+        assertEquals("topic-read", groups.getFirst().getRole());
         assertEquals(
                 List.of("^\\Qproject1_t.\\E.*$", "^\\Qproject2_t.\\E.*$"),
-                groups.get(0).getPatterns());
-        assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
+                groups.getFirst().getPatterns());
+        assertEquals(List.of("^cluster1$"), groups.getFirst().getClusters());
         assertEquals("registry-read", groups.get(1).getRole());
     }
 
@@ -362,9 +392,10 @@ class AkhqClaimProviderControllerV3Test {
                         .build())
                 .build();
 
-        akhqClaimProviderController.managedClusters =
-                List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
-
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
+        when(managedClusters.stream())
+                .thenReturn(
+                        Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1, ns1Cluster2));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Cluster1));
 
@@ -390,9 +421,9 @@ class AkhqClaimProviderControllerV3Test {
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(2, groups.size());
-        assertEquals("topic-read", groups.get(0).getRole());
-        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
-        assertEquals(List.of("^.*$"), groups.get(0).getClusters());
+        assertEquals("topic-read", groups.getFirst().getRole());
+        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.getFirst().getPatterns());
+        assertEquals(List.of("^.*$"), groups.getFirst().getClusters());
         assertEquals("registry-read", groups.get(1).getRole());
     }
 
@@ -423,9 +454,10 @@ class AkhqClaimProviderControllerV3Test {
                         .build())
                 .build();
 
-        akhqClaimProviderController.managedClusters =
-                List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
-
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
+        when(managedClusters.stream())
+                .thenReturn(
+                        Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1, ns2Cluster2));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
@@ -451,9 +483,9 @@ class AkhqClaimProviderControllerV3Test {
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(4, groups.size());
-        assertEquals("topic-read", groups.get(0).getRole());
-        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.get(0).getPatterns());
-        assertEquals(List.of("^cluster1$"), groups.get(0).getClusters());
+        assertEquals("topic-read", groups.getFirst().getRole());
+        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.getFirst().getPatterns());
+        assertEquals(List.of("^cluster1$"), groups.getFirst().getClusters());
         assertEquals("topic-read", groups.get(1).getRole());
         assertEquals(List.of("^\\Qproject2_t.\\E.*$"), groups.get(1).getPatterns());
         assertEquals(List.of("^cluster2$"), groups.get(1).getClusters());
@@ -557,9 +589,10 @@ class AkhqClaimProviderControllerV3Test {
                                 .build())
                         .build());
 
-        akhqClaimProviderController.managedClusters =
-                List.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2"));
-
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
+        when(managedClusters.stream())
+                .thenReturn(
+                        Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(inputAcls);
 
@@ -654,12 +687,14 @@ class AkhqClaimProviderControllerV3Test {
                                 .resource("project3.")
                                 .build())
                         .build());
-        akhqClaimProviderController.managedClusters = List.of(
-                new ManagedClusterProperties("cluster1"),
-                new ManagedClusterProperties("cluster2"),
-                new ManagedClusterProperties("cluster3"),
-                new ManagedClusterProperties("cluster4"));
 
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
+        when(managedClusters.stream())
+                .thenReturn(Stream.of(
+                        new ManagedClusterProperties("cluster1"),
+                        new ManagedClusterProperties("cluster2"),
+                        new ManagedClusterProperties("cluster3"),
+                        new ManagedClusterProperties("cluster4")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(inputAcls);
 
@@ -671,9 +706,9 @@ class AkhqClaimProviderControllerV3Test {
         List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(6, groups.size());
-        assertEquals("topic-read", groups.get(0).getRole());
-        assertEquals(List.of("^\\Qproject1.\\E.*$"), groups.get(0).getPatterns());
-        assertEquals(List.of("^cluster1$", "^cluster2$"), groups.get(0).getClusters());
+        assertEquals("topic-read", groups.getFirst().getRole());
+        assertEquals(List.of("^\\Qproject1.\\E.*$"), groups.getFirst().getPatterns());
+        assertEquals(List.of("^cluster1$", "^cluster2$"), groups.getFirst().getClusters());
         assertEquals("topic-read", groups.get(1).getRole());
         assertEquals(List.of("^\\Qproject2.\\E.*$"), groups.get(1).getPatterns());
         assertEquals(List.of("^cluster1$"), groups.get(1).getClusters());
@@ -683,11 +718,11 @@ class AkhqClaimProviderControllerV3Test {
                 List.of("^cluster1$", "^cluster2$", "^cluster3$"), groups.get(2).getClusters());
     }
 
-    private AkhqProperties getAkhqClaimProviderControllerConfig() {
-        AkhqProperties config = new AkhqProperties();
-        config.setGroupLabel("support-group");
-        config.setAdminGroup("GP-ADMIN");
-        config.setRoles(Map.of(
+    private Ns4KafkaProperties.AkhqProperties buildAkhqProperties() {
+        Ns4KafkaProperties.AkhqProperties akhqProperties = new Ns4KafkaProperties.AkhqProperties();
+        akhqProperties.setGroupLabel("support-group");
+        akhqProperties.setAdminGroup("GP-ADMIN");
+        akhqProperties.setRoles(Map.of(
                 AccessControlEntry.ResourceType.TOPIC,
                 "topic-read",
                 AccessControlEntry.ResourceType.CONNECT,
@@ -696,7 +731,7 @@ class AkhqClaimProviderControllerV3Test {
                 "registry-read",
                 AccessControlEntry.ResourceType.GROUP,
                 "group-read"));
-        config.setAdminRoles(Map.of(
+        akhqProperties.setAdminRoles(Map.of(
                 AccessControlEntry.ResourceType.TOPIC,
                 "topic-admin",
                 AccessControlEntry.ResourceType.CONNECT,
@@ -705,6 +740,7 @@ class AkhqClaimProviderControllerV3Test {
                 "registry-admin",
                 AccessControlEntry.ResourceType.GROUP,
                 "group-read"));
-        return config;
+
+        return akhqProperties;
     }
 }

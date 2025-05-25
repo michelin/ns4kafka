@@ -36,10 +36,10 @@ import java.util.List;
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 public class ResourceQuotaNonNamespacedController extends NonNamespacedResourceController {
     @Inject
-    ResourceQuotaService resourceQuotaService;
+    private ResourceQuotaService resourceQuotaService;
 
     @Inject
-    NamespaceService namespaceService;
+    private NamespaceService namespaceService;
 
     /**
      * List quotas.

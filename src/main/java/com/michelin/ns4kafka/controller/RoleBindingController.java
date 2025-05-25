@@ -50,7 +50,7 @@ import java.util.Optional;
 @ExecuteOn(TaskExecutors.IO)
 public class RoleBindingController extends NamespacedResourceController {
     @Inject
-    RoleBindingService roleBindingService;
+    private RoleBindingService roleBindingService;
 
     /**
      * List role bindings by namespace, filtered by name parameter.

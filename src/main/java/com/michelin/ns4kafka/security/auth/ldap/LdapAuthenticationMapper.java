@@ -38,7 +38,7 @@ import java.util.Set;
 @Requires(property = LdapConfiguration.PREFIX + ".enabled", notEquals = StringUtils.FALSE)
 public class LdapAuthenticationMapper implements ContextAuthenticationMapper {
     @Inject
-    AuthenticationService authenticationService;
+    private AuthenticationService authenticationService;
 
     @Override
     public AuthenticationResponse map(ConvertibleValues<Object> attributes, String username, Set<String> groups) {

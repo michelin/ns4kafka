@@ -58,7 +58,7 @@ import reactor.core.publisher.Mono;
 @ExecuteOn(TaskExecutors.IO)
 public class SchemaController extends NamespacedResourceController {
     @Inject
-    SchemaService schemaService;
+    private SchemaService schemaService;
 
     /**
      * List schemas by namespace, filtered by name parameter.

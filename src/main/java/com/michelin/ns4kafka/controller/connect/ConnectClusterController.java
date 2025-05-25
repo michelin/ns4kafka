@@ -60,10 +60,10 @@ import reactor.core.publisher.Mono;
 @ExecuteOn(TaskExecutors.IO)
 public class ConnectClusterController extends NamespacedResourceController {
     @Inject
-    ConnectClusterService connectClusterService;
+    private ConnectClusterService connectClusterService;
 
     @Inject
-    ConnectorService connectorService;
+    private ConnectorService connectorService;
 
     /**
      * List Kafka Connect clusters by namespace, filtered by name parameter.

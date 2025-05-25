@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
-import com.michelin.ns4kafka.property.AkhqProperties;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import java.util.List;
@@ -37,7 +37,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,11 +47,11 @@ class AkhqClaimProviderControllerTest {
     @Mock
     AclService aclService;
 
+    @Mock
+    Ns4KafkaProperties ns4KafkaProperties;
+
     @InjectMocks
     AkhqClaimProviderController akhqClaimProviderController;
-
-    @Spy
-    AkhqProperties akhqProperties = getAkhqClaimProviderControllerConfig();
 
     @Test
     void shouldComputeAllowedRegexEmpty() {
@@ -137,6 +136,7 @@ class AkhqClaimProviderControllerTest {
                                 .resource("project1.")
                                 .build())
                         .build());
+
         List<String> actual = akhqClaimProviderController.computeAllowedRegexListForResourceType(
                 inputAcls, AccessControlEntry.ResourceType.TOPIC);
 
@@ -146,6 +146,7 @@ class AkhqClaimProviderControllerTest {
 
     @Test
     void shouldGenerateClaimTestWhenNullOrEmptyRequest() {
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
         AkhqClaimProviderController.AkhqClaimResponse actual = akhqClaimProviderController.generateClaim(null);
 
         assertEquals(1, actual.getAttributes().get("topicsFilterRegexp").size());
@@ -255,6 +256,7 @@ class AkhqClaimProviderControllerTest {
                         .build())
                 .build();
 
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
         when(namespaceService.findAll()).thenReturn(List.of(ns1, ns2, ns3, ns4, ns5));
         when(aclService.findAllGrantedToNamespace(ns1)).thenReturn(List.of(ns1Ace1, ns1Ace2, pubAce1));
         when(aclService.findAllGrantedToNamespace(ns2)).thenReturn(List.of(ns2Ace1, ns2Ace2, pubAce1));
@@ -295,6 +297,8 @@ class AkhqClaimProviderControllerTest {
 
     @Test
     void shouldGenerateClaimForAdmin() {
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
+
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-ADMIN"))
                 .build();
@@ -388,6 +392,8 @@ class AkhqClaimProviderControllerTest {
                         .resource("public_t.")
                         .build())
                 .build();
+
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
         when(namespaceService.findAll()).thenReturn(List.of(ns1, ns2, ns3, ns4, ns5));
         when(aclService.findAllGrantedToNamespace(ns1)).thenReturn(List.of(ns1Ace1, ns1Ace2, pubAce1));
         when(aclService.findAllGrantedToNamespace(ns2)).thenReturn(List.of(ns2Ace1, ns2Ace2, pubAce1));
@@ -427,6 +433,8 @@ class AkhqClaimProviderControllerTest {
 
     @Test
     void shouldGenerateClaimV2WhenNullOrEmptyRequest() {
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
+
         AkhqClaimProviderController.AkhqClaimResponseV2 actual = akhqClaimProviderController.generateClaimV2(null);
 
         assertEquals(1, actual.getTopicsFilterRegexp().size());
@@ -460,6 +468,8 @@ class AkhqClaimProviderControllerTest {
 
     @Test
     void shouldGenerateClaimV2ForAdmin() {
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
+
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-ADMIN"))
                 .build();
@@ -533,6 +543,7 @@ class AkhqClaimProviderControllerTest {
                                 .resource("project3.")
                                 .build())
                         .build());
+
         List<String> actual = akhqClaimProviderController.computeAllowedRegexListForResourceType(
                 inputAcls, AccessControlEntry.ResourceType.TOPIC);
 
@@ -546,24 +557,24 @@ class AkhqClaimProviderControllerTest {
                 actual);
     }
 
-    private AkhqProperties getAkhqClaimProviderControllerConfig() {
-        AkhqProperties config = new AkhqProperties();
-        config.setGroupLabel("support-group");
-        config.setFormerRoles(List.of(
+    private Ns4KafkaProperties.AkhqProperties buildAkhqProperties() {
+        Ns4KafkaProperties.AkhqProperties akhqProperties = new Ns4KafkaProperties.AkhqProperties();
+        akhqProperties.setGroupLabel("support-group");
+        akhqProperties.setFormerRoles(List.of(
                 "topic/read",
                 "topic/data/read",
                 "group/read",
                 "registry/read",
                 "connect/read",
                 "connect/state/update"));
-        config.setAdminGroup("GP-ADMIN");
-        config.setFormerAdminRoles(List.of(
+        akhqProperties.setAdminGroup("GP-ADMIN");
+        akhqProperties.setFormerAdminRoles(List.of(
                 "topic/read",
                 "topic/data/read",
                 "group/read",
                 "registry/read",
                 "connect/read",
                 "connect/state/update"));
-        return config;
+        return akhqProperties;
     }
 }

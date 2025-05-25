@@ -21,7 +21,7 @@ package com.michelin.ns4kafka.security;
 import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLE_BINDINGS;
 
 import com.michelin.ns4kafka.model.RoleBinding;
-import com.michelin.ns4kafka.property.SecurityProperties;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.NamespaceRepository;
 import com.michelin.ns4kafka.security.auth.AuthenticationInfo;
 import com.michelin.ns4kafka.security.auth.AuthenticationRoleBinding;
@@ -49,18 +49,16 @@ import org.reactivestreams.Publisher;
 @Singleton
 public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
     public static final String IS_ADMIN = "isAdmin()";
-
     public static final String RESOURCE_PATTERN = "[a-zA-Z0-9_.-]";
-
     private final Pattern namespacedResourcePattern =
             Pattern.compile("^/api/namespaces/(?<namespace>" + RESOURCE_PATTERN + "+)" + "/(?<resourceType>[a-z_-]+)(/("
                     + RESOURCE_PATTERN + "+)(/(?<resourceSubtype>[a-z-]+))?)?$");
 
     @Inject
-    SecurityProperties securityProperties;
+    private Ns4KafkaProperties ns4KafkaProperties;
 
     @Inject
-    NamespaceRepository namespaceRepository;
+    private NamespaceRepository namespaceRepository;
 
     @Override
     public Publisher<SecurityRuleResult> check(
@@ -175,7 +173,9 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
     public List<String> computeRolesFromGroups(List<String> groups) {
         List<String> roles = new ArrayList<>();
 
-        if (groups.stream().anyMatch(group -> group.equalsIgnoreCase(securityProperties.getAdminGroup()))) {
+        if (groups.stream()
+                .anyMatch(group ->
+                        group.equalsIgnoreCase(ns4KafkaProperties.getSecurity().getAdminGroup()))) {
             roles.add(ResourceBasedSecurityRule.IS_ADMIN);
         }
 

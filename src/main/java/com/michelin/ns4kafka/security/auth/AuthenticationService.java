@@ -21,7 +21,7 @@ package com.michelin.ns4kafka.security.auth;
 import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLE_BINDINGS;
 
 import com.michelin.ns4kafka.model.RoleBinding;
-import com.michelin.ns4kafka.property.SecurityProperties;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.RoleBindingService;
 import io.micronaut.security.authentication.AuthenticationException;
@@ -39,15 +39,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Singleton
 public class AuthenticationService {
+    @Inject
+    private ResourceBasedSecurityRule resourceBasedSecurityRule;
 
     @Inject
-    ResourceBasedSecurityRule resourceBasedSecurityRule;
+    private RoleBindingService roleBindingService;
 
     @Inject
-    RoleBindingService roleBindingService;
-
-    @Inject
-    SecurityProperties securityProperties;
+    private Ns4KafkaProperties ns4KafkaProperties;
 
     /**
      * Build an authentication response with the user details.
@@ -59,7 +58,9 @@ public class AuthenticationService {
     public AuthenticationResponse buildAuthJwtGroups(String username, List<String> groups) {
         List<RoleBinding> roleBindings = roleBindingService.findAllByGroups(groups);
         if (roleBindings.isEmpty()
-                && groups.stream().noneMatch(group -> group.equalsIgnoreCase(securityProperties.getAdminGroup()))) {
+                && groups.stream()
+                        .noneMatch(group -> group.equalsIgnoreCase(
+                                ns4KafkaProperties.getSecurity().getAdminGroup()))) {
             log.debug("Error during authentication: user groups not found in any namespace");
             throw new AuthenticationException(new AuthenticationFailed("No namespace matches your groups"));
         }

@@ -60,10 +60,10 @@ import org.apache.kafka.common.TopicPartition;
 @Controller(value = "/api/namespaces/{namespace}/topics")
 public class TopicController extends NamespacedResourceController {
     @Inject
-    TopicService topicService;
+    private TopicService topicService;
 
     @Inject
-    ResourceQuotaService resourceQuotaService;
+    private ResourceQuotaService resourceQuotaService;
 
     /**
      * List topics by namespace, filtered by name parameter.

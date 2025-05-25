@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.Namespace;
-import com.michelin.ns4kafka.property.SecurityProperties;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.NamespaceRepository;
 import com.michelin.ns4kafka.security.auth.AuthenticationRoleBinding;
 import com.michelin.ns4kafka.util.exception.ForbiddenNamespaceException;
@@ -57,7 +57,7 @@ class ResourceBasedSecurityRuleTest {
     NamespaceRepository namespaceRepository;
 
     @Mock
-    SecurityProperties securityProperties;
+    Ns4KafkaProperties ns4KafkaProperties;
 
     @InjectMocks
     ResourceBasedSecurityRule resourceBasedSecurityRule;
@@ -324,7 +324,7 @@ class ResourceBasedSecurityRuleTest {
 
     @Test
     void computeRolesNoAdmin() {
-        when(securityProperties.getAdminGroup()).thenReturn("admin-group");
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("admin-group"));
         List<String> actual = resourceBasedSecurityRule.computeRolesFromGroups(List.of("not-admin"));
 
         assertIterableEquals(List.of(), actual);
@@ -332,9 +332,15 @@ class ResourceBasedSecurityRuleTest {
 
     @Test
     void computeRolesAdminIgnoreCase() {
-        when(securityProperties.getAdminGroup()).thenReturn("aDmIn-gRoUP");
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("aDmIn-gRoUP"));
         List<String> actual = resourceBasedSecurityRule.computeRolesFromGroups(List.of("adMin-Group"));
 
         assertIterableEquals(List.of(ResourceBasedSecurityRule.IS_ADMIN), actual);
+    }
+
+    private Ns4KafkaProperties.SecurityProperties buildSecurityProperties(String adminGroup) {
+        Ns4KafkaProperties.SecurityProperties securityProperties = new Ns4KafkaProperties.SecurityProperties();
+        securityProperties.setAdminGroup(adminGroup);
+        return securityProperties;
     }
 }

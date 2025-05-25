@@ -31,7 +31,7 @@ import jakarta.inject.Singleton;
 @Requires(property = "ns4kafka.log.kafka.enabled", value = StringUtils.TRUE)
 public class KafkaLogListener implements ApplicationEventListener<AuditLog> {
     @Inject
-    KafkaLogProducer kafkaProducer;
+    private KafkaLogProducer kafkaProducer;
 
     @Override
     @Async

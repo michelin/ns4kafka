@@ -58,17 +58,16 @@ import lombok.extern.slf4j.Slf4j;
 public class ResourceQuotaService {
     private static final String QUOTA_RESPONSE_FORMAT = "%s/%s";
     private static final String USER_QUOTA_RESPONSE_FORMAT = "%sB/s";
-
     private static final String NO_QUOTA_RESPONSE_FORMAT = "%s";
 
     @Inject
-    ResourceQuotaRepository resourceQuotaRepository;
+    private ResourceQuotaRepository resourceQuotaRepository;
 
     @Inject
-    TopicService topicService;
+    private TopicService topicService;
 
     @Inject
-    ConnectorService connectorService;
+    private ConnectorService connectorService;
 
     /**
      * Find a resource quota of a given namespace.

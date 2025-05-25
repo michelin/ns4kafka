@@ -19,8 +19,8 @@
 package com.michelin.ns4kafka.controller;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.property.AkhqProperties;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import io.micronaut.core.annotation.Introspected;
@@ -53,22 +53,20 @@ public class AkhqClaimProviderController {
     private static final String TOPICS_FILTER_REGEX = "topicsFilterRegexp";
     private static final String CONNECTS_FILTER_REGEX = "connectsFilterRegexp";
     private static final String CONSUMER_GROUPS_FILTER_REGEX = "consumerGroupsFilterRegexp";
-
     private static final List<String> EMPTY_REGEXP = List.of("^none$");
-
     private static final List<String> ADMIN_REGEXP = List.of(".*");
 
     @Inject
-    AkhqProperties config;
+    private Ns4KafkaProperties ns4KafkaProperties;
 
     @Inject
-    AclService aclService;
+    private AclService aclService;
 
     @Inject
-    NamespaceService namespaceService;
+    private NamespaceService namespaceService;
 
     @Inject
-    List<ManagedClusterProperties> managedClusters;
+    private List<ManagedClusterProperties> managedClusters;
 
     /**
      * List AKHQ claims (v019 and prior).
@@ -79,19 +77,21 @@ public class AkhqClaimProviderController {
     @Post
     public AkhqClaimResponse generateClaim(@Valid @Body AkhqClaimRequest request) {
         if (request == null) {
-            return AkhqClaimResponse.ofEmpty(config.getFormerRoles());
+            return AkhqClaimResponse.ofEmpty(ns4KafkaProperties.getAkhq().getFormerRoles());
         }
 
         final List<String> groups = Optional.ofNullable(request.getGroups()).orElse(new ArrayList<>());
 
-        if (groups.contains(config.getAdminGroup())) {
-            return AkhqClaimResponse.ofAdmin(config.getFormerAdminRoles());
+        if (groups.contains(ns4KafkaProperties.getAkhq().getAdminGroup())) {
+            return AkhqClaimResponse.ofAdmin(ns4KafkaProperties.getAkhq().getFormerAdminRoles());
         }
 
         List<AccessControlEntry> relatedAcl = namespaceService.findAll().stream()
                 .filter(namespace -> namespace.getMetadata().getLabels() != null
-                        && groups.contains(
-                                namespace.getMetadata().getLabels().getOrDefault(config.getGroupLabel(), "_")))
+                        && groups.contains(namespace
+                                .getMetadata()
+                                .getLabels()
+                                .getOrDefault(ns4KafkaProperties.getAkhq().getGroupLabel(), "_")))
                 .flatMap(namespace -> aclService.findAllGrantedToNamespace(namespace).stream())
                 .collect(Collectors.toList());
 
@@ -99,7 +99,7 @@ public class AkhqClaimProviderController {
         relatedAcl.addAll(aclService.findAllPublicGrantedTo());
 
         return AkhqClaimResponse.builder()
-                .roles(config.getFormerRoles())
+                .roles(ns4KafkaProperties.getAkhq().getFormerRoles())
                 .attributes(Map.of(
                         TOPICS_FILTER_REGEX,
                         computeAllowedRegexListForResourceType(relatedAcl, AccessControlEntry.ResourceType.TOPIC),
@@ -119,13 +119,13 @@ public class AkhqClaimProviderController {
     @Post("/v2")
     public AkhqClaimResponseV2 generateClaimV2(@Valid @Body AkhqClaimRequest request) {
         if (request == null) {
-            return AkhqClaimResponseV2.ofEmpty(config.getFormerRoles());
+            return AkhqClaimResponseV2.ofEmpty(ns4KafkaProperties.getAkhq().getFormerRoles());
         }
 
         final List<String> groups = Optional.ofNullable(request.getGroups()).orElse(new ArrayList<>());
 
-        if (groups.contains(config.getAdminGroup())) {
-            return AkhqClaimResponseV2.ofAdmin(config.getFormerAdminRoles());
+        if (groups.contains(ns4KafkaProperties.getAkhq().getAdminGroup())) {
+            return AkhqClaimResponseV2.ofAdmin(ns4KafkaProperties.getAkhq().getFormerAdminRoles());
         }
 
         List<AccessControlEntry> relatedAcl = getAclsByGroups(groups);
@@ -134,7 +134,7 @@ public class AkhqClaimProviderController {
         relatedAcl.addAll(aclService.findAllPublicGrantedTo());
 
         return AkhqClaimResponseV2.builder()
-                .roles(config.getFormerRoles())
+                .roles(ns4KafkaProperties.getAkhq().getFormerRoles())
                 .topicsFilterRegexp(
                         computeAllowedRegexListForResourceType(relatedAcl, AccessControlEntry.ResourceType.TOPIC))
                 .connectsFilterRegexp(
@@ -153,8 +153,8 @@ public class AkhqClaimProviderController {
     public AkhqClaimResponseV3 generateClaimV3(@Valid @Body AkhqClaimRequest request) {
         final List<String> groups = Optional.ofNullable(request.getGroups()).orElse(new ArrayList<>());
 
-        if (groups.contains(config.getAdminGroup())) {
-            return AkhqClaimResponseV3.ofAdmin(config.getAdminRoles());
+        if (groups.contains(ns4KafkaProperties.getAkhq().getAdminGroup())) {
+            return AkhqClaimResponseV3.ofAdmin(ns4KafkaProperties.getAkhq().getAdminRoles());
         }
 
         List<AccessControlEntry> acls = getAclsByGroups(groups);
@@ -182,7 +182,8 @@ public class AkhqClaimProviderController {
             // Build the cluster regex
             String patternCluster = String.format("^%s$", acl.getMetadata().getCluster());
 
-            String role = config.getRoles().get(acl.getSpec().getResourceType());
+            String role =
+                    ns4KafkaProperties.getAkhq().getRoles().get(acl.getSpec().getResourceType());
             String key = role + "-" + acl.getSpec().getResource();
 
             // If we already have permissions for the role and cluster, add the pattern to the existing one
@@ -209,7 +210,8 @@ public class AkhqClaimProviderController {
 
         // Add the same pattern and cluster filtering for SCHEMA as the TOPIC ones
         result.addAll(result.stream()
-                .filter(g -> g.role.equals(config.getRoles().get(AccessControlEntry.ResourceType.TOPIC)))
+                .filter(g -> g.role.equals(
+                        ns4KafkaProperties.getAkhq().getRoles().get(AccessControlEntry.ResourceType.TOPIC)))
                 .map(g -> {
                     // Takes all the PREFIXED patterns as-is
                     List<String> patterns = new ArrayList<>(g.getPatterns().stream()
@@ -223,7 +225,7 @@ public class AkhqClaimProviderController {
                             .toList());
 
                     return AkhqClaimResponseV3.Group.builder()
-                            .role(config.getRoles().get(AccessControlEntry.ResourceType.SCHEMA))
+                            .role(ns4KafkaProperties.getAkhq().getRoles().get(AccessControlEntry.ResourceType.SCHEMA))
                             .patterns(patterns)
                             .clusters(g.getClusters())
                             .build();
@@ -232,7 +234,8 @@ public class AkhqClaimProviderController {
 
         // If "GROUP" claim is present, remove the patterns to allow all the groups
         result.stream()
-                .filter(group -> group.getRole().equals(config.getRoles().get(AccessControlEntry.ResourceType.GROUP)))
+                .filter(group -> group.getRole()
+                        .equals(ns4KafkaProperties.getAkhq().getRoles().get(AccessControlEntry.ResourceType.GROUP)))
                 .findFirst()
                 .ifPresent(group -> group.setPatterns(null));
 
@@ -325,7 +328,8 @@ public class AkhqClaimProviderController {
                                 List.of(namespace
                                         .getMetadata()
                                         .getLabels()
-                                        .getOrDefault(config.getGroupLabel(), "_")
+                                        .getOrDefault(
+                                                ns4KafkaProperties.getAkhq().getGroupLabel(), "_")
                                         .split(","))))
                 .flatMap(namespace -> aclService.findAllGrantedToNamespace(namespace).stream())
                 .collect(Collectors.toList());

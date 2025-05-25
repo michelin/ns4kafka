@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.RoleBinding;
-import com.michelin.ns4kafka.property.SecurityProperties;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.security.auth.AuthenticationRoleBinding;
 import com.michelin.ns4kafka.security.auth.AuthenticationService;
 import io.micronaut.security.authentication.AuthenticationException;
@@ -46,7 +46,7 @@ class LocalUserAuthenticationProviderTest {
     AuthenticationService authenticationService;
 
     @Mock
-    SecurityProperties securityProperties;
+    Ns4KafkaProperties ns4KafkaProperties;
 
     @InjectMocks
     LocalUserAuthenticationProvider localUserAuthenticationProvider;
@@ -55,7 +55,7 @@ class LocalUserAuthenticationProviderTest {
     void authenticateNoMatchUser() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
 
-        when(securityProperties.getLocalUsers()).thenReturn(List.of());
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties(List.of()));
 
         Publisher<AuthenticationResponse> authenticationResponsePublisher =
                 localUserAuthenticationProvider.authenticate(null, credentials);
@@ -69,11 +69,11 @@ class LocalUserAuthenticationProviderTest {
     void authenticateMatchUserNoMatchPassword() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
 
-        when(securityProperties.getLocalUsers())
-                .thenReturn(List.of(LocalUser.builder()
+        when(ns4KafkaProperties.getSecurity())
+                .thenReturn(buildSecurityProperties(List.of(LocalUser.builder()
                         .username("admin")
                         .password("invalid_sha256_signature")
-                        .build()));
+                        .build())));
 
         Publisher<AuthenticationResponse> authenticationResponsePublisher =
                 localUserAuthenticationProvider.authenticate(null, credentials);
@@ -88,12 +88,12 @@ class LocalUserAuthenticationProviderTest {
     void authenticateMatchUserMatchPassword() {
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
 
-        when(securityProperties.getLocalUsers())
-                .thenReturn(List.of(LocalUser.builder()
+        when(ns4KafkaProperties.getSecurity())
+                .thenReturn(buildSecurityProperties(List.of(LocalUser.builder()
                         .username("admin")
                         .password("8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918")
                         .groups(List.of("admin"))
-                        .build()));
+                        .build())));
 
         AuthenticationRoleBinding authenticationRoleBinding = AuthenticationRoleBinding.builder()
                 .namespaces(List.of("namespace"))
@@ -119,5 +119,11 @@ class LocalUserAuthenticationProviderTest {
                             response.getAuthentication().get().getAttributes().get("roleBindings"));
                 })
                 .verifyComplete();
+    }
+
+    private Ns4KafkaProperties.SecurityProperties buildSecurityProperties(List<LocalUser> localUsers) {
+        Ns4KafkaProperties.SecurityProperties securityProperties = new Ns4KafkaProperties.SecurityProperties();
+        securityProperties.setLocalUsers(localUsers);
+        return securityProperties;
     }
 }

@@ -48,10 +48,10 @@ public class AclService {
     public static final String PUBLIC_GRANTED_TO = "*";
 
     @Inject
-    AccessControlEntryRepository accessControlEntryRepository;
+    private AccessControlEntryRepository accessControlEntryRepository;
 
     @Inject
-    ApplicationContext applicationContext;
+    private ApplicationContext applicationContext;
 
     /**
      * Is public ACL.

@@ -53,16 +53,16 @@ import org.apache.kafka.common.TopicPartition;
 @Singleton
 public class TopicService {
     @Inject
-    TopicRepository topicRepository;
+    private TopicRepository topicRepository;
 
     @Inject
-    AclService aclService;
+    private AclService aclService;
 
     @Inject
-    ApplicationContext applicationContext;
+    private ApplicationContext applicationContext;
 
     @Inject
-    List<ManagedClusterProperties> managedClusterProperties;
+    private List<ManagedClusterProperties> managedClusterProperties;
 
     /**
      * Find all topics.

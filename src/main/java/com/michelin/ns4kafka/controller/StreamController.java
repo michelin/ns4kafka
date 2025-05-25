@@ -50,7 +50,7 @@ import java.util.Optional;
 @Controller(value = "/api/namespaces/{namespace}/streams")
 public class StreamController extends NamespacedResourceController {
     @Inject
-    StreamService streamService;
+    private StreamService streamService;
 
     /**
      * List Kafka Streams by namespace, filtered by name parameter.

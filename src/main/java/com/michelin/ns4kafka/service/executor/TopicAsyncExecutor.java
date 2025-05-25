@@ -20,8 +20,8 @@ package com.michelin.ns4kafka.service.executor;
 
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Topic;
-import com.michelin.ns4kafka.property.ConfluentCloudProperties;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
 import com.michelin.ns4kafka.repository.kafka.KafkaStoreException;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
@@ -81,7 +81,7 @@ public class TopicAsyncExecutor {
 
     private SchemaRegistryClient schemaRegistryClient;
 
-    private ConfluentCloudProperties confluentCloudProperties;
+    private Ns4KafkaProperties ns4KafkaProperties;
 
     private Admin getAdminClient() {
         return managedClusterProperties.getAdminClient();
@@ -184,7 +184,7 @@ public class TopicAsyncExecutor {
      * @param brokerTopics Topics from broker
      */
     public void alterCatalogInfo(List<Topic> checkTopics, Map<String, Topic> brokerTopics) {
-        if (confluentCloudProperties.getStreamCatalog().isSyncCatalog()
+        if (ns4KafkaProperties.getConfluentCloud().getStreamCatalog().isSyncCatalog()
                 && managedClusterProperties.isConfluentCloud()) {
             alterTags(checkTopics, brokerTopics);
             alterDescriptions(checkTopics, brokerTopics);
@@ -339,7 +339,7 @@ public class TopicAsyncExecutor {
      * @param topics Topics to enrich
      */
     public void enrichWithCatalogInfo(Map<String, Topic> topics) {
-        if (confluentCloudProperties.getStreamCatalog().isSyncCatalog()
+        if (ns4KafkaProperties.getConfluentCloud().getStreamCatalog().isSyncCatalog()
                 && managedClusterProperties.isConfluentCloud()) {
             try {
                 enrichWithGraphQlCatalogInfo(topics);
@@ -397,7 +397,7 @@ public class TopicAsyncExecutor {
         // getting topics by managing offset & limit
         TopicListResponse topicListResponse;
         int offset = 0;
-        int limit = confluentCloudProperties.getStreamCatalog().getPageSize();
+        int limit = ns4KafkaProperties.getConfluentCloud().getStreamCatalog().getPageSize();
 
         do {
             topicListResponse = schemaRegistryClient
@@ -513,9 +513,9 @@ public class TopicAsyncExecutor {
                 updatedTopic.setStatus(
                         Topic.TopicStatus.ofFailed("Error while updating topic configs: " + e.getMessage()));
                 log.error(
-                        String.format(
-                                "Error while updating topic configs %s on %s",
-                                key.name(), managedClusterProperties.getName()),
+                        "Error while updating topic configs {} on {}",
+                        key.name(),
+                        managedClusterProperties.getName(),
                         e);
             }
             topicRepository.create(updatedTopic);
@@ -560,9 +560,7 @@ public class TopicAsyncExecutor {
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 createdTopic.setStatus(Topic.TopicStatus.ofFailed("Error while creating topic: " + e.getMessage()));
-                log.error(
-                        String.format("Error while creating topic %s on %s", key, managedClusterProperties.getName()),
-                        e);
+                log.error("Error while creating topic {} on {}", key, managedClusterProperties.getName(), e);
             }
             topicRepository.create(createdTopic);
         });

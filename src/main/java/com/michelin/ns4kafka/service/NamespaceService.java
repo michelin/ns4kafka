@@ -47,28 +47,28 @@ public class NamespaceService {
     private static final List<String> NOT_EDITABLE_CONFIGS = List.of(TopicConfig.MIN_CLEANABLE_DIRTY_RATIO_CONFIG);
 
     @Inject
-    NamespaceRepository namespaceRepository;
+    private NamespaceRepository namespaceRepository;
 
     @Inject
-    List<ManagedClusterProperties> managedClusterProperties;
+    private List<ManagedClusterProperties> managedClusterProperties;
 
     @Inject
-    TopicService topicService;
+    private TopicService topicService;
 
     @Inject
-    RoleBindingService roleBindingService;
+    private RoleBindingService roleBindingService;
 
     @Inject
-    AclService aclService;
+    private AclService aclService;
 
     @Inject
-    ConnectorService connectorService;
+    private ConnectorService connectorService;
 
     @Inject
-    ConnectClusterService connectClusterService;
+    private ConnectClusterService connectClusterService;
 
     @Inject
-    ResourceQuotaService resourceQuotaService;
+    private ResourceQuotaService resourceQuotaService;
 
     /**
      * List all namespaces.

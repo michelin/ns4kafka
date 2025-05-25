@@ -49,7 +49,7 @@ import org.apache.kafka.common.TopicPartition;
 @Controller("/api/namespaces/{namespace}/consumer-groups")
 public class ConsumerGroupController extends NamespacedResourceController {
     @Inject
-    ConsumerGroupService consumerGroupService;
+    private ConsumerGroupService consumerGroupService;
 
     /**
      * Reset offsets by topic and consumer group.

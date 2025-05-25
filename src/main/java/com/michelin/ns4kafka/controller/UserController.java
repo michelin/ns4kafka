@@ -44,7 +44,7 @@ import java.util.Date;
 @Controller(value = "/api/namespaces/{namespace}/users")
 public class UserController extends NamespacedResourceController {
     @Inject
-    ApplicationContext applicationContext;
+    private ApplicationContext applicationContext;
 
     /**
      * Reset a password.

@@ -58,10 +58,10 @@ import reactor.core.publisher.Mono;
 @ExecuteOn(TaskExecutors.IO)
 public class ConnectorController extends NamespacedResourceController {
     @Inject
-    ConnectorService connectorService;
+    private ConnectorService connectorService;
 
     @Inject
-    ResourceQuotaService resourceQuotaService;
+    private ResourceQuotaService resourceQuotaService;
 
     /**
      * List connectors by namespace, filtered by name parameter.

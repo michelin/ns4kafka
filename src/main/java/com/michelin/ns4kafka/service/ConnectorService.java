@@ -53,19 +53,19 @@ import reactor.core.publisher.Mono;
 @Singleton
 public class ConnectorService {
     @Inject
-    AclService aclService;
+    private AclService aclService;
 
     @Inject
-    KafkaConnectClient kafkaConnectClient;
+    private KafkaConnectClient kafkaConnectClient;
 
     @Inject
-    ConnectorRepository connectorRepository;
+    private ConnectorRepository connectorRepository;
 
     @Inject
-    ApplicationContext applicationContext;
+    private ApplicationContext applicationContext;
 
     @Inject
-    ConnectClusterService connectClusterService;
+    private ConnectClusterService connectClusterService;
 
     /**
      * Find all connectors by given namespace.
