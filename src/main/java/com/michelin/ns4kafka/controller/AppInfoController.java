@@ -36,8 +36,6 @@ public class AppInfoController {
 
     @Get("/version")
     public AppInfo version() {
-        return AppInfo.builder()
-            .version(ns4KafkaProperties.getVersion())
-            .build();
+        return AppInfo.builder().version(ns4KafkaProperties.getVersion()).build();
     }
 }
