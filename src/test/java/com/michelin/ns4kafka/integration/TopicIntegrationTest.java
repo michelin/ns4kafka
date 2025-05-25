@@ -53,6 +53,7 @@ import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.BlockingHttpClient;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
@@ -119,6 +120,8 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
         HttpResponse<BearerAccessRefreshToken> response = ns4KafkaClient
                 .toBlocking()
                 .exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
+
+        assertTrue(response.getBody().isPresent());
 
         token = response.getBody().get().getAccessToken();
 
@@ -382,11 +385,14 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                         .build())
                 .build();
 
-        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class, () -> ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
-                        .bearerAuth(token)
-                        .body(topicFirstCreate)));
+        HttpRequest<?> request = HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                .bearerAuth(token)
+                .body(topicFirstCreate);
+
+        BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
+
+        HttpClientResponseException exception =
+                assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
 
         assertEquals("Constraint validation failed", exception.getMessage());
         assertTrue(exception.getResponse().getBody(Status.class).isPresent());
@@ -457,11 +463,14 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                         .build())
                 .build();
 
-        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class, () -> ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns2/topics")
-                        .bearerAuth(token)
-                        .body(topicToModifyBis)));
+        HttpRequest<?> request = HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns2/topics")
+                .bearerAuth(token)
+                .body(topicToModifyBis);
+
+        BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
+
+        HttpClientResponseException exception =
+                assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
 
@@ -570,11 +579,14 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
 
         forceTopicSynchronization();
 
-        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class, () -> ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest.create(
-                                HttpMethod.POST, "/api/namespaces/ns1/topics/compactTopicToDelete/delete-records")
-                        .bearerAuth(token)));
+        HttpRequest<?> request = HttpRequest.create(
+                        HttpMethod.POST, "/api/namespaces/ns1/topics/compactTopicToDelete/delete-records")
+                .bearerAuth(token);
+
+        BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
+
+        HttpClientResponseException exception =
+                assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
     }

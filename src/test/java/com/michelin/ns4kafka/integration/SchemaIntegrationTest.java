@@ -42,6 +42,7 @@ import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.BlockingHttpClient;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
@@ -94,6 +95,8 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         HttpResponse<BearerAccessRefreshToken> response = ns4KafkaClient
                 .toBlocking()
                 .exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
+
+        assertTrue(response.getBody().isPresent());
 
         token = response.getBody().get().getAccessToken();
 
@@ -269,12 +272,14 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         .build())
                 .build();
 
+        HttpRequest<?> request = HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                .bearerAuth(token)
+                .body(incompatibleSchema);
+
+        BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
+
         HttpClientResponseException incompatibleActual =
-                assertThrows(HttpClientResponseException.class, () -> ns4KafkaClient
-                        .toBlocking()
-                        .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
-                                .bearerAuth(token)
-                                .body(incompatibleSchema)));
+                assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, incompatibleActual.getStatus());
         assertEquals("Resource validation failed", incompatibleActual.getMessage());
@@ -329,12 +334,14 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         .build())
                 .build();
 
+        HttpRequest<?> request = HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                .bearerAuth(token)
+                .body(schemaPersonWithoutRefs);
+
+        BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
+
         HttpClientResponseException createException =
-                assertThrows(HttpClientResponseException.class, () -> ns4KafkaClient
-                        .toBlocking()
-                        .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
-                                .bearerAuth(token)
-                                .body(schemaPersonWithoutRefs)));
+                assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, createException.getStatus());
         assertEquals("Resource validation failed", createException.getMessage());
@@ -548,12 +555,14 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         .build())
                 .build();
 
+        HttpRequest<?> request = HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                .bearerAuth(token)
+                .body(wrongSchema);
+
+        BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
+
         HttpClientResponseException createException =
-                assertThrows(HttpClientResponseException.class, () -> ns4KafkaClient
-                        .toBlocking()
-                        .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
-                                .bearerAuth(token)
-                                .body(wrongSchema)));
+                assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, createException.getStatus());
         assertEquals("Resource validation failed", createException.getMessage());
@@ -571,12 +580,13 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                 .noneMatch(
                         schemaResponse -> schemaResponse.getMetadata().getName().equals("wrongprefix-subject")));
 
-        HttpClientResponseException getException =
-                assertThrows(HttpClientResponseException.class, () -> schemaRegistryClient
-                        .toBlocking()
-                        .retrieve(
-                                HttpRequest.GET("/subjects/wrongprefix-subject/versions/latest"),
-                                SchemaResponse.class));
+        HttpRequest<?> wrongPrefixRequest = HttpRequest.GET("/subjects/wrongprefix-subject/versions/latest");
+
+        BlockingHttpClient blockingSchemaRegistryClient = schemaRegistryClient.toBlocking();
+
+        HttpClientResponseException getException = assertThrows(
+                HttpClientResponseException.class,
+                () -> blockingSchemaRegistryClient.retrieve(wrongPrefixRequest, SchemaResponse.class));
 
         assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
     }
@@ -643,11 +653,13 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                 .noneMatch(
                         schemaResponse -> schemaResponse.getMetadata().getName().equals("ns1-subject2-value")));
 
-        HttpClientResponseException getException =
-                assertThrows(HttpClientResponseException.class, () -> schemaRegistryClient
-                        .toBlocking()
-                        .retrieve(
-                                HttpRequest.GET("/subjects/ns1-subject2-value/versions/latest"), SchemaResponse.class));
+        HttpRequest<?> request = HttpRequest.GET("/subjects/ns1-subject2-value/versions/latest");
+
+        BlockingHttpClient blockingSchemaRegistryClient = schemaRegistryClient.toBlocking();
+
+        HttpClientResponseException getException = assertThrows(
+                HttpClientResponseException.class,
+                () -> blockingSchemaRegistryClient.retrieve(request, SchemaResponse.class));
 
         assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
     }
@@ -898,7 +910,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.GET, "/subjects"), Argument.listOf(String.class));
 
-        assertTrue(getSchemaAfterOldVersionDeletionResponse.getBody().isPresent());
+        assertTrue(getSchemaAfterAllVersionsDeletionResponse.getBody().isPresent());
         assertFalse(getSchemaAfterAllVersionsDeletionResponse.getBody().get().contains("ns1-subject4-value"));
     }
 

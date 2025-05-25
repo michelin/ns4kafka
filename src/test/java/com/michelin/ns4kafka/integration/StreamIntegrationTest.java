@@ -98,6 +98,8 @@ class StreamIntegrationTest extends KafkaIntegrationTest {
                 .toBlocking()
                 .exchange(HttpRequest.POST("/login", credentials), BearerAccessRefreshToken.class);
 
+        assertTrue(response.getBody().isPresent());
+
         token = response.getBody().get().getAccessToken();
 
         ns4KafkaClient
@@ -191,6 +193,7 @@ class StreamIntegrationTest extends KafkaIntegrationTest {
                                 .bearerAuth(token),
                         Argument.listOf(KafkaStream.class));
 
+        assertTrue(streams.getBody().isPresent());
         assertEquals(0, streams.getBody().get().size());
     }
 }
