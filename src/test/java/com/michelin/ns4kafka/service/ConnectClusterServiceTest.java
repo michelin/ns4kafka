@@ -296,6 +296,7 @@ class ConnectClusterServiceTest {
                                 .build())
                         .build());
 
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("aes256Key"));
         when(connectClusterRepository.findAllForCluster("local")).thenReturn(List.of(cc1, cc2));
         when(aclService.findAllGrantedToNamespace(namespace)).thenReturn(acls);
         when(aclService.isResourceCoveredByAcls(acls, "abc.cc")).thenReturn(true);
@@ -380,6 +381,7 @@ class ConnectClusterServiceTest {
                                 .build())
                         .build());
 
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("aes256Key"));
         when(connectClusterRepository.findAllForCluster("local")).thenReturn(List.of(cc1, cc2, cc3, cc4, cc5));
         when(aclService.findAllGrantedToNamespace(namespace)).thenReturn(acls);
         when(aclService.isResourceCoveredByAcls(any(), eq("prefix.cc1"))).thenReturn(true);
@@ -526,6 +528,7 @@ class ConnectClusterServiceTest {
                                 .build())
                         .build()));
 
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("aes256Key"));
         when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster")))
                 .thenReturn(true);
 
@@ -571,6 +574,7 @@ class ConnectClusterServiceTest {
                                 .build())
                         .build()));
 
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("aes256Key"));
         when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster")))
                 .thenReturn(true);
 

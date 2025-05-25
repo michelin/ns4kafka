@@ -57,6 +57,7 @@ public class Ns4KafkaProperties {
 
     @Getter
     @Setter
+    @ConfigurationProperties("akhq")
     public static class AkhqProperties {
         private String groupLabel;
         private Map<AccessControlEntry.ResourceType, String> roles;
@@ -69,11 +70,13 @@ public class Ns4KafkaProperties {
 
     @Getter
     @Setter
+    @ConfigurationProperties("confluent-cloud")
     public static class ConfluentCloudProperties {
         private StreamCatalogProperties streamCatalog = new StreamCatalogProperties();
 
         @Getter
         @Setter
+        @ConfigurationProperties("stream-catalog")
         public static class StreamCatalogProperties {
             private int pageSize = 500;
             private boolean syncCatalog;
@@ -82,6 +85,7 @@ public class Ns4KafkaProperties {
 
     @Getter
     @Setter
+    @ConfigurationProperties("security")
     public static class SecurityProperties {
         private List<LocalUser> localUsers;
         private String adminGroup;

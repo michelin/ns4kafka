@@ -49,7 +49,7 @@ public class AccessControlEntry extends MetadataResource {
         this.spec = spec;
     }
 
-    /** Resource type managed by Ns4kafka. */
+    /** Resource type managed by Ns4Kafka. */
     public enum ResourceType {
         TOPIC,
         GROUP,
