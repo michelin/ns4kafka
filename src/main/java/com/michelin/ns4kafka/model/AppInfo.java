@@ -41,7 +41,7 @@ import io.micronaut.core.annotation.Introspected;
 import lombok.Builder;
 import lombok.Data;
 
-/** Version. */
+/** App information. */
 @Data
 @Builder
 @Introspected

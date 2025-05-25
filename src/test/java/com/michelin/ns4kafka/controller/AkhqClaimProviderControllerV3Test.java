@@ -20,6 +20,7 @@ package com.michelin.ns4kafka.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
@@ -54,6 +55,28 @@ class AkhqClaimProviderControllerV3Test {
 
     @InjectMocks
     AkhqClaimProviderController akhqClaimProviderController;
+
+    @Test
+    void shouldGenerateClaimForAdmin() {
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
+
+        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+                .groups(List.of("GP-ADMIN"))
+                .build();
+
+        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+
+        assertEquals(1, actual.getGroups().size());
+
+        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
+                actual.getGroups().get("group");
+
+        assertEquals(4, groups.size());
+        assertTrue(groups.stream().anyMatch(group -> group.getRole().equals("connect-admin")));
+        assertTrue(groups.stream().anyMatch(group -> group.getRole().equals("group-read")));
+        assertTrue(groups.stream().anyMatch(group -> group.getRole().equals("registry-admin")));
+        assertTrue(groups.stream().anyMatch(group -> group.getRole().equals("topic-admin")));
+    }
 
     @Test
     void shouldGenerateClaimHappyPath() {
