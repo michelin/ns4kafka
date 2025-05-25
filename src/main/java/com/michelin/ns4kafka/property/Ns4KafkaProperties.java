@@ -40,6 +40,7 @@ package com.michelin.ns4kafka.property;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.security.auth.local.LocalUser;
 import io.micronaut.context.annotation.ConfigurationProperties;
+import io.micronaut.core.convert.format.MapFormat;
 import java.util.List;
 import java.util.Map;
 import lombok.Getter;
@@ -50,9 +51,10 @@ import lombok.Setter;
 @Setter
 @ConfigurationProperties("ns4kafka")
 public class Ns4KafkaProperties {
-    private AkhqProperties akhq = new AkhqProperties();
-    private ConfluentCloudProperties confluentCloud = new ConfluentCloudProperties();
-    private SecurityProperties security = new SecurityProperties();
+    private AkhqProperties akhq;
+    private ConfluentCloudProperties confluentCloud;
+    private SecurityProperties security;
+    private StoreProperties store;
     private String version;
 
     @Getter
@@ -72,7 +74,7 @@ public class Ns4KafkaProperties {
     @Setter
     @ConfigurationProperties("confluent-cloud")
     public static class ConfluentCloudProperties {
-        private StreamCatalogProperties streamCatalog = new StreamCatalogProperties();
+        private StreamCatalogProperties streamCatalog;
 
         @Getter
         @Setter
@@ -90,5 +92,31 @@ public class Ns4KafkaProperties {
         private List<LocalUser> localUsers;
         private String adminGroup;
         private String aes256EncryptionKey;
+    }
+
+    @Getter
+    @Setter
+    @ConfigurationProperties("store")
+    public static class StoreProperties {
+        private KafkaProperties kafka;
+
+        @Getter
+        @Setter
+        @ConfigurationProperties("kafka")
+        public static class KafkaProperties {
+            private int initTimeout;
+            private TopicsProperties topics;
+
+            @Getter
+            @Setter
+            @ConfigurationProperties("topics")
+            public static class TopicsProperties {
+                private String prefix;
+                private int replicationFactor;
+
+                @MapFormat(transformation = MapFormat.MapTransformation.FLAT)
+                private Map<String, String> props;
+            }
+        }
     }
 }
