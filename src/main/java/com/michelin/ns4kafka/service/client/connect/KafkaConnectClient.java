@@ -20,7 +20,7 @@ package com.michelin.ns4kafka.service.client.connect;
 
 import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
-import com.michelin.ns4kafka.property.SecurityProperties;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.ConnectClusterRepository;
 import com.michelin.ns4kafka.service.client.connect.entities.ConfigInfos;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorInfo;
@@ -69,7 +69,7 @@ public class KafkaConnectClient {
     private List<ManagedClusterProperties> managedClusterProperties;
 
     @Inject
-    private SecurityProperties securityProperties;
+    private Ns4KafkaProperties ns4KafkaProperties;
 
     /**
      * Get the Kafka connect version. Used to determine if the Kafka Connect is up and running.
@@ -348,7 +348,7 @@ public class KafkaConnectClient {
                     .username(connectClusterOptional.get().getSpec().getUsername())
                     .password(EncryptionUtils.decryptAes256Gcm(
                             connectClusterOptional.get().getSpec().getPassword(),
-                            securityProperties.getAes256EncryptionKey()))
+                            ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
                     .build();
         }
 

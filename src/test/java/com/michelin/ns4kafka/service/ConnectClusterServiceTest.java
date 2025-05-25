@@ -34,7 +34,7 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
 import com.michelin.ns4kafka.model.connect.cluster.VaultResponse;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
-import com.michelin.ns4kafka.property.SecurityProperties;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.ConnectClusterRepository;
 import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
 import com.michelin.ns4kafka.util.EncryptionUtils;
@@ -69,7 +69,7 @@ class ConnectClusterServiceTest {
     List<ManagedClusterProperties> managedClusterPropertiesList;
 
     @Mock
-    SecurityProperties securityProperties;
+    Ns4KafkaProperties ns4KafkaProperties;
 
     @InjectMocks
     ConnectClusterService connectClusterService;
@@ -470,7 +470,7 @@ class ConnectClusterServiceTest {
 
         when(aclService.findAllGrantedToNamespace(namespace)).thenReturn(List.of(acl1, acl2));
 
-        when(securityProperties.getAes256EncryptionKey()).thenReturn(encryptKey);
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties(encryptKey));
         when(aclService.isResourceCoveredByAcls(List.of(acl1), "prefix.connect-cluster"))
                 .thenReturn(true);
         when(aclService.isResourceCoveredByAcls(List.of(acl2), "prefix.connect-cluster"))
@@ -651,7 +651,7 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(connectClusterRepository.create(connectCluster)).thenReturn(connectCluster);
-        when(securityProperties.getAes256EncryptionKey()).thenReturn("changeitchangeitchangeitchangeit");
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("changeitchangeitchangeitchangeit"));
 
         ConnectCluster actual = connectClusterService.create(connectCluster);
 
@@ -912,7 +912,7 @@ class ConnectClusterServiceTest {
         when(aclService.isResourceCoveredByAcls(any(), any())).thenReturn(true);
 
         when(kafkaConnectClient.version(any(), any())).thenReturn(Mono.just(HttpResponse.ok()));
-        when(securityProperties.getAes256EncryptionKey()).thenReturn(encryptKey);
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties(encryptKey));
 
         assertEquals(
                 List.of("Invalid empty value for fields \"aes256Key, aes256Salt\": "
@@ -965,7 +965,7 @@ class ConnectClusterServiceTest {
         when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster")))
                 .thenReturn(true);
         when(kafkaConnectClient.version(any(), any())).thenReturn(Mono.just(HttpResponse.ok()));
-        when(securityProperties.getAes256EncryptionKey()).thenReturn(encryptKey);
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties(encryptKey));
 
         List<String> errors = connectClusterService.validateConnectClusterVault(namespace, "prefix.connect-cluster");
 
@@ -1066,7 +1066,7 @@ class ConnectClusterServiceTest {
                 .thenReturn(true);
         when(aclService.isResourceCoveredByAcls(List.of(acl2), "prefix.connect-cluster"))
                 .thenReturn(false);
-        when(securityProperties.getAes256EncryptionKey()).thenReturn(encryptKey);
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties(encryptKey));
         when(kafkaConnectClient.version(any(), any())).thenReturn(Mono.just(HttpResponse.ok()));
         when(aclService.isResourceCoveredByAcls(List.of(acl1), "prefix.connect-cluster"))
                 .thenReturn(true);
@@ -1148,7 +1148,7 @@ class ConnectClusterServiceTest {
                                 .build())
                         .build()));
 
-        when(securityProperties.getAes256EncryptionKey()).thenReturn("changeitchangeitchangeitchangeit");
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("changeitchangeitchangeitchangeit"));
         when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster")))
                 .thenReturn(true);
 
@@ -1190,7 +1190,7 @@ class ConnectClusterServiceTest {
                                 .build())
                         .build()));
 
-        when(securityProperties.getAes256EncryptionKey()).thenReturn("changeitchangeitchangeitchangeit");
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("changeitchangeitchangeitchangeit"));
         when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster")))
                 .thenReturn(true);
 
@@ -1198,5 +1198,11 @@ class ConnectClusterServiceTest {
                 connectClusterService.vaultPassword(namespace, "prefix.connect-cluster", List.of("secret"));
 
         assertFalse(actual.getFirst().getSpec().getEncrypted().matches("^\\$\\{aes256:.*}"));
+    }
+
+    private Ns4KafkaProperties.SecurityProperties buildSecurityProperties(String aes256EncryptionKey) {
+        Ns4KafkaProperties.SecurityProperties securityProperties = new Ns4KafkaProperties.SecurityProperties();
+        securityProperties.setAes256EncryptionKey(aes256EncryptionKey);
+        return securityProperties;
     }
 }

@@ -18,7 +18,7 @@
  */
 package com.michelin.ns4kafka.security.auth.local;
 
-import com.michelin.ns4kafka.property.SecurityProperties;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.security.auth.AuthenticationService;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
@@ -41,10 +41,10 @@ import reactor.core.publisher.Mono;
 @Singleton
 public class LocalUserAuthenticationProvider implements ReactiveAuthenticationProvider<HttpRequest<?>, String, String> {
     @Inject
-    SecurityProperties securityProperties;
+    private Ns4KafkaProperties ns4KafkaProperties;
 
     @Inject
-    AuthenticationService authenticationService;
+    private AuthenticationService authenticationService;
 
     @Override
     public @NonNull Publisher<AuthenticationResponse> authenticate(
@@ -55,7 +55,7 @@ public class LocalUserAuthenticationProvider implements ReactiveAuthenticationPr
             String password = authenticationRequest.getSecret();
             log.debug("Checking local authentication for user: {}", username);
 
-            Optional<LocalUser> authenticatedUser = securityProperties.getLocalUsers().stream()
+            Optional<LocalUser> authenticatedUser = ns4KafkaProperties.getSecurity().getLocalUsers().stream()
                     .filter(localUser -> localUser.getUsername().equals(username))
                     .filter(localUser -> localUser.isValidPassword(password))
                     .findFirst();

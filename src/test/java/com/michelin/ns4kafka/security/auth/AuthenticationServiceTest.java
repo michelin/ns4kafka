@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.RoleBinding;
-import com.michelin.ns4kafka.property.SecurityProperties;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.RoleBindingService;
 import io.micronaut.security.authentication.AuthenticationException;
@@ -46,7 +46,7 @@ class AuthenticationServiceTest {
     RoleBindingService roleBindingService;
 
     @Mock
-    SecurityProperties securityProperties;
+    Ns4KafkaProperties ns4KafkaProperties;
 
     @Mock
     ResourceBasedSecurityRule resourceBasedSecurityRule;
@@ -58,7 +58,7 @@ class AuthenticationServiceTest {
     void shouldThrowErrorWhenNoRoleBindingAndNotAdmin() {
         when(roleBindingService.findAllByGroups(any())).thenReturn(Collections.emptyList());
 
-        when(securityProperties.getAdminGroup()).thenReturn("admin");
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("admin"));
 
         List<String> groups = List.of("group");
         AuthenticationException exception = assertThrows(
@@ -75,7 +75,7 @@ class AuthenticationServiceTest {
         when(roleBindingService.findAllByGroups(any())).thenReturn(Collections.emptyList());
 
         // Case should be ignored
-        when(securityProperties.getAdminGroup()).thenReturn("aDmIn");
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("aDmIn"));
 
         when(resourceBasedSecurityRule.computeRolesFromGroups(any()))
                 .thenReturn(List.of(ResourceBasedSecurityRule.IS_ADMIN));
@@ -252,5 +252,11 @@ class AuthenticationServiceTest {
                                 .verbs(List.of(RoleBinding.Verb.GET))
                                 .resourceTypes(List.of("topics"))
                                 .build())));
+    }
+
+    private Ns4KafkaProperties.SecurityProperties buildSecurityProperties(String adminGroup) {
+        Ns4KafkaProperties.SecurityProperties securityProperties = new Ns4KafkaProperties.SecurityProperties();
+        securityProperties.setAdminGroup(adminGroup);
+        return securityProperties;
     }
 }

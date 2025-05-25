@@ -32,9 +32,8 @@ import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Topic;
-import com.michelin.ns4kafka.property.ConfluentCloudProperties;
-import com.michelin.ns4kafka.property.ConfluentCloudProperties.StreamCatalogProperties;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.GraphQueryData;
@@ -83,10 +82,7 @@ class TopicAsyncExecutorTest {
     ManagedClusterProperties managedClusterProperties;
 
     @Mock
-    ConfluentCloudProperties confluentCloudProperties;
-
-    @Mock
-    StreamCatalogProperties streamCatalogProperties;
+    Ns4KafkaProperties ns4KafkaProperties;
 
     @Mock
     TopicRepository topicRepository;
@@ -105,8 +101,7 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldAlterCatalogInfo() {
-        when(confluentCloudProperties.getStreamCatalog()).thenReturn(streamCatalogProperties);
-        when(streamCatalogProperties.isSyncCatalog()).thenReturn(true);
+        when(ns4KafkaProperties.getConfluentCloud()).thenReturn(buildConfluentCloudProperties(true));
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
 
         when(schemaRegistryClient.dissociateTag(anyString(), anyString(), anyString()))
@@ -148,8 +143,7 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldNotAlterCatalogInfoWhenNotSyncCatalog() {
-        when(confluentCloudProperties.getStreamCatalog()).thenReturn(streamCatalogProperties);
-        when(streamCatalogProperties.isSyncCatalog()).thenReturn(false);
+        when(ns4KafkaProperties.getConfluentCloud()).thenReturn(buildConfluentCloudProperties(false));
 
         List<Topic> ns4kafkaTopics = List.of(Topic.builder()
                 .metadata(Metadata.builder().name(TOPIC_NAME).build())
@@ -175,8 +169,7 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldNotAlterCatalogInfoWhenNotConfluentCloud() {
-        when(confluentCloudProperties.getStreamCatalog()).thenReturn(streamCatalogProperties);
-        when(streamCatalogProperties.isSyncCatalog()).thenReturn(true);
+        when(ns4KafkaProperties.getConfluentCloud()).thenReturn(buildConfluentCloudProperties(true));
         when(managedClusterProperties.isConfluentCloud()).thenReturn(false);
 
         List<Topic> ns4kafkaTopics = List.of(Topic.builder()
@@ -535,8 +528,7 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldEnrichWithGraphQlCatalogInfo() {
-        when(confluentCloudProperties.getStreamCatalog()).thenReturn(streamCatalogProperties);
-        when(streamCatalogProperties.isSyncCatalog()).thenReturn(true);
+        when(ns4KafkaProperties.getConfluentCloud()).thenReturn(buildConfluentCloudProperties(true));
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
@@ -585,11 +577,9 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldEnrichWithRestCatalogInfoAfterExceptionInGraphQl() {
-        when(confluentCloudProperties.getStreamCatalog()).thenReturn(streamCatalogProperties);
-        when(streamCatalogProperties.isSyncCatalog()).thenReturn(true);
+        when(ns4KafkaProperties.getConfluentCloud()).thenReturn(buildConfluentCloudProperties(true));
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
-        when(streamCatalogProperties.getPageSize()).thenReturn(500);
 
         int limit = 500;
 
@@ -631,8 +621,7 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldNotEnrichWithCatalogInfoWhenNotConfluentCloud() {
-        when(confluentCloudProperties.getStreamCatalog()).thenReturn(streamCatalogProperties);
-        when(streamCatalogProperties.isSyncCatalog()).thenReturn(true);
+        when(ns4KafkaProperties.getConfluentCloud()).thenReturn(buildConfluentCloudProperties(true));
         when(managedClusterProperties.isConfluentCloud()).thenReturn(false);
 
         Map<String, Topic> brokerTopics = Map.of(
@@ -651,8 +640,7 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldNotEnrichWithCatalogInfoWhenNotSyncCatalog() {
-        when(confluentCloudProperties.getStreamCatalog()).thenReturn(streamCatalogProperties);
-        when(streamCatalogProperties.isSyncCatalog()).thenReturn(false);
+        when(ns4KafkaProperties.getConfluentCloud()).thenReturn(buildConfluentCloudProperties(false));
 
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
@@ -853,8 +841,7 @@ class TopicAsyncExecutorTest {
     @Test
     void shouldEnrichMultipleTopicsWithRestCatalogInfo() {
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
-        when(confluentCloudProperties.getStreamCatalog()).thenReturn(streamCatalogProperties);
-        when(streamCatalogProperties.getPageSize()).thenReturn(500);
+        when(ns4KafkaProperties.getConfluentCloud()).thenReturn(buildConfluentCloudProperties(false));
 
         int limit = 500;
 
@@ -933,8 +920,7 @@ class TopicAsyncExecutorTest {
     @Test
     void shouldEnrichWithRestCatalogInfoWhenResponseIsNull() {
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
-        when(confluentCloudProperties.getStreamCatalog()).thenReturn(streamCatalogProperties);
-        when(streamCatalogProperties.getPageSize()).thenReturn(500);
+        when(ns4KafkaProperties.getConfluentCloud()).thenReturn(buildConfluentCloudProperties(false));
         when(schemaRegistryClient.getTopicsWithStreamCatalog(anyString(), any(Integer.class), any(Integer.class)))
                 .thenReturn(Mono.empty());
 
@@ -956,5 +942,18 @@ class TopicAsyncExecutorTest {
         assertNull(brokerTopics.get(TOPIC_NAME2).getSpec().getDescription());
         assertTrue(brokerTopics.get(TOPIC_NAME).getSpec().getTags().isEmpty());
         assertTrue(brokerTopics.get(TOPIC_NAME2).getSpec().getTags().isEmpty());
+    }
+
+    private Ns4KafkaProperties.ConfluentCloudProperties buildConfluentCloudProperties(boolean syncCatalog) {
+        Ns4KafkaProperties.ConfluentCloudProperties.StreamCatalogProperties streamCatalogProperties =
+                new Ns4KafkaProperties.ConfluentCloudProperties.StreamCatalogProperties();
+        streamCatalogProperties.setSyncCatalog(syncCatalog);
+        streamCatalogProperties.setPageSize(500);
+
+        Ns4KafkaProperties.ConfluentCloudProperties confluentCloudProperties =
+                new Ns4KafkaProperties.ConfluentCloudProperties();
+        confluentCloudProperties.setStreamCatalog(streamCatalogProperties);
+
+        return confluentCloudProperties;
     }
 }
