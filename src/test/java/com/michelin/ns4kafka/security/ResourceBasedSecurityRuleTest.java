@@ -331,9 +331,9 @@ class ResourceBasedSecurityRuleTest {
     }
 
     @Test
-    void computeRolesAdmin() {
-        when(securityProperties.getAdminGroup()).thenReturn("admin-group");
-        List<String> actual = resourceBasedSecurityRule.computeRolesFromGroups(List.of("admin-group"));
+    void computeRolesAdminIgnoreCase() {
+        when(securityProperties.getAdminGroup()).thenReturn("aDmIn-gRoUP");
+        List<String> actual = resourceBasedSecurityRule.computeRolesFromGroups(List.of("adMin-Group"));
 
         assertIterableEquals(List.of(ResourceBasedSecurityRule.IS_ADMIN), actual);
     }

@@ -111,7 +111,7 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
                                                 .getSpec()
                                                 .getSubject()
                                                 .getSubjectName()
-                                                .equals(group)))
+                                                .equalsIgnoreCase(group)))
                 .toList();
     }
 

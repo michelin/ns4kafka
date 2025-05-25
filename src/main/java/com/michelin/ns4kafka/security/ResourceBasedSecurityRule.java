@@ -175,7 +175,7 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
     public List<String> computeRolesFromGroups(List<String> groups) {
         List<String> roles = new ArrayList<>();
 
-        if (groups.contains(securityProperties.getAdminGroup())) {
+        if (groups.stream().anyMatch(group -> group.equalsIgnoreCase(securityProperties.getAdminGroup()))) {
             roles.add(ResourceBasedSecurityRule.IS_ADMIN);
         }
 

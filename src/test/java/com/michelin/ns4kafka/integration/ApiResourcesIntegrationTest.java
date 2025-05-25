@@ -19,6 +19,7 @@
 package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.controller.ApiResourcesController;
 import com.michelin.ns4kafka.integration.container.KafkaIntegrationTest;
@@ -51,7 +52,10 @@ class ApiResourcesIntegrationTest extends KafkaIntegrationTest {
                 .toBlocking()
                 .exchange(HttpRequest.POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
 
+        assertTrue(response.getBody().isPresent());
+
         String token = response.getBody().get().getAccessToken();
+
         List<ApiResourcesController.ResourceDefinition> resources = ns4KafkaClient
                 .toBlocking()
                 .retrieve(
@@ -103,6 +107,8 @@ class ApiResourcesIntegrationTest extends KafkaIntegrationTest {
                 .toBlocking()
                 .exchange(HttpRequest.POST("/login", credentials), TopicIntegrationTest.BearerAccessRefreshToken.class);
 
+        assertTrue(response.getBody().isPresent());
+
         String token = response.getBody().get().getAccessToken();
 
         ns4KafkaClient
@@ -123,6 +129,8 @@ class ApiResourcesIntegrationTest extends KafkaIntegrationTest {
                 .exchange(
                         HttpRequest.POST("/login", userCredentials),
                         TopicIntegrationTest.BearerAccessRefreshToken.class);
+
+        assertTrue(response.getBody().isPresent());
 
         String userToken = userResponse.getBody().get().getAccessToken();
 
