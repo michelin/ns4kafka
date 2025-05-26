@@ -44,6 +44,8 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 /** Controller to manage Kafka Streams. */
 @Tag(name = "Kafka Streams", description = "Manage the Kafka Streams.")
@@ -135,7 +137,8 @@ public class StreamController extends NamespacedResourceController {
     @Delete("/{stream}{?dryrun}")
     @Deprecated(since = "1.13.0")
     @Status(HttpStatus.NO_CONTENT)
-    HttpResponse<Void> delete(String namespace, String stream, @QueryValue(defaultValue = "false") boolean dryrun) {
+    HttpResponse<Void> delete(String namespace, String stream, @QueryValue(defaultValue = "false") boolean dryrun)
+            throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = getNamespace(namespace);
         if (!streamService.isNamespaceOwnerOfKafkaStream(ns, stream)) {
             throw new ResourceValidationException(KAFKA_STREAM, stream, invalidOwner(stream));
@@ -197,7 +200,11 @@ public class StreamController extends NamespacedResourceController {
         kafkaStreams.forEach(kafkaStream -> {
             sendEventLog(kafkaStream, ApplyStatus.DELETED, kafkaStream.getMetadata(), null, EMPTY_STRING);
 
-            streamService.delete(ns, kafkaStream);
+            try {
+                streamService.delete(ns, kafkaStream);
+            } catch (ExecutionException | InterruptedException | TimeoutException e) {
+                throw new RuntimeException(e);
+            }
         });
 
         return HttpResponse.ok(kafkaStreams);
