@@ -546,8 +546,6 @@ ns4kafka:
     multiplier: '2.0'
 ```
 
-By default, requests are retried 5 additional times, with a 2-second delay that doubles between each attempt.
-
 #### Sensitive Endpoints
 
 Micronaut sensitive endpoints can be enabled or disabled through the application configuration.
