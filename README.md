@@ -541,13 +541,12 @@ The Ns4Kafka HTTP clients are configured to retry requests in case of a timeout.
 ```yaml
 ns4kafka:
   retry:
-    attempt: '4'
+    attempt: '5'
     delay: '2s'
     multiplier: '2.0'
 ```
 
-By default, requests are retried 4 additional times, with a 2-second delay that doubles between each attempt.
-As a result, a request can take up to 180 seconds to complete if all retries fail.
+By default, requests are retried 5 additional times, with a 2-second delay that doubles between each attempt.
 
 #### Sensitive Endpoints
 
