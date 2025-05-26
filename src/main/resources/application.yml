@@ -141,7 +141,7 @@ ns4kafka:
     kafka:
       enabled: false
   retry:
-    attempt: '4'
+    attempt: '5'
     delay: '2s'
     multiplier: '2.0'
   security:
