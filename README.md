@@ -521,17 +521,17 @@ micronaut:
   http:
     services:
       gitlab:
-        connect-timeout: '30s'
-        read-idle-timeout: '30s'
-        read-timeout: '30s'
+        connect-timeout: '5s'
+        read-idle-timeout: '5s'
+        read-timeout: '5s'
       kafka-connect:
-        connect-timeout: '30s'
-        read-idle-timeout: '30s'
-        read-timeout: '30s'
+        connect-timeout: '10s'
+        read-idle-timeout: '10s'
+        read-timeout: '10s'
       schema-registry:
-        connect-timeout: '30s'
-        read-idle-timeout: '30s'
-        read-timeout: '30s'
+        connect-timeout: '10s'
+        read-idle-timeout: '10s'
+        read-timeout: '10s'
 ```
 
 ##### Retry

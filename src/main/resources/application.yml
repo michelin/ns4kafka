@@ -42,21 +42,21 @@ micronaut:
   http:
     services:
       gitlab:
-        connect-timeout: '30s'
+        connect-timeout: '5s'
         event-loop-group: 'gitlab'
-        read-idle-timeout: '30s'
-        read-timeout: '30s'
+        read-idle-timeout: '5s'
+        read-timeout: '5s'
         url: '${micronaut.security.gitlab.url}'
       kafka-connect:
-        connect-timeout: '30s'
+        connect-timeout: '10s'
         event-loop-group: 'connect'
-        read-idle-timeout: '30s'
-        read-timeout: '30s'
+        read-idle-timeout: '10s'
+        read-timeout: '10s'
       schema-registry:
-        connect-timeout: '30s'
+        connect-timeout: '10s'
         event-loop-group: 'schema'
-        read-idle-timeout: '30s'
-        read-timeout: '30s'
+        read-idle-timeout: '10s'
+        read-timeout: '10s'
   netty:
     event-loops:
       connect:
