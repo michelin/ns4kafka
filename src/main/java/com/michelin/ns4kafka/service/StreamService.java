@@ -31,6 +31,8 @@ import jakarta.inject.Singleton;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 /** Service to manage Kafka Streams. */
 @Singleton
@@ -43,6 +45,9 @@ public class StreamService {
 
     @Inject
     private ApplicationContext applicationContext;
+
+    @Inject
+    TopicService topicService;
 
     /**
      * Find all Kafka Streams of a given namespace.
@@ -124,11 +129,15 @@ public class StreamService {
      *
      * @param stream The Kafka Stream
      */
-    public void delete(Namespace namespace, KafkaStream stream) {
+    public void delete(Namespace namespace, KafkaStream stream)
+            throws ExecutionException, InterruptedException, TimeoutException {
         AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor = applicationContext.getBean(
                 AccessControlEntryAsyncExecutor.class,
                 Qualifiers.byName(stream.getMetadata().getCluster()));
         accessControlEntryAsyncExecutor.deleteKafkaStreams(namespace, stream);
+        var streamTopicList = topicService.findByWildcardName(
+                namespace, stream.getMetadata().getName().concat("-*"));
+        topicService.deleteTopics(streamTopicList);
 
         streamRepository.delete(stream);
     }
