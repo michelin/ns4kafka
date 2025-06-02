@@ -356,33 +356,70 @@ class StreamServiceTest {
                 .build();
         KafkaStream stream = KafkaStream.builder()
                 .metadata(Metadata.builder()
-                        .name("stream")
+                        .name("prefix.stream_app_id")
                         .namespace("ns")
                         .cluster("local")
                         .build())
                 .build();
         Topic topic1 = Topic.builder()
-                .metadata(Metadata.builder().name("ns.stream-topic1").build())
+                .metadata(Metadata.builder()
+                        .name("prefix1.stream_app_id1-topic1-repartition")
+                        .build())
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(Metadata.builder().name("ns.stream-topic2").build())
+                .metadata(Metadata.builder()
+                        .name("prefix1.stream_app_id1-topic1-changelog")
+                        .build())
                 .build();
 
         Topic topic3 = Topic.builder()
-                .metadata(Metadata.builder().name("ns.stream-topic3").build())
+                .metadata(Metadata.builder()
+                        .name("prefix1.stream_app_id1-topic1-norepartition")
+                        .build())
                 .build();
 
-        List<Topic> allTopics = List.of(topic1, topic2, topic3);
+        Topic topic4 = Topic.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix1.stream_app_id1-topic1-nochangelog")
+                        .build())
+                .build();
+
+        Topic topic5 = Topic.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix2.stream_app_id2-topic1-norepartition")
+                        .build())
+                .build();
+
+        Topic topic6 = Topic.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix2.stream_app_id2-topic2-nochangelog")
+                        .build())
+                .build();
+
+        List<Topic> allTopics = List.of(topic1, topic2, topic3, topic4, topic5, topic6);
         when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
                 .thenReturn(aceAsyncExecutor);
         when(topicService.findByWildcardName(eq(namespace), anyString())).thenReturn(allTopics);
 
         streamService.delete(namespace, stream);
-
-        verify(applicationContext).getBean(eq(AccessControlEntryAsyncExecutor.class), any());
         verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
-        verify(topicService).deleteTopics(allTopics);
+        verify(topicService).deleteTopics(argThat(topics -> {
+            return topics.stream()
+                            .anyMatch(topic ->
+                                    topic.getMetadata().getName().equals("prefix1.stream_app_id1-topic1-repartition"))
+                    && topics.stream()
+                            .anyMatch(topic ->
+                                    topic.getMetadata().getName().equals("prefix1.stream_app_id1-topic1-changelog"))
+                    && topics.stream()
+                            .noneMatch(topic ->
+                                    topic.getMetadata().getName().equals("prefix1.stream_app_id1-topic1-norepartition"))
+                    && topics.stream()
+                            .noneMatch(topic ->
+                                    topic.getMetadata().getName().equals("prefix1.stream_app_id1-topic1-nochangelog"))
+                    && topics.stream()
+                            .noneMatch(topic -> topic.getMetadata().getName().startsWith("prefix2.stream_app_id2"));
+        }));
         verify(streamRepository).delete(stream);
     }
 }

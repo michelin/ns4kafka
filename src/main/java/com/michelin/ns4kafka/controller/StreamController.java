@@ -175,7 +175,8 @@ public class StreamController extends NamespacedResourceController {
     HttpResponse<List<KafkaStream>> bulkDelete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
-            @QueryValue(defaultValue = "false") boolean dryrun) {
+            @QueryValue(defaultValue = "false") boolean dryrun)
+            throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = getNamespace(namespace);
         List<KafkaStream> kafkaStreams = streamService.findByWildcardName(ns, name);
 
@@ -197,15 +198,10 @@ public class StreamController extends NamespacedResourceController {
             return HttpResponse.ok(kafkaStreams);
         }
 
-        kafkaStreams.forEach(kafkaStream -> {
+        for (KafkaStream kafkaStream : kafkaStreams) {
             sendEventLog(kafkaStream, ApplyStatus.DELETED, kafkaStream.getMetadata(), null, EMPTY_STRING);
-
-            try {
-                streamService.delete(ns, kafkaStream);
-            } catch (ExecutionException | InterruptedException | TimeoutException e) {
-                throw new RuntimeException(e);
-            }
-        });
+            streamService.delete(ns, kafkaStream);
+        }
 
         return HttpResponse.ok(kafkaStreams);
     }

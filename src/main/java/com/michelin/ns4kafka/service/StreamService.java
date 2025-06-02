@@ -47,7 +47,7 @@ public class StreamService {
     private ApplicationContext applicationContext;
 
     @Inject
-    TopicService topicService;
+    private TopicService topicService;
 
     /**
      * Find all Kafka Streams of a given namespace.
@@ -135,8 +135,15 @@ public class StreamService {
                 AccessControlEntryAsyncExecutor.class,
                 Qualifiers.byName(stream.getMetadata().getCluster()));
         accessControlEntryAsyncExecutor.deleteKafkaStreams(namespace, stream);
-        var streamTopicList = topicService.findByWildcardName(
-                namespace, stream.getMetadata().getName().concat("-*"));
+        var streamTopicList =
+                topicService
+                        .findByWildcardName(
+                                namespace, stream.getMetadata().getName().concat("-*"))
+                        .stream()
+                        .filter(topic -> topic.getMetadata().getName().endsWith("-repartition")
+                                || topic.getMetadata().getName().endsWith("-changelog"))
+                        .toList();
+        ;
         topicService.deleteTopics(streamTopicList);
 
         streamRepository.delete(stream);
