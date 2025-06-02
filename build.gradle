@@ -4,7 +4,7 @@ plugins {
     id("jacoco")
     id("org.sonarqube") version "6.2.0.5505"
     id("pl.allegro.tech.build.axion-release") version "1.18.18"
-    id("com.diffplug.spotless") version "7.0.3"
+    id("com.diffplug.spotless") version "7.0.4"
 }
 
 version = scmVersion.version
@@ -46,11 +46,11 @@ dependencies {
     runtimeOnly("ch.qos.logback:logback-classic")
 
     testImplementation("org.mockito:mockito-core")
-    testImplementation("org.testcontainers:junit-jupiter:1.21.0")
-    testImplementation("org.testcontainers:testcontainers:1.21.0")
-    testImplementation("org.testcontainers:kafka:1.21.0")
+    testImplementation("org.testcontainers:junit-jupiter:1.21.1")
+    testImplementation("org.testcontainers:testcontainers:1.21.1")
+    testImplementation("org.testcontainers:kafka:1.21.1")
     testImplementation("org.mockito:mockito-junit-jupiter:5.18.0")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:5.12.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.13.0")
     testImplementation("io.projectreactor:reactor-test")
 
     testAnnotationProcessor("org.projectlombok:lombok")
