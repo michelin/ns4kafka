@@ -208,8 +208,8 @@ class StreamIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldImportAndDeleteChangelogAndRepartitionTopics()
             throws InterruptedException, ExecutionException, TimeoutException {
-        NewTopic changelogTopic = new NewTopic("kstream.appId-MY_TOPIC-changelog", 1, (short) 1);
-        NewTopic repartitionTopic = new NewTopic("kstream.appId-MY_TOPIC-repartition", 1, (short) 1);
+        NewTopic changelogTopic = new NewTopic("kstream-appId-MY_TOPIC-changelog", 1, (short) 1);
+        NewTopic repartitionTopic = new NewTopic("kstream-appId-MY_TOPIC-repartition", 1, (short) 1);
         NewTopic outsideNs4KafkaTopic = new NewTopic("kstream-MY_TOPIC_CREATED_OUTSIDE_NS4KAFKA", 1, (short) 1);
         NewTopic notCoveredByNamespaceTopic = new NewTopic("kstream2-MY_TOPIC-changelog", 1, (short) 1);
 
@@ -229,13 +229,44 @@ class StreamIntegrationTest extends KafkaIntegrationTest {
                         Argument.listOf(Topic.class));
 
         assertTrue(response.stream()
-                .anyMatch(topic -> topic.getMetadata().getName().equals("kstream.appId-MY_TOPIC-changelog")));
+                .anyMatch(topic -> topic.getMetadata().getName().equals("kstream-appId-MY_TOPIC-changelog")));
         assertTrue(response.stream()
-                .anyMatch(topic -> topic.getMetadata().getName().equals("kstream.appId-MY_TOPIC-repartition")));
+                .anyMatch(topic -> topic.getMetadata().getName().equals("kstream-appId-MY_TOPIC-repartition")));
         assertTrue(response.stream()
                 .noneMatch(topic -> topic.getMetadata().getName().equals("kstream-MY_TOPIC_CREATED_OUTSIDE_NS4KAFKA")));
         assertTrue(response.stream()
                 .noneMatch(topic -> topic.getMetadata().getName().equals("kstream2-MY_TOPIC-changelog")));
+
+        KafkaStream kafkaStream = KafkaStream.builder()
+                .metadata(Metadata.builder()
+                        .name("kstream-appId")
+                        .namespace("nskafkastream")
+                        .build())
+                .build();
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/nskafkastream/streams")
+                        .bearerAuth(token)
+                        .body(kafkaStream));
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/nskafkastream/streams")
+                        .bearerAuth(token)
+                        .body(kafkaStream));
+
+        response = ns4KafkaClient
+                .toBlocking()
+                .retrieve(
+                        HttpRequest.create(HttpMethod.GET, "/api/namespaces/nskafkastream/topics")
+                                .bearerAuth(token),
+                        Argument.listOf(Topic.class));
+
+        assertTrue(response.stream()
+                .noneMatch(topic -> topic.getMetadata().getName().equals("kstream-appId-MY_TOPIC-changelog")));
+        assertTrue(response.stream()
+                .noneMatch(topic -> topic.getMetadata().getName().equals("kstream-appId-MY_TOPIC-repartition")));
     }
 
     private void forceTopicSynchronization() throws InterruptedException {
