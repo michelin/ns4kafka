@@ -159,6 +159,7 @@ public class TopicService {
         if (topics == null || topics.isEmpty()) {
             return;
         }
+
         TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(
                 TopicAsyncExecutor.class,
                 Qualifiers.byName(topics.getFirst().getMetadata().getCluster()));
@@ -276,7 +277,7 @@ public class TopicService {
     }
 
     /**
-     * List the topic names that are not synchronized to ns4kafka by namespace.
+     * List the topic names that are not synchronized to Ns4Kafka by namespace.
      *
      * @param namespace The namespace
      * @return The list of topic names
@@ -293,7 +294,7 @@ public class TopicService {
         return topicAsyncExecutor.listBrokerTopicNames().stream()
                 // ...that belongs to this namespace
                 .filter(topic -> isNamespaceOwnerOfTopic(namespace.getMetadata().getName(), topic))
-                // ...and aren't in ns4kafka storage
+                // ...and aren't in Ns4Kafka storage
                 .filter(topic -> findByName(namespace, topic).isEmpty())
                 .toList();
     }

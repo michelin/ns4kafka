@@ -96,18 +96,16 @@ public class AccessControlEntryAsyncExecutor {
                     .toList();
 
             if (!toCreate.isEmpty()) {
-                log.debug("ACL(s) to create: "
-                        + String.join(
-                                ",", toCreate.stream().map(AclBinding::toString).toList()));
+                log.debug("ACL(s) to create: {}", String.join(
+                    ",", toCreate.stream().map(AclBinding::toString).toList()));
             }
 
             if (!toDelete.isEmpty()) {
                 if (!managedClusterProperties.isDropUnsyncAcls()) {
                     log.debug("The ACL drop is disabled. The following ACLs won't be deleted.");
                 }
-                log.debug("ACL(s) to delete: "
-                        + String.join(
-                                ",", toDelete.stream().map(AclBinding::toString).toList()));
+                log.debug("ACL(s) to delete: {}", String.join(
+                    ",", toDelete.stream().map(AclBinding::toString).toList()));
             }
 
             // Execute toAdd list BEFORE toDelete list to avoid breaking ACL on connected user
