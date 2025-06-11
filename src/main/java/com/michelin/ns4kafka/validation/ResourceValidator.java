@@ -174,6 +174,10 @@ public abstract class ResourceValidator {
             return new ResourceValidator.ValidList(Arrays.asList(validStrings), true);
         }
 
+        public List<String> getValidValues() {
+            return validStrings;
+        }
+
         /**
          * Ensure that the value is one of the valid strings.
          *
