@@ -156,6 +156,9 @@ public class TopicService {
      * @param topics The topics list
      */
     public void deleteTopics(List<Topic> topics) throws InterruptedException, ExecutionException, TimeoutException {
+        if (topics == null || topics.isEmpty()) {
+            return;
+        }
         TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(
                 TopicAsyncExecutor.class,
                 Qualifiers.byName(topics.getFirst().getMetadata().getCluster()));

@@ -143,9 +143,9 @@ public class StreamService {
                         .filter(topic -> topic.getMetadata().getName().endsWith("-repartition")
                                 || topic.getMetadata().getName().endsWith("-changelog"))
                         .toList();
-        ;
-        topicService.deleteTopics(streamTopicList);
-
+        if (!streamTopicList.isEmpty()) {
+            topicService.deleteTopics(streamTopicList);
+        }
         streamRepository.delete(stream);
     }
 }

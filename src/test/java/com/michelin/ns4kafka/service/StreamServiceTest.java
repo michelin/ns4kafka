@@ -22,8 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.michelin.ns4kafka.model.*;
 import com.michelin.ns4kafka.repository.StreamRepository;
@@ -420,6 +419,29 @@ class StreamServiceTest {
                     && topics.stream()
                             .noneMatch(topic -> topic.getMetadata().getName().startsWith("prefix2.stream_app_id2"));
         }));
+        verify(streamRepository).delete(stream);
+    }
+
+    @Test
+    void delete_shouldNotCallDeleteTopics_whenStreamTopicListIsEmpty() throws Exception {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder().name("ns").cluster("local").build())
+                .build();
+        KafkaStream stream = KafkaStream.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix.stream_app_id")
+                        .namespace("ns")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
+                .thenReturn(aceAsyncExecutor);
+        when(topicService.findByWildcardName(eq(ns), anyString())).thenReturn(List.of()); // No topics
+
+        streamService.delete(ns, stream);
+
+        verify(topicService, never()).deleteTopics(any());
         verify(streamRepository).delete(stream);
     }
 }

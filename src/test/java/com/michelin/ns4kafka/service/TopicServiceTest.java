@@ -26,8 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
@@ -1211,5 +1210,21 @@ class TopicServiceTest {
                 "Invalid value \"0TAG-TEST\" for field \"tags\": "
                         + "tags should start with letter and be followed by alphanumeric or _ characters.",
                 validationErrors.getFirst());
+    }
+
+    @Test
+    void deleteTopics_shouldNotCallAnything_whenListIsNull() throws Exception {
+        topicService.deleteTopics(null);
+
+        verify(topicAsyncExecutor, never()).deleteTopics(any());
+        verify(topicRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteTopics_shouldNotCallAnything_whenListIsEmpty() throws Exception {
+        topicService.deleteTopics(List.of());
+
+        verify(topicAsyncExecutor, never()).deleteTopics(any());
+        verify(topicRepository, never()).delete(any());
     }
 }
