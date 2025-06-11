@@ -110,28 +110,35 @@ public class TopicAsyncExecutor {
                     .toList();
 
             List<Namespace> namespaces = namespaceService.findAll();
-            List<Topic> importKafkaStreamsInternalTopics = brokerTopics.values()
-                .stream()
-                .map(topic -> {
-                    // Ignore internal cluster topics
-                    Optional<Namespace> namespace = namespaceService.findByTopicName(namespaces, topic.getMetadata().getName());
-                    if (namespace.isEmpty()) {
-                        log.debug("No namespace found for topic {}. Skipping import.", topic.getMetadata().getName());
-                        return null;
-                    }
+            List<Topic> importKafkaStreamsInternalTopics = brokerTopics.values().stream()
+                    .map(topic -> {
+                        // Ignore internal cluster topics. Only keep topics covered by Ns4Kafka.
+                        Optional<Namespace> namespace = namespaceService.findByTopicName(
+                                namespaces, topic.getMetadata().getName());
+                        if (namespace.isEmpty()) {
+                            log.debug(
+                                    "No namespace found for topic {}. Skipping import.",
+                                    topic.getMetadata().getName());
+                            return null;
+                        }
 
-                    topic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                    topic.getMetadata().setCluster(managedClusterProperties.getName());
-                    topic.getMetadata().setNamespace(namespace.get().getMetadata().getName());
-                    topic.setStatus(Topic.TopicStatus.ofSuccess("Imported from cluster"));
-                    return topic;
-                })
-                // Keep Kafka Streams topics
-                .filter(topic -> topic.getMetadata().getName().endsWith("-changelog") ||
-                    topic.getMetadata().getName().endsWith("-repartition"))
-                // // Keep topics that are not already in Ns4Kafka
-                .filter(topic -> ns4kafkaTopics.stream().noneMatch(ns4KafkaTopic -> ns4KafkaTopic.getMetadata().getName().equals(topic.getMetadata().getName())))
-                .toList();
+                        topic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                        topic.getMetadata().setCluster(managedClusterProperties.getName());
+                        topic.getMetadata()
+                                .setNamespace(namespace.get().getMetadata().getName());
+                        topic.setStatus(Topic.TopicStatus.ofSuccess("Imported from cluster"));
+                        return topic;
+                    })
+                    .filter(Objects::nonNull)
+                    // Keep Kafka Streams topics
+                    .filter(topic -> topic.getMetadata().getName().endsWith("-changelog")
+                            || topic.getMetadata().getName().endsWith("-repartition"))
+                    // // Keep topics that are not already in Ns4Kafka
+                    .filter(topic -> ns4kafkaTopics.stream().noneMatch(ns4KafkaTopic -> ns4KafkaTopic
+                            .getMetadata()
+                            .getName()
+                            .equals(topic.getMetadata().getName())))
+                    .toList();
 
             Map<ConfigResource, Collection<AlterConfigOp>> updateTopics = checkTopics.stream()
                     .map(topic -> {
@@ -214,11 +221,13 @@ public class TopicAsyncExecutor {
      * @param kafkaStreamsBrokerTopics The list of Kafka Streams topics to import
      */
     public void importKafkaStreamsTopics(List<Topic> kafkaStreamsBrokerTopics) {
-        kafkaStreamsBrokerTopics
-            .forEach(topic -> {
-                topicRepository.create(topic);
-                log.info("Success importing topic {} on {}", topic.getMetadata().getName(), managedClusterProperties.getName());
-            });
+        kafkaStreamsBrokerTopics.forEach(topic -> {
+            topicRepository.create(topic);
+            log.info(
+                    "Success importing topic {} on cluster {}",
+                    topic.getMetadata().getName(),
+                    managedClusterProperties.getName());
+        });
     }
 
     /**
@@ -292,7 +301,9 @@ public class TopicAsyncExecutor {
                 .get(managedClusterProperties.getTimeout().getTopic().getDelete(), TimeUnit.MILLISECONDS);
 
         log.info(
-                "Success deleting topics {} on {}", String.join(", ", topicsNames), managedClusterProperties.getName());
+                "Success deleting topics {} on cluster {}",
+                String.join(", ", topicsNames),
+                managedClusterProperties.getName());
     }
 
     /**
@@ -348,22 +359,23 @@ public class TopicAsyncExecutor {
                         .updateDescription(managedClusterProperties.getName(), body)
                         .subscribe(
                                 success -> {
-                                    log.info("Success update description {}",
-                                        managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
-                                            + topic.getMetadata().getName() + ": "
-                                            + topic.getSpec().getDescription());
+                                    log.info(
+                                            "Success update description {}",
+                                            managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
+                                                    + topic.getMetadata().getName() + ": "
+                                                    + topic.getSpec().getDescription());
                                     topic.getMetadata()
                                             .setGeneration(topic.getMetadata().getGeneration() + 1);
                                     topic.setStatus(Topic.TopicStatus.ofSuccess("Topic description updated"));
                                     topicRepository.create(topic);
                                 },
                                 error -> {
-                                    log.error("Error update description {}", managedClusterProperties
-                                        .getConfig()
-                                        .getProperty(CLUSTER_ID) + ":"
-                                        + topic.getMetadata()
-                                        .getName() + ": "
-                                        + topic.getSpec().getDescription(), error);
+                                    log.error(
+                                            "Error update description {}",
+                                            managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
+                                                    + topic.getMetadata().getName() + ": "
+                                                    + topic.getSpec().getDescription(),
+                                            error);
                                     topic.setStatus(Topic.TopicStatus.ofFailed(
                                             "Error while updating topic description: " + error.getMessage()));
                                     topicRepository.create(topic);
@@ -541,7 +553,7 @@ public class TopicAsyncExecutor {
                 updatedTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic configs updated"));
 
                 log.info(
-                        "Success updating topic configs {} on {}: [{}]",
+                        "Success updating topic configs {} on cluster {}: [{}]",
                         key.name(),
                         managedClusterProperties.getName(),
                         toUpdate.get(key).stream().map(AlterConfigOp::toString).collect(Collectors.joining(", ")));
@@ -552,7 +564,7 @@ public class TopicAsyncExecutor {
                 updatedTopic.setStatus(
                         Topic.TopicStatus.ofFailed("Error while updating topic configs: " + e.getMessage()));
                 log.error(
-                        "Error while updating topic configs {} on {}",
+                        "Error while updating topic configs {} on cluster {}",
                         key.name(),
                         managedClusterProperties.getName(),
                         e);
@@ -570,7 +582,7 @@ public class TopicAsyncExecutor {
         List<NewTopic> newTopics = topics.stream()
                 .map(topic -> {
                     log.debug(
-                            "Creating topic {} on {}",
+                            "Creating topic {} on cluster {}",
                             topic.getMetadata().getName(),
                             topic.getMetadata().getCluster());
                     NewTopic newTopic = new NewTopic(
@@ -593,13 +605,13 @@ public class TopicAsyncExecutor {
                 createdTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                 createdTopic.getMetadata().setGeneration(1);
                 createdTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic created"));
-                log.info("Success creating topic {} on {}", key, managedClusterProperties.getName());
+                log.info("Success creating topic {} on cluster {}", key, managedClusterProperties.getName());
             } catch (InterruptedException e) {
                 log.error("Error", e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 createdTopic.setStatus(Topic.TopicStatus.ofFailed("Error while creating topic: " + e.getMessage()));
-                log.error("Error while creating topic {} on {}", key, managedClusterProperties.getName(), e);
+                log.error("Error while creating topic {} on cluster {}", key, managedClusterProperties.getName(), e);
             }
             topicRepository.create(createdTopic);
         });
@@ -633,16 +645,18 @@ public class TopicAsyncExecutor {
                                     .associateTags(managedClusterProperties.getName(), tagsToAssociate)
                                     .subscribe(
                                             successAssociation -> topicTagsMapping.forEach((topic, tags) -> {
-                                                log.info("Success associating tag {}.", managedClusterProperties
-                                                    .getConfig()
-                                                    .getProperty(CLUSTER_ID) + ":"
-                                                    + topic.getMetadata()
-                                                    .getName() + "/"
-                                                    + String.join(
-                                                    ", ",
-                                                    tags.stream()
-                                                        .map(TagTopicInfo::typeName)
-                                                        .toList()));
+                                                log.info(
+                                                        "Success associating tag {}.",
+                                                        managedClusterProperties
+                                                                        .getConfig()
+                                                                        .getProperty(CLUSTER_ID) + ":"
+                                                                + topic.getMetadata()
+                                                                        .getName() + "/"
+                                                                + String.join(
+                                                                        ", ",
+                                                                        tags.stream()
+                                                                                .map(TagTopicInfo::typeName)
+                                                                                .toList()));
                                                 topic.getMetadata()
                                                         .setGeneration(topic.getMetadata()
                                                                         .getGeneration()
@@ -651,17 +665,20 @@ public class TopicAsyncExecutor {
                                                 topicRepository.create(topic);
                                             }),
                                             error -> topicTagsMapping.forEach((topic, tags) -> {
-                                                log.error("Error associating tag {}.", managedClusterProperties
-                                                    .getConfig()
-                                                    .getProperty(CLUSTER_ID)
-                                                    + ":"
-                                                    + topic.getMetadata()
-                                                    .getName() + "/"
-                                                    + String.join(
-                                                    ", ",
-                                                    tags.stream()
-                                                        .map(TagTopicInfo::typeName)
-                                                        .toList()), error);
+                                                log.error(
+                                                        "Error associating tag {}.",
+                                                        managedClusterProperties
+                                                                        .getConfig()
+                                                                        .getProperty(CLUSTER_ID)
+                                                                + ":"
+                                                                + topic.getMetadata()
+                                                                        .getName() + "/"
+                                                                + String.join(
+                                                                        ", ",
+                                                                        tags.stream()
+                                                                                .map(TagTopicInfo::typeName)
+                                                                                .toList()),
+                                                        error);
                                                 topic.setStatus(Topic.TopicStatus.ofFailed(
                                                         "Error while associating topic tags: " + error.getMessage()));
                                                 topicRepository.create(topic);
@@ -685,18 +702,21 @@ public class TopicAsyncExecutor {
                         tag)
                 .subscribe(
                         success -> {
-                            log.info("Success dissociating tag {}.",
-                                managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
-                                    + topic.getMetadata().getName() + "/" + tag);
+                            log.info(
+                                    "Success dissociating tag {}.",
+                                    managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
+                                            + topic.getMetadata().getName() + "/" + tag);
                             topic.getMetadata()
                                     .setGeneration(topic.getMetadata().getGeneration() + 1);
                             topic.setStatus(Topic.TopicStatus.ofSuccess("Topic tags updated"));
                             topicRepository.create(topic);
                         },
                         error -> {
-                            log.error("Error dissociating tag {}.",
-                                managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
-                                    + topic.getMetadata().getName() + "/" + tag, error);
+                            log.error(
+                                    "Error dissociating tag {}.",
+                                    managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
+                                            + topic.getMetadata().getName() + "/" + tag,
+                                    error);
                             topic.setStatus(Topic.TopicStatus.ofFailed(
                                     "Error while dissociating topic tags: " + error.getMessage()));
                             topicRepository.create(topic);
