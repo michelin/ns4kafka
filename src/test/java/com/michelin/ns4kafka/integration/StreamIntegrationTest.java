@@ -32,7 +32,9 @@ import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Namespace.NamespaceSpec;
+import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
+import com.michelin.ns4kafka.service.executor.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpMethod;
@@ -45,7 +47,10 @@ import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.acl.AccessControlEntryFilter;
 import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.acl.AclOperation;
@@ -59,6 +64,9 @@ class StreamIntegrationTest extends KafkaIntegrationTest {
     @Inject
     @Client("/")
     HttpClient ns4KafkaClient;
+
+    @Inject
+    List<TopicAsyncExecutor> topicAsyncExecutorList;
 
     @Inject
     List<AccessControlEntryAsyncExecutor> aceAsyncExecutorList;
@@ -195,5 +203,45 @@ class StreamIntegrationTest extends KafkaIntegrationTest {
 
         assertTrue(streams.getBody().isPresent());
         assertEquals(0, streams.getBody().get().size());
+    }
+
+    @Test
+    void shouldImportAndDeleteChangelogAndRepartitionTopics()
+            throws InterruptedException, ExecutionException, TimeoutException {
+        NewTopic changelogTopic = new NewTopic("kstream.appId-MY_TOPIC-changelog", 1, (short) 1);
+        NewTopic repartitionTopic = new NewTopic("kstream.appId-MY_TOPIC-repartition", 1, (short) 1);
+        NewTopic outsideNs4KafkaTopic = new NewTopic("kstream-MY_TOPIC_CREATED_OUTSIDE_NS4KAFKA", 1, (short) 1);
+        NewTopic notCoveredByNamespaceTopic = new NewTopic("kstream2-MY_TOPIC-changelog", 1, (short) 1);
+
+        List<NewTopic> topics =
+                List.of(changelogTopic, repartitionTopic, outsideNs4KafkaTopic, notCoveredByNamespaceTopic);
+
+        Admin kafkaClient = getAdminClient();
+        kafkaClient.createTopics(topics).all().get(60, TimeUnit.SECONDS);
+
+        forceTopicSynchronization();
+
+        List<Topic> response = ns4KafkaClient
+                .toBlocking()
+                .retrieve(
+                        HttpRequest.create(HttpMethod.GET, "/api/namespaces/nskafkastream/topics")
+                                .bearerAuth(token),
+                        Argument.listOf(Topic.class));
+
+        assertTrue(response.stream()
+                .anyMatch(topic -> topic.getMetadata().getName().equals("kstream.appId-MY_TOPIC-changelog")));
+        assertTrue(response.stream()
+                .anyMatch(topic -> topic.getMetadata().getName().equals("kstream.appId-MY_TOPIC-repartition")));
+        assertTrue(response.stream()
+                .noneMatch(topic -> topic.getMetadata().getName().equals("kstream-MY_TOPIC_CREATED_OUTSIDE_NS4KAFKA")));
+        assertTrue(response.stream()
+                .noneMatch(topic -> topic.getMetadata().getName().equals("kstream2-MY_TOPIC-changelog")));
+    }
+
+    private void forceTopicSynchronization() throws InterruptedException {
+        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+
+        // Wait for topics to be updated in Kafka broker
+        Thread.sleep(2000);
     }
 }
