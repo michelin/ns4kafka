@@ -21,13 +21,13 @@ package com.michelin.ns4kafka.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
-import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.model.KafkaStream;
-import com.michelin.ns4kafka.model.Metadata;
-import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.*;
 import com.michelin.ns4kafka.repository.StreamRepository;
+import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
+import io.micronaut.context.ApplicationContext;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,6 +45,15 @@ class StreamServiceTest {
 
     @Mock
     StreamRepository streamRepository;
+
+    @Mock
+    TopicService topicService;
+
+    @Mock
+    ApplicationContext applicationContext;
+
+    @Mock
+    AccessControlEntryAsyncExecutor aceAsyncExecutor;
 
     @Test
     void shouldFindAllForClusterWhenEmpty() {
@@ -336,5 +345,103 @@ class StreamServiceTest {
         assertFalse(streamService.isNamespaceOwnerOfKafkaStream(ns, "test-ter.stream"), "Topic ACL missing");
         assertFalse(streamService.isNamespaceOwnerOfKafkaStream(ns, "test-qua.stream"), "Group ACL missing");
         assertFalse(streamService.isNamespaceOwnerOfKafkaStream(ns, "test-nop.stream"), "No ACL");
+    }
+
+    @Test
+    void shouldDeleteKafkaStreamAndRelatedTopics() throws Exception {
+
+        Namespace namespace = Namespace.builder()
+                .metadata(Metadata.builder().name("ns").cluster("local").build())
+                .build();
+        KafkaStream stream = KafkaStream.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix.stream_app_id")
+                        .namespace("ns")
+                        .cluster("local")
+                        .build())
+                .build();
+        Topic topic1 = Topic.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix1.stream_app_id1-topic1-repartition")
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix1.stream_app_id1-topic1-changelog")
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix1.stream_app_id1-topic1-norepartition")
+                        .build())
+                .build();
+
+        Topic topic4 = Topic.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix1.stream_app_id1-topic1-nochangelog")
+                        .build())
+                .build();
+
+        Topic topic5 = Topic.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix2.stream_app_id2-topic1-norepartition")
+                        .build())
+                .build();
+
+        Topic topic6 = Topic.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix2.stream_app_id2-topic2-nochangelog")
+                        .build())
+                .build();
+
+        List<Topic> allTopics = List.of(topic1, topic2, topic3, topic4, topic5, topic6);
+        when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
+                .thenReturn(aceAsyncExecutor);
+        when(topicService.findByWildcardName(eq(namespace), anyString())).thenReturn(allTopics);
+
+        streamService.delete(namespace, stream);
+        verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
+        verify(topicService).deleteTopics(argThat(topics -> {
+            return topics.stream()
+                            .anyMatch(topic ->
+                                    topic.getMetadata().getName().equals("prefix1.stream_app_id1-topic1-repartition"))
+                    && topics.stream()
+                            .anyMatch(topic ->
+                                    topic.getMetadata().getName().equals("prefix1.stream_app_id1-topic1-changelog"))
+                    && topics.stream()
+                            .noneMatch(topic ->
+                                    topic.getMetadata().getName().equals("prefix1.stream_app_id1-topic1-norepartition"))
+                    && topics.stream()
+                            .noneMatch(topic ->
+                                    topic.getMetadata().getName().equals("prefix1.stream_app_id1-topic1-nochangelog"))
+                    && topics.stream()
+                            .noneMatch(topic -> topic.getMetadata().getName().startsWith("prefix2.stream_app_id2"));
+        }));
+        verify(streamRepository).delete(stream);
+    }
+
+    @Test
+    void delete_shouldNotCallDeleteTopics_whenStreamTopicListIsEmpty() throws Exception {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder().name("ns").cluster("local").build())
+                .build();
+        KafkaStream stream = KafkaStream.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix.stream_app_id")
+                        .namespace("ns")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
+                .thenReturn(aceAsyncExecutor);
+        when(topicService.findByWildcardName(eq(ns), anyString())).thenReturn(List.of()); // No topics
+
+        streamService.delete(ns, stream);
+
+        verify(topicService, never()).deleteTopics(any());
+        verify(streamRepository).delete(stream);
     }
 }
