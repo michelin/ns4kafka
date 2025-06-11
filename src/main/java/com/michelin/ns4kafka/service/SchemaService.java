@@ -20,18 +20,20 @@ package com.michelin.ns4kafka.service;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaReference;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaResource;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaSuffix;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaSubjectName;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
+import com.michelin.ns4kafka.model.schema.SchemaNameStrategy;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.util.RegexUtils;
+import com.michelin.ns4kafka.validation.SchemaSubjectNameValidator;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.micronaut.core.util.CollectionUtils;
@@ -56,6 +58,9 @@ public class SchemaService {
 
     @Inject
     private SchemaRegistryClient schemaRegistryClient;
+
+    @Inject
+    TopicService topicService;
 
     /**
      * Get all the schemas of a given namespace.
@@ -197,12 +202,16 @@ public class SchemaService {
     public Mono<List<String>> validateSchema(Namespace namespace, Schema schema) {
         return Mono.defer(() -> {
             List<String> validationErrors = new ArrayList<>();
+            List<SchemaNameStrategy> namingStrategies = namespace.getValidSchemaNameStrategies();
+            String subjectName = schema.getMetadata().getName();
+            boolean isValid = SchemaSubjectNameValidator.validateSubjectName(
+                    subjectName,
+                    namingStrategies,
+                    schema.getSpec().getSchema(),
+                    schema.getSpec().getSchemaType());
 
-            // Validate TopicNameStrategy
-            // https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject/TopicNameStrategy.java
-            if (!schema.getMetadata().getName().endsWith("-key")
-                    && !schema.getMetadata().getName().endsWith("-value")) {
-                validationErrors.add(invalidSchemaSuffix(schema.getMetadata().getName()));
+            if (!isValid) {
+                validationErrors.add(invalidSchemaSubjectName(subjectName, namingStrategies));
             }
 
             if (!CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
@@ -352,6 +361,7 @@ public class SchemaService {
      * @param subjectName The name of the subject
      * @return true if it's owner, false otherwise
      */
+    // TODO: update this method to take into account the schema name strategy
     public boolean isNamespaceOwnerOfSubject(Namespace namespace, String subjectName) {
         String underlyingTopicName = subjectName.replaceAll("(-key|-value)$", "");
         return aclService.isNamespaceOwnerOfResource(
