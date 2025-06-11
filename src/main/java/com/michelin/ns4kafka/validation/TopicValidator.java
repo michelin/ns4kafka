@@ -26,8 +26,10 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicName;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicSpec;
 import static com.michelin.ns4kafka.util.config.TopicConfig.PARTITIONS;
 import static com.michelin.ns4kafka.util.config.TopicConfig.REPLICATION_FACTOR;
+import static com.michelin.ns4kafka.util.config.TopicConfig.VALUE_SUBJECT_NAME_STRATEGY;
 
 import com.michelin.ns4kafka.model.Topic;
+import com.michelin.ns4kafka.model.schema.SchemaNameStrategy;
 import io.micronaut.core.util.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -96,13 +98,28 @@ public class TopicValidator extends ResourceValidator {
                 .build();
     }
 
+    public List<SchemaNameStrategy> getValidSchemaNameStrategies() {
+        Validator value = getValidationConstraints()
+                .putIfAbsent(
+                        VALUE_SUBJECT_NAME_STRATEGY,
+                        ResourceValidator.ValidList.in(SchemaNameStrategy.DEFAULT.toString()));
+        if (value instanceof ResourceValidator.ValidList validList) {
+            return validList.getValidValues().stream()
+                    .map(SchemaNameStrategy::valueOf)
+                    .collect(Collectors.toList());
+        }
+
+        // Should never happen, but just in case
+        return List.of(SchemaNameStrategy.DEFAULT);
+    }
+
     /**
      * Validate a given topic.
      *
      * @param topic The topic
      * @return A list of validation errors
-     * @see <a
-     *     href="https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/internals/Topic.java#L36">
+     * @see <a href=
+     *     "https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/internals/Topic.java#L36">
      *     GitHub</a>
      */
     public List<String> validate(Topic topic) {
@@ -140,6 +157,8 @@ public class TopicValidator extends ResourceValidator {
                     value.ensureValid(key, topic.getSpec().getPartitions());
                 } else if (key.equals(REPLICATION_FACTOR)) {
                     value.ensureValid(key, topic.getSpec().getReplicationFactor());
+                } else if (key.equals(VALUE_SUBJECT_NAME_STRATEGY)) {
+                    value.ensureValid(key, topic.getSubjectNameStrategy());
                 } else {
                     if (topic.getSpec().getConfigs() != null) {
                         value.ensureValid(key, topic.getSpec().getConfigs().get(key));
