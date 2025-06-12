@@ -37,6 +37,7 @@ import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.repository.StreamRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -424,6 +425,95 @@ class StreamServiceTest {
 
         List<KafkaStream> kafkaStreams = List.of(kafkaStream);
         when(streamRepository.findAllForCluster(any())).thenReturn(kafkaStreams);
+
+        List<Topic> allTopics = List.of(topic1, topic2, topic3, topic4, topic5, topic6, topic7);
+        when(topicService.findByWildcardName(eq(namespace), anyString())).thenReturn(allTopics);
+
+        streamService.delete(namespace, stream);
+        verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
+        verify(topicService)
+                .deleteTopics(argThat(topics -> topics.stream().anyMatch(topic -> topic.getMetadata()
+                                .getName()
+                                .equals("prefix1.stream_app_id1-topic1-repartition"))
+                        && topics.stream()
+                                .anyMatch(topic ->
+                                        topic.getMetadata().getName().equals("prefix1.stream_app_id1-topic1-changelog"))
+                        && topics.stream().noneMatch(topic -> topic.getMetadata()
+                                .getName()
+                                .equals("prefix1.stream_app_id1-topic1-norepartition"))
+                        && topics.stream().noneMatch(topic -> topic.getMetadata()
+                                .getName()
+                                .equals("prefix1.stream_app_id1-topic1-nochangelog"))
+                        && topics.stream()
+                                .noneMatch(
+                                        topic -> topic.getMetadata().getName().startsWith("prefix2.stream_app_id2"))
+                        && topics.stream().noneMatch(topic -> topic.getMetadata()
+                                .getName()
+                                .startsWith("prefix1.stream_app_id1-sub-appid-topic1-repartition"))));
+
+        verify(streamRepository).delete(stream);
+    }
+
+    @Test
+    void shouldDeleteKafkaStreamAndRelatedTopicsWhenOverlapKafkaStreamsIsEmpty() throws Exception {
+        Namespace namespace = Namespace.builder()
+                .metadata(Metadata.builder().name("ns").cluster("local").build())
+                .build();
+
+        KafkaStream stream = KafkaStream.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix.stream_app_id")
+                        .namespace("ns")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix1.stream_app_id1-topic1-repartition")
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix1.stream_app_id1-topic1-changelog")
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix1.stream_app_id1-topic1-norepartition")
+                        .build())
+                .build();
+
+        Topic topic4 = Topic.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix1.stream_app_id1-topic1-nochangelog")
+                        .build())
+                .build();
+
+        Topic topic5 = Topic.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix2.stream_app_id2-topic1-norepartition")
+                        .build())
+                .build();
+
+        Topic topic6 = Topic.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix2.stream_app_id2-topic2-nochangelog")
+                        .build())
+                .build();
+
+        Topic topic7 = Topic.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix1.stream_app_id1-sub-appid-overlap-topic1-repartition")
+                        .build())
+                .build();
+
+        when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
+                .thenReturn(aceAsyncExecutor);
+
+        when(streamRepository.findAllForCluster(any())).thenReturn(Collections.emptyList());
 
         List<Topic> allTopics = List.of(topic1, topic2, topic3, topic4, topic5, topic6, topic7);
         when(topicService.findByWildcardName(eq(namespace), anyString())).thenReturn(allTopics);

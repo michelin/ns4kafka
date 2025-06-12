@@ -137,11 +137,11 @@ public class StreamService {
                 Qualifiers.byName(stream.getMetadata().getCluster()));
         accessControlEntryAsyncExecutor.deleteKafkaStreams(namespace, stream);
 
-        List<KafkaStream> otherKafkaStreams = findAllForNamespace(namespace).stream()
-                .filter(kafkaStream -> !kafkaStream
+        List<KafkaStream> overlapKafkaStreams = findAllForNamespace(namespace).stream()
+                .filter(kafkaStream -> kafkaStream
                         .getMetadata()
                         .getName()
-                        .equals(stream.getMetadata().getName()))
+                        .startsWith(stream.getMetadata().getName() + "-"))
                 .toList();
 
         List<Topic> kafkaStreamsTopics =
@@ -153,7 +153,7 @@ public class StreamService {
                                 || topic.getMetadata().getName().endsWith("-changelog"))
                         // Exclude topics covered by other Kafka Streams
                         // (E.g., When deleting "abc.appId", avoid deleting "abc.appId-1234")
-                        .filter(topic -> otherKafkaStreams.stream().noneMatch(kafkaStream -> topic.getMetadata()
+                        .filter(topic -> overlapKafkaStreams.stream().noneMatch(kafkaStream -> topic.getMetadata()
                                 .getName()
                                 .startsWith(kafkaStream.getMetadata().getName())))
                         .toList();
