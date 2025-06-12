@@ -365,7 +365,7 @@ class StreamServiceTest {
 
         KafkaStream stream = KafkaStream.builder()
                 .metadata(Metadata.builder()
-                        .name("prefix.stream_app_id")
+                        .name("prefix1.stream_app_id1")
                         .namespace("ns")
                         .cluster("local")
                         .build())
