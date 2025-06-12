@@ -21,10 +21,19 @@ package com.michelin.ns4kafka.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.model.*;
+import com.michelin.ns4kafka.model.AccessControlEntry;
+import com.michelin.ns4kafka.model.KafkaStream;
+import com.michelin.ns4kafka.model.Metadata;
+import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.repository.StreamRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
@@ -349,10 +358,10 @@ class StreamServiceTest {
 
     @Test
     void shouldDeleteKafkaStreamAndRelatedTopics() throws Exception {
-
         Namespace namespace = Namespace.builder()
                 .metadata(Metadata.builder().name("ns").cluster("local").build())
                 .build();
+
         KafkaStream stream = KafkaStream.builder()
                 .metadata(Metadata.builder()
                         .name("prefix.stream_app_id")
@@ -360,6 +369,7 @@ class StreamServiceTest {
                         .cluster("local")
                         .build())
                 .build();
+
         Topic topic1 = Topic.builder()
                 .metadata(Metadata.builder()
                         .name("prefix1.stream_app_id1-topic1-repartition")
@@ -396,37 +406,59 @@ class StreamServiceTest {
                         .build())
                 .build();
 
-        List<Topic> allTopics = List.of(topic1, topic2, topic3, topic4, topic5, topic6);
+        Topic topic7 = Topic.builder()
+                .metadata(Metadata.builder()
+                        .name("prefix1.stream_app_id1-sub-appid-overlap-topic1-repartition")
+                        .build())
+                .build();
+
+        KafkaStream kafkaStream = KafkaStream.builder()
+                .metadata(Metadata.builder()
+                        .namespace("ns")
+                        .name("prefix1.stream_app_id1-sub-appid-overlap")
+                        .build())
+                .build();
+
         when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
                 .thenReturn(aceAsyncExecutor);
+
+        List<KafkaStream> kafkaStreams = List.of(kafkaStream);
+        when(streamRepository.findAllForCluster(any())).thenReturn(kafkaStreams);
+
+        List<Topic> allTopics = List.of(topic1, topic2, topic3, topic4, topic5, topic6, topic7);
         when(topicService.findByWildcardName(eq(namespace), anyString())).thenReturn(allTopics);
 
         streamService.delete(namespace, stream);
         verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
-        verify(topicService).deleteTopics(argThat(topics -> {
-            return topics.stream()
-                            .anyMatch(topic ->
-                                    topic.getMetadata().getName().equals("prefix1.stream_app_id1-topic1-repartition"))
-                    && topics.stream()
-                            .anyMatch(topic ->
-                                    topic.getMetadata().getName().equals("prefix1.stream_app_id1-topic1-changelog"))
-                    && topics.stream()
-                            .noneMatch(topic ->
-                                    topic.getMetadata().getName().equals("prefix1.stream_app_id1-topic1-norepartition"))
-                    && topics.stream()
-                            .noneMatch(topic ->
-                                    topic.getMetadata().getName().equals("prefix1.stream_app_id1-topic1-nochangelog"))
-                    && topics.stream()
-                            .noneMatch(topic -> topic.getMetadata().getName().startsWith("prefix2.stream_app_id2"));
-        }));
+        verify(topicService)
+                .deleteTopics(argThat(topics -> topics.stream().anyMatch(topic -> topic.getMetadata()
+                                .getName()
+                                .equals("prefix1.stream_app_id1-topic1-repartition"))
+                        && topics.stream()
+                                .anyMatch(topic ->
+                                        topic.getMetadata().getName().equals("prefix1.stream_app_id1-topic1-changelog"))
+                        && topics.stream().noneMatch(topic -> topic.getMetadata()
+                                .getName()
+                                .equals("prefix1.stream_app_id1-topic1-norepartition"))
+                        && topics.stream().noneMatch(topic -> topic.getMetadata()
+                                .getName()
+                                .equals("prefix1.stream_app_id1-topic1-nochangelog"))
+                        && topics.stream()
+                                .noneMatch(
+                                        topic -> topic.getMetadata().getName().startsWith("prefix2.stream_app_id2"))
+                        && topics.stream().noneMatch(topic -> topic.getMetadata()
+                                .getName()
+                                .startsWith("prefix1.stream_app_id1-sub-appid-topic1-repartition"))));
+
         verify(streamRepository).delete(stream);
     }
 
     @Test
-    void delete_shouldNotCallDeleteTopics_whenStreamTopicListIsEmpty() throws Exception {
+    void shouldNotCallDeleteTopicsWhenStreamTopicListIsEmpty() throws Exception {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("ns").cluster("local").build())
                 .build();
+
         KafkaStream stream = KafkaStream.builder()
                 .metadata(Metadata.builder()
                         .name("prefix.stream_app_id")
