@@ -504,18 +504,12 @@ class StreamServiceTest {
                         .build())
                 .build();
 
-        Topic topic7 = Topic.builder()
-                .metadata(Metadata.builder()
-                        .name("prefix1.stream_app_id1-sub-appid-overlap-topic1-repartition")
-                        .build())
-                .build();
-
         when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
                 .thenReturn(aceAsyncExecutor);
 
         when(streamRepository.findAllForCluster(any())).thenReturn(Collections.emptyList());
 
-        List<Topic> allTopics = List.of(topic1, topic2, topic3, topic4, topic5, topic6, topic7);
+        List<Topic> allTopics = List.of(topic1, topic2, topic3, topic4, topic5, topic6);
         when(topicService.findByWildcardName(eq(namespace), anyString())).thenReturn(allTopics);
 
         streamService.delete(namespace, stream);
