@@ -26,7 +26,7 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
-import com.michelin.ns4kafka.model.schema.SchemaNameStrategy;
+import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
@@ -202,7 +202,7 @@ public class SchemaService {
     public Mono<List<String>> validateSchema(Namespace namespace, Schema schema) {
         return Mono.defer(() -> {
             List<String> validationErrors = new ArrayList<>();
-            List<SchemaNameStrategy> namingStrategies = namespace.getValidSchemaNameStrategies();
+            List<SubjectNameStrategy> namingStrategies = namespace.getValidSubjectNameStrategies();
             String subjectName = schema.getMetadata().getName();
             boolean isValid = SchemaSubjectNameValidator.validateSubjectName(
                     subjectName,
@@ -361,7 +361,7 @@ public class SchemaService {
      * @param subjectName The name of the subject
      * @return true if it's owner, false otherwise
      */
-    // TODO: update this method to take into account the schema name strategy
+    // TODO: update this method to take into account the subject name strategy
     public boolean isNamespaceOwnerOfSubject(Namespace namespace, String subjectName) {
         String underlyingTopicName = subjectName.replaceAll("(-key|-value)$", "");
         return aclService.isNamespaceOwnerOfResource(
