@@ -19,33 +19,19 @@
 package com.michelin.ns4kafka.model.schema;
 
 /** Schema subject naming strategies supported by Schema Registry. */
-public enum SchemaNameStrategy {
-    // Add default as TOPIC_NAME to maintain backward compatibility
-    /**
-     * TopicNameStrategy: Subject names follow the pattern {topic}-key or {topic}-value. This is the default strategy
-     * and maintains backward compatibility.
-     */
+public enum SubjectNameStrategy {
+
     TOPIC_NAME("io.confluent.kafka.serializers.subject.TopicNameStrategy"),
-
-    /**
-     * TopicRecordNameStrategy: Subject names follow the pattern {topic}-{recordName}. The record name is extracted from
-     * the schema definition.
-     */
     TOPIC_RECORD_NAME("io.confluent.kafka.serializers.subject.TopicRecordNameStrategy"),
-
-    /**
-     * RecordNameStrategy: Subject names use only the record name. The record name is extracted from the schema
-     * definition.
-     */
     RECORD_NAME("io.confluent.kafka.serializers.subject.RecordNameStrategy");
 
     private final String name;
 
-    SchemaNameStrategy(String name) {
+    SubjectNameStrategy(String name) {
         this.name = name;
     }
 
-    public static final SchemaNameStrategy DEFAULT = SchemaNameStrategy.TOPIC_NAME;
+    public static final SubjectNameStrategy DEFAULT = SubjectNameStrategy.TOPIC_NAME;
 
     @Override
     public String toString() {
@@ -61,7 +47,7 @@ public enum SchemaNameStrategy {
             case RECORD_NAME:
                 return "{recordName}";
             default:
-                throw new IllegalArgumentException("Unknown SchemaNameStrategy: " + this);
+                throw new IllegalArgumentException("Unknown SubjectNameStrategy: " + this);
         }
     }
 }

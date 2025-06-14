@@ -29,7 +29,7 @@ import static com.michelin.ns4kafka.util.config.TopicConfig.REPLICATION_FACTOR;
 import static com.michelin.ns4kafka.util.config.TopicConfig.VALUE_SUBJECT_NAME_STRATEGY;
 
 import com.michelin.ns4kafka.model.Topic;
-import com.michelin.ns4kafka.model.schema.SchemaNameStrategy;
+import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import io.micronaut.core.util.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -98,19 +98,19 @@ public class TopicValidator extends ResourceValidator {
                 .build();
     }
 
-    public List<SchemaNameStrategy> getValidSchemaNameStrategies() {
+    public List<SubjectNameStrategy> getValidSubjectNameStrategies() {
         Validator value = getValidationConstraints()
                 .putIfAbsent(
                         VALUE_SUBJECT_NAME_STRATEGY,
-                        ResourceValidator.ValidList.in(SchemaNameStrategy.DEFAULT.toString()));
+                        ResourceValidator.ValidList.in(SubjectNameStrategy.DEFAULT.toString()));
         if (value instanceof ResourceValidator.ValidList validList) {
             return validList.getValidValues().stream()
-                    .map(SchemaNameStrategy::valueOf)
+                    .map(SubjectNameStrategy::valueOf)
                     .collect(Collectors.toList());
         }
 
         // Should never happen, but just in case
-        return List.of(SchemaNameStrategy.DEFAULT);
+        return List.of(SubjectNameStrategy.DEFAULT);
     }
 
     /**

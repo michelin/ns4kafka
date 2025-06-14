@@ -23,7 +23,7 @@ import static com.michelin.ns4kafka.util.enumation.Kind.TOPIC;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
-import com.michelin.ns4kafka.model.schema.SchemaNameStrategy;
+import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import io.micronaut.core.annotation.Introspected;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -65,8 +65,8 @@ public class Topic extends MetadataResource {
         this.status = status;
     }
 
-    public SchemaNameStrategy getSubjectNameStrategy() {
-        return spec.getSchemaNameStrategy() != null ? spec.getSchemaNameStrategy() : SchemaNameStrategy.DEFAULT;
+    public SubjectNameStrategy getSubjectNameStrategy() {
+        return spec.getSubjectNameStrategy() != null ? spec.getSubjectNameStrategy() : SubjectNameStrategy.DEFAULT;
     }
 
     /** Topic spec. */
@@ -87,7 +87,7 @@ public class Topic extends MetadataResource {
         private Map<String, String> configs;
 
         @Builder.Default
-        private SchemaNameStrategy schemaNameStrategy = SchemaNameStrategy.TOPIC_NAME;
+        private SubjectNameStrategy subjectNameStrategy = SubjectNameStrategy.DEFAULT;
     }
 
     /** Topic status. */

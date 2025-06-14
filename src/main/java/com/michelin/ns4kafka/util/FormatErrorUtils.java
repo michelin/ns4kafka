@@ -27,7 +27,7 @@ import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.connector.Connector;
 import com.michelin.ns4kafka.model.quota.ResourceQuota;
-import com.michelin.ns4kafka.model.schema.SchemaNameStrategy;
+import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -690,11 +690,11 @@ public class FormatErrorUtils {
      * @param strategies the configured naming strategies
      * @return the error message
      */
-    public static String invalidSchemaSubjectName(String subjectName, List<SchemaNameStrategy> strategies) {
+    public static String invalidSchemaSubjectName(String subjectName, List<SubjectNameStrategy> strategies) {
         String strategiesString =
-                strategies.stream().map(SchemaNameStrategy::toString).collect(Collectors.joining(", "));
+                strategies.stream().map(SubjectNameStrategy::toString).collect(Collectors.joining(", "));
         String formatsString =
-                strategies.stream().map(SchemaNameStrategy::toExpectedFormat).collect(Collectors.joining(", "));
+                strategies.stream().map(SubjectNameStrategy::toExpectedFormat).collect(Collectors.joining(", "));
         return String.format(
                 INVALID_FIELD,
                 subjectName,
