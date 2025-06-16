@@ -115,7 +115,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
         var responseGetNs = ns4KafkaClient
                 .toBlocking()
                 .retrieve(
-                        HttpRequest.create(HttpMethod.GET, "/api/namespaces/accepted.namespace")
+                        HttpRequest.create(HttpMethod.GET, "/api/namespaces?name=accepted.namespace")
                                 .bearerAuth(token),
                         Namespace.class);
 
