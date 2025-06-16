@@ -300,6 +300,20 @@ public class TopicService {
     }
 
     /**
+     * Import topics from broker to Ns4Kafka storage.
+     *
+     * @param namespace The namespace
+     * @param topics The list of topics to import
+     */
+    public void importTopics(Namespace namespace, List<Topic> topics) {
+        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(
+                TopicAsyncExecutor.class,
+                Qualifiers.byName(namespace.getMetadata().getCluster()));
+
+        topicAsyncExecutor.importTopics(topics);
+    }
+
+    /**
      * Validate if a topic can be eligible for records deletion.
      *
      * @param deleteRecordsTopic The topic to delete records

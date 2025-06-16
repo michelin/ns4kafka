@@ -26,7 +26,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
@@ -210,7 +212,7 @@ class TopicServiceTest {
 
         when(topicRepository.findAllForCluster("local")).thenReturn(List.of(t1, t2, t3, t4));
 
-        // all ns4kafka access control entries are not for the topics
+        // All Ns4Kafka access control entries are not for the topics
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
                 .thenReturn(List.of(
                         AccessControlEntry.builder()
@@ -235,6 +237,29 @@ class TopicServiceTest {
         when(aclService.isResourceCoveredByAcls(any(), anyString())).thenReturn(false);
 
         assertTrue(topicService.findAllForNamespace(ns).isEmpty());
+    }
+
+    @Test
+    void shouldImportTopics() {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .spec(NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        when(applicationContext.getBean(
+                        TopicAsyncExecutor.class,
+                        Qualifiers.byName(ns.getMetadata().getCluster())))
+                .thenReturn(topicAsyncExecutor);
+
+        List<Topic> topics = List.of(Topic.builder()
+                .metadata(Metadata.builder().name("ns-topic1").build())
+                .build());
+
+        topicService.importTopics(ns, topics);
+
+        verify(topicAsyncExecutor).importTopics(topics);
     }
 
     @Test
