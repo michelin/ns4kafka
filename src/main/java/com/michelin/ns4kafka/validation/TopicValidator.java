@@ -24,9 +24,7 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameLength;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameSpecChars;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicName;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicSpec;
-import static com.michelin.ns4kafka.util.config.TopicConfig.PARTITIONS;
-import static com.michelin.ns4kafka.util.config.TopicConfig.REPLICATION_FACTOR;
-import static com.michelin.ns4kafka.util.config.TopicConfig.VALUE_SUBJECT_NAME_STRATEGY;
+import static com.michelin.ns4kafka.util.config.TopicConfig.*;
 
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
@@ -69,7 +67,10 @@ public class TopicValidator extends ResourceValidator {
                         "retention.bytes",
                         ResourceValidator.Range.optionalBetween(-1, 104857600),
                         "preallocate",
-                        ResourceValidator.ValidString.optionalIn("true", "false")))
+                        ResourceValidator.ValidString.optionalIn("true", "false"),
+                        VALUE_SUBJECT_NAME_STRATEGY,
+                        ResourceValidator.ValidList.optionalIn(
+                                TOPIC_NAME_STRATEGY, TOPIC_RECORD_NAME_STRATEGY, RECORD_NAME_STRATEGY)))
                 .build();
     }
 
@@ -94,7 +95,10 @@ public class TopicValidator extends ResourceValidator {
                         "retention.bytes",
                         ResourceValidator.Range.optionalBetween(-1, 104857600),
                         "preallocate",
-                        ResourceValidator.ValidString.optionalIn("true", "false")))
+                        ResourceValidator.ValidString.optionalIn("true", "false"),
+                        VALUE_SUBJECT_NAME_STRATEGY,
+                        ResourceValidator.ValidList.optionalIn(
+                                TOPIC_NAME_STRATEGY, TOPIC_RECORD_NAME_STRATEGY, RECORD_NAME_STRATEGY)))
                 .build();
     }
 
