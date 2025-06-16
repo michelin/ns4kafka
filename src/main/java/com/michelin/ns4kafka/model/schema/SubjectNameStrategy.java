@@ -20,7 +20,6 @@ package com.michelin.ns4kafka.model.schema;
 
 /** Schema subject naming strategies supported by Schema Registry. */
 public enum SubjectNameStrategy {
-
     TOPIC_NAME("io.confluent.kafka.serializers.subject.TopicNameStrategy"),
     TOPIC_RECORD_NAME("io.confluent.kafka.serializers.subject.TopicRecordNameStrategy"),
     RECORD_NAME("io.confluent.kafka.serializers.subject.RecordNameStrategy");

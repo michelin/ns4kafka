@@ -24,7 +24,6 @@ import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import java.util.List;
 import java.util.Optional;
-
 import lombok.extern.slf4j.Slf4j;
 
 /** Validator for schema subject names based on different naming strategies. */
@@ -36,6 +35,7 @@ public final class SchemaSubjectNameValidator {
 
     /**
      * Validates that a schema subject name follows the specified naming strategy.
+     *
      * @param subjectName The schema subject name to validate
      * @param schemaContent The schema content (for extracting record names)
      * @param schemaType The schema type (AVRO, JSON, PROTOBUF)
@@ -66,8 +66,7 @@ public final class SchemaSubjectNameValidator {
             case TOPIC_RECORD_NAME:
                 String topicName2 = extractTopicName(subjectName, strategy).orElse("");
                 Optional<String> recordName = extractRecordName(schemaContent, schemaType);
-                return recordName.isPresent()
-                        && subjectName.equals(topicName2 + "-" + recordName.get());
+                return recordName.isPresent() && subjectName.equals(topicName2 + "-" + recordName.get());
             case RECORD_NAME:
                 Optional<String> recordNameOnly = extractRecordName(schemaContent, schemaType);
                 return recordNameOnly.isPresent() && subjectName.equals(recordNameOnly.get());
@@ -75,7 +74,6 @@ public final class SchemaSubjectNameValidator {
                 return false;
         }
     }
-
 
     /**
      * Extracts the record name from schema content based on schema type.
