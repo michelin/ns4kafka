@@ -18,7 +18,6 @@
  */
 package com.michelin.ns4kafka.controller;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
@@ -151,35 +150,7 @@ class RoleBindingControllerTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
-    void shouldDeleteRoleBinding() {
-        RoleBinding rolebinding = RoleBinding.builder()
-                .metadata(Metadata.builder().name("test.rolebinding").build())
-                .build();
-
-        when(roleBindingService.findByName(any(), any())).thenReturn(Optional.of(rolebinding));
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
-
-        assertDoesNotThrow(() -> roleBindingController.delete("test", "test.rolebinding", false));
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldDeleteRoleBindingInDryRunMode() {
-        RoleBinding rolebinding = RoleBinding.builder()
-                .metadata(Metadata.builder().name("test.rolebinding").build())
-                .build();
-
-        when(roleBindingService.findByName(any(), any())).thenReturn(Optional.of(rolebinding));
-
-        roleBindingController.delete("test", "test.rolebinding", true);
-        verify(roleBindingService, never()).delete(any());
-    }
-
-    @Test
-    void shouldBulkDeleteRoleBindings() {
+    void shouldDeleteRoleBindings() {
         RoleBinding rolebinding1 = RoleBinding.builder()
                 .metadata(Metadata.builder().name("test.rolebinding1").build())
                 .build();
@@ -192,12 +163,12 @@ class RoleBindingControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        var result = roleBindingController.bulkDelete("test", "test.rolebinding*", false);
+        var result = roleBindingController.delete("test", "test.rolebinding*", false);
         assertEquals(HttpStatus.OK, result.getStatus());
     }
 
     @Test
-    void shouldNotBulkDeleteRoleBindingsInDryRunMode() {
+    void shouldNotDeleteRoleBindingsInDryRunMode() {
         RoleBinding rolebinding1 = RoleBinding.builder()
                 .metadata(Metadata.builder().name("test.rolebinding1").build())
                 .build();
@@ -208,16 +179,16 @@ class RoleBindingControllerTest {
 
         when(roleBindingService.findByWildcardName(any(), any())).thenReturn(List.of(rolebinding1, rolebinding2));
 
-        var result = roleBindingController.bulkDelete("test", "test.rolebinding*", true);
+        var result = roleBindingController.delete("test", "test.rolebinding*", true);
         assertEquals(HttpStatus.OK, result.getStatus());
         verify(roleBindingService, never()).delete(any());
     }
 
     @Test
-    void shouldNotBulkDeleteRoleBindingsWhenNotFound() {
+    void shouldNotDeleteRoleBindingsWhenNotFound() {
         when(roleBindingService.findByWildcardName(any(), any())).thenReturn(List.of());
 
-        var response = roleBindingController.bulkDelete("test", "test.rolebinding*", false);
+        var response = roleBindingController.delete("test", "test.rolebinding*", false);
         verify(roleBindingService, never()).delete(any());
         assertEquals(HttpStatus.NOT_FOUND, response.getStatus());
     }

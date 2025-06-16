@@ -297,68 +297,7 @@ class NamespaceControllerTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
-    void shouldDeleteNamespace() {
-        Namespace existing = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
-                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user").build())
-                .build();
-
-        when(namespaceService.findByName("namespace")).thenReturn(Optional.of(existing));
-        when(namespaceService.findAllResourcesByNamespace(existing)).thenReturn(List.of());
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-
-        doNothing().when(applicationEventPublisher).publishEvent(any());
-        var result = namespaceController.delete("namespace", false);
-        assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldDeleteNamespaceInDryRunMode() {
-        Namespace existing = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
-                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user").build())
-                .build();
-
-        when(namespaceService.findByName("namespace")).thenReturn(Optional.of(existing));
-        when(namespaceService.findAllResourcesByNamespace(existing)).thenReturn(List.of());
-
-        var result = namespaceController.delete("namespace", true);
-
-        verify(namespaceService, never()).delete(any());
-        assertEquals(HttpResponse.noContent().getStatus(), result.getStatus());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldNotDeleteNamespaceWhenNotFound() {
-        when(namespaceService.findByName("namespace")).thenReturn(Optional.empty());
-
-        var result = namespaceController.delete("namespace", false);
-
-        verify(namespaceService, never()).delete(any());
-        assertEquals(HttpResponse.notFound().getStatus(), result.getStatus());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldNotDeleteNamespaceWhenResourcesAreStillLinkedWithIt() {
-        Namespace existing = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
-                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user").build())
-                .build();
-
-        when(namespaceService.findByName("namespace")).thenReturn(Optional.of(existing));
-        when(namespaceService.findAllResourcesByNamespace(existing)).thenReturn(List.of("Topic/topic1"));
-
-        assertThrows(ResourceValidationException.class, () -> namespaceController.delete("namespace", false));
-        verify(namespaceService, never()).delete(any());
-    }
-
-    @Test
-    void shouldBulkDeleteNamespaces() {
+    void shouldDeleteNamespaces() {
         Namespace namespace1 = Namespace.builder()
                 .metadata(Metadata.builder().name("namespace1").cluster("local").build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user").build())
@@ -376,12 +315,12 @@ class NamespaceControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
 
         doNothing().when(applicationEventPublisher).publishEvent(any());
-        var result = namespaceController.bulkDelete("namespace*", false);
+        var result = namespaceController.delete("namespace*", false);
         assertEquals(HttpStatus.OK, result.getStatus());
     }
 
     @Test
-    void shouldNotBulkDeleteNamespacesInDryRunMode() {
+    void shouldNotDeleteNamespacesInDryRunMode() {
         Namespace namespace1 = Namespace.builder()
                 .metadata(Metadata.builder().name("namespace1").cluster("local").build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user").build())
@@ -396,13 +335,13 @@ class NamespaceControllerTest {
         when(namespaceService.findAllResourcesByNamespace(namespace1)).thenReturn(List.of());
         when(namespaceService.findAllResourcesByNamespace(namespace2)).thenReturn(List.of());
 
-        var result = namespaceController.bulkDelete("namespace*", true);
+        var result = namespaceController.delete("namespace*", true);
         verify(namespaceService, never()).delete(any());
         assertEquals(HttpStatus.OK, result.getStatus());
     }
 
     @Test
-    void shouldNoBulkDeleteNamespacesWithResources() {
+    void shouldNoDeleteNamespacesWithResources() {
         Namespace namespace1 = Namespace.builder()
                 .metadata(Metadata.builder().name("namespace1").cluster("local").build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user").build())
@@ -417,14 +356,14 @@ class NamespaceControllerTest {
         when(namespaceService.findAllResourcesByNamespace(namespace1)).thenReturn(List.of("Topic/topic1"));
         when(namespaceService.findAllResourcesByNamespace(namespace2)).thenReturn(List.of());
 
-        assertThrows(ResourceValidationException.class, () -> namespaceController.bulkDelete("namespace*", false));
+        assertThrows(ResourceValidationException.class, () -> namespaceController.delete("namespace*", false));
         verify(namespaceService, never()).delete(any());
     }
 
     @Test
-    void shouldNotBulkDeleteNamespacesWhenNoPatternMatches() {
+    void shouldNotDeleteNamespacesWhenNoPatternMatches() {
         when(namespaceService.findByWildcardName("namespace*")).thenReturn(List.of());
-        var result = namespaceController.bulkDelete("namespace*", false);
+        var result = namespaceController.delete("namespace*", false);
         assertEquals(HttpResponse.notFound().getStatus(), result.getStatus());
     }
 }
