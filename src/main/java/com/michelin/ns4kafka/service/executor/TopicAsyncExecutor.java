@@ -109,7 +109,11 @@ public class TopicAsyncExecutor {
                             brokerTopics.containsKey(topic.getMetadata().getName()))
                     .toList();
 
-            List<Topic> unsyncStreamInternalTopics = getUnsyncStreamsInternalTopics(brokerTopics, ns4kafkaTopics);
+            Set<String> ns4KafkaTopicNames = ns4kafkaTopics.stream()
+                    .map(topic -> topic.getMetadata().getName())
+                    .collect(Collectors.toSet());
+
+            List<Topic> unsyncStreamInternalTopics = getUnsyncStreamsInternalTopics(brokerTopics, ns4KafkaTopicNames);
 
             Map<ConfigResource, Collection<AlterConfigOp>> updateTopics = checkTopics.stream()
                     .map(topic -> {
@@ -190,17 +194,16 @@ public class TopicAsyncExecutor {
      * Between broker topics and Ns4Kafka topics, get the unsynchronized Kafka Streams internal topics.
      *
      * @param brokerTopics The topics from the broker
-     * @param ns4kafkaTopics The topics from Ns4Kafka
+     * @param ns4KafkaTopicNames The topic names from Ns4Kafka
      * @return A list of unsynchronized Kafka Streams internal topics
      */
-    private List<Topic> getUnsyncStreamsInternalTopics(Map<String, Topic> brokerTopics, List<Topic> ns4kafkaTopics) {
+    private List<Topic> getUnsyncStreamsInternalTopics(
+            Map<String, Topic> brokerTopics, Set<String> ns4KafkaTopicNames) {
         List<Namespace> namespaces = namespaceService.findAll();
         return brokerTopics.values().stream()
                 // Keep topics that are not already in Ns4Kafka
-                .filter(topic -> ns4kafkaTopics.stream().noneMatch(ns4KafkaTopic -> ns4KafkaTopic
-                        .getMetadata()
-                        .getName()
-                        .equals(topic.getMetadata().getName())))
+                .filter(topic ->
+                        !ns4KafkaTopicNames.contains(topic.getMetadata().getName()))
                 // Keep Kafka Streams topics
                 .filter(topic -> topic.getMetadata().getName().endsWith("-changelog")
                         || topic.getMetadata().getName().endsWith("-repartition"))
