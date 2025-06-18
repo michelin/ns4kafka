@@ -30,6 +30,7 @@ import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import io.micronaut.core.util.StringUtils;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -70,7 +71,9 @@ public class TopicValidator extends ResourceValidator {
                         ResourceValidator.ValidString.optionalIn("true", "false"),
                         VALUE_SUBJECT_NAME_STRATEGY,
                         ResourceValidator.ValidList.optionalIn(
-                                TOPIC_NAME_STRATEGY, TOPIC_RECORD_NAME_STRATEGY, RECORD_NAME_STRATEGY)))
+                                SubjectNameStrategy.TOPIC_NAME.toString(),
+                                SubjectNameStrategy.TOPIC_RECORD_NAME.toString(),
+                                SubjectNameStrategy.RECORD_NAME.toString())))
                 .build();
     }
 
@@ -98,7 +101,9 @@ public class TopicValidator extends ResourceValidator {
                         ResourceValidator.ValidString.optionalIn("true", "false"),
                         VALUE_SUBJECT_NAME_STRATEGY,
                         ResourceValidator.ValidList.optionalIn(
-                                TOPIC_NAME_STRATEGY, TOPIC_RECORD_NAME_STRATEGY, RECORD_NAME_STRATEGY)))
+                                "toto",
+                                "titi",
+                                "tata")))
                 .build();
     }
 
@@ -108,13 +113,13 @@ public class TopicValidator extends ResourceValidator {
                         VALUE_SUBJECT_NAME_STRATEGY,
                         ResourceValidator.ValidList.in(SubjectNameStrategy.DEFAULT.toString()));
         if (value instanceof ResourceValidator.ValidList validList) {
-            return validList.getValidValues().stream()
+            return new ArrayList<>(validList.getValidValues().stream()
                     .map(SubjectNameStrategy::valueOf)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toList()));
         }
 
         // Should never happen, but just in case
-        return List.of(SubjectNameStrategy.DEFAULT);
+        return new ArrayList<>(List.of(SubjectNameStrategy.DEFAULT));
     }
 
     /**
@@ -162,7 +167,7 @@ public class TopicValidator extends ResourceValidator {
                 } else if (key.equals(REPLICATION_FACTOR)) {
                     value.ensureValid(key, topic.getSpec().getReplicationFactor());
                 } else if (key.equals(VALUE_SUBJECT_NAME_STRATEGY)) {
-                    value.ensureValid(key, topic.getSubjectNameStrategy());
+                    value.ensureValid(key, topic.getSpec().getSubjectNameStrategy().toString());
                 } else {
                     if (topic.getSpec().getConfigs() != null) {
                         value.ensureValid(key, topic.getSpec().getConfigs().get(key));
