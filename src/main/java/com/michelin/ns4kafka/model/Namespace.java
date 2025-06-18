@@ -73,14 +73,5 @@ public class Namespace extends MetadataResource {
         private TopicValidator topicValidator;
         private ConnectValidator connectValidator;
 
-        public List<SubjectNameStrategy> getValidSubjectNameStrategies() {
-            return getTopicValidator() != null
-                    ? getTopicValidator().getValidSubjectNameStrategies()
-                    : List.of(SubjectNameStrategy.DEFAULT);
-        }
-    }
-
-    public List<SubjectNameStrategy> getValidSubjectNameStrategies() {
-        return spec.getValidSubjectNameStrategies();
     }
 }
