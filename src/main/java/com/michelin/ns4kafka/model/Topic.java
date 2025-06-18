@@ -66,10 +66,6 @@ public class Topic extends MetadataResource {
         this.status = status;
     }
 
-    public SubjectNameStrategy getSubjectNameStrategy() {
-        return spec.getSubjectNameStrategy() != null ? spec.getSubjectNameStrategy() : SubjectNameStrategy.DEFAULT;
-    }
-
     /** Topic spec. */
     @Data
     @Builder
@@ -79,6 +75,8 @@ public class Topic extends MetadataResource {
     public static class TopicSpec {
         private int replicationFactor;
         private int partitions;
+        @Builder.Default
+        private SubjectNameStrategy subjectNameStrategy = SubjectNameStrategy.DEFAULT;
 
         @Builder.Default
         @JsonSetter(nulls = Nulls.AS_EMPTY)
@@ -90,8 +88,6 @@ public class Topic extends MetadataResource {
         @JsonSetter(nulls = Nulls.AS_EMPTY)
         private Map<String, String> configs = new HashMap<>();
 
-        @Builder.Default
-        private SubjectNameStrategy subjectNameStrategy = SubjectNameStrategy.DEFAULT;
     }
 
     /** Topic status. */
