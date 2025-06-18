@@ -75,6 +75,7 @@ public class Topic extends MetadataResource {
     public static class TopicSpec {
         private int replicationFactor;
         private int partitions;
+
         @Builder.Default
         private SubjectNameStrategy subjectNameStrategy = SubjectNameStrategy.DEFAULT;
 

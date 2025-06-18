@@ -30,7 +30,6 @@ import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import io.micronaut.core.util.StringUtils;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -70,10 +69,10 @@ public class TopicValidator extends ResourceValidator {
                         "preallocate",
                         ResourceValidator.ValidString.optionalIn("true", "false"),
                         VALUE_SUBJECT_NAME_STRATEGY,
-                        ResourceValidator.ValidList.optionalIn(
-                                SubjectNameStrategy.TOPIC_NAME.toString(),
-                                SubjectNameStrategy.TOPIC_RECORD_NAME.toString(),
-                                SubjectNameStrategy.RECORD_NAME.toString())))
+                        ResourceValidator.ValidString.optionalIn(
+                                SubjectNameStrategy.TOPIC_NAME.name(),
+                                SubjectNameStrategy.TOPIC_RECORD_NAME.name(),
+                                SubjectNameStrategy.RECORD_NAME.name())))
                 .build();
     }
 
@@ -98,12 +97,7 @@ public class TopicValidator extends ResourceValidator {
                         "retention.bytes",
                         ResourceValidator.Range.optionalBetween(-1, 104857600),
                         "preallocate",
-                        ResourceValidator.ValidString.optionalIn("true", "false"),
-                        VALUE_SUBJECT_NAME_STRATEGY,
-                        ResourceValidator.ValidList.optionalIn(
-                                "toto",
-                                "titi",
-                                "tata")))
+                        ResourceValidator.ValidString.optionalIn("true", "false")))
                 .build();
     }
 
@@ -111,14 +105,12 @@ public class TopicValidator extends ResourceValidator {
         Validator value = getValidationConstraints()
                 .putIfAbsent(
                         VALUE_SUBJECT_NAME_STRATEGY,
-                        ResourceValidator.ValidList.in(SubjectNameStrategy.DEFAULT.toString()));
-        if (value instanceof ResourceValidator.ValidList validList) {
-            return new ArrayList<>(validList.getValidValues().stream()
-                    .map(SubjectNameStrategy::valueOf)
-                    .collect(Collectors.toList()));
+                        ResourceValidator.ValidString.in(SubjectNameStrategy.DEFAULT.toString()));
+        if (value instanceof ResourceValidator.ValidString validString) {
+            return new ArrayList<>(validString.getValidStrings().stream()
+                    .map(SubjectNameStrategy::getFromConfigValue)
+                    .toList());
         }
-
-        // Should never happen, but just in case
         return new ArrayList<>(List.of(SubjectNameStrategy.DEFAULT));
     }
 
@@ -167,7 +159,8 @@ public class TopicValidator extends ResourceValidator {
                 } else if (key.equals(REPLICATION_FACTOR)) {
                     value.ensureValid(key, topic.getSpec().getReplicationFactor());
                 } else if (key.equals(VALUE_SUBJECT_NAME_STRATEGY)) {
-                    value.ensureValid(key, topic.getSpec().getSubjectNameStrategy().toString());
+                    value.ensureValid(
+                            key, topic.getSpec().getSubjectNameStrategy().toString());
                 } else {
                     if (topic.getSpec().getConfigs() != null) {
                         value.ensureValid(key, topic.getSpec().getConfigs().get(key));
