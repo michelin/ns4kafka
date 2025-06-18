@@ -27,9 +27,4 @@ public final class TopicConfig {
     public static final String PARTITIONS = "partitions";
     public static final String REPLICATION_FACTOR = "replication.factor";
     public static final String VALUE_SUBJECT_NAME_STRATEGY = "confluent.value.subject.name.strategy";
-
-    public static final String TOPIC_NAME_STRATEGY = "io.confluent.kafka.serializers.subject.TopicNameStrategy";
-    public static final String TOPIC_RECORD_NAME_STRATEGY =
-            "io.confluent.kafka.serializers.subject.TopicRecordNameStrategy";
-    public static final String RECORD_NAME_STRATEGY = "io.confluent.kafka.serializers.subject.RecordNameStrategy";
 }
