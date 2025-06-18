@@ -24,6 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyMap;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
@@ -55,7 +57,6 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.common.TopicPartition;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
@@ -744,8 +745,7 @@ class TopicControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.listUnsynchronizedTopics(ns)).thenReturn(List.of(topic1, topic2));
-        when(topicService.create(topic1)).thenReturn(topic1);
-        when(topicService.create(topic2)).thenReturn(topic2);
+        doNothing().when(topicService).importTopics(any(), any());
 
         List<Topic> actual = topicController.importResources("test", false);
 
@@ -759,8 +759,13 @@ class TopicControllerTest {
                         && t.getStatus().getMessage().equals("Imported from cluster")
                         && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)));
 
-        Assertions.assertFalse(
-                actual.stream().anyMatch(t -> t.getMetadata().getName().equals("test.topic3")));
+        verify(topicService)
+                .importTopics(
+                        eq(ns),
+                        argThat(topics -> topics.stream()
+                                        .anyMatch(t -> t.getMetadata().getName().equals("test.topic1"))
+                                || topics.stream()
+                                        .anyMatch(t -> t.getMetadata().getName().equals("test.topic2"))));
     }
 
     @Test
@@ -797,18 +802,9 @@ class TopicControllerTest {
 
         List<Topic> actual = topicController.importResources("test", true);
 
-        assertTrue(actual.stream()
-                .anyMatch(t -> t.getMetadata().getName().equals("test.topic1")
-                        && t.getStatus().getMessage().equals("Imported from cluster")
-                        && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)));
+        assertTrue(actual.stream().anyMatch(t -> t.getMetadata().getName().equals("test.topic1")));
 
-        assertTrue(actual.stream()
-                .anyMatch(t -> t.getMetadata().getName().equals("test.topic2")
-                        && t.getStatus().getMessage().equals("Imported from cluster")
-                        && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)));
-
-        Assertions.assertFalse(
-                actual.stream().anyMatch(t -> t.getMetadata().getName().equals("test.topic3")));
+        assertTrue(actual.stream().anyMatch(t -> t.getMetadata().getName().equals("test.topic2")));
     }
 
     @Test
@@ -830,7 +826,7 @@ class TopicControllerTest {
         when(topicService.validateDeleteRecordsTopic(toEmpty)).thenReturn(List.of());
         when(topicService.findByName(ns, "topic.empty")).thenReturn(Optional.of(toEmpty));
         when(topicService.prepareRecordsToDelete(toEmpty)).thenReturn(partitionsToDelete);
-        when(topicService.deleteRecords(ArgumentMatchers.eq(toEmpty), anyMap())).thenReturn(partitionsToDelete);
+        when(topicService.deleteRecords(eq(toEmpty), anyMap())).thenReturn(partitionsToDelete);
 
         List<DeleteRecordsResponse> actual = topicController.deleteRecords("test", "topic.empty", false);
 

@@ -96,8 +96,9 @@ public class AccessControlEntryAsyncExecutor {
                     .toList();
 
             if (!toCreate.isEmpty()) {
-                log.debug("ACL(s) to create: "
-                        + String.join(
+                log.debug(
+                        "ACL(s) to create: {}",
+                        String.join(
                                 ",", toCreate.stream().map(AclBinding::toString).toList()));
             }
 
@@ -105,8 +106,9 @@ public class AccessControlEntryAsyncExecutor {
                 if (!managedClusterProperties.isDropUnsyncAcls()) {
                     log.debug("The ACL drop is disabled. The following ACLs won't be deleted.");
                 }
-                log.debug("ACL(s) to delete: "
-                        + String.join(
+                log.debug(
+                        "ACL(s) to delete: {}",
+                        String.join(
                                 ",", toDelete.stream().map(AclBinding::toString).toList()));
             }
 

@@ -72,7 +72,7 @@ public class StreamController extends NamespacedResourceController {
      * @param namespace The name
      * @param stream The Kafka Streams name
      * @return The Kafka Streams
-     * @deprecated Use ${@link #list(String, String)}
+     * @deprecated Use {@link #list(String, String)}
      */
     @Get("/{stream}")
     @Deprecated(since = "1.12.0")
