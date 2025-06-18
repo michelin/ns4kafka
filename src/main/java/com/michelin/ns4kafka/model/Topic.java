@@ -74,6 +74,7 @@ public class Topic extends MetadataResource {
     public static class TopicSpec {
         private int replicationFactor;
         private int partitions;
+
         @Builder.Default
         private SubjectNameStrategy subjectNameStrategy = SubjectNameStrategy.DEFAULT;
 
@@ -83,7 +84,6 @@ public class Topic extends MetadataResource {
 
         private String description;
         private Map<String, String> configs;
-
     }
 
     /** Topic status. */

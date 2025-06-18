@@ -20,7 +20,6 @@ package com.michelin.ns4kafka.model;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.NAMESPACE;
 
-import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.core.annotation.Introspected;
@@ -72,6 +71,5 @@ public class Namespace extends MetadataResource {
 
         private TopicValidator topicValidator;
         private ConnectValidator connectValidator;
-
     }
 }

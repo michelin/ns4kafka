@@ -18,6 +18,8 @@
  */
 package com.michelin.ns4kafka.model.schema;
 
+import java.util.Arrays;
+
 /** Schema subject naming strategies supported by Schema Registry. */
 public enum SubjectNameStrategy {
     TOPIC_NAME("io.confluent.kafka.serializers.subject.TopicNameStrategy"),
@@ -37,6 +39,9 @@ public enum SubjectNameStrategy {
         return name;
     }
 
+    /**
+     * @return The format for subject value (i.e. the SchemaResource metadata name) according to subject name strategy
+     */
     public String toExpectedFormat() {
         switch (this) {
             case TOPIC_NAME:
@@ -48,5 +53,18 @@ public enum SubjectNameStrategy {
             default:
                 throw new IllegalArgumentException("Unknown SubjectNameStrategy: " + this);
         }
+    }
+
+    /**
+     * Return SubjectNameStrategy enum value corresponding to confluent's strategy value given as a String
+     *
+     * @param strategyRealValue
+     * @return SubjectNameStrategy enum value from given confluent's strategy value
+     */
+    public static SubjectNameStrategy getFromConfigValue(final String strategyRealValue) {
+        return Arrays.stream(values())
+                .filter(s -> s.name.equals(strategyRealValue))
+                .findFirst()
+                .orElseThrow();
     }
 }
