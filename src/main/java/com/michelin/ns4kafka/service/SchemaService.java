@@ -202,7 +202,8 @@ public class SchemaService {
     public Mono<List<String>> validateSchema(Namespace namespace, Schema schema) {
         return Mono.defer(() -> {
             List<String> validationErrors = new ArrayList<>();
-            List<SubjectNameStrategy> namingStrategies = namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies();
+            List<SubjectNameStrategy> namingStrategies =
+                    namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies();
             String subjectName = schema.getMetadata().getName();
             boolean isValid = SchemaSubjectNameValidator.validateSubjectName(
                     subjectName,
