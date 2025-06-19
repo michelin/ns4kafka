@@ -21,6 +21,7 @@ package com.michelin.ns4kafka.service;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.repository.StreamRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.util.RegexUtils;
@@ -31,6 +32,8 @@ import jakarta.inject.Singleton;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 /** Service to manage Kafka Streams. */
 @Singleton
@@ -43,6 +46,9 @@ public class StreamService {
 
     @Inject
     private ApplicationContext applicationContext;
+
+    @Inject
+    private TopicService topicService;
 
     /**
      * Find all Kafka Streams of a given namespace.
@@ -124,11 +130,37 @@ public class StreamService {
      *
      * @param stream The Kafka Stream
      */
-    public void delete(Namespace namespace, KafkaStream stream) {
+    public void delete(Namespace namespace, KafkaStream stream)
+            throws ExecutionException, InterruptedException, TimeoutException {
         AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor = applicationContext.getBean(
                 AccessControlEntryAsyncExecutor.class,
                 Qualifiers.byName(stream.getMetadata().getCluster()));
         accessControlEntryAsyncExecutor.deleteKafkaStreams(namespace, stream);
+
+        List<KafkaStream> overlapKafkaStreams = findAllForNamespace(namespace).stream()
+                .filter(kafkaStream -> kafkaStream
+                        .getMetadata()
+                        .getName()
+                        .startsWith(stream.getMetadata().getName() + "-"))
+                .toList();
+
+        List<Topic> kafkaStreamsTopics =
+                topicService
+                        .findByWildcardName(
+                                namespace, stream.getMetadata().getName().concat("-*"))
+                        .stream()
+                        .filter(topic -> topic.getMetadata().getName().endsWith("-repartition")
+                                || topic.getMetadata().getName().endsWith("-changelog"))
+                        // Exclude topics covered by other Kafka Streams
+                        // (E.g., When deleting "abc.appId", avoid deleting "abc.appId-1234")
+                        .filter(topic -> overlapKafkaStreams.stream().noneMatch(kafkaStream -> topic.getMetadata()
+                                .getName()
+                                .startsWith(kafkaStream.getMetadata().getName())))
+                        .toList();
+
+        if (!kafkaStreamsTopics.isEmpty()) {
+            topicService.deleteTopics(kafkaStreamsTopics);
+        }
 
         streamRepository.delete(stream);
     }

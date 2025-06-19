@@ -257,24 +257,21 @@ public class TopicController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
         List<Topic> unsynchronizedTopics = topicService.listUnsynchronizedTopics(ns);
 
+        if (dryrun) {
+            return unsynchronizedTopics;
+        }
+
         unsynchronizedTopics.forEach(topic -> {
             topic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
             topic.getMetadata().setCluster(ns.getMetadata().getCluster());
             topic.getMetadata().setNamespace(ns.getMetadata().getName());
             topic.setStatus(Topic.TopicStatus.ofSuccess("Imported from cluster"));
+            sendEventLog(topic, ApplyStatus.CREATED, null, topic.getSpec(), EMPTY_STRING);
         });
 
-        if (dryrun) {
-            return unsynchronizedTopics;
-        }
+        topicService.importTopics(ns, unsynchronizedTopics);
 
-        return unsynchronizedTopics.stream()
-                .map(topic -> {
-                    sendEventLog(topic, ApplyStatus.CREATED, null, topic.getSpec(), EMPTY_STRING);
-
-                    return topicService.create(topic);
-                })
-                .toList();
+        return unsynchronizedTopics;
     }
 
     /**

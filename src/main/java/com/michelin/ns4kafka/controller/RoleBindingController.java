@@ -65,20 +65,6 @@ public class RoleBindingController extends NamespacedResourceController {
     }
 
     /**
-     * Get a role binding by namespace and name.
-     *
-     * @param namespace The namespace
-     * @param name The role binding name
-     * @return A role binding
-     * @deprecated use {@link #list(String, String)} instead.
-     */
-    @Get("/{name}")
-    @Deprecated(since = "1.12.0")
-    public Optional<RoleBinding> get(String namespace, String name) {
-        return roleBindingService.findByName(namespace, name);
-    }
-
-    /**
      * Create a role binding.
      *
      * @param namespace The namespace
@@ -120,37 +106,6 @@ public class RoleBindingController extends NamespacedResourceController {
     }
 
     /**
-     * Delete a role binding.
-     *
-     * @param namespace The namespace
-     * @param name The role binding
-     * @param dryrun Is dry run mode or not?
-     * @return An HTTP response
-     * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
-     */
-    @Delete("/{name}{?dryrun}")
-    @Deprecated(since = "1.13.0")
-    @Status(HttpStatus.NO_CONTENT)
-    public HttpResponse<Void> delete(
-            String namespace, String name, @QueryValue(defaultValue = "false") boolean dryrun) {
-        Optional<RoleBinding> roleBinding = roleBindingService.findByName(namespace, name);
-        if (roleBinding.isEmpty()) {
-            return HttpResponse.notFound();
-        }
-
-        if (dryrun) {
-            return HttpResponse.noContent();
-        }
-
-        var roleBindingToDelete = roleBinding.get();
-
-        sendEventLog(roleBindingToDelete, ApplyStatus.DELETED, roleBindingToDelete.getSpec(), null, EMPTY_STRING);
-
-        roleBindingService.delete(roleBindingToDelete);
-        return HttpResponse.noContent();
-    }
-
-    /**
      * Delete role bindings.
      *
      * @param namespace The namespace
@@ -160,7 +115,7 @@ public class RoleBindingController extends NamespacedResourceController {
      */
     @Delete
     @Status(HttpStatus.OK)
-    public HttpResponse<List<RoleBinding>> bulkDelete(
+    public HttpResponse<List<RoleBinding>> delete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
             @QueryValue(defaultValue = "false") boolean dryrun) {

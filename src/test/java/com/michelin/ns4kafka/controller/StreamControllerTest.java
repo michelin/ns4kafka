@@ -40,6 +40,8 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -270,7 +272,7 @@ class StreamControllerTest {
 
     @Test
     @SuppressWarnings("deprecation")
-    void shouldDeleteStreams() {
+    void shouldDeleteStreams() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("test").cluster("local").build())
                 .build();
@@ -295,7 +297,7 @@ class StreamControllerTest {
 
     @Test
     @SuppressWarnings("deprecation")
-    void shouldDeleteStreamsInDryRunMode() {
+    void shouldDeleteStreamsInDryRunMode() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("test").cluster("local").build())
                 .build();
@@ -317,7 +319,7 @@ class StreamControllerTest {
 
     @Test
     @SuppressWarnings("deprecation")
-    void shouldNotDeleteStreamsWhenNotFound() {
+    void shouldNotDeleteStreamsWhenNotFound() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("test").cluster("local").build())
                 .build();
@@ -335,7 +337,7 @@ class StreamControllerTest {
 
     @Test
     @SuppressWarnings("deprecation")
-    void shouldNotDeleteStreamsWhenNotOwner() {
+    void shouldNotDeleteStreamsWhenNotOwner() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("test").cluster("local").build())
                 .build();
@@ -349,7 +351,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void shouldBulkDeleteStreams() {
+    void shouldBulkDeleteStreams() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("test").cluster("local").build())
                 .build();
@@ -380,7 +382,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void shouldNotBulkDeleteStreamsInDryRunMode() {
+    void shouldNotBulkDeleteStreamsInDryRunMode() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("test").cluster("local").build())
                 .build();
@@ -407,7 +409,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void shouldNotBulkDeleteStreamsWhenNotFound() {
+    void shouldNotBulkDeleteStreamsWhenNotFound() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("test").cluster("local").build())
                 .build();
@@ -423,7 +425,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void shouldNotBulkDeleteStreamsWhenNotOwner() {
+    void shouldNotBulkDeleteStreamsWhenNotOwner() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("test").cluster("local").build())
                 .build();

@@ -76,19 +76,6 @@ public class NamespaceController extends NonNamespacedResourceController {
     }
 
     /**
-     * Get a namespace by name.
-     *
-     * @param namespace The namespace
-     * @return A namespace
-     * @deprecated use list(String name) instead.
-     */
-    @Get("/{namespace}")
-    @Deprecated(since = "1.12.0")
-    public Optional<Namespace> get(String namespace) {
-        return namespaceService.findByName(namespace);
-    }
-
-    /**
      * Create a namespace.
      *
      * @param namespace The namespace
@@ -144,48 +131,6 @@ public class NamespaceController extends NonNamespacedResourceController {
     }
 
     /**
-     * Delete a namespace.
-     *
-     * @param namespace The namespace
-     * @param dryrun Is dry run mode or not?
-     * @return An HTTP response
-     * @deprecated use bulkDelete instead.
-     */
-    @Delete("/{namespace}{?dryrun}")
-    @Deprecated(since = "1.13.0")
-    public HttpResponse<Void> delete(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
-        Optional<Namespace> optionalNamespace = namespaceService.findByName(namespace);
-
-        if (optionalNamespace.isEmpty()) {
-            return HttpResponse.notFound();
-        }
-
-        List<String> namespaceResources = namespaceService.findAllResourcesByNamespace(optionalNamespace.get());
-
-        if (!namespaceResources.isEmpty()) {
-            List<String> validationErrors = namespaceResources.stream()
-                    .map(FormatErrorUtils::invalidNamespaceDeleteOperation)
-                    .toList();
-            throw new ResourceValidationException(NAMESPACE, namespace, validationErrors);
-        }
-
-        if (dryrun) {
-            return HttpResponse.noContent();
-        }
-
-        sendEventLog(
-                optionalNamespace.get(),
-                ApplyStatus.DELETED,
-                optionalNamespace.get().getSpec(),
-                null,
-                EMPTY_STRING);
-
-        namespaceService.delete(optionalNamespace.get());
-
-        return HttpResponse.noContent();
-    }
-
-    /**
      * Delete namespaces.
      *
      * @param dryrun Is dry run mode or not?
@@ -193,7 +138,7 @@ public class NamespaceController extends NonNamespacedResourceController {
      * @return An HTTP response
      */
     @Delete
-    public HttpResponse<List<Namespace>> bulkDelete(
+    public HttpResponse<List<Namespace>> delete(
             @QueryValue(defaultValue = "*") String name, @QueryValue(defaultValue = "false") boolean dryrun) {
         List<Namespace> namespaces = namespaceService.findByWildcardName(name);
 
