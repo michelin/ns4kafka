@@ -66,9 +66,6 @@ public class SchemaService {
         this.schemaRegistryClient = schemaRegistryClient;
     }
 
-    @Inject
-    TopicService topicService;
-
     /**
      * Get all the schemas of a given namespace.
      *
@@ -78,8 +75,9 @@ public class SchemaService {
     public Flux<Schema> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls =
                 aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
-        List<SubjectNameStrategy> strategies =
-                namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies();
+        List<SubjectNameStrategy> strategies = namespace.getSpec().getTopicValidator() != null
+                ? namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies()
+                : List.of(SubjectNameStrategy.DEFAULT);
         return schemaRegistryClient
                 .getSubjects(namespace.getMetadata().getCluster())
                 .filter(subject -> {
@@ -212,8 +210,9 @@ public class SchemaService {
     public Mono<List<String>> validateSchema(Namespace namespace, Schema schema) {
         return Mono.defer(() -> {
             List<String> validationErrors = new ArrayList<>();
-            List<SubjectNameStrategy> namingStrategies =
-                    namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies();
+            List<SubjectNameStrategy> namingStrategies = namespace.getSpec().getTopicValidator() != null
+                    ? namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies()
+                    : List.of(SubjectNameStrategy.DEFAULT);
             String subjectName = schema.getMetadata().getName();
             boolean isValid = SchemaSubjectNameValidator.validateSubjectName(
                     subjectName,
@@ -373,8 +372,9 @@ public class SchemaService {
      * @return true if it's owner, false otherwise
      */
     public boolean isNamespaceOwnerOfSubject(Namespace namespace, String subjectName) {
-        List<SubjectNameStrategy> strategies =
-                namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies();
+        List<SubjectNameStrategy> strategies = namespace.getSpec().getTopicValidator() != null
+                ? namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies()
+                : List.of(SubjectNameStrategy.DEFAULT);
 
         String underlyingTopicName = SchemaSubjectNameValidator.extractTopicName(subjectName, strategies)
                 .orElse("");
