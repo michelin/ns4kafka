@@ -674,16 +674,6 @@ public class FormatErrorUtils {
     }
 
     /**
-     * Invalid schema suffix.
-     *
-     * @param invalidNameValue the invalid name value
-     * @return the error message
-     */
-    public static String invalidSchemaSuffix(String invalidNameValue) {
-        return INVALID_FIELD.formatted(invalidNameValue, FIELD_NAME, "value must end with -key or -value");
-    }
-
-    /**
      * Invalid schema subject name for the configured naming strategy.
      *
      * @param subjectName the subject name
