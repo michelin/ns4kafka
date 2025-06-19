@@ -151,7 +151,7 @@ public final class SchemaSubjectNameValidator {
     }
 
     /**
-     * Extracts the topic name from a subject name using multiple strategies.
+     * Extracts the topic name from a subject name according to the allowed strategies.
      *
      * @param subjectName The subject name (assumed to be not empty)
      * @param strategies The list of strategies to try
