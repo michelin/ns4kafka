@@ -68,14 +68,16 @@ public class SchemaService {
      * @param namespace The namespace
      * @return A list of schemas
      */
-    // TODO Fix topic extraction here
     public Flux<Schema> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls =
                 aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
+        List<SubjectNameStrategy> strategies =
+                namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies();
         return schemaRegistryClient
                 .getSubjects(namespace.getMetadata().getCluster())
                 .filter(subject -> {
-                    String underlyingTopicName = subject.replaceAll("-(key|value)$", "");
+                    String underlyingTopicName = SchemaSubjectNameValidator.extractTopicName(subject, strategies)
+                            .orElse("");
                     return aclService.isResourceCoveredByAcls(acls, underlyingTopicName);
                 })
                 .map(subject -> Schema.builder()
@@ -363,9 +365,12 @@ public class SchemaService {
      * @param subjectName The name of the subject
      * @return true if it's owner, false otherwise
      */
-    // TODO: update this method to take into account the subject name strategy
     public boolean isNamespaceOwnerOfSubject(Namespace namespace, String subjectName) {
-        String underlyingTopicName = subjectName.replaceAll("(-key|-value)$", "");
+        List<SubjectNameStrategy> strategies =
+                namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies();
+
+        String underlyingTopicName = SchemaSubjectNameValidator.extractTopicName(subjectName, strategies)
+                .orElse("");
         return aclService.isNamespaceOwnerOfResource(
                 namespace.getMetadata().getName(), AccessControlEntry.ResourceType.TOPIC, underlyingTopicName);
     }
