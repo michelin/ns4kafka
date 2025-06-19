@@ -102,12 +102,10 @@ public class TopicValidator extends ResourceValidator {
                 .build();
     }
 
+
     public List<SubjectNameStrategy> getValidSubjectNameStrategies() {
-        Validator value = new HashMap<>(getValidationConstraints())
-                .putIfAbsent(
-                        VALUE_SUBJECT_NAME_STRATEGY,
-                        ResourceValidator.ValidString.in(SubjectNameStrategy.DEFAULT.toString()));
-        if (value instanceof ResourceValidator.ValidString validString) {
+        ResourceValidator.Validator strategies = getValidationConstraints().get(VALUE_SUBJECT_NAME_STRATEGY);
+        if (strategies instanceof ResourceValidator.ValidString validString && validString.getValidStrings() != null) {
             return new ArrayList<>(validString.getValidStrings().stream()
                     .map(SubjectNameStrategy::fromConfigValue)
                     .toList());
@@ -174,5 +172,9 @@ public class TopicValidator extends ResourceValidator {
             }
         });
         return validationErrors;
+    }
+    public void setSubjectNameStrategies(List<SubjectNameStrategy> strategies) {
+        this.validationConstraints.put(VALUE_SUBJECT_NAME_STRATEGY, ResourceValidator.ValidString.optionalIn(
+                strategies.stream().map(SubjectNameStrategy::toString).toArray(String[]::new)));
     }
 }
