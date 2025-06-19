@@ -68,6 +68,7 @@ public class SchemaService {
      * @param namespace The namespace
      * @return A list of schemas
      */
+    // TODO Fix topic extraction here
     public Flux<Schema> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls =
                 aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
