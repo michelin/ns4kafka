@@ -30,7 +30,6 @@ import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import io.micronaut.core.util.StringUtils;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -55,9 +54,9 @@ public class TopicValidator extends ResourceValidator {
     public static TopicValidator makeDefault() {
         return TopicValidator.builder()
                 .validationConstraints(Map.of(
-                        "replication.factor",
+                        REPLICATION_FACTOR,
                         ResourceValidator.Range.between(3, 3),
-                        "partitions",
+                        PARTITIONS,
                         ResourceValidator.Range.between(3, 6),
                         "cleanup.policy",
                         ResourceValidator.ValidList.in("delete", "compact"),
@@ -85,9 +84,9 @@ public class TopicValidator extends ResourceValidator {
     public static TopicValidator makeDefaultOneBroker() {
         return TopicValidator.builder()
                 .validationConstraints(Map.of(
-                        "replication.factor",
+                        REPLICATION_FACTOR,
                         ResourceValidator.Range.between(1, 1),
-                        "partitions",
+                        PARTITIONS,
                         ResourceValidator.Range.between(3, 6),
                         "cleanup.policy",
                         ResourceValidator.ValidList.in("delete", "compact"),
@@ -101,7 +100,6 @@ public class TopicValidator extends ResourceValidator {
                         ResourceValidator.ValidString.optionalIn("true", "false")))
                 .build();
     }
-
 
     public List<SubjectNameStrategy> getValidSubjectNameStrategies() {
         ResourceValidator.Validator strategies = getValidationConstraints().get(VALUE_SUBJECT_NAME_STRATEGY);
@@ -173,8 +171,11 @@ public class TopicValidator extends ResourceValidator {
         });
         return validationErrors;
     }
+
     public void setSubjectNameStrategies(List<SubjectNameStrategy> strategies) {
-        this.validationConstraints.put(VALUE_SUBJECT_NAME_STRATEGY, ResourceValidator.ValidString.optionalIn(
-                strategies.stream().map(SubjectNameStrategy::toString).toArray(String[]::new)));
+        this.validationConstraints.put(
+                VALUE_SUBJECT_NAME_STRATEGY,
+                ResourceValidator.ValidString.optionalIn(
+                        strategies.stream().map(SubjectNameStrategy::toString).toArray(String[]::new)));
     }
 }
