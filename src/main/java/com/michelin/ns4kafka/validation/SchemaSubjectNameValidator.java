@@ -77,8 +77,9 @@ public final class SchemaSubjectNameValidator {
     }
 
     /**
-     * Extracts the record name from schema content based on schema type.
-     * /!\ Only AVRO schema are handled. TopicRecordName Strategy will not be valid for any other schema.
+     * Extracts the record name from schema content based on schema type. /!\ Only AVRO schema are handled.
+     * TopicRecordName Strategy will not be valid for any other schema.
+     *
      * @param schemaContent The schema content as string
      * @param schemaType The type of schema (AVRO, JSON, PROTOBUF)
      * @return Optional containing the record name if found
@@ -147,5 +148,22 @@ public final class SchemaSubjectNameValidator {
             default:
                 return Optional.empty();
         }
+    }
+
+    /**
+     * Extracts the topic name from a subject name using multiple strategies.
+     *
+     * @param subjectName The subject name (assumed to be not empty)
+     * @param strategies The list of strategies to try
+     * @return The topic name if it can be determined by any of the strategies
+     */
+    public static Optional<String> extractTopicName(String subjectName, List<SubjectNameStrategy> strategies) {
+        for (SubjectNameStrategy strategy : strategies) {
+            Optional<String> topicName = extractTopicName(subjectName, strategy);
+            if (topicName.isPresent()) {
+                return topicName;
+            }
+        }
+        return Optional.empty();
     }
 }
