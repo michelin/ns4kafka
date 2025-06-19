@@ -30,6 +30,7 @@ import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import io.micronaut.core.util.StringUtils;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -102,7 +103,7 @@ public class TopicValidator extends ResourceValidator {
     }
 
     public List<SubjectNameStrategy> getValidSubjectNameStrategies() {
-        Validator value = getValidationConstraints()
+        Validator value = new HashMap<>(getValidationConstraints())
                 .putIfAbsent(
                         VALUE_SUBJECT_NAME_STRATEGY,
                         ResourceValidator.ValidString.in(SubjectNameStrategy.DEFAULT.toString()));
