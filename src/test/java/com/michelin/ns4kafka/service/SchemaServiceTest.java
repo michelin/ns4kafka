@@ -37,6 +37,9 @@ import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
+import com.michelin.ns4kafka.util.FormatErrorUtils;
+import com.michelin.ns4kafka.validation.TopicValidator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -479,8 +482,7 @@ class SchemaServiceTest {
 
         StepVerifier.create(schemaService.validateSchema(namespace, schema))
                 .consumeNextWith(errors -> {
-                    assertTrue(errors.contains("Invalid value \"wrongSubjectName\" for field \"name\": "
-                            + "value must end with -key or -value."));
+                    assertTrue(errors.contains(FormatErrorUtils.invalidSchemaSubjectName("wrongSubjectName", namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies())));
                     assertTrue(errors.contains("Invalid value \"header-value\" for field \"references\": "
                             + "subject header-value version 1 not found."));
                 })
@@ -578,7 +580,7 @@ class SchemaServiceTest {
         return Namespace.builder()
                 .metadata(
                         Metadata.builder().name("myNamespace").cluster("local").build())
-                .spec(Namespace.NamespaceSpec.builder().build())
+                .spec(Namespace.NamespaceSpec.builder().topicValidator(TopicValidator.makeDefaultOneBroker()).build())
                 .build();
     }
 
