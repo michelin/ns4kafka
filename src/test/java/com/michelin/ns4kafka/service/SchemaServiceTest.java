@@ -38,13 +38,10 @@ import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityR
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.validation.ResourceValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
-import com.michelin.ns4kafka.validation.TopicValidator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -328,10 +325,10 @@ class SchemaServiceTest {
         Namespace namespace = buildNamespace();
 
         when(schemaRegistryClient.deleteSubject(namespace.getMetadata().getCluster(), "prefix.schema-one", false))
-                .thenReturn(Mono.just(new Integer[]{1}));
+                .thenReturn(Mono.just(new Integer[] {1}));
 
         when(schemaRegistryClient.deleteSubject(namespace.getMetadata().getCluster(), "prefix.schema-one", true))
-                .thenReturn(Mono.just(new Integer[]{1}));
+                .thenReturn(Mono.just(new Integer[] {1}));
 
         StepVerifier.create(schemaService.deleteAllVersions(namespace, "prefix.schema-one"))
                 .consumeNextWith(ids -> {
@@ -349,11 +346,11 @@ class SchemaServiceTest {
     void shouldDeleteSchemaSpecificVersion() {
         Namespace namespace = buildNamespace();
         when(schemaRegistryClient.deleteSubjectVersion(
-                namespace.getMetadata().getCluster(), "prefix.schema-one-value", "2", false))
+                        namespace.getMetadata().getCluster(), "prefix.schema-one-value", "2", false))
                 .thenReturn(Mono.just(2));
 
         when(schemaRegistryClient.deleteSubjectVersion(
-                namespace.getMetadata().getCluster(), "prefix.schema-one-value", "2", true))
+                        namespace.getMetadata().getCluster(), "prefix.schema-one-value", "2", true))
                 .thenReturn(Mono.just(2));
 
         StepVerifier.create(schemaService.deleteVersion(namespace, "prefix.schema-one-value", "2"))
@@ -452,7 +449,7 @@ class SchemaServiceTest {
     void shouldNamespaceBeOwnerOfSchema() {
         Namespace ns = buildNamespace();
         when(aclService.isNamespaceOwnerOfResource(
-                "myNamespace", AccessControlEntry.ResourceType.TOPIC, "prefix.schema-one"))
+                        "myNamespace", AccessControlEntry.ResourceType.TOPIC, "prefix.schema-one"))
                 .thenReturn(true);
 
         assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one-key"));
@@ -499,13 +496,15 @@ class SchemaServiceTest {
 
     @Test
     void shouldValidateSchemaWithOnlyTopicRecordNameStrategy() {
-        TopicValidator topicValidator = TopicValidator.builder().validationConstraints(Map.of(
-                VALUE_SUBJECT_NAME_STRATEGY,
-                ResourceValidator.ValidString.optionalIn(SubjectNameStrategy.TOPIC_RECORD_NAME.toString())
-        )).build();
+        TopicValidator topicValidator = TopicValidator.builder()
+                .validationConstraints(Map.of(
+                        VALUE_SUBJECT_NAME_STRATEGY,
+                        ResourceValidator.ValidString.optionalIn(SubjectNameStrategy.TOPIC_RECORD_NAME.toString())))
+                .build();
 
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("myNamespace").cluster("local").build())
+                .metadata(
+                        Metadata.builder().name("myNamespace").cluster("local").build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .topicValidator(topicValidator)
                         .build())
