@@ -109,7 +109,7 @@ public class TopicValidator extends ResourceValidator {
                         ResourceValidator.ValidString.in(SubjectNameStrategy.DEFAULT.toString()));
         if (value instanceof ResourceValidator.ValidString validString) {
             return new ArrayList<>(validString.getValidStrings().stream()
-                    .map(SubjectNameStrategy::getFromConfigValue)
+                    .map(SubjectNameStrategy::fromConfigValue)
                     .toList());
         }
         return new ArrayList<>(List.of(SubjectNameStrategy.DEFAULT));
