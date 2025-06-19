@@ -59,6 +59,7 @@ public final class SchemaSubjectNameValidator {
 
     public static boolean validateSubjectNameWithStrategy(
             String subjectName, SubjectNameStrategy strategy, String schemaContent, Schema.SchemaType schemaType) {
+        // https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject
         switch (strategy) {
             case TOPIC_NAME:
                 String topicName = extractTopicName(subjectName, strategy).orElse("");
@@ -77,7 +78,7 @@ public final class SchemaSubjectNameValidator {
 
     /**
      * Extracts the record name from schema content based on schema type.
-     *
+     * /!\ Only AVRO schema are handled. TopicRecordName Strategy will not be valid for any other schema.
      * @param schemaContent The schema content as string
      * @param schemaType The type of schema (AVRO, JSON, PROTOBUF)
      * @return Optional containing the record name if found
