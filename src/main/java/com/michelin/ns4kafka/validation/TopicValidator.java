@@ -71,9 +71,9 @@ public class TopicValidator extends ResourceValidator {
                         ResourceValidator.ValidString.optionalIn("true", "false"),
                         VALUE_SUBJECT_NAME_STRATEGY,
                         ResourceValidator.ValidString.optionalIn(
-                                SubjectNameStrategy.TOPIC_NAME.name(),
-                                SubjectNameStrategy.TOPIC_RECORD_NAME.name(),
-                                SubjectNameStrategy.RECORD_NAME.name())))
+                                SubjectNameStrategy.TOPIC_NAME.toString(),
+                                SubjectNameStrategy.TOPIC_RECORD_NAME.toString(),
+                                SubjectNameStrategy.RECORD_NAME.toString())))
                 .build();
     }
 

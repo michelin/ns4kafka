@@ -26,6 +26,7 @@ public enum SubjectNameStrategy {
     TOPIC_RECORD_NAME("io.confluent.kafka.serializers.subject.TopicRecordNameStrategy"),
     RECORD_NAME("io.confluent.kafka.serializers.subject.RecordNameStrategy");
 
+
     private final String name;
 
     SubjectNameStrategy(String name) {
@@ -33,6 +34,8 @@ public enum SubjectNameStrategy {
     }
 
     public static final SubjectNameStrategy DEFAULT = SubjectNameStrategy.TOPIC_NAME;
+
+
 
     @Override
     public String toString() {
