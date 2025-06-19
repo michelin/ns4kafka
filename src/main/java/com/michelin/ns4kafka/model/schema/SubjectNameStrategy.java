@@ -26,20 +26,17 @@ public enum SubjectNameStrategy {
     TOPIC_RECORD_NAME("io.confluent.kafka.serializers.subject.TopicRecordNameStrategy"),
     RECORD_NAME("io.confluent.kafka.serializers.subject.RecordNameStrategy");
 
+    private final String value;
 
-    private final String name;
-
-    SubjectNameStrategy(String name) {
-        this.name = name;
+    SubjectNameStrategy(String value) {
+        this.value = value;
     }
 
     public static final SubjectNameStrategy DEFAULT = SubjectNameStrategy.TOPIC_NAME;
 
-
-
     @Override
     public String toString() {
-        return name;
+        return value;
     }
 
     /**
@@ -66,7 +63,7 @@ public enum SubjectNameStrategy {
      */
     public static SubjectNameStrategy getFromConfigValue(final String strategyRealValue) {
         return Arrays.stream(values())
-                .filter(s -> s.name.equals(strategyRealValue))
+                .filter(s -> s.value.equals(strategyRealValue))
                 .findFirst()
                 .orElseThrow();
     }
