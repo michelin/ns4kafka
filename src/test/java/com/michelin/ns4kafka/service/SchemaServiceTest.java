@@ -34,7 +34,6 @@ import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
-import com.michelin.ns4kafka.util.FormatErrorUtils;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import java.util.Arrays;
 import java.util.Collections;
@@ -479,13 +478,14 @@ class SchemaServiceTest {
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
                 .thenReturn(Mono.empty());
 
+        String errorSubjectNameStrategy = "Invalid value \"wrongSubjectName\" for field \"name\": "
+                + "value must follow TopicNameStrategy with format {topic}-{key|value}.";
+        String errorHeaderValueForReferences = "Invalid value \"header-value\" for field \"references\": "
+                + "subject header-value version 1 not found.";
         StepVerifier.create(schemaService.validateSchema(namespace, schema))
                 .consumeNextWith(errors -> {
-                    assertTrue(errors.contains(FormatErrorUtils.invalidSchemaSubjectName(
-                            "wrongSubjectName",
-                            namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies())));
-                    assertTrue(errors.contains("Invalid value \"header-value\" for field \"references\": "
-                            + "subject header-value version 1 not found."));
+                    assertTrue(errors.contains(errorSubjectNameStrategy));
+                    assertTrue(errors.contains(errorHeaderValueForReferences));
                 })
                 .verifyComplete();
     }
