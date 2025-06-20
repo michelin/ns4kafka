@@ -68,13 +68,11 @@ public class SchemaService {
     public Flux<Schema> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls =
                 aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
-        List<SubjectNameStrategy> strategies = namespace.getSpec().getTopicValidator() != null
-                ? namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies()
-                : List.of(SubjectNameStrategy.DEFAULT);
+        List<SubjectNameStrategy> namingStrategies = getValidSubjectNameStrategies(namespace);
         return schemaRegistryClient
                 .getSubjects(namespace.getMetadata().getCluster())
                 .filter(subject -> {
-                    String underlyingTopicName = SchemaSubjectNameValidator.extractTopicName(subject, strategies)
+                    String underlyingTopicName = SchemaSubjectNameValidator.extractTopicName(subject, namingStrategies)
                             .orElse("");
                     return aclService.isResourceCoveredByAcls(acls, underlyingTopicName);
                 })
@@ -203,9 +201,7 @@ public class SchemaService {
     public Mono<List<String>> validateSchema(Namespace namespace, Schema schema) {
         return Mono.defer(() -> {
             List<String> validationErrors = new ArrayList<>();
-            List<SubjectNameStrategy> namingStrategies = namespace.getSpec().getTopicValidator() != null
-                    ? namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies()
-                    : List.of(SubjectNameStrategy.DEFAULT);
+            List<SubjectNameStrategy> namingStrategies = getValidSubjectNameStrategies(namespace);
             String subjectName = schema.getMetadata().getName();
             boolean isValid = SchemaSubjectNameValidator.validateSubjectName(
                     subjectName,
@@ -365,11 +361,8 @@ public class SchemaService {
      * @return true if it's owner, false otherwise
      */
     public boolean isNamespaceOwnerOfSubject(Namespace namespace, String subjectName) {
-        List<SubjectNameStrategy> strategies = namespace.getSpec().getTopicValidator() != null
-                ? namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies()
-                : List.of(SubjectNameStrategy.DEFAULT);
-
-        String underlyingTopicName = SchemaSubjectNameValidator.extractTopicName(subjectName, strategies)
+        List<SubjectNameStrategy> namingStrategies = getValidSubjectNameStrategies(namespace);
+        String underlyingTopicName = SchemaSubjectNameValidator.extractTopicName(subjectName, namingStrategies)
                 .orElse("");
         return aclService.isNamespaceOwnerOfResource(
                 namespace.getMetadata().getName(), AccessControlEntry.ResourceType.TOPIC, underlyingTopicName);
@@ -445,4 +438,12 @@ public class SchemaService {
                                         }))
                                 .any(subjectComparison -> subjectComparison));
     }
+
+    private List<SubjectNameStrategy> getValidSubjectNameStrategies(Namespace namespace) {
+        if (namespace.getSpec().getTopicValidator() != null) {
+            return namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies();
+        }
+        return List.of(SubjectNameStrategy.DEFAULT);
+    }
+
 }

@@ -102,8 +102,8 @@ public class TopicValidator extends ResourceValidator {
     }
 
     public List<SubjectNameStrategy> getValidSubjectNameStrategies() {
-        ResourceValidator.Validator strategies = getValidationConstraints().get(VALUE_SUBJECT_NAME_STRATEGY);
-        if (strategies instanceof ResourceValidator.ValidString validString && validString.getValidStrings() != null) {
+        ResourceValidator.Validator namingStrategies = getValidationConstraints().get(VALUE_SUBJECT_NAME_STRATEGY);
+        if (namingStrategies instanceof ResourceValidator.ValidString validString && validString.getValidStrings() != null) {
             return new ArrayList<>(validString.getValidStrings().stream()
                     .map(SubjectNameStrategy::fromConfigValue)
                     .toList());
