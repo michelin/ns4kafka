@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.service;
 
+import static com.michelin.ns4kafka.util.config.TopicConfig.VALUE_SUBJECT_NAME_STRATEGY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,13 +31,17 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
+import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
+import com.michelin.ns4kafka.validation.ResourceValidator;
+import com.michelin.ns4kafka.validation.TopicValidator;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -477,13 +482,44 @@ class SchemaServiceTest {
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
                 .thenReturn(Mono.empty());
 
+        String errorSubjectNameStrategy = "Invalid value \"wrongSubjectName\" for field \"name\": "
+                + "value must follow TopicNameStrategy with format {topic}-{key|value}.";
+        String errorHeaderValueForReferences = "Invalid value \"header-value\" for field \"references\": "
+                + "subject header-value version 1 not found.";
         StepVerifier.create(schemaService.validateSchema(namespace, schema))
                 .consumeNextWith(errors -> {
-                    assertTrue(errors.contains("Invalid value \"wrongSubjectName\" for field \"name\": "
-                            + "value must end with -key or -value."));
-                    assertTrue(errors.contains("Invalid value \"header-value\" for field \"references\": "
-                            + "subject header-value version 1 not found."));
+                    assertTrue(errors.contains(errorSubjectNameStrategy));
+                    assertTrue(errors.contains(errorHeaderValueForReferences));
                 })
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldValidateSchemaWithOnlyTopicRecordNameStrategy() {
+        TopicValidator topicValidator = TopicValidator.builder()
+                .validationConstraints(Map.of(
+                        VALUE_SUBJECT_NAME_STRATEGY,
+                        ResourceValidator.ValidString.optionalIn(SubjectNameStrategy.TOPIC_RECORD_NAME.toString())))
+                .build();
+
+        Namespace namespace = Namespace.builder()
+                .metadata(
+                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .topicValidator(topicValidator)
+                        .build())
+                .build();
+
+        Schema schema = Schema.builder()
+                .metadata(Metadata.builder().name("mytopic-User").build())
+                .spec(Schema.SchemaSpec.builder()
+                        .schema("{\"name\":\"User\"}")
+                        .schemaType(Schema.SchemaType.AVRO)
+                        .build())
+                .build();
+
+        StepVerifier.create(schemaService.validateSchema(namespace, schema))
+                .consumeNextWith(errors -> assertTrue(errors.isEmpty()))
                 .verifyComplete();
     }
 
@@ -578,7 +614,9 @@ class SchemaServiceTest {
         return Namespace.builder()
                 .metadata(
                         Metadata.builder().name("myNamespace").cluster("local").build())
-                .spec(Namespace.NamespaceSpec.builder().build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .build())
                 .build();
     }
 
