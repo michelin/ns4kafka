@@ -75,10 +75,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                         .cluster("test-cluster")
                         .labels(Map.of("support-group", "LDAP-GROUP-1"))
                         .build())
-                .spec(Namespace.NamespaceSpec.builder()
-                        .kafkaUser("wrong_user")
-                        .topicValidator(TopicValidator.makeDefaultOneBroker())
-                        .build())
+                .spec(Namespace.NamespaceSpec.builder().kafkaUser("wrong_user").build())
                 .build();
 
         HttpRequest<?> request = HttpRequest.create(HttpMethod.POST, "/api/namespaces")
