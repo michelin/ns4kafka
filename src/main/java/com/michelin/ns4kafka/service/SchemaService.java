@@ -444,5 +444,4 @@ public class SchemaService {
         }
         return List.of(SubjectNameStrategy.DEFAULT);
     }
-
 }
