@@ -26,14 +26,14 @@ public enum SubjectNameStrategy {
     TOPIC_RECORD_NAME("io.confluent.kafka.serializers.subject.TopicRecordNameStrategy"),
     RECORD_NAME("io.confluent.kafka.serializers.subject.RecordNameStrategy");
 
-    private final String strategyPrefix = "io.confluent.kafka.serializers.subject";
+    private final String STRATEGY_PREFIX = "io.confluent.kafka.serializers.subject";
+    public static final SubjectNameStrategy DEFAULT = SubjectNameStrategy.TOPIC_NAME;
+
     private final String value;
 
     SubjectNameStrategy(String value) {
         this.value = value;
     }
-
-    public static final SubjectNameStrategy DEFAULT = SubjectNameStrategy.TOPIC_NAME;
 
     @Override
     public String toString() {
@@ -70,6 +70,6 @@ public enum SubjectNameStrategy {
     }
 
     public String toShortName() {
-        return value.substring(strategyPrefix.length() + 1);
+        return value.substring(STRATEGY_PREFIX.length() + 1);
     }
 }
