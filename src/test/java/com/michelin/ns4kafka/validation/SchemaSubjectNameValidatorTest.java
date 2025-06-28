@@ -70,7 +70,7 @@ class SchemaSubjectNameValidatorTest {
         Optional<String> recordName =
                 SchemaSubjectNameValidator.extractRecordName(schemaContent, Schema.SchemaType.AVRO);
         assertTrue(recordName.isPresent());
-        assertEquals("User", recordName.get());
+        assertEquals("com.example.User", recordName.get());
     }
 
     @Test
