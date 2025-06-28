@@ -109,26 +109,12 @@ public final class SchemaSubjectNameValidator {
             JsonNode schemaNode = OBJECT_MAPPER.readTree(schemaContent);
             if (schemaNode.has("name")) {
                 String name = schemaNode.get("name").asText();
-                return Optional.of(extractSimpleNameFromQualified(name));
+                return Optional.of(name);
             }
         } catch (Exception e) {
             log.debug("Failed to parse AVRO schema as JSON", e);
         }
         return Optional.empty();
-    }
-
-    /** Extracts the simple name from a potentially fully qualified name. For example: "com.example.User" -> "User" */
-    private static String extractSimpleNameFromQualified(String qualifiedName) {
-        if (qualifiedName == null || qualifiedName.trim().isEmpty()) {
-            return qualifiedName;
-        }
-
-        int lastDotIndex = qualifiedName.lastIndexOf('.');
-        if (lastDotIndex >= 0 && lastDotIndex < qualifiedName.length() - 1) {
-            return qualifiedName.substring(lastDotIndex + 1);
-        }
-
-        return qualifiedName;
     }
 
     /**
