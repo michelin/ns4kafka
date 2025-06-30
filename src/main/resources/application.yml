@@ -18,9 +18,9 @@ endpoints:
 jackson:
   serialization:
     indent-output: true
-  serialization-inclusion: 'NON_ABSENT'
+  serialization-inclusion: "NON_ABSENT"
 kafka:
-  bootstrap.servers: 'localhost:9092'
+  bootstrap.servers: "localhost:9092"
   consumers:
     default:
       session.timeout.ms: 30000
@@ -28,34 +28,34 @@ kafka:
     enabled: false
   producers:
     default:
-      acks: 'all'
+      acks: "all"
       request.timeout.ms: 10000
       retries: 1
 micronaut:
   application:
-    name: 'ns4kafka'
+    name: "ns4kafka"
   codec:
     json:
       additional-types:
-        - 'application/vnd.schemaregistry.v1+json'
+      - "application/vnd.schemaregistry.v1+json"
   http:
     services:
       gitlab:
-        connect-timeout: '5s'
-        event-loop-group: 'gitlab'
-        read-idle-timeout: '5s'
-        read-timeout: '5s'
-        url: '${micronaut.security.gitlab.url}'
+        connect-timeout: "5s"
+        event-loop-group: "gitlab"
+        read-idle-timeout: "5s"
+        read-timeout: "5s"
+        url: "${micronaut.security.gitlab.url}"
       kafka-connect:
-        connect-timeout: '10s'
-        event-loop-group: 'connect'
-        read-idle-timeout: '10s'
-        read-timeout: '10s'
+        connect-timeout: "10s"
+        event-loop-group: "connect"
+        read-idle-timeout: "10s"
+        read-timeout: "10s"
       schema-registry:
-        connect-timeout: '10s'
-        event-loop-group: 'schema'
-        read-idle-timeout: '10s'
-        read-timeout: '10s'
+        connect-timeout: "10s"
+        event-loop-group: "schema"
+        read-idle-timeout: "10s"
+        read-timeout: "10s"
   netty:
     event-loops:
       connect:
@@ -69,29 +69,29 @@ micronaut:
   router:
     static-resources:
       rapidoc:
-        mapping: '/rapidoc/**'
-        paths: 'classpath:META-INF/swagger/views/rapidoc'
+        mapping: "/rapidoc/**"
+        paths: "classpath:META-INF/swagger/views/rapidoc"
       swagger:
-        mapping: '/swagger/**'
-        paths: 'classpath:META-INF/swagger'
+        mapping: "/swagger/**"
+        paths: "classpath:META-INF/swagger"
   security:
-    authentication: 'bearer'
+    authentication: "bearer"
     enabled: true
     endpoints:
       introspection:
         enabled: true
     gitlab:
       enabled: true
-      url: 'https://gitlab.com'
+      url: "https://gitlab.com"
     intercept-url-map:
-      - access:
-          - 'isAnonymous()'
-        http-method: 'GET'
-        pattern: '/rapidoc/**'
-      - access:
-          - 'isAnonymous()'
-        http-method: 'GET'
-        pattern: '/swagger/**'
+    - access:
+      - "isAnonymous()"
+      http-method: "GET"
+      pattern: "/rapidoc/**"
+    - access:
+      - "isAnonymous()"
+      http-method: "GET"
+      pattern: "/swagger/**"
     ldap:
       enabled: false
     token:
@@ -99,71 +99,62 @@ micronaut:
         signatures:
           secret:
             generator:
-              secret: '"${JWT_GENERATOR_SIGNATURE_SECRET:pleaseChangeThisSecretForANewOne}"'
+              secret: "\"${JWT_GENERATOR_SIGNATURE_SECRET:pleaseChangeThisSecretForANewOne}\""
 ns4kafka:
   akhq:
-    admin-group: '_'
-    # AKHQ >= 0.25.0
+    admin-group: "_"
     admin-roles:
-      CONNECT: 'connect-admin'
-      CONNECT_CLUSTER: 'connect-cluster-read'
-      GROUP: 'group-read'
-      SCHEMA: 'registry-admin'
-      TOPIC: 'topic-admin'
-    # AKHQ <= 0.24.0
+      CONNECT: "connect-admin"
+      CONNECT_CLUSTER: "connect-cluster-read"
+      GROUP: "group-read"
+      SCHEMA: "registry-admin"
+      TOPIC: "topic-admin"
     former-admin-roles:
-      - 'connect/read'
-      - 'connect/state/update'
-      - 'group/read'
-      - 'registry/read'
-      - 'topic/data/read'
-      - 'topic/read'
-      - 'users/reset-password'
-    # AKHQ <= 0.24.0
+    - "connect/read"
+    - "connect/state/update"
+    - "group/read"
+    - "registry/read"
+    - "topic/data/read"
+    - "topic/read"
+    - "users/reset-password"
     former-roles:
-      - 'connect/read'
-      - 'connect/state/update'
-      - 'group/read'
-      - 'registry/read'
-      - 'topic/data/read'
-      - 'topic/read'
-    group-label: 'support-group'
+    - "connect/read"
+    - "connect/state/update"
+    - "group/read"
+    - "registry/read"
+    - "topic/data/read"
+    - "topic/read"
+    group-label: "support-group"
     roles:
-      CONNECT: 'connect-rw'
-      CONNECT_CLUSTER: 'connect-cluster-read'
-      GROUP: 'group-read'
-      SCHEMA: 'registry-read'
-      TOPIC: 'topic-read'
+      CONNECT: "connect-rw"
+      CONNECT_CLUSTER: "connect-cluster-read"
+      GROUP: "group-read"
+      SCHEMA: "registry-read"
+      TOPIC: "topic-read"
   log:
     console:
       enabled: true
     kafka:
       enabled: false
   retry:
-    attempt: '5'
-    delay: '2s'
-    multiplier: '2.0'
+    attempt: "5"
+    delay: "2s"
+    multiplier: "2.0"
   security:
-    admin-group: '_'
-    aes256-encryption-key: 'changeitchangeitchangeitchangeit'
-    # Not for production use.
-    # local-users:
-    #   - groups:
-    #       - 'admin'
-    #     password: '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'
-    #     username: 'admin'
+    admin-group: "_"
+    aes256-encryption-key: "changeitchangeitchangeitchangeit"
   store:
     kafka:
       enabled: true
-      group-id: 'ns4kafka.group'
+      group-id: "ns4kafka.group"
       init-timeout: 60000
       topics:
-        prefix: 'ns4kafka'
+        prefix: "ns4kafka"
         props:
-          cleanup.policy: 'compact'
-          max.compaction.lag.ms: '604800000'
-          min.compaction.lag.ms: '0'
+          cleanup.policy: "compact"
+          max.compaction.lag.ms: "604800000"
+          min.compaction.lag.ms: "0"
           min.insync.replicas: 1
-          segment.ms: '600000'
+          segment.ms: "600000"
         replication-factor: 1
-  version: '@version@'
+  version: "@version@"

@@ -1,11 +1,10 @@
----
-apiVersion: v1
-kind: AccessControlEntry
+apiVersion: "v1"
+kind: "AccessControlEntry"
 metadata:
-  name: abc.myAcl
+  name: "abc.myAcl"
 spec:
-  resourceType: TOPIC
-  resource: abc.myTopic
-  resourcePatternType: LITERAL
-  permission: READ
-  grantedTo: anotherNamespace
+  resourceType: "TOPIC"
+  resource: "abc.myTopic"
+  resourcePatternType: "LITERAL"
+  permission: "READ"
+  grantedTo: "anotherNamespace"

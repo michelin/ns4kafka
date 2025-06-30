@@ -1,8 +1,9 @@
 kafka:
-  bootstrap.servers: 'localhost:9092' # Replaced by Testcontainers
-  sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin";'
-  sasl.mechanism: 'PLAIN'
-  security.protocol: 'SASL_PLAINTEXT'
+  bootstrap.servers: "localhost:9092"
+  sasl.jaas.config: "org.apache.kafka.common.security.plain.PlainLoginModule required\
+    \ username=\"admin\" password=\"admin\";"
+  sasl.mechanism: "PLAIN"
+  security.protocol: "SASL_PLAINTEXT"
 micronaut:
   security:
     gitlab:
@@ -11,18 +12,19 @@ ns4kafka:
   managed-clusters:
     test-cluster:
       config:
-        bootstrap.servers: 'localhost:9092' # Replaced by Testcontainers
-        sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin";'
-        sasl.mechanism: 'PLAIN'
-        security.protocol: 'SASL_PLAINTEXT'
+        bootstrap.servers: "localhost:9092"
+        sasl.jaas.config: "org.apache.kafka.common.security.plain.PlainLoginModule\
+          \ required username=\"admin\" password=\"admin\";"
+        sasl.mechanism: "PLAIN"
+        security.protocol: "SASL_PLAINTEXT"
       connects:
         test-connect:
-          url: 'localhost:8083' # Replaced by Testcontainers
+          url: "localhost:8083"
       manage-acls: true
       manage-connectors: true
       manage-topics: true
       manage-users: true
-      provider: 'SELF_MANAGED'
+      provider: "SELF_MANAGED"
       timeout:
         acl:
           create: 15000
@@ -39,13 +41,13 @@ ns4kafka:
           alter-scram-credentials: 15009
           describe-quotas: 15010
   security:
-    admin-group: 'adminGroup'
+    admin-group: "adminGroup"
     local-users:
-      - groups:
-          - 'adminGroup'
-        password: '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'
-        username: 'admin'
-      - groups:
-          - 'userGroup'
-        password: '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'
-        username: 'user'
+    - groups:
+      - "adminGroup"
+      password: "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"
+      username: "admin"
+    - groups:
+      - "userGroup"
+      password: "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"
+      username: "user"

@@ -1,147 +1,146 @@
----
-apiVersion: v1
-kind: Namespace
+apiVersion: "v1"
+kind: "Namespace"
 metadata:
-  name: myNamespace
-  cluster: local
+  name: "myNamespace"
+  cluster: "local"
   labels:
-    contacts: namespace.owner@example.com
+    contacts: "namespace.owner@example.com"
 spec:
-  kafkaUser: user1
+  kafkaUser: "user1"
   connectClusters:
-    - local
+  - "local"
   topicValidator:
     validationConstraints:
       partitions:
-        validation-type: Range
+        validation-type: "Range"
         min: 1
         max: 6
       replication.factor:
-        validation-type: Range
+        validation-type: "Range"
         min: 1
         max: 1
       min.insync.replicas:
-        validation-type: Range
+        validation-type: "Range"
         min: 1
         max: 1
       retention.ms:
         optional: true
-        validation-type: Range
+        validation-type: "Range"
         min: 60000
         max: 604800000
       cleanup.policy:
-        validation-type: ValidList
+        validation-type: "ValidList"
         validStrings:
-          - delete
-          - compact
+        - "delete"
+        - "compact"
   connectValidator:
     validationConstraints:
       key.converter:
-        validation-type: NonEmptyString
+        validation-type: "NonEmptyString"
       value.converter:
-        validation-type: NonEmptyString
+        validation-type: "NonEmptyString"
       connector.class:
-        validation-type: ValidString
+        validation-type: "ValidString"
         validStrings:
-          - io.confluent.connect.jdbc.JdbcSinkConnector
-          - io.confluent.connect.jdbc.JdbcSourceConnector
-          - io.confluent.kafka.connect.datagen.DatagenConnector
+        - "io.confluent.connect.jdbc.JdbcSinkConnector"
+        - "io.confluent.connect.jdbc.JdbcSourceConnector"
+        - "io.confluent.kafka.connect.datagen.DatagenConnector"
     classValidationConstraints:
       io.confluent.kafka.connect.datagen.DatagenConnector:
         schema.string:
-          validation-type: NonEmptyString
+          validation-type: "NonEmptyString"
         schema.keyfield:
-          validation-type: NonEmptyString
+          validation-type: "NonEmptyString"
 ---
-apiVersion: v1
-kind: RoleBinding
+apiVersion: "v1"
+kind: "RoleBinding"
 metadata:
-  name: myRoleBinding1
-  namespace: myNamespace
+  name: "myRoleBinding1"
+  namespace: "myNamespace"
 spec:
   role:
     resourceTypes:
-    - schemas
-    - schemas/config
-    - topics
-    - topics/import
-    - topics/delete-records
-    - connectors
-    - connectors/import
-    - connectors/change-state
-    - connect-clusters
-    - connect-clusters/vaults
-    - acls
-    - consumer-groups/reset
-    - streams
+    - "schemas"
+    - "schemas/config"
+    - "topics"
+    - "topics/import"
+    - "topics/delete-records"
+    - "connectors"
+    - "connectors/import"
+    - "connectors/change-state"
+    - "connect-clusters"
+    - "connect-clusters/vaults"
+    - "acls"
+    - "consumer-groups/reset"
+    - "streams"
     verbs:
-    - GET
-    - POST
-    - PUT
-    - DELETE
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "DELETE"
   subject:
-    subjectType: GROUP
-    subjectName: ns4kafka
+    subjectType: "GROUP"
+    subjectName: "ns4kafka"
 ---
-apiVersion: v1
-kind: RoleBinding
+apiVersion: "v1"
+kind: "RoleBinding"
 metadata:
-  name: myRoleBinding2
-  namespace: myNamespace
+  name: "myRoleBinding2"
+  namespace: "myNamespace"
 spec:
   role:
     resourceTypes:
-    - quota
+    - "quota"
     verbs:
-    - GET
+    - "GET"
   subject:
-    subjectType: GROUP
-    subjectName: ns4kafka
+    subjectType: "GROUP"
+    subjectName: "ns4kafka"
 ---
-apiVersion: v1
-kind: AccessControlEntry
+apiVersion: "v1"
+kind: "AccessControlEntry"
 metadata:
-  name: myTopicAcl
-  namespace: myNamespace
+  name: "myTopicAcl"
+  namespace: "myNamespace"
 spec:
-  resourceType: TOPIC
-  resource: abc.
-  resourcePatternType: PREFIXED
-  permission: OWNER
-  grantedTo: myNamespace
+  resourceType: "TOPIC"
+  resource: "abc."
+  resourcePatternType: "PREFIXED"
+  permission: "OWNER"
+  grantedTo: "myNamespace"
 ---
-apiVersion: v1
-kind: AccessControlEntry
+apiVersion: "v1"
+kind: "AccessControlEntry"
 metadata:
-  name: myGroupAcl
-  namespace: myNamespace
+  name: "myGroupAcl"
+  namespace: "myNamespace"
 spec:
-  resourceType: GROUP
-  resource: abc.
-  resourcePatternType: PREFIXED
-  permission: OWNER
-  grantedTo: myNamespace
+  resourceType: "GROUP"
+  resource: "abc."
+  resourcePatternType: "PREFIXED"
+  permission: "OWNER"
+  grantedTo: "myNamespace"
 ---
-apiVersion: v1
-kind: AccessControlEntry
+apiVersion: "v1"
+kind: "AccessControlEntry"
 metadata:
-  name: myConnectAcl
-  namespace: myNamespace
+  name: "myConnectAcl"
+  namespace: "myNamespace"
 spec:
-  resourceType: CONNECT
-  resource: abc.
-  resourcePatternType: PREFIXED
-  permission: OWNER
-  grantedTo: myNamespace
+  resourceType: "CONNECT"
+  resource: "abc."
+  resourcePatternType: "PREFIXED"
+  permission: "OWNER"
+  grantedTo: "myNamespace"
 ---
-apiVersion: v1
-kind: AccessControlEntry
+apiVersion: "v1"
+kind: "AccessControlEntry"
 metadata:
-  name: myConnectClusterAcl
-  namespace: myNamespace
+  name: "myConnectClusterAcl"
+  namespace: "myNamespace"
 spec:
-  resourceType: CONNECT_CLUSTER
-  resource: abc.
-  resourcePatternType: PREFIXED
-  permission: OWNER
-  grantedTo: myNamespace
+  resourceType: "CONNECT_CLUSTER"
+  resource: "abc."
+  resourcePatternType: "PREFIXED"
+  permission: "OWNER"
+  grantedTo: "myNamespace"

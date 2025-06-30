@@ -1,26 +1,10 @@
----
-apiVersion: v1
-kind: Schema
+apiVersion: "v1"
+kind: "Schema"
 metadata:
-  name: abc.myTopic-value
+  name: "abc.myTopic-value"
 spec:
-  schema: |
-    {
-      "namespace": "io.github.michelin.ns4kafka.avro",
-      "type": "record",
-      "name": "KafkaPerson",
-      "fields": [
-        {
-          "name": "id",
-          "type": "long"
-        },
-        {
-          "name": "firstName",
-          "type": "string"
-        },
-        {
-          "name": "lastName",
-          "type": "string"
-        }
-      ]
-    }
+  schema: "{\n  \"namespace\": \"io.github.michelin.ns4kafka.avro\",\n  \"type\":\
+    \ \"record\",\n  \"name\": \"KafkaPerson\",\n  \"fields\": [\n    {\n      \"\
+    name\": \"id\",\n      \"type\": \"long\"\n    },\n    {\n      \"name\": \"firstName\"\
+    ,\n      \"type\": \"string\"\n    },\n    {\n      \"name\": \"lastName\",\n\
+    \      \"type\": \"string\"\n    }\n  ]\n}"

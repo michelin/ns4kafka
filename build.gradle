@@ -145,6 +145,12 @@ spotless {
         removeSemicolons()
         leadingTabsToSpaces()
     }
+    yaml {
+        target "src/main/resources/*.yml", "src/test/resources/**/*.yml", ".docker/resources/**/*.yml"
+        jackson()
+                .feature('ORDER_MAP_ENTRIES_BY_KEYS', true)
+                .yamlFeature('WRITE_DOC_START_MARKER', false)
+    }
 }
 
 import org.apache.tools.ant.filters.ReplaceTokens
