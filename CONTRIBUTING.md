@@ -53,3 +53,12 @@ To automatically fix formatting issues and add missing file headers, run:
 ```bash
 ./gradlew spotlessApply
 ```
+
+## Running the Tests
+
+Add tests for any new features or bug fixes you implement. To run the tests before submitting a pull request, run docker
+and:
+
+```bash
+./gradlew test
+```

@@ -503,23 +503,25 @@ Once the configuration is in place, after successful authentication in AKHQ, use
 
 #### Schema Subject Name Strategies
 
-Ns4Kafka supports multiple schema subject naming strategies that define how schema subjects are named in the Schema Registry. These strategies align with Confluent's Schema Registry naming conventions and can be configured per namespace to enforce consistent schema naming.
+Ns4Kafka supports three subject naming strategies for schemas in the Schema Registry. These strategies are explained in the [Confluent documentation](https://developer.confluent.io/courses/schema-registry/schema-subjects). 
 
 ##### Supported Strategies
 
-Ns4Kafka supports three schema subject naming strategies:
+Each strategy imposes patterns for naming schema subjects as follows:
 
-| Strategy | Full Class Name | Format | Description |
-|----------|-----------------|--------|-------------|
-| `TOPIC_NAME` | `io.confluent.kafka.serializers.subject.TopicNameStrategy` | `{topic}-{key\|value}` | Subject name follows the topic name with `-key` or `-value` suffix |
-| `TOPIC_RECORD_NAME` | `io.confluent.kafka.serializers.subject.TopicRecordNameStrategy` | `{topic}-{recordName}` | Subject name combines topic name with the record name from the AVRO schema |
-| `RECORD_NAME` | `io.confluent.kafka.serializers.subject.RecordNameStrategy` | `{recordName}` | Subject name uses only the record name from the AVRO schema |
+| Strategy                | Full Class Name                                                  | Format                                 |
+|-------------------------|------------------------------------------------------------------|----------------------------------------|
+| TopicNameStrategy       | `io.confluent.kafka.serializers.subject.TopicNameStrategy`       | `{topic}-["key"\|"value"]`             |
+| TopicRecordNameStrategy | `io.confluent.kafka.serializers.subject.TopicRecordNameStrategy` | `{topic}-{fully.qualified.recordName}` |
+| RecordNameStrategy      | `io.confluent.kafka.serializers.subject.RecordNameStrategy`      | `{fully.qualified.recordName}`         |
 
-**Note**: The `TOPIC_RECORD_NAME` and `RECORD_NAME` strategies currently only support AVRO schemas, as they require extracting the record name from the schema content.
+
+**Note**: The TopicRecordName and RecordName strategies currently only support Avro schemas.
 
 ##### Configuration
 
 Schema subject naming strategies are configured in the namespace's `topicValidator` section using the `confluent.value.subject.name.strategy` constraint. You can specify multiple valid strategies that will be accepted for schemas in that namespace.
+If the subject name in a schema description does not match any of the allowed strategies, the schema deployment will be rejected.
 
 ```yaml
 apiVersion: v1
@@ -541,72 +543,35 @@ spec:
 
 ##### Example Usage
 
-Using the `TopicRecordNameStrategy` with a topic named `demoPrefix.topic_63` and AVRO schemas:
+The following example uses the `TopicRecordNameStrategy` with a topic named `myPrefix.myTopic` and Avro schemas in a resource file:
 
 ```yaml
-# Topic definition
+--- # Topic
 apiVersion: v1
 kind: Topic
 metadata:
-  name: demoPrefix.topic_63
+  name: myPrefix.myTopic
   namespace: demo
 spec:
   replicationFactor: 1
   partitions: 1
-
-# Schema using TopicRecordNameStrategy
-# Subject name: demoPrefix.topic_63-demo.User
+--- # Schema using TopicRecordNameStrategy
 apiVersion: v1
 kind: Schema
 metadata:
-  name: demoPrefix.topic_63-demo.User
+  name: myPrefix.myTopic-com.schema.avro.User
 spec:
   schema: |
     {
       "type": "record",
-      "name": "demo.User",
+      "name": "User",
+      "namespace": "com.schema.avro",
       "fields": [
-        {"name": "userId", "type": "string"},
         {"name": "name", "type": "string"},
         {"name": "email", "type": "string"}
       ]
     }
-
-# Another schema for the same topic
-# Subject name: demoPrefix.topic_63-demo.Car  
-apiVersion: v1
-kind: Schema
-metadata:
-  name: demoPrefix.topic_63-demo.Car
-spec:
-  schema: |
-    {
-      "type": "record", 
-      "name": "demo.Car",
-      "fields": [
-        {"name": "carId", "type": "string"},
-        {"name": "make", "type": "string"},
-        {"name": "model", "type": "string"}
-      ]
-    }
 ```
-
-In this example:
-- The topic name is `demoPrefix.topic_63`
-- The first schema has record name `demo.User`, so the subject is `demoPrefix.topic_63-demo.User`
-- The second schema has record name `demo.Car`, so the subject is `demoPrefix.topic_63-demo.Car`
-- Both schemas are valid under the `TopicRecordNameStrategy` because they follow the `{topic}-{recordName}` pattern
-
-##### Validation
-
-When a schema is deployed, Ns4Kafka validates that the subject name follows at least one of the configured naming strategies for the namespace. If the subject name doesn't match any of the allowed strategies, the schema deployment will be rejected.
-
-The validation process:
-1. Extracts the record name from AVRO schema content (if applicable)
-2. Checks if the subject name matches any of the configured strategies
-3. For `TOPIC_RECORD_NAME` and `RECORD_NAME` strategies, validates that the record name exists in the schema
-4. Accepts the schema if it matches at least one valid strategy
-
 ### Technical
 
 #### Security
