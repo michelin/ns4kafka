@@ -1,18 +1,22 @@
----
-apiVersion: v1
-kind: Connector
+apiVersion: "v1"
+kind: "Connector"
 metadata:
-  name: abc.myDatagenConnector
+  name: "abc.myDatagenConnector"
 spec:
-  connectCluster: abc.myConnectCluster
+  connectCluster: "abc.myConnectCluster"
   config:
-    connector.class: io.confluent.kafka.connect.datagen.DatagenConnector
+    connector.class: "io.confluent.kafka.connect.datagen.DatagenConnector"
     tasks.max: 1
-    kafka.topic: abc.myTopic
+    kafka.topic: "abc.myTopic"
     max.interval: 5000
-    key.converter: org.apache.kafka.connect.storage.StringConverter
-    value.converter: io.confluent.connect.avro.AvroConverter
-    value.converter.schema.registry.url: http://schema-registry:8081
+    key.converter: "org.apache.kafka.connect.storage.StringConverter"
+    value.converter: "io.confluent.connect.avro.AvroConverter"
+    value.converter.schema.registry.url: "http://schema-registry:8081"
     value.converter.connect.meta.data: false
-    schema.string: "{\"namespace\":\"io.github.michelin.ns4kafka.avro\",\"name\":\"KafkaPerson\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":{\"type\":\"long\",\"arg.properties\":{\"range\":{\"min\":0,\"max\":2147483647}}}},{\"name\":\"firstName\",\"type\":{\"type\":\"string\",\"arg.properties\":{\"regex\":\"FirstName_[1-9]\"}}},{\"name\":\"lastName\",\"type\":{\"type\":\"string\",\"arg.properties\":{\"regex\":\"LastName_[1-9]\"}}}]}"
-    schema.keyfield: id
+    schema.string: "{\"namespace\":\"io.github.michelin.ns4kafka.avro\",\"name\":\"\
+      KafkaPerson\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":{\"\
+      type\":\"long\",\"arg.properties\":{\"range\":{\"min\":0,\"max\":2147483647}}}},{\"\
+      name\":\"firstName\",\"type\":{\"type\":\"string\",\"arg.properties\":{\"regex\"\
+      :\"FirstName_[1-9]\"}}},{\"name\":\"lastName\",\"type\":{\"type\":\"string\"\
+      ,\"arg.properties\":{\"regex\":\"LastName_[1-9]\"}}}]}"
+    schema.keyfield: "id"

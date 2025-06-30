@@ -1,9 +1,8 @@
----
-apiVersion: v1
-kind: ConnectCluster
+apiVersion: "v1"
+kind: "ConnectCluster"
 metadata:
-  name: abc.myConnectCluster
+  name: "abc.myConnectCluster"
 spec:
-  url: http://connect:8083
-  aes256Key: key
-  aes256Salt: salt
+  url: "http://connect:8083"
+  aes256Key: "key"
+  aes256Salt: "salt"

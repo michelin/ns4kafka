@@ -1,5 +1,4 @@
----
-apiVersion: v1
-kind: KafkaStream
+apiVersion: "v1"
+kind: "KafkaStream"
 metadata:
-  name: abc.myKafkaStreamsApplicationId
+  name: "abc.myKafkaStreamsApplicationId"
