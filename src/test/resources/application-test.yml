@@ -1,5 +1,5 @@
 kafka:
-  bootstrap.servers: "localhost:9092" # Replaced by Testcontainers
+  bootstrap.servers: "localhost:9092"
   sasl.jaas.config: "org.apache.kafka.common.security.plain.PlainLoginModule required\
     \ username=\"admin\" password=\"admin\";"
   sasl.mechanism: "PLAIN"
@@ -12,14 +12,14 @@ ns4kafka:
   managed-clusters:
     test-cluster:
       config:
-        bootstrap.servers: "localhost:9092" # Replaced by Testcontainers
+        bootstrap.servers: "localhost:9092"
         sasl.jaas.config: "org.apache.kafka.common.security.plain.PlainLoginModule\
           \ required username=\"admin\" password=\"admin\";"
         sasl.mechanism: "PLAIN"
         security.protocol: "SASL_PLAINTEXT"
       connects:
         test-connect:
-          url: "localhost:8083" # Replaced by Testcontainers
+          url: "localhost:8083"
       manage-acls: true
       manage-connectors: true
       manage-topics: true
