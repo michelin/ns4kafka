@@ -40,7 +40,7 @@ class SchemaSubjectNameValidatorTest {
     @Test
     void testValidateSubjectName_TopicNameStrategy_Invalid() {
         String subject = "mytopic";
-        String schemaContent = "{\"name\":\"User\"}";
+        String schemaContent = "{\"name\":\"User\", \"namespace\":\"namespace\"}";
         boolean result = SchemaSubjectNameValidator.validateSubjectName(
                 subject, List.of(SubjectNameStrategy.TOPIC_NAME), schemaContent, Schema.SchemaType.AVRO);
         assertFalse(result);
@@ -48,8 +48,8 @@ class SchemaSubjectNameValidatorTest {
 
     @Test
     void testValidateSubjectName_TopicRecordNameStrategy_Valid() {
-        String subject = "mytopic-User";
-        String schemaContent = "{\"name\":\"User\"}";
+        String subject = "mytopic-namespace.User";
+        String schemaContent = "{\"name\":\"User\", \"namespace\":\"namespace\"}";
         boolean result = SchemaSubjectNameValidator.validateSubjectName(
                 subject, List.of(SubjectNameStrategy.TOPIC_RECORD_NAME), schemaContent, Schema.SchemaType.AVRO);
         assertTrue(result);
@@ -76,16 +76,16 @@ class SchemaSubjectNameValidatorTest {
     @Test
     void testExtractTopicName_TopicNameStrategy() {
         Optional<String> topic =
-                SchemaSubjectNameValidator.extractTopicName("mytopic-key", SubjectNameStrategy.TOPIC_NAME);
+                SchemaSubjectNameValidator.extractTopicName("mytopic-with-dashes-key", SubjectNameStrategy.TOPIC_NAME);
         assertTrue(topic.isPresent());
-        assertEquals("mytopic", topic.get());
+        assertEquals("mytopic-with-dashes", topic.get());
     }
 
     @Test
     void testExtractTopicName_TopicRecordNameStrategy() {
-        Optional<String> topic =
-                SchemaSubjectNameValidator.extractTopicName("mytopic-User", SubjectNameStrategy.TOPIC_RECORD_NAME);
+        Optional<String> topic = SchemaSubjectNameValidator.extractTopicName(
+                "mytopic-with-dashes-User", SubjectNameStrategy.TOPIC_RECORD_NAME);
         assertTrue(topic.isPresent());
-        assertEquals("mytopic", topic.get());
+        assertEquals("mytopic-with-dashes", topic.get());
     }
 }

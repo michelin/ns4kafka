@@ -106,9 +106,14 @@ public final class SchemaSubjectNameValidator {
     private static Optional<String> extractAvroRecordName(String schemaContent) {
         try {
             JsonNode schemaNode = OBJECT_MAPPER.readTree(schemaContent);
-            if (schemaNode.has("name")) {
-                return Optional.of(schemaNode.get("name").asText());
+            String recordClassName = "";
+            if (schemaNode.has("namespace")) {
+                recordClassName += schemaNode.get("namespace").asText() + ".";
             }
+            if (schemaNode.has("name")) {
+                recordClassName += schemaNode.get("name").asText();
+            }
+            return Optional.of(recordClassName);
         } catch (Exception e) {
             log.debug("Failed to parse AVRO schema as JSON", e);
         }
@@ -127,8 +132,8 @@ public final class SchemaSubjectNameValidator {
             case TOPIC_NAME:
                 return Optional.of(subjectName.replaceAll("(-key|-value)$", ""));
             case TOPIC_RECORD_NAME:
-                String[] parts = subjectName.split("-");
-                return parts.length < 2 ? Optional.empty() : Optional.of(parts[0]);
+                int indexOfLastDash = subjectName.lastIndexOf("-");
+                return (indexOfLastDash == -1) ?  Optional.empty() : Optional.of(subjectName.substring(0, indexOfLastDash));
             default:
                 return Optional.empty();
         }
