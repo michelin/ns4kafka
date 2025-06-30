@@ -1,8 +1,7 @@
----
-apiVersion: v1
-kind: Schema
+apiVersion: "v1"
+kind: "Schema"
 metadata:
-  name: abc.header-value
+  name: "abc.header-value"
 spec:
   schema: |
     {
@@ -17,10 +16,10 @@ spec:
       ]
     }
 ---
-apiVersion: v1
-kind: Schema
+apiVersion: "v1"
+kind: "Schema"
 metadata:
-  name: abc.person-value
+  name: "abc.person-value"
 spec:
   schema: |
     {
@@ -43,6 +42,6 @@ spec:
       ]
     }
   references:
-    - name: io.github.michelin.ns4kafka.avro.KafkaHeader
-      subject: abc.header-value
-      version: 1
+  - name: "io.github.michelin.ns4kafka.avro.KafkaHeader"
+    subject: "abc.header-value"
+    version: 1
