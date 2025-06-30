@@ -103,13 +103,11 @@ public final class SchemaSubjectNameValidator {
         }
     }
 
-    /** Extracts record name from AVRO schema. Looks for the "name" field in the root record type. */
     private static Optional<String> extractAvroRecordName(String schemaContent) {
         try {
             JsonNode schemaNode = OBJECT_MAPPER.readTree(schemaContent);
             if (schemaNode.has("name")) {
-                String name = schemaNode.get("name").asText();
-                return Optional.of(name);
+                return Optional.of(schemaNode.get("name").asText());
             }
         } catch (Exception e) {
             log.debug("Failed to parse AVRO schema as JSON", e);
