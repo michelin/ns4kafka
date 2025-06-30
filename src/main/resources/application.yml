@@ -103,12 +103,14 @@ micronaut:
 ns4kafka:
   akhq:
     admin-group: "_"
+    # AKHQ >= 0.25.0
     admin-roles:
       CONNECT: "connect-admin"
       CONNECT_CLUSTER: "connect-cluster-read"
       GROUP: "group-read"
       SCHEMA: "registry-admin"
       TOPIC: "topic-admin"
+    # AKHQ <= 0.24.0
     former-admin-roles:
     - "connect/read"
     - "connect/state/update"
@@ -117,6 +119,7 @@ ns4kafka:
     - "topic/data/read"
     - "topic/read"
     - "users/reset-password"
+    # AKHQ <= 0.24.0
     former-roles:
     - "connect/read"
     - "connect/state/update"
@@ -143,6 +146,12 @@ ns4kafka:
   security:
     admin-group: "_"
     aes256-encryption-key: "changeitchangeitchangeitchangeit"
+    # Not for production use.
+    # local-users:
+    #   - groups:
+    #       - 'admin'
+    #     password: '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'
+    #     username: 'admin'
   store:
     kafka:
       enabled: true

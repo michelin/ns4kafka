@@ -3,21 +3,44 @@ kind: "Schema"
 metadata:
   name: "abc.header-value"
 spec:
-  schema: "{\n  \"namespace\": \"io.github.michelin.ns4kafka.avro\",\n  \"type\":\
-    \ \"record\",\n  \"name\": \"KafkaHeader\",\n  \"fields\": [\n    {\n      \"\
-    name\": \"id\",\n      \"type\": \"long\"\n    }\n  ]\n}\n"
+  schema: |
+    {
+      "namespace": "io.github.michelin.ns4kafka.avro",
+      "type": "record",
+      "name": "KafkaHeader",
+      "fields": [
+        {
+          "name": "id",
+          "type": "long"
+        }
+      ]
+    }
 ---
 apiVersion: "v1"
 kind: "Schema"
 metadata:
   name: "abc.person-value"
 spec:
-  schema: "{\n  \"namespace\": \"io.github.michelin.ns4kafka.avro\",\n  \"type\":\
-    \ \"record\",\n  \"name\": \"KafkaPerson\",\n  \"fields\": [\n    {\n      \"\
-    name\": \"header\",\n      \"type\": \"io.github.michelin.ns4kafka.avro.KafkaHeader\"\
-    \n    },\n    {\n      \"name\": \"firstName\",\n      \"type\": \"string\"\n\
-    \    },\n    {\n      \"name\": \"lastName\",\n      \"type\": \"string\"\n  \
-    \  }\n  ]\n}\n"
+  schema: |
+    {
+      "namespace": "io.github.michelin.ns4kafka.avro",
+      "type": "record",
+      "name": "KafkaPerson",
+      "fields": [
+        {
+          "name": "header",
+          "type": "io.github.michelin.ns4kafka.avro.KafkaHeader"
+        },
+        {
+          "name": "firstName",
+          "type": "string"
+        },
+        {
+          "name": "lastName",
+          "type": "string"
+        }
+      ]
+    }
   references:
   - name: "io.github.michelin.ns4kafka.avro.KafkaHeader"
     subject: "abc.header-value"
