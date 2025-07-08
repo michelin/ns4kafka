@@ -38,6 +38,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
 import java.time.Instant;
 import java.util.Date;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 /** Controller to manage users. */
 @Tag(name = "Users", description = "Manage the users.")
@@ -47,14 +49,18 @@ public class UserController extends NamespacedResourceController {
     private ApplicationContext applicationContext;
 
     /**
-     * Reset a password.
+     * Reset a user's password.
      *
-     * @param namespace The namespace
-     * @param user The user
+     * @param namespace The namespace in which the user exists
+     * @param user The name of the user whose password is to be reset
      * @return The new password
+     * @throws ExecutionException An error occurred during the execution of the password reset
+     * @throws TimeoutException An operation timed out while resetting the password
+     * @throws InterruptedException The thread was interrupted while waiting for the password reset
      */
     @Post("/{user}/reset-password")
-    public HttpResponse<KafkaUserResetPassword> resetPassword(String namespace, String user) {
+    public HttpResponse<KafkaUserResetPassword> resetPassword(String namespace, String user)
+            throws ExecutionException, TimeoutException, InterruptedException {
         Namespace ns = getNamespace(namespace);
 
         if (!ns.getSpec().getKafkaUser().equals(user)) {
