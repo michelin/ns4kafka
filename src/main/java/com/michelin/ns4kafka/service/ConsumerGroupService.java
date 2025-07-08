@@ -144,7 +144,7 @@ public class ConsumerGroupService {
         return consumerGroupAsyncExecutor
                 .describeConsumerGroups(List.of(groupId))
                 .get(groupId)
-                .state()
+                .groupState()
                 .toString();
     }
 
