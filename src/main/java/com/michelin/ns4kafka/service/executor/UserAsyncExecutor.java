@@ -25,6 +25,7 @@ import com.michelin.ns4kafka.model.quota.ResourceQuota;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.NamespaceRepository;
 import com.michelin.ns4kafka.repository.ResourceQuotaRepository;
+import com.michelin.ns4kafka.repository.kafka.KafkaStoreException;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Inject;
@@ -36,7 +37,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.ScramCredentialInfo;
@@ -92,31 +96,36 @@ public class UserAsyncExecutor {
     public void synchronizeUsers() {
         log.debug("Starting user collection for cluster {}", managedClusterProperties.getName());
 
-        // List user details from broker
-        Map<String, Map<String, Double>> brokerUserQuotas = userExecutor.listQuotas();
-        // List user details from ns4kafka
-        Map<String, Map<String, Double>> ns4kafkaUserQuotas = collectNs4kafkaQuotas();
+        try {
+            Map<String, Map<String, Double>> brokerUserQuotas = userExecutor.listQuotas();
+            Map<String, Map<String, Double>> ns4kafkaUserQuotas = collectNs4KafkaQuotas();
 
-        Map<String, Map<String, Double>> toCreate = ns4kafkaUserQuotas.entrySet().stream()
-                .filter(entry -> !brokerUserQuotas.containsKey(entry.getKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            Map<String, Map<String, Double>> toCreate = ns4kafkaUserQuotas.entrySet().stream()
+                    .filter(entry -> !brokerUserQuotas.containsKey(entry.getKey()))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        Map<String, Map<String, Double>> toUpdate = ns4kafkaUserQuotas.entrySet().stream()
-                .filter(entry -> brokerUserQuotas.containsKey(entry.getKey()))
-                .filter(entry ->
-                        !entry.getValue().isEmpty() && !entry.getValue().equals(brokerUserQuotas.get(entry.getKey())))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            Map<String, Map<String, Double>> toUpdate = ns4kafkaUserQuotas.entrySet().stream()
+                    .filter(entry -> brokerUserQuotas.containsKey(entry.getKey()))
+                    .filter(entry -> !entry.getValue().isEmpty()
+                            && !entry.getValue().equals(brokerUserQuotas.get(entry.getKey())))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        if (!toCreate.isEmpty()) {
-            log.debug("User quota(s) to create : " + String.join(", ", toCreate.keySet()));
+            if (!toCreate.isEmpty()) {
+                log.debug("User quota(s) to create : {}", String.join(", ", toCreate.keySet()));
+            }
+
+            if (!toUpdate.isEmpty()) {
+                log.debug("User quota(s) to update : {}", String.join(", ", toUpdate.keySet()));
+            }
+
+            createUserQuotas(toCreate);
+            createUserQuotas(toUpdate);
+        } catch (ExecutionException | TimeoutException | CancellationException | KafkaStoreException e) {
+            log.error("An error occurred during the user synchronization", e);
+        } catch (InterruptedException e) {
+            log.error("Thread interrupted during the user synchronization", e);
+            Thread.currentThread().interrupt();
         }
-
-        if (!toUpdate.isEmpty()) {
-            log.debug("User quota(s) to update : " + String.join(", ", toUpdate.keySet()));
-        }
-
-        createUserQuotas(toCreate);
-        createUserQuotas(toUpdate);
     }
 
     /**
@@ -124,8 +133,11 @@ public class UserAsyncExecutor {
      *
      * @param user The user
      * @return The new password
+     * @throws ExecutionException An error occurred during the execution of the password reset
+     * @throws TimeoutException An operation timed out while resetting the password
+     * @throws InterruptedException The thread was interrupted while waiting for the password reset
      */
-    public String resetPassword(String user) {
+    public String resetPassword(String user) throws ExecutionException, InterruptedException, TimeoutException {
         if (userExecutor.canResetPassword()) {
             return userExecutor.resetPassword(user);
         } else {
@@ -136,7 +148,7 @@ public class UserAsyncExecutor {
         }
     }
 
-    private Map<String, Map<String, Double>> collectNs4kafkaQuotas() {
+    private Map<String, Map<String, Double>> collectNs4KafkaQuotas() {
         return namespaceRepository.findAllForCluster(managedClusterProperties.getName()).stream()
                 .map(namespace -> {
                     Optional<ResourceQuota> quota = quotaRepository.findForNamespace(
@@ -162,11 +174,11 @@ public class UserAsyncExecutor {
 
         boolean canResetPassword();
 
-        String resetPassword(String user);
+        String resetPassword(String user) throws ExecutionException, InterruptedException, TimeoutException;
 
         void applyQuotas(String user, Map<String, Double> quotas);
 
-        Map<String, Map<String, Double>> listQuotas();
+        Map<String, Map<String, Double>> listQuotas() throws ExecutionException, InterruptedException, TimeoutException;
     }
 
     static class Scram512UserSynchronizer implements AbstractUserSynchronizer {
@@ -189,52 +201,40 @@ public class UserAsyncExecutor {
         }
 
         @Override
-        public String resetPassword(String user) {
+        public String resetPassword(String user) throws ExecutionException, InterruptedException, TimeoutException {
             byte[] randomBytes = new byte[48];
             secureRandom.nextBytes(randomBytes);
             String password = Base64.getEncoder().encodeToString(randomBytes);
             UserScramCredentialUpsertion update = new UserScramCredentialUpsertion(user, info, password);
 
-            try {
-                managedClusterProperties
-                        .getAdminClient()
-                        .alterUserScramCredentials(List.of(update))
-                        .all()
-                        .get(
-                                managedClusterProperties.getTimeout().getUser().getAlterScramCredentials(),
-                                TimeUnit.MILLISECONDS);
-                log.info("Success resetting password for user {}", user);
-            } catch (InterruptedException e) {
-                log.error("Error", e);
-                Thread.currentThread().interrupt();
-                return null;
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+            managedClusterProperties
+                    .getAdminClient()
+                    .alterUserScramCredentials(List.of(update))
+                    .all()
+                    .get(
+                            managedClusterProperties.getTimeout().getUser().getAlterScramCredentials(),
+                            TimeUnit.MILLISECONDS);
+
+            log.info("Success resetting password for user {}", user);
+
             return password;
         }
 
         @Override
-        public Map<String, Map<String, Double>> listQuotas() {
+        public Map<String, Map<String, Double>> listQuotas()
+                throws ExecutionException, InterruptedException, TimeoutException {
             ClientQuotaFilter filter = ClientQuotaFilter.containsOnly(
                     List.of(ClientQuotaFilterComponent.ofEntityType(ClientQuotaEntity.USER)));
-            try {
-                return managedClusterProperties
-                        .getAdminClient()
-                        .describeClientQuotas(filter)
-                        .entities()
-                        .get(managedClusterProperties.getTimeout().getUser().getDescribeQuotas(), TimeUnit.MILLISECONDS)
-                        .entrySet()
-                        .stream()
-                        .map(entry -> Map.entry(entry.getKey().entries().get(ClientQuotaEntity.USER), entry.getValue()))
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-            } catch (InterruptedException e) {
-                log.error("Error", e);
-                Thread.currentThread().interrupt();
-                return null;
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+
+            return managedClusterProperties
+                    .getAdminClient()
+                    .describeClientQuotas(filter)
+                    .entities()
+                    .get(managedClusterProperties.getTimeout().getUser().getDescribeQuotas(), TimeUnit.MILLISECONDS)
+                    .entrySet()
+                    .stream()
+                    .map(entry -> Map.entry(entry.getKey().entries().get(ClientQuotaEntity.USER), entry.getValue()))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         }
 
         @Override
