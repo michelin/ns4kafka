@@ -20,18 +20,20 @@ package com.michelin.ns4kafka.service;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaReference;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaResource;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaSuffix;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaSubjectName;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
+import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.util.RegexUtils;
+import com.michelin.ns4kafka.validation.SchemaSubjectNameValidator;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.micronaut.core.util.CollectionUtils;
@@ -66,10 +68,12 @@ public class SchemaService {
     public Flux<Schema> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls =
                 aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
+        List<SubjectNameStrategy> namingStrategies = getValidSubjectNameStrategies(namespace);
         return schemaRegistryClient
                 .getSubjects(namespace.getMetadata().getCluster())
                 .filter(subject -> {
-                    String underlyingTopicName = subject.replaceAll("-(key|value)$", "");
+                    String underlyingTopicName = SchemaSubjectNameValidator.extractTopicName(subject, namingStrategies)
+                            .orElse("");
                     return aclService.isResourceCoveredByAcls(acls, underlyingTopicName);
                 })
                 .map(subject -> Schema.builder()
@@ -196,12 +200,16 @@ public class SchemaService {
     public Mono<List<String>> validateSchema(Namespace namespace, Schema schema) {
         return Mono.defer(() -> {
             List<String> validationErrors = new ArrayList<>();
+            List<SubjectNameStrategy> namingStrategies = getValidSubjectNameStrategies(namespace);
+            String subjectName = schema.getMetadata().getName();
+            boolean isValid = SchemaSubjectNameValidator.validateSubjectName(
+                    subjectName,
+                    namingStrategies,
+                    schema.getSpec().getSchema(),
+                    schema.getSpec().getSchemaType());
 
-            // Validate TopicNameStrategy
-            // https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject/TopicNameStrategy.java
-            if (!schema.getMetadata().getName().endsWith("-key")
-                    && !schema.getMetadata().getName().endsWith("-value")) {
-                validationErrors.add(invalidSchemaSuffix(schema.getMetadata().getName()));
+            if (!isValid) {
+                validationErrors.add(invalidSchemaSubjectName(subjectName, namingStrategies));
             }
 
             if (!CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
@@ -352,7 +360,9 @@ public class SchemaService {
      * @return true if it's owner, false otherwise
      */
     public boolean isNamespaceOwnerOfSubject(Namespace namespace, String subjectName) {
-        String underlyingTopicName = subjectName.replaceAll("(-key|-value)$", "");
+        List<SubjectNameStrategy> namingStrategies = getValidSubjectNameStrategies(namespace);
+        String underlyingTopicName = SchemaSubjectNameValidator.extractTopicName(subjectName, namingStrategies)
+                .orElse("");
         return aclService.isNamespaceOwnerOfResource(
                 namespace.getMetadata().getName(), AccessControlEntry.ResourceType.TOPIC, underlyingTopicName);
     }
@@ -426,5 +436,12 @@ public class SchemaService {
                                                             newSchema.references(), currentSchema.references());
                                         }))
                                 .any(subjectComparison -> subjectComparison));
+    }
+
+    private List<SubjectNameStrategy> getValidSubjectNameStrategies(Namespace namespace) {
+        if (namespace.getSpec().getTopicValidator() != null) {
+            return namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies();
+        }
+        return List.of(SubjectNameStrategy.DEFAULT);
     }
 }
