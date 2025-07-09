@@ -133,7 +133,9 @@ public final class SchemaSubjectNameValidator {
                 return Optional.of(subjectName.replaceAll("(-key|-value)$", ""));
             case TOPIC_RECORD_NAME:
                 int indexOfLastDash = subjectName.lastIndexOf("-");
-                return (indexOfLastDash == -1) ?  Optional.empty() : Optional.of(subjectName.substring(0, indexOfLastDash));
+                return (indexOfLastDash == -1)
+                        ? Optional.empty()
+                        : Optional.of(subjectName.substring(0, indexOfLastDash));
             default:
                 return Optional.empty();
         }
