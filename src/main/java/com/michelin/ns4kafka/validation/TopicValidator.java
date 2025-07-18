@@ -102,11 +102,11 @@ public class TopicValidator extends ResourceValidator {
                 getValidationConstraints().get(VALUE_SUBJECT_NAME_STRATEGY);
         if (namingStrategies instanceof ResourceValidator.ValidString validString
                 && validString.getValidStrings() != null) {
-            return new ArrayList<>(validString.getValidStrings().stream()
+            return validString.getValidStrings().stream()
                     .map(SubjectNameStrategy::fromConfigValue)
-                    .toList());
+                    .toList();
         }
-        return new ArrayList<>(List.of(SubjectNameStrategy.DEFAULT));
+        return List.of(SubjectNameStrategy.DEFAULT);
     }
 
     /**
