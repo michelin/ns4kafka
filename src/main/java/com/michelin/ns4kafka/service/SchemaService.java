@@ -439,6 +439,13 @@ public class SchemaService {
                                 .any(subjectComparison -> subjectComparison));
     }
 
+    /**
+     * Get the authorized subject name strategies for schemas in a given namespace as
+     * defined in its topic validator constraints.
+     *
+     * @param namespace The namespace
+     * @return A list of valid subject name strategies
+     */
     private List<SubjectNameStrategy> getValidSubjectNameStrategies(Namespace namespace) {
         if (namespace.getSpec().getTopicValidator() != null) {
             return namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies();
