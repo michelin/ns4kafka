@@ -67,12 +67,8 @@ public class TopicValidator extends ResourceValidator {
                         "retention.bytes",
                         ResourceValidator.Range.optionalBetween(-1, 104857600),
                         "preallocate",
-                        ResourceValidator.ValidString.optionalIn("true", "false"),
-                        VALUE_SUBJECT_NAME_STRATEGY,
-                        ResourceValidator.ValidString.optionalIn(
-                                SubjectNameStrategy.TOPIC_NAME.toString(),
-                                SubjectNameStrategy.TOPIC_RECORD_NAME.toString(),
-                                SubjectNameStrategy.RECORD_NAME.toString())))
+                        ResourceValidator.ValidString.optionalIn("true", "false")
+                        ))
                 .build();
     }
 
