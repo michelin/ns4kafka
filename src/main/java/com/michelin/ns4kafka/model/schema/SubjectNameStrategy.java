@@ -19,8 +19,10 @@
 package com.michelin.ns4kafka.model.schema;
 
 import java.util.Arrays;
+import lombok.AllArgsConstructor;
 
 /** Schema subject naming strategies supported by Schema Registry. */
+@AllArgsConstructor
 public enum SubjectNameStrategy {
     TOPIC_NAME("io.confluent.kafka.serializers.subject.TopicNameStrategy"),
     TOPIC_RECORD_NAME("io.confluent.kafka.serializers.subject.TopicRecordNameStrategy"),
@@ -30,10 +32,6 @@ public enum SubjectNameStrategy {
     public static final SubjectNameStrategy DEFAULT = SubjectNameStrategy.TOPIC_NAME;
 
     private final String value;
-
-    SubjectNameStrategy(String value) {
-        this.value = value;
-    }
 
     @Override
     public String toString() {
