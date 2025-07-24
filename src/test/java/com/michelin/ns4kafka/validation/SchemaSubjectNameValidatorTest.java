@@ -20,6 +20,7 @@ package com.michelin.ns4kafka.validation;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import com.michelin.ns4kafka.service.SchemaService;
@@ -33,8 +34,11 @@ class SchemaSubjectNameValidatorTest {
     void testValidateSubjectName_TopicNameStrategy_Valid() {
         String subject = "mytopic-key";
         String schemaContent = "{\"name\":\"User\"}";
-        boolean result = SchemaService.validateSubjectName(
-                subject, List.of(SubjectNameStrategy.TOPIC_NAME), schemaContent, Schema.SchemaType.AVRO);
+        Schema schema = Schema.builder()
+                .metadata(Metadata.builder().name(subject).build())
+                .spec(Schema.SchemaSpec.builder().schema(schemaContent).build())
+                .build();
+        boolean result = SchemaService.validateSubjectName(List.of(SubjectNameStrategy.TOPIC_NAME), schema);
         assertTrue(result);
     }
 
@@ -42,8 +46,11 @@ class SchemaSubjectNameValidatorTest {
     void testValidateSubjectName_TopicNameStrategy_Invalid() {
         String subject = "mytopic";
         String schemaContent = "{\"name\":\"User\", \"namespace\":\"namespace\"}";
-        boolean result = SchemaService.validateSubjectName(
-                subject, List.of(SubjectNameStrategy.TOPIC_NAME), schemaContent, Schema.SchemaType.AVRO);
+        Schema schema = Schema.builder()
+                .metadata(Metadata.builder().name(subject).build())
+                .spec(Schema.SchemaSpec.builder().schema(schemaContent).build())
+                .build();
+        boolean result = SchemaService.validateSubjectName(List.of(SubjectNameStrategy.TOPIC_NAME), schema);
         assertFalse(result);
     }
 
@@ -51,8 +58,11 @@ class SchemaSubjectNameValidatorTest {
     void testValidateSubjectName_TopicRecordNameStrategy_Valid() {
         String subject = "mytopic-namespace.User";
         String schemaContent = "{\"name\":\"User\", \"namespace\":\"namespace\"}";
-        boolean result = SchemaService.validateSubjectName(
-                subject, List.of(SubjectNameStrategy.TOPIC_RECORD_NAME), schemaContent, Schema.SchemaType.AVRO);
+        Schema schema = Schema.builder()
+                .metadata(Metadata.builder().name(subject).build())
+                .spec(Schema.SchemaSpec.builder().schema(schemaContent).build())
+                .build();
+        boolean result = SchemaService.validateSubjectName(List.of(SubjectNameStrategy.TOPIC_RECORD_NAME), schema);
         assertTrue(result);
     }
 
@@ -60,8 +70,11 @@ class SchemaSubjectNameValidatorTest {
     void testValidateSubjectName_RecordNameStrategy_Valid() {
         String subject = "User";
         String schemaContent = "{\"name\":\"User\"}";
-        boolean result = SchemaService.validateSubjectName(
-                subject, List.of(SubjectNameStrategy.RECORD_NAME), schemaContent, Schema.SchemaType.AVRO);
+        Schema schema = Schema.builder()
+                .metadata(Metadata.builder().name(subject).build())
+                .spec(Schema.SchemaSpec.builder().schema(schemaContent).build())
+                .build();
+        boolean result = SchemaService.validateSubjectName(List.of(SubjectNameStrategy.RECORD_NAME), schema);
         assertTrue(result);
     }
 

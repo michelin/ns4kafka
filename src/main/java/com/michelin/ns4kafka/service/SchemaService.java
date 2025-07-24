@@ -206,11 +206,7 @@ public class SchemaService {
             List<String> validationErrors = new ArrayList<>();
             List<SubjectNameStrategy> namingStrategies = getValidSubjectNameStrategies(namespace);
             String subjectName = schema.getMetadata().getName();
-            boolean isValid = validateSubjectName(
-                    subjectName,
-                    namingStrategies,
-                    schema.getSpec().getSchema(),
-                    schema.getSpec().getSchemaType());
+            boolean isValid = validateSubjectName(namingStrategies, schema);
 
             if (!isValid) {
                 validationErrors.add(invalidSchemaSubjectName(subjectName, namingStrategies));
@@ -459,30 +455,31 @@ public class SchemaService {
     /**
      * Validates that a schema subject name follows the specified naming strategy.
      *
-     * @param subjectName The schema subject name to validate
-     * @param schemaContent The schema content (for extracting record names)
-     * @param schemaType The schema type (AVRO, JSON, PROTOBUF)
+     * @param schema The schema for which a subject name needs to be validated
      * @return true if the subject name is valid for any of the strategies, false otherwise
      */
-    public static boolean validateSubjectName(
-            String subjectName,
-            List<SubjectNameStrategy> validStrategies,
-            String schemaContent,
-            Schema.SchemaType schemaType) {
+    public static boolean validateSubjectName(List<SubjectNameStrategy> validStrategies, Schema schema) {
+        return validStrategies.stream().anyMatch(strategy -> validateSubjectNameWithStrategy(strategy, schema));
+    }
+
+    /**
+     * Validates that a schema subject name follows the specified naming strategy (i.e. topic name, topic record name,
+     * or record name)
+     *
+     * @param strategy The naming strategy for a schema subject name
+     * @param schema The schema to validate
+     * @return true if the subject name is valid for the given strategy, false otherwise
+     * @see <a
+     *     href="https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject">Schema
+     *     Registry strategies</a>
+     */
+    public static boolean validateSubjectNameWithStrategy(SubjectNameStrategy strategy, Schema schema) {
+        String subjectName = schema.getMetadata().getName();
+        Schema.SchemaType schemaType = schema.getSpec().getSchemaType();
+        String schemaContent = schema.getSpec().getSchema();
         if (subjectName == null || subjectName.trim().isEmpty()) {
             return false;
         }
-        for (SubjectNameStrategy strategy : validStrategies) {
-            if (validateSubjectNameWithStrategy(subjectName, strategy, schemaContent, schemaType)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static boolean validateSubjectNameWithStrategy(
-            String subjectName, SubjectNameStrategy strategy, String schemaContent, Schema.SchemaType schemaType) {
-        // https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject
         switch (strategy) {
             case TOPIC_NAME:
                 String topicName = extractTopicName(subjectName, strategy).orElse("");
