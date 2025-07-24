@@ -482,12 +482,10 @@ public class SchemaService {
         }
         switch (strategy) {
             case TOPIC_NAME:
-                String topicName = extractTopicName(subjectName, strategy).orElse("");
-                return subjectName.equals(topicName + "-key") || subjectName.equals(topicName + "-value");
+                return subjectName.endsWith("-key") || subjectName.endsWith("-value");
             case TOPIC_RECORD_NAME:
-                String topicName2 = extractTopicName(subjectName, strategy).orElse("");
                 Optional<String> recordName = extractRecordName(schemaContent, schemaType);
-                return recordName.isPresent() && subjectName.equals(topicName2 + "-" + recordName.get());
+                return recordName.isPresent() && subjectName.endsWith("-" + recordName.get());
             case RECORD_NAME:
                 Optional<String> recordNameOnly = extractRecordName(schemaContent, schemaType);
                 return recordNameOnly.isPresent() && subjectName.equals(recordNameOnly.get());

@@ -57,7 +57,8 @@ public enum SubjectNameStrategy {
     /**
      * Return SubjectNameStrategy enum value corresponding to confluent's strategy value given as a String
      *
-     * @param strategyRealValue The value of the strategy as defined in Confluent's documentation e.g.: io.confluent.kafka.serializers.subject.TopicNameStrategy
+     * @param strategyRealValue The value of the strategy as defined in Confluent's documentation e.g.:
+     *     io.confluent.kafka.serializers.subject.TopicNameStrategy
      * @return SubjectNameStrategy enum value from given confluent's strategy value
      */
     public static SubjectNameStrategy fromConfigValue(final String strategyRealValue) {
