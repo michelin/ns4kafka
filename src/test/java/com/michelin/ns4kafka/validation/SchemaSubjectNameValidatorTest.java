@@ -24,6 +24,8 @@ import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import java.util.List;
 import java.util.Optional;
+
+import com.michelin.ns4kafka.service.SchemaService;
 import org.junit.jupiter.api.Test;
 
 class SchemaSubjectNameValidatorTest {
@@ -32,7 +34,7 @@ class SchemaSubjectNameValidatorTest {
     void testValidateSubjectName_TopicNameStrategy_Valid() {
         String subject = "mytopic-key";
         String schemaContent = "{\"name\":\"User\"}";
-        boolean result = SchemaSubjectNameValidator.validateSubjectName(
+        boolean result = SchemaService.validateSubjectName(
                 subject, List.of(SubjectNameStrategy.TOPIC_NAME), schemaContent, Schema.SchemaType.AVRO);
         assertTrue(result);
     }
@@ -41,7 +43,7 @@ class SchemaSubjectNameValidatorTest {
     void testValidateSubjectName_TopicNameStrategy_Invalid() {
         String subject = "mytopic";
         String schemaContent = "{\"name\":\"User\", \"namespace\":\"namespace\"}";
-        boolean result = SchemaSubjectNameValidator.validateSubjectName(
+        boolean result = SchemaService.validateSubjectName(
                 subject, List.of(SubjectNameStrategy.TOPIC_NAME), schemaContent, Schema.SchemaType.AVRO);
         assertFalse(result);
     }
@@ -50,7 +52,7 @@ class SchemaSubjectNameValidatorTest {
     void testValidateSubjectName_TopicRecordNameStrategy_Valid() {
         String subject = "mytopic-namespace.User";
         String schemaContent = "{\"name\":\"User\", \"namespace\":\"namespace\"}";
-        boolean result = SchemaSubjectNameValidator.validateSubjectName(
+        boolean result = SchemaService.validateSubjectName(
                 subject, List.of(SubjectNameStrategy.TOPIC_RECORD_NAME), schemaContent, Schema.SchemaType.AVRO);
         assertTrue(result);
     }
@@ -59,7 +61,7 @@ class SchemaSubjectNameValidatorTest {
     void testValidateSubjectName_RecordNameStrategy_Valid() {
         String subject = "User";
         String schemaContent = "{\"name\":\"User\"}";
-        boolean result = SchemaSubjectNameValidator.validateSubjectName(
+        boolean result = SchemaService.validateSubjectName(
                 subject, List.of(SubjectNameStrategy.RECORD_NAME), schemaContent, Schema.SchemaType.AVRO);
         assertTrue(result);
     }
@@ -68,7 +70,7 @@ class SchemaSubjectNameValidatorTest {
     void testExtractRecordName_Avro() {
         String schemaContent = "{\"name\":\"com.example.User\"}";
         Optional<String> recordName =
-                SchemaSubjectNameValidator.extractRecordName(schemaContent, Schema.SchemaType.AVRO);
+                SchemaService.extractRecordName(schemaContent, Schema.SchemaType.AVRO);
         assertTrue(recordName.isPresent());
         assertEquals("com.example.User", recordName.get());
     }
@@ -76,14 +78,14 @@ class SchemaSubjectNameValidatorTest {
     @Test
     void testExtractTopicName_TopicNameStrategy() {
         Optional<String> topic =
-                SchemaSubjectNameValidator.extractTopicName("mytopic-with-dashes-key", SubjectNameStrategy.TOPIC_NAME);
+                SchemaService.extractTopicName("mytopic-with-dashes-key", SubjectNameStrategy.TOPIC_NAME);
         assertTrue(topic.isPresent());
         assertEquals("mytopic-with-dashes", topic.get());
     }
 
     @Test
     void testExtractTopicName_TopicRecordNameStrategy() {
-        Optional<String> topic = SchemaSubjectNameValidator.extractTopicName(
+        Optional<String> topic = SchemaService.extractTopicName(
                 "mytopic-with-dashes-User", SubjectNameStrategy.TOPIC_RECORD_NAME);
         assertTrue(topic.isPresent());
         assertEquals("mytopic-with-dashes", topic.get());
