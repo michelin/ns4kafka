@@ -55,6 +55,7 @@ import reactor.core.publisher.Mono;
 @Singleton
 public class SchemaService {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     @Inject
     private AclService aclService;
 
@@ -74,8 +75,8 @@ public class SchemaService {
         return schemaRegistryClient
                 .getSubjects(namespace.getMetadata().getCluster())
                 .filter(subject -> {
-                    String underlyingTopicName = extractTopicName(subject, namingStrategies)
-                            .orElse("");
+                    String underlyingTopicName =
+                            extractTopicName(subject, namingStrategies).orElse("");
                     return aclService.isResourceCoveredByAcls(acls, underlyingTopicName);
                 })
                 .map(subject -> Schema.builder()
@@ -363,8 +364,8 @@ public class SchemaService {
      */
     public boolean isNamespaceOwnerOfSubject(Namespace namespace, String subjectName) {
         List<SubjectNameStrategy> namingStrategies = getValidSubjectNameStrategies(namespace);
-        String underlyingTopicName = extractTopicName(subjectName, namingStrategies)
-                .orElse("");
+        String underlyingTopicName =
+                extractTopicName(subjectName, namingStrategies).orElse("");
         return aclService.isNamespaceOwnerOfResource(
                 namespace.getMetadata().getName(), AccessControlEntry.ResourceType.TOPIC, underlyingTopicName);
     }
@@ -441,8 +442,8 @@ public class SchemaService {
     }
 
     /**
-     * Get the authorized subject name strategies for schemas in a given namespace as
-     * defined in its topic validator constraints.
+     * Get the authorized subject name strategies for schemas in a given namespace as defined in its topic validator
+     * constraints.
      *
      * @param namespace The namespace
      * @return A list of valid subject name strategies
@@ -453,7 +454,6 @@ public class SchemaService {
         }
         return List.of(SubjectNameStrategy.DEFAULT);
     }
-
 
     /**
      * Validates that a schema subject name follows the specified naming strategy.
@@ -579,6 +579,4 @@ public class SchemaService {
         }
         return Optional.empty();
     }
-
-
 }
