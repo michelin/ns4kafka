@@ -16,16 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.util.config;
+package com.michelin.ns4kafka.validation;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
+import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
+import java.util.List;
+import java.util.stream.Stream;
+import lombok.AllArgsConstructor;
 
-/** Topic configuration. */
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class TopicConfig {
-    public static final String PARTITIONS = "partitions";
-    public static final String REPLICATION_FACTOR = "replication.factor";
-    public static final String VALUE_SUBJECT_NAME_STRATEGY = "confluent.value.subject.name.strategy";
-    public static final String KEY_SUBJECT_NAME_STRATEGY = "confluent.key.subject.name.strategy";
+/**
+ * Valid subject name strategies for value and key. This class is used to validate the subject name strategies for Kafka
+ * topics.
+ */
+@AllArgsConstructor
+public class ValidSubjectNameStrategies {
+    public List<SubjectNameStrategy> validValueStrategies;
+    public List<SubjectNameStrategy> validKeyStrategies;
+
+    public List<SubjectNameStrategy> all() {
+        return Stream.concat(validValueStrategies.stream(), validKeyStrategies.stream())
+                .distinct()
+                .toList();
+    }
 }
