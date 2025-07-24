@@ -38,7 +38,10 @@ class SchemaSubjectNameValidatorTest {
                 .metadata(Metadata.builder().name(subject).build())
                 .spec(Schema.SchemaSpec.builder().schema(schemaContent).build())
                 .build();
-        boolean result = SchemaService.validateSubjectName(List.of(SubjectNameStrategy.TOPIC_NAME), schema);
+        boolean result = SchemaService.validateSubjectName(
+                new ValidSubjectNameStrategies(
+                        List.of(SubjectNameStrategy.TOPIC_NAME), List.of(SubjectNameStrategy.TOPIC_NAME)),
+                schema);
         assertTrue(result);
     }
 
@@ -50,7 +53,10 @@ class SchemaSubjectNameValidatorTest {
                 .metadata(Metadata.builder().name(subject).build())
                 .spec(Schema.SchemaSpec.builder().schema(schemaContent).build())
                 .build();
-        boolean result = SchemaService.validateSubjectName(List.of(SubjectNameStrategy.TOPIC_NAME), schema);
+        boolean result = SchemaService.validateSubjectName(
+                new ValidSubjectNameStrategies(
+                        List.of(SubjectNameStrategy.TOPIC_NAME), List.of(SubjectNameStrategy.TOPIC_NAME)),
+                schema);
         assertFalse(result);
     }
 
@@ -62,7 +68,10 @@ class SchemaSubjectNameValidatorTest {
                 .metadata(Metadata.builder().name(subject).build())
                 .spec(Schema.SchemaSpec.builder().schema(schemaContent).build())
                 .build();
-        boolean result = SchemaService.validateSubjectName(List.of(SubjectNameStrategy.TOPIC_RECORD_NAME), schema);
+        boolean result = SchemaService.validateSubjectName(
+                new ValidSubjectNameStrategies(
+                        List.of(SubjectNameStrategy.TOPIC_RECORD_NAME), List.of(SubjectNameStrategy.TOPIC_RECORD_NAME)),
+                schema);
         assertTrue(result);
     }
 
@@ -74,7 +83,10 @@ class SchemaSubjectNameValidatorTest {
                 .metadata(Metadata.builder().name(subject).build())
                 .spec(Schema.SchemaSpec.builder().schema(schemaContent).build())
                 .build();
-        boolean result = SchemaService.validateSubjectName(List.of(SubjectNameStrategy.RECORD_NAME), schema);
+        boolean result = SchemaService.validateSubjectName(
+                new ValidSubjectNameStrategies(
+                        List.of(SubjectNameStrategy.RECORD_NAME), List.of(SubjectNameStrategy.RECORD_NAME)),
+                schema);
         assertTrue(result);
     }
 
