@@ -22,8 +22,6 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaReference
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaResource;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaSubjectName;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
@@ -54,7 +52,6 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Singleton
 public class SchemaService {
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Inject
     private AclService aclService;
@@ -508,34 +505,15 @@ public class SchemaService {
         }
 
         try {
-            switch (schemaType) {
-                case AVRO:
-                    return extractAvroRecordName(schemaContent);
-                default:
-                    log.warn("Unsupported schema type for record name extraction: {}", schemaType);
-                    return Optional.empty();
+            if (Objects.requireNonNull(schemaType) == Schema.SchemaType.AVRO) {
+                return Optional.ofNullable(new AvroSchema(schemaContent).name());
             }
+            log.warn("Unsupported schema type for record name extraction: {}", schemaType);
+            return Optional.empty();
         } catch (Exception e) {
             log.error("Failed to extract record name from schema content", e);
             return Optional.empty();
         }
-    }
-
-    private static Optional<String> extractAvroRecordName(String schemaContent) {
-        try {
-            JsonNode schemaNode = OBJECT_MAPPER.readTree(schemaContent);
-            String recordClassName = "";
-            if (schemaNode.has("namespace")) {
-                recordClassName += schemaNode.get("namespace").asText() + ".";
-            }
-            if (schemaNode.has("name")) {
-                recordClassName += schemaNode.get("name").asText();
-            }
-            return Optional.of(recordClassName);
-        } catch (Exception e) {
-            log.debug("Failed to parse AVRO schema as JSON", e);
-        }
-        return Optional.empty();
     }
 
     /**
