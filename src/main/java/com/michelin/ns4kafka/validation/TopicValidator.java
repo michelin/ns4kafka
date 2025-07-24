@@ -96,6 +96,11 @@ public class TopicValidator extends ResourceValidator {
                 .build();
     }
 
+    /**
+     * Get the valid subject name strategies for value and key as defined in the namespace.
+     *
+     * @return The valid subject name strategies for value and key
+     */
     public ValidSubjectNameStrategies getValidSubjectNameStrategies() {
         List<SubjectNameStrategy> validValueStrategies = List.of(SubjectNameStrategy.DEFAULT);
         List<SubjectNameStrategy> validKeysStrategies = List.of(SubjectNameStrategy.DEFAULT);
