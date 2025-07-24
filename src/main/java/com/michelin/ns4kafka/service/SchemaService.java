@@ -33,6 +33,7 @@ import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityR
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.util.RegexUtils;
+import com.michelin.ns4kafka.validation.ValidSubjectNameStrategies;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.micronaut.core.util.CollectionUtils;
@@ -68,7 +69,8 @@ public class SchemaService {
     public Flux<Schema> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls =
                 aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
-        List<SubjectNameStrategy> namingStrategies = getValidSubjectNameStrategies(namespace);
+        List<SubjectNameStrategy> namingStrategies =
+                getValidSubjectNameStrategies(namespace).all();
         return schemaRegistryClient
                 .getSubjects(namespace.getMetadata().getCluster())
                 .filter(subject -> {
@@ -201,12 +203,12 @@ public class SchemaService {
     public Mono<List<String>> validateSchema(Namespace namespace, Schema schema) {
         return Mono.defer(() -> {
             List<String> validationErrors = new ArrayList<>();
-            List<SubjectNameStrategy> namingStrategies = getValidSubjectNameStrategies(namespace);
+            ValidSubjectNameStrategies strategies = getValidSubjectNameStrategies(namespace);
             String subjectName = schema.getMetadata().getName();
-            boolean isValid = validateSubjectName(namingStrategies, schema);
+            boolean isValid = validateSubjectName(strategies, schema);
 
             if (!isValid) {
-                validationErrors.add(invalidSchemaSubjectName(subjectName, namingStrategies));
+                validationErrors.add(invalidSchemaSubjectName(subjectName, strategies.all()));
             }
 
             if (!CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
@@ -357,7 +359,8 @@ public class SchemaService {
      * @return true if it's owner, false otherwise
      */
     public boolean isNamespaceOwnerOfSubject(Namespace namespace, String subjectName) {
-        List<SubjectNameStrategy> namingStrategies = getValidSubjectNameStrategies(namespace);
+        List<SubjectNameStrategy> namingStrategies =
+                getValidSubjectNameStrategies(namespace).all();
         String underlyingTopicName =
                 extractTopicName(subjectName, namingStrategies).orElse("");
         return aclService.isNamespaceOwnerOfResource(
@@ -442,11 +445,13 @@ public class SchemaService {
      * @param namespace The namespace
      * @return A list of valid subject name strategies
      */
-    private List<SubjectNameStrategy> getValidSubjectNameStrategies(Namespace namespace) {
+    private ValidSubjectNameStrategies getValidSubjectNameStrategies(Namespace namespace) {
         if (namespace.getSpec().getTopicValidator() != null) {
             return namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies();
         }
-        return List.of(SubjectNameStrategy.DEFAULT);
+
+        return new ValidSubjectNameStrategies(
+                List.of(SubjectNameStrategy.DEFAULT), List.of(SubjectNameStrategy.DEFAULT));
     }
 
     /**
@@ -455,8 +460,12 @@ public class SchemaService {
      * @param schema The schema for which a subject name needs to be validated
      * @return true if the subject name is valid for any of the strategies, false otherwise
      */
-    public static boolean validateSubjectName(List<SubjectNameStrategy> validStrategies, Schema schema) {
-        return validStrategies.stream().anyMatch(strategy -> validateSubjectNameWithStrategy(strategy, schema));
+    public static boolean validateSubjectName(ValidSubjectNameStrategies validStrategies, Schema schema) {
+        if (schema.getMetadata().getName().endsWith("-key")) {
+            return validStrategies.validKeyStrategies.stream()
+                    .anyMatch(strategy -> validateSubjectNameWithStrategy(strategy, schema));
+        }
+        return validStrategies.all().stream().anyMatch(strategy -> validateSubjectNameWithStrategy(strategy, schema));
     }
 
     /**

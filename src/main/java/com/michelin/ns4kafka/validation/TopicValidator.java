@@ -96,16 +96,29 @@ public class TopicValidator extends ResourceValidator {
                 .build();
     }
 
-    public List<SubjectNameStrategy> getValidSubjectNameStrategies() {
-        ResourceValidator.Validator namingStrategies =
+    public ValidSubjectNameStrategies getValidSubjectNameStrategies() {
+        List<SubjectNameStrategy> validValueStrategies = List.of(SubjectNameStrategy.DEFAULT);
+        List<SubjectNameStrategy> validKeysStrategies = List.of(SubjectNameStrategy.DEFAULT);
+
+        ResourceValidator.Validator valueNamingStrategies =
                 getValidationConstraints().get(VALUE_SUBJECT_NAME_STRATEGY);
-        if (namingStrategies instanceof ResourceValidator.ValidString validString
+        if (valueNamingStrategies instanceof ResourceValidator.ValidString validString
                 && validString.getValidStrings() != null) {
-            return validString.getValidStrings().stream()
+            validValueStrategies = validString.getValidStrings().stream()
                     .map(SubjectNameStrategy::fromConfigValue)
                     .toList();
         }
-        return List.of(SubjectNameStrategy.DEFAULT);
+
+        ResourceValidator.Validator keyNamingStrategies =
+                getValidationConstraints().get(KEY_SUBJECT_NAME_STRATEGY);
+        if (keyNamingStrategies instanceof ResourceValidator.ValidString validString
+                && validString.getValidStrings() != null) {
+            validKeysStrategies = validString.getValidStrings().stream()
+                    .map(SubjectNameStrategy::fromConfigValue)
+                    .toList();
+        }
+
+        return new ValidSubjectNameStrategies(validValueStrategies, validKeysStrategies);
     }
 
     /**
