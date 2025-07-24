@@ -22,10 +22,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
+import com.michelin.ns4kafka.service.SchemaService;
 import java.util.List;
 import java.util.Optional;
-
-import com.michelin.ns4kafka.service.SchemaService;
 import org.junit.jupiter.api.Test;
 
 class SchemaSubjectNameValidatorTest {
@@ -69,8 +68,7 @@ class SchemaSubjectNameValidatorTest {
     @Test
     void testExtractRecordName_Avro() {
         String schemaContent = "{\"name\":\"com.example.User\"}";
-        Optional<String> recordName =
-                SchemaService.extractRecordName(schemaContent, Schema.SchemaType.AVRO);
+        Optional<String> recordName = SchemaService.extractRecordName(schemaContent, Schema.SchemaType.AVRO);
         assertTrue(recordName.isPresent());
         assertEquals("com.example.User", recordName.get());
     }
@@ -85,8 +83,8 @@ class SchemaSubjectNameValidatorTest {
 
     @Test
     void testExtractTopicName_TopicRecordNameStrategy() {
-        Optional<String> topic = SchemaService.extractTopicName(
-                "mytopic-with-dashes-User", SubjectNameStrategy.TOPIC_RECORD_NAME);
+        Optional<String> topic =
+                SchemaService.extractTopicName("mytopic-with-dashes-User", SubjectNameStrategy.TOPIC_RECORD_NAME);
         assertTrue(topic.isPresent());
         assertEquals("mytopic-with-dashes", topic.get());
     }
