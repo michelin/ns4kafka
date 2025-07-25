@@ -37,10 +37,8 @@ import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityR
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.validation.ResourceValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
-
-import java.util.*;
-
 import com.michelin.ns4kafka.validation.ValidSubjectNameStrategies;
+import java.util.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -608,6 +606,7 @@ class SchemaServiceTest {
                 .consumeNextWith(Assertions::assertFalse)
                 .verifyComplete();
     }
+
     @Test
     void shouldValidateSubjectForTopicNameStrategy() {
         String subject = "mytopic-key";
@@ -654,7 +653,7 @@ class SchemaServiceTest {
     }
 
     @Test
-    void shouldValidateSubjectNameForRecordNameStrategy(){
+    void shouldValidateSubjectNameForRecordNameStrategy() {
         String subject = "User";
         String schemaContent = "{\"name\":\"User\"}";
         Schema schema = Schema.builder()
@@ -687,6 +686,54 @@ class SchemaServiceTest {
         Optional<String> topic =
                 SchemaService.extractTopicName("mytopic-with-dashes-User", SubjectNameStrategy.TOPIC_RECORD_NAME);
         assertEquals("mytopic-with-dashes", topic.get());
+    }
+
+    @Test
+    void shouldTestValidateTopicRecordNameOKCases() {
+        ValidSubjectNameStrategies nameStrategies = new ValidSubjectNameStrategies(
+                List.of(SubjectNameStrategy.TOPIC_RECORD_NAME), List.of(SubjectNameStrategy.TOPIC_RECORD_NAME));
+        String schemaContent = "{\"namespace\":\"com.example\",\"name\":\"User\",\"type\":\"record\",\"fields\":[]}";
+        String subject = "mytopic-com.example.User";
+        Schema.SchemaBuilder schemaBuilder = Schema.builder()
+                .metadata(Metadata.builder().name(subject).build())
+                .spec(Schema.SchemaSpec.builder().schema(schemaContent).build());
+
+        Schema schema = schemaBuilder.build();
+        boolean result = SchemaService.validateSubjectName(nameStrategies, schema);
+        assertTrue(result);
+
+        var multipleDashSubjectNameSchema = schemaBuilder
+                .metadata(Metadata.builder()
+                        .name("mytopic-with-multiple-dashes-com.example.User")
+                        .build())
+                .build();
+        assertTrue(SchemaService.validateSubjectName(nameStrategies, multipleDashSubjectNameSchema));
+    }
+
+    @Test
+    void shouldTestValidateTopicRecordNameKOCases() {
+        ValidSubjectNameStrategies nameStrategies = new ValidSubjectNameStrategies(
+                List.of(SubjectNameStrategy.TOPIC_RECORD_NAME), List.of(SubjectNameStrategy.TOPIC_RECORD_NAME));
+        Optional<String> topic = SchemaService.extractTopicName("mytopicUser", SubjectNameStrategy.TOPIC_RECORD_NAME);
+        assertTrue(topic.isEmpty());
+
+        String schemaContent =
+                "{\"namespace\":\"com.different.namespace\",\"name\":\"User\",\"type\":\"record\",\"fields\":[]}";
+        String subject = "mytopic-WrongRecordName";
+        Schema.SchemaBuilder schemaBuilder = Schema.builder()
+                .metadata(Metadata.builder().name(subject).build())
+                .spec(Schema.SchemaSpec.builder().schema(schemaContent).build());
+
+        Schema schema = schemaBuilder.build();
+        boolean result = SchemaService.validateSubjectName(nameStrategies, schema);
+        assertFalse(result);
+
+        var noDashSubjectNameSchema = schemaBuilder
+                .metadata(Metadata.builder()
+                        .name("mytopiccom.different.namespace.User")
+                        .build())
+                .build();
+        assertFalse(SchemaService.validateSubjectName(nameStrategies, noDashSubjectNameSchema));
     }
 
     private Namespace buildNamespace() {
