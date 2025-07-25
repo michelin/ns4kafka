@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Test;
 class SchemaSubjectNameValidatorTest {
 
     @Test
-    void testValidateSubjectName_TopicNameStrategy_Valid() {
+    void shouldValidateSubjectForTopicNameStrategy() {
         String subject = "mytopic-key";
         String schemaContent = "{\"name\":\"User\"}";
         Schema schema = Schema.builder()
@@ -46,7 +46,7 @@ class SchemaSubjectNameValidatorTest {
     }
 
     @Test
-    void testValidateSubjectName_TopicNameStrategy_Invalid() {
+    void shouldNotValidateSubjectForTopicNameStrategy() {
         String subject = "mytopic";
         String schemaContent = "{\"name\":\"User\", \"namespace\":\"namespace\"}";
         Schema schema = Schema.builder()
@@ -94,7 +94,6 @@ class SchemaSubjectNameValidatorTest {
     void testExtractRecordName_Avro() {
         String schemaContent = "{\"name\":\"com.example.User\"}";
         Optional<String> recordName = SchemaService.extractRecordName(schemaContent, Schema.SchemaType.AVRO);
-        assertTrue(recordName.isPresent());
         assertEquals("com.example.User", recordName.get());
     }
 
@@ -102,7 +101,6 @@ class SchemaSubjectNameValidatorTest {
     void testExtractTopicName_TopicNameStrategy() {
         Optional<String> topic =
                 SchemaService.extractTopicName("mytopic-with-dashes-key", SubjectNameStrategy.TOPIC_NAME);
-        assertTrue(topic.isPresent());
         assertEquals("mytopic-with-dashes", topic.get());
     }
 
@@ -110,7 +108,6 @@ class SchemaSubjectNameValidatorTest {
     void testExtractTopicName_TopicRecordNameStrategy() {
         Optional<String> topic =
                 SchemaService.extractTopicName("mytopic-with-dashes-User", SubjectNameStrategy.TOPIC_RECORD_NAME);
-        assertTrue(topic.isPresent());
         assertEquals("mytopic-with-dashes", topic.get());
     }
 }
