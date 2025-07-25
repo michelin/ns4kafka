@@ -34,6 +34,7 @@ import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.model.schema.SchemaCompatibilityState;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
+import com.michelin.ns4kafka.validation.TopicValidator;
 import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaRequest;
 import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaResponse;
 import io.micronaut.context.ApplicationContext;
@@ -74,7 +75,10 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
 
         Namespace namespace = Namespace.builder()
                 .metadata(Metadata.builder().name("ns1").cluster("test-cluster").build())
-                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user1")
+                        .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .build())
                 .build();
 
         RoleBinding roleBinding = RoleBinding.builder()

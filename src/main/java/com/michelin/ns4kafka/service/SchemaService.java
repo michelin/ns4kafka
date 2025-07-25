@@ -20,18 +20,20 @@ package com.michelin.ns4kafka.service;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaReference;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaResource;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaSuffix;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaSubjectName;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
+import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.util.RegexUtils;
+import com.michelin.ns4kafka.validation.ValidSubjectNameStrategies;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.micronaut.core.util.CollectionUtils;
@@ -51,6 +53,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Singleton
 public class SchemaService {
+
     @Inject
     private AclService aclService;
 
@@ -66,10 +69,13 @@ public class SchemaService {
     public Flux<Schema> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls =
                 aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
+        List<SubjectNameStrategy> namingStrategies =
+                getValidSubjectNameStrategies(namespace).all();
         return schemaRegistryClient
                 .getSubjects(namespace.getMetadata().getCluster())
                 .filter(subject -> {
-                    String underlyingTopicName = subject.replaceAll("-(key|value)$", "");
+                    String underlyingTopicName =
+                            extractTopicName(subject, namingStrategies).orElse("");
                     return aclService.isResourceCoveredByAcls(acls, underlyingTopicName);
                 })
                 .map(subject -> Schema.builder()
@@ -196,12 +202,12 @@ public class SchemaService {
     public Mono<List<String>> validateSchema(Namespace namespace, Schema schema) {
         return Mono.defer(() -> {
             List<String> validationErrors = new ArrayList<>();
+            ValidSubjectNameStrategies strategies = getValidSubjectNameStrategies(namespace);
+            String subjectName = schema.getMetadata().getName();
+            boolean isValid = validateSubjectName(strategies, schema);
 
-            // Validate TopicNameStrategy
-            // https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject/TopicNameStrategy.java
-            if (!schema.getMetadata().getName().endsWith("-key")
-                    && !schema.getMetadata().getName().endsWith("-value")) {
-                validationErrors.add(invalidSchemaSuffix(schema.getMetadata().getName()));
+            if (!isValid) {
+                validationErrors.add(invalidSchemaSubjectName(subjectName, strategies.all()));
             }
 
             if (!CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
@@ -352,7 +358,10 @@ public class SchemaService {
      * @return true if it's owner, false otherwise
      */
     public boolean isNamespaceOwnerOfSubject(Namespace namespace, String subjectName) {
-        String underlyingTopicName = subjectName.replaceAll("(-key|-value)$", "");
+        List<SubjectNameStrategy> namingStrategies =
+                getValidSubjectNameStrategies(namespace).all();
+        String underlyingTopicName =
+                extractTopicName(subjectName, namingStrategies).orElse("");
         return aclService.isNamespaceOwnerOfResource(
                 namespace.getMetadata().getName(), AccessControlEntry.ResourceType.TOPIC, underlyingTopicName);
     }
@@ -426,5 +435,130 @@ public class SchemaService {
                                                             newSchema.references(), currentSchema.references());
                                         }))
                                 .any(subjectComparison -> subjectComparison));
+    }
+
+    /**
+     * Get the authorized subject name strategies for schemas in a given namespace as defined in its topic validator
+     * constraints.
+     *
+     * @param namespace The namespace
+     * @return A list of valid subject name strategies
+     */
+    private ValidSubjectNameStrategies getValidSubjectNameStrategies(Namespace namespace) {
+        if (namespace.getSpec().getTopicValidator() != null) {
+            return namespace.getSpec().getTopicValidator().getValidSubjectNameStrategies();
+        }
+
+        return new ValidSubjectNameStrategies(
+                List.of(SubjectNameStrategy.DEFAULT), List.of(SubjectNameStrategy.DEFAULT));
+    }
+
+    /**
+     * Validates that a schema subject name follows the specified naming strategy.
+     *
+     * @param schema The schema for which a subject name needs to be validated
+     * @return true if the subject name is valid for any of the strategies, false otherwise
+     */
+    public static boolean validateSubjectName(ValidSubjectNameStrategies validStrategies, Schema schema) {
+        if (schema.getMetadata().getName().endsWith("-key")) {
+            return validStrategies.validKeyStrategies.stream()
+                    .anyMatch(strategy -> validateSubjectNameWithStrategy(strategy, schema));
+        }
+        return validStrategies.all().stream().anyMatch(strategy -> validateSubjectNameWithStrategy(strategy, schema));
+    }
+
+    /**
+     * Validates that a schema subject name follows the specified naming strategy (i.e. topic name, topic record name,
+     * or record name)
+     *
+     * @param strategy The naming strategy for a schema subject name
+     * @param schema The schema to validate
+     * @return true if the subject name is valid for the given strategy, false otherwise
+     * @see <a
+     *     href="https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject">Schema
+     *     Registry strategies</a>
+     */
+    public static boolean validateSubjectNameWithStrategy(SubjectNameStrategy strategy, Schema schema) {
+        String subjectName = schema.getMetadata().getName();
+        Schema.SchemaType schemaType = schema.getSpec().getSchemaType();
+        String schemaContent = schema.getSpec().getSchema();
+        if (subjectName == null || subjectName.trim().isEmpty()) {
+            return false;
+        }
+        switch (strategy) {
+            case TOPIC_NAME:
+                return subjectName.endsWith("-key") || subjectName.endsWith("-value");
+            case TOPIC_RECORD_NAME:
+                Optional<String> recordName = extractRecordName(schemaContent, schemaType);
+                return recordName.isPresent() && subjectName.endsWith("-" + recordName.get());
+            case RECORD_NAME:
+                Optional<String> recordNameOnly = extractRecordName(schemaContent, schemaType);
+                return recordNameOnly.isPresent() && subjectName.equals(recordNameOnly.get());
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Extracts the record name from schema content based on schema type. /!\ Only AVRO schema are handled.
+     * TopicRecordName Strategy will not be valid for any other schema.
+     *
+     * @param schemaContent The schema content as string
+     * @param schemaType The type of schema (AVRO, JSON, PROTOBUF)
+     * @return Optional containing the record name if found
+     */
+    public static Optional<String> extractRecordName(String schemaContent, Schema.SchemaType schemaType) {
+        if (schemaContent == null || schemaContent.trim().isEmpty()) {
+            return Optional.empty();
+        }
+
+        try {
+            if (Objects.requireNonNull(schemaType) == Schema.SchemaType.AVRO) {
+                return Optional.ofNullable(new AvroSchema(schemaContent).name());
+            }
+            log.warn("Unsupported schema type for record name extraction: {}", schemaType);
+            return Optional.empty();
+        } catch (Exception e) {
+            log.error("Failed to extract record name from schema content", e);
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Extracts the topic name from a subject name based on the naming strategy.
+     *
+     * @param subjectName The subject name (assumed to be not empty)
+     * @param strategy The naming strategy
+     * @return The topic name if it can be determined
+     */
+    public static Optional<String> extractTopicName(String subjectName, SubjectNameStrategy strategy) {
+        switch (strategy) {
+            case TOPIC_NAME:
+                return Optional.of(subjectName.replaceAll("(-key|-value)$", ""));
+            case TOPIC_RECORD_NAME:
+                int indexOfLastDash = subjectName.lastIndexOf("-");
+                return (indexOfLastDash == -1)
+                        ? Optional.empty()
+                        : Optional.of(subjectName.substring(0, indexOfLastDash));
+            default:
+                return Optional.empty();
+        }
+    }
+
+    /**
+     * Extracts the topic name from a subject name according to the allowed strategies.
+     *
+     * @param subjectName The subject name (assumed to be not empty)
+     * @param strategies The list of strategies to try
+     * @return The topic name if it can be determined by any of the strategies
+     */
+    public static Optional<String> extractTopicName(String subjectName, List<SubjectNameStrategy> strategies) {
+        for (SubjectNameStrategy strategy : strategies) {
+            Optional<String> topicName = extractTopicName(subjectName, strategy);
+            if (topicName.isPresent()) {
+                return topicName;
+            }
+        }
+        return Optional.empty();
     }
 }
