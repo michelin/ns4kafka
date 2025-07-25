@@ -61,7 +61,7 @@ class SchemaSubjectNameValidatorTest {
     }
 
     @Test
-    void testValidateSubjectName_TopicRecordNameStrategy_Valid() {
+    void shouldValidateSubjectForTopicRecordNameStrategy() {
         String subject = "mytopic-namespace.User";
         String schemaContent = "{\"name\":\"User\", \"namespace\":\"namespace\"}";
         Schema schema = Schema.builder()
