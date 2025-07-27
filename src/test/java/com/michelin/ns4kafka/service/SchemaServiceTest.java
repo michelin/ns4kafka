@@ -736,6 +736,28 @@ class SchemaServiceTest {
         assertFalse(SchemaService.validateSubjectName(nameStrategies, noDashSubjectNameSchema));
     }
 
+    @Test
+    void shouldTestExtractRecordNameWithUnionReference() {
+        String subject = "ns1-subject-com.michelin.kafka.producer.showcase.avro.Avro";
+        String avroSchemaArray =
+                """
+                                                [
+                                                  "io.confluent.examples.avro.Customer",
+                                                  "io.confluent.examples.avro.Product",
+                                                  "io.confluent.examples.avro.Payment"
+                                                ]
+                                """;
+
+        Schema reference = Schema.builder()
+                .metadata(Metadata.builder().name(subject).build())
+                .spec(Schema.SchemaSpec.builder().schema(avroSchemaArray).build())
+                .build();
+
+        var recordName = SchemaService.extractRecordName(reference.getSpec().getSchema(), Schema.SchemaType.AVRO);
+        assertTrue(recordName.isPresent());
+        assertEquals(SchemaService.UNION_AVRO_RECORD_CLASS_NAME, recordName.get());
+    }
+
     private Namespace buildNamespace() {
         return Namespace.builder()
                 .metadata(
