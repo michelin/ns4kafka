@@ -199,7 +199,7 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
                                 + "\"type\":[\"null\",\"string\"],"
                                 + "\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\","
                                 + "\"type\":[\"null\","
-                                + "{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null"
+                                + "{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
                                 + "\"doc\":\"Date of birth of the person\"}]}")
                         .build())
                 .build();
