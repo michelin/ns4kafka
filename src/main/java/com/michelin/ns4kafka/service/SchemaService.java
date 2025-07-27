@@ -22,6 +22,8 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaReference
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaResource;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaSubjectName;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
@@ -53,6 +55,10 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Singleton
 public class SchemaService {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    public static final String UNION_AVRO_RECORD_CLASS_NAME = "com.michelin.ns4kafka.UnionAvroRecord";
 
     @Inject
     private AclService aclService;
@@ -475,8 +481,8 @@ public class SchemaService {
      * @param strategy The naming strategy for a schema subject name
      * @param schema The schema to validate
      * @return true if the subject name is valid for the given strategy, false otherwise
-     * @see <a
-     *     href="https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject">Schema
+     * @see <a href=
+     *     "https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject">Schema
      *     Registry strategies</a>
      */
     public static boolean validateSubjectNameWithStrategy(SubjectNameStrategy strategy, Schema schema) {
@@ -491,7 +497,9 @@ public class SchemaService {
                 return subjectName.endsWith("-key") || subjectName.endsWith("-value");
             case TOPIC_RECORD_NAME:
                 Optional<String> recordName = extractRecordName(schemaContent, schemaType);
-                return recordName.isPresent() && subjectName.endsWith("-" + recordName.get());
+                return recordName.isPresent()
+                        && (recordName.get() == UNION_AVRO_RECORD_CLASS_NAME
+                                || subjectName.endsWith("-" + recordName.get()));
             case RECORD_NAME:
                 Optional<String> recordNameOnly = extractRecordName(schemaContent, schemaType);
                 return recordNameOnly.isPresent() && subjectName.equals(recordNameOnly.get());
@@ -515,7 +523,7 @@ public class SchemaService {
 
         try {
             if (Objects.requireNonNull(schemaType) == Schema.SchemaType.AVRO) {
-                return Optional.ofNullable(new AvroSchema(schemaContent).name());
+                return extractAvroRecordName(schemaContent);
             }
             log.warn("Unsupported schema type for record name extraction: {}", schemaType);
             return Optional.empty();
@@ -523,6 +531,26 @@ public class SchemaService {
             log.error("Failed to extract record name from schema content", e);
             return Optional.empty();
         }
+    }
+
+    private static Optional<String> extractAvroRecordName(String schemaContent) {
+        try {
+            JsonNode schemaNode = OBJECT_MAPPER.readTree(schemaContent);
+            String recordClassName = "";
+            if (schemaNode.isArray() && schemaNode.size() > 0) {
+                return Optional.of(UNION_AVRO_RECORD_CLASS_NAME);
+            }
+            if (schemaNode.has("namespace")) {
+                recordClassName += schemaNode.get("namespace").asText() + ".";
+            }
+            if (schemaNode.has("name")) {
+                recordClassName += schemaNode.get("name").asText();
+            }
+            return Optional.of(recordClassName);
+        } catch (Exception e) {
+            log.debug("Failed to parse AVRO schema as JSON", e);
+        }
+        return Optional.empty();
     }
 
     /**
