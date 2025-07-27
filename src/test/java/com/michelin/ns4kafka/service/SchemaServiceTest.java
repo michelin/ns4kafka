@@ -510,7 +510,7 @@ class SchemaServiceTest {
         Schema schema = Schema.builder()
                 .metadata(Metadata.builder().name("mytopic-User").build())
                 .spec(Schema.SchemaSpec.builder()
-                        .schema("{\"name\":\"User\"}")
+                        .schema("{\"name\":\"User\",\"type\":\"record\",\"fields\":[]}")
                         .schemaType(Schema.SchemaType.AVRO)
                         .build())
                 .build();
@@ -640,7 +640,7 @@ class SchemaServiceTest {
     @Test
     void shouldValidateSubjectForTopicRecordNameStrategy() {
         String subject = "mytopic-namespace.User";
-        String schemaContent = "{\"name\":\"User\", \"namespace\":\"namespace\"}";
+        String schemaContent = "{\"namespace\":\"namespace\",\"name\":\"User\",\"type\":\"record\",\"fields\":[]}";
         Schema schema = Schema.builder()
                 .metadata(Metadata.builder().name(subject).build())
                 .spec(Schema.SchemaSpec.builder().schema(schemaContent).build())
@@ -655,7 +655,7 @@ class SchemaServiceTest {
     @Test
     void shouldValidateSubjectNameForRecordNameStrategy() {
         String subject = "User";
-        String schemaContent = "{\"name\":\"User\"}";
+        String schemaContent = "{\"name\":\"User\",\"type\":\"record\",\"fields\":[]}";
         Schema schema = Schema.builder()
                 .metadata(Metadata.builder().name(subject).build())
                 .spec(Schema.SchemaSpec.builder().schema(schemaContent).build())
