@@ -62,6 +62,7 @@ public class Ns4KafkaProperties {
     @ConfigurationProperties("akhq")
     public static class AkhqProperties {
         private String groupLabel;
+        private String groupDelimiter = ",";
         private Map<AccessControlEntry.ResourceType, String> roles;
         private List<String> formerRoles;
 

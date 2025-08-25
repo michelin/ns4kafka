@@ -122,13 +122,14 @@ ns4kafka:
       - 'users/reset-password'
     # AKHQ <= 0.24.0
     former-roles:
-      - 'connect/read'
-      - 'connect/state/update'
-      - 'group/read'
-      - 'registry/read'
-      - 'topic/data/read'
-      - 'topic/read'
-    group-label: 'support-group'
+    - "connect/read"
+    - "connect/state/update"
+    - "group/read"
+    - "registry/read"
+    - "topic/data/read"
+    - "topic/read"
+    group-label: "support-group"
+    group-delimiter: ","
     roles:
       CONNECT: 'connect-rw'
       CONNECT_CLUSTER: 'connect-cluster-read'
