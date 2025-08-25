@@ -79,7 +79,7 @@ class AkhqClaimProviderControllerV3Test {
     }
 
     @Test
-    void shouldGenerateClaimHappyPath() {
+    void shouldGenerateClaim() {
         Namespace ns1Cluster1 = Namespace.builder()
                 .metadata(Metadata.builder()
                         .name("ns1")
@@ -216,7 +216,53 @@ class AkhqClaimProviderControllerV3Test {
     }
 
     @Test
-    void shouldGenerateClaimNoPermissions() {
+    void shouldGenerateClaimWithMultipleSupportGroupsAndOverloadedDelimiter() {
+        Namespace ns1Cluster1 = Namespace.builder()
+                .metadata(Metadata.builder()
+                        .name("ns1")
+                        .cluster("cluster1")
+                        .labels(Map.of("support-group", "GP-PROJECT1-DEV;GP-PROJECT1-SUPPORT;GP-PROJECT1-OPS"))
+                        .build())
+                .build();
+
+        AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
+                .metadata(Metadata.builder().cluster("cluster1").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .resource("project1_t.")
+                        .build())
+                .build();
+
+        Ns4KafkaProperties.AkhqProperties akhqProperties = buildAkhqProperties();
+        akhqProperties.setGroupDelimiter(";");
+
+        when(ns4KafkaProperties.getAkhq()).thenReturn(akhqProperties);
+        when(managedClusters.stream())
+                .thenReturn(
+                        Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
+        when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
+        when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
+
+        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+                .groups(List.of("GP-PROJECT1-SUPPORT"))
+                .build();
+
+        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+
+        assertEquals(1, actual.getGroups().size());
+
+        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
+                actual.getGroups().get("group");
+        assertEquals(2, groups.size());
+        assertEquals("topic-read", groups.getFirst().getRole());
+        assertEquals(List.of("^\\Qproject1_t.\\E.*$"), groups.getFirst().getPatterns());
+        assertEquals(List.of("^cluster1$"), groups.getFirst().getClusters());
+        assertEquals("registry-read", groups.get(1).getRole());
+    }
+
+    @Test
+    void shouldNotGenerateClaim() {
         Namespace ns1Cluster1 = Namespace.builder()
                 .metadata(Metadata.builder()
                         .name("ns1")
@@ -233,6 +279,39 @@ class AkhqClaimProviderControllerV3Test {
 
         AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT2-SUPPORT"))
+                .build();
+
+        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+        assertNull(actual.getGroups());
+    }
+
+    @Test
+    void shouldNotGenerateClaimWithWrongDelimiter() {
+        Namespace ns1Cluster1 = Namespace.builder()
+                .metadata(Metadata.builder()
+                        .name("ns1")
+                        .cluster("cluster1")
+                        .labels(Map.of("support-group", "GP-PROJECT1-DEV//GP-PROJECT1-SUPPORT//GP-PROJECT1-OPS"))
+                        .build())
+                .build();
+
+        AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
+                .metadata(Metadata.builder().cluster("cluster1").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .resource("project1_t.")
+                        .build())
+                .build();
+
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
+        when(managedClusters.stream())
+                .thenReturn(
+                        Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
+        when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
+
+        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+                .groups(List.of("GP-PROJECT1-SUPPORT"))
                 .build();
 
         AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
@@ -721,6 +800,7 @@ class AkhqClaimProviderControllerV3Test {
     private Ns4KafkaProperties.AkhqProperties buildAkhqProperties() {
         Ns4KafkaProperties.AkhqProperties akhqProperties = new Ns4KafkaProperties.AkhqProperties();
         akhqProperties.setGroupLabel("support-group");
+        akhqProperties.setGroupDelimiter(",");
         akhqProperties.setAdminGroup("GP-ADMIN");
         akhqProperties.setRoles(Map.of(
                 AccessControlEntry.ResourceType.TOPIC,
