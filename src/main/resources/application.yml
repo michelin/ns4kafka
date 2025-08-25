@@ -125,6 +125,7 @@ ns4kafka:
     - "topic/data/read"
     - "topic/read"
     group-label: "support-group"
+    group-delimiter: ","
     roles:
       CONNECT: "connect-rw"
       CONNECT_CLUSTER: "connect-cluster-read"

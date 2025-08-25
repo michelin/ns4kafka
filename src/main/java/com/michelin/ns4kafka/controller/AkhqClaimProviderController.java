@@ -322,7 +322,8 @@ public class AkhqClaimProviderController {
     private List<AccessControlEntry> getAclsByGroups(List<String> groups) {
         return namespaceService.findAll().stream()
                 .filter(namespace -> namespace.getMetadata().getLabels() != null
-                        // Split by comma the groupLabel to support multiple groups and compare with user groups
+                        // Split the namespace groups by the groupDelimiter to support multiple groups and compare with
+                        // the user groups
                         && !Collections.disjoint(
                                 groups,
                                 List.of(namespace
@@ -330,7 +331,7 @@ public class AkhqClaimProviderController {
                                         .getLabels()
                                         .getOrDefault(
                                                 ns4KafkaProperties.getAkhq().getGroupLabel(), "_")
-                                        .split(","))))
+                                        .split(ns4KafkaProperties.getAkhq().getGroupDelimiter()))))
                 .flatMap(namespace -> aclService.findAllGrantedToNamespace(namespace).stream())
                 .collect(Collectors.toList());
     }
