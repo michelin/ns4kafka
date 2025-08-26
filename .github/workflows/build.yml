@@ -53,6 +53,13 @@ jobs:
         with:
           report_paths: '**/build/test-results/test/TEST-*.xml'
 
+      - name: Sonar
+        if: github.event.pull_request.head.repo.fork == false
+        run: ./gradlew jacocoTestReport sonar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
       - name: Grype source code
         id: grype_source_code
         uses: anchore/scan-action@v6
@@ -78,13 +85,6 @@ jobs:
         with:
           name: ns4kafka
           path: ${{ github.workspace }}/build/libs/ns4kafka-${{ steps.metadata.outputs.current_version }}.jar
-
-      - name: Sonar
-        if: github.event.pull_request.head.repo.fork == false
-        run: ./gradlew jacocoTestReport sonar
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Docker
         run: ./gradlew dockerBuild
