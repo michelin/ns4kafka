@@ -838,7 +838,8 @@ class TopicControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.listUnsynchronizedTopicsByWildcardName(ns, "test.topic1")).thenReturn(List.of(topic1));
+        when(topicService.listUnsynchronizedTopicsByWildcardName(ns, "test.topic1"))
+                .thenReturn(List.of(topic1));
         doNothing().when(topicService).importTopics(any(), any());
 
         List<Topic> actual = topicController.importResources("test", "test.topic1", false);
@@ -848,14 +849,10 @@ class TopicControllerTest {
                         && t.getStatus().getMessage().equals("Imported from cluster")
                         && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)));
 
-        assertFalse(actual.stream()
-                .anyMatch(t -> t.getMetadata().getName().equals("test.topic2")));
+        assertFalse(actual.stream().anyMatch(t -> t.getMetadata().getName().equals("test.topic2")));
 
-        verify(topicService)
-                .importTopics(
-                        eq(ns),
-                        argThat(topics -> topics.stream()
-                                .anyMatch(t -> t.getMetadata().getName().equals("test.topic1"))));
+        verify(topicService).importTopics(eq(ns), argThat(topics -> topics.stream()
+                .anyMatch(t -> t.getMetadata().getName().equals("test.topic1"))));
     }
 
     @Test

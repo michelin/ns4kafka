@@ -1076,7 +1076,8 @@ class TopicServiceTest {
     }
 
     @Test
-    void shouldListUnsynchronizedTopicNamesWithWildcardParameter() throws ExecutionException, InterruptedException, TimeoutException {
+    void shouldListUnsynchronizedTopicNamesWithWildcardParameter()
+            throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("namespace").cluster("local").build())
                 .build();
@@ -1110,7 +1111,8 @@ class TopicServiceTest {
     }
 
     @Test
-    void shouldListUnsynchronizedTopicNamesWithNameParameter() throws ExecutionException, InterruptedException, TimeoutException {
+    void shouldListUnsynchronizedTopicNamesWithNameParameter()
+            throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("namespace").cluster("local").build())
                 .build();
