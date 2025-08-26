@@ -226,15 +226,17 @@ public class TopicService {
         boolean isConfluentCloud =
                 topicCluster.isPresent() && topicCluster.get().isConfluentCloud();
 
+        String existingCleanUpPolicy = Optional.ofNullable(
+                        existingTopic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG))
+                .orElse(CLEANUP_POLICY_DELETE);
+        String newCleanUpPolicy = Optional.ofNullable(
+                        newTopic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG))
+                .orElse(CLEANUP_POLICY_DELETE);
+
         if (isConfluentCloud
-                && existingTopic
-                        .getSpec()
-                        .getConfigs()
-                        .get(CLEANUP_POLICY_CONFIG)
-                        .equals(CLEANUP_POLICY_DELETE)
-                && newTopic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG).equals(CLEANUP_POLICY_COMPACT)) {
-            validationErrors.add(
-                    invalidTopicCleanupPolicy(newTopic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG)));
+                && existingCleanUpPolicy.equals(CLEANUP_POLICY_DELETE)
+                && newCleanUpPolicy.equals(CLEANUP_POLICY_COMPACT)) {
+            validationErrors.add(invalidTopicCleanupPolicy(newCleanUpPolicy));
         }
 
         return validationErrors;
@@ -316,13 +318,16 @@ public class TopicService {
     /**
      * Validate if a topic can be eligible for records deletion.
      *
-     * @param deleteRecordsTopic The topic to delete records
+     * @param topic The topic to delete records
      * @return A list of errors
      */
-    public List<String> validateDeleteRecordsTopic(Topic deleteRecordsTopic) {
+    public List<String> validateDeleteRecordsTopic(Topic topic) {
         List<String> errors = new ArrayList<>();
 
-        if (deleteRecordsTopic.getSpec().getConfigs().get("cleanup.policy").equals("compact")) {
+        String cleanUpPolicy = Optional.ofNullable(topic.getSpec().getConfigs().get(CLEANUP_POLICY_CONFIG))
+                .orElse(CLEANUP_POLICY_DELETE);
+
+        if (cleanUpPolicy.equals(CLEANUP_POLICY_COMPACT)) {
             errors.add(invalidTopicDeleteRecords());
         }
 

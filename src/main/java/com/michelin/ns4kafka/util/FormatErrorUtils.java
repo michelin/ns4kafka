@@ -22,6 +22,7 @@ import static com.michelin.ns4kafka.util.BytesUtils.BYTE;
 import static com.michelin.ns4kafka.util.BytesUtils.GIBIBYTE;
 import static com.michelin.ns4kafka.util.BytesUtils.KIBIBYTE;
 import static com.michelin.ns4kafka.util.BytesUtils.MEBIBYTE;
+import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.connector.Connector;
@@ -766,7 +767,7 @@ public class FormatErrorUtils {
         return String.format(
                 INVALID_FIELD,
                 invalidCleanupPolicyValue,
-                "cleanup.policy",
+                CLEANUP_POLICY_CONFIG,
                 "altering topic cleanup policy from delete to compact is not currently supported in Confluent Cloud. "
                         + "Please create a new topic with compact policy instead");
     }
