@@ -1068,11 +1068,75 @@ class TopicServiceTest {
         when(topicAsyncExecutor.collectBrokerTopicsFromNames(List.of("ns-topic1", "ns-topic2")))
                 .thenReturn(Map.of("ns-topic1", t1, "ns-topic2", t2));
 
-        List<Topic> actual = topicService.listUnsynchronizedTopics(ns);
+        List<Topic> actual = topicService.listUnsynchronizedTopicsByWildcardName(ns, "*");
 
         assertEquals(2, actual.size());
         assertTrue(actual.contains(t1));
         assertTrue(actual.contains(t2));
+    }
+
+    @Test
+    void shouldListUnsynchronizedTopicNamesWithWildcardParameter() throws ExecutionException, InterruptedException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .build();
+
+        Topic t1 = Topic.builder()
+                .metadata(Metadata.builder().name("ns-topic1").build())
+                .build();
+
+        Topic t2 = Topic.builder()
+                .metadata(Metadata.builder().name("ns-topic2").build())
+                .build();
+
+        Topic t3 = Topic.builder()
+                .metadata(Metadata.builder().name("ns-topic12").build())
+                .build();
+
+        when(applicationContext.getBean(eq(TopicAsyncExecutor.class), any())).thenReturn(topicAsyncExecutor);
+        when(topicAsyncExecutor.listBrokerTopicNames()).thenReturn(List.of("ns-topic1", "ns-topic2", "ns-topic12"));
+        when(aclService.isNamespaceOwnerOfResource(any(), any(), any()))
+                .thenReturn(true)
+                .thenReturn(true)
+                .thenReturn(true);
+        when(topicAsyncExecutor.collectBrokerTopicsFromNames(List.of("ns-topic1", "ns-topic2", "ns-topic12")))
+                .thenReturn(Map.of("ns-topic1", t1, "ns-topic2", t2, "ns-topic12", t3));
+
+        List<Topic> actual = topicService.listUnsynchronizedTopicsByWildcardName(ns, "ns-topic1*");
+
+        assertEquals(2, actual.size());
+        assertTrue(actual.contains(t1));
+        assertTrue(actual.contains(t3));
+    }
+
+    @Test
+    void shouldListUnsynchronizedTopicNamesWithNameParameter() throws ExecutionException, InterruptedException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .build();
+
+        Topic t1 = Topic.builder()
+                .metadata(Metadata.builder().name("ns-topic1").build())
+                .build();
+
+        Topic t2 = Topic.builder()
+                .metadata(Metadata.builder().name("ns-topic2").build())
+                .build();
+
+        when(applicationContext.getBean(eq(TopicAsyncExecutor.class), any())).thenReturn(topicAsyncExecutor);
+        when(topicAsyncExecutor.listBrokerTopicNames()).thenReturn(List.of("ns-topic1", "ns-topic2", "ns2-topic1"));
+        when(aclService.isNamespaceOwnerOfResource(any(), any(), any()))
+                .thenReturn(true)
+                .thenReturn(true)
+                .thenReturn(false);
+        when(topicAsyncExecutor.collectBrokerTopicsFromNames(List.of("ns-topic1", "ns-topic2")))
+                .thenReturn(Map.of("ns-topic1", t1, "ns-topic2", t2));
+
+        List<Topic> actual = topicService.listUnsynchronizedTopicsByWildcardName(ns, "ns-topic1");
+
+        assertEquals(1, actual.size());
+        assertTrue(actual.contains(t1));
+        assertFalse(actual.contains(t2));
     }
 
     @Test

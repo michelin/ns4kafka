@@ -252,32 +252,37 @@ public class TopicService {
     }
 
     /**
-     * List the topics that are not synchronized to Ns4Kafka by namespace.
+     * List all topics of a given namespace that are not synchronized to Ns4Kafka, filtered by name parameter.
      *
      * @param namespace The namespace
+     * @param name The name parameter
      * @return The list of topics
      * @throws ExecutionException Any execution exception
      * @throws InterruptedException Any interrupted exception
      * @throws TimeoutException Any timeout exception
      */
-    public List<Topic> listUnsynchronizedTopics(Namespace namespace)
+    public List<Topic> listUnsynchronizedTopicsByWildcardName(Namespace namespace, String name)
             throws ExecutionException, InterruptedException, TimeoutException {
         TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(
                 TopicAsyncExecutor.class,
                 Qualifiers.byName(namespace.getMetadata().getCluster()));
 
-        // List topics for this namespace
+        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
         List<String> topicNames = listUnsynchronizedTopicNames(namespace);
 
         // Get topics definitions
         Collection<Topic> unsynchronizedTopics =
                 topicAsyncExecutor.collectBrokerTopicsFromNames(topicNames).values();
 
-        return new ArrayList<>(unsynchronizedTopics);
+        return new ArrayList<>(unsynchronizedTopics)
+                .stream()
+                        .filter(topic -> RegexUtils.isResourceCoveredByRegex(
+                                topic.getMetadata().getName(), nameFilterPatterns))
+                        .toList();
     }
 
     /**
-     * List the topic names that are not synchronized to Ns4Kafka by namespace.
+     * List all topic names of a given namespace that are not synchronized to Ns4Kafka.
      *
      * @param namespace The namespace
      * @return The list of topic names

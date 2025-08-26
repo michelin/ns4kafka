@@ -245,17 +245,21 @@ public class TopicController extends NamespacedResourceController {
      * Import unsynchronized topics.
      *
      * @param namespace The namespace
+     * @param name The name parameter
      * @param dryrun Is dry run mode or not?
      * @return The list of imported topics
      * @throws ExecutionException Any execution exception
      * @throws InterruptedException Any interrupted exception
      * @throws TimeoutException Any timeout exception
      */
-    @Post("/_/import{?dryrun}")
-    public List<Topic> importResources(String namespace, @QueryValue(defaultValue = "false") boolean dryrun)
+    @Post("/_/import")
+    public List<Topic> importResources(
+            String namespace,
+            @QueryValue(defaultValue = "*") String name,
+            @QueryValue(defaultValue = "false") boolean dryrun)
             throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = getNamespace(namespace);
-        List<Topic> unsynchronizedTopics = topicService.listUnsynchronizedTopics(ns);
+        List<Topic> unsynchronizedTopics = topicService.listUnsynchronizedTopicsByWildcardName(ns, name);
 
         if (dryrun) {
             return unsynchronizedTopics;
