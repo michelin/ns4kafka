@@ -19,7 +19,6 @@
 package com.michelin.ns4kafka.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -827,16 +826,6 @@ class TopicControllerTest {
                         .build())
                 .build();
 
-        Topic topic2 = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic2").build())
-                .spec(Topic.TopicSpec.builder()
-                        .replicationFactor(3)
-                        .partitions(3)
-                        .configs(
-                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "2", "retention.ms", "60000"))
-                        .build())
-                .build();
-
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.listUnsynchronizedTopicsByWildcardName(ns, "test.topic1"))
                 .thenReturn(List.of(topic1));
@@ -848,8 +837,6 @@ class TopicControllerTest {
                 .anyMatch(t -> t.getMetadata().getName().equals("test.topic1")
                         && t.getStatus().getMessage().equals("Imported from cluster")
                         && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)));
-
-        assertFalse(actual.stream().anyMatch(t -> t.getMetadata().getName().equals("test.topic2")));
 
         verify(topicService).importTopics(eq(ns), argThat(topics -> topics.stream()
                 .anyMatch(t -> t.getMetadata().getName().equals("test.topic1"))));
