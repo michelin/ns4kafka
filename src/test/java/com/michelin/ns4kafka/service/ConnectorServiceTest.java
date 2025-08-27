@@ -1089,8 +1089,8 @@ class ConnectorServiceTest {
         // init connectorAsyncExecutor
         ConnectorAsyncExecutor connectorAsyncExecutor = mock(ConnectorAsyncExecutor.class);
         when(applicationContext.getBean(
-                ConnectorAsyncExecutor.class,
-                Qualifiers.byName(ns.getMetadata().getCluster())))
+                        ConnectorAsyncExecutor.class,
+                        Qualifiers.byName(ns.getMetadata().getCluster())))
                 .thenReturn(connectorAsyncExecutor);
 
         // list of existing broker connectors
@@ -1142,10 +1142,10 @@ class ConnectorServiceTest {
         when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect2"))
                 .thenReturn(true);
         when(aclService.isNamespaceOwnerOfResource(
-                "namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
+                        "namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
                 .thenReturn(true);
         when(aclService.isNamespaceOwnerOfResource(
-                "namespace", AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
+                        "namespace", AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
                 .thenReturn(false);
 
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
