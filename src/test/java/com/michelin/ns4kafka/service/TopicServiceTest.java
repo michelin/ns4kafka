@@ -139,11 +139,9 @@ class TopicServiceTest {
                         .build())
                 .build();
 
-        // no ns4kfk access control entries
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
                 .thenReturn(List.of());
 
-        // no ns4kfk topics
         when(topicRepository.findAllForCluster("local")).thenReturn(List.of());
 
         assertTrue(topicService.findAllForNamespace(ns).isEmpty());
@@ -176,7 +174,6 @@ class TopicServiceTest {
 
         when(topicRepository.findAllForCluster("local")).thenReturn(List.of(t1, t2, t3, t4));
 
-        // no ns4kfk access control entries
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
                 .thenReturn(List.of());
 
@@ -762,7 +759,7 @@ class TopicServiceTest {
         when(topicRepository.findAllForCluster("local")).thenReturn(allTopics);
         when(aclService.isResourceCoveredByAcls(any(), any())).thenReturn(true);
 
-        // find one or multiple topics with wildcard
+        // Find one or multiple topics with wildcard
         assertEquals(List.of(topic1, topic2, topic3), topicService.findByWildcardName(ns, "prefix1.*"));
         assertEquals(List.of(topic1, topic2, topic3), topicService.findByWildcardName(ns, "prefix1.topic?"));
         assertEquals(List.of(topic1, topic4, topic6), topicService.findByWildcardName(ns, "*topic1"));
@@ -775,7 +772,7 @@ class TopicServiceTest {
         assertEquals(allTopics, topicService.findByWildcardName(ns, "********"));
         assertEquals(List.of(topic6), topicService.findByWildcardName(ns, "??????")); // 6-characters topic
 
-        // find no topics with wildcard
+        // Find no topics with wildcard
         assertTrue(topicService.findByWildcardName(ns, "prefix3.*").isEmpty()); // no ACL
         assertTrue(topicService.findByWildcardName(ns, "prefix4.*").isEmpty()); // doesn't exist
         assertTrue(topicService.findByWildcardName(ns, "*.???").isEmpty());
@@ -799,6 +796,18 @@ class TopicServiceTest {
                 List.of("Invalid \"delete records\" operation: cannot delete records on a compacted topic. "
                         + "Please delete and recreate the topic."),
                 actual);
+    }
+
+    @Test
+    void shouldValidateDeleteRecordsWhenEmptyCleanUpPolicy() {
+        Topic topic = Topic.builder()
+                .metadata(Metadata.builder().name("project1.topic").build())
+                .spec(Topic.TopicSpec.builder().configs(Collections.emptyMap()).build())
+                .build();
+
+        List<String> actual = topicService.validateDeleteRecordsTopic(topic);
+
+        assertEquals(0, actual.size());
     }
 
     @Test
@@ -911,6 +920,39 @@ class TopicServiceTest {
                         + "from delete to compact is not currently supported in Confluent Cloud. "
                         + "Please create a new topic with compact policy instead."),
                 actual);
+    }
+
+    @Test
+    void shouldValidateUpdateTopicWhenEmptyCleanUpPolicy() {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .build();
+
+        Topic existing = Topic.builder()
+                .metadata(Metadata.builder().name("test.topic").build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("min.insync.replicas", "2", "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(Metadata.builder().name("test.topic").build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of("min.insync.replicas", "2", "retention.ms", "70000"))
+                        .build())
+                .build();
+
+        when(managedClusterProperties.stream())
+                .thenReturn(Stream.of(
+                        new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
+
+        List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
+
+        assertEquals(0, actual.size());
     }
 
     @Test
