@@ -1078,6 +1078,88 @@ class ConnectorServiceTest {
     }
 
     @Test
+    void shouldListUnsynchronizedConnectorsWithNameParameter() {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .spec(NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        // init connectorAsyncExecutor
+        ConnectorAsyncExecutor connectorAsyncExecutor = mock(ConnectorAsyncExecutor.class);
+        when(applicationContext.getBean(
+                ConnectorAsyncExecutor.class,
+                Qualifiers.byName(ns.getMetadata().getCluster())))
+                .thenReturn(connectorAsyncExecutor);
+
+        // list of existing broker connectors
+        Connector c1 = Connector.builder()
+                .metadata(Metadata.builder().name("ns-connect1").build())
+                .build();
+
+        Connector c2 = Connector.builder()
+                .metadata(Metadata.builder().name("ns-connect2").build())
+                .build();
+
+        Connector c3 = Connector.builder()
+                .metadata(Metadata.builder().name("ns1-connect1").build())
+                .build();
+
+        Connector c4 = Connector.builder()
+                .metadata(Metadata.builder().name("ns2-connect1").build())
+                .build();
+
+        List<AccessControlEntry> acls = List.of(
+                AccessControlEntry.builder()
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .permission(AccessControlEntry.Permission.OWNER)
+                                .grantedTo("namespace")
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                                .resource("ns-")
+                                .build())
+                        .build(),
+                AccessControlEntry.builder()
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .permission(AccessControlEntry.Permission.OWNER)
+                                .grantedTo("namespace")
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                                .resource("ns1-connect1")
+                                .build())
+                        .build());
+
+        when(connectorAsyncExecutor.collectBrokerConnectors("local-name"))
+                .thenReturn(Flux.fromIterable(List.of(c1, c2, c3, c4)));
+
+        // list of existing broker connects
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1, c2, c3, c4));
+
+        // list of existing Ns4Kafka access control entries
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
+                .thenReturn(true);
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect2"))
+                .thenReturn(true);
+        when(aclService.isNamespaceOwnerOfResource(
+                "namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
+                .thenReturn(true);
+        when(aclService.isNamespaceOwnerOfResource(
+                "namespace", AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
+                .thenReturn(false);
+
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
+                .thenReturn(acls);
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1));
+        when(aclService.isResourceCoveredByAcls(acls, "ns-connect1")).thenReturn(true);
+
+        StepVerifier.create(connectorService.listUnsynchronizedConnectorsByWildcardName(ns, "ns-*"))
+                .consumeNextWith(connector ->
+                        assertEquals("ns-connect2", connector.getMetadata().getName()))
+                .verifyComplete();
+    }
+
+    @Test
     void shouldDeleteConnector() {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("namespace").cluster("local").build())
