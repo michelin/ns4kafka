@@ -715,7 +715,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void shouldImportTopic() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldImportTopics() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("test").cluster("local").build())
                 .spec(NamespaceSpec.builder()
@@ -744,10 +744,10 @@ class TopicControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.listUnsynchronizedTopics(ns)).thenReturn(List.of(topic1, topic2));
+        when(topicService.listUnsynchronizedTopicsByWildcardName(ns, "*")).thenReturn(List.of(topic1, topic2));
         doNothing().when(topicService).importTopics(any(), any());
 
-        List<Topic> actual = topicController.importResources("test", false);
+        List<Topic> actual = topicController.importResources("test", "*", false);
 
         assertTrue(actual.stream()
                 .anyMatch(t -> t.getMetadata().getName().equals("test.topic1")
@@ -798,13 +798,48 @@ class TopicControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.listUnsynchronizedTopics(ns)).thenReturn(List.of(topic1, topic2));
+        when(topicService.listUnsynchronizedTopicsByWildcardName(ns, "*")).thenReturn(List.of(topic1, topic2));
 
-        List<Topic> actual = topicController.importResources("test", true);
+        List<Topic> actual = topicController.importResources("test", "*", true);
 
         assertTrue(actual.stream().anyMatch(t -> t.getMetadata().getName().equals("test.topic1")));
 
         assertTrue(actual.stream().anyMatch(t -> t.getMetadata().getName().equals("test.topic2")));
+    }
+
+    @Test
+    void shouldImportTopicWithNameParameter() throws InterruptedException, ExecutionException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .spec(NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(Metadata.builder().name("test.topic1").build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(
+                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "2", "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(topicService.listUnsynchronizedTopicsByWildcardName(ns, "test.topic1"))
+                .thenReturn(List.of(topic1));
+        doNothing().when(topicService).importTopics(any(), any());
+
+        List<Topic> actual = topicController.importResources("test", "test.topic1", false);
+
+        assertTrue(actual.stream()
+                .anyMatch(t -> t.getMetadata().getName().equals("test.topic1")
+                        && t.getStatus().getMessage().equals("Imported from cluster")
+                        && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)));
+
+        verify(topicService).importTopics(eq(ns), argThat(topics -> topics.stream()
+                .anyMatch(t -> t.getMetadata().getName().equals("test.topic1"))));
     }
 
     @Test
