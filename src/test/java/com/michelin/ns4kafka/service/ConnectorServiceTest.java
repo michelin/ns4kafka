@@ -879,7 +879,7 @@ class ConnectorServiceTest {
         // no connects exists into Ns4Kafka
         when(connectorRepository.findAllForCluster("local")).thenReturn(List.of());
 
-        StepVerifier.create(connectorService.listUnsynchronizedConnectors(ns))
+        StepVerifier.create(connectorService.listUnsynchronizedConnectorsByWildcardName(ns, "*"))
                 .consumeNextWith(connector ->
                         assertEquals("ns-connect1", connector.getMetadata().getName()))
                 .consumeNextWith(connector ->
@@ -989,7 +989,8 @@ class ConnectorServiceTest {
         when(aclService.isResourceCoveredByAcls(acls, "ns1-connect2")).thenReturn(true);
         when(aclService.isResourceCoveredByAcls(acls, "ns2-connect1")).thenReturn(false);
 
-        StepVerifier.create(connectorService.listUnsynchronizedConnectors(ns)).verifyComplete();
+        StepVerifier.create(connectorService.listUnsynchronizedConnectorsByWildcardName(ns, "*"))
+                .verifyComplete();
     }
 
     @Test
@@ -1068,7 +1069,7 @@ class ConnectorServiceTest {
         when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1));
         when(aclService.isResourceCoveredByAcls(acls, "ns-connect1")).thenReturn(true);
 
-        StepVerifier.create(connectorService.listUnsynchronizedConnectors(ns))
+        StepVerifier.create(connectorService.listUnsynchronizedConnectorsByWildcardName(ns, "*"))
                 .consumeNextWith(connector ->
                         assertEquals("ns-connect2", connector.getMetadata().getName()))
                 .consumeNextWith(connector ->

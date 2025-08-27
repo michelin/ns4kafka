@@ -659,16 +659,37 @@ class ConnectorControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectorService.listUnsynchronizedConnectors(ns))
+        when(connectorService.listUnsynchronizedConnectorsByWildcardName(ns, "*"))
                 .thenReturn(Flux.fromIterable(List.of(connector1, connector2)));
         when(connectorService.createOrUpdate(connector1)).thenReturn(connector1);
         when(connectorService.createOrUpdate(connector2)).thenReturn(connector2);
 
-        StepVerifier.create(connectorController.importResources("test", false))
+        StepVerifier.create(connectorController.importResources("test", "*", false))
                 .consumeNextWith(connect1 ->
                         assertEquals("connect1", connect1.getMetadata().getName()))
                 .consumeNextWith(connect2 ->
                         assertEquals("connect2", connect2.getMetadata().getName()))
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldImportConnectorsWithNameParameter() {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
+
+        Connector connector1 = Connector.builder()
+                .metadata(Metadata.builder().name("connect1").build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.listUnsynchronizedConnectorsByWildcardName(ns, "connect1"))
+                .thenReturn(Flux.fromIterable(List.of(connector1)));
+        when(connectorService.createOrUpdate(connector1)).thenReturn(connector1);
+
+        StepVerifier.create(connectorController.importResources("test", "connect1", false))
+                .consumeNextWith(connect1 ->
+                        assertEquals("connect1", connect1.getMetadata().getName()))
                 .verifyComplete();
     }
 
@@ -689,10 +710,10 @@ class ConnectorControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectorService.listUnsynchronizedConnectors(ns))
+        when(connectorService.listUnsynchronizedConnectorsByWildcardName(ns, "*"))
                 .thenReturn(Flux.fromIterable(List.of(connector1, connector2)));
 
-        StepVerifier.create(connectorController.importResources("test", true))
+        StepVerifier.create(connectorController.importResources("test", "*", true))
                 .consumeNextWith(connect1 ->
                         assertEquals("connect1", connect1.getMetadata().getName()))
                 .consumeNextWith(connect2 ->

@@ -253,15 +253,18 @@ public class ConnectorService {
     }
 
     /**
-     * List the connectors that are not synchronized to Ns4Kafka by namespace.
+     * List all connectors of a given namespace that are not synchronized to Ns4Kafka, filtered by name parameter.
      *
      * @param namespace The namespace
+     * @param name The name parameter
      * @return The list of connectors
      */
-    public Flux<Connector> listUnsynchronizedConnectors(Namespace namespace) {
+    public Flux<Connector> listUnsynchronizedConnectorsByWildcardName(Namespace namespace, String name) {
         ConnectorAsyncExecutor connectorAsyncExecutor = applicationContext.getBean(
                 ConnectorAsyncExecutor.class,
                 Qualifiers.byName(namespace.getMetadata().getCluster()));
+
+        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
 
         // Get all connectors from all connect clusters
         Stream<String> connectClusters = Stream.concat(
@@ -271,10 +274,16 @@ public class ConnectorService {
 
         return Flux.fromStream(connectClusters).flatMap(connectClusterName -> connectorAsyncExecutor
                 .collectBrokerConnectors(connectClusterName)
-                .filter(connector -> isNamespaceOwnerOfConnect(
-                        namespace, connector.getMetadata().getName()))
                 .filter(connector ->
-                        findByName(namespace, connector.getMetadata().getName()).isEmpty()));
+                        // ...that belongs to this namespace
+                        isNamespaceOwnerOfConnect(
+                                        namespace, connector.getMetadata().getName())
+                                // ...and aren't in Ns4Kafka storage
+                                && findByName(namespace, connector.getMetadata().getName())
+                                        .isEmpty()
+                                // ...and match the name parameter
+                                && RegexUtils.isResourceCoveredByRegex(
+                                        connector.getMetadata().getName(), nameFilterPatterns)));
     }
 
     /**
